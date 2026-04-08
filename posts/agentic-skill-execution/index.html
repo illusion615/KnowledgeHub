@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>智能体技能执行架构设计实践</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <style>
+    /* Article-specific: hero title sizing */
+    .hero-copy h1 {
+      font-size: clamp(2.2rem, 5.5vw, 4rem);
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+      max-width: 18ch;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="← 返回首页" data-en="← Home">← 返回首页</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            Agentic Skill Execution
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#overview">系统概述</a>
+            <a href="#evolution">架构演进</a>
+            <a href="#registry">技能注册</a>
+            <a href="#queue">编排队列</a>
+            <a href="#memory">记忆架构</a>
+            <a href="#adr">架构决策</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Agentic Skill Execution Blueprint</span>
+            <h1>智能体技能执行架构设计实践</h1>
+            <p>
+              在 AI-MUD Episode 1 项目中，我们构建了一个由 7 个 AI 角色组成的智能体编排系统——导演台（Director System）。本文记录了从同步工具调用到两阶段异步 Skill 编排的架构演进过程，以及在生产级场景下对 Agent 行为控制、记忆管理和角色分派的设计实践。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#evolution">查看架构演进</a>
+              <a class="button button-secondary" href="#registry">查看技能注册</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">核心架构</span>
+            <h2>两阶段对话架构</h2>
+            <p>
+              理解阶段只开放读取工具，提交阶段通过 submit_task_plan 异步分派，执行阶段由领域专家角色完成。
+            </p>
+            <ul class="layer-list" style="margin-top: 18px;">
+              <li><span class="layer-number">1</span>理解阶段 — 仅暴露 read 类工具 + submit_task_plan</li>
+              <li><span class="layer-number">2</span>提交阶段 — 验证任务计划并入队 orch_queue</li>
+              <li><span class="layer-number">3</span>执行阶段 — 领域专家角色异步完成任务</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">注册技能</div>
+            <strong>54+</strong>
+            <span>覆盖 read/write/generate 三类操作</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">架构决策</div>
+            <strong>17 ADR</strong>
+            <span>从 ReAct 到两阶段 Skill 编排</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">AI 角色</div>
+            <strong>7</strong>
+            <span>Director, Writer, Storyteller, Supervisor, Artist, Composer, Consultant</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- Section 01 -->
+        <section id="overview" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / Director System Overview</p>
+            <h2>1. 导演台系统概述</h2>
+          </div>
+
+          <div class="insight-grid">
+            <article class="insight-card">
+              <span class="card-index">01</span>
+              <h3>定义</h3>
+              <p>导演台是 AI 驱动的对话式游戏设计工作台。一个人 + AI 七人团队 = 完整的游戏叙事设计团队。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">02</span>
+              <h3>角色体系</h3>
+              <p>7 个 AI 角色各司其职——Director 理解意图、Writer 编写内容、Storyteller 驱动叙事、Supervisor 审核质量、Artist 生成图像、Composer 编曲、Consultant 检索知识。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">03</span>
+              <h3>设计边界</h3>
+              <p>导演台是设计工具而非脚本组装工具。人类给出指令、审核输出、批准结果；AI 团队负责详细生产。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">04</span>
+              <h3>技术栈</h3>
+              <p>FastAPI Python 后端 + 原生 JS 前端，206 个 API 端点，49+ 原子工具，PostgreSQL + pgvector。</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 02 -->
+        <section id="evolution" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Architecture Evolution</p>
+            <h2>2. 架构演进：从同步到两阶段异步</h2>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" aria-expanded="true">2.1 Phase I — 同步意图-规划-执行</button>
+              <div class="subsection-content">
+                <p>早期架构。意图分类 → 结构化计划 → 阻塞执行。简单直接，但随着工具数量增长，上下文窗口成为瓶颈，且用户必须等待整个执行完成。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">2.2 Phase II — ReAct 循环 + 原子工具 (C-128, ADR-01)</button>
+              <div class="subsection-content">
+                <p>DirectorAgent.run() 使用 ReAct（推理-行动）循环，配合 49 个原子工具执行同步 CRUD 操作。每轮推理后选择工具调用，直到任务完成。解决了灵活性问题，但仍然是同步阻塞。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">2.3 Phase III — 两阶段对话架构 (C-153, ADR-17)</button>
+              <div class="subsection-content">
+                <p>当前成熟设计。理解阶段仅暴露 read 类工具 + submit_task_plan 函数，LLM 物理上无法调用写入/生成工具。提交阶段通过函数调用提交任务计划，后端验证并入队后立即返回，解锁聊天界面。用户可以继续对话而不必等待执行完成。</p>
+              </div>
+            </article>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced">
+            <article class="comparison-card">
+              <span class="comparison-label">Understand Phase</span>
+              <h3>理解阶段</h3>
+              <p>Schema 过滤 _build_skill_tool_schemas(categories={"read"}) 确保 LLM 物理上无法调用写入工具。只能阅读项目状态、提问澄清、构建理解。</p>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label">Execution Phase</span>
+              <h3>执行阶段</h3>
+              <p>submit_task_plan({skills, reasoning}) 提交后，_auto_split_bulk_skills() 展开批量操作为逐实体任务，全部入队 orch_queue。对话流立即返回 agent_done，用户继续使用不受阻。</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 03 -->
+        <section id="registry" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / Skill Registry And Dispatch</p>
+            <h2>3. 技能注册与分派机制</h2>
+            <p>
+              SkillRegistry 管理 54+ 技能的元数据。每个技能通过声明式配置定义其类别、执行角色、上下文需求和容错参数。
+            </p>
+          </div>
+
+          <div class="comparison-grid">
+            <article class="comparison-card">
+              <span class="comparison-label">Skill Metadata</span>
+              <h3>技能元数据字段</h3>
+              <div style="overflow-x:auto;">
+                <table style="width:100%;border-collapse:collapse;margin-top:12px;font-size:0.88rem;">
+                  <thead>
+                    <tr style="border-bottom:2px solid rgba(128,128,128,0.2);text-align:left;">
+                      <th style="padding:8px 12px;">字段</th>
+                      <th style="padding:8px 12px;">说明</th>
+                      <th style="padding:8px 12px;">示例</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr style="border-bottom:1px solid rgba(128,128,128,0.1);">
+                      <td style="padding:8px 12px;font-weight:600;">category</td>
+                      <td style="padding:8px 12px;">read/write/generate</td>
+                      <td style="padding:8px 12px;">generate</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(128,128,128,0.1);">
+                      <td style="padding:8px 12px;font-weight:600;">executor_role</td>
+                      <td style="padding:8px 12px;">执行该技能的 AI 角色</td>
+                      <td style="padding:8px 12px;">writer</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(128,128,128,0.1);">
+                      <td style="padding:8px 12px;font-weight:600;">context_prompt_key</td>
+                      <td style="padding:8px 12px;">角色专属的提示模板</td>
+                      <td style="padding:8px 12px;">narrative_rules_context</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(128,128,128,0.1);">
+                      <td style="padding:8px 12px;font-weight:600;">auto_execute</td>
+                      <td style="padding:8px 12px;">是否自动执行</td>
+                      <td style="padding:8px 12px;">true</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(128,128,128,0.1);">
+                      <td style="padding:8px 12px;font-weight:600;">confidence_threshold</td>
+                      <td style="padding:8px 12px;">最低置信度</td>
+                      <td style="padding:8px 12px;">0.7</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(128,128,128,0.1);">
+                      <td style="padding:8px 12px;font-weight:600;">timeout_s</td>
+                      <td style="padding:8px 12px;">超时时间</td>
+                      <td style="padding:8px 12px;">600</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(128,128,128,0.1);">
+                      <td style="padding:8px 12px;font-weight:600;">depends_on</td>
+                      <td style="padding:8px 12px;">前置依赖</td>
+                      <td style="padding:8px 12px;">[scene_read]</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:8px 12px;font-weight:600;">merge_strategy</td>
+                      <td style="padding:8px 12px;">合并策略</td>
+                      <td style="padding:8px 12px;">replace / highest_confidence / append</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="comparison-card next">
+              <span class="comparison-label">Role Dispatch (ADR-16)</span>
+              <h3>三层角色分派</h3>
+              <ol class="flow-list">
+                <li>
+                  <span class="flow-step">1</span>
+                  <div class="flow-copy">
+                    <strong>Intent Layer — Director 理解意图</strong>
+                    <p>Director 角色仅负责理解用户的自然语言指令，构建结构化的任务计划。不执行任何写入或生成操作。</p>
+                  </div>
+                </li>
+                <li>
+                  <span class="flow-step">2</span>
+                  <div class="flow-copy">
+                    <strong>Dispatch Layer — orch_queue 分派</strong>
+                    <p>任务计划通过 submit_task_plan 提交后，orch_queue 根据技能元数据中的 executor_role 将任务路由到对应的领域专家。</p>
+                  </div>
+                </li>
+                <li>
+                  <span class="flow-step">3</span>
+                  <div class="flow-copy">
+                    <strong>Execution Layer — 领域专家角色执行</strong>
+                    <p>Writer、Storyteller、Artist 等角色在各自的上下文中独立执行被分派的技能，结果异步返回。</p>
+                  </div>
+                </li>
+              </ol>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 04 -->
+        <section id="queue" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / Orchestrator Queue</p>
+            <h2>4. 编排队列与容错机制</h2>
+            <p>
+              OrchestratorQueue 是两阶段架构的执行引擎，负责任务的并行调度、去重、超时和熔断。
+            </p>
+          </div>
+
+          <article class="comparison-card">
+            <span class="comparison-label">OrchestratorQueue Features</span>
+            <h3>编排队列核心能力</h3>
+            <ol class="flow-list">
+              <li>
+                <span class="flow-step">1</span>
+                <div class="flow-copy">
+                  <strong>ThreadPoolExecutor(3 workers)</strong>
+                  <p>并行执行能力</p>
+                </div>
+              </li>
+              <li>
+                <span class="flow-step">2</span>
+                <div class="flow-copy">
+                  <strong>Per-conversation queues</strong>
+                  <p>会话级隔离</p>
+                </div>
+              </li>
+              <li>
+                <span class="flow-step">3</span>
+                <div class="flow-copy">
+                  <strong>Dedup by tool_key</strong>
+                  <p>相同技能去重，支持 replace/highest_confidence/append 合并策略</p>
+                </div>
+              </li>
+              <li>
+                <span class="flow-step">4</span>
+                <div class="flow-copy">
+                  <strong>Per-task timeout (600s)</strong>
+                  <p>防止僵死任务</p>
+                </div>
+              </li>
+              <li>
+                <span class="flow-step">5</span>
+                <div class="flow-copy">
+                  <strong>Circuit breaker per model</strong>
+                  <p>模型级熔断器</p>
+                </div>
+              </li>
+              <li>
+                <span class="flow-step">6</span>
+                <div class="flow-copy">
+                  <strong>Dual Semaphore (global=10, per-model=6)</strong>
+                  <p>防止单模型饥饿</p>
+                </div>
+              </li>
+              <li>
+                <span class="flow-step">7</span>
+                <div class="flow-copy">
+                  <strong>PG advisory lock</strong>
+                  <p>项目写入串行化</p>
+                </div>
+              </li>
+            </ol>
+          </article>
+        </section>
+
+        <!-- Section 05 -->
+        <section id="memory" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / Memory Architecture</p>
+            <h2>5. 三层记忆架构</h2>
+          </div>
+
+          <div class="comparison-grid">
+            <article class="comparison-card">
+              <span class="comparison-label">Three-Layer Memory</span>
+              <h3>三层记忆模型</h3>
+              <ul class="layer-list">
+                <li>
+                  <span class="layer-number">1</span>
+                  <strong>Working Memory（短期）</strong> — 当前场景的消息窗口，≤50 轮 / ≤64K tokens，场景切换时重置
+                </li>
+                <li>
+                  <span class="layer-number">2</span>
+                  <strong>Episodic Memory（中期）</strong> — 场景总结、跨场景事件线、关系变化。存储在 episodic_memories 表中
+                </li>
+                <li>
+                  <span class="layer-number">3</span>
+                  <strong>Semantic Memory（长期）</strong> — 世界知识、角色传记、规则。使用 pgvector 余弦相似度搜索
+                </li>
+              </ul>
+            </article>
+
+            <article class="comparison-card next">
+              <span class="comparison-label">RAG Injection</span>
+              <h3>RAG 注入模式</h3>
+              <p>Storyteller 通过函数调用动态检索知识，按以下顺序注入系统提示：</p>
+              <ol class="flow-list">
+                <li>
+                  <span class="flow-step">1</span>
+                  <div class="flow-copy">
+                    <strong>[长期知识] Semantic Memory</strong>
+                    <p>世界观设定、角色传记、游戏规则等持久知识</p>
+                  </div>
+                </li>
+                <li>
+                  <span class="flow-step">2</span>
+                  <div class="flow-copy">
+                    <strong>[中期回忆] Episodic Memory</strong>
+                    <p>之前场景的事件总结、NPC 关系变化、剧情线索</p>
+                  </div>
+                </li>
+                <li>
+                  <span class="flow-step">3</span>
+                  <div class="flow-copy">
+                    <strong>[短期对话] Working Memory</strong>
+                    <p>当前场景的对话窗口和即时上下文</p>
+                  </div>
+                </li>
+              </ol>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 06 -->
+        <section id="adr" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / Key Architecture Decisions</p>
+            <h2>6. 关键架构决策（ADR 精选）</h2>
+          </div>
+
+          <ul class="reference-list">
+            <li><strong>ADR-01</strong> — ReAct-only 架构（后在 C-153 演进为两阶段）</li>
+            <li><strong>ADR-03</strong> — PromptRegistry — DB 是唯一运行时真相源；Markdown 模板仅用于种子/重置</li>
+            <li><strong>ADR-09</strong> — 双模型分离 — storyteller 负责纯叙事，supervisor/writer 负责结构化数据提取</li>
+            <li><strong>ADR-10</strong> — call_role_model() 作为唯一 LLM 调用入口，强制角色消毒</li>
+            <li><strong>ADR-14</strong> — LLM Provider 抽象 — Protocol + 注册表分派（Ollama, OpenAI-compat, Azure）</li>
+            <li><strong>ADR-16</strong> — 角色分派 — 内容类写入技能声明 executor_role，Director 只理解意图不执行</li>
+            <li><strong>ADR-17</strong> — 两阶段对话 — 理解 → submit_task_plan → 异步执行</li>
+            <li><strong>Data-Skill 单一真相源</strong> — 每个数据实体有且仅有一个权威存储和对应的 READ/WRITE Skills</li>
+          </ul>
+        </section>
+      </main>
+
+      <footer>
+        © 2026 智能体技能执行架构设计实践 | 交互式 HTML 页面。
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    var revealTargets = document.querySelectorAll('.load-in, [data-reveal]');
+
+    var revealObserver = new IntersectionObserver(function (entries, observer) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('is-visible');
+        observer.unobserve(entry.target);
+      });
+    }, {
+      threshold: 0.18,
+      rootMargin: '0px 0px -40px 0px'
+    });
+
+    revealTargets.forEach(function (target) { revealObserver.observe(target); });
+
+    var sectionTargets = document.querySelectorAll('main section[id]');
+    var navLinks = document.querySelectorAll('.nav-links a');
+
+    var navObserver = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        var id = entry.target.getAttribute('id');
+        var matchingLink = document.querySelector('.nav-links a[href="#' + id + '"]');
+        if (!matchingLink) return;
+        if (entry.isIntersecting) {
+          navLinks.forEach(function (link) { link.removeAttribute('aria-current'); });
+          matchingLink.setAttribute('aria-current', 'true');
+        }
+      });
+    }, { threshold: 0.4 });
+
+    sectionTargets.forEach(function (section) { navObserver.observe(section); });
+
+    document.querySelectorAll('.load-in').forEach(function (element, index) {
+      element.style.transitionDelay = index * 120 + 'ms';
+    });
+
+    document.querySelectorAll('[data-accordion]').forEach(function (item) {
+      var button = item.querySelector('.subsection-toggle');
+      var content = item.querySelector('.subsection-content');
+      if (!button || !content) return;
+
+      var syncAccordionState = function (targetItem, expanded) {
+        var targetButton = targetItem.querySelector('.subsection-toggle');
+        var targetContent = targetItem.querySelector('.subsection-content');
+        if (!targetButton || !targetContent) return;
+        targetButton.setAttribute('aria-expanded', String(expanded));
+        targetItem.classList.toggle('is-open', expanded);
+        targetContent.setAttribute('aria-hidden', String(!expanded));
+      };
+
+      syncAccordionState(item, item.classList.contains('is-open'));
+
+      button.addEventListener('click', function () {
+        var isExpanded = item.classList.contains('is-open');
+        if (!isExpanded) {
+          document.querySelectorAll('[data-accordion]').forEach(function (otherItem) {
+            if (otherItem === item) return;
+            syncAccordionState(otherItem, false);
+          });
+        }
+        syncAccordionState(item, !isExpanded);
+      });
+    });
+
+    // Apply homepage preferences from localStorage
+    (function () {
+      var root = document.documentElement;
+
+      // Theme
+      var stored = localStorage.getItem('theme');
+      var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var theme = stored || (prefersDark ? 'dark' : 'light');
+      root.setAttribute('data-theme', theme);
+
+      // Language
+      var lang = localStorage.getItem('lang') || 'zh';
+      root.setAttribute('lang', lang === 'zh' ? 'zh-CN' : 'en');
+      document.querySelectorAll('[data-zh][data-en]').forEach(function (el) {
+        var val = el.getAttribute('data-' + lang);
+        if (val !== null) el.innerHTML = val;
+      });
+    })();
+  </script>
+</body>
+</html>

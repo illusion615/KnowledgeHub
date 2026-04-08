@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI-MUD 项目回顾：产品级 Vibe Coding 实践</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(2.4rem, 6vw, 4.5rem);
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+      max-width: 16ch;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="← 返回首页" data-en="← Home">← 返回首页</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            AI-MUD Project Retro
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#what">什么是</a>
+            <a href="#protocol">开发协议</a>
+            <a href="#iterations">迭代历程</a>
+            <a href="#review">代码审查</a>
+            <a href="#lessons">经验教训</a>
+            <a href="#start">启动指南</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Product-Grade Vibe Coding</span>
+            <h1>AI-MUD 项目回顾：产品级 Vibe Coding 实践</h1>
+            <p>
+              AI-MUD Episode 1——"魏晋风骨：士人志"是一个由单人工作室（Boss + AI Copilot）开发的 AI 驱动交互叙事游戏。经历 156+ 轮正式迭代、14 次代码审查和 17 个架构决策，本文回顾了整个项目的历程，分享了如何在保持"vibe coding"敏捷性的同时实现产品级工程质量的经验。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#protocol">查看开发协议</a>
+              <a class="button button-secondary" href="#lessons">查看经验教训</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">核心理念</span>
+            <h2>"Vibe Coding" 不意味着随意</h2>
+            <p>
+              它是用自然语言驱动开发的方式，但必须配合严格的工程纪律才能产出可上线的产品。
+            </p>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">迭代轮次</div>
+            <strong>156+</strong>
+            <span>正式记录的 C-01 至 C-156 轮</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">代码审查</div>
+            <strong>14 次</strong>
+            <span>覆盖 9 个维度的 ABCD 分级</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">测试覆盖</div>
+            <strong>464+</strong>
+            <span>director-api 464+, voice-server 26</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- Section 01 -->
+        <section id="what" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / What Is AI-MUD</p>
+            <h2>1. 什么是 AI-MUD</h2>
+          </div>
+
+          <div class="insight-grid">
+            <article class="insight-card">
+              <span class="card-index">01</span>
+              <h3>项目定义</h3>
+              <p>AI-MUD Episode 1 是一款 AI 驱动的交互式叙事游戏，以魏晋时期为背景，玩家通过文字指令与 AI 叙事者互动。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">02</span>
+              <h3>核心机制</h3>
+              <p>"风骨度"评分系统——玩家的道德选择会触发隐藏剧情线、对话分支和不同结局。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">03</span>
+              <h3>技术栈</h3>
+              <p>Director API (FastAPI) + Image Server + Voice Server + LLM Server + Ollama + PostgreSQL + pgvector。纯原生 JS 前端，无框架。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">04</span>
+              <h3>产品指标</h3>
+              <p>70% 首次会话完成率、≥80% 好评率、&lt;1% 崩溃率、10-20 分钟目标会话时长。</p>
+            </article>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced">
+            <article class="comparison-card">
+              <span class="comparison-label">Scale</span>
+              <h3>项目规模</h3>
+              <p>206 个 API 端点、22 个路由文件、80+ 后端文件、49+ 前端文件（33 JS + 14 CSS）、5 个独立服务进程。</p>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label">Team</span>
+              <h3>一人工作室</h3>
+              <p>所有代码由一个人（Boss）和 AI Copilot 协作完成。没有团队分工，但有严格的角色分离——Boss 做决策和审核，AI 做分析和执行。</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 02 -->
+        <section id="protocol" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Product-Grade Vibe Coding Protocol</p>
+            <h2>2. 产品级 Vibe Coding 开发协议</h2>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" aria-expanded="true">2.1 沟通协议</button>
+              <div class="subsection-content">
+                <p>每条 Copilot 回复以"报告老板"开头、"下一步："结尾。Boss 使用触发词加载对应 Playbook：新需求 / Bug / 重构 / 调研。进度优先原则——触发词输入默认为分析→记录 TODO→按序执行。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">2.2 五道门禁制度</button>
+              <div class="subsection-content">
+                <p>Gate-0 轮次简报 + 需求对齐 → Gate-1 设计/测试计划/文档/架构审查 → Gate-3 测试通过后才能扩展范围 → Gate-4 对齐审查 + 测试报告 → Gate-D 数据变更专项审查。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">2.3 轮次归档制度</button>
+              <div class="subsection-content">
+                <p>每轮迭代要求 9 份文档：REQ-ALIGN, PLAN, DESIGN, TEST-PLAN, DOC-REVIEW, ARCH-REVIEW, ARCH-DESIGN, ALIGN-REVIEW, TEST-REPORT。零延迟归档——必须在代码完成的同一会话内完成。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">2.4 禁止行为</button>
+              <div class="subsection-content">
+                <p>不允许 fallback 掩盖错误、不允许静默异常吞噬、不允许硬编码提示词、不允许绕过 RepositoryPort、不允许并行复杂特性扩展、单问题最多 3 次连续修复尝试。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 03 -->
+        <section id="iterations" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / 156+ Iterations</p>
+            <h2>3. 156+ 轮迭代历程</h2>
+          </div>
+
+          <article class="comparison-card">
+            <span class="comparison-label">Three Stages</span>
+            <h3>三阶段演进</h3>
+            <ol class="flow-list">
+              <li>
+                <span class="flow-step">A</span>
+                <div class="flow-copy">
+                  <strong>Stage A (C-01~C-38): 工具平台基础设施</strong>
+                  <p>搭建基本服务框架、数据库、前端骨架 ✅</p>
+                </div>
+              </li>
+              <li>
+                <span class="flow-step">B</span>
+                <div class="flow-copy">
+                  <strong>Stage B (C-39~C-151): 导演台核心能力</strong>
+                  <p>43 个里程碑组（B1-B43），涵盖角色系统、对话引擎、章节规划、试玩引擎、图像生成、语音合成、CSS 治理、PG 迁移、编排队列、RAG 记忆系统、MLX 图像引擎、Agentic 架构</p>
+                </div>
+              </li>
+              <li>
+                <span class="flow-step">C</span>
+                <div class="flow-copy">
+                  <strong>Stage C (C-153+): Agent 统一分派中心</strong>
+                  <p>Skill 驱动的两阶段对话编排、任务队列持久化</p>
+                </div>
+              </li>
+            </ol>
+          </article>
+
+          <article class="comparison-card section-grid-spaced">
+            <span class="comparison-label">Key Milestones</span>
+            <h3>关键里程碑</h3>
+            <ul class="challenge-list">
+              <li><strong>C-39</strong> — 产品方向重新定义（从 Godot 转向 Web）</li>
+              <li><strong>C-80</strong> — 试玩引擎重构（双模型分离、场景切换）</li>
+              <li><strong>C-84</strong> — RAG 源文档系统</li>
+              <li><strong>C-121~C-127</strong> — MLX 图像引擎（自建 FLUX 管线 + Z-Image-Turbo）</li>
+              <li><strong>C-128</strong> — ReAct 原子工具 Agent 架构</li>
+              <li><strong>C-153</strong> — Skill 驱动两阶段 Agent 编排器</li>
+            </ul>
+          </article>
+        </section>
+
+        <!-- Section 04 -->
+        <section id="review" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / Code Review Practice</p>
+            <h2>4. 代码审查实践</h2>
+            <p>
+              14 次代码审查（R01-R10），触发条件：每 5 轮迭代 / 阶段转换 / 单文件超 500 行（后端）或 2000 行（前端）/ Boss 要求。
+            </p>
+          </div>
+
+          <div class="comparison-grid">
+            <article class="comparison-card">
+              <span class="comparison-label">Dimensions</span>
+              <h3>9 维度审查</h3>
+              <p>架构一致性、重复代码、命名可读性、错误处理、可测试性、性能、安全性、设计系统合规、文档健康。每个维度 ABCD 分级，任何 D 级 = 立即停止特性开发。</p>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label">Impact</span>
+              <h3>审查的价值</h3>
+              <p>14 次审查中发现的问题推动了 llm_client.py 从 1905 行重构到 995 行（-48%）、CSS 治理体系建立、前端 ES Module 规范化、数据库访问层抽象等关键改进。</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 05 -->
+        <section id="lessons" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / Lessons Learned</p>
+            <h2>5. 经验与教训</h2>
+          </div>
+
+          <ul class="challenge-list">
+            <li><strong>门禁制度防止了 90% 的返工</strong> — 没有 Gate-1 的设计审查，直接写代码会导致架构漂移累积到不可收拾。</li>
+            <li><strong>文档同步是最容易被跳过也最不能跳过的</strong> — C-153 教训：7 个实体变更没有同步文档更新，后续调试成本翻倍。</li>
+            <li><strong>AI Copilot 需要约束才能发挥最大价值</strong> — 不设边界的 AI 会过度工程化、引入不必要的抽象。触发词 + Playbook 机制把 AI 限定在正确的执行模式。</li>
+            <li><strong>单人工作室最大的风险是注意力发散</strong> — 进度优先原则和单线程工作规则是关键约束。</li>
+            <li><strong>周期性代码审查是架构健康的唯一保障</strong> — 没有外部审查者时，结构化的自审制度是替代方案。</li>
+            <li><strong>测试不是可选的</strong> — 464+ 测试是产品级质量的底线。每次 git commit 前必须通过测试。</li>
+            <li><strong>数据治理必须前置</strong> — Gate-D 的诞生源于 C-153 的惨痛教训：不做数据审查就写代码 = 事后重构。</li>
+            <li><strong>Vibe Coding 的"vibe"是方向感，不是随意性</strong> — 用自然语言驱动开发是效率工具，但必须配合工程纪律。</li>
+          </ul>
+        </section>
+
+        <!-- Section 06 -->
+        <section id="start" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / Start Your Own Vibe Coding Project</p>
+            <h2>6. 如何启动你自己的产品级 Vibe Coding 项目</h2>
+          </div>
+
+          <div class="comparison-grid">
+            <article class="comparison-card">
+              <span class="comparison-label">Checklist</span>
+              <h3>启动清单</h3>
+              <ol class="flow-list">
+                <li>
+                  <span class="flow-step">1</span>
+                  <div class="flow-copy">
+                    <strong>定义沟通协议</strong>
+                    <p>建立 Boss ↔ AI 的对话格式、触发词和 Playbook</p>
+                  </div>
+                </li>
+                <li>
+                  <span class="flow-step">2</span>
+                  <div class="flow-copy">
+                    <strong>建立门禁制度</strong>
+                    <p>至少 Gate-0（需求对齐）和 Gate-3（测试通过）</p>
+                  </div>
+                </li>
+                <li>
+                  <span class="flow-step">3</span>
+                  <div class="flow-copy">
+                    <strong>建立归档制度</strong>
+                    <p>每轮迭代必须有可追溯的决策记录</p>
+                  </div>
+                </li>
+                <li>
+                  <span class="flow-step">4</span>
+                  <div class="flow-copy">
+                    <strong>设定禁止行为</strong>
+                    <p>从第一天就定义 AI 的行为边界</p>
+                  </div>
+                </li>
+                <li>
+                  <span class="flow-step">5</span>
+                  <div class="flow-copy">
+                    <strong>启动代码审查节奏</strong>
+                    <p>每 5 轮或每阶段一次结构化审查</p>
+                  </div>
+                </li>
+              </ol>
+            </article>
+
+            <article class="comparison-card next">
+              <span class="comparison-label">Maturity Signals</span>
+              <h3>成熟度信号</h3>
+              <ul class="layer-list">
+                <li><span class="layer-number">1</span>每轮迭代有完整的 9 份归档文档</li>
+                <li><span class="layer-number">2</span>测试覆盖率持续增长</li>
+                <li><span class="layer-number">3</span>代码审查未发现 D 级问题</li>
+                <li><span class="layer-number">4</span>文档与代码同步率 100%</li>
+                <li><span class="layer-number">5</span>AI Copilot 首次输出采纳率 >70%</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        © 2026 AI-MUD 项目回顾：产品级 Vibe Coding 实践 | 交互式 HTML 页面。
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    var revealTargets = document.querySelectorAll('.load-in, [data-reveal]');
+
+    var revealObserver = new IntersectionObserver(function (entries, observer) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('is-visible');
+        observer.unobserve(entry.target);
+      });
+    }, {
+      threshold: 0.18,
+      rootMargin: '0px 0px -40px 0px'
+    });
+
+    revealTargets.forEach(function (target) { revealObserver.observe(target); });
+
+    var sectionTargets = document.querySelectorAll('main section[id]');
+    var navLinks = document.querySelectorAll('.nav-links a');
+
+    var navObserver = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        var id = entry.target.getAttribute('id');
+        var matchingLink = document.querySelector('.nav-links a[href="#' + id + '"]');
+        if (!matchingLink) return;
+        if (entry.isIntersecting) {
+          navLinks.forEach(function (link) { link.removeAttribute('aria-current'); });
+          matchingLink.setAttribute('aria-current', 'true');
+        }
+      });
+    }, { threshold: 0.4 });
+
+    sectionTargets.forEach(function (section) { navObserver.observe(section); });
+
+    document.querySelectorAll('.load-in').forEach(function (element, index) {
+      element.style.transitionDelay = index * 120 + 'ms';
+    });
+
+    document.querySelectorAll('[data-accordion]').forEach(function (item) {
+      var button = item.querySelector('.subsection-toggle');
+      var content = item.querySelector('.subsection-content');
+      if (!button || !content) return;
+
+      var syncAccordionState = function (targetItem, expanded) {
+        var targetButton = targetItem.querySelector('.subsection-toggle');
+        var targetContent = targetItem.querySelector('.subsection-content');
+        if (!targetButton || !targetContent) return;
+        targetButton.setAttribute('aria-expanded', String(expanded));
+        targetItem.classList.toggle('is-open', expanded);
+        targetContent.setAttribute('aria-hidden', String(!expanded));
+      };
+
+      syncAccordionState(item, item.classList.contains('is-open'));
+
+      button.addEventListener('click', function () {
+        var isExpanded = item.classList.contains('is-open');
+        if (!isExpanded) {
+          document.querySelectorAll('[data-accordion]').forEach(function (otherItem) {
+            if (otherItem === item) return;
+            syncAccordionState(otherItem, false);
+          });
+        }
+        syncAccordionState(item, !isExpanded);
+      });
+    });
+
+    // Apply homepage preferences from localStorage
+    (function () {
+      var root = document.documentElement;
+
+      // Theme
+      var stored = localStorage.getItem('theme');
+      var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var theme = stored || (prefersDark ? 'dark' : 'light');
+      root.setAttribute('data-theme', theme);
+
+      // Language
+      var lang = localStorage.getItem('lang') || 'zh';
+      root.setAttribute('lang', lang === 'zh' ? 'zh-CN' : 'en');
+      document.querySelectorAll('[data-zh][data-en]').forEach(function (el) {
+        var val = el.getAttribute('data-' + lang);
+        if (val !== null) el.innerHTML = val;
+      });
+    })();
+  </script>
+</body>
+</html>

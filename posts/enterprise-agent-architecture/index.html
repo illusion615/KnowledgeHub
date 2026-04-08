@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>企业智能体架构设计与应用</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <style>
+    /* Article-specific: hero title sizing */
+    .hero-copy h1 {
+      font-size: clamp(3rem, 8vw, 6rem);
+      line-height: 0.95;
+      letter-spacing: -0.05em;
+      max-width: 10ch;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="← 返回首页" data-en="← Home">← 返回首页</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            Enterprise Agent Architecture
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#role">架构角色</a>
+            <a href="#ecosystem">企业生态</a>
+            <a href="#patterns">模式架构</a>
+            <a href="#roadmap">采用路线</a>
+            <a href="#examples">真实案例</a>
+            <a href="#priorities">重构优先级</a>
+            <a href="#references">参考来源</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Enterprise Agent Blueprint</span>
+            <h1>企业智能体架构设计与应用</h1>
+            <p>
+              企业智能体由 AI 模型驱动，能够感知上下文、推理并围绕目标自主行动。它不是静态聊天机器人，而是位于现有企业应用之上和之间的新认知层，通过自然语言意图驱动 ERP、CRM、数据湖、IoT 与业务 API 协同执行。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#patterns">查看模式架构</a>
+              <a class="button button-secondary" href="#priorities">查看重构优先级</a>
+            </div>
+            <p class="hero-note">关键词：Model、Orchestration Layer、Memory、Semantic Layer、Agent Identity、Agentic Mesh</p>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">核心图景</span>
+            <h2>用户表达意图后，Agent 会跨系统完成一整段业务动作</h2>
+            <p>
+              以呼叫中心退货场景为例，Agent 会规划步骤，查询订单与政策，判断是否满足退货窗口，随后触发退货流程并返回结果。这正是企业智能体区别于静态应用的关键。
+            </p>
+
+            <div class="signal-map" aria-hidden="true">
+              <div class="orbit orbit-erp">
+                <div class="signal-node">
+                  <strong>ERP</strong>
+                  <span>订单、库存、流程事实</span>
+                </div>
+              </div>
+              <div class="orbit orbit-crm">
+                <div class="signal-node">
+                  <strong>CRM</strong>
+                  <span>客户语境与服务记录</span>
+                </div>
+              </div>
+              <div class="orbit orbit-lake">
+                <div class="signal-node">
+                  <strong>Data Lake</strong>
+                  <span>统一数据与知识资产</span>
+                </div>
+              </div>
+              <div class="orbit orbit-iot">
+                <div class="signal-node">
+                  <strong>IoT</strong>
+                  <span>设备、事件与现场状态</span>
+                </div>
+              </div>
+              <div class="orbit orbit-fabric">
+                <div class="signal-node">
+                  <strong>External APIs</strong>
+                  <span>第三方系统与工具调用</span>
+                </div>
+              </div>
+              <div class="orbit orbit-foundry">
+                <div class="signal-node">
+                  <strong>Knowledge Base</strong>
+                  <span>知识内容与结构化数据 grounding</span>
+                </div>
+              </div>
+
+              <div class="core-node">
+                <div>
+                  <strong>Agent Runtime</strong>
+                  <span>Plan, Retrieve, Reason, Act</span>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">核心组件</div>
+            <strong>3</strong>
+            <span>Model、Orchestration Layer、Memory 构成 Agent 的最小核心闭环。</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">连接生态</div>
+            <strong>1400+</strong>
+            <span>Microsoft 平台提供 1400+ 预构建扩展，可连接 ERP、CRM、HCM 与自定义应用。</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">架构扩展</div>
+            <strong>7 → 11</strong>
+            <span>Salesforce 的 Agentic Enterprise 框架在传统七层 IT 栈上新增四层，形成 11 层结构。</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <section id="role" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / Architectural Role</p>
+            <h2>1. 智能体在企业 IT 中的架构角色</h2>
+            <p>
+              企业智能体的本质在于：它由 AI 模型驱动，能够感知上下文、推理并围绕目标自主行动。与只对提示作出反应的静态聊天机器人不同，Agent 是位于现有系统之上和之间的新认知层。这一点与 “Copilot is the UI for AI” 以及“每位员工都有 Copilot、每个业务流程都有 Agent”的愿景一起，构成了 Agent 进入企业架构后的核心变化，而非确定性也由此成为必须正视的关键权衡。
+            </p>
+          </div>
+
+          <div class="insight-grid">
+            <article class="insight-card">
+              <span class="card-index">01</span>
+              <h3>Agent 定义</h3>
+              <p>Microsoft Entra 将 Agent 定义为能够理解环境与上下文、作出决策，并利用可用工具自主行动以完成目标的应用<sup>[1]</sup>。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">02</span>
+              <h3>三项核心组件</h3>
+              <p>一个 Agent 至少包含三项关键构成：Model、<span class="term" tabindex="0">Orchestration Layer<span class="term-tip">Agent 的循环推理层，负责规划、调用工具和状态推进。</span></span>，以及用于持久化上下文的 Memory。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">03</span>
+              <h3>规模化趋势</h3>
+              <p>IDC 预测，到 2028 年将出现 10 亿个新的逻辑应用<sup>[4]</sup>。Gartner 将 Multiagent Systems 列为 2026 年十大战略技术趋势第 4 位<sup>[9]</sup>。这意味着 Agent 驱动的企业架构变迁正从部门级创新走向组织级重构。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">04</span>
+              <h3>核心权衡</h3>
+              <p>Agent 把非确定性引入企业栈，传统面向确定性软件的测试、审计和合规框架必须随之重构，否则结果会不一致且难以审计。</p>
+            </article>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced">
+            <article class="comparison-card">
+              <span class="comparison-label">Call Center Return Scenario</span>
+              <h3>五步退货场景</h3>
+              <p>这个案例展示了 Agent 如何在一次交互里串联多个企业系统，而不是停留在问答层面。</p>
+              <ol class="flow-list">
+                <li>
+                  <span class="flow-step">1</span>
+                  <div class="flow-copy">
+                    <strong>Reason and Plan</strong>
+                    <p>用户提出“Can you help me return my last order?” 之后，Agent 先规划任务：查找最近订单并检查退货政策。</p>
+                  </div>
+                </li>
+                <li>
+                  <span class="flow-step">2</span>
+                  <div class="flow-copy">
+                    <strong>Retrieve Information</strong>
+                    <p>Agent 查询订单数据库，并结合相关政策规则，把订单事实与规则依据同时取回。</p>
+                  </div>
+                </li>
+                <li>
+                  <span class="flow-step">3</span>
+                  <div class="flow-copy">
+                    <strong>Reason Again</strong>
+                    <p>Agent 再次推理，判断该订单是否仍处于可退货窗口内。</p>
+                  </div>
+                </li>
+                <li>
+                  <span class="flow-step">4</span>
+                  <div class="flow-copy">
+                    <strong>Take Action</strong>
+                    <p>如果满足条件，Agent 会触发退货流程，并生成退货物流标签。</p>
+                  </div>
+                </li>
+                <li>
+                  <span class="flow-step">5</span>
+                  <div class="flow-copy">
+                    <strong>Respond</strong>
+                    <p>最后把处理结果返回给用户。这一串动作同时调用了订单库、知识库和退货处理 API。</p>
+                  </div>
+                </li>
+              </ol>
+            </article>
+
+            <article class="comparison-card next">
+              <span class="comparison-label">7-Layer To 11-Layer</span>
+              <h3>Agentic Enterprise 如何扩展传统七层 IT 栈</h3>
+              <p>Salesforce Chief Architect Emin Gerba 提出的框架<sup>[4]</sup>，在传统七层 IT 栈之上再扩展四层，从而形成面向 Agent-Based Systems 的 11 层结构。</p>
+              <ul class="layer-list">
+                <li><span class="layer-number">+</span>Semantic Layer：统一企业数据与知识的意义。</li>
+                <li><span class="layer-number">+</span>AI / ML Layer：承载模型与推理能力。</li>
+                <li><span class="layer-number">+</span>Agentic Layer：承载 Agent 自主执行与协作能力。</li>
+                <li><span class="layer-number">+</span>Enterprise Orchestration Layer：把业务流程与 Agent 控制编排起来。</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section id="ecosystem" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Enterprise Ecosystem</p>
+            <h2>2. 智能体与企业 IT 生态组件的关系</h2>
+            <p>
+              企业级 Agent 落地离不开五个支点：系统集成、<span class="term" tabindex="0">Semantic Layer<span class="term-tip">统一企业数据和知识语义的解释层，是跨系统推理的前提。</span></span>、<span class="term" tabindex="0">Entra Agent ID<span class="term-tip">Microsoft 为 AI Agent 提供的专用企业身份模型，用于身份、认证与权限控制。</span></span>、开发路径，以及采用 Agentic Architecture 时必须正视的组织性障碍。
+            </p>
+          </div>
+
+          <div class="mesh-layout">
+            <div class="mesh-board" aria-hidden="true">
+              <svg class="mesh-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="mesh-grad-a" x1="50%" y1="50%" x2="28%" y2="24%">
+                    <stop offset="0%" stop-color="#ff7a00" stop-opacity="0.28"></stop>
+                    <stop offset="100%" stop-color="#ff7a00" stop-opacity="0.06"></stop>
+                  </linearGradient>
+                  <linearGradient id="mesh-grad-b" x1="50%" y1="50%" x2="74%" y2="24%">
+                    <stop offset="0%" stop-color="#0d8f8c" stop-opacity="0.28"></stop>
+                    <stop offset="100%" stop-color="#0d8f8c" stop-opacity="0.06"></stop>
+                  </linearGradient>
+                  <linearGradient id="mesh-grad-c" x1="50%" y1="50%" x2="16%" y2="50%">
+                    <stop offset="0%" stop-color="#42586a" stop-opacity="0.24"></stop>
+                    <stop offset="100%" stop-color="#42586a" stop-opacity="0.05"></stop>
+                  </linearGradient>
+                  <linearGradient id="mesh-grad-d" x1="50%" y1="50%" x2="84%" y2="50%">
+                    <stop offset="0%" stop-color="#0d8f8c" stop-opacity="0.24"></stop>
+                    <stop offset="100%" stop-color="#0d8f8c" stop-opacity="0.05"></stop>
+                  </linearGradient>
+                  <linearGradient id="mesh-grad-e" x1="50%" y1="50%" x2="28%" y2="80%">
+                    <stop offset="0%" stop-color="#ff7a00" stop-opacity="0.24"></stop>
+                    <stop offset="100%" stop-color="#ff7a00" stop-opacity="0.05"></stop>
+                  </linearGradient>
+                  <linearGradient id="mesh-grad-f" x1="50%" y1="50%" x2="76%" y2="80%">
+                    <stop offset="0%" stop-color="#0d8f8c" stop-opacity="0.24"></stop>
+                    <stop offset="100%" stop-color="#0d8f8c" stop-opacity="0.05"></stop>
+                  </linearGradient>
+                </defs>
+
+                <path class="mesh-path-shadow" d="M43 43 C40 38, 37 33, 33 28"></path>
+                <path class="mesh-path mesh-path-a" d="M43 43 C40 38, 37 33, 33 28" stroke="url(#mesh-grad-a)"></path>
+                <circle class="mesh-anchor" cx="33" cy="28" r="1.6"></circle>
+
+                <path class="mesh-path-shadow" d="M57 43 C60 38, 63 33, 67 28"></path>
+                <path class="mesh-path mesh-path-b" d="M57 43 C60 38, 63 33, 67 28" stroke="url(#mesh-grad-b)"></path>
+                <circle class="mesh-anchor" cx="67" cy="28" r="1.6"></circle>
+
+                <path class="mesh-path-shadow" d="M40 50 C35 50, 30 49.5, 24 48"></path>
+                <path class="mesh-path mesh-path-c" d="M40 50 C35 50, 30 49.5, 24 48" stroke="url(#mesh-grad-c)"></path>
+                <circle class="mesh-anchor" cx="24" cy="48" r="1.6"></circle>
+
+                <path class="mesh-path-shadow" d="M60 50 C65 50, 70 49.5, 76 48"></path>
+                <path class="mesh-path mesh-path-d" d="M60 50 C65 50, 70 49.5, 76 48" stroke="url(#mesh-grad-d)"></path>
+                <circle class="mesh-anchor" cx="76" cy="48" r="1.6"></circle>
+
+                <path class="mesh-path-shadow" d="M43 57 C40 62, 37 67, 33 73"></path>
+                <path class="mesh-path mesh-path-e" d="M43 57 C40 62, 37 67, 33 73" stroke="url(#mesh-grad-e)"></path>
+                <circle class="mesh-anchor" cx="33" cy="73" r="1.6"></circle>
+
+                <path class="mesh-path-shadow" d="M57 57 C60.5 61.5, 64 67, 68 73"></path>
+                <path class="mesh-path mesh-path-f" d="M57 57 C60.5 61.5, 64 67, 68 73" stroke="url(#mesh-grad-f)"></path>
+                <circle class="mesh-anchor" cx="68" cy="73" r="1.6"></circle>
+
+                <circle class="mesh-hub-dot" cx="50" cy="50" r="2.2"></circle>
+              </svg>
+
+              <div class="mesh-core">
+                <div>
+                  <strong>Enterprise Integration</strong>
+                  <span>数据、系统、知识、权限与平台服务在此汇聚</span>
+                </div>
+              </div>
+
+              <div class="mesh-node mesh-node-a">
+                <strong>ERP / CRM</strong>
+                <span>业务事实、客户上下文和流程入口。</span>
+              </div>
+              <div class="mesh-node mesh-node-b">
+                <strong>Data Lakes</strong>
+                <span>统一知识与跨系统数据访问。</span>
+              </div>
+              <div class="mesh-node mesh-node-c">
+                <strong>External Systems</strong>
+                <span>外部 API、第三方 Agent 与外部知识。</span>
+              </div>
+              <div class="mesh-node mesh-node-d">
+                <strong>Knowledge Mediator</strong>
+                <span>同时为知识内容与结构化数据提供 grounding。</span>
+              </div>
+              <div class="mesh-node mesh-node-e">
+                <strong>IoT / Vertical Systems</strong>
+                <span>现场事件流和行业垂直系统。</span>
+              </div>
+              <div class="mesh-node mesh-node-f">
+                <strong>Gateway / Security / Monitoring / FinOps</strong>
+                <span>模型解耦、安全、监控与成本管理。</span>
+              </div>
+            </div>
+
+            <article class="mesh-copy">
+              <div>
+                <span class="comparison-label">2.1 Integration</span>
+                <h3>企业集成层是连接智能体与业务事实的关键桥梁</h3>
+                <p>
+                  IEEE Agentic Mesh 架构要求 Mesh 无缝连接数据湖、ERP、CRM、IoT 和垂直系统，并通过标准 API、连接器和适配器提供安全且可治理的访问<sup>[5]</sup>。Microsoft 生态进一步把连接模式细分成 External Systems、Knowledge Base Mediator 与 AI Platform Services 三类。
+                </p>
+              </div>
+
+              <div class="quote-block">
+                <strong>ERP 场景补充</strong>
+                <span>Account Reconciliation Agent 与 Supplier Communication Agent 展示了 Agent 如何通过 <span class="term" tabindex="0">MCP<span class="term-tip">Model Context Protocol，用于把工具和企业系统能力暴露给 Agent 调用。</span></span> 与 Copilot Studio 深入嵌入 ERP 工作流。</span>
+              </div>
+            </article>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" aria-expanded="true">2.1 Integration with Enterprise Systems (ERP, CRM, Data Lakes, APIs)</button>
+              <div class="subsection-content">
+                <p>企业集成层连接着 Agent 与业务数据、业务流程以及第三方生态。除了 Microsoft 365 的生产力信号，平台还可以连接 ERP、CRM、HCM 和自定义应用，使 Copilot 能对整个企业数据进行推理。</p>
+                <ul class="reference-list">
+                  <li>External Systems：Agent 可以调用不同环境中的 API，也可以调用其他平台上的 Agent，并引用知识库进行 grounding。</li>
+                  <li>Knowledge Base Mediator：负责把知识内容和结构化数据同时接入 Agent 的推理过程。</li>
+                  <li>AI Platform Services：包括 Gateway、Security、Monitoring 和 FinOps，用来解耦模型选择、落实安全与合规，并跟踪系统健康和成本。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">2.2 Semantic Layer and Knowledge Unification</button>
+              <div class="subsection-content">
+                <p>数据孤岛是有效部署 Agent 的主要障碍。Semantic Layer 可以理解为 “the agent's knowledge layer”，它提供跨企业数据和知识的统一理解，使人和 AI Agent 都能一致地解释和操作信息。</p>
+                <p>这意味着，在部署跨域 Agent 之前，组织必须先投资于数据统一能力，例如知识图谱、企业数据目录或联邦数据平台。否则，当 Agent 被问到 “ACME Corp's order status” 时，它无法把 CRM 中的客户记录与 ERP 中的订单记录关联起来。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">2.3 Identity, Security, and Governance</button>
+              <div class="subsection-content">
+                <p>规模化自治 AI 需要自己的企业身份。传统面向人和普通应用的身份模型不足以支撑这一点，因此需要专门的 Agent Identity<sup>[1]</sup>。Agent Identity 让每一次动作都可归因、可审计，并可施加细粒度 RBAC。</p>
+                <div class="comparison-grid">
+                  <article class="comparison-card">
+                    <span class="comparison-label">Guardrails</span>
+                    <h3>四类生产级护栏</h3>
+                    <ul class="reference-list">
+                      <li>Action Whitelists：定义 Agent 被允许执行的动作边界。</li>
+                      <li>Spending Limits：限定单次、每小时、每天的成本上限。</li>
+                      <li>Escalation Triggers：当风险触发阈值时强制转人工审核。</li>
+                      <li>Content Filters：对输入与输出做策略校验与过滤。</li>
+                    </ul>
+                  </article>
+                  <article class="comparison-card">
+                    <span class="comparison-label">Observability</span>
+                    <h3>企业必须能回答的五个问题</h3>
+                    <ul class="reference-list">
+                      <li>Agent 做了什么决策，为什么这样做？</li>
+                      <li>它调用了哪些工具，参数是什么？</li>
+                      <li>它访问了哪些数据？</li>
+                      <li>这次操作消耗了多少成本？</li>
+                      <li>每一步分别花了多长时间？</li>
+                    </ul>
+                  </article>
+                </div>
+
+                <div class="comparison-grid">
+                  <article class="comparison-card">
+                    <span class="comparison-label">Prompt Injection Defense</span>
+                    <h3>Agent 特有安全威胁</h3>
+                    <p>除了通用的 Content Filters，Agent 还面临 prompt injection（通过恶意输入劫持 Agent 行为）和 jailbreak（绕过安全护栏）等对抗攻击。防御需要多层：输入校验、工具调用参数过滤、输出安全检查，以及在编排层对每一步施加 least-privilege 约束<sup>[3][7]</sup>。</p>
+                  </article>
+                  <article class="comparison-card">
+                    <span class="comparison-label">Human-in-the-Loop</span>
+                    <h3>HITL 架构决策指南</h3>
+                    <p>并非所有 Agent 动作都应自治执行。关键决策点包括：高风险操作（如金融交易、患者诊断）需要同步审批门；中风险操作（如数据更新）可采用异步审计 + 自动回滚；低风险操作（如信息检索、报告生成）可完全自治<sup>[10][11]</sup>。HITL 的粒度应随 Agent 成熟度和组织信任度动态调整。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">2.4 Agent Components and Development Approaches</button>
+              <div class="subsection-content">
+                <div class="comparison-grid">
+                  <article class="comparison-card">
+                    <span class="comparison-label">Agent Types</span>
+                    <h3>平台支持的 Agent 形态</h3>
+                    <ul class="reference-list">
+                      <li>Prompt Agents</li>
+                      <li>Workflow Agents</li>
+                      <li>Hosted Agents</li>
+                      <li>Tools and Integrations：Web Search、File Search、Code Interpreter、MCP Servers、Custom Functions</li>
+                      <li>Publishing Targets：API Endpoints、Microsoft Teams、M365 Copilot</li>
+                    </ul>
+                  </article>
+
+                  <article class="comparison-card">
+                    <span class="comparison-label">Starting Points</span>
+                    <h3>两条开发起点</h3>
+                    <table class="simple-table">
+                      <thead>
+                        <tr>
+                          <th>Starting Point</th>
+                          <th>Description</th>
+                          <th>Best For</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>M365 Copilot + Copilot Studio</td>
+                          <td>在 Microsoft 365 里用低代码方式扩展 AI Agent，用于生产力应用中的自动化。</td>
+                          <td>Business users / citizen developers</td>
+                        </tr>
+                        <tr>
+                          <td>Azure AI Foundry (Code-First)</td>
+                          <td>使用 Azure AI Foundry SDK，并结合 Semantic Kernel 或 AutoGen 构建可定制化 Agent。</td>
+                          <td>Professional developers needing full flexibility</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </article>
+                </div>
+
+                <article class="comparison-card">
+                  <span class="comparison-label">Lifecycle</span>
+                  <h3>六步 Agent 生命周期</h3>
+                  <ol class="flow-list">
+                    <li><span class="flow-step">1</span><div class="flow-copy"><strong>Create</strong><p>定义 Agent。</p></div></li>
+                    <li><span class="flow-step">2</span><div class="flow-copy"><strong>Test</strong><p>Agent 输出是非确定的，测试不能依赖精确匹配断言。需要使用评分量规（scoring rubrics）或 LLM-as-judge 评估<sup>[3]</sup>。</p></div></li>
+                    <li><span class="flow-step">3</span><div class="flow-copy"><strong>Trace</strong><p>检查 Agent 的决策过程，包括每一步的工具调用、参数和推理链。</p></div></li>
+                    <li><span class="flow-step">4</span><div class="flow-copy"><strong>Evaluate</strong><p>衡量质量表现，建立基线指标并持续监控漂移。</p></div></li>
+                    <li><span class="flow-step">5</span><div class="flow-copy"><strong>Publish</strong><p>创建稳定端点或发布目标。</p></div></li>
+                    <li><span class="flow-step">6</span><div class="flow-copy"><strong>Monitor</strong><p>持续通过仪表盘监控运行状态。</p></div></li>
+                  </ol>
+                </article>
+
+                <p>无论从哪条路径起步，Agent 都可以通过 M365 Agents SDK 部署到第三方应用、网站或客户平台，这说明 Agent 的应用边界并不局限于内部系统。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">2.5 Organizational Challenges in Adopting Agentic Architecture</button>
+              <div class="subsection-content">
+                <p>采用 Agentic Architecture 的障碍不仅仅是技术问题，而是一组互相耦合的结构性障碍。传统以人决策、机器执行为前提的企业系统，在共享记忆、编排和实时上下文流的要求下必须同步改造<sup>[5][7]</sup>。</p>
+                <ul class="challenge-list">
+                  <li><strong>组织文化与变革管理</strong> —— 需要明确的变革路径和管理层承诺，避免试点后推广停滞。</li>
+                  <li><strong>遗留系统与基础设施</strong> —— 通过 API 网关和标准连接器逐步桥接旧系统，而非一次性替换。</li>
+                  <li><strong>战略与 ROI 不清晰</strong> —— 每阶段设定可量化业务指标，用渐进式价值证明投资合理性。</li>
+                  <li><strong>数据质量与可用性</strong> —— 语义层和知识图谱是 Agent 跨域推理的前提，必须优先投资。</li>
+                  <li><strong>技能缺口</strong> —— 低代码路径（Copilot Studio）与代码优先路径（Azure AI Foundry）可共存，以降低上手门槛。</li>
+                  <li><strong>伦理与偏见</strong> —— 内容过滤、护栏和可审计机制需要从第一天嵌入，而非上线后补救。</li>
+                  <li><strong>用户采纳与体验</strong> —— Agent 最终要通过 Copilot 等自然语言界面触达用户，体验断层会直接耗散组织投入意愿。</li>
+                  <li><strong>安全风险</strong> —— Agent Identity（Entra Agent ID）和 RBAC 是防止权限失控的基础。</li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="patterns" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / Design Patterns And Reference Architectures</p>
+            <h2>3. 企业 AI 的设计模式与参考架构</h2>
+            <p>
+              企业 AI 的设计模式与参考架构可以从六个层面展开：3.1 能力谱系、3.2 企业架构模式、3.3 多智能体编排收益、3.4 <span class="term" tabindex="0">Agentic Mesh<span class="term-tip">由多个 AI Agent 通过标准协议、身份体系和协调机制连接形成的分布式系统。</span></span>、3.5 记忆架构，以及 3.6 Agentic Architecture 的五项基础原则。
+            </p>
+          </div>
+
+          <article class="comparison-card section-grid-spaced">
+            <span class="comparison-label">Industry Consensus</span>
+            <h3>关键行业背书</h3>
+            <p>Gartner 将 <strong>Multiagent Systems</strong> 列为 2026 年十大战略技术趋势第 4 位，认为它"允许模块化 AI Agent 协作完成复杂任务，从而提升自动化和可扩展性"<sup>[9]</sup>。McKinsey 指出，Agent 系统有可能将复杂工作流的审查周期缩短 20–60%<sup>[10]</sup>。Anthropic 在大量客户项目中总结出一条关键经验："最成功的实现使用的是简单、可组合的模式，而非复杂框架"<sup>[11]</sup>。</p>
+            <p>这三条来自不同视角的结论形成了共识：<strong>企业级 Agent 的价值已被确认，但落地路径必须从简单形态起步，仅在确有必要时才引入更高复杂度的编排。</strong></p>
+          </article>
+
+          <article class="comparison-card matrix-panel" data-matrix>
+            <span class="comparison-label">3.1 Capability Spectrum</span>
+            <h3>五类企业模式的能力谱系</h3>
+            <p>能力谱系最终落在同一组五类企业模式上：Single Agent、Router、Orchestrator、Planner-Executor 和 Autonomous Swarm（命名体系沿用 HyperTrends<sup>[7]</sup> 的框架；Azure Architecture Center<sup>[3]</sup> 2026 年版使用了 Sequential / Concurrent / Group Chat / Handoff / Magentic 这套编排导向命名，概念可映射但侧重点不同）。</p>
+            <div class="matrix-toolbar">
+              <div class="matrix-controls">
+                <label>
+                  按复杂度筛选
+                  <select data-filter="complexity">
+                    <option value="all">全部</option>
+                    <option value="simple">简单</option>
+                    <option value="moderate">中等</option>
+                    <option value="complex">复杂</option>
+                  </select>
+                </label>
+                <label>
+                  按自治程度筛选
+                  <select data-filter="autonomy">
+                    <option value="all">全部</option>
+                    <option value="low">低</option>
+                    <option value="medium">中</option>
+                    <option value="high">高</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="matrix-view-switch" role="tablist" aria-label="Capability Spectrum 视图切换">
+                <button class="matrix-view-button" type="button" role="tab" aria-selected="true" data-view-target="table">表格视图</button>
+                <button class="matrix-view-button" type="button" role="tab" aria-selected="false" data-view-target="quadrant">象限视图</button>
+              </div>
+            </div>
+            <div class="matrix-view-panel" data-view-panel="table">
+              <table class="matrix-table">
+                <thead>
+                  <tr>
+                    <th>Pattern</th>
+                    <th>When To Use</th>
+                    <th>Pros</th>
+                    <th>Cons</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr data-complexity="simple" data-autonomy="low">
+                    <td>Single Agent</td>
+                    <td>简单、边界清晰、工具集合明确的任务。</td>
+                    <td>实现成本低，低延迟，易于构建、调试和维护。</td>
+                    <td>难以扩展到复杂多域任务，工具数量增长后上下文窗口会成为瓶颈。</td>
+                  </tr>
+                  <tr data-complexity="moderate" data-autonomy="medium">
+                    <td>Router</td>
+                    <td>多域查询需要先分诊，再转交给不同 Specialist 处理。</td>
+                    <td>可通过增加 Specialist 平滑扩展，且每个专家上下文更聚焦。</td>
+                    <td>路由准确率决定整体质量，误分发会拖累整个系统，专家之间也不协作。</td>
+                  </tr>
+                  <tr data-complexity="complex" data-autonomy="high">
+                    <td>Orchestrator</td>
+                    <td>复杂请求可以被拆成多个可并行的跨域子任务，并在最后统一聚合。</td>
+                    <td>并行执行效率高，适合研究、分析和跨职能协同。</td>
+                    <td>需要处理部分失败、结果冲突与聚合逻辑，协调复杂度高。</td>
+                  </tr>
+                  <tr data-complexity="moderate" data-autonomy="medium">
+                    <td>Planner-Executor</td>
+                    <td>任务存在明显顺序依赖，需要先规划步骤再逐步执行，并在失败时重规划。</td>
+                    <td>对顺序流程控制力强，适合迁移、审批、执行链较长的任务。</td>
+                    <td>串行执行导致时延更高，重规划和步骤耦合会抬升成本。</td>
+                  </tr>
+                  <tr data-complexity="complex" data-autonomy="high">
+                    <td>Autonomous Swarm</td>
+                    <td>企业级持续运行场景，需要 Supervisor 管理多个 Specialist 并施加治理边界。</td>
+                    <td>最接近持续自治，适合长时运行和大规模运营任务。</td>
+                    <td>构建和运维成本最高，对治理、监控与人工干预机制要求最强。</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="matrix-view-panel" data-view-panel="quadrant" hidden>
+              <div class="quadrant-board" aria-label="Capability Spectrum 象限图：横轴为系统复杂度，纵轴为自治程度">
+                <span class="quadrant-label quadrant-label-tl">低复杂度 · 高自治</span>
+                <span class="quadrant-label quadrant-label-tr">高复杂度 · 高自治</span>
+                <span class="quadrant-label quadrant-label-bl">低复杂度 · 低自治</span>
+                <span class="quadrant-label quadrant-label-br">高复杂度 · 低自治</span>
+                <span class="quadrant-axis-title quadrant-axis-title-x">系统复杂度</span>
+                <span class="quadrant-axis-title quadrant-axis-title-y">自治程度</span>
+
+                <article class="quadrant-point quadrant-point-single" data-complexity="simple" data-autonomy="low">
+                  <strong>Single Agent</strong>
+                  <p>适合清晰、聚焦的任务，是企业最常见的默认起点。</p>
+                </article>
+
+                <article class="quadrant-point quadrant-point-router" data-complexity="moderate" data-autonomy="medium">
+                  <strong>Router</strong>
+                  <p>用分诊与转发来管理多域任务，但不负责深度协同。</p>
+                </article>
+
+                <article class="quadrant-point quadrant-point-planner" data-complexity="moderate" data-autonomy="medium">
+                  <strong>Planner-Executor</strong>
+                  <p>强调顺序规划与执行闭环，适合依赖步骤链的工作流。</p>
+                </article>
+
+                <article class="quadrant-point quadrant-point-orchestrator" data-complexity="complex" data-autonomy="high">
+                  <strong>Orchestrator</strong>
+                  <p>擅长拆解并行子任务，再把多个 Specialist 的结果综合起来。</p>
+                </article>
+
+                <article class="quadrant-point quadrant-point-swarm" data-complexity="complex" data-autonomy="high">
+                  <strong>Autonomous Swarm</strong>
+                  <p>最靠近高复杂度、高自治一侧，能力最强，治理要求也最高。</p>
+                </article>
+              </div>
+            </div>
+            <p class="matrix-caption">核心原则很明确：从简单形态起步，只有在真正需要更强灵活性或模型驱动决策时，再引入更复杂的 Agentic 行为。</p>
+          </article>
+
+          <div class="comparison-grid section-grid-spaced">
+            <article class="comparison-card">
+              <span class="comparison-label">3.3 Multi-Agent Benefits</span>
+              <h3>多 Agent 编排的四项结构收益</h3>
+              <ul class="reference-list">
+                <li>Specialization：每个 Agent 聚焦一个领域或能力，降低代码与 Prompt 复杂度。</li>
+                <li>Scalability：可以增删 Agent，而不必重设计整个系统。</li>
+                <li>Maintainability：测试与调试可以聚焦到单个 Agent，降低问题隔离难度。</li>
+                <li>Optimization：不同 Agent 可以采用不同模型、知识、工具和算力配置。</li>
+              </ul>
+            </article>
+
+            <article class="comparison-card next">
+              <span class="comparison-label">3.4 Agentic Mesh</span>
+              <h3>Agentic Mesh 的六层实现架构</h3>
+              <p class="matrix-caption">Agent 之间的互操作依赖两类标准化协议：<span class="term" tabindex="0">MCP<span class="term-tip">Model Context Protocol，标准化 Agent 对工具和企业系统能力的发现与调用。</span></span> 负责工具调用层面的标准化，而 Google 主导的 <span class="term" tabindex="0">A2A Protocol<span class="term-tip">Agent-to-Agent Protocol，开源框架，使不同平台构建的 Agent 可以互操作。</span></span> 则聚焦于 Agent 间通信与协调。两者互补，共同构成 Agentic Mesh Communication Fabric 的协议基础。</p>
+              <ul class="layer-list">
+                <li><span class="layer-number">1</span>Agent Runtime：安全、隔离、可扩展、容错的执行环境。</li>
+                <li><span class="layer-number">2</span>Identity and Governance：身份、鉴权、授权、token vault、RBAC。</li>
+                <li><span class="layer-number">3</span>Communication Fabric：工具调用、记忆共享和消息传递协议。</li>
+                <li><span class="layer-number">4</span>Model Abstraction：通过统一接口让不同模型可替换，并支持按策略选模。</li>
+                <li><span class="layer-number">5</span>Observability and Safety：延迟、准确率、漂移、异常检测，以及内容过滤和合规检查。</li>
+                <li><span class="layer-number">6</span>Enterprise Integration：连接数据湖、ERP、CRM、IoT 与行业系统。</li>
+              </ul>
+            </article>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced">
+            <article class="comparison-card">
+              <span class="comparison-label">3.5 Memory Architecture</span>
+              <h3>四类必需记忆</h3>
+              <ul class="reference-list">
+                <li>Short-term Memory：当前对话或当前任务上下文。</li>
+                <li>Working Memory：多步执行过程中的中间结果。</li>
+                <li>Long-term Memory：持久知识，例如用户偏好和过去决策。</li>
+                <li>Shared Memory：在多 Agent 系统中可被多个 Agent 共同访问的状态。</li>
+              </ul>
+              <p class="matrix-caption">结论很直接：没有记忆的 Agent 会重复犯错，也会忘记上下文。在多 Agent 编排中，上下文窗口还会随每个 Agent 的推理、工具结果和中间输出快速膨胀。必须在 Agent 之间采用压缩策略（如摘要或选择性裁剪）来防止超出模型限制或降低响应质量<sup>[3]</sup>。</p>
+            </article>
+
+            <article class="comparison-card">
+              <span class="comparison-label">3.6 Foundational Principles</span>
+              <h3>五项基础原则</h3>
+              <ul class="reference-list">
+                <li>Autonomy and Agency：在权限和合规边界内进行结构化自治。</li>
+                <li>Goal-Directed Behavior：围绕可回溯到业务结果的目标层级行动。</li>
+                <li>Environment Awareness and Perception：能感知环境并与系统、工具、人交互。</li>
+                <li>Orchestrated Collaboration：多个 Agent 在不冲突、不漂移的前提下协同工作。</li>
+                <li>Learning and Adaptation：实时更新理解、调整策略，并随着新输入持续学习。</li>
+              </ul>
+            </article>
+          </div>
+
+          <article class="comparison-card decision-card section-grid-spaced" data-decision-tree>
+            <span class="comparison-label">Pattern Selection Decision Tree</span>
+            <h3>企业模式决策树</h3>
+            <p>回答下面三个问题，页面会根据五类企业模式的适用边界，给出最接近的推荐。</p>
+            <div class="decision-controls">
+              <label>
+                任务是否需要多步规划？
+                <select data-question="planning">
+                  <option value="unknown">请选择</option>
+                  <option value="yes">是</option>
+                  <option value="no">否</option>
+                </select>
+              </label>
+              <label>
+                是否需要多个领域协作？
+                <select data-question="domains">
+                  <option value="unknown">请选择</option>
+                  <option value="yes">是</option>
+                  <option value="no">否</option>
+                </select>
+              </label>
+              <label>
+                是否需要持续自治运行？
+                <select data-question="continuous">
+                  <option value="unknown">请选择</option>
+                  <option value="yes">是</option>
+                  <option value="no">否</option>
+                </select>
+              </label>
+            </div>
+            <div class="decision-result">
+              <strong data-result-title>请先完成选择</strong>
+              <p data-result-text>这个交互把 Pattern Selection Decision Tree 直接转成了可操作的选型器，用来帮助判断模式与任务类型的匹配关系。</p>
+            </div>
+          </article>
+        </section>
+
+        <section id="roadmap" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / Phased Adoption Roadmap</p>
+            <h2>4. 分阶段企业采用路线图</h2>
+            <p>
+              企业采用 Agent 架构不是一步到位的，而是一个分阶段渐进的过程。每个阶段都要同时建设必要架构基础并交付可见业务价值，否则要么治理滞后导致 agent sprawl，要么基础投资过重却缺少回报。
+            </p>
+          </div>
+
+          <div class="comparison-grid">
+            <article class="comparison-card">
+              <span class="comparison-label">Phased Approach</span>
+              <h3>三阶段采用路径与五项推进动作</h3>
+              <ol class="flow-list">
+                <li><span class="flow-step">P1</span><div class="flow-copy"><strong>Phase 1 — 单点验证</strong><p>识别高价值用例（复杂决策或非结构化数据密集领域），部署目标明确的 Single Agent，同步建立语义层和身份基础。毕业标准：至少一个 Agent 进入生产并产出可量化业务价值。</p></div></li>
+                <li><span class="flow-step">P2</span><div class="flow-copy"><strong>Phase 2 — 多 Agent 协作</strong><p>引入 Router 或 Orchestrator 模式，建设治理连接器与集成层，嵌入透明度、审计与安全护栏。毕业标准：跨域 Agent 可协同处理端到端流程。</p></div></li>
+                <li><span class="flow-step">P3</span><div class="flow-copy"><strong>Phase 3 — 规模化运营</strong><p>部署 Agentic Mesh 或 Autonomous Swarm，让 Agent 之间形成自适应协同而非孤立运行。持续跟踪效率、成本、错误率与用户满意度。毕业标准：全组织可复用的 Agent 平台与 FinOps 能力就绪。</p></div></li>
+                <li><span class="flow-step">P4</span><div class="flow-copy"><strong>Phase 4 — 企业数字孪生与自治仿真</strong><p>建立多 Agent 多域自治网络，实现企业运营的持续仿真与战略优化。需要自愈基础设施、A2A 通信协议，以及 Agent 自反思与自适应框架<sup>[4]</sup>。毕业标准：Agent 网络可主动发现效率拐点并提出业务建议。</p></div></li>
+              </ol>
+            </article>
+
+            <article class="comparison-card next">
+              <span class="comparison-label">Speed vs Risk</span>
+              <h3>速度与风险之间的直接权衡</h3>
+              <p>如果在没有语义层和治理基础的情况下过快进入更高阶段，会出现 agent sprawl：部门各自构建孤立 Agent，导致重复建设和安全缺口。</p>
+              <p>如果反过来过度投资底层基础设施，却不能交付早期业务价值，则会造成利益相关方疲劳，并削弱持续投入意愿。</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="examples" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / Real-World Examples</p>
+            <h2>5. 真实世界案例</h2>
+            <p>
+              行业案例已经说明 Agentic Paradigm 正在不同产业形态中发生。McKinsey 对贷款审批场景的分析表明，Agent 系统可以将审查周期缩短 20–60%<sup>[10]</sup>。以下案例便于横向比较不同场景下的落地方式。
+            </p>
+          </div>
+
+          <div class="tab-shell" data-tabs>
+            <div class="tab-list" role="tablist" aria-label="真实案例导航">
+              <button class="tab-button" type="button" role="tab" aria-selected="true" aria-controls="case-hero" id="tab-hero" data-tab-target="case-hero">Hero FinCorp</button>
+              <button class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="case-good360" id="tab-good360" data-tab-target="case-good360">Good360</button>
+              <button class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="case-bank" id="tab-bank" data-tab-target="case-bank">Global Bank</button>
+              <button class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="case-mi" id="tab-mi" data-tab-target="case-mi">制造与保险</button>
+              <button class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="case-security" id="tab-security" data-tab-target="case-security">Security Ops</button>
+              <button class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="case-erp" id="tab-erp" data-tab-target="case-erp">D365 Agentic ERP</button>
+            </div>
+
+            <section class="tab-panel" id="case-hero" role="tabpanel" aria-labelledby="tab-hero">
+              <p>Hero FinCorp 通过 Salesforce Agentforce 平台部署 AI Agent 来简化贷款处理流程，使贷款审批可在 30 分钟内完成<sup>[4]</sup>。</p>
+              <p>这一案例展示了 Agent 如何在 CRM 客户数据和核心银行系统之间执行多步工作流：自动收集客户资料、完成检查、准备审批文档，从而压缩原本高度依赖人工的流程。</p>
+            </section>
+
+            <section class="tab-panel" id="case-good360" role="tabpanel" aria-labelledby="tab-good360" hidden>
+              <p>Good360 使用 Agent 技术去连接物资供给数据和社区需求数据，使灾后救援物资匹配速度提升了最多 3 倍<sup>[4]</sup>。</p>
+              <p>这个案例说明了跨域编排的价值：Agent 并不是只操作一套系统，而是在库存管理、物流协同和需求评估之间建立连通与协调。</p>
+            </section>
+
+            <section class="tab-panel" id="case-bank" role="tabpanel" aria-labelledby="tab-bank" hidden>
+              <p>一家全球银行曾让不同地区各自建设了 6 个孤立聊天机器人项目，这些项目无法共享客户上下文，导致服务不一致且成本更高。</p>
+              <p>该银行正在转向 Agentic Mesh<sup>[5]</sup>：通过共享治理、数据访问和通信协议，让任一面向客户的 Agent 都能访问统一的客户信息和公司政策。</p>
+            </section>
+
+            <section class="tab-panel" id="case-mi" role="tabpanel" aria-labelledby="tab-mi" hidden>
+              <p>制造企业将预测性维护 Agent 接入 IoT 传感器数据流与 ERP 排程系统，用于预测设备故障；保险公司则将车联网 Agent 接入汽车理赔流程，用于自动分析事故后的车辆遥测数据。</p>
+              <p>这两个案例说明了 Agentic Mesh 的模块化集成能力：企业不必重写整个系统，只需要把 Agent 插入现有工作流即可。</p>
+            </section>
+
+            <section class="tab-panel" id="case-security" role="tabpanel" aria-labelledby="tab-security" hidden>
+              <p>微软内部安全团队构建了协作型 Agent 组合，包括 Posture IQ、Tenant Assessment Agent 和 SOC Bot Agent，并把它们接入 Microsoft 365 Copilot 和 Teams。</p>
+              <p>这些 Agent 共享与 Microsoft 365 和 Azure 服务一致的集成模式，并建立在 zero-trust 基础之上，用于自动化威胁防御与安全姿态管理。</p>
+            </section>
+
+            <section class="tab-panel" id="case-erp" role="tabpanel" aria-labelledby="tab-erp" hidden>
+              <p>在 D365 Agentic ERP 场景中，Microsoft Innovation Hub 通过 Account Reconciliation Agent 与 Supplier Communication Agent 展示如何把 Agent 深度嵌入 ERP 业务流程。</p>
+              <p>客户最终拿到的不只是一个演示，而是一份经过验证的架构蓝图、风险缓释计划，以及基于 MCP 与 Copilot Studio 的嵌入式 Agent 设计方案。</p>
+            </section>
+          </div>
+        </section>
+
+        <section id="priorities" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / Restructure Current IT Architecture</p>
+            <h2>6. 面向 Agent 时代的当前 IT 架构重构</h2>
+            <p>
+              当前 IT 架构的重构重点集中在四组内容：架构转型优先级、成本考虑、Agent-as-Client 设计决策，以及生产级错误恢复。
+            </p>
+          </div>
+
+          <div class="comparison-grid">
+            <article class="comparison-card">
+              <span class="comparison-label">6.1 Transformation Priorities</span>
+              <h3>六项优先级</h3>
+              <ul class="layer-list">
+                <li><span class="layer-number">1</span>建立统一数据与语义层。</li>
+                <li><span class="layer-number">2</span>实施 Agent 身份与访问管理。</li>
+                <li><span class="layer-number">3</span>部署 Agent 运行时与开发平台，并支持六步生命周期。</li>
+                <li><span class="layer-number">4</span>建设带治理能力的连接器与集成层。</li>
+                <li><span class="layer-number">5</span>实现编排与治理控制。</li>
+                <li><span class="layer-number">6</span>从第一天起建立可观测性基础设施。</li>
+              </ul>
+            </article>
+
+            <article class="comparison-card">
+              <span class="comparison-label">6.2 Cost + 6.3 Design Decision</span>
+              <h3>成本管理与 Agent-as-Client</h3>
+              <p>LLM 成本会在 Agent 架构中快速复合放大<sup>[7]</sup>：规划 Agent 如果重复规划 5 次，代价就是 5 倍 token；四个 Agent 每个调用 3 次模型，则单次请求会变成 12 次模型调用。</p>
+              <ul class="reference-list">
+                <li>为每次操作设置 token 预算。</li>
+                <li>根据任务复杂度选模：路由用更小模型，规划用更强模型。</li>
+                <li>引入结果缓存与成本仪表盘。</li>
+                <li>把 FinOps 作为平台能力而不是后补能力。</li>
+              </ul>
+              <table class="simple-table">
+                <thead>
+                  <tr>
+                    <th>Decision Point</th>
+                    <th>Agent-as-Client</th>
+                    <th>Bridge Architecture</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>服务端处理</td>
+                    <td>沿用与人类用户一致的 API 端点和统一服务端路由。</td>
+                    <td>需要额外桥接层与独立事件流。</td>
+                  </tr>
+                  <tr>
+                    <td>代码路径</td>
+                    <td>保留单一路径处理所有 artifact 操作。</td>
+                    <td>Agent 与用户往往形成两套代码路径。</td>
+                  </tr>
+                  <tr>
+                    <td>多 Agent 扩展</td>
+                    <td>无需为每类 Agent 再造桥接器。</td>
+                    <td>容易出现重复桥接实现。</td>
+                  </tr>
+                  <tr>
+                    <td>状态同步</td>
+                    <td>不需要额外复杂同步机制。</td>
+                    <td>需要复杂状态同步并加深与特定 Agent 的耦合。</td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          </div>
+
+          <article class="comparison-card section-grid-spaced">
+            <span class="comparison-label">6.4 Error Recovery</span>
+            <h3>生产级错误恢复：Demo 与 Product 的分水岭</h3>
+            <p>Demo 级 Agent 在一切顺利时表现良好；生产级 Agent 则需要为每种失败模式定义恢复路径<sup>[7]</sup>：</p>
+            <ul class="reference-list">
+              <li><strong>工具调用失败</strong> —— 重试 → 跳过 → 升级到人工，或触发重规划。</li>
+              <li><strong>LLM 幻觉出不存在的工具</strong> —— 工具注册表做显式白名单校验，拒绝未注册调用。</li>
+              <li><strong>无限循环</strong> —— 对迭代次数和总 token 消耗设硬上限。</li>
+              <li><strong>超出成本限制</strong> —— 中途暂停执行，保存状态快照，通知运维团队后由人工决定恢复或终止。</li>
+              <li><strong>部分 Agent 宕机</strong> —— 编排层实现断路器（circuit breaker），将任务重新路由到备选 Agent 或降级到确定性流程。</li>
+            </ul>
+          </article>
+        </section>
+      </main>
+
+      <section id="references" class="section" data-reveal>
+        <div class="section-head">
+          <p class="section-kicker">References</p>
+          <h2>参考来源</h2>
+          <p>以下来源为本页核心观点提供了直接支撑。标记为 [n] 的上标标注可在正文中找到对应位置。</p>
+        </div>
+        <ol class="bib-list">
+          <li id="ref-1"><span class="bib-id">[1]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/what-is-agent-id" target="_blank" rel="noreferrer noopener">"What is Entra Agent ID,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">Agent 定义、身份、RBAC 和 Agent Identity 模型的权威来源。</span></li>
+          <li id="ref-2"><span class="bib-id">[2]</span> <span class="bib-author">Azure Databricks.</span> <a href="https://learn.microsoft.com/en-us/azure/databricks/generative-ai/guide/agent-system-design-patterns" target="_blank" rel="noreferrer noopener">"Agent System Design Patterns,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">呼叫中心退货场景、LLM+Prompt → Multi-Agent 能力谱系和"从简单开始"原则。</span></li>
+          <li id="ref-3"><span class="bib-id">[3]</span> <span class="bib-author">Azure Architecture Center.</span> <a href="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/ai-agent-design-patterns" target="_blank" rel="noreferrer noopener">"AI Agent Orchestration Patterns,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">多 Agent 编排收益、五类编排模式，以及上下文窗口管理、测试和安全指南。</span></li>
+          <li id="ref-4"><span class="bib-id">[4]</span> <span class="bib-author">E. Gerba (Salesforce).</span> <a href="https://www.salesforce.com/news/stories/agentic-enterprise-architecture/" target="_blank" rel="noreferrer noopener">"Agentic Enterprise Architecture,"</a> <em>Salesforce News,</em> 2026.<span class="bib-note">11 层扩展框架、分阶段路线图和 Hero FinCorp / Good360 案例。</span></li>
+          <li id="ref-5"><span class="bib-id">[5]</span> <span class="bib-author">IEEE Computer Society.</span> <a href="https://www.computer.org/publications/tech-news/trends/ai-agentic-mesh" target="_blank" rel="noreferrer noopener">"AI Agentic Mesh,"</a> <em>IEEE CS Tech News,</em> 2026.<span class="bib-note">Agentic Mesh 六层参考架构、Global Bank 案例和制造/保险模块化集成。</span></li>
+          <li id="ref-6"><span class="bib-id">[6]</span> <span class="bib-author">Kore.ai.</span> <a href="https://www.kore.ai/blog/agentic-architecture-blueprint-for-intelligent-enterprise" target="_blank" rel="noreferrer noopener">"Agentic Architecture Blueprint for Intelligent Enterprise,"</a> <em>Kore.ai Blog,</em> 2026.<span class="bib-note">三层智能模型、五项基础原则和组织挑战清单。</span></li>
+          <li id="ref-7"><span class="bib-id">[7]</span> <span class="bib-author">HyperTrends.</span> <a href="https://www.hypertrends.com/2026/04/ai-agent-architecture-enterprise/" target="_blank" rel="noreferrer noopener">"Enterprise Agent Architecture,"</a> <em>HyperTrends,</em> Apr. 2026.<span class="bib-note">护栏分类、成本管理策略、模式选择逻辑和可观测性。</span></li>
+          <li id="ref-8"><span class="bib-id">[8]</span> <span class="bib-author">Infosys BPM.</span> <a href="https://www.infosysbpm.com/blogs/agentic-ai/intelligent-agent-in-ai-guide.html" target="_blank" rel="noreferrer noopener">"Intelligent Agent in AI Guide,"</a> <em>Infosys BPM Blog,</em> 2026.<span class="bib-note">五项推进动作和分阶段采用路线的补充视角。</span></li>
+          <li id="ref-9"><span class="bib-id">[9]</span> <span class="bib-author">Gartner.</span> <a href="https://www.gartner.com/en/articles/top-technology-trends-2026" target="_blank" rel="noreferrer noopener">"Top 10 Strategic Technology Trends for 2026,"</a> <em>Gartner Research,</em> 2026.<span class="bib-note">将 Multiagent Systems 列为第 4 大战略技术趋势。</span></li>
+          <li id="ref-10"><span class="bib-id">[10]</span> <span class="bib-author">McKinsey Digital.</span> <a href="https://www.mckinsey.com/capabilities/mckinsey-digital/our-insights/why-agents-are-the-next-frontier-of-generative-ai" target="_blank" rel="noreferrer noopener">"Why Agents Are the Next Frontier of Generative AI,"</a> <em>McKinsey Insights,</em> 2025.<span class="bib-note">业务价值框架、贷款审批场景分析（审查周期缩短 20–60%）。</span></li>
+          <li id="ref-11"><span class="bib-id">[11]</span> <span class="bib-author">Anthropic.</span> <a href="https://www.anthropic.com/engineering/building-effective-agents" target="_blank" rel="noreferrer noopener">"Building Effective Agents,"</a> <em>Anthropic Engineering,</em> 2025.<span class="bib-note">"最成功的实现使用简单、可组合的模式"及工作流构建块。</span></li>
+        </ol>
+      </section>
+
+      <footer>
+        © 2026 企业智能体架构设计与应用 | 交互式 HTML 页面。
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    const revealTargets = document.querySelectorAll('.load-in, [data-reveal]');
+    const sectionTargets = document.querySelectorAll('main section[id]');
+    const navLinks = document.querySelectorAll('.nav-links a');
+
+    const revealObserver = new IntersectionObserver((entries, observer) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) {
+          return;
+        }
+
+        entry.target.classList.add('is-visible');
+        observer.unobserve(entry.target);
+      });
+    }, {
+      threshold: 0.18,
+      rootMargin: '0px 0px -40px 0px'
+    });
+
+    revealTargets.forEach((target) => {
+      revealObserver.observe(target);
+    });
+
+    const navObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        const id = entry.target.getAttribute('id');
+        const matchingLink = document.querySelector(`.nav-links a[href="#${id}"]`);
+
+        if (!matchingLink) {
+          return;
+        }
+
+        if (entry.isIntersecting) {
+          navLinks.forEach((link) => {
+            link.removeAttribute('aria-current');
+          });
+          matchingLink.setAttribute('aria-current', 'true');
+        }
+      });
+    }, {
+      threshold: 0.4
+    });
+
+    sectionTargets.forEach((section) => {
+      navObserver.observe(section);
+    });
+
+    document.querySelectorAll('.load-in').forEach((element, index) => {
+      element.style.transitionDelay = `${index * 120}ms`;
+    });
+
+    document.querySelectorAll('[data-accordion]').forEach((item) => {
+      const button = item.querySelector('.subsection-toggle');
+      const content = item.querySelector('.subsection-content');
+
+      if (!button || !content) {
+        return;
+      }
+
+      const syncAccordionState = (targetItem, expanded) => {
+        const targetButton = targetItem.querySelector('.subsection-toggle');
+        const targetContent = targetItem.querySelector('.subsection-content');
+
+        if (!targetButton || !targetContent) {
+          return;
+        }
+
+        targetButton.setAttribute('aria-expanded', String(expanded));
+        targetItem.classList.toggle('is-open', expanded);
+        targetContent.setAttribute('aria-hidden', String(!expanded));
+      };
+
+      syncAccordionState(item, item.classList.contains('is-open'));
+
+      button.addEventListener('click', () => {
+        const isExpanded = item.classList.contains('is-open');
+
+        if (!isExpanded) {
+          document.querySelectorAll('[data-accordion]').forEach((otherItem) => {
+            if (otherItem === item) {
+              return;
+            }
+
+            syncAccordionState(otherItem, false);
+          });
+        }
+
+        syncAccordionState(item, !isExpanded);
+      });
+    });
+
+    document.querySelectorAll('[data-tabs]').forEach((tabGroup) => {
+      const buttons = Array.from(tabGroup.querySelectorAll('.tab-button'));
+      const panels = Array.from(tabGroup.querySelectorAll('.tab-panel'));
+
+      buttons.forEach((button) => {
+        button.addEventListener('click', () => {
+          const targetId = button.dataset.tabTarget;
+
+          buttons.forEach((item) => {
+            item.setAttribute('aria-selected', String(item === button));
+          });
+
+          panels.forEach((panel) => {
+            panel.hidden = panel.id !== targetId;
+          });
+        });
+      });
+    });
+
+    document.querySelectorAll('[data-matrix]').forEach((matrix) => {
+      const rows = Array.from(matrix.querySelectorAll('tbody tr'));
+      const points = Array.from(matrix.querySelectorAll('.quadrant-point'));
+      const complexityFilter = matrix.querySelector('[data-filter="complexity"]');
+      const autonomyFilter = matrix.querySelector('[data-filter="autonomy"]');
+      const viewButtons = Array.from(matrix.querySelectorAll('.matrix-view-button'));
+      const viewPanels = Array.from(matrix.querySelectorAll('[data-view-panel]'));
+
+      const applyMatrixFilters = () => {
+        const complexityValue = complexityFilter ? complexityFilter.value : 'all';
+        const autonomyValue = autonomyFilter ? autonomyFilter.value : 'all';
+
+        rows.forEach((row) => {
+          const matchesComplexity = complexityValue === 'all' || row.dataset.complexity === complexityValue;
+          const matchesAutonomy = autonomyValue === 'all' || row.dataset.autonomy === autonomyValue;
+          row.hidden = !(matchesComplexity && matchesAutonomy);
+        });
+
+        points.forEach((point) => {
+          const matchesComplexity = complexityValue === 'all' || point.dataset.complexity === complexityValue;
+          const matchesAutonomy = autonomyValue === 'all' || point.dataset.autonomy === autonomyValue;
+          point.hidden = !(matchesComplexity && matchesAutonomy);
+        });
+      };
+
+      const setMatrixView = (targetView) => {
+        viewButtons.forEach((button) => {
+          button.setAttribute('aria-selected', String(button.dataset.viewTarget === targetView));
+        });
+
+        viewPanels.forEach((panel) => {
+          panel.hidden = panel.dataset.viewPanel !== targetView;
+        });
+      };
+
+      if (complexityFilter) {
+        complexityFilter.addEventListener('change', applyMatrixFilters);
+      }
+
+      if (autonomyFilter) {
+        autonomyFilter.addEventListener('change', applyMatrixFilters);
+      }
+
+      viewButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+          setMatrixView(button.dataset.viewTarget || 'table');
+        });
+      });
+
+      setMatrixView('table');
+      applyMatrixFilters();
+    });
+
+    document.querySelectorAll('[data-decision-tree]').forEach((tree) => {
+      const planning = tree.querySelector('[data-question="planning"]');
+      const domains = tree.querySelector('[data-question="domains"]');
+      const continuous = tree.querySelector('[data-question="continuous"]');
+      const title = tree.querySelector('[data-result-title]');
+      const text = tree.querySelector('[data-result-text]');
+
+      const updateDecision = () => {
+        const planningValue = planning ? planning.value : 'unknown';
+        const domainsValue = domains ? domains.value : 'unknown';
+        const continuousValue = continuous ? continuous.value : 'unknown';
+
+        if (planningValue === 'unknown' || domainsValue === 'unknown' || continuousValue === 'unknown') {
+          title.textContent = '请先完成选择';
+          text.textContent = '这个交互把 Pattern Selection Decision Tree 直接转成了可操作的选型器，用来帮助判断模式与任务类型的匹配关系。';
+          return;
+        }
+
+        if (continuousValue === 'yes') {
+          title.textContent = '推荐：Autonomous Swarm';
+          text.textContent = '当任务要求持续自治运行、需要监督 Agent 管理多个 Specialist，并同时施加成本和动作边界时，最接近的推荐模式是 Autonomous Swarm。';
+          return;
+        }
+
+        if (planningValue === 'yes' && domainsValue === 'yes') {
+          title.textContent = '推荐：Orchestrator';
+          text.textContent = '当请求需要被拆成多个可并行的跨域子任务，并在最后聚合结果时，推荐使用 Orchestrator。';
+          return;
+        }
+
+        if (planningValue === 'yes' && domainsValue === 'no') {
+          title.textContent = '推荐：Planner-Executor';
+          text.textContent = '当任务具有明显顺序依赖，需要先分解步骤再逐步执行，并在失败时重新规划时，最合适的是 Planner-Executor。';
+          return;
+        }
+
+        if (planningValue === 'no' && domainsValue === 'yes') {
+          title.textContent = '推荐：Router';
+          text.textContent = '当问题跨多个领域，但本质上是在不同 Specialist 之间分诊和转交时，推荐使用 Router 模式。';
+          return;
+        }
+
+        title.textContent = '推荐：Single Agent';
+        text.textContent = '当任务范围清晰、工具集合明确且不需要多域协作时，Single Agent 仍然是默认起点。';
+      };
+
+      [planning, domains, continuous].forEach((select) => {
+        if (!select) {
+          return;
+        }
+
+        select.addEventListener('change', updateDecision);
+      });
+
+      updateDecision();
+    });
+
+    // Apply homepage preferences from localStorage
+    (function () {
+      var root = document.documentElement;
+
+      // Theme
+      var stored = localStorage.getItem('theme');
+      var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var theme = stored || (prefersDark ? 'dark' : 'light');
+      root.setAttribute('data-theme', theme);
+
+      // Language
+      var lang = localStorage.getItem('lang') || 'zh';
+      root.setAttribute('lang', lang === 'zh' ? 'zh-CN' : 'en');
+      document.querySelectorAll('[data-zh][data-en]').forEach(function (el) {
+        var val = el.getAttribute('data-' + lang);
+        if (val !== null) el.innerHTML = val;
+      });
+    })();
+  </script>
+</body>
+</html>

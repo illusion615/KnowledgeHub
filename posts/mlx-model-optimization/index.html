@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Apple Silicon 上的 MLX 模型优化实践</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(2.2rem, 5.5vw, 4rem);
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+      max-width: 18ch;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="← 返回首页" data-en="← Home">← 返回首页</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            MLX Model Optimization
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#architecture">架构</a>
+            <a href="#pipeline">管线</a>
+            <a href="#optimization">优化</a>
+            <a href="#llm-client">LLM</a>
+            <a href="#benchmarks">基准</a>
+            <a href="#lessons">经验</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">MLX Optimization Blueprint</span>
+            <h1>Apple Silicon 上的 MLX 模型优化实践</h1>
+            <p>
+              在 AI-MUD 项目中，我们从零构建了基于 Apple MLX 框架的 FLUX 图像生成管线（Z-Image-Turbo），实现了从 23GB 显存到 6GB 的4-bit量化压缩，并通过 mx.compile、分阶段内存释放和微服务隔离等策略，使 16GB Mac 也能运行 6B 参数的图像生成模型。本文记录了整个优化历程和关键经验。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#pipeline">查看构建过程</a>
+              <a class="button button-secondary" href="#optimization">查看优化策略</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">核心成果</span>
+            <h2>Z-Image-Turbo MLX</h2>
+            <p>
+              自建 FLUX 管线，bf16 + compile + fused attention，已发布为 HuggingFace 模型 illusion615/Z-Image-Turbo-MLX。
+            </p>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">显存压缩</div>
+            <strong>23GB → 6GB</strong>
+            <span>4-bit DiT 量化，适配 16GB Mac</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">实现轮次</div>
+            <strong>5 轮</strong>
+            <span>C-122a~C-122c, 从 T5Encoder 到完整管线</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">推理加速</div>
+            <strong>~2x</strong>
+            <span>mx.compile 集成</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- Section 01 -->
+        <section id="architecture" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / Image Server Architecture</p>
+            <h2>1. 图像服务器架构</h2>
+          </div>
+
+          <div class="insight-grid">
+            <article class="insight-card">
+              <span class="card-index">01</span>
+              <h3>零依赖路由层</h3>
+              <p>image-server (:8090) 是纯 HTTP 路由层，零 ML 依赖。它将请求分派到隔离的推理引擎进程。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">02</span>
+              <h3>三引擎隔离</h3>
+              <p>torch_service (:8098) 用于 CUDA/MPS、mflux_service (:8099) 第三方库、zimage_mlx_service (:8097) 自建 MLX 原生引擎。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">03</span>
+              <h3>进程隔离原则</h3>
+              <p>不同推理引擎（torch、mflux、MLX）有冲突的 Python 依赖，独立 venv + 子进程架构彻底解决。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">04</span>
+              <h3>降级策略</h3>
+              <p>离线可玩、在线增强——所有功能在服务不可用时优雅降级，DashScope 云端作为后备。</p>
+            </article>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced">
+            <article class="comparison-card">
+              <span class="comparison-label">Local Deployment</span>
+              <h3>本地部署方案</h3>
+              <p><strong>文本：</strong>Ollama（默认，macOS 上 MLX 引擎 ~24.6 t/s for Qwen3.5:35b-a3b）+ 可选 llama.cpp Metal GPU。</p>
+              <p><strong>图像：</strong>Z-Image-Turbo 6B（默认本地模型）。</p>
+              <p><strong>语音：</strong>IndexTTS2 Zero-Shot TTS。</p>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label">Hardware Requirements</span>
+              <h3>硬件需求</h3>
+              <p><strong>Windows:</strong> RTX 3090 24GB + 64GB RAM。</p>
+              <p><strong>macOS:</strong> Apple Silicon M4 Max + 64GB 统一内存。</p>
+              <p><strong>核心原则：</strong>统一内存是福也是祸——适合装大模型，但 MPS 计算速度落后 NVIDIA。</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 02 -->
+        <section id="pipeline" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Self-Built FLUX Pipeline</p>
+            <h2>2. 从零构建 FLUX 管线</h2>
+            <p>
+              5 轮实现过程（C-122a~C-122c），从编码器层到完整管线的逐步构建。
+            </p>
+          </div>
+
+          <article class="comparison-card">
+            <span class="comparison-label">Implementation Flow</span>
+            <h3>管线构建路径</h3>
+            <ol class="flow-list">
+              <li>
+                <span class="flow-step">1</span>
+                <div class="flow-copy">
+                  <strong>编码器层</strong>
+                  <p>T5Encoder（24 层 transformer, d_model=4096）+ CLIPEncoder（23 层, d_model=768）+ tokenizers + 权重加载器</p>
+                </div>
+              </li>
+              <li>
+                <span class="flow-step">2</span>
+                <div class="flow-copy">
+                  <strong>变换器骨干</strong>
+                  <p>FluxTransformer（DiT backbone: 19 个 JointTransformerBlocks + 38 个 SingleTransformerBlocks + RoPE + timestep embedding）</p>
+                </div>
+              </li>
+              <li>
+                <span class="flow-step">3</span>
+                <div class="flow-copy">
+                  <strong>解码器 + 调度器</strong>
+                  <p>AutoencoderKL（VAE decoder only）+ FlowMatchEulerScheduler（rectified flow, Euler stepping, schnell 模式 4 步）</p>
+                </div>
+              </li>
+              <li>
+                <span class="flow-step">4</span>
+                <div class="flow-copy">
+                  <strong>模型管理</strong>
+                  <p>模型注册 + 4-bit/8-bit 量化 + 管理面板切换</p>
+                </div>
+              </li>
+              <li>
+                <span class="flow-step">5</span>
+                <div class="flow-copy">
+                  <strong>性能优化</strong>
+                  <p>基准测试 + mx.compile 集成 + 内存优化</p>
+                </div>
+              </li>
+            </ol>
+          </article>
+        </section>
+
+        <!-- Section 03 -->
+        <section id="optimization" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / Optimization Strategies</p>
+            <h2>3. 优化策略详解</h2>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" aria-expanded="true">3.1 4-bit DiT 量化 (C-123)</button>
+              <div class="subsection-content">
+                <p>将 DiT backbone 从 bf16 量化到 4-bit，显存从 23GB 降至 6GB。关键取舍：推理精度有微小损失，但使 16GB Mac 成为可能。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">3.2 分阶段内存释放 (C-122c)</button>
+              <div class="subsection-content">
+                <p>同一时刻只有一个大组件在内存中。T5编码完成后释放 → 加载 DiT → DiT推理完成后释放 → 加载 VAE 解码。峰值内存下降 50%+。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">3.3 mx.compile 图编译 (C-124)</button>
+              <div class="subsection-content">
+                <p>Apple MLX 的 JIT 图编译，约 2 倍推理加速。需要注意首次调用的编译开销。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">3.4 MPS bfloat16 加速 (C-55)</button>
+              <div class="subsection-content">
+                <p>Apple Silicon 上 PyTorch MPS 后端启用 bfloat16，图像生成速度提升 15-20 倍。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">3.5 微服务架构隔离 (C-127)</button>
+              <div class="subsection-content">
+                <p>零 ML 依赖路由层 + 隔离引擎进程在独立 venv 中运行。解决了 torch/mflux/MLX 之间的依赖冲突。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 04 -->
+        <section id="llm-client" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / LLM Client Architecture</p>
+            <h2>4. LLM 客户端架构优化</h2>
+          </div>
+
+          <div class="comparison-grid">
+            <article class="comparison-card">
+              <span class="comparison-label">Three-Layer Architecture</span>
+              <h3>llm_client.py 三层架构</h3>
+              <ul class="reference-list">
+                <li><strong>Layer 1 (Role API)</strong> — call_role_model(role, messages, stream) — 业务层唯一入口。解析 role → model → provider → endpoint。</li>
+                <li><strong>Layer 2 (Dispatch)</strong> — call_model(provider, endpoint, model_id) — 解析参数、获取 provider、分派调用。</li>
+                <li><strong>Provider Layer</strong> — LlmProvider Protocol + 6 个方法（call, stream, probe, warmup, heartbeat, build_auth_headers）。三个实现：OllamaProvider, OpenAICompatProvider, AzureProvider。Provider 之间零交叉依赖。</li>
+              </ul>
+            </article>
+
+            <article class="comparison-card next">
+              <span class="comparison-label">Key Optimizations</span>
+              <h3>关键优化</h3>
+              <ul class="reference-list">
+                <li><strong>重构成果</strong> — 1905 行 → 995 行（-48%），消除 ~220 行跨 Provider 重复代码</li>
+                <li><strong>Dual Semaphore</strong> — global + per-model 并发控制</li>
+                <li><strong>Per-model CircuitBreaker</strong> — 模型级熔断器</li>
+                <li><strong>PER_MODEL_CONCURRENCY 2→6</strong> — 修复 storyteller + supervisor 共用模型时的饥饿问题</li>
+                <li><strong>Connection pool + httpx.Client 复用</strong> — 单例 HTTP 客户端</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 05 -->
+        <section id="benchmarks" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / Benchmark Results</p>
+            <h2>5. 性能基准测试</h2>
+          </div>
+
+          <div class="simple-table-wrap section-grid-spaced">
+            <table class="simple-table">
+              <thead>
+                <tr>
+                  <th>平台</th>
+                  <th>模型</th>
+                  <th>速度</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>RTX 4090 24GB</td>
+                  <td>Z-Image-Turbo 6B, 9 steps</td>
+                  <td>~5s/image</td>
+                </tr>
+                <tr>
+                  <td>RTX 3090 24GB</td>
+                  <td>Z-Image-Turbo 6B, 9 steps</td>
+                  <td>~8s/image</td>
+                </tr>
+                <tr>
+                  <td>M4 Max 64GB</td>
+                  <td>Z-Image-Turbo 6B, 9 steps (MPS torch)</td>
+                  <td>~55s/image</td>
+                </tr>
+                <tr>
+                  <td>M4 Max 64GB</td>
+                  <td>MLX native (bf16 + compile)</td>
+                  <td>≈comparable to MPS</td>
+                </tr>
+                <tr>
+                  <td>M4 Max 64GB</td>
+                  <td>Ollama Qwen3.5:35b-a3b (MLX)</td>
+                  <td>~24.6 t/s</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced">
+            <article class="comparison-card">
+              <span class="comparison-label">Key Insights</span>
+              <h3>基准测试启示</h3>
+              <p>NVIDIA GPU 在图像生成上仍有绝对速度优势（5-11x），但 Apple Silicon 的统一内存允许加载远超显存限制的模型。MLX 原生管线在 Apple Silicon 上接近 MPS torch 性能，同时具有更好的内存管理和系统集成。LLM 推理场景下 Ollama 的 MLX 引擎已达到实用水平。</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 06 -->
+        <section id="lessons" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / Lessons Learned</p>
+            <h2>6. 经验总结</h2>
+          </div>
+
+          <ul class="challenge-list">
+            <li><strong>自建管线给予了完全控制权</strong> — 权重 key 映射、内存生命周期、进度回调都成为一等公民，而非依赖黑盒框架的内部状态。</li>
+            <li><strong>Apple Silicon 统一内存是双刃剑</strong> — 适合装大模型（64GB 统一内存可装 35B 参数模型），但 MPS 计算速度显著落后 NVIDIA。</li>
+            <li><strong>进程隔离是必要的</strong> — 不同推理引擎有冲突依赖，独立 venv + 子进程是唯一可行方案。</li>
+            <li><strong>Provider 抽象回报巨大</strong> — 新增一个 LLM Provider 只需实现一个 Protocol 文件，对分派层和业务层零改动。</li>
+            <li><strong>4-bit 量化是普及的关键</strong> — 从 23GB 降到 6GB 峰值内存，让 16GB Mac 也能运行。</li>
+            <li><strong>最大的优化是架构级的</strong> — 合并 storyteller + state analyst 为单次 LLM 调用，消除了每个玩家动作一次额外的模型往返。</li>
+          </ul>
+        </section>
+      </main>
+
+      <footer>
+        © 2026 Apple Silicon 上的 MLX 模型优化实践 | 交互式 HTML 页面。
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    var revealTargets = document.querySelectorAll('.load-in, [data-reveal]');
+
+    var revealObserver = new IntersectionObserver(function (entries, observer) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('is-visible');
+        observer.unobserve(entry.target);
+      });
+    }, {
+      threshold: 0.18,
+      rootMargin: '0px 0px -40px 0px'
+    });
+
+    revealTargets.forEach(function (target) { revealObserver.observe(target); });
+
+    var sectionTargets = document.querySelectorAll('main section[id]');
+    var navLinks = document.querySelectorAll('.nav-links a');
+
+    var navObserver = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        var id = entry.target.getAttribute('id');
+        var matchingLink = document.querySelector('.nav-links a[href="#' + id + '"]');
+        if (!matchingLink) return;
+        if (entry.isIntersecting) {
+          navLinks.forEach(function (link) { link.removeAttribute('aria-current'); });
+          matchingLink.setAttribute('aria-current', 'true');
+        }
+      });
+    }, { threshold: 0.4 });
+
+    sectionTargets.forEach(function (section) { navObserver.observe(section); });
+
+    document.querySelectorAll('.load-in').forEach(function (element, index) {
+      element.style.transitionDelay = (index * 120) + 'ms';
+    });
+
+    document.querySelectorAll('[data-accordion]').forEach(function (item) {
+      var button = item.querySelector('.subsection-toggle');
+      var content = item.querySelector('.subsection-content');
+      if (!button || !content) return;
+
+      var syncAccordionState = function (targetItem, expanded) {
+        var targetButton = targetItem.querySelector('.subsection-toggle');
+        var targetContent = targetItem.querySelector('.subsection-content');
+        if (!targetButton || !targetContent) return;
+        targetButton.setAttribute('aria-expanded', String(expanded));
+        targetItem.classList.toggle('is-open', expanded);
+        targetContent.setAttribute('aria-hidden', String(!expanded));
+      };
+
+      syncAccordionState(item, item.classList.contains('is-open'));
+
+      button.addEventListener('click', function () {
+        var isExpanded = item.classList.contains('is-open');
+        if (!isExpanded) {
+          document.querySelectorAll('[data-accordion]').forEach(function (otherItem) {
+            if (otherItem === item) return;
+            syncAccordionState(otherItem, false);
+          });
+        }
+        syncAccordionState(item, !isExpanded);
+      });
+    });
+
+    // Apply homepage preferences from localStorage
+    (function () {
+      var root = document.documentElement;
+
+      // Theme
+      var stored = localStorage.getItem('theme');
+      var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var theme = stored || (prefersDark ? 'dark' : 'light');
+      root.setAttribute('data-theme', theme);
+
+      // Language
+      var lang = localStorage.getItem('lang') || 'zh';
+      root.setAttribute('lang', lang === 'zh' ? 'zh-CN' : 'en');
+      document.querySelectorAll('[data-zh][data-en]').forEach(function (el) {
+        var val = el.getAttribute('data-' + lang);
+        if (val !== null) el.innerHTML = val;
+      });
+    })();
+  </script>
+</body>
+</html>
