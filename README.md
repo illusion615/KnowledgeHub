@@ -1,13 +1,10 @@
 # Knowledge Hub
 
-Knowledge Hub is a static HTML knowledge site for study notes, engineering retrospectives, and architecture articles.
-
-The repository folder is still named `Study-Room`, but the public homepage title and visible brand have been updated to `Knowledge Hub`.
+Knowledge Hub is a static HTML knowledge site for study notes, engineering retrospectives, and architecture articles. It features an interactive knowledge graph homepage and structured, progressive disclosure article pages. All content is authored in plain HTML with shared CSS and JS for consistent styling and presentation behavior.
 
 ## Current Status
 
 - Homepage: interactive knowledge graph landing page in `index.html`
-- Public brand/title: `Knowledge Hub`
 - Publishing model: static site for GitHub Pages
 - Build step: none
 - Frontend stack: vanilla HTML, CSS, and JavaScript
