@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LLM Client 架构重构：多 Provider 运行时设计实践</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(2.25rem, 5.6vw, 4.15rem);
+      line-height: 1.04;
+      letter-spacing: -0.04em;
+      max-width: 16ch;
+    }
+
+    .hero-metrics {
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    }
+
+    .architecture-figure {
+      margin-top: 28px;
+      padding: 24px;
+      border-radius: 28px;
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      box-shadow: 0 24px 64px rgba(15, 23, 42, 0.08);
+      overflow: hidden;
+    }
+
+    .architecture-head {
+      max-width: 76ch;
+      margin-bottom: 18px;
+    }
+
+    .architecture-head h3 {
+      margin-top: 8px;
+      margin-bottom: 10px;
+      font-size: clamp(1.35rem, 2vw, 1.72rem);
+    }
+
+    .architecture-head p {
+      color: var(--muted);
+      line-height: 1.75;
+    }
+
+    .architecture-board {
+      display: grid;
+      gap: 14px;
+    }
+
+    .architecture-layer {
+      padding: 18px;
+      border-radius: 24px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.58));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+    }
+
+    .architecture-layer-entry {
+      background: linear-gradient(180deg, rgba(255, 122, 0, 0.12), rgba(255, 255, 255, 0.68));
+    }
+
+    .architecture-layer-dispatch {
+      background: linear-gradient(180deg, rgba(13, 143, 140, 0.08), rgba(255, 255, 255, 0.62));
+    }
+
+    .architecture-layer-provider {
+      background: linear-gradient(180deg, rgba(59, 130, 246, 0.08), rgba(255, 255, 255, 0.62));
+    }
+
+    .architecture-layer-runtime {
+      background: linear-gradient(180deg, rgba(99, 102, 241, 0.08), rgba(255, 255, 255, 0.62));
+    }
+
+    .architecture-layer-head {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 14px;
+      align-items: start;
+      margin-bottom: 14px;
+    }
+
+    .architecture-layer-index {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 42px;
+      height: 42px;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.07);
+      color: var(--ink);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .architecture-layer-copy h4 {
+      margin: 0;
+      font-size: clamp(1.08rem, 1.8vw, 1.26rem);
+      line-height: 1.2;
+    }
+
+    .architecture-layer-copy p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: 0.92rem;
+    }
+
+    .architecture-module-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .architecture-module {
+      padding: 16px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+    }
+
+    .architecture-module-wide {
+      grid-column: 1 / -1;
+    }
+
+    .architecture-module-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .architecture-module-head h5 {
+      margin: 0;
+      font-size: 1rem;
+      line-height: 1.3;
+    }
+
+    .architecture-module-role {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.06);
+      color: var(--muted);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .architecture-feature-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 8px;
+    }
+
+    .architecture-feature-list li {
+      position: relative;
+      padding-left: 14px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.65;
+    }
+
+    .architecture-feature-list li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.7em;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(255, 122, 0, 0.72);
+      transform: translateY(-50%);
+    }
+
+    .architecture-module-meta {
+      margin-top: 12px;
+      color: var(--accent);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .result-card {
+      padding: 18px;
+      border-radius: 22px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+    }
+
+    .result-card h3 {
+      margin: 0 0 10px;
+      font-size: 1rem;
+      line-height: 1.35;
+    }
+
+    .result-card p,
+    .result-card li {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.72;
+    }
+
+    .result-card ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    [data-theme="dark"] .architecture-figure {
+      background: rgba(15, 23, 42, 0.5);
+      border-color: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.25);
+    }
+
+    [data-theme="dark"] .architecture-layer {
+      border-color: rgba(255, 255, 255, 0.08);
+      background: linear-gradient(180deg, rgba(19, 28, 40, 0.92), rgba(15, 23, 42, 0.78));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+
+    [data-theme="dark"] .architecture-layer-entry {
+      background: linear-gradient(180deg, rgba(255, 122, 0, 0.18), rgba(15, 23, 42, 0.86));
+    }
+
+    [data-theme="dark"] .architecture-layer-dispatch {
+      background: linear-gradient(180deg, rgba(13, 143, 140, 0.14), rgba(15, 23, 42, 0.82));
+    }
+
+    [data-theme="dark"] .architecture-layer-provider {
+      background: linear-gradient(180deg, rgba(59, 130, 246, 0.14), rgba(15, 23, 42, 0.82));
+    }
+
+    [data-theme="dark"] .architecture-layer-runtime {
+      background: linear-gradient(180deg, rgba(99, 102, 241, 0.14), rgba(15, 23, 42, 0.82));
+    }
+
+    [data-theme="dark"] .architecture-layer-index,
+    [data-theme="dark"] .architecture-module-role {
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(236, 241, 246, 0.76);
+    }
+
+    [data-theme="dark"] .architecture-module,
+    [data-theme="dark"] .result-card {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.18);
+    }
+
+    [data-theme="dark"] .architecture-feature-list li::before {
+      background: rgba(255, 180, 116, 0.82);
+    }
+
+    @media (max-width: 900px) {
+      .architecture-layer-head {
+        grid-template-columns: 1fr;
+      }
+
+      .architecture-layer-index {
+        width: fit-content;
+      }
+
+      .architecture-module-head {
+        flex-direction: column;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .architecture-figure {
+        padding: 18px;
+      }
+
+      .architecture-module-grid,
+      .result-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero" data-present-step data-step-title="文章总览">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="← 返回首页" data-en="← Home">← 返回首页</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            LLM Client Architecture
+          </div>
+          <div class="topbar-actions">
+            <nav class="nav-links" aria-label="页面章节导航">
+              <a href="#trigger">起因</a>
+              <a href="#goals">目标</a>
+              <a href="#architecture">架构</a>
+              <a href="#runtime">运行时</a>
+              <a href="#results">结果</a>
+              <a href="#conclusion">结论</a>
+            </nav>
+          </div>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Runtime Refactor Notes</span>
+            <h1>LLM Client 架构重构：多 Provider 运行时设计实践</h1>
+            <p>
+              这篇文章把原先混在 MLX 文中的 LLM client 内容独立出来，聚焦一件更明确的事：在 AI-MUD 项目里，如何把一个 1905 行、同时承担业务入口、Provider 适配、并发控制和故障处理的单文件客户端，重构成一个可扩展、可维护、可治理的多 Provider 运行时。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#trigger">先看重构动机</a>
+              <a class="button button-secondary" href="#results">直接看重构结果</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">核心原则</span>
+            <h2>这次重构不是为了把客户端写得更“优雅”，而是为了把业务调用、Provider 适配和运行时稳定性拆成彼此独立的责任层。</h2>
+            <ul class="layer-list section-grid-spaced">
+              <li><span class="layer-number">1</span>业务层只保留 `call_role_model(...)` 这一条入口。</li>
+              <li><span class="layer-number">2</span>Provider 之间零交叉依赖，新增后端不再改业务逻辑。</li>
+              <li><span class="layer-number">3</span>并发、熔断、连接池等稳定性能力从“隐式行为”变成显式运行时控制面。</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">文件规模</div>
+            <strong>1905 → 995</strong>
+            <span>主客户端文件缩减约 48%</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Provider 实现</div>
+            <strong>3 个</strong>
+            <span>Ollama、OpenAI-compatible、Azure</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">协议方法</div>
+            <strong>6 个</strong>
+            <span>call / stream / probe / warmup / heartbeat / auth headers</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">并发修复</div>
+            <strong>2 → 6</strong>
+            <span>PER_MODEL_CONCURRENCY 调整以消除角色饥饿</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <section id="trigger" class="section" data-reveal data-present-step data-step-title="重构起因">
+          <div class="section-head">
+            <p class="section-kicker">01 / Trigger</p>
+            <h2>1. 起因：客户端真正的问题不是“代码太长”，而是职责混在一起之后没人能安全地继续改</h2>
+            <p>
+              当一个 LLM client 同时承担角色入口、模型路由、Provider 协议、网络连接、并发治理和故障保护时，最先坏掉的通常不是某个功能，而是演进能力本身。当前材料里保留的数字和经验，足够说明这次重构为什么必须发生。</p>
+          </div>
+
+          <div class="insight-grid">
+            <article class="insight-card">
+              <span class="card-index">01</span>
+              <h3>入口与实现耦合</h3>
+              <p>业务层本应只关心 role，但旧客户端把 role 解析、provider 选择和 transport 细节揉在一起。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">02</span>
+              <h3>跨 Provider 重复代码</h3>
+              <p>当前材料明确提到约 220 行跨 Provider 重复逻辑，说明抽象层次不对，重复已经开始侵蚀可维护性。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">03</span>
+              <h3>并发饥饿</h3>
+              <p>storyteller 与 supervisor 共用模型时会发生资源饥饿，证明客户端已经进入“运行时治理”问题，而不只是接口封装问题。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">04</span>
+              <h3>新增后端成本过高</h3>
+              <p>如果新增一个 Provider 还要改业务入口层，说明系统没有真正形成稳定边界。</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="goals" class="section" data-reveal data-present-step data-step-title="设计目标与取舍">
+          <div class="section-head">
+            <p class="section-kicker">02 / Design Goals</p>
+            <h2>2. 设计目标：哪些必须重构，哪些必须保持不动</h2>
+            <p>
+              一次好的运行时重构，不是全盘推倒，而是把“应该稳定的接口”固定下来，把“应该变化的实现”隔离出去。当前路线最聪明的地方，在于它保住了业务入口，同时重做了内部责任边界。</p>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced">
+            <article class="comparison-card">
+              <span class="comparison-label">What Stayed Fixed</span>
+              <h3>保留下来的稳定接口</h3>
+              <ul class="challenge-list">
+                <li><strong>`call_role_model(...)`</strong> — 业务层仍通过 role 来表达意图，不感知 provider 和 endpoint 细节。</li>
+                <li><strong>Role → Model 映射</strong> — 角色分工依旧存在，重构没有破坏上层编排逻辑。</li>
+                <li><strong>单一业务入口</strong> — 避免在业务代码里散落 Provider 专属调用。</li>
+              </ul>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label">What Was Rebuilt</span>
+              <h3>必须被重新拆分的部分</h3>
+              <ul class="challenge-list">
+                <li><strong>分派层</strong> — 统一参数解析、provider 解析和调用分发。</li>
+                <li><strong>Provider 协议层</strong> — 把各后端的差异收敛为同一组方法契约。</li>
+                <li><strong>运行时控制层</strong> — 并发、熔断、连接池、心跳这些能力不再散落在实现细节里。</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section id="architecture" class="section" data-reveal data-present-step data-step-title="三层架构与运行时控制面">
+          <div class="section-head">
+            <p class="section-kicker">03 / Layered Architecture</p>
+            <h2>3. 三层架构：把“谁决定调用什么”和“怎么真正发请求”彻底拆开</h2>
+            <p>
+              当前材料里最重要的设计点，是它把 llm_client 变成了一套分层系统，而不是一个越来越大的工具模块。层与层之间的边界一旦稳定，扩展与治理就变成了常规工作。</p>
+          </div>
+
+          <figure class="architecture-figure section-grid-spaced">
+            <div class="architecture-head">
+              <span class="comparison-label">System View</span>
+              <h3>LLM Client 的分层系统图</h3>
+              <p>最上层只表达业务意图，中间层负责解析和分发，底层 Provider 负责真正执行请求，稳定性能力作为运行时控制面横切其间。</p>
+            </div>
+
+            <div class="architecture-board" role="img" aria-labelledby="llm-architecture-title llm-architecture-desc">
+              <div class="visually-hidden">
+                <span id="llm-architecture-title">LLM Client 分层架构图</span>
+                <span id="llm-architecture-desc">从上到下依次是 Role API 层、Dispatch 层、Provider 协议层和 Runtime 控制层，展示 call_role_model、provider 分发以及并发与故障治理之间的关系。</span>
+              </div>
+
+              <section class="architecture-layer architecture-layer-entry">
+                <div class="architecture-layer-head">
+                  <span class="architecture-layer-index">01</span>
+                  <div class="architecture-layer-copy">
+                    <h4>Role API Layer</h4>
+                    <p>业务层唯一应该看到的入口是 `call_role_model(role, messages, stream)`。这一层只负责表达业务角色和请求意图，不承担具体 Provider 的实现差异。</p>
+                  </div>
+                </div>
+                <div class="architecture-module-grid">
+                  <article class="architecture-module architecture-module-wide">
+                    <div class="architecture-module-head">
+                      <h5>call_role_model</h5>
+                      <span class="architecture-module-role">Business API</span>
+                    </div>
+                    <ul class="architecture-feature-list">
+                      <li>解析 role 对应的 model / provider / endpoint</li>
+                      <li>保持业务代码不感知底层后端差异</li>
+                      <li>把上层编排与底层 transport 解耦</li>
+                    </ul>
+                    <div class="architecture-module-meta">Single Entry</div>
+                  </article>
+                </div>
+              </section>
+
+              <section class="architecture-layer architecture-layer-dispatch">
+                <div class="architecture-layer-head">
+                  <span class="architecture-layer-index">02</span>
+                  <div class="architecture-layer-copy">
+                    <h4>Dispatch Layer</h4>
+                    <p>中间层负责把 role 解析出来的调用意图转成具体的 provider 调用，并集中处理参数、模型标识、endpoint 和流式 / 非流式模式。</p>
+                  </div>
+                </div>
+                <div class="architecture-module-grid">
+                  <article class="architecture-module architecture-module-wide">
+                    <div class="architecture-module-head">
+                      <h5>call_model / Provider Resolution</h5>
+                      <span class="architecture-module-role">Dispatch</span>
+                    </div>
+                    <ul class="architecture-feature-list">
+                      <li>获取 provider 实现并分发请求</li>
+                      <li>集中解析模型和 endpoint 配置</li>
+                      <li>避免 Provider 分支逻辑渗透到业务层</li>
+                    </ul>
+                    <div class="architecture-module-meta">Centralized Routing</div>
+                  </article>
+                </div>
+              </section>
+
+              <section class="architecture-layer architecture-layer-provider">
+                <div class="architecture-layer-head">
+                  <span class="architecture-layer-index">03</span>
+                  <div class="architecture-layer-copy">
+                    <h4>Provider Protocol Layer</h4>
+                    <p>每个后端都实现同一套契约：调用、流式输出、探针、预热、心跳和认证头构造。这样“新增一个 Provider”才会变成实现协议，而不是改遍系统。</p>
+                  </div>
+                </div>
+                <div class="architecture-module-grid">
+                  <article class="architecture-module">
+                    <div class="architecture-module-head">
+                      <h5>OllamaProvider</h5>
+                      <span class="architecture-module-role">Local</span>
+                    </div>
+                    <ul class="architecture-feature-list">
+                      <li>承接本地模型调用</li>
+                      <li>适合低延迟、本地优先场景</li>
+                    </ul>
+                    <div class="architecture-module-meta">Local Runtime</div>
+                  </article>
+                  <article class="architecture-module">
+                    <div class="architecture-module-head">
+                      <h5>OpenAICompatProvider</h5>
+                      <span class="architecture-module-role">Compatible</span>
+                    </div>
+                    <ul class="architecture-feature-list">
+                      <li>统一兼容 OpenAI 风格接口</li>
+                      <li>减少多家兼容服务接入成本</li>
+                    </ul>
+                    <div class="architecture-module-meta">Compatible API</div>
+                  </article>
+                  <article class="architecture-module">
+                    <div class="architecture-module-head">
+                      <h5>AzureProvider</h5>
+                      <span class="architecture-module-role">Cloud</span>
+                    </div>
+                    <ul class="architecture-feature-list">
+                      <li>承接 Azure 路线的认证与调用</li>
+                      <li>保持与本地 / 兼容实现同一调用模型</li>
+                    </ul>
+                    <div class="architecture-module-meta">Managed Endpoint</div>
+                  </article>
+                </div>
+              </section>
+
+              <section class="architecture-layer architecture-layer-runtime">
+                <div class="architecture-layer-head">
+                  <span class="architecture-layer-index">04</span>
+                  <div class="architecture-layer-copy">
+                    <h4>Runtime Control Layer</h4>
+                    <p>真正让这次重构从“代码整理”升级成“运行时设计”的，是并发、熔断、连接池和心跳这些控制面被显式抽出来了。</p>
+                  </div>
+                </div>
+                <div class="architecture-module-grid">
+                  <article class="architecture-module architecture-module-wide">
+                    <div class="architecture-module-head">
+                      <h5>Stability Primitives</h5>
+                      <span class="architecture-module-role">Runtime</span>
+                    </div>
+                    <ul class="architecture-feature-list">
+                      <li>Dual semaphore: global + per-model 并发控制</li>
+                      <li>Per-model circuit breaker: 熔断保护精确到模型级</li>
+                      <li>httpx.Client 单例复用: 降低 transport 开销与连接抖动</li>
+                      <li>warmup / heartbeat / probe: 让可用性检查成为显式动作</li>
+                    </ul>
+                    <div class="architecture-module-meta">Operational Guardrails</div>
+                  </article>
+                </div>
+              </section>
+            </div>
+          </figure>
+        </section>
+
+        <section id="runtime" class="section" data-reveal data-present-step data-step-title="关键运行时机制">
+          <div class="section-head">
+            <p class="section-kicker">04 / Runtime Controls</p>
+            <h2>4. 关键实现：真正有价值的优化，发生在运行时控制层</h2>
+            <p>
+              如果只看“代码行数减少”，会低估这次重构。更关键的变化在于：以前隐含在各个分支里的稳定性策略，现在被写成了显式的运行时机制。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" aria-expanded="true">4.1 Dual Semaphore：把并发从“碰运气”变成“有边界的调度”</button>
+              <div class="subsection-content">
+                <p>当前材料保留了 global + per-model 双层并发控制，以及 `PER_MODEL_CONCURRENCY` 从 2 调到 6 这一修复点。这说明问题本质不是“线程数不够”，而是不同角色共享模型时缺少公平调度边界。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">4.2 Per-model Circuit Breaker：把故障限制在模型粒度，而不是拖垮整套运行时</button>
+              <div class="subsection-content">
+                <p>把熔断粒度做到模型级，意味着某个特定后端或模型出问题时，系统仍然有空间让其他模型继续服务。这是多 Provider 运行时和单 Provider 客户端的根本差别之一。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">4.3 Connection Pool + httpx.Client 复用：把 transport 成本从业务路径中拿掉</button>
+              <div class="subsection-content">
+                <p>单例 HTTP 客户端不是“性能小技巧”，而是运行时稳定性的一部分。它减少连接抖动和重复初始化开销，让 provider 层更接近真正可运行的服务组件。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">4.4 Warmup / Probe / Heartbeat：把“模型活着吗”变成显式协议</button>
+              <div class="subsection-content">
+                <p>Provider 协议里不只有 call 和 stream，还包括 probe、warmup、heartbeat。这一层的价值在于，它把可用性检查前移成标准能力，减少了“请求发出去才知道死了”的不确定性。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="results" class="section" data-reveal data-present-step data-step-title="重构结果">
+          <div class="section-head">
+            <p class="section-kicker">05 / Results</p>
+            <h2>5. 重构结果：这次工作真正提升的是可扩展性和可治理性</h2>
+            <p>
+              当前材料里最直观的结果是文件从 1905 行降到 995 行，但更关键的是结构收益：业务调用更稳定，新增 Provider 的改动范围更小，并发饥饿得到了明确修复。</p>
+          </div>
+
+          <div class="simple-table-wrap section-grid-spaced">
+            <table class="simple-table">
+              <thead>
+                <tr>
+                  <th>维度</th>
+                  <th>重构前</th>
+                  <th>重构后</th>
+                  <th>意义</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>主客户端文件</td>
+                  <td>1905 行</td>
+                  <td>995 行</td>
+                  <td>复杂度显著下降，主路径更清晰。</td>
+                </tr>
+                <tr>
+                  <td>跨 Provider 重复逻辑</td>
+                  <td>约 220 行重复</td>
+                  <td>协议层统一收敛</td>
+                  <td>新增后端不再复制业务逻辑。</td>
+                </tr>
+                <tr>
+                  <td>并发控制</td>
+                  <td>单一 / 不充分边界</td>
+                  <td>global + per-model semaphore</td>
+                  <td>角色共享模型时的饥饿问题可被针对性治理。</td>
+                </tr>
+                <tr>
+                  <td>稳定性能力</td>
+                  <td>零散分布</td>
+                  <td>熔断、心跳、预热显式化</td>
+                  <td>运行时行为更可预期，也更便于运维。</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="result-grid section-grid-spaced">
+            <article class="result-card">
+              <h3>最直接的收益</h3>
+              <p>业务代码可以继续只面向 role，而不必追着不同 Provider 的 transport 细节跑。这让上层编排系统保持稳定。</p>
+            </article>
+            <article class="result-card">
+              <h3>最重要的隐性收益</h3>
+              <p>“新增一个 Provider”从改业务分支，变成实现协议。这是软件边界成熟的信号，不只是代码好看了。</p>
+            </article>
+            <article class="result-card">
+              <h3>仍然没有解决的事</h3>
+              <ul>
+                <li>当前材料没有保留完整时延 benchmark</li>
+                <li>没有展示更复杂多 Provider 降级策略</li>
+                <li>没有展开 auth / quota / retry 的更细设计</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section id="conclusion" class="section" data-reveal data-present-step data-step-title="结论">
+          <div class="section-head">
+            <p class="section-kicker">06 / Conclusion</p>
+            <h2>6. 结论：客户端重构的价值，不在于把文件拆小，而在于把系统责任重新分配正确</h2>
+            <p>
+              当前这次重构最值得保留的经验是：多 Provider 运行时的复杂度无法靠“写得小心一点”来控制，必须通过明确的边界来控制。只要业务入口、分派层、Provider 协议和运行时控制面被拆开，后续扩展、治理和故障隔离才会真正变得可持续。
+            </p>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced">
+            <article class="comparison-card">
+              <span class="comparison-label">What Worked</span>
+              <h3>这次重构真正成功的地方</h3>
+              <ul class="challenge-list">
+                <li>保住了业务入口，不需要让上层角色编排跟着重写。</li>
+                <li>把 Provider 扩展从系统级修改缩到协议实现范围。</li>
+                <li>让并发和故障治理成为显式的运行时控制，而不是散落的补丁。</li>
+              </ul>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label">Main Lesson</span>
+              <h3>如果只保留一句话</h3>
+              <p>LLM client 的长期可维护性，不取决于你支持了多少个 Provider，而取决于你是否把“业务意图”“调用分发”“Provider 实现”和“运行时治理”放到了各自该在的位置上。</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="references" class="section" data-reveal data-present-step data-step-title="参考来源">
+          <div class="section-head">
+            <p class="section-kicker">References</p>
+            <h2>参考来源</h2>
+          </div>
+          <ol class="bib-list">
+            <li id="ref-1"><span class="bib-id">[1]</span> <span class="bib-author">Knowledge Hub.</span> <a href="../ai-mud-project-retro/index.html">"AI-MUD 项目回顾：产品级 Vibe Coding 实践,"</a> <em>Knowledge Hub,</em> 2026.<span class="bib-note">提供这次客户端重构在 AI-MUD 项目中的阶段化背景与工程上下文。</span></li>
+            <li id="ref-2"><span class="bib-id">[2]</span> <span class="bib-author">Knowledge Hub.</span> <a href="../agentic-skill-execution/index.html">"智能体技能执行架构设计实践,"</a> <em>Knowledge Hub,</em> 2026.<span class="bib-note">帮助理解上层 role 编排与执行链路，为 `call_role_model(...)` 的业务定位提供上下文。</span></li>
+          </ol>
+        </section>
+      </main>
+
+      <footer>
+        © 2026 LLM Client 架构重构：多 Provider 运行时设计实践 | 交互式 HTML 页面。
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var root = document.documentElement;
+      var revealTargets = document.querySelectorAll('.load-in, [data-reveal]');
+      var sectionTargets = document.querySelectorAll('main section[id]');
+      var navLinks = document.querySelectorAll('.nav-links a');
+
+      if ('IntersectionObserver' in window) {
+        var revealObserver = new IntersectionObserver(function (entries, observer) {
+          entries.forEach(function (entry) {
+            if (!entry.isIntersecting) return;
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          });
+        }, {
+          threshold: 0.18,
+          rootMargin: '0px 0px -40px 0px'
+        });
+
+        revealTargets.forEach(function (target) {
+          revealObserver.observe(target);
+        });
+
+        var navObserver = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            var id = entry.target.getAttribute('id');
+            var matchingLink = document.querySelector('.nav-links a[href="#' + id + '"]');
+            if (!matchingLink) return;
+            if (entry.isIntersecting) {
+              navLinks.forEach(function (link) {
+                link.removeAttribute('aria-current');
+              });
+              matchingLink.setAttribute('aria-current', 'true');
+            }
+          });
+        }, {
+          threshold: 0.35
+        });
+
+        sectionTargets.forEach(function (section) {
+          navObserver.observe(section);
+        });
+      } else {
+        revealTargets.forEach(function (target) {
+          target.classList.add('is-visible');
+        });
+      }
+
+      document.querySelectorAll('.load-in').forEach(function (element, index) {
+        element.style.transitionDelay = (index * 120) + 'ms';
+      });
+
+      document.querySelectorAll('[data-accordion]').forEach(function (item) {
+        var button = item.querySelector('.subsection-toggle');
+        var content = item.querySelector('.subsection-content');
+        if (!button || !content) return;
+
+        var syncAccordionState = function (targetItem, expanded) {
+          var targetButton = targetItem.querySelector('.subsection-toggle');
+          var targetContent = targetItem.querySelector('.subsection-content');
+          if (!targetButton || !targetContent) return;
+          targetButton.setAttribute('aria-expanded', String(expanded));
+          targetItem.classList.toggle('is-open', expanded);
+          targetContent.setAttribute('aria-hidden', String(!expanded));
+        };
+
+        syncAccordionState(item, item.classList.contains('is-open'));
+
+        button.addEventListener('click', function () {
+          var isExpanded = item.classList.contains('is-open');
+          if (!isExpanded) {
+            document.querySelectorAll('[data-accordion]').forEach(function (otherItem) {
+              if (otherItem === item) return;
+              syncAccordionState(otherItem, false);
+            });
+          }
+          syncAccordionState(item, !isExpanded);
+        });
+      });
+
+      (function () {
+        var stored = localStorage.getItem('theme');
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var theme = stored || (prefersDark ? 'dark' : 'light');
+        var lang = localStorage.getItem('lang') || 'zh';
+
+        root.setAttribute('data-theme', theme);
+        root.setAttribute('lang', lang === 'zh' ? 'zh-CN' : 'en');
+
+        document.querySelectorAll('[data-zh][data-en]').forEach(function (el) {
+          var val = el.getAttribute('data-' + lang);
+          if (val !== null) {
+            el.innerHTML = val;
+          }
+        });
+      })();
+    });
+  </script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

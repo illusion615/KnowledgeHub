@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Copilot Studio 记忆管理机制：变量作用域、对话历史与知识检索</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(2.1rem, 5vw, 3.6rem);
+      line-height: 1.06;
+      letter-spacing: -0.04em;
+      max-width: 20ch;
+    }
+
+    .hero-metrics {
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    }
+
+    .memory-layer {
+      padding: 20px;
+      border-radius: 24px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      margin-bottom: 14px;
+    }
+
+    .memory-layer-topic {
+      background: linear-gradient(180deg, rgba(255, 122, 0, 0.09), rgba(255, 255, 255, 0.62));
+    }
+
+    .memory-layer-global {
+      background: linear-gradient(180deg, rgba(13, 143, 140, 0.08), rgba(255, 255, 255, 0.62));
+    }
+
+    .memory-layer-history {
+      background: linear-gradient(180deg, rgba(59, 130, 246, 0.08), rgba(255, 255, 255, 0.62));
+    }
+
+    .memory-layer-knowledge {
+      background: linear-gradient(180deg, rgba(124, 58, 237, 0.08), rgba(255, 255, 255, 0.62));
+    }
+
+    .memory-layer-external {
+      background: linear-gradient(180deg, rgba(220, 38, 38, 0.06), rgba(255, 255, 255, 0.62));
+    }
+
+    .memory-layer h4 {
+      margin: 0 0 8px;
+      font-size: clamp(1.05rem, 1.8vw, 1.2rem);
+    }
+
+    .memory-layer p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 0.92rem;
+    }
+
+    .scope-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .scope-topic { background: rgba(255, 122, 0, 0.12); color: rgba(200, 80, 0, 0.9); }
+    .scope-global { background: rgba(13, 143, 140, 0.12); color: rgba(10, 120, 118, 0.9); }
+    .scope-session { background: rgba(59, 130, 246, 0.12); color: rgba(40, 100, 220, 0.9); }
+    .scope-persistent { background: rgba(124, 58, 237, 0.12); color: rgba(100, 40, 200, 0.9); }
+
+    [data-theme="dark"] .memory-layer {
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    [data-theme="dark"] .memory-layer-topic {
+      background: linear-gradient(180deg, rgba(255, 122, 0, 0.14), rgba(15, 23, 42, 0.82));
+    }
+
+    [data-theme="dark"] .memory-layer-global {
+      background: linear-gradient(180deg, rgba(13, 143, 140, 0.12), rgba(15, 23, 42, 0.82));
+    }
+
+    [data-theme="dark"] .memory-layer-history {
+      background: linear-gradient(180deg, rgba(59, 130, 246, 0.12), rgba(15, 23, 42, 0.82));
+    }
+
+    [data-theme="dark"] .memory-layer-knowledge {
+      background: linear-gradient(180deg, rgba(124, 58, 237, 0.12), rgba(15, 23, 42, 0.82));
+    }
+
+    [data-theme="dark"] .memory-layer-external {
+      background: linear-gradient(180deg, rgba(220, 38, 38, 0.1), rgba(15, 23, 42, 0.82));
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero" data-present-step data-step-title="文章总览">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="← 返回首页" data-en="← Home">← 返回首页</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            Copilot Studio Memory
+          </div>
+          <div class="topbar-actions">
+            <nav class="nav-links" aria-label="页面章节导航">
+              <a href="#overview">概览</a>
+              <a href="#variables">变量</a>
+              <a href="#history">对话历史</a>
+              <a href="#knowledge">知识检索</a>
+              <a href="#lifecycle">生命周期</a>
+              <a href="#gaps">缺失能力</a>
+              <a href="#comparison">竞品对比</a>
+              <a href="#community">社区实践</a>
+              <a href="#references">参考</a>
+            </nav>
+          </div>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Memory Architecture Reference</span>
+            <h1>Copilot Studio 记忆管理机制：变量作用域、对话历史与知识检索</h1>
+            <p>
+              Copilot Studio Agent 的"记忆"由四层机制组成：Topic 变量（单 Topic 作用域）、Global 变量（会话作用域）、对话历史（orchestrator 有限窗口）和知识源检索（4–6h 同步的外部文档）。本文系统整理各层的作用域、生命周期、控制手段和已知限制，为 Agent 状态管理方案设计提供量化依据。数据来源为 Microsoft Learn 官方文档（2026-04-09 核验）。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#variables">查看变量体系</a>
+              <a class="button button-secondary" href="#gaps">查看缺失能力</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">核心约束</span>
+            <h2>无跨会话持久记忆、对话历史窗口有限、知识同步周期 4–6 小时</h2>
+            <ul class="layer-list section-grid-spaced">
+              <li><span class="layer-number">1</span>Global 变量在会话结束时重置。平台不提供跨会话持久化变量的原生能力。</li>
+              <li><span class="layer-number">2</span>Generative orchestration 下对话历史有限，长对话中 Agent 可能丢失早期上下文。</li>
+              <li><span class="layer-number">3</span>知识源（SharePoint / OneDrive / Dataverse）同步周期 4–6 小时，非实时更新。</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">变量作用域</div>
+            <strong>2 级</strong>
+            <span>Topic（单话题）+ Global（会话级）</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Global 变量生命周期</div>
+            <strong>单次会话</strong>
+            <span>会话结束或 Reset Conversation 时清除</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">对话历史</div>
+            <strong>有限窗口</strong>
+            <span>Generative orchestration 下窗口量未公开</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">知识同步</div>
+            <strong>4–6 小时</strong>
+            <span>非结构化数据源的 ingestion 周期</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <section id="overview" class="section" data-reveal data-present-step data-step-title="记忆分层概览">
+          <div class="section-head">
+            <p class="section-kicker">01 / Memory Architecture Overview</p>
+            <h2>1. Copilot Studio 的四层"记忆"机制</h2>
+            <p>Copilot Studio 没有一个统一的"memory"子系统。Agent 的上下文感知能力由以下四层机制叠加构成，每层的作用域、生命周期和控制方式不同。</p>
+          </div>
+
+          <div class="memory-layer memory-layer-topic">
+            <span class="scope-tag scope-topic">Layer 1: Topic Variables</span>
+            <h4>Topic 变量 — 单个 Topic 内的短期状态</h4>
+            <p>作用域限于定义该变量的 Topic。Topic 执行完毕后，变量值不自动传递到其他 Topic。可通过 "Receive values from other topics" / "Return values to original topics" 显式传递。类型由 Question 节点的 entity 决定（string / number / boolean / record / table 等）。</p>
+          </div>
+
+          <div class="memory-layer memory-layer-global">
+            <span class="scope-tag scope-global">Layer 2: Global Variables</span>
+            <h4>Global 变量 — 跨 Topic 的会话级状态</h4>
+            <p>通过将 Topic 变量提升为 Global 作用域（前缀 <code>Global.</code>）实现跨 Topic 共享。名称在 Agent 内全局唯一。生命周期：从创建到会话结束或 Reset Conversation 系统 Topic 触发时清除。可通过外部源（URL 参数、<code>pvaSetContext</code> 事件、Omnichannel 上下文）在会话启动时注入初始值。</p>
+          </div>
+
+          <div class="memory-layer memory-layer-history">
+            <span class="scope-tag scope-session">Layer 3: Conversation History</span>
+            <h4>对话历史 — Orchestrator 的上下文窗口</h4>
+            <p>Generative orchestration 模式下，Agent 使用近期对话历史做决策（选择 Topic/Tool/Knowledge、填充输入参数、生成回复）。窗口大小未在官方文档中公开具体 token/turn 数。已知限制：长对话中 Agent 可能无法引用早期内容。Reset Conversation 系统 Topic 默认仅清除 Global 变量，不清除对话历史；需显式使用 "Clear variable values → Conversation history for the current session" 节点。</p>
+          </div>
+
+          <div class="memory-layer memory-layer-knowledge">
+            <span class="scope-tag scope-persistent">Layer 4: Knowledge Source Retrieval</span>
+            <h4>知识源检索 — 基于外部文档的 RAG 式回答</h4>
+            <p>Agent 从配置的知识源（SharePoint / OneDrive / Dataverse / Salesforce / Confluence / ServiceNow / Zendesk / 网页 / 上传文件）检索信息生成回答。这不是 Agent 自身的"记忆"，而是每次查询时的检索增强。同步周期 4–6 小时。上下文窗口有限时可能性能降级（exhaustive retrieval 场景）。</p>
+          </div>
+        </section>
+
+        <section id="variables" class="section" data-reveal data-present-step data-step-title="变量体系详解">
+          <div class="section-head">
+            <p class="section-kicker">02 / Variable System</p>
+            <h2>2. 变量体系：Topic 变量与 Global 变量</h2>
+            <p>变量是 Copilot Studio 中唯一由开发者显式控制的状态存储机制。理解其作用域和生命周期是状态管理设计的基础。</p>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced">
+            <article class="comparison-card">
+              <span class="comparison-label">Topic Variables</span>
+              <h3>Topic 变量</h3>
+              <ul class="challenge-list">
+                <li><strong>作用域</strong> — 仅限定义该变量的 Topic 内部。</li>
+                <li><strong>创建方式</strong> — Question 节点自动创建（类型由 entity 决定），或手动通过 Set Variable Value 节点创建。</li>
+                <li><strong>跨 Topic 传递</strong> — 需在 Variable Properties 中启用 "Receive values from other topics" 或 "Return values to original topics"，并在 Redirect 节点中显式绑定。</li>
+                <li><strong>命名</strong> — 最长 500 字符（节点名称限制）。重命名后所有引用自动更新。</li>
+                <li><strong>类型系统</strong> — string / number / boolean / datetime / record / table / 自定义 entity。支持 Power Fx 公式赋值。</li>
+              </ul>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label">Global Variables</span>
+              <h3>Global 变量</h3>
+              <ul class="challenge-list">
+                <li><strong>作用域</strong> — Agent 内所有 Topic 均可读写。前缀 <code>Global.</code>。</li>
+                <li><strong>创建方式</strong> — 将 Topic 变量的 scope 修改为 "Global (any topic can access)"。</li>
+                <li><strong>命名约束</strong> — 名称必须在 Agent 内全局唯一。</li>
+                <li><strong>生命周期</strong> — 从设置到会话结束或 Reset Conversation 触发时清除。不跨会话持久化。</li>
+                <li><strong>外部注入</strong> — 支持通过 URL 参数（<code>?UserName=Ana</code>）、WebChat <code>pvaSetContext</code> 事件、或 Omnichannel 上下文注入。可配置超时时间（ms）和默认值。</li>
+                <li><strong>认证变量</strong> — 配置认证后自动生成 <code>Global.UserDisplayName</code> 等认证相关 Global 变量。</li>
+              </ul>
+            </article>
+          </div>
+
+          <article class="comparison-card section-grid-spaced">
+            <span class="comparison-label">Key Constraint</span>
+            <h3>变量传递的显式绑定要求</h3>
+            <p>Topic 变量不会自动在 Topic 之间流动。每个需要传递的变量都必须在源 Topic 的 Redirect 节点中显式绑定到目标 Topic 的输入变量上。这意味着：(1) 开发者必须提前规划哪些变量需要跨 Topic 共享；(2) 如果变量需要在多个不相关的 Topic 中使用，应提升为 Global 变量而非逐一绑定传递。</p>
+          </article>
+        </section>
+
+        <section id="history" class="section" data-reveal data-present-step data-step-title="对话历史管理">
+          <div class="section-head">
+            <p class="section-kicker">03 / Conversation History</p>
+            <h2>3. 对话历史：orchestrator 的隐式上下文窗口</h2>
+            <p>对话历史是 generative orchestration 模式下 Agent 做决策的核心输入之一，但开发者对其控制能力有限。</p>
+          </div>
+
+          <div class="insight-grid">
+            <article class="insight-card">
+              <span class="card-index">01</span>
+              <h3>上下文窗口未公开</h3>
+              <p>官方文档未公开 generative orchestration 的对话历史窗口具体大小（token 数或 turn 数）。仅说明"the amount of conversation history is currently limited"。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">02</span>
+              <h3>长对话丢失早期上下文</h3>
+              <p>在长对话中，Agent 可能无法引用早期消息中的信息。官方建议：确保关键信息在 transcript 中定期重复出现，或重新向用户收集。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">03</span>
+              <h3>Reset Conversation 不清除历史</h3>
+              <p>Reset Conversation 系统 Topic 默认只清除 Global 变量。清除对话历史需额外使用 "Clear variable values → Conversation history for the current session" 节点。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">04</span>
+              <h3>Channel 差异</h3>
+              <p>Microsoft Teams 维护完整对话历史（同一 conversation ID 贯穿整个 Agent 生命周期）。Web 频道通常在页面刷新后开始新会话。这导致相同 Agent 在不同频道上的上下文行为不一致。</p>
+            </article>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced">
+            <article class="comparison-card">
+              <span class="comparison-label">Control Mechanisms</span>
+              <h3>开发者可用的控制手段</h3>
+              <ul class="challenge-list">
+                <li><strong>Clear variable values 节点</strong> — 可选 "Conversation history for the current session" 选项，清除 orchestrator 使用的对话历史。</li>
+                <li><strong>Reset Conversation 系统 Topic</strong> — 清除所有 Global 变量，但需手动补充对话历史清除节点。</li>
+                <li><strong>AI response generated 触发</strong> — 可在 Agent 生成 AI 回复后触发自定义逻辑。</li>
+                <li><strong>Plan complete 触发</strong> — 可在 Agent 完成一个计划后触发自定义逻辑。</li>
+              </ul>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label">What You Cannot Control</span>
+              <h3>开发者无法控制的部分</h3>
+              <ul class="challenge-list">
+                <li><strong>窗口大小</strong> — 无法配置对话历史的 token/turn 上限。</li>
+                <li><strong>选择性保留</strong> — 无法标记某些消息为"重要"以优先保留在窗口中。</li>
+                <li><strong>跨会话延续</strong> — 对话历史在会话结束时完全丢失，无法在新会话中恢复。</li>
+                <li><strong>历史注入</strong> — 不支持在会话启动时注入历史消息以模拟"记忆恢复"。</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section id="knowledge" class="section" data-reveal data-present-step data-step-title="知识源检索">
+          <div class="section-head">
+            <p class="section-kicker">04 / Knowledge Retrieval</p>
+            <h2>4. 知识源检索：外部文档作为"长期记忆"的替代</h2>
+            <p>知识源是 Copilot Studio Agent 获取超出对话历史和变量范围信息的唯一内建机制。它基于检索增强（RAG 模式），而非 Agent 自身的持久记忆。</p>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced">
+            <article class="comparison-card">
+              <span class="comparison-label">How It Works</span>
+              <h3>知识检索行为</h3>
+              <ul class="challenge-list">
+                <li><strong>Generative orchestration</strong> — Agent 主动选择是否搜索知识源，基于 description 匹配。不依赖 Conversational Boosting 系统 Topic。</li>
+                <li><strong>Classic orchestration</strong> — 知识源仅在无 Topic 匹配时作为 fallback 使用，或在 Topic 内通过 generative answers 节点显式调用。</li>
+                <li><strong>同步周期</strong> — SharePoint / OneDrive / Dataverse 等非结构化数据源每 4–6 小时同步一次。</li>
+                <li><strong>上下文窗口约束</strong> — 当查询需要从大量文件中检索时（exhaustive retrieval），Agent 上下文窗口可能不足，性能降级。</li>
+              </ul>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label">Limitations</span>
+              <h3>知识源检索的约束</h3>
+              <ul class="challenge-list">
+                <li><strong>非实时</strong> — 4–6h 同步意味着知识源更新后最多需要 6 小时才能被 Agent 检索到。</li>
+                <li><strong>只读</strong> — Agent 无法向知识源写入信息。无法实现"Agent 记住用户偏好并写入知识库"。</li>
+                <li><strong>无个性化</strong> — 知识源对所有用户相同。无法为不同用户提供个性化的知识子集（除非通过用户认证+权限过滤）。</li>
+                <li><strong>超链接丢失</strong> — 知识源中的超链接在 Agent 回复中显示为纯文本。</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section id="lifecycle" class="section" data-reveal data-present-step data-step-title="状态生命周期">
+          <div class="section-head">
+            <p class="section-kicker">05 / State Lifecycle</p>
+            <h2>5. 状态生命周期对照表</h2>
+            <p>以下汇总各层记忆机制的作用域、持久性和控制方式。</p>
+          </div>
+
+          <div class="simple-table-wrap section-grid-spaced">
+            <table class="simple-table">
+              <thead>
+                <tr>
+                  <th>机制</th>
+                  <th>作用域</th>
+                  <th>生命周期</th>
+                  <th>开发者可控</th>
+                  <th>跨会话持久</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Topic 变量</td>
+                  <td>单 Topic</td>
+                  <td>Topic 执行期间</td>
+                  <td>完全可控（创建/赋值/传递）</td>
+                  <td>否</td>
+                </tr>
+                <tr>
+                  <td>Global 变量</td>
+                  <td>Agent 全局</td>
+                  <td>单次会话（Reset Conversation 可提前清除）</td>
+                  <td>完全可控（创建/赋值/外部注入/清除）</td>
+                  <td>否</td>
+                </tr>
+                <tr>
+                  <td>对话历史</td>
+                  <td>Orchestrator 窗口</td>
+                  <td>单次会话（窗口大小有限，未公开具体值）</td>
+                  <td>部分可控（仅支持"全量清除"，不支持选择性保留）</td>
+                  <td>否</td>
+                </tr>
+                <tr>
+                  <td>知识源</td>
+                  <td>Agent 配置级</td>
+                  <td>持久（4–6h 同步周期）</td>
+                  <td>只读检索，不可运行时写入</td>
+                  <td>是（但为全局知识，非用户个体记忆）</td>
+                </tr>
+                <tr>
+                  <td>外部存储（Dataverse / API）</td>
+                  <td>不限</td>
+                  <td>自定义</td>
+                  <td>完全可控（通过 Power Automate flow 或 connector 读写）</td>
+                  <td>是</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="gaps" class="section" data-reveal data-present-step data-step-title="缺失能力与变通方案">
+          <div class="section-head">
+            <p class="section-kicker">06 / Missing Capabilities</p>
+            <h2>6. 缺失能力与变通方案</h2>
+            <p>以下整理 Copilot Studio 原生记忆机制中不支持的场景，以及可行的架构变通方案。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" aria-expanded="true">6.1 无跨会话持久记忆</button>
+              <div class="subsection-content">
+                <p><strong>问题</strong>：所有 Global 变量和对话历史在会话结束时清除。Agent 在新会话中无法"记住"用户上次说的内容。</p>
+                <p><strong>变通</strong>：通过 Power Automate flow 在会话中将关键信息写入 Dataverse 表（如 user_preferences、conversation_summary），在下次会话启动时通过 Conversation Start 系统 Topic 调用 flow 读取并注入 Global 变量。需要用户认证以关联用户身份。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">6.2 对话历史窗口不可配置</button>
+              <div class="subsection-content">
+                <p><strong>问题</strong>：开发者无法调整对话历史窗口大小，也无法标记关键消息以优先保留。在客服等长对话场景中，Agent 可能丢失用户早期描述的问题上下文。</p>
+                <p><strong>变通</strong>：(1) 使用 Global 变量手动保存关键上下文（如 <code>Global.CustomerIssue</code>、<code>Global.OrderNumber</code>），避免依赖对话历史。(2) 在关键节点通过 Message 节点重复确认信息以将其重新写入对话历史。(3) 对长流程拆分为多个短 Topic，每个 Topic 通过 output 变量将摘要传回。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">6.3 无 Agent 可写知识库</button>
+              <div class="subsection-content">
+                <p><strong>问题</strong>：Agent 不能在运行时向知识源写入信息。无法实现"Agent 从对话中学到的信息自动补充到知识库"。</p>
+                <p><strong>变通</strong>：通过 Power Automate flow 将信息写入 Dataverse 表或 SharePoint 列表，但这些更新要等 4–6 小时后才会被知识源同步拾取。需要即时可用性时，应使用 API connector 直接查询 Dataverse 或外部 API。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">6.4 Teams 频道的会话生命周期特殊性</button>
+              <div class="subsection-content">
+                <p><strong>问题</strong>：Teams 频道使用同一 conversation ID 贯穿 Agent 整个生命周期（即使用户移除并重新添加 Agent）。Conversation Start 系统 Topic 仅在首次添加时触发一次。Global 变量可能在长期使用中积累过时状态。</p>
+                <p><strong>变通</strong>：(1) 使用 "Clear variable values" 节点在关键节点定期清理 Global 变量。(2) 不依赖 Conversation Start 做初始化，改为通过用户显式指令（如"重新开始"）触发 Reset Conversation。(3) 通过 Power Automate 定期检查变量时效性。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">6.5 无用户画像/偏好原生支持</button>
+              <div class="subsection-content">
+                <p><strong>问题</strong>：Copilot Studio 没有原生的用户画像（user profile）或偏好存储机制。Agent 不能根据用户历史行为自动调整响应策略。</p>
+                <p><strong>变通</strong>：在 Dataverse 中建立 user_profile 表，通过认证获取用户身份后，在 Conversation Start 中调用 Power Automate flow 加载用户画像到 Global 变量。每次会话结束前写回更新。成本：每次会话增加 2 次 flow 调用（读 + 写）。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="comparison" class="section" data-reveal data-present-step data-step-title="竞品记忆管理对比">
+          <div class="section-head">
+            <p class="section-kicker">07 / Competitive Comparison</p>
+            <h2>7. 竞品记忆管理机制对比</h2>
+            <p>以下对比 Copilot Studio 与 Google Dialogflow CX 和 Amazon Lex V2 在状态管理方面的机制差异。数据来源为各平台官方文档（2026-04-09 核验）。</p>
+          </div>
+
+          <div class="simple-table-wrap section-grid-spaced">
+            <table class="simple-table">
+              <thead>
+                <tr>
+                  <th>维度</th>
+                  <th>Copilot Studio</th>
+                  <th>Dialogflow CX</th>
+                  <th>Amazon Lex V2</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>变量作用域层级</td>
+                  <td>2 级：Topic 变量 + Global 变量</td>
+                  <td>4 级：Intent / Form / Flow-scoped / Session 参数，自动向上传播</td>
+                  <td>2 级：Slot 值 + Session Attributes</td>
+                </tr>
+                <tr>
+                  <td>会话内变量生命周期</td>
+                  <td>Global 变量持续到会话结束或 Reset Conversation</td>
+                  <td>Session 参数默认 30 分钟不活跃后过期，可通过 <code>session_ttl</code> 延长至最长 24 小时</td>
+                  <td>Session Attributes 在会话期间持续，可通过 API 在每个请求中设置/读取</td>
+                </tr>
+                <tr>
+                  <td>跨会话持久化</td>
+                  <td>不支持（需 Power Automate + Dataverse 变通）</td>
+                  <td>不原生支持，但提供 API 级别的会话恢复机制：可通过 <code>QueryParameters.current_page</code> + <code>QueryParameters.parameters</code> 在新 session 中恢复旧状态</td>
+                  <td>不原生支持（需 Lambda + DynamoDB 变通）</td>
+                </tr>
+                <tr>
+                  <td>对话历史窗口</td>
+                  <td>有限（具体大小未公开），仅支持全量清除</td>
+                  <td>由 LLM 上下文窗口决定（playbook 模式），flow 模式无隐式历史</td>
+                  <td>无隐式对话历史，状态完全由 Slot + Session Attributes 显式管理</td>
+                </tr>
+                <tr>
+                  <td>参数自动传播</td>
+                  <td>不自动传播，需显式 Receive/Return 绑定或提升为 Global</td>
+                  <td>自动传播：Intent 参数 → 同名 Form 参数 → Session 参数，无需显式绑定</td>
+                  <td>Slot 值在 intent 切换时需显式管理</td>
+                </tr>
+                <tr>
+                  <td>知识检索（RAG）</td>
+                  <td>内建：SharePoint / OneDrive / Dataverse / Salesforce 等，4–6h 同步周期，只读</td>
+                  <td>Data Store agents：Vertex AI Search 集成，支持网页/非结构化/结构化数据</td>
+                  <td>无内建 RAG（需 Lambda + Bedrock 或 OpenSearch 自建）</td>
+                </tr>
+                <tr>
+                  <td>外部状态注入</td>
+                  <td>支持：URL 参数 / <code>pvaSetContext</code> 事件 / Omnichannel 上下文，可配置超时和默认值</td>
+                  <td>支持：API 请求中通过 <code>queryParams.parameters</code> 注入，webhook 可读写所有参数</td>
+                  <td>支持：API <code>sessionState.sessionAttributes</code> 注入，Lambda 可读写</td>
+                </tr>
+                <tr>
+                  <td>变通持久化成本</td>
+                  <td>每次会话 2 次 Power Automate flow 调用（读开始 + 写结束）+ Dataverse 表存储</td>
+                  <td>Webhook 调用 + 外部存储（Cloud Firestore / Cloud SQL）</td>
+                  <td>Lambda 调用 + DynamoDB 表存储</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced">
+            <article class="comparison-card">
+              <span class="comparison-label">Copilot Studio Advantages</span>
+              <h3>Copilot Studio 的记忆管理优势</h3>
+              <ul class="challenge-list">
+                <li><strong>内建 RAG 知识检索</strong> — 原生支持 7 种知识源（SharePoint / OneDrive / Dataverse / Salesforce / Confluence / ServiceNow / Zendesk），无需额外搭建检索基础设施。Dialogflow CX 需 Vertex AI Search，Lex V2 需完全自建。</li>
+                <li><strong>低代码外部注入</strong> — 通过 URL 参数或 <code>pvaSetContext</code> 事件即可注入上下文，无需编写代码。竞品均需 API 层级操作。</li>
+                <li><strong>Power Platform 生态集成</strong> — 变通方案使用 Power Automate（低代码）+ Dataverse（内建存储），而竞品需要 Lambda/Cloud Functions + 独立数据库。</li>
+              </ul>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label">Copilot Studio Disadvantages</span>
+              <h3>Copilot Studio 的记忆管理劣势</h3>
+              <ul class="challenge-list">
+                <li><strong>参数传播需手动绑定</strong> — Dialogflow CX 的 Intent → Form → Session 自动传播机制减少了开发者的显式绑定工作。Copilot Studio 的每个跨 Topic 变量传递都需要在 Redirect 节点中手动指定。</li>
+                <li><strong>会话恢复无 API 支持</strong> — Dialogflow CX 允许通过 API 在新 session 中传入 <code>current_page</code> + <code>parameters</code> 恢复旧状态。Copilot Studio 不支持此机制，只能通过外部存储变通。</li>
+                <li><strong>对话历史不透明</strong> — 窗口大小未公开，不可配置，不可选择性保留。Dialogflow CX 的 flow 模式完全由显式参数控制，无隐式历史依赖。Lex V2 同样为纯显式状态管理。</li>
+                <li><strong>知识源同步延迟</strong> — 4–6 小时同步周期，且只读。Dialogflow CX 的 Data Store 支持更灵活的更新频率配置。</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section id="community" class="section" data-reveal data-present-step data-step-title="社区实践与扩展方案">
+          <div class="section-head">
+            <p class="section-kicker">08 / Community Patterns & Extensions</p>
+            <h2>8. 社区常见问题、实践模式与扩展方案</h2>
+            <p>以下整理 Power Platform 社区和 Microsoft Learn 文档中记录的记忆管理常见问题模式和对应的架构解决方案。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" aria-expanded="true">8.1 Teams 频道"永不过期"的会话</button>
+              <div class="subsection-content">
+                <p><strong>问题描述</strong>：Teams 使用同一 conversation ID 贯穿 Agent 整个生命周期。Conversation Start 系统 Topic 仅在首次添加 Agent 时触发一次（即使用户移除并重新添加）。这导致 Global 变量可能保留数天前的过时数据，且 Agent 的欢迎消息不会重新出现。</p>
+                <p><strong>官方确认</strong>：Microsoft Learn 原文："For agents published to the Microsoft Teams channel, the Conversation Start topic runs only once: the first time a user adds the agent to Teams, even if they remove it and add it back. The reason for this behavior is that Teams uses the same conversation ID for every session with the agent."</p>
+                <p><strong>推荐模式</strong>：(1) 在 Agent 中添加"重新开始"触发关键词，触发 Reset Conversation + Clear variable values（含 conversation history）。(2) 不将关键初始化逻辑放在 Conversation Start 中，改用每次对话首条消息触发的自定义 Topic。(3) 在 Global 变量中记录时间戳，每次交互时检查是否超过有效期。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">8.2 跨会话用户记忆的 Dataverse 模式</button>
+              <div class="subsection-content">
+                <p><strong>问题描述</strong>：用户频繁提出"Agent 能否记住我上次说的内容"的需求。Copilot Studio 无原生跨会话持久化能力。</p>
+                <p><strong>推荐架构</strong>：</p>
+                <ul class="challenge-list">
+                  <li><strong>Step 1</strong> — 在 Dataverse 中创建 <code>user_memory</code> 表，字段包括：user_id（lookup）、memory_key（string）、memory_value（string/JSON）、updated_at（datetime）。</li>
+                  <li><strong>Step 2</strong> — 创建 Power Automate Flow "Load User Memory"：接收 user_id，查询 Dataverse，返回 JSON 格式的记忆数据。</li>
+                  <li><strong>Step 3</strong> — 在 Conversation Start 或首次交互 Topic 中调用认证获取 user_id，再调用 Load User Memory 将结果 Parse 为 Global 变量。</li>
+                  <li><strong>Step 4</strong> — 在 End of Conversation 或关键节点调用 "Save User Memory" Flow 写回变更。</li>
+                  <li><strong>成本考量</strong> — 每次会话 2 次 Power Automate flow 调用。如果 Agent 使用 Power Platform 请求配额，standalone 订阅为 250,000/24h，Teams 计划仅 6,000/24h。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">8.3 对话历史丢失的缓解策略</button>
+              <div class="subsection-content">
+                <p><strong>问题描述</strong>：长对话中用户报告"Agent 忘记了我刚说的内容"。由于 orchestrator 对话历史窗口有限且大小未公开，这在复杂多轮对话中尤为突出。</p>
+                <p><strong>缓解策略</strong>：</p>
+                <ul class="challenge-list">
+                  <li><strong>关键信息 Global 化</strong> — 在每个收集关键信息的 Topic 中，将用户输入同时写入 Global 变量（如 <code>Global.CustomerName</code>、<code>Global.IssueDescription</code>）。即使对话历史窗口滑过，这些值仍然可用。</li>
+                  <li><strong>摘要注入</strong> — 在长流程的中间节点添加 Message 节点，将当前上下文摘要重新写入对话流（如"确认一下，您的问题是关于 {Global.IssueDescription}，订单号是 {Global.OrderNumber}"），让摘要重新进入对话历史窗口。</li>
+                  <li><strong>Topic 拆分</strong> — 将长流程拆分为多个短 Topic，每个 Topic 通过 output 变量将摘要传回上层 Topic，避免单个 Topic 内对话轮数过多。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">8.4 Generative Orchestration 与 Knowledge 搜索行为变化</button>
+              <div class="subsection-content">
+                <p><strong>问题描述</strong>：从 classic 切换到 generative orchestration 后，Knowledge 搜索行为发生变化：Conversational Boosting 系统 Topic 的定制不再生效，classic data sources 和 generative answers 节点的配置也不再被使用。</p>
+                <p><strong>关键区别</strong>：Classic 模式下知识检索作为 fallback，仅在无 Topic 匹配时触发。Generative 模式下 Agent 主动决定是否搜索知识源，搜索行为由平台控制，开发者无法通过系统 Topic 定制。</p>
+                <p><strong>缓解策略</strong>：(1) 在切换到 generative 模式前，审计所有 Conversational Boosting 定制，将其中的逻辑迁移到自定义 Topic。(2) 对于需要精确控制知识搜索行为的场景，评估是否继续使用 classic 模式。(3) 通过 Topic / Tool 的 description 间接控制何时触发知识检索。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">8.5 大规模部署的扩展架构</button>
+              <div class="subsection-content">
+                <p><strong>场景</strong>：当原生记忆机制不满足需求时，可采用以下扩展架构层级：</p>
+                <ul class="challenge-list">
+                  <li><strong>L1: Global 变量层（原生）</strong> — 适用于单次会话内的上下文传递。零额外成本。上限：会话结束即丢失。</li>
+                  <li><strong>L2: Dataverse + Flow 层（低代码）</strong> — 适用于跨会话用户画像和偏好。每次会话 2 次 flow 调用。上限：Power Platform 请求配额。</li>
+                  <li><strong>L3: Azure API + 外部存储层（Pro-code）</strong> — 适用于需要实时数据、复杂查询或高并发的场景。通过 custom connector 调用 Azure Functions + Cosmos DB / SQL。上限：Azure 服务成本。</li>
+                  <li><strong>L4: Azure AI Search + RAG 层（Pro-code）</strong> — 适用于需要向量检索和语义搜索的大规模知识库。通过 custom connector 调用 Azure AI Search。绕过原生知识源 4–6h 同步限制。</li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="references" class="section" data-reveal data-present-step data-step-title="参考来源">
+          <div class="section-head">
+            <p class="section-kicker">References</p>
+            <h2>参考来源</h2>
+          </div>
+          <ol class="bib-list">
+            <li id="ref-1"><span class="bib-id">[1]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/authoring-variables" target="_blank" rel="noopener noreferrer">"Work with variables,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">Topic 变量的创建、类型系统、跨 Topic 传递（Receive/Return values）和 Parse value 节点的官方说明。</span></li>
+            <li id="ref-2"><span class="bib-id">[2]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/authoring-variables-bot" target="_blank" rel="noopener noreferrer">"Work with global variables,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">Global 变量的生命周期（persist until session ends）、外部源注入（URL 参数 / pvaSetContext / Omnichannel）、超时配置和认证变量的官方说明。</span></li>
+            <li id="ref-3"><span class="bib-id">[3]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/advanced-generative-actions" target="_blank" rel="noopener noreferrer">"Orchestrate agent behavior with generative AI,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">Generative orchestration 下对话历史的使用方式（"the amount of conversation history is currently limited"）、Clear variable values 节点的 conversation history 选项、Reset Conversation 不清除历史的行为说明。</span></li>
+            <li id="ref-4"><span class="bib-id">[4]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/authoring-system-topics" target="_blank" rel="noopener noreferrer">"Use system topics,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">Conversation Start / Reset Conversation / End of Conversation 等系统 Topic 的触发条件与行为说明。Teams 频道下 Conversation Start 仅触发一次的行为确认。</span></li>
+            <li id="ref-5"><span class="bib-id">[5]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/requirements-quotas" target="_blank" rel="noopener noreferrer">"Quotas and limits for Copilot Studio,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">知识源同步周期（4–6 小时）、Dataverse 源限制（每 Agent 2 源 / 15 表）等数据的来源。</span></li>
+            <li id="ref-6"><span class="bib-id">[6]</span> <span class="bib-author">Google Cloud.</span> <a href="https://cloud.google.com/dialogflow/cx/docs/concept/parameter" target="_blank" rel="noopener noreferrer">"Parameters,"</a> <em>Dialogflow CX Documentation,</em> 2026.<span class="bib-note">Dialogflow CX 的四级参数体系（Intent / Form / Flow-scoped / Session）和自动传播机制的官方说明。用于竞品对比。</span></li>
+            <li id="ref-7"><span class="bib-id">[7]</span> <span class="bib-author">Google Cloud.</span> <a href="https://cloud.google.com/dialogflow/cx/docs/concept/session" target="_blank" rel="noopener noreferrer">"Sessions,"</a> <em>Dialogflow CX Documentation,</em> 2026.<span class="bib-note">Dialogflow CX 会话管理：默认 30 分钟超时、session_ttl 最长 24 小时、通过 current_page + parameters 恢复旧会话状态的官方说明。</span></li>
+          </ol>
+        </section>
+      </main>
+
+      <footer>
+        © 2026 Copilot Studio 记忆管理机制：变量作用域、对话历史与知识检索 | 交互式 HTML 页面。
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var root = document.documentElement;
+      var revealTargets = document.querySelectorAll('.load-in, [data-reveal]');
+      var sectionTargets = document.querySelectorAll('main section[id]');
+      var navLinks = document.querySelectorAll('.nav-links a');
+
+      if ('IntersectionObserver' in window) {
+        var revealObserver = new IntersectionObserver(function (entries, observer) {
+          entries.forEach(function (entry) {
+            if (!entry.isIntersecting) return;
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          });
+        }, {
+          threshold: 0.18,
+          rootMargin: '0px 0px -40px 0px'
+        });
+
+        revealTargets.forEach(function (target) {
+          revealObserver.observe(target);
+        });
+
+        var navObserver = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            var id = entry.target.getAttribute('id');
+            var matchingLink = document.querySelector('.nav-links a[href="#' + id + '"]');
+            if (!matchingLink) return;
+            if (entry.isIntersecting) {
+              navLinks.forEach(function (link) {
+                link.removeAttribute('aria-current');
+              });
+              matchingLink.setAttribute('aria-current', 'true');
+            }
+          });
+        }, {
+          threshold: 0.35
+        });
+
+        sectionTargets.forEach(function (section) {
+          navObserver.observe(section);
+        });
+      } else {
+        revealTargets.forEach(function (target) {
+          target.classList.add('is-visible');
+        });
+      }
+
+      document.querySelectorAll('.load-in').forEach(function (element, index) {
+        element.style.transitionDelay = (index * 120) + 'ms';
+      });
+
+      document.querySelectorAll('[data-accordion]').forEach(function (item) {
+        var button = item.querySelector('.subsection-toggle');
+        var content = item.querySelector('.subsection-content');
+        if (!button || !content) return;
+
+        var syncAccordionState = function (targetItem, expanded) {
+          var targetButton = targetItem.querySelector('.subsection-toggle');
+          var targetContent = targetItem.querySelector('.subsection-content');
+          if (!targetButton || !targetContent) return;
+          targetButton.setAttribute('aria-expanded', String(expanded));
+          targetItem.classList.toggle('is-open', expanded);
+          targetContent.setAttribute('aria-hidden', String(!expanded));
+        };
+
+        syncAccordionState(item, item.classList.contains('is-open'));
+
+        button.addEventListener('click', function () {
+          var isExpanded = item.classList.contains('is-open');
+          if (!isExpanded) {
+            document.querySelectorAll('[data-accordion]').forEach(function (otherItem) {
+              if (otherItem === item) return;
+              syncAccordionState(otherItem, false);
+            });
+          }
+          syncAccordionState(item, !isExpanded);
+        });
+      });
+
+      (function () {
+        var stored = localStorage.getItem('theme');
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var theme = stored || (prefersDark ? 'dark' : 'light');
+        var lang = localStorage.getItem('lang') || 'zh';
+
+        root.setAttribute('data-theme', theme);
+        root.setAttribute('lang', lang === 'zh' ? 'zh-CN' : 'en');
+
+        document.querySelectorAll('[data-zh][data-en]').forEach(function (el) {
+          var val = el.getAttribute('data-' + lang);
+          if (val !== null) {
+            el.innerHTML = val;
+          }
+        });
+      })();
+    });
+  </script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

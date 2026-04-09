@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Microsoft Copilot Studio 约束条件与工程边界</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(2.2rem, 5.5vw, 3.8rem);
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+      max-width: 18ch;
+    }
+
+    .hero-metrics {
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    }
+
+    .constraint-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    .constraint-table th {
+      text-align: left;
+      padding: 10px 12px;
+      background: rgba(15, 23, 42, 0.04);
+      border-bottom: 2px solid rgba(15, 23, 42, 0.1);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-weight: 700;
+      font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .constraint-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+      line-height: 1.6;
+      color: var(--ink);
+    }
+
+    .constraint-table td:first-child {
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .constraint-table td code {
+      background: rgba(15, 23, 42, 0.06);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.85em;
+    }
+
+    .limit-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .limit-tag-hard {
+      background: rgba(220, 38, 38, 0.1);
+      color: rgba(220, 38, 38, 0.85);
+    }
+
+    .limit-tag-soft {
+      background: rgba(245, 158, 11, 0.12);
+      color: rgba(180, 110, 0, 0.9);
+    }
+
+    .limit-tag-info {
+      background: rgba(59, 130, 246, 0.1);
+      color: rgba(59, 130, 246, 0.85);
+    }
+
+    [data-theme="dark"] .constraint-table th {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    [data-theme="dark"] .constraint-table td {
+      border-color: rgba(255, 255, 255, 0.06);
+    }
+
+    [data-theme="dark"] .constraint-table td code {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    [data-theme="dark"] .limit-tag-hard {
+      background: rgba(220, 38, 38, 0.2);
+    }
+
+    [data-theme="dark"] .limit-tag-soft {
+      background: rgba(245, 158, 11, 0.15);
+    }
+
+    [data-theme="dark"] .limit-tag-info {
+      background: rgba(59, 130, 246, 0.15);
+    }
+
+    .constraint-table .table-section-header {
+      background: rgba(15, 23, 42, 0.02);
+      font-weight: 700;
+      color: var(--muted);
+      font-size: 0.82rem;
+      letter-spacing: 0.04em;
+    }
+
+    [data-theme="dark"] .constraint-table .table-section-header {
+      background: rgba(255, 255, 255, 0.03);
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero" data-present-step data-step-title="文章总览">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="← 返回首页" data-en="← Home">← 返回首页</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            Copilot Studio Constraints
+          </div>
+          <div class="topbar-actions">
+            <nav class="nav-links" aria-label="页面章节导航">
+              <a href="#platform">平台定位</a>
+              <a href="#quotas">配额</a>
+              <a href="#limits">硬限制</a>
+              <a href="#knowledge">知识源</a>
+              <a href="#orchestration">编排</a>
+              <a href="#implications">工程影响</a>
+              <a href="#references">参考</a>
+            </nav>
+          </div>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Platform Constraints Reference</span>
+            <h1>Microsoft Copilot Studio 约束条件与工程边界</h1>
+            <p>
+              Microsoft Copilot Studio 是一个低代码 AI Agent 构建平台，支持 generative orchestration 和 classic orchestration 两种模式。本文系统整理其配额、硬限制、知识源约束和编排限制，为企业 Agent 落地的方案选型提供量化依据。数据来源为 Microsoft Learn 官方文档（2026-04-09 核验）。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#quotas">查看配额与限制</a>
+              <a class="button button-secondary" href="#implications">查看工程影响</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">关键约束速览</span>
+            <h2>8,000 RPM 消息上限、1,000 Topics/Agent、8,000 字符指令、512MB 文件上限</h2>
+            <ul class="layer-list section-grid-spaced">
+              <li><span class="layer-number">1</span>Generative AI 消息受 RPM/RPH 配额控制，试用环境仅 10 RPM / 200 RPH。</li>
+              <li><span class="layer-number">2</span>Agent 指令上限 8,000 字符，Topics 上限 1,000/Agent，Skills 上限 100/Agent。</li>
+              <li><span class="layer-number">3</span>知识源文件最大 512MB，SharePoint 无 M365 Copilot 许可时限 7MB，同步周期 4–6 小时。</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">消息配额</div>
+            <strong>8,000 RPM</strong>
+            <span>单 Agent 消息上限（含集成调用）</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">GenAI 配额</div>
+            <strong>50–100 RPM</strong>
+            <span>按预付包数量阶梯递增</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Topics 上限</div>
+            <strong>1,000</strong>
+            <span>Dataverse 环境每 Agent</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">指令长度</div>
+            <strong>8,000 字符</strong>
+            <span>Agent Instructions 硬限制</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <section id="platform" class="section" data-reveal data-present-step data-step-title="平台定位与编排模式">
+          <div class="section-head">
+            <p class="section-kicker">01 / Platform Overview</p>
+            <h2>1. 平台定位与两种编排模式</h2>
+            <p>Copilot Studio 是 Microsoft 面向企业的低代码 AI Agent 构建平台，基于 Dataverse 环境运行，支持 Web App 和 Teams App 两种入口。新建 Agent 默认使用 generative orchestration。</p>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced">
+            <article class="comparison-card">
+              <span class="comparison-label">Generative Orchestration</span>
+              <h3>生成式编排（默认）</h3>
+              <ul class="challenge-list">
+                <li><strong>Topic 选择</strong> — 基于 description 语义匹配，无需 trigger phrases。</li>
+                <li><strong>工具调用</strong> — Agent 根据 name + description 自主决定是否调用 tools。</li>
+                <li><strong>知识搜索</strong> — Agent 主动搜索知识源回答用户问题。</li>
+                <li><strong>多意图</strong> — 可同时选择多个 topics/tools/knowledge 并顺序链式执行。</li>
+                <li><strong>自动追问</strong> — 自动生成问题收集 tools/topics 所需的缺失输入。</li>
+              </ul>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label">Classic Orchestration</span>
+              <h3>经典编排</h3>
+              <ul class="challenge-list">
+                <li><strong>Topic 选择</strong> — 基于 trigger phrases 匹配，选择单个最佳 topic。</li>
+                <li><strong>工具调用</strong> — 只能在 topic 内部显式调用 tools。</li>
+                <li><strong>知识搜索</strong> — 仅作为无 topic 匹配时的 fallback。</li>
+                <li><strong>多意图</strong> — 一次只选择一个 topic 响应用户。</li>
+                <li><strong>输入收集</strong> — 必须在 topic 中手动设计 Question 节点。</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section id="quotas" class="section" data-reveal data-present-step data-step-title="配额体系">
+          <div class="section-head">
+            <p class="section-kicker">02 / Quotas</p>
+            <h2>2. 配额体系：RPM / RPH 阶梯</h2>
+            <p>配额是平台在超出使用量时对消息的自动限流。用户触达配额后会收到失败提示，无法继续发送消息。以下分为普通消息配额和 Generative AI 消息配额两类。</p>
+          </div>
+
+          <div class="simple-table-wrap section-grid-spaced">
+            <table class="constraint-table">
+              <thead>
+                <tr>
+                  <th>配额类型</th>
+                  <th>限额</th>
+                  <th>适用条件</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>普通消息</td>
+                  <td><strong>8,000 RPM</strong></td>
+                  <td>包括用户消息和 Azure Bot Framework Skills 集成调用</td>
+                </tr>
+                <tr>
+                  <td colspan="3" class="table-section-header">GENERATIVE AI 消息配额（orchestration / agent action / AI tools / generative answers）</td>
+                </tr>
+                <tr>
+                  <td>试用/开发环境</td>
+                  <td><strong>10 RPM / 200 RPH</strong></td>
+                  <td>Trial 或 Developer 类型环境</td>
+                </tr>
+                <tr>
+                  <td>1–10 预付包</td>
+                  <td><strong>50 RPM / 1,000 RPH</strong></td>
+                  <td>按消息包数量阶梯</td>
+                </tr>
+                <tr>
+                  <td>11–50 预付包</td>
+                  <td><strong>80 RPM / 1,600 RPH</strong></td>
+                  <td>按消息包数量阶梯</td>
+                </tr>
+                <tr>
+                  <td>51–150 预付包</td>
+                  <td><strong>100 RPM / 2,000 RPH</strong></td>
+                  <td>按消息包数量阶梯</td>
+                </tr>
+                <tr>
+                  <td>150+ 预付包</td>
+                  <td><strong>+1 RPM / +20 RPH per 10 packs</strong></td>
+                  <td>线性递增</td>
+                </tr>
+                <tr>
+                  <td>Pay-as-you-go</td>
+                  <td><strong>100 RPM / 2,000 RPH</strong></td>
+                  <td>按量付费环境</td>
+                </tr>
+                <tr>
+                  <td>M365 Copilot 用户</td>
+                  <td><strong>100 RPM / 2,000 RPH</strong></td>
+                  <td>持有 Microsoft 365 Copilot 许可</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="limits" class="section" data-reveal data-present-step data-step-title="硬限制">
+          <div class="section-head">
+            <p class="section-kicker">03 / Hard Limits</p>
+            <h2>3. 硬限制：Agent 构建与订阅边界</h2>
+            <p>以下限制为平台硬约束，无法通过购买更多许可突破。分为 Web App 限制、Teams App 限制和订阅限制三组。</p>
+          </div>
+
+          <div class="simple-table-wrap section-grid-spaced">
+            <table class="constraint-table">
+              <thead>
+                <tr>
+                  <th>维度</th>
+                  <th>Web App</th>
+                  <th>Teams App</th>
+                  <th>类型</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Agent Instructions</td>
+                  <td><strong>8,000 字符</strong></td>
+                  <td>—</td>
+                  <td><span class="limit-tag limit-tag-hard">Hard</span></td>
+                </tr>
+                <tr>
+                  <td>Topics / Agent</td>
+                  <td><strong>1,000</strong>（Dataverse）</td>
+                  <td><strong>250</strong>（Dataverse for Teams）/ 1,000（升级后）</td>
+                  <td><span class="limit-tag limit-tag-hard">Hard</span></td>
+                </tr>
+                <tr>
+                  <td>Trigger Phrases / Topic</td>
+                  <td><strong>200</strong></td>
+                  <td><strong>200</strong></td>
+                  <td><span class="limit-tag limit-tag-hard">Hard</span></td>
+                </tr>
+                <tr>
+                  <td>Skills / Agent</td>
+                  <td><strong>100</strong></td>
+                  <td><strong>100</strong>（需独立订阅）</td>
+                  <td><span class="limit-tag limit-tag-hard">Hard</span></td>
+                </tr>
+                <tr>
+                  <td>Connector Payload</td>
+                  <td><strong>5 MB</strong>（GCC: 450 KB）</td>
+                  <td>—</td>
+                  <td><span class="limit-tag limit-tag-hard">Hard</span></td>
+                </tr>
+                <tr>
+                  <td>文件上传大小</td>
+                  <td><strong>512 MB</strong></td>
+                  <td>—</td>
+                  <td><span class="limit-tag limit-tag-hard">Hard</span></td>
+                </tr>
+                <tr>
+                  <td>文件上传数量</td>
+                  <td><strong>500</strong>（不含 SharePoint）</td>
+                  <td>—</td>
+                  <td><span class="limit-tag limit-tag-hard">Hard</span></td>
+                </tr>
+                <tr>
+                  <td>Agents / Team</td>
+                  <td>—</td>
+                  <td><strong>50</strong></td>
+                  <td><span class="limit-tag limit-tag-hard">Hard</span></td>
+                </tr>
+                <tr>
+                  <td>会话限制</td>
+                  <td colspan="2"><strong>10 sessions / user / 24h</strong>（跨租户所有 Agent）</td>
+                  <td><span class="limit-tag limit-tag-soft">Soft</span></td>
+                </tr>
+                <tr>
+                  <td>Power Platform 请求</td>
+                  <td><strong>250,000 / 24h</strong></td>
+                  <td><strong>6,000 / 24h</strong></td>
+                  <td><span class="limit-tag limit-tag-soft">Soft</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="knowledge" class="section" data-reveal data-present-step data-step-title="知识源约束">
+          <div class="section-head">
+            <p class="section-kicker">04 / Knowledge Source Constraints</p>
+            <h2>4. 知识源约束：文件、同步与访问限制</h2>
+            <p>Copilot Studio 支持 SharePoint、OneDrive、Dataverse、Salesforce、Confluence、ServiceNow、Zendesk 等知识源。以下整理各源的关键约束。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" aria-expanded="true">4.1 SharePoint 知识源</button>
+              <div class="subsection-content">
+                <ul class="challenge-list">
+                  <li><strong>文件限制</strong> — 每个源最多 1,000 文件、50 文件夹、10 层子文件夹。单文件最大 512MB。</li>
+                  <li><strong>无 M365 Copilot 许可时</strong> — generative answers 仅支持 &lt;7MB 的 SharePoint 文件，超过需拆分。</li>
+                  <li><strong>支持格式</strong> — DOC/DOCX、PPT/PPTX、PDF。不支持 ASPX 经典页面。</li>
+                  <li><strong>同步周期</strong> — 4–6 小时（基于 ingestion 完成时间）。</li>
+                  <li><strong>列表限制</strong> — 查询仅返回前 2,048 行。每次限选 15 个列表。超过 12 个 lookup 列不支持。</li>
+                  <li><strong>不支持</strong> — 文档/文件名引用查询、Sensitivity Label 为 Confidential/Highly Confidential 的文档、密码保护文档、ALM 导入后自动处理、Custom CSS 站点、&amp; 字符在文件名中。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">4.2 OneDrive 知识源</button>
+              <div class="subsection-content">
+                <ul class="challenge-list">
+                  <li><strong>文件限制</strong> — 每个源最多 1,000 文件、50 文件夹、10 层子文件夹。单文件最大 512MB。</li>
+                  <li><strong>同步周期</strong> — 4–6 小时。</li>
+                  <li><strong>支持格式</strong> — DOC/DOCX、XLS/XLSX、PPT/PPTX、PDF。</li>
+                  <li><strong>不支持</strong> — Sensitivity Label（Confidential/Highly Confidential）、密码保护、ALM、Glossary/Synonyms。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">4.3 Dataverse 知识源</button>
+              <div class="subsection-content">
+                <ul class="challenge-list">
+                  <li><strong>源数量</strong> — 每 Agent 最多 2 个 Dataverse 源。</li>
+                  <li><strong>表数量</strong> — 每个源最多 15 个 Dataverse 表。</li>
+                  <li><strong>表类型</strong> — 仅支持 Standard 或 Activity 表（Virtual 表需特定 dataproviderid）。</li>
+                  <li><strong>Synonym/Glossary</strong> — 支持。名称最长 100 字符，描述最长 1,000 字符。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">4.4 Salesforce / Confluence / ServiceNow / Zendesk</button>
+              <div class="subsection-content">
+                <ul class="challenge-list">
+                  <li><strong>文章数量</strong> — 无限制。</li>
+                  <li><strong>文章大小</strong> — 无限制。</li>
+                  <li><strong>同步周期</strong> — 4–6 小时。</li>
+                  <li><strong>不支持</strong> — ALM 导入后自动处理、Glossary/Synonyms（Salesforce/Confluence）。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">4.5 通用约束</button>
+              <div class="subsection-content">
+                <ul class="challenge-list">
+                  <li><strong>认证要求</strong> — 所有非结构化数据源要求用户级认证。运行时用户必须登录后才能查询。不支持单凭据 SSO。</li>
+                  <li><strong>上下文窗口</strong> — Agent 的上下文窗口有限。当需要从大量文件中检索信息时（exhaustive retrieval），性能会降级。</li>
+                  <li><strong>Hyperlinks</strong> — 知识源（Word/PDF/网页）中的超链接在 Agent 回复中显示为纯文本。</li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="orchestration" class="section" data-reveal data-present-step data-step-title="编排约束">
+          <div class="section-head">
+            <p class="section-kicker">05 / Orchestration Constraints</p>
+            <h2>5. Generative Orchestration 的已知限制</h2>
+            <p>generative orchestration 模式下的已知约束，会直接影响 Agent 的行为边界和设计模式。</p>
+          </div>
+
+          <div class="insight-grid">
+            <article class="insight-card">
+              <span class="card-index">01</span>
+              <h3>Knowledge 行为变化</h3>
+              <p>generative orchestration 启用后，Agent 不使用 Conversational Boosting 系统 topic。对该 topic 的任何定制（包括 classic data sources 和 generative answers 节点）均不生效。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">02</span>
+              <h3>Custom Entity 不支持</h3>
+              <p>Tools 和 Topics 不支持 custom entities（closed lists / regex entities）作为输入参数。需要收集自定义实体信息时，必须在 Topic 内使用 Question 节点。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">03</span>
+              <h3>Disambiguation 缺失</h3>
+              <p>当多个 Topic 的 description 与用户意图接近时，Agent 无法调用 Multiple Topics Matched 系统 topic 进行消歧。当前会自动选择一个 topic 而非询问用户。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">04</span>
+              <h3>对话历史有限</h3>
+              <p>Agent 可访问的对话历史量有限。在长对话中，Agent 可能无法引用早期对话内容，需要重新收集关键信息或确保关键信息在 transcript 中定期出现。</p>
+            </article>
+          </div>
+
+          <article class="comparison-card section-grid-spaced">
+            <span class="comparison-label">Channel Constraint</span>
+            <h3>Omnichannel 消息大小限制</h3>
+            <p>通过 Omnichannel 集成时，使用 ACS channel，channel data 消息大小上限 <strong>28 KB</strong>。在 handoff 场景中，如果传递的所有变量（local + agent variables）超过 28 KB，transfer 会在不传递变量的情况下完成，报错 <code>MessageSizeExceeded</code>。</p>
+          </article>
+        </section>
+
+        <section id="implications" class="section" data-reveal data-present-step data-step-title="工程影响评估">
+          <div class="section-head">
+            <p class="section-kicker">06 / Engineering Implications</p>
+            <h2>6. 工程影响：这些约束意味着什么</h2>
+            <p>以下将上述约束映射到具体的工程决策点，帮助在方案选型和架构设计阶段提前识别风险。</p>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced">
+            <article class="comparison-card">
+              <span class="comparison-label">Scale Planning</span>
+              <h3>容量规划约束</h3>
+              <ul class="challenge-list">
+                <li><strong>GenAI RPM 瓶颈</strong> — 试用环境 10 RPM 仅适合 PoC（≤10 并发用户）。生产环境需购买 51+ 预付包达到 100 RPM / 2,000 RPH 上限。</li>
+                <li><strong>10 sessions/user/24h</strong> — 限制了高频交互场景（如客服 Agent），需在架构中设计 session 复用策略。</li>
+                <li><strong>1,000 Topics/Agent</strong> — 大型知识库需要按领域拆分为多个 Agent，通过 connected agents 组合。</li>
+                <li><strong>8,000 字符 Instructions</strong> — 无法在 Instructions 中嵌入完整的领域知识；必须依赖知识源 + Topic 分层。</li>
+              </ul>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label">Knowledge Architecture</span>
+              <h3>知识架构约束</h3>
+              <ul class="challenge-list">
+                <li><strong>4–6 小时同步</strong> — 不适合需要实时知识更新的场景。变通方案：使用 API connector 直接调用外部数据源。</li>
+                <li><strong>7MB 文件限制（无 M365 许可）</strong> — 大型 PDF/DOCX 必须拆分。启用 Tenant Graph Grounding + Semantic Search 后上限提升到 200MB。</li>
+                <li><strong>2 Dataverse 源/Agent</strong> — 跨多个 Dataverse 表的复杂查询需要在 2 个源 × 15 表的约束内设计。</li>
+                <li><strong>用户级认证</strong> — 所有非结构化数据源要求运行时登录，影响匿名用户场景（如公开网页 Agent）。</li>
+              </ul>
+            </article>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced">
+            <article class="comparison-card">
+              <span class="comparison-label">Design Patterns</span>
+              <h3>需要适应约束的设计模式</h3>
+              <ul class="challenge-list">
+                <li><strong>Topic Description 驱动</strong> — generative orchestration 下，Topic 的语义匹配完全依赖 description 质量。description 之间必须避免语义重叠，否则触发随机选择。</li>
+                <li><strong>多 Agent 组合</strong> — 超过 1,000 Topics 或需要跨域知识时，需拆分为 connected agents。</li>
+                <li><strong>显式消歧</strong> — 由于 disambiguation 缺失，相似 Topic 必须在 description 层面通过否定语句区分（"此 Topic 处理 X，不处理 Y"）。</li>
+                <li><strong>对话历史管理</strong> — 长对话中需使用 Clear variable values 节点定期清理 conversation history，或在关键节点重复关键信息。</li>
+              </ul>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label">Anti-Patterns</span>
+              <h3>应避免的反模式</h3>
+              <ul class="challenge-list">
+                <li><strong>在 Instructions 中堆叠领域知识</strong> — 8,000 字符上限会被迅速耗尽。使用知识源 + Topics 分层。</li>
+                <li><strong>依赖 Conversational Boosting 定制</strong> — generative orchestration 下不生效。知识搜索行为由平台控制。</li>
+                <li><strong>假设实时数据同步</strong> — 所有非结构化数据源同步周期 4–6 小时。需要实时数据应使用 API connector。</li>
+                <li><strong>在 Omnichannel handoff 中传递大量变量</strong> — 28 KB 消息上限。超出时 transfer 完成但变量丢失。</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section id="references" class="section" data-reveal data-present-step data-step-title="参考来源">
+          <div class="section-head">
+            <p class="section-kicker">References</p>
+            <h2>参考来源</h2>
+          </div>
+          <ol class="bib-list">
+            <li id="ref-1"><span class="bib-id">[1]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/requirements-quotas" target="_blank" rel="noopener noreferrer">"Quotas and limits for Copilot Studio,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">所有配额数值（RPM/RPH 阶梯）和硬限制（Topics/Skills/Instructions/File 上限）的权威来源。</span></li>
+            <li id="ref-2"><span class="bib-id">[2]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/fundamentals-what-is-copilot-studio" target="_blank" rel="noopener noreferrer">"Copilot Studio overview,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">平台定位、Agent 定义、Agent flow 概念和接入方式（Web App / Teams App）的官方说明。</span></li>
+            <li id="ref-3"><span class="bib-id">[3]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/advanced-generative-actions" target="_blank" rel="noopener noreferrer">"Orchestrate agent behavior with generative AI,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">Generative orchestration 与 classic orchestration 的行为差异对照表，以及 generative 模式的已知限制（disambiguation 缺失、custom entity 不支持、对话历史有限等）。</span></li>
+          </ol>
+        </section>
+      </main>
+
+      <footer>
+        © 2026 Microsoft Copilot Studio 约束条件与工程边界 | 交互式 HTML 页面。
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var root = document.documentElement;
+      var revealTargets = document.querySelectorAll('.load-in, [data-reveal]');
+      var sectionTargets = document.querySelectorAll('main section[id]');
+      var navLinks = document.querySelectorAll('.nav-links a');
+
+      if ('IntersectionObserver' in window) {
+        var revealObserver = new IntersectionObserver(function (entries, observer) {
+          entries.forEach(function (entry) {
+            if (!entry.isIntersecting) return;
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          });
+        }, {
+          threshold: 0.18,
+          rootMargin: '0px 0px -40px 0px'
+        });
+
+        revealTargets.forEach(function (target) {
+          revealObserver.observe(target);
+        });
+
+        var navObserver = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            var id = entry.target.getAttribute('id');
+            var matchingLink = document.querySelector('.nav-links a[href="#' + id + '"]');
+            if (!matchingLink) return;
+            if (entry.isIntersecting) {
+              navLinks.forEach(function (link) {
+                link.removeAttribute('aria-current');
+              });
+              matchingLink.setAttribute('aria-current', 'true');
+            }
+          });
+        }, {
+          threshold: 0.35
+        });
+
+        sectionTargets.forEach(function (section) {
+          navObserver.observe(section);
+        });
+      } else {
+        revealTargets.forEach(function (target) {
+          target.classList.add('is-visible');
+        });
+      }
+
+      document.querySelectorAll('.load-in').forEach(function (element, index) {
+        element.style.transitionDelay = (index * 120) + 'ms';
+      });
+
+      document.querySelectorAll('[data-accordion]').forEach(function (item) {
+        var button = item.querySelector('.subsection-toggle');
+        var content = item.querySelector('.subsection-content');
+        if (!button || !content) return;
+
+        var syncAccordionState = function (targetItem, expanded) {
+          var targetButton = targetItem.querySelector('.subsection-toggle');
+          var targetContent = targetItem.querySelector('.subsection-content');
+          if (!targetButton || !targetContent) return;
+          targetButton.setAttribute('aria-expanded', String(expanded));
+          targetItem.classList.toggle('is-open', expanded);
+          targetContent.setAttribute('aria-hidden', String(!expanded));
+        };
+
+        syncAccordionState(item, item.classList.contains('is-open'));
+
+        button.addEventListener('click', function () {
+          var isExpanded = item.classList.contains('is-open');
+          if (!isExpanded) {
+            document.querySelectorAll('[data-accordion]').forEach(function (otherItem) {
+              if (otherItem === item) return;
+              syncAccordionState(otherItem, false);
+            });
+          }
+          syncAccordionState(item, !isExpanded);
+        });
+      });
+
+      (function () {
+        var stored = localStorage.getItem('theme');
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var theme = stored || (prefersDark ? 'dark' : 'light');
+        var lang = localStorage.getItem('lang') || 'zh';
+
+        root.setAttribute('data-theme', theme);
+        root.setAttribute('lang', lang === 'zh' ? 'zh-CN' : 'en');
+
+        document.querySelectorAll('[data-zh][data-en]').forEach(function (el) {
+          var val = el.getAttribute('data-' + lang);
+          if (val !== null) {
+            el.innerHTML = val;
+          }
+        });
+      })();
+    });
+  </script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>
