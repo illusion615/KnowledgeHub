@@ -21,18 +21,24 @@
 - CSS and JS are inline (no external dependencies except Google Fonts)
 - Every article must support dark/light mode via `[data-theme="dark"]` CSS
 - Every article must auto-apply homepage preferences from `localStorage` (theme, lang)
-- Every article must include a `← 返回首页` home link
+- Every article must include a `←` home link (arrow only, no text): `<a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>`
+- Bilingual support: `knowledge-data.js` entries must have zh/en title and summary; article page content is primarily Chinese; homepage UI elements use `data-zh` / `data-en` attributes
 
 ## Homepage Architecture
-- Full-screen knowledge graph with planets and orbiting knowledge nodes
-- Planets = topic groups (data-driven via `planetId`, NOT tied to directory structure)
-- Adding articles: edit `posts[]` array in `index.html`, set `planetId` to group
+- Full-screen knowledge graph with three layout modes: Galaxy / Cards / Infographic
+- Knowledge hierarchy stored in `assets/knowledge-data.js` as flat `knowledgeTree[]` (adjacency list)
+- **Adding articles**: edit `knowledgeTree[]` in `assets/knowledge-data.js`, set `parentId` to parent topic
+- **Adding topic groups**: add `{ type: 'topic', parentId, ... }` entry — depth unlimited
+- **Moving nodes**: change `parentId` only — no file moves needed
+- **NEVER** hardcode knowledge data in `index.html` — always use `assets/knowledge-data.js`
+- `index.html` auto-derives `planets`, `groups`, `posts` arrays from `knowledgeTree` via tree utilities
 - All text elements support zh/en via `data-zh` / `data-en` attributes
 
 ## Coding Conventions
 - Pure vanilla JS — no jQuery, no React, no npm
 - CSS custom properties for theming (`:root` + `[data-theme="dark"]`)
 - Shared article styles live in `assets/article.css` — article-specific overrides stay inline
+- Shared article initialization (scroll-reveal, accordion, localStorage sync) via `assets/article-common.js`
 - `DOMContentLoaded` wrapper for all scripts
 - Declare all `var` at top of scope to avoid hoisting issues
 - Use `forEach` with function expressions (not arrow functions) for IE compat

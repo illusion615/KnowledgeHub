@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MacBook Pro M4 Max 64GB 本地模型部署选型：LLM、图像、视频、语音与音乐生成全景</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(2rem, 4.9vw, 3.45rem);
+      line-height: 1.06;
+      letter-spacing: -0.045em;
+      max-width: 18ch;
+    }
+
+    .hero-metrics {
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    }
+
+    .method-note {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.78;
+    }
+
+    .fit-grid,
+    .stack-grid,
+    .category-grid,
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .fit-card,
+    .stack-card,
+    .category-card,
+    .summary-card,
+    .memory-card {
+      padding: 20px;
+      border-radius: 22px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+    }
+
+    .fit-card h3,
+    .stack-card h3,
+    .category-card h3,
+    .summary-card h3,
+    .memory-card h3 {
+      margin: 0 0 10px;
+      font-size: 1rem;
+      line-height: 1.35;
+    }
+
+    .fit-card p,
+    .stack-card p,
+    .category-card p,
+    .summary-card p,
+    .memory-card p,
+    .fit-card li,
+    .stack-card li,
+    .category-card li,
+    .summary-card li,
+    .memory-card li {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.75;
+    }
+
+    .fit-card ul,
+    .stack-card ul,
+    .category-card ul,
+    .summary-card ul,
+    .memory-card ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .fit-badge,
+    .stack-badge,
+    .category-badge,
+    .summary-badge,
+    .memory-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 10px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.06);
+      color: var(--muted);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .memory-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .score-table-wrap {
+      margin-top: 16px;
+      overflow-x: auto;
+      border-radius: 18px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.78);
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+    }
+
+    .score-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.84rem;
+    }
+
+    .score-table th,
+    .score-table td {
+      padding: 11px 14px;
+      text-align: left;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+      vertical-align: top;
+    }
+
+    .score-table th {
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.74rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: rgba(15, 23, 42, 0.03);
+      white-space: nowrap;
+    }
+
+    .score-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .status-good {
+      background: rgba(16, 185, 129, 0.14);
+      color: #065f46;
+    }
+
+    .status-mid {
+      background: rgba(234, 179, 8, 0.15);
+      color: #b45309;
+    }
+
+    .status-risk {
+      background: rgba(239, 68, 68, 0.14);
+      color: #b91c1c;
+    }
+
+    .decision-flow {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .decision-step {
+      display: grid;
+      grid-template-columns: 48px 1fr;
+      gap: 16px;
+      padding: 18px;
+      border-radius: 22px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+      align-items: start;
+    }
+
+    .decision-number {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-weight: 700;
+      font-size: 1.05rem;
+      background: rgba(15, 23, 42, 0.06);
+      color: var(--accent);
+    }
+
+    .decision-step h3 {
+      margin: 0 0 6px;
+      font-size: 1rem;
+      line-height: 1.35;
+    }
+
+    .decision-step p,
+    .decision-step li {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.75;
+    }
+
+    .decision-step ul {
+      margin: 8px 0 0;
+      padding-left: 18px;
+    }
+
+    .quote-board {
+      margin-top: 16px;
+      padding: 22px;
+      border-radius: 24px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.08), rgba(255, 255, 255, 0.72));
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
+    }
+
+    .quote-board p {
+      margin: 0;
+      color: var(--ink);
+      font-size: 1rem;
+      line-height: 1.8;
+    }
+
+    .quote-board strong {
+      color: var(--accent);
+    }
+
+    [data-theme="dark"] .fit-card,
+    [data-theme="dark"] .stack-card,
+    [data-theme="dark"] .category-card,
+    [data-theme="dark"] .summary-card,
+    [data-theme="dark"] .memory-card,
+    [data-theme="dark"] .decision-step,
+    [data-theme="dark"] .score-table-wrap,
+    [data-theme="dark"] .quote-board {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.18);
+    }
+
+    [data-theme="dark"] .score-table th {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    [data-theme="dark"] .score-table th,
+    [data-theme="dark"] .score-table td {
+      border-bottom-color: rgba(255, 255, 255, 0.06);
+    }
+
+    [data-theme="dark"] .fit-badge,
+    [data-theme="dark"] .stack-badge,
+    [data-theme="dark"] .category-badge,
+    [data-theme="dark"] .summary-badge,
+    [data-theme="dark"] .memory-badge,
+    [data-theme="dark"] .decision-number {
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(236, 241, 246, 0.8);
+    }
+
+    [data-theme="dark"] .status-good {
+      background: rgba(16, 185, 129, 0.2);
+      color: #6ee7b7;
+    }
+
+    [data-theme="dark"] .status-mid {
+      background: rgba(234, 179, 8, 0.2);
+      color: #fbbf24;
+    }
+
+    [data-theme="dark"] .status-risk {
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+    }
+
+    [data-theme="dark"] .quote-board {
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(15, 23, 42, 0.82));
+    }
+
+    @media (max-width: 640px) {
+      .decision-step {
+        grid-template-columns: 1fr;
+      }
+
+      .fit-grid,
+      .stack-grid,
+      .category-grid,
+      .summary-grid,
+      .memory-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero" data-present-step data-step-title="文章总览">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            模型
+          </div>
+          <div class="topbar-actions">
+            <nav class="nav-links" aria-label="页面章节导航">
+              <a href="#baseline">基线</a>
+              <a href="#llm">LLM</a>
+              <a href="#multimodal">多模态</a>
+              <a href="#engines">引擎</a>
+              <a href="#stack">运行栈</a>
+              <a href="#decision">建议</a>
+              <a href="#references">参考</a>
+            </nav>
+          </div>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Apple Silicon Local AI Stack</span>
+            <h1>MacBook Pro M4 Max 64GB 本地模型部署选型：LLM、图像、视频、语音与音乐生成全景</h1>
+            <p>
+              对 M4 Max 64GB 这类 Apple Silicon 笔记本而言，本地部署的关键瓶颈不是“能不能跑模型”，而是“哪一类模型有成熟 Metal/MPS 路径、能在 64GB 统一内存内稳定迭代、并且延迟仍然适合日常工作”。本文把选型拆成六类任务：大语言模型、Function Calling、文生图、视频生成、语音生成和音乐生成，并按 <strong>内存占用、运行时成熟度、Apple 兼容性、交互体验</strong> 四个维度比较，给出适合 M4 Max 的推荐组合。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#llm">先看 LLM 选型</a>
+              <a class="button button-secondary" href="#decision">直接看最终建议</a>
+            </div>
+            <p class="method-note">
+              说明：文中“性能”优先指 <strong>资源级性能</strong>，即模型在 64GB 统一内存里的可放置性、是否需要频繁 swap、以及是否适合交互式使用。凡是出现具体时间或显存数字，都明确标注其来源条件；未在本文环境中实测的指标，不伪造本机速度。
+            </p>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">核心结论</span>
+            <h2>M4 Max 64GB 可以胜任高质量本地 LLM、图像与轻量音频生成，但视频仍然属于“可试验，不宜作为主力生产”。</h2>
+            <ul class="layer-list section-grid-spaced">
+              <li><span class="layer-number">1</span>LLM 的舒适区是 8B 到 14B 的 4-bit 模型；27B 到 32B 可跑，但更适合离线长任务而不是常驻助手。</li>
+              <li><span class="layer-number">2</span>Function Calling 在本地最好走 Qwen3 或 GLM-4；运行栈上是 MLX 负责吞吐，Ollama 或 llama.cpp 负责 API 与工具协议。</li>
+              <li><span class="layer-number">3</span>文生图的主力组合是 SDXL 和 FLUX.1-schnell；前者兼容性最好，后者提示遵循和画质更强，但更吃统一内存。</li>
+              <li><span class="layer-number">4</span>视频模型虽然已有 Wan2.1 和 CogVideoX 这类开源路线，但主流实现仍明显偏向 CUDA，Mac 上更像研究玩具而不是稳定工作流。</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">硬件基线</div>
+            <strong>M4 Max · 64GB</strong>
+            <span>统一内存，macOS 15+ 更适合大型 MLX 模型</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">任务维度</div>
+            <strong>6 类</strong>
+            <span>LLM / FC / 图像 / 视频 / 语音 / 音乐</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">主运行栈</div>
+            <strong>4 条</strong>
+            <span>MLX / llama.cpp / Ollama / Diffusers-MPS</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">主力参数档</div>
+            <strong>8B - 14B</strong>
+            <span>日常交互式本地助手的最优成本带</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <section id="baseline" class="section" data-reveal data-present-step data-step-title="评估基线与内存边界">
+          <div class="section-head">
+            <p class="section-kicker">01 / Baseline & Constraints</p>
+            <h2>1. 先看机器边界：64GB 统一内存决定了什么能常用，什么只能偶尔跑</h2>
+            <p>
+              Apple Silicon 的优势是统一内存和 Metal 生态，弱点是大量开源生成模型默认以 CUDA 为第一目标。对本次选型，先定义三个判断条件：<strong>能否稳定装下</strong>、<strong>有没有成熟 Apple 运行栈</strong>、<strong>生成时长是否适合日常交互</strong>。其中第一条最重要，因为一旦进入 swap，Mac 的体感会从“可用”直接滑落到“不可持续”。
+            </p>
+          </div>
+
+          <div class="fit-grid section-grid-spaced">
+            <article class="fit-card">
+              <span class="fit-badge">Criterion 01</span>
+              <h3>内存占用先于峰值质量</h3>
+              <p>64GB 并不意味着可以无成本常驻 70B。LLM 除权重外还要叠加 KV cache、上下文和采样缓冲；扩散模型则要叠加文本编码器、VAE、中间 latent 和 attention 工作区。</p>
+            </article>
+            <article class="fit-card">
+              <span class="fit-badge">Criterion 02</span>
+              <h3>优先选择 Apple 原生或 Metal 一等公民栈</h3>
+              <p>LLM 首选 MLX-LM，其次是 GGUF + Metal 的 llama.cpp；多模态首选 Hugging Face Diffusers 的 MPS 路线。CUDA 专属优化越重，迁移到 Mac 的折损越大。</p>
+            </article>
+            <article class="fit-card">
+              <span class="fit-badge">Criterion 03</span>
+              <h3>把“能跑”与“适合工作”分开</h3>
+              <p>能完成一次生成不等于适合常用。本文把结果分为三档：交互级、批处理级、实验级。交互级适合频繁往返调参；实验级只建议跑样片或验证可行性。</p>
+            </article>
+          </div>
+
+          <div class="memory-grid" data-present-step data-step-title="4-bit 参数规模估算">
+            <article class="memory-card">
+              <span class="memory-badge">Weight Math</span>
+              <h3>8B 级</h3>
+              <p>4-bit 权重的理论下限约为 8B × 0.5 byte ≈ 4GB。考虑量化元数据、张量布局和运行时开销，日常工作集更接近 5GB 到 7GB。</p>
+            </article>
+            <article class="memory-card">
+              <span class="memory-badge">Weight Math</span>
+              <h3>14B 级</h3>
+              <p>理论权重约 7GB，实际常见工作集更接近 9GB 到 12GB。这个区间是 M4 Max 64GB 最适合的高质量常驻档。</p>
+            </article>
+            <article class="memory-card">
+              <span class="memory-badge">Weight Math</span>
+              <h3>27B - 32B 级</h3>
+              <p>4-bit 理论权重约 13.5GB 到 16GB，实际工作集容易进入 16GB 到 26GB。可以跑，但上下文一长、并发一多，交互感会明显变差。</p>
+            </article>
+            <article class="memory-card">
+              <span class="memory-badge">Weight Math</span>
+              <h3>70B 级</h3>
+              <p>4-bit 理论权重约 35GB，算上缓存后非常容易挤压到系统可用内存边界。对于笔记本形态，不建议作为本地主力。</p>
+            </article>
+          </div>
+
+          <div class="quote-board section-grid-spaced">
+            <p><strong>结论：</strong>在 M4 Max 64GB 上，模型选型不该围绕“最大的参数量”，而应围绕“14B 级是否已经满足任务质量”。对多数中文助手、工具调用、知识整理和原型生成场景，答案是肯定的。</p>
+          </div>
+        </section>
+
+        <section id="llm" class="section" data-reveal data-present-step data-step-title="LLM 与 Function Calling 选型">
+          <div class="section-head">
+            <p class="section-kicker">02 / LLM & Tool Use</p>
+            <h2>2. LLM 与 Function Calling：Qwen3 和 GLM-4 重新定义了本地选型格局</h2>
+            <p>
+              Apple 自家的 MLX-LM 已经覆盖 Qwen3 全系列<a href="#ref-1">[1]</a>。llama.cpp 的 Metal 后端同样成熟<a href="#ref-2">[2]</a>。在工具调用层，Ollama 已提供单/并行/agent loop 文档<a href="#ref-3">[3]</a>。Qwen3 官方明确推荐 Ollama、LM Studio、MLX 和 llama.cpp 作为本地方式<a href="#ref-4">[4]</a>；GLM-4-32B-0414 在 llama.cpp 中已有合并的模型实现<a href="#ref-17">[17]</a>；Llama 4 Scout/Maverick 虽然发布了 MoE 架构，但 109B+ 总参对 64GB 笔记本仍然偏重<a href="#ref-18">[18]</a>。
+            </p>
+          </div>
+
+          <div class="score-table-wrap section-grid-spaced" data-present-step data-step-title="LLM 候选对比矩阵">
+            <table class="score-table">
+              <thead>
+                <tr>
+                  <th>模型</th>
+                  <th>参数档</th>
+                  <th>本地定位</th>
+                  <th>Apple 兼容性</th>
+                  <th>Function Calling</th>
+                  <th>建议运行栈</th>
+                  <th>结论</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Qwen3-8B / 14B</strong></td>
+                  <td>8B / 14B</td>
+                  <td>thinking/non-thinking 混合模式、119 语言、MCP 原生支持；Qwen3-4B 即可匹敌 Qwen2.5-72B<a href="#ref-4">[4]</a></td>
+                  <td><span class="status-chip status-good">高</span></td>
+                  <td><span class="status-chip status-good">高</span></td>
+                  <td>MLX-LM 做推理；Ollama 或 llama.cpp 暴露接口</td>
+                  <td>默认首选。14B 适合主力，8B 适合常驻低延迟。相比 Qwen2.5 同级有代际提升。</td>
+                </tr>
+                <tr>
+                  <td><strong>Qwen3-30B-A3B (MoE)</strong></td>
+                  <td>30B 总参 / 3B 激活</td>
+                  <td>MoE 架构使推理开销只有 3B 级别，质量超过 QwQ-32B<a href="#ref-4">[4]</a></td>
+                  <td><span class="status-chip status-good">高</span></td>
+                  <td><span class="status-chip status-good">高</span></td>
+                  <td>Ollama 或 llama.cpp</td>
+                  <td>MoE 在 M4 Max 上极划算 — 权重虽大但激活参数少、单 token 延迟低。性价比最高选项。</td>
+                </tr>
+                <tr>
+                  <td><strong>GLM-4-32B-0414</strong></td>
+                  <td>32B</td>
+                  <td>BFCL V4 开源 FC 第一（72.38%，MIT 许可）<a href="#ref-17">[17]</a>、强 agent 能力、代码生成</td>
+                  <td><span class="status-chip status-mid">中</span></td>
+                  <td><span class="status-chip status-good">很高</span></td>
+                  <td>llama.cpp 或 Ollama（已有合并实现）</td>
+                  <td>FC 核心需求首选。BFCL V4 开源第一。32B 在 64GB 上更适合离线任务。</td>
+                </tr>
+                <tr>
+                  <td><strong>Gemma 4 26B / 31B IT</strong></td>
+                  <td>26B / 31B</td>
+                  <td>基于 Gemini 3 研究构建，原生 function calling + 多模态（视觉 + 音频）+ 140 语言、面向工作站和编码助手的 agentic 设计<a href="#ref-5">[5]</a></td>
+                  <td><span class="status-chip status-good">高</span></td>
+                  <td><span class="status-chip status-good">高</span></td>
+                  <td>Ollama、Transformers、Gemma.cpp 或 MLX 社区量化版</td>
+                  <td>Google 系最新世代。AIME 2026 数学 88.3%，τ2-bench agentic 85.5%，已上架 Ollama 和 LM Studio。26B 适合常驻，31B 更适合离线任务。</td>
+                </tr>
+                <tr>
+                  <td><strong>Llama 4 Scout (MoE)</strong></td>
+                  <td>109B 总参 / 17B 激活</td>
+                  <td>原生多模态、10M 上下文、MoE 架构<a href="#ref-18">[18]</a></td>
+                  <td><span class="status-chip status-good">高</span></td>
+                  <td><span class="status-chip status-mid">中</span></td>
+                  <td>llama.cpp 或 Ollama</td>
+                  <td>109B 总参 Int4 约 55GB 权重，加 KV cache 在 64GB 上极紧张。仅作实验选项。</td>
+                </tr>
+                <tr>
+                  <td><strong>Qwen3-32B / GLM-Z1-32B</strong></td>
+                  <td>32B</td>
+                  <td>复杂推理与深度思考（GLM-Z1 支持 rumination 深度研究模式）</td>
+                  <td><span class="status-chip status-mid">中</span></td>
+                  <td><span class="status-chip status-good">高</span></td>
+                  <td>MLX-LM 或 llama.cpp，离线任务</td>
+                  <td>可跑，但更适合“批处理大脑”，不适合常驻交互助手。</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" type="button">
+                <span>为什么 Qwen3 是本地主力位（而不是 Qwen2.5）</span>
+                <span class="subsection-icon">+</span>
+              </button>
+              <div class="subsection-content">
+                <p>Qwen3 在 2025 年 4 月发布，相比 Qwen2.5 有三个关键升级：(1) thinking/non-thinking 混合模式，可按任务复杂度动态切换推理深度；(2) 预训练数据从 18T 扩至 36T tokens，覆盖 119 种语言；(3) 同级别模型质量大幅提升 — Qwen3-4B 匹敌 Qwen2.5-72B，Qwen3-30B-A3B（MoE，3B 激活）超越 QwQ-32B。官方明确推荐 Ollama、LM Studio、MLX 和 llama.cpp 作为本地运行方式<a href="#ref-4">[4]</a>。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" type="button">
+                <span>为什么 Gemma 4 值得作为第二方案</span>
+                <span class="subsection-icon">+</span>
+              </button>
+              <div class="subsection-content">
+                <p>Gemma 4 是 Google 基于 Gemini 3 技术构建的最新开源模型，26B/31B 两档面向工作站和编码助手。原生支持 function calling、多模态（视觉 + 音频）和 140 语言<a href="#ref-5">[5]</a>。在 AIME 2026 上达到 88.3%，τ2-bench agentic tool use 达到 85.5%，已上架 Ollama 和 LM Studio。26B 的内存占用与 Gemma 3 27B 接近但能力有代际提升。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" type="button">
+                <span>Function Calling 应该选哪个运行层</span>
+                <span class="subsection-icon">+</span>
+              </button>
+              <div class="subsection-content">
+                <p>若目标是开发速度，优先 Ollama，因为它已内置单工具、并行工具与 agent loop 样例<a href="#ref-3">[3]</a>。若目标是协议控制和 JSON 约束，优先 llama.cpp 的 OpenAI 兼容 server 与 grammar。若目标是 Apple 原生吞吐，则用 MLX-LM 跑模型，把工具协议留给上层服务适配。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="multimodal" class="section" data-reveal data-step-title="图像、视频、语音与音乐模型对比">
+          <div class="section-head">
+            <p class="section-kicker">03 / Multimodal Matrix</p>
+            <h2>3. 多模态模型对比：图像和音频已经实用，视频仍然明显偏向实验</h2>
+            <p>
+              Hugging Face Diffusers 已经把 Apple Silicon 的 MPS 作为正式优化路径，官方建议在内存紧张时打开 attention slicing，并提醒 batch 生成在 MPS 上可能不稳定<a href="#ref-6">[6]</a>。这给图像和部分音频模型提供了可落地路径；但视频模型的主流优化仍围绕 CUDA、TorchAO、FSDP 或多卡展开，Mac 兼容层远不如图像成熟<a href="#ref-8">[8]</a><a href="#ref-9">[9]</a>。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="文生图模型对比">
+            <div class="score-table-wrap section-grid-spaced">
+              <table class="score-table">
+                <thead>
+                  <tr>
+                    <th>类别</th>
+                    <th>模型</th>
+                    <th>兼容性</th>
+                    <th>资源压力</th>
+                    <th>优点</th>
+                    <th>局限</th>
+                    <th>建议</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>文生图</strong></td>
+                    <td>SDXL</td>
+                    <td><span class="status-chip status-good">高</span></td>
+                    <td><span class="status-chip status-mid">中</span></td>
+                    <td>Diffusers MPS 和 ComfyUI 路线成熟，社区资料最丰富</td>
+                    <td>提示遵循与文字渲染弱于新一代 DiT</td>
+                    <td>把它当成“最稳的本地文生图底盘”。</td>
+                  </tr>
+                  <tr>
+                    <td><strong>文生图</strong></td>
+                    <td>FLUX.1-schnell</td>
+                    <td><span class="status-chip status-mid">中</span></td>
+                    <td><span class="status-chip status-good">高</span></td>
+                    <td>提示遵循强，开源权重，4-step 采样路线清晰<a href="#ref-7">[7]</a></td>
+                    <td>比 SDXL 更吃内存，更适合 64GB 而不是 16GB 机器</td>
+                    <td>质量优先就选它；若愿意工程化，MLX 化收益大。</td>
+                  </tr>
+                  <tr>
+                    <td><strong>文生图</strong></td>
+                    <td>FLUX.1-dev</td>
+                    <td><span class="status-chip status-mid">中</span></td>
+                    <td><span class="status-chip status-risk">高</span></td>
+                    <td>上限更高，适合精修</td>
+                    <td>更慢，许可也更复杂</td>
+                    <td>不适合做默认本地图像生成器。</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="视频与音频模型对比">
+            <div class="score-table-wrap section-grid-spaced">
+              <table class="score-table">
+                <thead>
+                  <tr>
+                    <th>类别</th>
+                    <th>模型</th>
+                    <th>官方资源线索</th>
+                    <th>Mac 兼容性</th>
+                    <th>实用判断</th>
+                    <th>备注</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>视频</strong></td>
+                    <td>Wan2.1 T2V-1.3B</td>
+                    <td>官方称 1.3B 版仅需 8.19GB VRAM，可出 5 秒 480P，且已接入 Diffusers<a href="#ref-8">[8]</a></td>
+                    <td><span class="status-chip status-mid">中</span></td>
+                    <td>可试验</td>
+                    <td>主仓库样例仍以 CUDA 为主；在 Mac 上更像离线样片工具。</td>
+                  </tr>
+                  <tr>
+                    <td><strong>视频</strong></td>
+                    <td>CogVideoX-2B</td>
+                    <td>官方给出 diffusers 最低 5GB 级显存入口，并强调量化主要面向 NVIDIA 路线<a href="#ref-9">[9]</a></td>
+                    <td><span class="status-chip status-mid">中</span></td>
+                    <td>可试验</td>
+                    <td>英文 prompt 友好，但大部分实战优化仍围绕 TorchAO 与 CUDA。</td>
+                  </tr>
+                  <tr>
+                    <td><strong>视频</strong></td>
+                    <td>Wan2.1 14B / CogVideoX-5B+</td>
+                    <td>仓库重点展示的是单卡高端 GPU、多卡或 CPU offload 场景<a href="#ref-8">[8]</a><a href="#ref-9">[9]</a></td>
+                    <td><span class="status-chip status-risk">低</span></td>
+                    <td>不建议</td>
+                    <td>在 Mac 上可折腾，但不应作为主生产链路。</td>
+                  </tr>
+                  <tr>
+                    <td><strong>语音</strong></td>
+                    <td>Kokoro-82M</td>
+                    <td>82M 参数，仓库直接写明可在 Mac 上启用 MPS fallback<a href="#ref-10">[10]</a></td>
+                    <td><span class="status-chip status-good">高</span></td>
+                    <td>主力可用</td>
+                    <td>轻量、快、部署简单，是本地 TTS 的默认答案。</td>
+                  </tr>
+                  <tr>
+                    <td><strong>语音</strong></td>
+                    <td>F5-TTS</td>
+                    <td>主仓库提供推理、Gradio、运行时与 MLX 社区实现线索<a href="#ref-11">[11]</a></td>
+                    <td><span class="status-chip status-mid">中</span></td>
+                    <td>批处理可用</td>
+                    <td>比 Kokoro 更适合追求表现力与风格控制，但栈更重。</td>
+                  </tr>
+                  <tr>
+                    <td><strong>音乐</strong></td>
+                    <td>MusicGen-medium</td>
+                    <td>1.5B 参数，Transformers 直接支持本地 text-to-audio<a href="#ref-12">[12]</a></td>
+                    <td><span class="status-chip status-mid">中</span></td>
+                    <td>可用</td>
+                    <td>更适合无歌词配乐和短音乐片段，英文提示更稳。</td>
+                  </tr>
+                  <tr>
+                    <td><strong>音乐 / 音效</strong></td>
+                    <td>Stable Audio Open 1.0</td>
+                    <td>可生成最长 47 秒 44.1kHz 立体声音频，支持 diffusers 路线<a href="#ref-13">[13]</a></td>
+                    <td><span class="status-chip status-mid">中</span></td>
+                    <td>偏实验</td>
+                    <td>更适合音效、环境声和氛围片段，不是最省资源的本地音乐方案。</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="category-grid section-grid-spaced">
+            <article class="category-card">
+              <span class="category-badge">Image</span>
+              <h3>文生图已经进入“本地实用期”</h3>
+              <p>SDXL 提供最稳兼容性，FLUX.1-schnell 提供更强提示遵循。如果你的目标是稳定工作流，先把 SDXL 跑顺；如果目标是更好的画质与语义对齐，再投入 FLUX 的工程化。</p>
+            </article>
+            <article class="category-card">
+              <span class="category-badge">Video</span>
+              <h3>视频生成仍是 Mac 上的高成本试验</h3>
+              <p>Wan2.1 和 CogVideoX 都给了开源入口，但绝大多数速度优化、量化路径和社区经验仍围绕 NVIDIA。Mac 可做 demo，不适合做高频生产。</p>
+            </article>
+            <article class="category-card">
+              <span class="category-badge">Audio</span>
+              <h3>语音生成最适合走轻量模型</h3>
+              <p>Kokoro 这类 82M 级模型和 Apple Silicon 的匹配度极高。对日常朗读、播客草稿、角色原型，它的收益远高于部署复杂的大模型 TTS。</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="engines" class="section" data-reveal data-step-title="模型运行引擎对比">
+          <div class="section-head">
+            <p class="section-kicker">04 / Model Engines</p>
+            <h2>4. 模型运行引擎对比：Ollama、oMLX、LM Studio、MLX-LM、llama.cpp、Jan 和 GPT4All</h2>
+            <p>
+              "模型"和"跑模型的引擎"是两回事。同一个 Qwen3-14B，用 MLX-LM 跑和用 oMLX 跑，速度、功能和开发体验可以差一个等级。这一节把七个最常见的本地引擎 / 平台放在一起比较，维度是：<strong>推理性能</strong>、<strong>Apple Silicon 兼容性</strong>、<strong>功能丰富度</strong>（API、工具调用、RAG、MCP）和<strong>社区活跃度</strong>。
+            </p>
+          </div>
+
+          <div class="score-table-wrap section-grid-spaced" data-present-step data-step-title="引擎对比矩阵">
+            <table class="score-table">
+              <thead>
+                <tr>
+                  <th>引擎</th>
+                  <th>类型</th>
+                  <th>推理性能</th>
+                  <th>Apple 兼容性</th>
+                  <th>功能丰富度</th>
+                  <th>社区活跃度</th>
+                  <th>M4 Max 建议定位</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Ollama</strong></td>
+                  <td>CLI 服务 + API</td>
+                  <td><span class="status-chip status-good">高</span></td>
+                  <td><span class="status-chip status-good">高</span></td>
+                  <td><span class="status-chip status-good">高</span></td>
+                  <td><span class="status-chip status-good">高</span></td>
+                  <td>默认首选。底层基于 llama.cpp，开箱即用的 OpenAI 兼容 API、工具调用（单/并行/agent loop）、流式输出<a href="#ref-3">[3]</a>。社区最大、教程最多。</td>
+                </tr>
+                <tr>
+                  <td><strong>LM Studio</strong></td>
+                  <td>GUI + CLI + API</td>
+                  <td><span class="status-chip status-good">高</span></td>
+                  <td><span class="status-chip status-good">高</span></td>
+                  <td><span class="status-chip status-good">高</span></td>
+                  <td><span class="status-chip status-good">高</span></td>
+                  <td>可视化首选。同时支持 GGUF (llama.cpp) 和 MLX 双后端，MCP 集成、JS/Python SDK、文档对话 RAG、headless 部署 (llmster)、speculative decoding<a href="#ref-14">[14]</a>。</td>
+                </tr>
+                <tr>
+                  <td><strong>MLX-LM</strong></td>
+                  <td>Python 库 / CLI</td>
+                  <td><span class="status-chip status-good">高</span></td>
+                  <td><span class="status-chip status-good">最高</span></td>
+                  <td><span class="status-chip status-mid">中</span></td>
+                  <td><span class="status-chip status-mid">中</span></td>
+                  <td>Apple 原生吞吐最优。Apple 官方团队维护，量化、长上下文缓存、wired memory 调优原生支持<a href="#ref-1">[1]</a>。功能聚焦于推理与模型转换，没有内置 GUI 或 API server。</td>
+                </tr>
+                <tr>
+                  <td><strong>oMLX</strong></td>
+                  <td>macOS App + CLI + API</td>
+                  <td><span class="status-chip status-good">高</span></td>
+                  <td><span class="status-chip status-good">最高</span></td>
+                  <td><span class="status-chip status-good">很高</span></td>
+                  <td><span class="status-chip status-good">高</span></td>
+                  <td>MLX 原生推理服务化首选。基于 mlx-lm 构建，加入 continuous batching、SSD 分级 KV cache、多模型并存、菜单栏管理与 OpenAI/Anthropic 兼容 API<a href="#ref-19">[19]</a>。支持 tool calling、VLM、embedding 和 MCP。是"把 MLX-LM 变成生产级推理服务器"的最佳方案。</td>
+                </tr>
+                <tr>
+                  <td><strong>llama.cpp</strong></td>
+                  <td>C++ 库 / CLI / Server</td>
+                  <td><span class="status-chip status-good">高</span></td>
+                  <td><span class="status-chip status-good">高</span></td>
+                  <td><span class="status-chip status-good">高</span></td>
+                  <td><span class="status-chip status-good">很高</span></td>
+                  <td>底层基石。Metal 为一等公民后端，OpenAI 兼容 server、grammar 约束、speculative decoding、多模态<a href="#ref-2">[2]</a>。是 Ollama 和 LM Studio 的推理后端之一。</td>
+                </tr>
+                <tr>
+                  <td><strong>Jan</strong></td>
+                  <td>GUI 客户端 + API</td>
+                  <td><span class="status-chip status-good">高</span></td>
+                  <td><span class="status-chip status-good">高</span></td>
+                  <td><span class="status-chip status-good">高</span></td>
+                  <td><span class="status-chip status-mid">中高</span></td>
+                  <td>终端用户首选。开源（AGPL），500 万+下载，内置 web search、MCP、远程 provider 接入、多语言 UI<a href="#ref-15">[15]</a>。同时支持 GGUF 和 MLX（社区测试 MLX q4 达 90 tok/s vs llama.cpp 49 tok/s）。</td>
+                </tr>
+                <tr>
+                  <td><strong>GPT4All</strong></td>
+                  <td>GUI 客户端</td>
+                  <td><span class="status-chip status-mid">中</span></td>
+                  <td><span class="status-chip status-mid">中</span></td>
+                  <td><span class="status-chip status-mid">中</span></td>
+                  <td><span class="status-chip status-mid">中</span></td>
+                  <td>全离线入门。LocalDocs RAG 可直接对本地文件问答<a href="#ref-16">[16]</a>。但推理栈非 MLX 原生，没有 tool calling API，不适合做开发级集成。</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced" data-present-step data-step-title="引擎选型细节">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" type="button">
+                <span>Ollama vs LM Studio：哪个更适合日常？</span>
+                <span class="subsection-icon">+</span>
+              </button>
+              <div class="subsection-content">
+                <p>如果你主要需要 API 接入和自动化，Ollama 更适合 — 它天生是一个 daemon 服务，开机后台运行，任何脚本或应用直接调用 REST 接口<a href="#ref-3">[3]</a>。如果你更想要可视化聊天、参数调节和模型管理界面，LM Studio 是更好的选择。LM Studio 0.4 以后还支持 headless 模式 (llmster)，可以纯粹当 server 用<a href="#ref-14">[14]</a>。两者都基于 llama.cpp 后端，切换成本极低。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" type="button">
+                <span>oMLX vs MLX-LM：什么关系、怎么选</span>
+                <span class="subsection-icon">+</span>
+              </button>
+              <div class="subsection-content">
+                <p><strong>MLX-LM 是底层库</strong>：Apple 官方团队维护的 Python 推理和量化框架<a href="#ref-1">[1]</a>。它提供模型加载、生成、量化和提示缓存等核心能力，但不包含 API server、多模型管理或 GUI。</p>
+                <p><strong>oMLX 是基于 mlx-lm 构建的服务化层</strong>：它在 mlx-lm 的推理核心之上加入了 continuous batching、block-based 分级 KV cache（RAM 热层 + SSD 冷层）、多模型并存 + LRU 自动管理、macOS 菜单栏原生 App、OpenAI/Anthropic 兼容 API、VLM/embedding/reranker 支持、tool calling 和 MCP 集成<a href="#ref-19">[19]</a>。</p>
+                <p><strong>选择逻辑</strong>：如果你只需要在 Python 脚本里调用 MLX 跑一次推理或做模型量化，直接用 MLX-LM。如果你需要把 MLX 模型作为常驻服务暴露 API 给多个客户端（如 Claude Code、Copilot、自定义 agent），让多个模型共存并自动管理内存，那 oMLX 就是 MLX-LM 的"生产级壳"。二者不冲突 — oMLX 的推理路径就是 MLX-LM。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" type="button">
+                <span>MLX-LM 的优势到底在哪</span>
+                <span class="subsection-icon">+</span>
+              </button>
+              <div class="subsection-content">
+                <p>MLX-LM 是 Apple 官方的 ML 框架上层库，推理路径直接走 Metal shader graph，不经过 GGUF / GGML 转换<a href="#ref-1">[1]</a>。在 Apple Silicon 上，MLX 通常比 llama.cpp 的 GGUF 路线在吞吐上更快（社区测试 MLX q4 达到 90 tok/s vs llama.cpp 49 tok/s），但模型格式生态不如 GGUF 丰富。适合"确定了用什么模型，追求跑得最快"的场景。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" type="button">
+                <span>Jan 适合什么人</span>
+                <span class="subsection-icon">+</span>
+              </button>
+              <div class="subsection-content">
+                <p>Jan 的定位是"个人 AI 客户端"，内置 web search、MCP 和多 provider 接入（OpenAI、Claude、Gemini、HuggingFace 等）<a href="#ref-15">[15]</a>。如果你想要一个"类 ChatGPT 但完全本地"的体验，不想折腾命令行和 API，Jan 是最好的起点。但如果你要做 agent 或自动化管线，Ollama 和 llama.cpp 的工程控制力更强。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" type="button">
+                <span>GPT4All 的定位与局限</span>
+                <span class="subsection-icon">+</span>
+              </button>
+              <div class="subsection-content">
+                <p>GPT4All 的最大卖点是全离线和 LocalDocs RAG<a href="#ref-16">[16]</a>。但它不提供 tool calling API，推理后端不支持 MLX 原生加速，模型更新速度和社区活跃度也落后于 Ollama 和 LM Studio。在 M4 Max 上，它更适合当"不想碰命令行的备用聊天窗口"，不适合当开发栈。</p>
+              </div>
+            </article>
+          </div>
+
+          <div class="category-grid section-grid-spaced">
+            <article class="category-card">
+              <span class="category-badge">Dev</span>
+              <h3>开发者：oMLX 或 Ollama</h3>
+              <p>如果你主要跑 MLX 格式模型，oMLX 是最强选择 — continuous batching、SSD KV cache 和 Claude Code 优化都是原生 MLX 路线独有的。如果你需要跑 GGUF 格式或追求最广的社区教程覆盖，Ollama 仍是默认首选。</p>
+            </article>
+            <article class="category-card">
+              <span class="category-badge">Power User</span>
+              <h3>高阶用户：LM Studio</h3>
+              <p>同时支持 GGUF 和 MLX 双引擎、可视化调参、MCP 集成、headless 部署。是功能覆盖面最广的单一平台。</p>
+            </article>
+            <article class="category-card">
+              <span class="category-badge">Casual</span>
+              <h3>轻度用户：Jan</h3>
+              <p>界面最友好、开箱即用、内置搜索和多 provider。不需要折腾命令行就能用本地模型替代 ChatGPT 和 Perplexity。</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="stack" class="section" data-reveal data-present-step data-step-title="推荐运行栈与组合方式">
+          <div class="section-head">
+            <p class="section-kicker">05 / Runtime Stacks</p>
+            <h2>5. 推荐运行栈：不要试图用一套框架统一所有任务</h2>
+            <p>
+              本地模型部署在 Mac 上最常见的误区，是试图用一种框架覆盖 LLM、图像、视频和音频。实际上更合理的方式是按任务拆栈：LLM 用 MLX 或 GGUF；图像和音频用 Diffusers/MPS；视频只在有明确需求时单独搭建实验环境。
+            </p>
+          </div>
+
+          <div class="stack-grid section-grid-spaced">
+            <article class="stack-card">
+              <span class="stack-badge">Stack A</span>
+              <h3>MLX-LM</h3>
+              <ul>
+                <li>最适合 Apple Silicon 上的 LLM 推理与量化。</li>
+                <li>官方支持模型转换、量化、长上下文缓存和大模型 wired memory 调优<a href="#ref-1">[1]</a>。</li>
+                <li>适合作为“核心推理引擎”，但工具协议最好交给上层服务处理。</li>
+              </ul>
+            </article>
+            <article class="stack-card">
+              <span class="stack-badge">Stack B</span>
+              <h3>llama.cpp / GGUF</h3>
+              <ul>
+                <li>Metal 是一等公民后端，OpenAI 兼容 server 与 grammar 支持完整<a href="#ref-2">[2]</a>。</li>
+                <li>适合追求模型兼容性、轻量 API 服务、JSON 约束和多模型切换。</li>
+                <li>如果要跑很多社区量化模型，它往往比 MLX 更省心。</li>
+              </ul>
+            </article>
+            <article class="stack-card">
+              <span class="stack-badge">Stack C</span>
+              <h3>Ollama</h3>
+              <ul>
+                <li>最适合快速上手 agent loop、并行工具调用和 OpenAI 兼容接入<a href="#ref-3">[3]</a>。</li>
+                <li>适合把本地模型包装成统一 API，不适合承担所有底层优化。</li>
+                <li>建议把它放在应用层，而不是当作唯一推理栈。</li>
+              </ul>
+            </article>
+            <article class="stack-card">
+              <span class="stack-badge">Stack D</span>
+              <h3>Diffusers + PyTorch MPS</h3>
+              <ul>
+                <li>图像、音频和部分视频任务的主通道。</li>
+                <li>官方明确支持 Apple Silicon，但提醒 attention slicing、batch 不稳定和大张量限制<a href="#ref-6">[6]</a>。</li>
+                <li>适合做多模态实验环境，不建议和主 LLM 环境混装在同一个 Python 解释器里。</li>
+              </ul>
+            </article>
+          </div>
+
+          <div class="decision-flow section-grid-spaced">
+            <article class="decision-step">
+              <div class="decision-number">1</div>
+              <div>
+                <h3>日常助手栈</h3>
+                <p>Qwen3-14B 4-bit + MLX-LM。若应用要用 OpenAI 风格函数调用，在外面包一层 Ollama 或 llama.cpp server。</p>
+              </div>
+            </article>
+            <article class="decision-step">
+              <div class="decision-number">2</div>
+              <div>
+                <h3>图像创作栈</h3>
+                <p>SDXL 走 ComfyUI 或 Diffusers/MPS 打基础；FLUX.1-schnell 作为高质量补充。两者分环境安装，避免 PyTorch、xformers、社区插件互相污染。</p>
+              </div>
+            </article>
+            <article class="decision-step">
+              <div class="decision-number">3</div>
+              <div>
+                <h3>音频栈</h3>
+                <p>Kokoro 做常规 TTS，MusicGen 做短音乐草稿，Stable Audio Open 做环境声和音效。F5-TTS 只在确实需要更强表现力时单独启用。</p>
+              </div>
+            </article>
+            <article class="decision-step">
+              <div class="decision-number">4</div>
+              <div>
+                <h3>视频栈</h3>
+                <p>单独隔离为实验环境。优先尝试 Wan2.1 1.3B 或 CogVideoX-2B，不把它们并入主工作流，也不把视频生成的成功率当作整机 AI 能力的判断依据。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="decision" class="section" data-reveal data-step-title="最终建议与落地顺序">
+          <div class="section-head">
+            <p class="section-kicker">06 / Recommendations</p>
+            <h2>6. 最终建议：先把 Qwen3-14B、SDXL 和 Kokoro 跑顺，再决定是否投入 FLUX 与视频</h2>
+            <p>
+              如果目标是“在 M4 Max 64GB 上建立一套长期可维护的本地 AI 环境”，最优策略不是一次装满所有热门模型，而是分三层推进：先完成主力任务，再扩展高质量图像，最后才评估视频。下面给出三种面向不同目标的组合建议。
+            </p>
+          </div>
+
+          <div class="summary-grid section-grid-spaced" data-present-step data-step-title="三套推荐组合">
+            <article class="summary-card">
+              <span class="summary-badge">Default Build</span>
+              <h3>默认工作组合</h3>
+              <ul>
+                <li>LLM：Qwen3-14B 4-bit</li>
+                <li>Function Calling：Ollama 或 llama.cpp server</li>
+                <li>文生图：SDXL</li>
+                <li>语音：Kokoro</li>
+                <li>音乐：MusicGen-medium</li>
+              </ul>
+              <p>这是综合稳定性、中文能力、资源占用和部署难度后的最佳平衡点。</p>
+            </article>
+            <article class="summary-card">
+              <span class="summary-badge">Quality Build</span>
+              <h3>质量优先组合</h3>
+              <ul>
+                <li>LLM：Qwen3-32B 或 GLM-4-32B 离线任务 + Qwen3-14B 常驻</li>
+                <li>文生图：FLUX.1-schnell</li>
+                <li>语音：F5-TTS</li>
+                <li>音乐：Stable Audio Open 1.0</li>
+              </ul>
+              <p>适合愿意接受更长生成时间、并愿意为环境隔离投入更多工程成本的用户。</p>
+            </article>
+            <article class="summary-card">
+              <span class="summary-badge">Research Build</span>
+              <h3>研究实验组合</h3>
+              <ul>
+                <li>视频：Wan2.1 T2V-1.3B 或 CogVideoX-2B</li>
+                <li>图像：SDXL 作为对照基线</li>
+                <li>LLM：Gemma 4 26B 或 Qwen3-14B 负责 prompt 扩展</li>
+              </ul>
+              <p>适合验证视频与多模态链路，不适合作为日常生产环境。</p>
+            </article>
+          </div>
+
+          <div class="decision-flow section-grid-spaced">
+            <article class="decision-step">
+              <div class="decision-number">A</div>
+              <div>
+                <h3>如果你主要做本地知识助手与 Agent</h3>
+                <p>直接选 Qwen3-14B。它在中文、JSON、结构化输出和工具调用上的综合平衡，加上 thinking/non-thinking 混合模式，是 M4 Max 64GB 上最值得长期使用的主力模型。若 function calling 是核心需求，额外测试 GLM-4-32B-0414。</p>
+              </div>
+            </article>
+            <article class="decision-step">
+              <div class="decision-number">B</div>
+              <div>
+                <h3>如果你主要做图像创作</h3>
+                <p>先上 SDXL，确认 MPS、VAE、LoRA 和工作流节点都跑顺，再追加 FLUX.1-schnell。不要从最重的模型开始，否则你会把时间消耗在环境对齐而不是产出上。</p>
+              </div>
+            </article>
+            <article class="decision-step">
+              <div class="decision-number">C</div>
+              <div>
+                <h3>如果你想做视频</h3>
+                <p>结论很直接：M4 Max 64GB 可以研究视频生成，但不应该被当作视频生成主机。若视频是高频生产任务，迁移到有大显存 NVIDIA 的桌面机或云端会更合理。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="references" class="section" data-reveal data-present-step data-step-title="参考来源">
+          <div class="section-head">
+            <p class="section-kicker">References</p>
+            <h2>参考来源</h2>
+          </div>
+          <ol class="bib-list">
+            <li id="ref-1"><span class="bib-id">[1]</span> <span class="bib-author">Apple MLX Team.</span> <a href="https://github.com/ml-explore/mlx-lm" target="_blank" rel="noopener noreferrer">"MLX LM,"</a> <em>GitHub,</em> 2026.<span class="bib-note">MLX-LM 面向 Apple Silicon 的推理、量化、长上下文缓存、大模型 wired memory 和 Hugging Face 集成说明。</span></li>
+            <li id="ref-2"><span class="bib-id">[2]</span> <span class="bib-author">ggml-org.</span> <a href="https://github.com/ggml-org/llama.cpp" target="_blank" rel="noopener noreferrer">"llama.cpp,"</a> <em>GitHub,</em> 2026.<span class="bib-note">Metal 为 Apple Silicon 一等公民后端、GGUF 量化、OpenAI 兼容 server、grammar 约束输出与 benchmark 工具。</span></li>
+            <li id="ref-3"><span class="bib-id">[3]</span> <span class="bib-author">Ollama.</span> <a href="https://docs.ollama.com/capabilities/tool-calling" target="_blank" rel="noopener noreferrer">"Tool calling,"</a> <em>docs.ollama.com,</em> 2026.<span class="bib-note">Ollama 在本地模型上支持单工具、并行工具、多轮 agent loop 和流式 tool calling 的协议与样例。</span></li>
+            <li id="ref-4"><span class="bib-id">[4]</span> <span class="bib-author">Qwen Team.</span> <a href="https://qwenlm.github.io/blog/qwen3/" target="_blank" rel="noopener noreferrer">"Qwen3: Think Deeper, Act Faster,"</a> <em>qwenlm.github.io,</em> 2025.<span class="bib-note">Qwen3 全系列（0.6B—235B-A22B）开源 Apache 2.0，thinking/non-thinking 混合模式、119 语言、MCP 原生支持、36T tokens 预训练。官方推荐 Ollama / LM Studio / MLX / llama.cpp 本地运行。</span></li>
+            <li id="ref-5"><span class="bib-id">[5]</span> <span class="bib-author">Google DeepMind.</span> <a href="https://deepmind.google/models/gemma/gemma-4/" target="_blank" rel="noopener noreferrer">"Gemma 4,"</a> <em>deepmind.google,</em> 2026.<span class="bib-note">基于 Gemini 3 研究构建的最新开源模型。四个尺寸：E2B / E4B（移动端）/ 26B / 31B（工作站）。原生 function calling + 多模态（视觉 + 音频）+ 140 语言 + agentic workflow。AIME 2026 达 88.3%，τ2-bench agentic 85.5%。已上架 Ollama、LM Studio、Kaggle 和 HuggingFace。</span></li>
+            <li id="ref-6"><span class="bib-id">[6]</span> <span class="bib-author">Hugging Face.</span> <a href="https://huggingface.co/docs/diffusers/optimization/mps" target="_blank" rel="noopener noreferrer">"Metal Performance Shaders (MPS),"</a> <em>Diffusers Documentation,</em> 2026.<span class="bib-note">Apple Silicon 上的 MPS 支持、attention slicing 建议、batch 生成不稳定警告，以及 PyTorch 版本要求。</span></li>
+            <li id="ref-7"><span class="bib-id">[7]</span> <span class="bib-author">Black Forest Labs.</span> <a href="https://github.com/black-forest-labs/flux" target="_blank" rel="noopener noreferrer">"FLUX official inference repo,"</a> <em>GitHub,</em> 2026.<span class="bib-note">FLUX.1 open-weight 模型列表、本地安装路径，以及 schnell / dev 等模型家族的开源入口。</span></li>
+            <li id="ref-8"><span class="bib-id">[8]</span> <span class="bib-author">Wan Team.</span> <a href="https://github.com/Wan-Video/Wan2.1" target="_blank" rel="noopener noreferrer">"Wan2.1,"</a> <em>GitHub,</em> 2026.<span class="bib-note">Wan2.1 1.3B 与 14B 视频模型、Diffusers 接入、1.3B 版 8.19GB VRAM 说明、以及 CUDA / 多卡导向的优化路径。</span></li>
+            <li id="ref-9"><span class="bib-id">[9]</span> <span class="bib-author">Z.ai / THUDM.</span> <a href="https://github.com/zai-org/CogVideo" target="_blank" rel="noopener noreferrer">"CogVideo & CogVideoX,"</a> <em>GitHub,</em> 2026.<span class="bib-note">CogVideoX 2B/5B/1.5-5B 的内存需求、推理速度、Diffusers 路线、TorchAO 量化与 CUDA 侧优化说明。</span></li>
+            <li id="ref-10"><span class="bib-id">[10]</span> <span class="bib-author">Hexgrad.</span> <a href="https://github.com/hexgrad/kokoro" target="_blank" rel="noopener noreferrer">"Kokoro,"</a> <em>GitHub,</em> 2026.<span class="bib-note">Kokoro-82M 的参数规模、Python 推理方式、Mac Apple Silicon MPS fallback 说明和多语言支持。</span></li>
+            <li id="ref-11"><span class="bib-id">[11]</span> <span class="bib-author">SWivid.</span> <a href="https://github.com/SWivid/F5-TTS" target="_blank" rel="noopener noreferrer">"F5-TTS,"</a> <em>GitHub,</em> 2026.<span class="bib-note">F5-TTS 的推理方式、Apple Silicon 安装入口、运行时方案与 MLX 社区实现线索。</span></li>
+            <li id="ref-12"><span class="bib-id">[12]</span> <span class="bib-author">Meta FAIR.</span> <a href="https://huggingface.co/facebook/musicgen-medium" target="_blank" rel="noopener noreferrer">"MusicGen-medium model card,"</a> <em>Hugging Face,</em> 2026.<span class="bib-note">MusicGen-medium 为 1.5B 参数模型，Transformers 可直接本地运行，适合英文文本驱动的无歌词音乐生成。</span></li>
+            <li id="ref-13"><span class="bib-id">[13]</span> <span class="bib-author">Stability AI.</span> <a href="https://huggingface.co/stabilityai/stable-audio-open-1.0" target="_blank" rel="noopener noreferrer">"Stable Audio Open 1.0 model card,"</a> <em>Hugging Face,</em> 2026.<span class="bib-note">最长 47 秒、44.1kHz 立体声、stable-audio-tools 与 diffusers 双路径，以及更偏音效与环境声的限制说明。</span></li>
+            <li id="ref-14"><span class="bib-id">[14]</span> <span class="bib-author">Element Labs.</span> <a href="https://lmstudio.ai/docs" target="_blank" rel="noopener noreferrer">"LM Studio Docs,"</a> <em>lmstudio.ai,</em> 2026.<span class="bib-note">LM Studio 同时支持 llama.cpp (GGUF) 和 Apple MLX 双后端、MCP client 集成、OpenAI 兼容 API、JS/Python SDK、headless 部署 (llmster)、文档对话 RAG 和 speculative decoding。</span></li>
+            <li id="ref-15"><span class="bib-id">[15]</span> <span class="bib-author">Jan.ai.</span> <a href="https://jan.ai/" target="_blank" rel="noopener noreferrer">"Jan — Personal Intelligence,"</a> <em>jan.ai,</em> 2026.<span class="bib-note">开源（AGPL），500 万+下载，支持 GGUF 和 MLX 引擎、内置 web search、MCP、多 provider 接入和多语言 UI。社区测试 M 系列 Mac 上 MLX q4 达到 90 tok/s。</span></li>
+            <li id="ref-16"><span class="bib-id">[16]</span> <span class="bib-author">Nomic AI.</span> <a href="https://www.nomic.ai/gpt4all" target="_blank" rel="noopener noreferrer">"GPT4All,"</a> <em>nomic.ai,</em> 2026.<span class="bib-note">全离线本地 LLM 客户端，支持 macOS / Windows / Linux，LocalDocs RAG 可对本地文件问答，不提供 tool calling API。</span></li>
+            <li id="ref-17"><span class="bib-id">[17]</span> <span class="bib-author">智谱 AI / Z.ai.</span> <a href="https://github.com/THUDM/GLM-4" target="_blank" rel="noopener noreferrer">"GLM-4-0414 Model Series,"</a> <em>GitHub,</em> 2025.<span class="bib-note">GLM-4-32B-0414 在 BFCL V4 开源 FC 榜排名第一（72.38%，MIT 许可），强 agent / 代码 / 报告能力。GLM-Z1-32B-0414 为深度推理版，支持 rumination。llama.cpp、vLLM、Transformers 均已合并模型实现。</span></li>
+            <li id="ref-18"><span class="bib-id">[18]</span> <span class="bib-author">Meta AI.</span> <a href="https://ai.meta.com/blog/llama-4-multimodal-intelligence/" target="_blank" rel="noopener noreferrer">"The Llama 4 herd: The beginning of a new era of natively multimodal AI innovation,"</a> <em>ai.meta.com,</em> 2025.<span class="bib-note">Llama 4 Scout（109B 总参 / 17B 激活 / 16 experts）和 Maverick（400B 总参 / 17B 激活 / 128 experts）为 MoE 架构，原生多模态，Scout 支持 10M 上下文。</span></li>
+            <li id="ref-19"><span class="bib-id">[19]</span> <span class="bib-author">jundot.</span> <a href="https://github.com/jundot/omlx" target="_blank" rel="noopener noreferrer">"oMLX — LLM inference server with continuous batching &amp; SSD caching for Apple Silicon,"</a> <em>GitHub,</em> 2026.<span class="bib-note">基于 mlx-lm 构建的 Apple Silicon 原生推理服务器（9.5K stars，Apache 2.0）。continuous batching、block-based 分级 KV cache（RAM 热层 + SSD 冷层）、多模型并存 + LRU 管理、macOS 菜单栏 App、OpenAI/Anthropic 兼容 API、VLM/OCR/embedding/reranker、tool calling 和 MCP 集成。</span></li>
+          </ol>
+        </section>
+      </main>
+
+      <footer>
+        © 2026 MacBook Pro M4 Max 64GB 本地模型部署选型：LLM、图像、视频、语音与音乐生成全景 | 交互式 HTML 页面。
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>
