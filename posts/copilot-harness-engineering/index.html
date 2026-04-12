@@ -114,6 +114,7 @@
             <a href="#patterns">设计模式</a>
             <a href="#pitfalls">常见陷阱</a>
             <a href="#evolving">持续演进</a>
+            <a href="#casestudy">实战案例</a>
             <a href="#references">参考来源</a>
           </nav>
         </div>
@@ -565,6 +566,90 @@
             </article>
           </div>
         </section>
+
+        <!-- Section 07 — Case Study: Multi-Tier Memory Architecture -->
+        <section id="casestudy" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">07 / Case Study — Knowledge Hub</p>
+            <h2>7. 实战案例：三层指令记忆架构</h2>
+            <p>
+              本站（Knowledge Hub）在持续迭代过程中遇到了典型的指令管理问题：AI 在生成新文章时反复犯同类错误（重复实现已由共享脚本处理的行为、添加冗余的 HTML 图标标记）。问题根源不是 AI 能力不足，而是指令体系的架构设计存在盲区。以下是诊断过程和最终方案。
+            </p>
+          </div>
+
+          <div class="subsection-accordion">
+
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>7.1 问题诊断：同类 Bug 反复出现</span>
+              </button>
+              <div class="subsection-content">
+                <p>在三篇新文章中发现了相同的两类问题：</p>
+                <ul class="reference-list">
+                  <li><strong>HTML 与 CSS 双重图标</strong> — 文章内联了 <code>&lt;span class="subsection-icon"&gt;+&lt;/span&gt;</code>，而共享 CSS 已通过 <code>::after</code> 伪元素生成 +/- 图标。结果：每个折叠面板出现两个 + 号，展开时一个变 - 另一个保持 +。</li>
+                  <li><strong>JS 行为重复实现</strong> — 一篇文章在内联 <code>&lt;script&gt;</code> 中重写了 90 行滚动揭示、折叠面板和 localStorage 同步逻辑，与已加载的 <code>article-common.js</code> 完全重复。结果：事件监听器被注册两次。</li>
+                </ul>
+                <p>核心原因：生成指令只说"Include scroll-reveal observer, accordion JS"，没有明确这些行为已由共享脚本处理、不得内联重复。AI 在生成新文章时，按照"确保功能完整"的本能重新实现了这些行为。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>7.2 方案设计：全局与项目级指令的协同</span>
+              </button>
+              <div class="subsection-content">
+                <p>根本挑战在于：AI 编码助手的记忆系统有多个作用域（全局/项目/会话），如果不做架构设计，规则会散落在不同层级，产生重复、冲突或遗漏。</p>
+
+                <p><strong>三层架构设计：</strong></p>
+                <ul class="layer-list section-grid-spaced">
+                  <li>
+                    <span class="layer-number">1</span>
+                    <div>
+                      <strong>User Memory（全局层）</strong>
+                      <p>跨所有项目自动加载。只放"你是谁"级别的偏好：git 纪律、调试方法论、写作标准。总量控制在 50 行以内，不含任何项目专属术语或文件路径。项目专属条目加 <code>(Project-Specific — XXX)</code> 标签，在其他 workspace 中自动降权。</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="layer-number">2</span>
+                    <div>
+                      <strong>Repo Memory（项目层 · 踩坑速查）</strong>
+                      <p>仅当前项目可见，需主动读取。只记录"曾经犯过且容易复发的错误"，每文件不超过 10 行。用一行指针指向 <code>.github/instructions/</code> 获取完整规范，避免双源维护。</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="layer-number">3</span>
+                    <div>
+                      <strong>Instructions（项目层 · 权威规范）</strong>
+                      <p>通过 VS Code 的 <code>applyTo</code> glob 自动注入。包含详尽的组件规范、规范 HTML 模板、Forbidden 清单。按文件类型拆分（article-pages / homepage / knowledge-data），是生成代码时的唯一权威来源。</p>
+                    </div>
+                  </li>
+                </ul>
+
+                <p><strong>分层原则：</strong>User Memory 存"别做什么"（跨项目通用护栏），Repo Memory 存"上次栽在哪"（踩坑提醒），Instructions 存"怎么做是对的"（正向规范）。三层职责不重叠，信息不冗余。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>7.3 实施效果与持续演进机制</span>
+              </button>
+              <div class="subsection-content">
+                <p><strong>实施的具体变更：</strong></p>
+                <ul class="reference-list">
+                  <li><strong>Instructions 升级</strong> — 将 <code>article-pages.instructions.md</code> 从 15 行扩展到 80+ 行，新增"Forbidden JS in Inline Scripts"清单（5 种不得内联的行为）和三个核心组件的规范 HTML 模板（Accordion / Section / Topbar）。</li>
+                  <li><strong>User Memory 瘦身</strong> — 将项目专属规则标记为 <code>(Project-Specific)</code>，从 28 行减少到 17 行通用规则。确保在其他 workspace 中不会注入无关指令。</li>
+                  <li><strong>Repo Memory 降重</strong> — 将 9 行的规范描述缩减为 3 行踩坑提醒，每条只需一行话加上指针。消除了与 instructions 的双源维护问题。</li>
+                  <li><strong>防御性 CSS</strong> — 添加 <code>.subsection-icon { display: none; }</code>，即使未来有残留 HTML 也不会产生视觉干扰。</li>
+                </ul>
+
+                <p><strong>对话提取协议（持续演进机制）：</strong></p>
+                <p>每次与 AI 的协作对话结束前，执行一次指令提取：将对话中产生的可指令化规则归类到正确层级（user → repo → instructions），经确认后写入。这确保了指令体系能从实战中持续生长，而不是依赖一次性的静态配置。指令体系本身成为 Living Documentation 模式（Pattern 5）的实践。</p>
+              </div>
+            </article>
+
+          </div>
+        </section>
+
       </main>
 
       <section id="references" class="section" data-reveal>

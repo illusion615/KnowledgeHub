@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var topbarCenter;
   var topbarEnd;
   var presentationToggle;
-  var presentationExport;
+  var shareWrapper;
   var presentationFloating;
   var presentationExit;
   var presentationPrev;
@@ -38,9 +38,15 @@ document.addEventListener('DOMContentLoaded', function () {
     zh: {
       enter: '开始演示',
       exit: '退出演示',
+      share: '分享',
+      copyUrl: '复制链接',
+      copied: '已复制',
       export: '导出PPT',
       exporting: '导出中...',
+      exportPdf: '导出PDF',
+      exportingPdf: '导出中...',
       exportError: 'PPT 导出失败，请重试。',
+      exportPdfError: 'PDF 导出失败，请重试。',
       prev: '上一页',
       next: '下一页',
       tip: '键盘 ← → 切换 · Esc 退出',
@@ -50,9 +56,15 @@ document.addEventListener('DOMContentLoaded', function () {
     en: {
       enter: 'Start presentation',
       exit: 'Exit presentation',
+      share: 'Share',
+      copyUrl: 'Copy URL',
+      copied: 'Copied',
       export: 'Export PPT',
       exporting: 'Exporting...',
+      exportPdf: 'Export PDF',
+      exportingPdf: 'Exporting...',
       exportError: 'PowerPoint export failed. Please try again.',
+      exportPdfError: 'PDF export failed. Please try again.',
       prev: 'Previous',
       next: 'Next',
       tip: 'Use ← → to navigate · Esc to exit',
@@ -182,15 +194,113 @@ document.addEventListener('DOMContentLoaded', function () {
     return toggle;
   };
 
-  var ensureExportButton = function () {
-    var button = topbar.querySelector('[data-presentation-export]');
-    if (button) return button;
-    button = document.createElement('button');
-    button.className = 'present-export';
-    button.type = 'button';
-    button.setAttribute('data-presentation-export', '');
-    topbarActions.appendChild(button);
-    return button;
+  var ensureShareDropdown = function () {
+    var wrapper = topbar.querySelector('.share-wrapper');
+    if (wrapper) return wrapper;
+
+    wrapper = document.createElement('div');
+    wrapper.className = 'share-wrapper';
+
+    var btn = document.createElement('button');
+    btn.className = 'share-btn';
+    btn.type = 'button';
+    btn.setAttribute('aria-haspopup', 'true');
+    btn.setAttribute('aria-expanded', 'false');
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    wrapper.appendChild(btn);
+
+    var menu = document.createElement('div');
+    menu.className = 'share-menu';
+    menu.setAttribute('role', 'menu');
+
+    // Copy URL item
+    var copyItem = document.createElement('button');
+    copyItem.className = 'share-menu-item';
+    copyItem.type = 'button';
+    copyItem.setAttribute('role', 'menuitem');
+    copyItem.setAttribute('data-share-copy-url', '');
+    copyItem.innerHTML = '<svg viewBox="0 0 24 24" fill="none"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="share-item-label"></span>';
+    menu.appendChild(copyItem);
+
+    // Export PPT item
+    var pptItem = document.createElement('button');
+    pptItem.className = 'share-menu-item';
+    pptItem.type = 'button';
+    pptItem.setAttribute('role', 'menuitem');
+    pptItem.setAttribute('data-share-export-ppt', '');
+    pptItem.innerHTML = '<svg viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="share-item-label"></span>';
+    menu.appendChild(pptItem);
+
+    // Export PDF item
+    var pdfItem = document.createElement('button');
+    pdfItem.className = 'share-menu-item';
+    pdfItem.type = 'button';
+    pdfItem.setAttribute('role', 'menuitem');
+    pdfItem.setAttribute('data-share-export-pdf', '');
+    pdfItem.innerHTML = '<svg viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="share-item-label"></span>';
+    menu.appendChild(pdfItem);
+
+    wrapper.appendChild(menu);
+    topbarActions.appendChild(wrapper);
+
+    // Toggle menu open/close
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var isOpen = wrapper.classList.contains('is-open');
+      wrapper.classList.toggle('is-open', !isOpen);
+      btn.setAttribute('aria-expanded', String(!isOpen));
+    });
+
+    // Close on outside click
+    document.addEventListener('click', function (e) {
+      if (!wrapper.contains(e.target)) {
+        wrapper.classList.remove('is-open');
+        btn.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    // Copy URL handler
+    copyItem.addEventListener('click', function () {
+      var url = window.location.href;
+      var label = copyItem.querySelector('.share-item-label');
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(function () {
+          var orig = label.textContent;
+          label.textContent = getLabel('copied');
+          label.classList.add('share-copied-tip');
+          setTimeout(function () { label.textContent = orig; label.classList.remove('share-copied-tip'); }, 1500);
+        });
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = url;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        var origText = label.textContent;
+        label.textContent = getLabel('copied');
+        label.classList.add('share-copied-tip');
+        setTimeout(function () { label.textContent = origText; label.classList.remove('share-copied-tip'); }, 1500);
+      }
+    });
+
+    // Export PPT handler
+    pptItem.addEventListener('click', function () {
+      wrapper.classList.remove('is-open');
+      btn.setAttribute('aria-expanded', 'false');
+      exportPresentationDeck();
+    });
+
+    // Export PDF handler
+    pdfItem.addEventListener('click', function () {
+      wrapper.classList.remove('is-open');
+      btn.setAttribute('aria-expanded', 'false');
+      exportPdf();
+    });
+
+    return wrapper;
   };
 
   var createNavButton = function (direction, labelText) {
@@ -428,6 +538,49 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   };
 
+  var pdfExportInProgress = false;
+
+  var exportPdf = function () {
+    if (pdfExportInProgress) return;
+    pdfExportInProgress = true;
+    updatePresentationLabels();
+
+    // Expand all accordions so PDF captures full content
+    var accordions = main.querySelectorAll('[data-accordion]');
+    var savedStates = [];
+    accordions.forEach(function (item) {
+      var btn = item.querySelector('.subsection-toggle');
+      var content = item.querySelector('.subsection-content');
+      savedStates.push({ item: item, wasOpen: item.classList.contains('is-open') });
+      item.classList.add('is-open');
+      if (btn) btn.setAttribute('aria-expanded', 'true');
+      if (content) content.setAttribute('aria-hidden', 'false');
+    });
+
+    // Allow layout to settle then trigger browser print
+    window.setTimeout(function () {
+      window.print();
+
+      // Restore accordion states after print dialog closes
+      savedStates.forEach(function (entry) {
+        var btn = entry.item.querySelector('.subsection-toggle');
+        var content = entry.item.querySelector('.subsection-content');
+        if (entry.wasOpen) {
+          entry.item.classList.add('is-open');
+          if (btn) btn.setAttribute('aria-expanded', 'true');
+          if (content) content.setAttribute('aria-hidden', 'false');
+        } else {
+          entry.item.classList.remove('is-open');
+          if (btn) btn.setAttribute('aria-expanded', 'false');
+          if (content) content.setAttribute('aria-hidden', 'true');
+        }
+      });
+
+      pdfExportInProgress = false;
+      updatePresentationLabels();
+    }, 300);
+  };
+
   var deriveStepTitle = function (step, index) {
     var explicit = step.getAttribute('data-step-title');
     var heading;
@@ -622,10 +775,29 @@ document.addEventListener('DOMContentLoaded', function () {
       presentationExit.textContent = getLabel('exit');
     }
 
-    if (presentationExport) {
-      presentationExport.textContent = exportInProgress ? getLabel('exporting') : getLabel('export');
-      presentationExport.disabled = exportInProgress;
-      presentationExport.setAttribute('aria-busy', String(exportInProgress));
+    // Update share dropdown labels
+    if (shareWrapper) {
+      var copyLabel = shareWrapper.querySelector('[data-share-copy-url] .share-item-label');
+      var pptLabel = shareWrapper.querySelector('[data-share-export-ppt] .share-item-label');
+      var pdfLabel = shareWrapper.querySelector('[data-share-export-pdf] .share-item-label');
+      var pptBtn = shareWrapper.querySelector('[data-share-export-ppt]');
+      var pdfBtn = shareWrapper.querySelector('[data-share-export-pdf]');
+
+      if (copyLabel && !copyLabel.classList.contains('share-copied-tip')) {
+        copyLabel.textContent = getLabel('copyUrl');
+      }
+      if (pptLabel) {
+        pptLabel.textContent = exportInProgress ? getLabel('exporting') : getLabel('export');
+      }
+      if (pptBtn) {
+        pptBtn.disabled = exportInProgress;
+      }
+      if (pdfLabel) {
+        pdfLabel.textContent = pdfExportInProgress ? getLabel('exportingPdf') : getLabel('exportPdf');
+      }
+      if (pdfBtn) {
+        pdfBtn.disabled = pdfExportInProgress;
+      }
     }
 
     if (presentationPrev) {
@@ -869,7 +1041,7 @@ document.addEventListener('DOMContentLoaded', function () {
   ensureTopbarLayout();
   topbarActions = ensureTopbarActions();
   presentationToggle = ensureToggle();
-  presentationExport = ensureExportButton();
+  shareWrapper = ensureShareDropdown();
   presentationFloating = ensureFloating();
   presentationExit = presentationFloating.querySelector('[data-present-exit]');
   presentationPrev = presentationFloating.querySelector('[data-present-prev]');
@@ -900,10 +1072,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     enterPresentation();
-  });
-
-  presentationExport.addEventListener('click', function () {
-    exportPresentationDeck();
   });
 
   presentationExit.addEventListener('click', function () {

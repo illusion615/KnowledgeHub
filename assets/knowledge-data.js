@@ -537,5 +537,40 @@ var knowledgeTree = [
     color: '#0d8f8c',
     phase: 5.0, speed: 0.78,
     relations: ['study-room-standards', 'study-room-design']
+  },
+
+  // ════════════════════════════════════════
+  // 二级分组 — AI 时事雷达（定期刊物）
+  // ════════════════════════════════════════
+  {
+    id: 'ai-radar',
+    parentId: 'ai-engineering-practice',
+    type: 'topic',
+    label: { zh: 'AI 时事雷达', en: 'AI Radar' },
+    color: '#e11d48',
+    phase: 4.5, speed: 0.82
+  },
+
+  // ════════════════════════════════════════
+  // 文章 — AI 时事雷达 2026W15
+  // ════════════════════════════════════════
+  {
+    id: 'ai-radar-2026w15',
+    parentId: 'ai-radar',
+    type: 'article',
+    title: {
+      zh: 'AI 时事雷达 2026W15：本周最值得关注的 20 件 AI 大事',
+      en: 'AI Radar 2026W15: Top 20 AI Events This Week'
+    },
+    summary: {
+      zh: '覆盖 2026 年 4 月上半月模型发布（Claude Mythos / Meta 闭源 / GLM-5.1 登顶）、Agent 生态控制权冲突（OpenClaw vs Anthropic）、EU AI Act 治理挑战、基础设施地缘风险及安全伦理事件。每件事附入选理由、观点分析和行动建议。',
+      en: 'Covers top 20 AI events from early April 2026 across model releases, agent ecosystem conflicts, governance challenges, infrastructure risks, and safety concerns. Each event includes selection rationale, analysis, and action recommendations.'
+    },
+    tags: ['AI Radar', 'Weekly', 'Industry Analysis'],
+    date: '2026-04-12',
+    url: 'posts/ai-radar-2026w15/index.html',
+    color: '#0d8f8c',
+    phase: 4.5, speed: 0.85,
+    relations: ['enterprise-agent-arch', 'hermes-open-model']
   }
 ];
