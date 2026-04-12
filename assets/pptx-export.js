@@ -132,7 +132,7 @@
   }
 
   function renderCompGrid(sl, el, y, p) {
-    var cards = qa(el, ':scope > .comparison-card'); if (!cards.length) return y;
+    var cards = qa(el, ':scope > .comparison-card, :scope > .comparison-cell'); if (!cards.length) return y;
     var cc = grid(BW, Math.min(cards.length, 2), GAP), ch = Math.min(4.2, BY + BH - y);
     cards.forEach(function (card, i) { renderCard(sl, card, MX + cc[i % cc.length].x, y, cc[i % cc.length].w, ch, p); });
     return y + ch + GAP;

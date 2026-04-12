@@ -40,6 +40,8 @@ document.addEventListener('DOMContentLoaded', function () {
       exit: '退出演示',
       share: '分享',
       copyUrl: '复制链接',
+      shareWechat: '分享到微信',
+      wechatScanTip: '请使用微信扫码分享当前页面。',
       copied: '已复制',
       export: '导出PPT',
       exporting: '导出中...',
@@ -58,6 +60,8 @@ document.addEventListener('DOMContentLoaded', function () {
       exit: 'Exit presentation',
       share: 'Share',
       copyUrl: 'Copy URL',
+      shareWechat: 'Share to WeChat',
+      wechatScanTip: 'Use WeChat to scan and share this page.',
       copied: 'Copied',
       export: 'Export PPT',
       exporting: 'Exporting...',
@@ -189,6 +193,7 @@ document.addEventListener('DOMContentLoaded', function () {
     toggle.className = 'present-toggle';
     toggle.type = 'button';
     toggle.setAttribute('data-presentation-toggle', '');
+    toggle.innerHTML = '<svg class="present-toggle-icon" viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M9.5 10l2.5-2.5L14.5 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     topbarActions.appendChild(toggle);
 
     return toggle;
@@ -222,6 +227,22 @@ document.addEventListener('DOMContentLoaded', function () {
     copyItem.innerHTML = '<svg viewBox="0 0 24 24" fill="none"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="share-item-label"></span>';
     menu.appendChild(copyItem);
 
+    // WeChat share item
+    var wechatItem = document.createElement('button');
+    wechatItem.className = 'share-menu-item';
+    wechatItem.type = 'button';
+    wechatItem.setAttribute('role', 'menuitem');
+    wechatItem.setAttribute('data-share-wechat', '');
+    wechatItem.innerHTML = '<svg viewBox="0 0 24 24" fill="none"><path d="M9.5 5C5.91 5 3 7.55 3 10.69c0 1.83.98 3.45 2.5 4.49L5 19l3.49-1.73c.33.05.67.08 1.01.08 3.59 0 6.5-2.55 6.5-5.66S13.09 5 9.5 5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M16.9 9.05c2.26.32 4.1 1.98 4.1 4.01 0 1.24-.7 2.37-1.84 3.14L19.5 19l-2.57-1.26c-.17.02-.34.03-.51.03-2.53 0-4.58-1.64-4.58-3.66 0-.12.01-.25.03-.37" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="7.5" cy="10.5" r="1" fill="currentColor"/><circle cx="11.5" cy="10.5" r="1" fill="currentColor"/></svg><span class="share-item-label"></span>';
+    menu.appendChild(wechatItem);
+
+    // WeChat QR panel (inline in dropdown)
+    var wechatPanel = document.createElement('div');
+    wechatPanel.className = 'share-wechat-qr';
+    wechatPanel.style.display = 'none';
+    wechatPanel.innerHTML = '<img class="share-wechat-qr-img" alt="QR Code" /><span class="share-wechat-qr-tip"></span>';
+    menu.appendChild(wechatPanel);
+
     // Export PPT item
     var pptItem = document.createElement('button');
     pptItem.className = 'share-menu-item';
@@ -243,12 +264,26 @@ document.addEventListener('DOMContentLoaded', function () {
     wrapper.appendChild(menu);
     topbarActions.appendChild(wrapper);
 
-    // Toggle menu open/close
+    // Toggle menu open/close — auto-show QR when opening
+    var showWechatQr = function () {
+      var qrImg = wechatPanel.querySelector('.share-wechat-qr-img');
+      var qrTip = wechatPanel.querySelector('.share-wechat-qr-tip');
+      var url = window.location.href;
+      qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=' + encodeURIComponent(url);
+      qrTip.textContent = getLabel('wechatScanTip');
+      wechatPanel.style.display = 'flex';
+    };
+
     btn.addEventListener('click', function (e) {
       e.stopPropagation();
       var isOpen = wrapper.classList.contains('is-open');
       wrapper.classList.toggle('is-open', !isOpen);
       btn.setAttribute('aria-expanded', String(!isOpen));
+      if (isOpen) {
+        wechatPanel.style.display = 'none';
+      } else {
+        showWechatQr();
+      }
     });
 
     // Close on outside click
@@ -256,8 +291,19 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!wrapper.contains(e.target)) {
         wrapper.classList.remove('is-open');
         btn.setAttribute('aria-expanded', 'false');
+        wechatPanel.style.display = 'none';
       }
     });
+
+    var shareToWeChat = function () {
+      // QR is auto-shown when dropdown opens; this toggles visibility
+      var isVisible = wechatPanel.style.display !== 'none';
+      if (isVisible) {
+        wechatPanel.style.display = 'none';
+      } else {
+        showWechatQr();
+      }
+    };
 
     // Copy URL handler
     copyItem.addEventListener('click', function () {
@@ -284,6 +330,13 @@ document.addEventListener('DOMContentLoaded', function () {
         label.classList.add('share-copied-tip');
         setTimeout(function () { label.textContent = origText; label.classList.remove('share-copied-tip'); }, 1500);
       }
+    });
+
+    // WeChat share handler
+    wechatItem.addEventListener('click', function () {
+      wrapper.classList.remove('is-open');
+      btn.setAttribute('aria-expanded', 'false');
+      shareToWeChat();
     });
 
     // Export PPT handler
@@ -767,7 +820,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var prevLabel = getLabel('prev');
     var nextLabel = getLabel('next');
 
-    presentationToggle.textContent = state.enabled ? getLabel('exit') : getLabel('enter');
+    presentationToggle.setAttribute('aria-label', state.enabled ? getLabel('exit') : getLabel('enter'));
     presentationToggle.setAttribute('aria-pressed', String(state.enabled));
     presentationToggle.classList.toggle('is-active', state.enabled);
 
@@ -778,6 +831,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Update share dropdown labels
     if (shareWrapper) {
       var copyLabel = shareWrapper.querySelector('[data-share-copy-url] .share-item-label');
+      var wechatLabel = shareWrapper.querySelector('[data-share-wechat] .share-item-label');
       var pptLabel = shareWrapper.querySelector('[data-share-export-ppt] .share-item-label');
       var pdfLabel = shareWrapper.querySelector('[data-share-export-pdf] .share-item-label');
       var pptBtn = shareWrapper.querySelector('[data-share-export-ppt]');
@@ -785,6 +839,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
       if (copyLabel && !copyLabel.classList.contains('share-copied-tip')) {
         copyLabel.textContent = getLabel('copyUrl');
+      }
+      if (wechatLabel) {
+        wechatLabel.textContent = getLabel('shareWechat');
       }
       if (pptLabel) {
         pptLabel.textContent = exportInProgress ? getLabel('exporting') : getLabel('export');

@@ -14,7 +14,7 @@
       entry.target.classList.add('is-visible');
       observer.unobserve(entry.target);
     });
-  }, { threshold: 0.18, rootMargin: '0px 0px -40px 0px' });
+  }, { threshold: 0, rootMargin: '0px 0px -60px 0px' });
 
   revealTargets.forEach(function (target) { revealObserver.observe(target); });
 
@@ -62,6 +62,7 @@
 
     button.addEventListener('click', function () {
       var isExpanded = item.classList.contains('is-open');
+      var topBefore = button.getBoundingClientRect().top;
       if (!isExpanded) {
         document.querySelectorAll('[data-accordion]').forEach(function (otherItem) {
           if (otherItem === item) return;
@@ -69,6 +70,10 @@
         });
       }
       syncAccordionState(item, !isExpanded);
+      var topAfter = button.getBoundingClientRect().top;
+      if (topAfter !== topBefore) {
+        window.scrollBy(0, topAfter - topBefore);
+      }
     });
   });
 

@@ -538,6 +538,25 @@ var knowledgeTree = [
     phase: 5.0, speed: 0.78,
     relations: ['study-room-standards', 'study-room-design']
   },
+  {
+    id: 'knowledge-graph-org',
+    parentId: 'knowledge-hub',
+    type: 'article',
+    title: {
+      zh: '知识图谱组织方案研究：六种范式的理论基础、实现逻辑与对比分析',
+      en: 'Knowledge Graph Organization Research: Theoretical Foundations, Implementation & Comparison of Six Paradigms'
+    },
+    summary: {
+      zh: '基于认知科学（Ausubel 有意义学习理论、Miller\'s Law）和信息可视化理论（Shneiderman Mantra），系统研究层级树、概念图、Zettelkasten、Treemap、双曲树和语义知识图谱六种知识组织范式，从九个维度对比分析，并为 Knowledge Hub 制定三阶段渐进式混合架构演进路线。',
+      en: 'Based on cognitive science (Ausubel\'s meaningful learning theory, Miller\'s Law) and information visualization theory (Shneiderman\'s Mantra), systematically researches six knowledge organization paradigms — hierarchical tree, concept map, Zettelkasten, treemap, hyperbolic tree, and semantic knowledge graph — with a 9-dimension comparison matrix and a 3-phase progressive hybrid architecture roadmap for Knowledge Hub.'
+    },
+    tags: ['Knowledge Graph', 'Information Visualization', 'Knowledge Organization', 'Architecture'],
+    date: '2026-04-12',
+    url: 'posts/knowledge-graph-organization/index.html',
+    color: '#14b8a6',
+    phase: 0.5, speed: 0.80,
+    relations: ['study-room-design', 'study-room-standards', 'study-room-review-2026q2']
+  },
 
   // ════════════════════════════════════════
   // 二级分组 — AI 时事雷达（定期刊物）
@@ -554,6 +573,87 @@ var knowledgeTree = [
   // ════════════════════════════════════════
   // 文章 — AI 时事雷达 2026W15
   // ════════════════════════════════════════
+  // ════════════════════════════════════════
+  // 根节点 — 升学规划
+  // ════════════════════════════════════════
+  {
+    id: 'education-planning',
+    parentId: null,
+    type: 'topic',
+    label: { zh: '升学规划', en: 'Education Planning' },
+    color: '#e11d48',
+    orbitIndex: 3, phase: 3.8, speed: 0.48
+  },
+  {
+    id: 'shanghai-zhongkao',
+    parentId: 'education-planning',
+    type: 'topic',
+    label: { zh: '上海中考', en: 'Shanghai Zhongkao' },
+    color: '#dc2626',
+    phase: 0.8, speed: 0.85
+  },
+
+  // ════════════════════════════════════════
+  // 文章 — 上海中考志愿填报策略
+  // ════════════════════════════════════════
+  {
+    id: 'zhongkao-volunteer-strategy',
+    parentId: 'shanghai-zhongkao',
+    type: 'article',
+    title: {
+      zh: '上海中考志愿填报策略：建平地杰考生冲击四校的路径规划',
+      en: 'Shanghai Zhongkao Volunteer Strategy: Path Planning for Jianping Dijie Students Targeting Top 4 Schools'
+    },
+    summary: {
+      zh: '基于建平地杰中学年级前20、一模580/635的考生实际情况，系统分析自主招生、名额分配到区、名额分配到校、统一批次四条录取路径的策略选择，提供竞争力评估、分数预测、志愿排列方案和风险对冲建议。',
+      en: 'Based on a top-20 ranked student at Jianping Dijie Middle School with 580/635 mock exam score, systematically analyzes strategy choices across four admission pathways, providing competitiveness assessment, score prediction, volunteer filing plan, and risk hedging recommendations.'
+    },
+    tags: ['中考', '志愿填报', '四校', '策略规划'],
+    date: '2026-04-12',
+    url: 'posts/zhongkao-volunteer-strategy/index.html',
+    color: '#dc2626',
+    phase: 0.4, speed: 0.9,
+    relations: ['zhongkao-policy-data']
+  },
+  {
+    id: 'zhongkao-policy-data',
+    parentId: 'shanghai-zhongkao',
+    type: 'article',
+    title: {
+      zh: '上海中考政策解读与四校录取数据分析（2022–2025）',
+      en: 'Shanghai Zhongkao Policy Analysis & Top 4 Schools Admission Data (2022–2025)'
+    },
+    summary: {
+      zh: '系统梳理2022年新中考改革后的招录制度（自主招生/名额分配到区/名额分配到校/统一批次），汇总四校2022–2025年各批次录取分数线、浦东新区名额分配数据、建平地杰中学历年四校录取统计，为志愿填报提供量化决策依据。',
+      en: 'Systematically reviews the post-2022 reformed admission system, compiles Top 4 schools admission score data across all batches from 2022-2025, Pudong district quota data, and Jianping Dijie historical admission statistics for quantitative decision-making in volunteer filing.'
+    },
+    tags: ['中考', '四校', '录取数据', '政策分析'],
+    date: '2026-04-12',
+    url: 'posts/zhongkao-policy-data/index.html',
+    color: '#f43f5e',
+    phase: 2.6, speed: 0.86,
+    relations: ['zhongkao-volunteer-strategy', 'four-schools-profile']
+  },
+  {
+    id: 'four-schools-profile',
+    parentId: 'shanghai-zhongkao',
+    type: 'article',
+    title: {
+      zh: '上海四校及分校全景画像：特色、升学、学风与资源深度对比',
+      en: 'Shanghai Top 4 Schools & Branch Campuses: Academics, Culture & Resources Deep Dive'
+    },
+    summary: {
+      zh: '从学术特色、高考出口、竞赛实力、学风文化、大学资源和校园设施六个维度，系统画像上海中学、华二附中、复旦附中、交大附中 4 所本部及 10 所分校，并提供性格-学校适配指南和四校分校 vs 八大金刚对比分析。',
+      en: 'Profiles Shanghai top 4 high schools and 10 branch campuses across 6 dimensions: academics, gaokao outcomes, olympiad strength, school culture, university resources, and facilities. Includes personality-school matching guide and branch campus vs Big 8 comparison.'
+    },
+    tags: ['中考', '四校', '学校画像', '择校'],
+    date: '2026-04-12',
+    url: 'posts/four-schools-profile/index.html',
+    color: '#e11d48',
+    phase: 4.8, speed: 0.82,
+    relations: ['zhongkao-volunteer-strategy', 'zhongkao-policy-data']
+  },
+
   {
     id: 'ai-radar-2026w15',
     parentId: 'ai-radar',

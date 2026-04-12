@@ -16,6 +16,9 @@
   --radius-lg: 24px;
   --radius-md: 18px;
   --content-width: 1200px;
+  --card-bg: rgba(255, 255, 255, 0.62);
+  --card-border: rgba(255, 255, 255, 0.55);
+  --card-shadow: 0 4px 24px rgba(17, 31, 43, 0.06);
 }
 
 [data-theme="dark"] {
@@ -29,6 +32,9 @@
   --accent-soft: rgba(255, 122, 0, 0.18);
   --teal-soft: rgba(13, 143, 140, 0.18);
   --shadow: 0 24px 70px rgba(0, 0, 0, 0.3);
+  --card-bg: rgba(22, 27, 38, 0.72);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --card-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
 }
 
 [data-theme="dark"] body {
@@ -453,7 +459,7 @@ a {
 
 .hero-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(340px, 0.92fr);
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
   gap: 34px;
   align-items: end;
 }
@@ -540,7 +546,33 @@ a {
 }
 
 .present-toggle,
-.share-btn,
+.share-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.22s ease, opacity 0.22s ease;
+}
+
+.present-toggle:hover,
+.present-toggle:focus-visible,
+.share-btn:hover,
+.share-btn:focus-visible {
+  color: var(--ink);
+}
+
+.present-toggle-icon,
+.share-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
 .present-exit {
   display: inline-flex;
   align-items: center;
@@ -555,20 +587,16 @@ a {
   transition: background 0.22s ease, color 0.22s ease, border-color 0.22s ease, opacity 0.22s ease;
 }
 
-.present-toggle:hover,
-.present-toggle:focus-visible,
-.share-btn:hover,
-.share-btn:focus-visible {
-  background: rgba(255, 255, 255, 0.9);
-}
-
 .present-exit:hover,
 .present-exit:focus-visible {
   opacity: 1;
   filter: saturate(1.05);
 }
 
-.present-toggle.is-active,
+.present-toggle.is-active {
+  color: var(--accent);
+}
+
 .present-exit {
   background: linear-gradient(135deg, var(--accent), #ff9340);
   color: #fff;
@@ -578,16 +606,6 @@ a {
 /* ── Share dropdown ── */
 .share-wrapper {
   position: relative;
-}
-
-.share-btn {
-  gap: 6px;
-}
-
-.share-btn svg {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
 }
 
 .share-menu {
@@ -667,6 +685,39 @@ a {
 
 [data-theme="dark"] .share-menu-item:hover {
   background: rgba(255, 255, 255, 0.06);
+}
+
+/* ── WeChat QR inline panel ── */
+.share-wechat-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px 12px;
+  border-top: 1px solid var(--line);
+}
+
+.share-wechat-qr-img {
+  width: 160px;
+  height: 160px;
+  border-radius: 12px;
+  background: #fff;
+  object-fit: contain;
+}
+
+.share-wechat-qr-tip {
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.4;
+}
+
+[data-theme="dark"] .share-wechat-qr {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .share-wechat-qr-img {
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .present-floating {
@@ -795,17 +846,20 @@ a {
 }
 
 [data-theme="dark"] .present-toggle,
-[data-theme="dark"] .share-btn,
-[data-theme="dark"] .present-exit {
-  background: rgba(30, 38, 48, 0.8);
-  border-color: rgba(255, 255, 255, 0.12);
+[data-theme="dark"] .share-btn {
+  color: var(--muted);
 }
 
 [data-theme="dark"] .present-toggle:hover,
 [data-theme="dark"] .present-toggle:focus-visible,
 [data-theme="dark"] .share-btn:hover,
 [data-theme="dark"] .share-btn:focus-visible {
-  background: rgba(42, 52, 64, 0.92);
+  color: var(--ink);
+}
+
+[data-theme="dark"] .present-exit {
+  background: rgba(30, 38, 48, 0.8);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 [data-theme="dark"] .present-nav {
@@ -1094,6 +1148,7 @@ a {
 .is-presentation-mode [data-tabs],
 .is-presentation-mode .section-head,
 .is-presentation-mode .comparison-card,
+.is-presentation-mode .comparison-cell,
 .is-presentation-mode .hero-panel,
 .is-presentation-mode .hero-copy {
   max-width: 100%;
@@ -1123,6 +1178,7 @@ a {
 }
 
 .is-presentation-mode .comparison-card,
+.is-presentation-mode .comparison-cell,
 .is-presentation-mode .hero-panel,
 .is-presentation-mode .present-step-block,
 .is-presentation-mode .tab-shell {
@@ -1397,10 +1453,15 @@ a {
 }
 
 .hero-metrics {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 16px;
   margin-top: 10px;
+}
+
+.hero-metrics > .metric {
+  flex: 1 1 180px;
+  min-width: 0;
 }
 
 .metric {
@@ -1487,6 +1548,7 @@ main {
 .insight-card,
 .pattern-card,
 .comparison-card,
+.comparison-cell,
 .mesh-copy,
 .mesh-board {
   border-radius: var(--radius-lg);
@@ -1532,6 +1594,7 @@ main {
 .insight-card h3,
 .pattern-card h3,
 .comparison-card h3,
+.comparison-cell h3,
 .mesh-copy h3 {
   margin: 16px 0 10px;
   font-size: 1.2rem;
@@ -1541,6 +1604,7 @@ main {
 .insight-card p,
 .pattern-card p,
 .comparison-card p,
+.comparison-cell p,
 .mesh-copy p,
 .layer-list li,
 .reference-list li {
@@ -1557,7 +1621,8 @@ main {
   gap: 18px;
 }
 
-.comparison-card {
+.comparison-card,
+.comparison-cell {
   padding: 26px;
 }
 
@@ -1596,21 +1661,17 @@ main {
 }
 
 .layer-list li {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
+  padding: 12px 14px 12px 52px;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.58);
   border: 1px solid rgba(23, 36, 48, 0.08);
-}
-
-.comparison-card.next .layer-list li {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.08);
+  position: relative;
 }
 
 .layer-number {
+  position: absolute;
+  left: 14px;
+  top: 12px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1623,6 +1684,11 @@ main {
   font-weight: 700;
   color: var(--ink);
   flex-shrink: 0;
+}
+
+.comparison-card.next .layer-list li {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .comparison-card.next .layer-number {
@@ -2647,15 +2713,21 @@ footer {
   .present-toggle,
   .share-btn {
     min-height: 36px;
-    padding: 0 12px;
-    font-size: 0.84rem;
+    padding: 0 8px;
   }
 
   .hero-copy h1 {
     max-width: none;
   }
 
-  .hero-metrics,
+  .hero-metrics {
+    flex-direction: column;
+  }
+
+  .hero-metrics > .metric {
+    flex-basis: auto;
+  }
+
   .comparison-grid,
   .mesh-layout,
   .pattern-grid,

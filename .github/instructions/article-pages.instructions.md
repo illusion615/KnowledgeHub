@@ -89,6 +89,74 @@ Rules:
 - `.brand` text = the article's parent topic name from `assets/knowledge-data.js`, **not** the article title
 - Presentation toggle, share dropdown, and other action buttons are injected dynamically by `article-presentation.js` — **NEVER** add them in HTML
 
+### Full Page Skeleton
+
+The complete nesting structure every article **MUST** follow (CSS classes that provide layout, background, and max-width):
+
+```html
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <!-- .topbar goes here (see Topbar section above) -->
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Kicker Text</span>
+            <h1>Article Title</h1>
+            <p>Article description paragraph.</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#section">CTA 1</a>
+              <a class="button button-secondary" href="#section">CTA 2</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">Panel Label</span>
+            <h2>Key insight or thesis statement.</h2>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span>Point one</li>
+              <li><span class="layer-number">2</span>Point two</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">Label</div>
+            <strong>Value</strong>
+            <span>Description</span>
+          </div>
+          <!-- 2-4 metric cards total -->
+        </div>
+      </header>
+
+      <main>
+        <!-- sections go here -->
+      </main>
+
+      <footer>
+        <p>&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。</p>
+      </footer>
+    </div>
+  </div>
+  <!-- scripts go here -->
+</body>
+```
+
+**Critical rules:**
+- **NEVER** use `<div class="page-wrapper">` — always `<div class="page-shell">` → `<div class="site">`
+- **NEVER** put hero inside `<main>` or use `<section class="hero">` — always `<header class="hero">`
+- **NEVER** invent hero sub-classes like `hero-inner`, `hero-kicker`, `hero-sub`, `meta-chip`, `hero-meta` — use the canonical classes: `.eyebrow`, `.hero-copy`, `.hero-panel`, `.hero-metrics`, `.metric`, `.panel-label`, `.layer-list`
+- `.backdrop` with `.orb` elements provides the animated background gradient spheres
+- `<main>` contains only `<section>` elements; `<footer>` is a sibling of `<main>` inside `.site`
+
 ## Presentation Mode
 
 - Default presentation steps are hero + each `.section`; use `data-present-step` and optional `data-step-title` only for custom slide granularity
@@ -100,7 +168,7 @@ Rules:
 ## Other Rules
 
 - Use semantic section structure: `.section` with `data-reveal`, `.section-head` with `.section-kicker`
-- Footer format: `© 2026 {Article Title} | 交互式 HTML 页面。`
+- Footer format: `© 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。` — 统一使用项目名，不放文章标题
 - Reference list uses `.bib-list` class with `.bib-id`, `.bib-author`, `.bib-note` structure
 - External links with `target="_blank"` must include `rel="noopener noreferrer"`
 - No inline `style=""` attributes on HTML elements — use classes or inline `<style>` block
