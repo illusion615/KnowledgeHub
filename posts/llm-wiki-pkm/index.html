@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LLM Wiki：用大模型构建持续进化的个人知识库</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(1.9rem, 4.6vw, 3.2rem);
+      line-height: 1.06;
+      letter-spacing: -0.04em;
+      max-width: 22ch;
+    }
+
+    .hero-metrics {
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+
+    /* Architecture diagram */
+    .arch-stack { display: grid; gap: 14px; margin-top: 16px; }
+    .arch-layer {
+      padding: 22px; border-radius: 22px;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      box-shadow: var(--card-shadow);
+      display: grid; grid-template-columns: 64px 1fr; gap: 16px; align-items: start;
+    }
+    .arch-icon {
+      width: 56px; height: 56px; border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.6rem;
+    }
+    .arch-icon-src { background: rgba(14, 165, 233, 0.12); }
+    .arch-icon-wiki { background: rgba(124, 58, 237, 0.12); }
+    .arch-icon-schema { background: rgba(16, 185, 129, 0.12); }
+    .arch-layer h4 { margin: 0 0 6px; font-size: 1.05rem; line-height: 1.35; }
+    .arch-layer p { margin: 0; color: var(--muted); font-size: 0.92rem; line-height: 1.72; }
+    .arch-layer .arch-tag {
+      display: inline-block; margin-top: 8px; padding: 4px 10px; border-radius: 999px;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .arch-tag-immutable { background: rgba(14, 165, 233, 0.12); color: #0369a1; }
+    .arch-tag-llm { background: rgba(124, 58, 237, 0.12); color: #5b21b6; }
+    .arch-tag-coevolve { background: rgba(16, 185, 129, 0.12); color: #065f46; }
+
+    /* Versus cards */
+    .vs-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px;
+    }
+    .vs-card {
+      padding: 22px; border-radius: 22px;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      box-shadow: var(--card-shadow);
+    }
+    .vs-card h4 { margin: 0 0 10px; font-size: 1.05rem; line-height: 1.35; }
+    .vs-card p, .vs-card li { color: var(--muted); font-size: 0.92rem; line-height: 1.72; }
+    .vs-card ul { margin: 8px 0 0; padding-left: 18px; }
+    .vs-label {
+      display: inline-flex; align-items: center; justify-content: center;
+      margin-bottom: 10px; padding: 6px 12px; border-radius: 999px;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .vs-label-old { background: rgba(239, 68, 68, 0.14); color: #b91c1c; }
+    .vs-label-new { background: rgba(16, 185, 129, 0.14); color: #065f46; }
+
+    /* Operation flow */
+    .op-grid { display: grid; gap: 12px; margin-top: 16px; }
+    .op-card {
+      display: grid; grid-template-columns: 48px 1fr; gap: 16px;
+      padding: 18px; border-radius: 22px;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      box-shadow: var(--card-shadow);
+      align-items: start;
+    }
+    .op-icon {
+      width: 48px; height: 48px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; background: rgba(15, 23, 42, 0.06);
+    }
+    .op-card h3 { margin: 0 0 6px; font-size: 1rem; line-height: 1.35; }
+    .op-card p, .op-card li { margin: 0; color: var(--muted); font-size: 0.92rem; line-height: 1.75; }
+    .op-card ul { margin: 8px 0 0; padding-left: 18px; }
+
+    /* Scenario cards */
+    .scenario-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px; margin-top: 16px;
+    }
+    .scenario-card {
+      padding: 22px; border-radius: 22px;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      box-shadow: var(--card-shadow);
+    }
+    .scenario-card h4 { margin: 0 0 8px; font-size: 1.05rem; line-height: 1.35; }
+    .scenario-card p { margin: 0; color: var(--muted); font-size: 0.92rem; line-height: 1.72; }
+    .scenario-icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 42px; height: 42px; border-radius: 12px; margin-bottom: 12px;
+      font-size: 1.3rem; background: rgba(124, 58, 237, 0.1);
+    }
+
+    /* Comparison table */
+    .cmp-table-wrap {
+      margin-top: 16px; overflow-x: auto; border-radius: 18px;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      box-shadow: var(--card-shadow);
+    }
+    .cmp-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    .cmp-table th, .cmp-table td { padding: 11px 14px; text-align: left; border-bottom: 1px solid rgba(15, 23, 42, 0.06); vertical-align: top; }
+    .cmp-table th { font-family: "Space Grotesk", "Noto Sans SC", sans-serif; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: rgba(15, 23, 42, 0.03); white-space: nowrap; }
+    .cmp-table tr:last-child td { border-bottom: none; }
+
+    /* Insight board */
+    .insight-board {
+      margin-top: 16px; padding: 22px; border-radius: 24px;
+      border: 1px solid var(--card-border);
+      background: linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(255, 255, 255, 0.72));
+      box-shadow: var(--card-shadow);
+    }
+    .insight-board p { margin: 0; color: var(--ink); font-size: 1rem; line-height: 1.8; }
+    .insight-board strong { color: var(--accent); }
+
+    /* Tool badge */
+    .tool-badge {
+      display: inline-flex; align-items: center; padding: 5px 10px; border-radius: 999px;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase; white-space: nowrap; margin: 3px 4px 3px 0;
+    }
+    .tool-obsidian { background: rgba(124, 58, 237, 0.14); color: #5b21b6; }
+    .tool-claude { background: rgba(249, 115, 22, 0.12); color: #c2410c; }
+    .tool-git { background: rgba(239, 68, 68, 0.14); color: #b91c1c; }
+    .tool-search { background: rgba(14, 165, 233, 0.12); color: #0369a1; }
+
+    /* Dark mode */
+    [data-theme="dark"] .arch-layer,
+    [data-theme="dark"] .vs-card,
+    [data-theme="dark"] .op-card,
+    [data-theme="dark"] .scenario-card,
+    [data-theme="dark"] .cmp-table-wrap {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.18);
+    }
+    [data-theme="dark"] .cmp-table th { background: rgba(255, 255, 255, 0.04); }
+    [data-theme="dark"] .cmp-table th, [data-theme="dark"] .cmp-table td { border-bottom-color: rgba(255, 255, 255, 0.06); }
+    [data-theme="dark"] .arch-icon-src { background: rgba(14, 165, 233, 0.2); }
+    [data-theme="dark"] .arch-icon-wiki { background: rgba(124, 58, 237, 0.2); }
+    [data-theme="dark"] .arch-icon-schema { background: rgba(16, 185, 129, 0.2); }
+    [data-theme="dark"] .arch-tag-immutable { background: rgba(14, 165, 233, 0.2); color: #38bdf8; }
+    [data-theme="dark"] .arch-tag-llm { background: rgba(124, 58, 237, 0.2); color: #a78bfa; }
+    [data-theme="dark"] .arch-tag-coevolve { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    [data-theme="dark"] .vs-label-old { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+    [data-theme="dark"] .vs-label-new { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+    [data-theme="dark"] .op-icon { background: rgba(255, 255, 255, 0.08); }
+    [data-theme="dark"] .scenario-icon { background: rgba(124, 58, 237, 0.15); }
+    [data-theme="dark"] .insight-board { background: linear-gradient(135deg, rgba(124, 58, 237, 0.12), rgba(15, 23, 42, 0.82)); }
+    [data-theme="dark"] .tool-obsidian { background: rgba(124, 58, 237, 0.2); color: #a78bfa; }
+    [data-theme="dark"] .tool-claude { background: rgba(249, 115, 22, 0.2); color: #fb923c; }
+    [data-theme="dark"] .tool-git { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+    [data-theme="dark"] .tool-search { background: rgba(14, 165, 233, 0.2); color: #38bdf8; }
+
+    @media (max-width: 640px) {
+      .vs-grid { grid-template-columns: 1fr; }
+      .scenario-grid { grid-template-columns: 1fr; }
+      .arch-layer { grid-template-columns: 1fr; }
+      .op-card { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero" data-present-step data-step-title="文章总览">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            智能体
+          </div>
+          <div class="topbar-actions">
+            <nav class="nav-links" aria-label="页面章节导航">
+              <a href="#problem">RAG 困境</a>
+              <a href="#core-idea">核心思路</a>
+              <a href="#architecture">三层架构</a>
+              <a href="#operations">操作流程</a>
+              <a href="#scenarios">应用场景</a>
+              <a href="#ecosystem">工具生态</a>
+              <a href="#limits">局限性与争议</a>
+              <a href="#references">参考来源</a>
+            </nav>
+          </div>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">LLM Wiki × Personal Knowledge Management</span>
+            <h1>用大模型构建持续进化的个人知识库</h1>
+            <p>基于 Andrej Karpathy 的 LLM Wiki 模式，系统研究如何让 LLM 担任"知识管理员"——不是每次提问重新检索，而是增量构建一个持续复利的结构化 Wiki。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#core-idea">理解核心思路</a>
+              <a class="button button-secondary" href="#architecture">查看架构设计</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">关键洞察</span>
+            <h2>知识的维护成本决定了知识库的生死</h2>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span>人类放弃 Wiki 是因为维护负担增长快于价值</li>
+              <li><span class="layer-number">2</span>LLM 不会厌倦，能一次性更新 15 个文件</li>
+              <li><span class="layer-number">3</span>知识被编译一次后持续维护，不需每次重新推导</li>
+              <li><span class="layer-number">4</span>人类负责策展和思考，LLM 负责一切簿记工作</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">三层架构</div>
+            <strong>Source → Wiki → Schema</strong>
+            <span>不可变原始源 → LLM 维护的 Wiki → 协同演化的规范</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">三种操作</div>
+            <strong>Ingest · Query · Lint</strong>
+            <span>摄入 · 查询 · 健康检查</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">核心工具</div>
+            <strong>Obsidian + LLM Agent</strong>
+            <span>Obsidian 是 IDE，LLM 是程序员，Wiki 是代码库</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+
+        <!-- ────────────── Section 1: The Problem ────────────── -->
+        <section id="problem" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / The RAG Trap</p>
+            <h2>RAG 困境：每次从零开始的知识重新发现</h2>
+            <p>大多数人使用 LLM 处理文档的方式是 RAG——但这意味着知识永远不会积累。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>RAG 的根本局限</span>
+              </button>
+              <div class="subsection-content">
+                <p>大多数人与 LLM 交互文档的方式看起来像 RAG：上传一批文件，LLM 在查询时检索相关片段，然后生成回答。NotebookLM、ChatGPT 文件上传、以及大部分 RAG 系统都是这种模式。</p>
+                <p>这种方式<strong>可以工作，但 LLM 在每个问题上都是从零开始重新发现知识</strong>。没有积累。问一个需要综合五篇文档的微妙问题，LLM 每次都得重新找到并拼凑相关片段。什么都没有被建立起来。</p>
+
+                <div class="vs-grid">
+                  <div class="vs-card">
+                    <span class="vs-label vs-label-old">传统 RAG</span>
+                    <h4>无状态检索</h4>
+                    <ul>
+                      <li>每次查询从原始文档重新检索</li>
+                      <li>交叉引用需要实时重新发现</li>
+                      <li>矛盾和冲突不会被标记</li>
+                      <li>综合分析无法跨 session 保留</li>
+                      <li>知识量增长 ≠ 洞察质量提升</li>
+                    </ul>
+                  </div>
+                  <div class="vs-card">
+                    <span class="vs-label vs-label-new">LLM Wiki</span>
+                    <h4>持续编译</h4>
+                    <ul>
+                      <li>知识编译一次，持续维护</li>
+                      <li>交叉引用已经建立并更新</li>
+                      <li>矛盾已被标记和解决</li>
+                      <li>综合分析被保存为 Wiki 页面</li>
+                      <li>每个新源都让知识库更丰富</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>为什么人类维护的 Wiki 总会死掉</span>
+              </button>
+              <div class="subsection-content">
+                <p>维护知识库最费力的不是阅读或思考——而是<strong>簿记工作</strong>：更新交叉引用、保持摘要与时俱进、标注新数据与旧声明的矛盾、在几十个页面间维护一致性。</p>
+                <p>人类放弃 Wiki 是因为<strong>维护负担增长速度超过了价值增长速度</strong>。而 LLM 不会厌倦，不会忘记更新交叉引用，能在一次操作中触及 15 个文件。当维护成本接近零时，Wiki 就能存活。</p>
+                <div class="insight-board">
+                  <p><strong>Karpathy 的核心洞察：</strong>人类的工作是策展来源、引导分析、提出好问题、思考这一切意味着什么。LLM 的工作是把其余一切都做了——总结、交叉引用、归档、以及让知识库随时间真正有用的簿记。</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ────────────── Section 2: Core Idea ────────────── -->
+        <section id="core-idea" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Core Idea</p>
+            <h2>核心思路：从"检索"到"编译"的范式转换</h2>
+            <p>不在查询时检索原始文档，而是让 LLM 增量构建并维护一个持久的 Wiki。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>持久的、复利的知识产物</span>
+              </button>
+              <div class="subsection-content">
+                <p>LLM Wiki 的核心思路：不在查询时从原始文档检索，而是让 LLM <strong>增量构建并维护一个持久的 Wiki</strong>——一个结构化的、互相链接的 Markdown 文件集合，位于你和原始资料之间。</p>
+                <p>当你添加一个新来源时，LLM 不只是索引它以备后用。它会阅读它、提取关键信息，然后<strong>整合到现有 Wiki 中</strong>——更新实体页面、修订主题摘要、标注新数据与旧声明的矛盾、强化或挑战正在演化的综合观点。知识被编译一次，然后持续更新，而非在每次查询时从头推导。</p>
+                <p>这就是关键区别：<strong>Wiki 是一个持久的、不断复利的产物</strong>。交叉引用已经建好了。矛盾已经被标记了。综合分析已经反映了你读过的一切。每添加一个来源、每问一个问题，Wiki 都在变得更丰富。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>你从不写 Wiki——LLM 写</span>
+              </button>
+              <div class="subsection-content">
+                <p>你从不（或极少）亲自写 Wiki——<strong>LLM 完成所有写作和维护</strong>。你负责提供来源、探索和提出好问题。LLM 做所有辛苦活——总结、交叉引用、归档和簿记。</p>
+                <p>在实践中，Karpathy 的工作方式是：一边打开 LLM Agent，一边打开 Obsidian。LLM 根据对话内容进行编辑，他在 Obsidian 中实时浏览结果——跟踪链接、检查图谱视图、阅读更新后的页面。</p>
+                <div class="insight-board">
+                  <p><strong>Obsidian 是 IDE；LLM 是程序员；Wiki 是代码库。</strong></p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>与 Memex 的精神联系</span>
+              </button>
+              <div class="subsection-content">
+                <p>这个想法在精神上与 Vannevar Bush 1945 年的 <strong>Memex</strong> 愿景相关——一个个人的、策展的知识存储，文档之间有关联路径。Bush 的愿景比后来的 Web 更接近这种模式：私有的、主动策展的，文档间的连接与文档本身同样有价值。</p>
+                <p>他无法解决的部分是：<strong>谁来做维护？</strong> LLM 解决了这个问题。</p>
+                <p>评论者 gnusupport 进一步指出，这也与 Douglas Engelbart 1992 年的工作一脉相承——他提出的增强系统（Augmentation System）、CODIAK 框架和开放超文档系统（OHS），核心都是人机协同的知识积累。LLM Wiki 本质上是<strong>让 LLM 扮演了 Engelbart 设想的"永不倦怠的知识工作者"角色</strong>。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ────────────── Section 3: Architecture ────────────── -->
+        <section id="architecture" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / Three-Layer Architecture</p>
+            <h2>三层架构</h2>
+            <p>Raw Sources → Wiki → Schema：三层分离，职责清晰。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>架构全景</span>
+              </button>
+              <div class="subsection-content">
+                <div class="arch-stack">
+                  <div class="arch-layer">
+                    <div class="arch-icon arch-icon-src">📄</div>
+                    <div>
+                      <h4>Layer 1：Raw Sources（原始来源）</h4>
+                      <p>你策展的来源文档集合。文章、论文、图片、数据文件。这些是<strong>不可变的</strong>——LLM 从中读取但永远不修改。这是你的信源真相（source of truth）。</p>
+                      <span class="arch-tag arch-tag-immutable">Immutable · 人类策展</span>
+                    </div>
+                  </div>
+                  <div class="arch-layer">
+                    <div class="arch-icon arch-icon-wiki">📚</div>
+                    <div>
+                      <h4>Layer 2：The Wiki（知识 Wiki）</h4>
+                      <p>LLM 生成的 Markdown 文件目录。摘要页、实体页、概念页、对比分析、概览、综合论述。<strong>LLM 完全拥有这一层</strong>——它创建页面、在新来源到达时更新它们、维护交叉引用、保持一切一致。你阅读它；LLM 书写它。</p>
+                      <span class="arch-tag arch-tag-llm">LLM 拥有 · 人类阅读</span>
+                    </div>
+                  </div>
+                  <div class="arch-layer">
+                    <div class="arch-icon arch-icon-schema">⚙️</div>
+                    <div>
+                      <h4>Layer 3：The Schema（规范文档）</h4>
+                      <p>一份文档（如 Claude Code 的 <code>CLAUDE.md</code> 或 Codex 的 <code>AGENTS.md</code>），告诉 LLM Wiki 的结构、约定，以及在摄入来源、回答问题或维护 Wiki 时应遵循的工作流。这是关键配置文件——它让 LLM 成为一个有纪律的 Wiki 管理员，而不是一个通用聊天机器人。</p>
+                      <span class="arch-tag arch-tag-coevolve">人机共同演化</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>索引与日志：Wiki 的导航系统</span>
+              </button>
+              <div class="subsection-content">
+                <p>两个特殊文件帮助 LLM（和你）在知识库增长时导航：</p>
+                <div class="vs-grid">
+                  <div class="vs-card">
+                    <h4>index.md — 内容导航</h4>
+                    <p>Wiki 中所有内容的目录——每个页面附带链接、一行摘要和可选的元数据（日期、来源数量）。按类别组织（实体、概念、来源等）。LLM 在每次摄入时更新它。</p>
+                    <p>查询时，LLM 先读 index.md 找到相关页面，然后深入阅读。在中等规模（约 100 个来源、数百个页面）下效果出奇地好，无需嵌入式 RAG 基础设施。</p>
+                  </div>
+                  <div class="vs-card">
+                    <h4>log.md — 时间线记录</h4>
+                    <p>一份只追加的记录：发生了什么，何时发生——摄入、查询、健康检查。</p>
+                    <p>技巧：如果每条记录以一致的前缀开头（如 <code>## [2026-04-02] ingest | Article Title</code>），日志就可以用 Unix 工具解析——<code>grep "^## \[" log.md | tail -5</code> 给出最近 5 条记录。</p>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>关键设计决策：为什么是 Markdown 而非数据库</span>
+              </button>
+              <div class="subsection-content">
+                <p>LLM Wiki 选择 Markdown 文件（通过 Obsidian 浏览）而非数据库或向量存储，这不是技术限制，而是<strong>有意的设计选择</strong>：</p>
+                <ul>
+                  <li><strong>可读性</strong>：如果 LLM 写错了，你能打开文件直接修改。SQLite、向量索引都无法做到</li>
+                  <li><strong>版本控制</strong>：Wiki 就是一个 Markdown 文件的 Git 仓库，你免费获得版本历史、分支和协作</li>
+                  <li><strong>可移植性</strong>：不依赖任何特定服务或工具，任何编辑器都可以</li>
+                  <li><strong>LLM 原生</strong>：Markdown 是 LLM 训练中遇到次数最多的格式，也是 Wikipedia 和科学论文的格式</li>
+                </ul>
+                <p>正如评论者 IlyaGorsky 所说：<strong>"人类可读不是约束——它是特性。一个你可以在文本编辑器中审阅、提交到 Git、用 diff 查看、不需要任何工具就能理解的知识库。"</strong></p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ────────────── Section 4: Operations ────────────── -->
+        <section id="operations" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / Operations</p>
+            <h2>三种核心操作</h2>
+            <p>Ingest（摄入）、Query（查询）、Lint（健康检查）构成知识库的生命循环。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>Ingest — 知识摄入</span>
+              </button>
+              <div class="subsection-content">
+                <p>你将新来源放入 raw 目录，告诉 LLM 处理它。一个典型的流程：</p>
+                <div class="op-grid">
+                  <div class="op-card">
+                    <div class="op-icon">1</div>
+                    <div>
+                      <h3>阅读来源</h3>
+                      <p>LLM 阅读完整的原始文档，提取关键信息和主要观点。</p>
+                    </div>
+                  </div>
+                  <div class="op-card">
+                    <div class="op-icon">2</div>
+                    <div>
+                      <h3>与你讨论</h3>
+                      <p>LLM 与你讨论关键要点，你引导它关注什么是重要的。</p>
+                    </div>
+                  </div>
+                  <div class="op-card">
+                    <div class="op-icon">3</div>
+                    <div>
+                      <h3>写入 Wiki</h3>
+                      <p>写一个摘要页，更新 index.md，更新 Wiki 中所有相关的实体页和概念页，追加日志条目。<strong>一个来源可能触及 10–15 个 Wiki 页面。</strong></p>
+                    </div>
+                  </div>
+                </div>
+                <p>Karpathy 倾向于逐个摄入来源并保持参与——阅读摘要、检查更新、引导 LLM 强调什么。但你也可以一次批量摄入多个来源，以较少的监督。关键是<strong>找到适合你风格的工作流，并记录在 Schema 中</strong>供未来 session 使用。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Query — 查询与探索</span>
+              </button>
+              <div class="subsection-content">
+                <p>你向 Wiki 提问。LLM 搜索相关页面、阅读它们、综合生成带引用的回答。回答可以采用不同形式：Markdown 页面、对比表格、幻灯片（Marp）、图表（matplotlib）、画布。</p>
+                <div class="insight-board">
+                  <p><strong>关键洞察：好的回答可以作为新页面归档到 Wiki 中。</strong>你要求的对比分析、你发现的联系、你做的深度分析——这些都很有价值，不应该消失在聊天历史里。这样你的探索也和输入的来源一样，在知识库中产生复利。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Lint — 健康检查</span>
+              </button>
+              <div class="subsection-content">
+                <p>定期让 LLM 对 Wiki 进行健康检查，寻找：</p>
+                <ul>
+                  <li><strong>页面间的矛盾</strong>：不同页面声明相互冲突</li>
+                  <li><strong>过时声明</strong>：新来源已经取代了旧的说法</li>
+                  <li><strong>孤儿页面</strong>：没有任何入站链接的页面</li>
+                  <li><strong>缺失页面</strong>：被提及但没有自己页面的重要概念</li>
+                  <li><strong>缺失交叉引用</strong>：应该互相链接但没有链接的页面</li>
+                  <li><strong>数据间隙</strong>：可以通过网络搜索填补的空白</li>
+                </ul>
+                <p>LLM 擅长建议新的调查问题和新的来源方向。Lint 让 Wiki 在增长过程中保持健康。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ────────────── Section 5: Scenarios ────────────── -->
+        <section id="scenarios" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / Application Scenarios</p>
+            <h2>应用场景</h2>
+            <p>LLM Wiki 模式适用于任何需要随时间积累和组织知识的场景。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>六大应用场景</span>
+              </button>
+              <div class="subsection-content">
+                <div class="scenario-grid">
+                  <div class="scenario-card">
+                    <div class="scenario-icon">🧠</div>
+                    <h4>个人成长</h4>
+                    <p>追踪你的目标、健康、心理、自我提升——归档日记条目、文章、播客笔记，建立一个关于你自己的结构化画像。</p>
+                  </div>
+                  <div class="scenario-card">
+                    <div class="scenario-icon">🔬</div>
+                    <h4>深度研究</h4>
+                    <p>在数周或数月内深入一个主题——阅读论文、文章、报告，增量构建一个带有不断演化的论述的综合 Wiki。</p>
+                  </div>
+                  <div class="scenario-card">
+                    <div class="scenario-icon">📖</div>
+                    <h4>阅读伴侣</h4>
+                    <p>逐章归档一本书，建立角色、主题、情节线索的页面及其关联。读完后你拥有一个丰富的伴读 Wiki——想想 <a href="https://tolkiengateway.net/wiki/Main_Page" target="_blank" rel="noopener noreferrer">Tolkien Gateway</a> 那样的粉丝 Wiki。</p>
+                  </div>
+                  <div class="scenario-card">
+                    <div class="scenario-icon">🏢</div>
+                    <h4>团队/业务知识库</h4>
+                    <p>由 LLM 维护的内部 Wiki，持续从 Slack 消息、会议记录、项目文档、客户通话中汲取信息。Wiki 保持最新，因为 LLM 做了团队中没人愿意做的维护工作。</p>
+                  </div>
+                  <div class="scenario-card">
+                    <div class="scenario-icon">💻</div>
+                    <h4>代码库文档</h4>
+                    <p>评论者 akash-r34 的实践：用 LLM Wiki 模式为代码库建立文档。通过 <code>git diff</code> 进行增量摄入——只刷新受变更影响的页面。约 80 个文件的 Next.js 项目生成了 78 个互链页面。</p>
+                  </div>
+                  <div class="scenario-card">
+                    <div class="scenario-icon">🔍</div>
+                    <h4>竞品分析/尽职调查</h4>
+                    <p>竞争分析、旅行规划、课程笔记、爱好深挖——任何你在随时间积累知识并希望它有组织而非散落的场景。</p>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>研究型 Wiki 的进阶实践</span>
+              </button>
+              <div class="subsection-content">
+                <p>北京大学团队在 Karpathy 的模式基础上构建了 ΩmegaWiki，将 Wiki 扩展为完整的研究生命周期平台：</p>
+                <ul>
+                  <li><strong>8 种实体类型</strong>的结构化知识库（论文、方法、数据集、实验等）</li>
+                  <li><strong>9 种关系类型</strong>连接一切（supports、contradicts、tested_by 等）</li>
+                  <li><strong>闭环流程</strong>：摄入论文 → 检测空白 → 生成研究想法 → 设计实验 → 运行实验 → 判定 → 自动更新 Wiki</li>
+                  <li><strong>反重复记忆</strong>：失败实验留在 Wiki 中，防止重新探索死胡同</li>
+                </ul>
+                <p>关键思路：<strong>Wiki 不是副产品——它是状态机。每个技能从中读取、写回它，知识随时间复利。</strong></p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ────────────── Section 6: Ecosystem ────────────── -->
+        <section id="ecosystem" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / Tools &amp; Ecosystem</p>
+            <h2>工具生态与实践技巧</h2>
+            <p>构建 LLM Wiki 所需的工具栈和实战经验。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>推荐工具栈</span>
+              </button>
+              <div class="subsection-content">
+                <div class="cmp-table-wrap">
+                  <table class="cmp-table">
+                    <thead>
+                      <tr>
+                        <th>工具</th>
+                        <th>角色</th>
+                        <th>说明</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><span class="tool-badge tool-obsidian">Obsidian</span></td>
+                        <td>Wiki 浏览器 / IDE</td>
+                        <td>Graph View 是查看 Wiki 形状（连接、枢纽、孤儿）的最佳方式。Dataview 插件支持对页面 frontmatter 的动态查询。</td>
+                      </tr>
+                      <tr>
+                        <td><span class="tool-badge tool-obsidian">Web Clipper</span></td>
+                        <td>来源采集</td>
+                        <td>Obsidian 浏览器扩展，将网页文章转为 Markdown，快速进入 raw 目录。</td>
+                      </tr>
+                      <tr>
+                        <td><span class="tool-badge tool-claude">Claude Code / Codex</span></td>
+                        <td>LLM Agent</td>
+                        <td>执行摄入、查询、Lint 操作。Schema 文件（CLAUDE.md / AGENTS.md）是给 Agent 的指令。</td>
+                      </tr>
+                      <tr>
+                        <td><span class="tool-badge tool-search">qmd</span></td>
+                        <td>本地搜索引擎</td>
+                        <td>Markdown 文件的混合 BM25/向量搜索 + LLM re-ranking，支持 CLI 和 MCP server。小规模下 index.md 足够，大规模时使用。</td>
+                      </tr>
+                      <tr>
+                        <td><span class="tool-badge tool-git">Git</span></td>
+                        <td>版本控制</td>
+                        <td>Wiki 就是 Git 仓库的 Markdown 文件。免费获得版本历史、分支、协作和 diff 审查。</td>
+                      </tr>
+                      <tr>
+                        <td><span class="tool-badge tool-obsidian">Marp</span></td>
+                        <td>幻灯片生成</td>
+                        <td>基于 Markdown 的幻灯片格式，Obsidian 有插件支持。可直接从 Wiki 内容生成演示文稿。</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>社区衍生工具</span>
+              </button>
+              <div class="subsection-content">
+                <p>Karpathy 的 Gist 发布后迅速获得 5,000+ Stars 和 3,500+ Forks，催生了大量开源实现：</p>
+                <div class="cmp-table-wrap">
+                  <table class="cmp-table">
+                    <thead>
+                      <tr>
+                        <th>项目</th>
+                        <th>特色</th>
+                        <th>适用场景</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><strong>claude-obsidian</strong></td>
+                        <td>Claude Code 插件，hot cache（500 字会话上下文）、矛盾标记（<code>[!contradiction]</code>）、8 类 Lint、自动研究循环</td>
+                        <td>深度研究、个人知识库</td>
+                      </tr>
+                      <tr>
+                        <td><strong>llm-context-base</strong></td>
+                        <td>Git 模板，Training Period（前 30 天人类审阅所有写入）、分层 Lint 系统、多 LLM 适配</td>
+                        <td>任何需要 Schema 收敛的场景</td>
+                      </tr>
+                      <tr>
+                        <td><strong>memory-toolkit</strong></td>
+                        <td>Claude Code session 记忆管理：PreCompact 钩子、Haiku 观察者（每 3 分钟自动提取决策）、确认式写入</td>
+                        <td>编码项目的 session 连续性</td>
+                      </tr>
+                      <tr>
+                        <td><strong>ΩmegaWiki</strong></td>
+                        <td>全生命周期研究平台：8 实体类型、9 关系类型、20 个 Claude Code 技能</td>
+                        <td>学术研究</td>
+                      </tr>
+                      <tr>
+                        <td><strong>multi-agent-wiki-toolkit</strong></td>
+                        <td>多 Agent 扩展：13 种架构扩展、5 个专用 Wiki、文件级锁、能力令牌</td>
+                        <td>多 Agent 并行协作</td>
+                      </tr>
+                      <tr>
+                        <td><strong>obsidian-llm-wiki-local</strong></td>
+                        <td>本地 Ollama LLM 支持，无需云端 API</td>
+                        <td>隐私优先的离线场景</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>实践技巧</span>
+              </button>
+              <div class="subsection-content">
+                <ul>
+                  <li><strong>图片本地化</strong>：在 Obsidian 设置中将附件目录固定（如 <code>raw/assets/</code>），剪藏后用快捷键下载所有图片。LLM 无法在一次读取中处理内嵌图片的 Markdown——变通方案是先读文本，再单独查看引用的图片</li>
+                  <li><strong>Dataview</strong>：如果 LLM 给 Wiki 页面添加 YAML frontmatter（标签、日期、来源计数），Dataview 可以生成动态表格和列表</li>
+                  <li><strong>逐个摄入 vs 批量摄入</strong>：Karpathy 倾向逐个摄入并保持参与。对于质量优先的场景建议如此；对大批量低优先来源可以批量处理</li>
+                  <li><strong>查询结果归档</strong>：养成习惯将有价值的查询回答保存为 Wiki 页面，让探索也产生复利</li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ────────────── Section 7: Limitations ────────────── -->
+        <section id="limits" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">07 / Limitations &amp; Debates</p>
+            <h2>局限性与争议</h2>
+            <p>社区反馈揭示的真实挑战与思辨。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>知识漂移与质量退化</span>
+              </button>
+              <div class="subsection-content">
+                <p>ETH Zurich 的研究发现：LLM 生成的上下文文件在 8 个测试配置中的 5 个<strong>反而降低了 Agent 性能</strong>，每个任务多出 2–4 步推理。失败原因是 LLM 在维护过程中自行发明 schema、状态值和标签格式，导致渐进式漂移。</p>
+                <div class="scenario-grid">
+                  <div class="scenario-card">
+                    <h4>漂移来源</h4>
+                    <p>LLM 不跨 session 保持一致性。每个新 session 可能引入略有不同的命名约定、标签体系或组织方式。这些微小偏差在数十次操作后<strong>复合成系统性偏差</strong>。</p>
+                  </div>
+                  <div class="scenario-card">
+                    <h4>应对策略：Training Period</h4>
+                    <p>llm-context-base 的做法：前 N 天（约 30 天），人类审阅所有 Wiki 写入操作，LLM 学习你的约定。之后分层 Lint 系统自动标记陈旧、漂移和孤儿页面。<strong>人类策展 by design。</strong></p>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>"第二大脑" vs "个人研究索引"</span>
+              </button>
+              <div class="subsection-content">
+                <p>评论者 gpkc 提出了一个值得深思的区分：</p>
+                <div class="vs-grid">
+                  <div class="vs-card">
+                    <h4>LLM Wiki 方向</h4>
+                    <p>LLM 指向<strong>外部来源</strong>，让它编写综合。极限状态收敛到一个<strong>个性化的互联网副本</strong>（personalized research index）。</p>
+                  </div>
+                  <div class="vs-card">
+                    <h4>PKM / "第二大脑" 方向</h4>
+                    <p>LLM 指向<strong>你自己的笔记</strong>，只负责维护。极限状态收敛到一个<strong>你思考的持久副本</strong>。写作行为本身承载关键功能，不可替代。</p>
+                  </div>
+                </div>
+                <p><strong>如果 LLM 是作者，你建立的是个性化研究索引，而不是第二大脑。</strong>不同的工具，不同的用途。PKM 社区所说的"第二大脑"中，写作本身才是关键——它不是附带的，而是承重的。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Karpathy 文本中的内在矛盾</span>
+              </button>
+              <div class="subsection-content">
+                <p>评论者 gnusupport 指出了原始文本中的几处张力：</p>
+                <ul>
+                  <li><strong>Index vs "No RAG"</strong>：Karpathy 说 index.md 避免了 RAG，但后来建议使用 qmd（BM25/向量搜索）作为扩展。这本质上是"多了几步的 RAG"。更准确的表述：搜索是可选的扩展工具，不是矛盾</li>
+                  <li><strong>"LLM 写一切" vs 人类编辑 Schema</strong>：人类共同演化 CLAUDE.md（它位于 Wiki 中）。实际模式是：LLM 拥有内容页面，人类拥有元层（Schema）</li>
+                  <li><strong>不可变来源 vs 图片下载</strong>：下载图片到本地附件目录会修改 Markdown 来源（URL 会变）。需修正措辞："内容不可变；元数据/附件可修改"</li>
+                  <li><strong>Lint 检测矛盾——但谁来解决？</strong>：LLM 自动解决（按时间或权威）还是标记待人工审阅？原文未说明</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>开放问题与未来方向</span>
+              </button>
+              <div class="subsection-content">
+                <div class="scenario-grid">
+                  <div class="scenario-card">
+                    <h4>多实例管理</h4>
+                    <p>个人 vs 工作？每个项目一个？如何在多个 Wiki 之间交叉查询？评论者 BillSeitz 建议：1 个私人空间、1 个公开空间、每个公司 1 个共享空间。</p>
+                  </div>
+                  <div class="scenario-card">
+                    <h4>多 Agent 并发</h4>
+                    <p>当多个 Agent 并行操作同一 Wiki 时，需要身份验证、访问控制、防污染和并发协调。redmizt 团队开发了 13 种架构扩展来解决这些问题。</p>
+                  </div>
+                  <div class="scenario-card">
+                    <h4>Obsidian 的开源替代</h4>
+                    <p>gnusupport 指出 Obsidian 是专有软件——你无法在查看器是闭源的情况下拥有真正的"个人"知识库。替代方案：VS Codium、静态站点生成器、或自建查看器。</p>
+                  </div>
+                  <div class="scenario-card">
+                    <h4>认识论过滤</h4>
+                    <p>评论者 V-interactions 认为 Karpathy 的模式解决了存储，但没解决生命周期、认识论过滤和熵。不同身份视角下（创始人 vs 投资人），同样的来源应生成完全不同的 Wiki 页面。</p>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ────────────── References ────────────── -->
+        <section id="references" class="section" data-reveal data-present-step data-step-title="参考来源">
+          <div class="section-head">
+            <p class="section-kicker">References</p>
+            <h2>参考来源</h2>
+          </div>
+          <ol class="bib-list">
+            <li id="ref-1"><span class="bib-id">[1]</span> <span class="bib-author">Karpathy, A.</span> <a href="https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f" target="_blank" rel="noopener noreferrer">"LLM Wiki,"</a> <em>GitHub Gist,</em> Apr 2026.<span class="bib-note">本文的核心原始资料。5,000+ Stars，3,500+ Forks。提出三层架构（Raw Sources / Wiki / Schema）和三种操作（Ingest / Query / Lint）。</span></li>
+            <li id="ref-2"><span class="bib-id">[2]</span> <span class="bib-author">Bush, V.</span> <a href="https://www.theatlantic.com/magazine/archive/1945/07/as-we-may-think/303881/" target="_blank" rel="noopener noreferrer">"As We May Think,"</a> <em>The Atlantic,</em> Jul 1945.<span class="bib-note">Memex 概念的原始提出——私有的、策展的知识存储，带有文档间的关联路径。LLM Wiki 的精神前身。</span></li>
+            <li id="ref-3"><span class="bib-id">[3]</span> <span class="bib-author">Engelbart, D.</span> <a href="https://www.dougengelbart.org/content/view/116/" target="_blank" rel="noopener noreferrer">"Toward High-Performance Organizations: A Strategic Role for Groupware,"</a> <em>Doug Engelbart Institute,</em> 1992.<span class="bib-note">增强系统（Augmentation System）、CODIAK 框架和开放超文档系统（OHS）。评论者 gnusupport 指出 LLM Wiki 是 Engelbart 架构的实例化。</span></li>
+            <li id="ref-4"><span class="bib-id">[4]</span> <span class="bib-author">gpkc.</span> <a href="https://scribelet.app/blog/karpathy-llm-wiki-reaction" target="_blank" rel="noopener noreferrer">"Karpathy's LLM Wiki — A Reaction,"</a> <em>Scribelet Blog,</em> Apr 2026.<span class="bib-note">区分"个性化研究索引"与"第二大脑"的关键分析：如果 LLM 是作者，产出的不是第二大脑。</span></li>
+            <li id="ref-5"><span class="bib-id">[5]</span> <span class="bib-author">AgriciDaniel.</span> <a href="https://github.com/AgriciDaniel/claude-obsidian" target="_blank" rel="noopener noreferrer">"claude-obsidian,"</a> <em>GitHub,</em> 2026.<span class="bib-note">LLM Wiki 模式的完整 Claude Code 实现：hot cache、矛盾标记、8 类 Lint、自动研究循环。358 Stars。</span></li>
+            <li id="ref-6"><span class="bib-id">[6]</span> <span class="bib-author">asakin.</span> <a href="https://github.com/asakin/llm-context-base" target="_blank" rel="noopener noreferrer">"llm-context-base,"</a> <em>GitHub,</em> 2026.<span class="bib-note">Training Period 模式的实现：前 30 天人类审阅所有写入，分层 Lint 系统自动标记漂移。基于 ETH Zurich 的经验发现。</span></li>
+            <li id="ref-7"><span class="bib-id">[7]</span> <span class="bib-author">IlyaGorsky.</span> <a href="https://github.com/IlyaGorsky/memory-toolkit" target="_blank" rel="noopener noreferrer">"memory-toolkit,"</a> <em>GitHub,</em> 2026.<span class="bib-note">Claude Code session 记忆管理：PreCompact 钩子、Haiku 观察者、确认式写入。解决 session 间知识退化问题。</span></li>
+            <li id="ref-8"><span class="bib-id">[8]</span> <span class="bib-author">redmizt.</span> <a href="https://github.com/redmizt/multi-agent-wiki-toolkit" target="_blank" rel="noopener noreferrer">"multi-agent-wiki-toolkit,"</a> <em>GitHub,</em> 2026.<span class="bib-note">多 Agent 扩展：6 个 Agent 并行，5 个专用 Wiki，13 种架构扩展。验证了 LLM Wiki 模式在多 Agent 场景的可扩展性。</span></li>
+            <li id="ref-9"><span class="bib-id">[9]</span> <span class="bib-author">skyllwt et al.</span> <a href="https://github.com/skyllwt/OmegaWiki" target="_blank" rel="noopener noreferrer">"ΩmegaWiki,"</a> <em>GitHub,</em> 2026.<span class="bib-note">北京大学团队的全生命周期研究平台：8 实体类型、9 关系类型、20 个 Claude Code 技能。将 Wiki 从副产品变为研究流水线的状态机。</span></li>
+            <li id="ref-10"><span class="bib-id">[10]</span> <span class="bib-author">Tobi.</span> <a href="https://github.com/tobi/qmd" target="_blank" rel="noopener noreferrer">"qmd — Local search engine for Markdown files,"</a> <em>GitHub,</em> 2026.<span class="bib-note">本地 Markdown 搜索引擎，混合 BM25/向量搜索 + LLM re-ranking，支持 CLI 和 MCP server。Karpathy 推荐的扩展工具。</span></li>
+          </ol>
+        </section>
+      </main>
+
+      <footer>
+         &copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

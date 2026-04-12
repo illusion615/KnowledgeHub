@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hermes Agent 深度研究：自进化开源 AI Agent 框架与同类产品对比</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(1.8rem, 4.5vw, 3.2rem);
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+      max-width: 20ch;
+    }
+
+    .hero-metrics {
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    }
+
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .arch-card {
+      padding: 20px;
+      border-radius: 22px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+    }
+
+    .arch-card h4 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+      line-height: 1.35;
+    }
+
+    .arch-card p,
+    .arch-card li {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.72;
+    }
+
+    .arch-card ul {
+      margin: 8px 0 0;
+      padding-left: 18px;
+    }
+
+    .arch-tag {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 10px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .tag-hermes {
+      background: rgba(56, 189, 248, 0.12);
+      color: #0284c7;
+    }
+
+    .tag-claude {
+      background: rgba(217, 119, 87, 0.12);
+      color: #c2553a;
+    }
+
+    .tag-codex {
+      background: rgba(34, 197, 94, 0.12);
+      color: #16a34a;
+    }
+
+    .tag-aider {
+      background: rgba(139, 92, 246, 0.12);
+      color: #7c3aed;
+    }
+
+    .tag-core {
+      background: rgba(15, 23, 42, 0.06);
+      color: var(--muted);
+    }
+
+    .cmp-table-wrap {
+      margin-top: 16px;
+      overflow-x: auto;
+      border-radius: 18px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+    }
+
+    .cmp-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.84rem;
+      min-width: 920px;
+    }
+
+    .cmp-table th,
+    .cmp-table td {
+      padding: 11px 14px;
+      text-align: left;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+    }
+
+    .cmp-table th {
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-weight: 700;
+      font-size: 0.74rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: rgba(15, 23, 42, 0.03);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    .cmp-table td {
+      color: var(--ink);
+    }
+
+    .cmp-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .cmp-table .cell-yes {
+      color: #16a34a;
+      font-weight: 700;
+    }
+
+    .cmp-table .cell-no {
+      color: #dc2626;
+    }
+
+    .cmp-table .cell-partial {
+      color: #d97706;
+    }
+
+    .cmp-table .row-hermes {
+      background: rgba(56, 189, 248, 0.05);
+    }
+
+    .pro-con-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .pro-list,
+    .con-list {
+      padding: 18px;
+      border-radius: 18px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+    }
+
+    .pro-list {
+      background: rgba(34, 197, 94, 0.04);
+      border-color: rgba(34, 197, 94, 0.12);
+    }
+
+    .con-list {
+      background: rgba(239, 68, 68, 0.04);
+      border-color: rgba(239, 68, 68, 0.12);
+    }
+
+    .pro-list h4 {
+      color: #16a34a;
+      margin: 0 0 10px;
+      font-size: 0.92rem;
+    }
+
+    .con-list h4 {
+      color: #dc2626;
+      margin: 0 0 10px;
+      font-size: 0.92rem;
+    }
+
+    .pro-list li,
+    .con-list li {
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.72;
+      margin-bottom: 6px;
+    }
+
+    .pro-list ul,
+    .con-list ul {
+      margin: 0;
+      padding-left: 16px;
+    }
+
+    .flow-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+      counter-reset: flow-counter;
+    }
+
+    .flow-item {
+      display: grid;
+      grid-template-columns: 48px 1fr;
+      gap: 14px;
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+      align-items: start;
+    }
+
+    .flow-number {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 700;
+      font-size: 0.88rem;
+    }
+
+    .flow-body h4 {
+      margin: 0 0 4px;
+      font-size: 0.96rem;
+    }
+
+    .flow-body p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.68;
+    }
+
+    .cmd-block {
+      margin-top: 14px;
+      padding: 16px 20px;
+      border-radius: 14px;
+      background: rgba(15, 23, 42, 0.04);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      font-family: "Space Grotesk", monospace;
+      font-size: 0.82rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: var(--ink);
+    }
+
+    [data-theme="dark"] .arch-card,
+    [data-theme="dark"] .cmp-table-wrap,
+    [data-theme="dark"] .flow-item {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.18);
+    }
+
+    [data-theme="dark"] .cmp-table th {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    [data-theme="dark"] .cmp-table th,
+    [data-theme="dark"] .cmp-table td {
+      border-bottom-color: rgba(255, 255, 255, 0.06);
+    }
+
+    [data-theme="dark"] .cmp-table .row-hermes {
+      background: rgba(56, 189, 248, 0.08);
+    }
+
+    [data-theme="dark"] .tag-hermes {
+      background: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+    }
+
+    [data-theme="dark"] .tag-claude {
+      background: rgba(217, 119, 87, 0.15);
+      color: #e8936b;
+    }
+
+    [data-theme="dark"] .tag-codex {
+      background: rgba(34, 197, 94, 0.15);
+      color: #4ade80;
+    }
+
+    [data-theme="dark"] .tag-aider {
+      background: rgba(139, 92, 246, 0.15);
+      color: #a78bfa;
+    }
+
+    [data-theme="dark"] .tag-core {
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(236, 241, 246, 0.7);
+    }
+
+    [data-theme="dark"] .pro-list {
+      background: rgba(34, 197, 94, 0.06);
+      border-color: rgba(34, 197, 94, 0.15);
+    }
+
+    [data-theme="dark"] .con-list {
+      background: rgba(239, 68, 68, 0.06);
+      border-color: rgba(239, 68, 68, 0.15);
+    }
+
+    [data-theme="dark"] .pro-list h4 {
+      color: #4ade80;
+    }
+
+    [data-theme="dark"] .con-list h4 {
+      color: #f87171;
+    }
+
+    [data-theme="dark"] .cmd-block {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    @media (max-width: 640px) {
+      .arch-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .pro-con-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero" data-present-step data-step-title="文章总览">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            智能体
+          </div>
+          <div class="topbar-actions">
+            <nav class="nav-links" aria-label="页面章节导航">
+              <a href="#what-is">定义</a>
+              <a href="#architecture">架构</a>
+              <a href="#capabilities">能力</a>
+              <a href="#competitors">竞品</a>
+              <a href="#comparison">对比</a>
+              <a href="#pros-cons">优劣</a>
+              <a href="#verdict">判断</a>
+              <a href="#references">参考</a>
+            </nav>
+          </div>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Autonomous Agent Framework</span>
+            <h1>Hermes Agent：自进化开源 AI Agent 框架深度研究</h1>
+            <p>
+              Hermes Agent 是 Nous Research 于 2026 年 2 月发布的开源自主 AI Agent 框架。它不是一个绑定在 IDE 中的编程助手或包裹在单一 API 外层的聊天机器人，而是一个驻扎在用户服务器上的持久化 Agent——具备持久记忆、自动技能创建、多平台网关、定时任务调度和并行子代理等核心能力。本文深入分析其架构设计，并与 Claude Code、OpenAI Codex CLI、Aider 等同类产品进行全面对比。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#architecture">架构解析</a>
+              <a class="button button-secondary" href="#comparison">竞品对比表</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">核心定位</span>
+            <h2>不是 Copilot，也不是 Chatbot——是一个"越用越聪明"的自主 Agent。</h2>
+            <ul class="layer-list section-grid-spaced">
+              <li><span class="layer-number">1</span>持久记忆：跨会话记住用户偏好、项目上下文和环境配置，使用时间越长越了解用户。</li>
+              <li><span class="layer-number">2</span>自动技能创建：解决复杂问题后自动生成可复用的 SKILL.md 文档，兼容 agentskills.io 开放标准。</li>
+              <li><span class="layer-number">3</span>多平台网关：一个进程同时连接 Telegram / Discord / Slack / WhatsApp / Signal / CLI，支持跨平台对话接续。</li>
+              <li><span class="layer-number">4</span>全模型兼容：支持 Nous Portal / OpenRouter（200+ 模型）/ OpenAI / 本地 vLLM 等任意 OpenAI 兼容端点。</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">GitHub Stars</div>
+            <strong>64.9k</strong>
+            <span>397 contributors · 8.7k forks</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">最新版本</div>
+            <strong>v0.8.0</strong>
+            <span>2026-04-08 发布，7 个 Release</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">内置技能</div>
+            <strong>40+</strong>
+            <span>MLOps / GitHub / 绘图 / 笔记等</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">许可</div>
+            <strong>MIT</strong>
+            <span>100% 自托管，零遥测，零数据收集</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- Section 1: What Is -->
+        <section id="what-is" class="section" data-reveal data-present-step data-step-title="什么是 Hermes Agent">
+          <div class="section-head">
+            <p class="section-kicker">01 / What Is Hermes Agent</p>
+            <h2>1. 什么是 Hermes Agent：重新定义"Agent"的含义</h2>
+            <p>
+              在当前 AI 工具生态中，"Agent"一词被广泛滥用——从简单的 API 包装器到 IDE 插件都自称 Agent。Hermes Agent 的设计理念是回归 Agent 的本义：一个自主运行、持续学习、主动触达用户的智能实体。
+            </p>
+          </div>
+
+          <div class="insight-grid">
+            <article class="insight-card">
+              <span class="card-index">01</span>
+              <h3>谁在做 Hermes Agent</h3>
+              <p>Nous Research，同时也是 Hermes 开源模型系列（Hermes 1→4）的创建者。Hermes Agent 的核心开发者为 Ryan Teknium（teknium1），前身为 OpenClaw / Clawdbot（Peter Steinberger 创建）。2026 年 2 月 Nous Research 收购并重命名为 Hermes Agent，提供了从 OpenClaw 的一命令迁移路径。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">02</span>
+              <h3>不是什么</h3>
+              <p><strong>不是 IDE 编程助手</strong>——不绑定 VS Code / Cursor，不做 code completion。<strong>不是单一 API 聊天机器人</strong>——不只是包裹一个 LLM API 的对话界面。<strong>不是框架库</strong>——不是 LangChain / AutoGen 那样的编程框架，而是一个可直接运行的完整 Agent 产品。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">03</span>
+              <h3>是什么</h3>
+              <p>一个自托管的、持久运行的 AI Agent。它住在你的服务器上，通过消息平台（Telegram / Discord / Slack 等）或 CLI 与你交互，拥有自己的终端、记忆系统和技能库。它可以执行代码、浏览网页、生成图像、调度定时任务——并且随着使用时间越长越了解你的工作方式。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">04</span>
+              <h3>核心差异点</h3>
+              <p>Hermes Agent 与竞品最大的差异在于<strong>闭环学习</strong>（closed learning loop）：Agent 自主创建技能文档 → 技能在后续使用中自我改进 → 主动提醒持久化知识 → FTS5 全文搜索跨会话回忆 → Honcho 辩证式用户画像。这使它成为一个"越用越聪明"的个人 Agent。</p>
+            </article>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced">
+            <article class="comparison-card">
+              <span class="comparison-label">与 Hermes 模型的关系</span>
+              <h3>Hermes Agent ≠ Hermes Model</h3>
+              <ul class="challenge-list">
+                <li><strong>Hermes 模型</strong>（Hermes 1→4）是 Nous Research 的开源微调 LLM 系列，以 neutral alignment 和 function calling 训练著称。</li>
+                <li><strong>Hermes Agent</strong> 是一个独立的 Agent 框架产品，可以使用任何 LLM（包括但不限于 Hermes 模型）。</li>
+                <li><strong>推荐搭配</strong> — Nous Portal 集成了 Hermes 模型，Hermes Agent 默认支持 Nous Portal OAuth 登录。但用户也可通过 OpenRouter 使用 Claude / GPT / Gemini 等任意模型。</li>
+                <li><strong>协同设计</strong> — Hermes Agent 的批量轨迹生成和 RL 训练工具可以为 Hermes 模型的下一代训练提供工具调用数据，形成"Agent 训练模型 → 模型驱动 Agent"的飞轮。</li>
+              </ul>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label">从 OpenClaw 到 Hermes</span>
+              <h3>历史演变</h3>
+              <ul class="challenge-list">
+                <li><strong>OpenClaw</strong>（原名 Clawdbot）由 Peter Steinberger 创建，是一个开源个人 AI 助手，通过聊天平台控制用户计算机。</li>
+                <li><strong>2026-02</strong> — Nous Research 收购 OpenClaw，重命名为 Hermes Agent，整合进 Nous 生态（Portal / Hermes 模型 / Psyche 训练网络）。</li>
+                <li><strong>迁移路径</strong> — <code>hermes claw migrate</code> 一命令导入 OpenClaw 的 SOUL.md、记忆、技能、API 密钥和消息平台配置。</li>
+                <li><strong>快速迭代</strong> — 2 个月内从 v0.2.0 迭代到 v0.8.0，增加了 Psyche 集成、GOAP 推理、MCP 支持、Honcho 用户画像等。</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 2: Architecture -->
+        <section id="architecture" class="section" data-reveal data-present-step data-step-title="架构与设计">
+          <div class="section-head">
+            <p class="section-kicker">02 / Architecture</p>
+            <h2>2. 架构设计：六大核心模块</h2>
+            <p>
+              Hermes Agent 的架构围绕"持久化自主 Agent"的核心目标设计，由六个松耦合模块构成。所有数据存储在用户本地（~/.hermes/），零云端依赖。
+            </p>
+          </div>
+
+          <div class="arch-grid section-grid-spaced">
+            <article class="arch-card">
+              <span class="arch-tag tag-core">Agent Core</span>
+              <h4>Agent 循环引擎</h4>
+              <p>核心推理循环（agent/）：接收用户输入 → LLM 推理 → 工具调用 → 结果解析 → 继续对话或完成。支持 context compression、session search（FTS5 + LLM 摘要）和 title generation。</p>
+              <ul>
+                <li>run_agent.py — 主入口</li>
+                <li>model_tools.py — 工具注册与调度</li>
+                <li>toolsets.py — 工具集分发</li>
+                <li>hermes_state.py — 全局状态管理</li>
+              </ul>
+            </article>
+
+            <article class="arch-card">
+              <span class="arch-tag tag-core">Memory</span>
+              <h4>持久记忆系统</h4>
+              <p>三层记忆架构。<strong>MEMORY.md</strong>：Agent 自主维护的长期记忆（项目偏好、技术栈、常用模式）。<strong>USER.md</strong>：用户画像（通过 Honcho 辩证式建模渐进构建）。<strong>Session History</strong>：FTS5 全文索引的会话历史，支持跨会话回忆。Agent 会主动提醒（nudge）用户持久化重要上下文。</p>
+            </article>
+
+            <article class="arch-card">
+              <span class="arch-tag tag-core">Skills</span>
+              <h4>自动技能系统</h4>
+              <p>当 Hermes 解决一个复杂问题后，它会自动生成 SKILL.md 文档——一个结构化的、可搜索的技能文件。技能在后续使用中自我改进（self-improve）。兼容 agentskills.io 开放标准，支持社区分享。40+ 内置技能覆盖 MLOps / GitHub / 制图 / 笔记等。</p>
+              <ul>
+                <li>skills/ — 内置技能目录</li>
+                <li>optional-skills/ — 可选技能</li>
+                <li>/skills 或 /&lt;skill-name&gt; 快捷调用</li>
+              </ul>
+            </article>
+
+            <article class="arch-card">
+              <span class="arch-tag tag-core">Gateway</span>
+              <h4>多平台消息网关</h4>
+              <p>单进程消息路由器，同时连接 Telegram / Discord / Slack / WhatsApp / Signal / Email / WeCom。支持语音备忘转录、跨平台对话接续（Telegram 开始的对话可在终端继续）。systemd 服务化运行。</p>
+              <ul>
+                <li>gateway/ — 网关实现</li>
+                <li>hermes gateway setup — 交互式配置</li>
+                <li>hermes gateway install — 安装为系统服务</li>
+              </ul>
+            </article>
+
+            <article class="arch-card">
+              <span class="arch-tag tag-core">Execution</span>
+              <h4>六种终端后端</h4>
+              <p>本地终端 / Docker（安全加固容器）/ SSH 远程 / Daytona / Singularity / Modal。Docker 模式提供只读 root、dropped capabilities 和 PID 限制。Daytona 和 Modal 提供 serverless 持久化——空闲时休眠、按需唤醒，可在 $5 VPS 上运行。</p>
+            </article>
+
+            <article class="arch-card">
+              <span class="arch-tag tag-core">Training / RL</span>
+              <h4>MLOps 与训练数据生成</h4>
+              <p>Hermes Agent 不仅是终端用户工具，还是训练数据生成平台。<strong>Batch Runner</strong>：并行生成数千条工具调用轨迹。<strong>Atropos 集成</strong>：11 种 tool-call parser，支持 RL 训练 Agent 行为。<strong>Trajectory Export</strong>：导出 ShareGPT 格式数据用于微调，轨迹压缩适配 token 预算。</p>
+            </article>
+          </div>
+
+          <div class="cmd-block section-grid-spaced"># 安装（一行命令，无需 prerequisites）
+curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+
+# 启动交互式 CLI
+hermes
+
+# 配置 LLM 提供商
+hermes model          # Nous Portal / OpenRouter / 自定义端点
+
+# 启动多平台消息网关
+hermes gateway setup  # 交互式配置 Telegram/Discord/Slack 等
+hermes gateway start  # 启动网关进程
+
+# 更新到最新版本
+hermes update</div>
+        </section>
+
+        <!-- Section 3: Core Capabilities -->
+        <section id="capabilities" class="section" data-reveal data-present-step data-step-title="核心能力深入">
+          <div class="section-head">
+            <p class="section-kicker">03 / Core Capabilities</p>
+            <h2>3. 核心能力：六大差异化特性深入分析</h2>
+            <p>
+              以下逐一剖析 Hermes Agent 的六个核心能力，分析其设计意图和实际工程价值。
+            </p>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>持久记忆 — 跨会话学习</span>
+              </button>
+              <div class="subsection-content">
+                <div class="comparison-grid">
+                  <article class="comparison-card">
+                    <span class="comparison-label">设计理念</span>
+                    <h3>从"每次重新解释"到"越用越懂你"</h3>
+                    <ul class="challenge-list">
+                      <li><strong>MEMORY.md</strong> — Agent 自主维护的结构化记忆文件，记录用户偏好、项目细节和常见工作流。存储在 ~/.hermes/ 本地目录。</li>
+                      <li><strong>USER.md</strong> — 通过 Honcho 插件进行辩证式用户画像建模。Agent 在对话中观察用户行为模式，逐步构建深度用户模型，而非单次问卷式采集。</li>
+                      <li><strong>Session Search</strong> — FTS5 全文索引所有历史会话，结合 LLM 摘要实现跨会话回忆。当用户提到"上周那个项目"时，Agent 可以搜索历史上下文。</li>
+                      <li><strong>主动持久化提醒</strong> — Agent 在对话中检测到重要但尚未持久化的信息时，会主动建议用户保存，而非等待用户手动触发。</li>
+                    </ul>
+                  </article>
+                  <article class="comparison-card next">
+                    <span class="comparison-label">vs 竞品</span>
+                    <h3>记忆能力对比</h3>
+                    <ul class="challenge-list">
+                      <li><strong>Claude Code</strong> — 通过 CLAUDE.md 项目文件提供上下文，但不具备跨会话的自动记忆。每次新会话需要重新加载项目文件。</li>
+                      <li><strong>Codex CLI</strong> — 支持 .codex/skills 目录的项目级技能，但无持久用户画像和跨会话回忆。</li>
+                      <li><strong>Aider</strong> — 通过 repo-map 映射代码库结构，但不维护用户偏好或项目偏好的持久记忆。</li>
+                      <li><strong>Hermes 独特性</strong> — 是唯一同时具备自主记忆管理 + 用户画像 + 跨会话搜索 + 主动持久化提醒的 Agent。</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>自动技能创建 — 自我进化的知识系统</span>
+              </button>
+              <div class="subsection-content">
+                <div class="comparison-grid">
+                  <article class="comparison-card">
+                    <span class="comparison-label">机制</span>
+                    <h3>解决一次 → 永远掌握</h3>
+                    <ul class="challenge-list">
+                      <li><strong>自动触发</strong> — Agent 在解决复杂任务后，自动将解决方案封装为 SKILL.md 文档，包含触发条件、步骤和注意事项。</li>
+                      <li><strong>自我改进</strong> — 技能在后续使用中被自动优化：发现更好的方法时更新步骤，遇到新边界条件时补充注意事项。</li>
+                      <li><strong>可搜索</strong> — 所有技能通过 /skills 命令浏览，/&lt;skill-name&gt; 直接调用。支持关键词搜索。</li>
+                      <li><strong>开放标准</strong> — SKILL.md 格式兼容 agentskills.io 社区标准，可跨平台共享和安装（一命令安装外部技能）。</li>
+                    </ul>
+                  </article>
+                  <article class="comparison-card next">
+                    <span class="comparison-label">工程价值</span>
+                    <h3>为什么技能系统比 prompt 模板更强</h3>
+                    <ul class="challenge-list">
+                      <li><strong>vs Prompt 模板</strong> — Prompt 模板是静态的；SKILL.md 是动态自进化的，包含上下文触发条件、多步操作流程和失败回退策略。</li>
+                      <li><strong>vs RAG</strong> — RAG 依赖向量检索匹配；技能系统是精确匹配 + 结构化操作序列，不会产生 RAG 的相关性漂移问题。</li>
+                      <li><strong>复利效应</strong> — 每次使用 Hermes 解决新问题，知识库自动扩展。团队场景中，一个人创建的技能可以立即被其他成员使用。</li>
+                      <li><strong>透明可审计</strong> — SKILL.md 是纯文本文件，用户可以随时查看、编辑和版本控制 Agent 的知识。</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>多平台网关 — 随时随地触达</span>
+              </button>
+              <div class="subsection-content">
+                <div class="insight-grid">
+                  <article class="insight-card">
+                    <span class="card-index">01</span>
+                    <h3>Telegram</h3>
+                    <p>完整支持，包含语音备忘转录、文件上传、内联键盘交互。最成熟的消息平台集成。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">02</span>
+                    <h3>Discord</h3>
+                    <p>Bot 模式集成，支持频道和私聊。适合团队/社区场景的 Agent 部署。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">03</span>
+                    <h3>Slack / WhatsApp / Signal</h3>
+                    <p>覆盖企业（Slack）、个人（WhatsApp / Signal）和隐私优先（Signal）场景。WeCom（企业微信）回调模式在 v0.8.0 新增。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">04</span>
+                    <h3>跨平台接续</h3>
+                    <p>在 Telegram 开始的对话可以在终端 CLI 中继续（通过共享会话 ID），反之亦然。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>并行子代理 — 零上下文成本的工作流编排</span>
+              </button>
+              <div class="subsection-content">
+                <div class="comparison-grid">
+                  <article class="comparison-card">
+                    <span class="comparison-label">设计</span>
+                    <h3>通过 RPC 隔离的子 Agent</h3>
+                    <ul class="challenge-list">
+                      <li><strong>隔离性</strong> — 每个子代理拥有独立的对话上下文和终端会话，不污染主 Agent 的上下文窗口。</li>
+                      <li><strong>零上下文成本</strong> — 子代理通过 RPC 通信，结果摘要压缩后返回主 Agent，多步管线只消耗一轮主 Agent 的 token。</li>
+                      <li><strong>Python 脚本模式</strong> — 可编写 Python 脚本通过 RPC 调用工具，将复杂工作流编排为零上下文成本的自动化流程。</li>
+                      <li><strong>并行执行</strong> — 多个子代理可以同时运行不同任务，适合批量处理和多步管线。</li>
+                    </ul>
+                  </article>
+                  <article class="comparison-card next">
+                    <span class="comparison-label">对比</span>
+                    <h3>vs 其他 Agent 的并行方案</h3>
+                    <ul class="challenge-list">
+                      <li><strong>Claude Code</strong> — 最近引入了 subagent 概念，但不支持跨终端或跨会话的持久化子代理。</li>
+                      <li><strong>Codex CLI</strong> — 支持并行任务执行，但通过云端 sandbox 实现，非本地化。</li>
+                      <li><strong>LangChain / CrewAI</strong> — 提供 multi-agent 编排框架，但需要用户编写代码定义工作流，非自主创建。</li>
+                      <li><strong>Hermes 优势</strong> — 子代理是运行时动态创建的，不需要预定义工作流。Agent 自主决定何时需要并行化。</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>定时任务调度 — 无人值守自动化</span>
+              </button>
+              <div class="subsection-content">
+                <div class="comparison-grid">
+                  <article class="comparison-card">
+                    <span class="comparison-label">能力</span>
+                    <h3>自然语言定义的 Cron 任务</h3>
+                    <ul class="challenge-list">
+                      <li><strong>自然语言配置</strong> — "每天早上 8 点发送新闻简报到 Telegram"即可创建定时任务，无需编写 cron 表达式。</li>
+                      <li><strong>多平台投递</strong> — 定时任务的结果可以发送到任何已连接的消息平台。</li>
+                      <li><strong>内置模板</strong> — 每日报告、夜间备份、每周审计、晨间简报等预设模板。</li>
+                      <li><strong>无人值守</strong> — 配合 systemd 服务化运行，即使用户离线也持续执行。</li>
+                    </ul>
+                  </article>
+                  <article class="comparison-card next">
+                    <span class="comparison-label">独特性</span>
+                    <h3>为什么其他 Agent 没有 Cron</h3>
+                    <ul class="challenge-list">
+                      <li><strong>设计定位差异</strong> — Claude Code / Codex / Aider 定位为"按需调用"的工具，设计时不考虑 7×24 持久运行。Hermes Agent 从一开始就设计为常驻服务。</li>
+                      <li><strong>基础设施要求</strong> — 定时任务需要 Agent 持续运行在用户的服务器上，而非在用户终端会话中临时启动。</li>
+                      <li><strong>适用场景</strong> — DevOps 巡检、竞品监控、数据备份、定期报告——这些是"Agent 作为基础设施"而非"Agent 作为工具"的场景。</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>安全与隐私 — 零信任设计</span>
+              </button>
+              <div class="subsection-content">
+                <div class="insight-grid">
+                  <article class="insight-card">
+                    <span class="card-index">01</span>
+                    <h3>零遥测</h3>
+                    <p>不收集任何使用数据、崩溃报告或分析数据。所有数据存储在 ~/.hermes/ 本地目录。MIT 许可，可审计每一行代码。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">02</span>
+                    <h3>容器安全加固</h3>
+                    <p>Docker 执行后端提供：只读 root 文件系统、dropped Linux capabilities、PID 限制、非 root 用户运行。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">03</span>
+                    <h3>命令审批机制</h3>
+                    <p>敏感命令需用户显式批准。命令白名单机制（allowlist）降低常用命令的审批频率。--yolo 模式可跳过所有审批（需谨慎）。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">04</span>
+                    <h3>DM 配对限制</h3>
+                    <p>消息网关通过 allowed users 配置限制谁可以与 Agent 对话，防止未授权访问。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 4: Competitors -->
+        <section id="competitors" class="section" data-reveal data-present-step data-step-title="竞品概览">
+          <div class="section-head">
+            <p class="section-kicker">04 / Competitor Landscape</p>
+            <h2>4. 竞品概览：四类 AI Agent 产品的定位差异</h2>
+            <p>
+              与 Hermes Agent 形成竞争的产品可分为四类，各自解决不同层面的用户需求。
+            </p>
+          </div>
+
+          <div class="arch-grid section-grid-spaced">
+            <article class="arch-card">
+              <span class="arch-tag tag-claude">Anthropic</span>
+              <h4>Claude Code</h4>
+              <p>Anthropic 出品的 agentic 编程工具。在终端中运行，专注于代码编写、调试和项目理解。支持 CLAUDE.md 项目上下文文件。2025 年发布。</p>
+              <ul>
+                <li>定位：IDE 内/终端编程助手</li>
+                <li>模型：仅限 Claude 系列</li>
+                <li>许可：闭源 / Anthropic 订阅</li>
+                <li>持久运行：否（按需调用）</li>
+                <li>消息平台集成：无</li>
+              </ul>
+            </article>
+
+            <article class="arch-card">
+              <span class="arch-tag tag-codex">OpenAI</span>
+              <h4>Codex CLI</h4>
+              <p>OpenAI 出品的编程 Agent，在本地终端运行。支持 sandbox 隔离执行、multiline editing 和项目级 skills。Apache 2.0 开源。74.8k Stars。</p>
+              <ul>
+                <li>定位：终端编程 Agent</li>
+                <li>模型：仅限 OpenAI / ChatGPT 订阅</li>
+                <li>许可：Apache 2.0（CLI 部分）</li>
+                <li>语言：Rust + TypeScript</li>
+                <li>消息平台集成：无</li>
+              </ul>
+            </article>
+
+            <article class="arch-card">
+              <span class="arch-tag tag-aider">开源社区</span>
+              <h4>Aider</h4>
+              <p>Paul Gauthier 创建的开源终端 AI 编程助手。以 repo-map（代码库全局映射）和 Git 集成著称。支持 100+ 编程语言和几乎任何 LLM。43.2k Stars。</p>
+              <ul>
+                <li>定位：终端 AI 结对编程</li>
+                <li>模型：任意（Claude / GPT / DeepSeek 等）</li>
+                <li>许可：Apache 2.0</li>
+                <li>核心优势：repo-map、自动 Git 提交</li>
+                <li>消息平台集成：无</li>
+              </ul>
+            </article>
+
+            <article class="arch-card">
+              <span class="arch-tag tag-core">编排框架</span>
+              <h4>LangChain / CrewAI / AutoGen</h4>
+              <p>Agent 编排框架（非终端用户产品）。提供构建 multi-agent 工作流的编程接口。需要用户自行编写代码定义 Agent 行为、工具和协作模式。</p>
+              <ul>
+                <li>定位：开发者框架 / 库</li>
+                <li>非直接竞品：不是可运行的 Agent 产品</li>
+                <li>互补关系：Hermes 等产品可以基于这些框架构建</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 5: Comparison Table -->
+        <section id="comparison" class="section" data-reveal>
+          <div class="present-step-block" data-present-step data-step-title="多维对比表">
+            <div class="section-head">
+              <p class="section-kicker">05 / Head-to-Head Comparison</p>
+              <h2>5. 多维对比：Hermes Agent vs Claude Code vs Codex CLI vs Aider</h2>
+              <p>
+                以下从 15 个维度对四款终端 AI Agent 进行逐项对比。注意这四款产品的设计定位不同：Hermes Agent 是"持久化个人 Agent"，其余三个是"按需编程助手"。
+              </p>
+            </div>
+
+            <div class="cmp-table-wrap section-grid-spaced">
+              <table class="cmp-table">
+                <thead>
+                  <tr>
+                    <th>维度</th>
+                    <th>Hermes Agent</th>
+                    <th>Claude Code</th>
+                    <th>Codex CLI</th>
+                    <th>Aider</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="row-hermes">
+                    <td><strong>核心定位</strong></td>
+                    <td>持久化个人 Agent</td>
+                    <td>终端编程助手</td>
+                    <td>终端编程 Agent</td>
+                    <td>AI 结对编程</td>
+                  </tr>
+                  <tr>
+                    <td><strong>开源许可</strong></td>
+                    <td class="cell-yes">MIT</td>
+                    <td class="cell-no">闭源</td>
+                    <td class="cell-yes">Apache 2.0</td>
+                    <td class="cell-yes">Apache 2.0</td>
+                  </tr>
+                  <tr>
+                    <td><strong>GitHub Stars</strong></td>
+                    <td>64.9k</td>
+                    <td>N/A（闭源）</td>
+                    <td>74.8k</td>
+                    <td>43.2k</td>
+                  </tr>
+                  <tr>
+                    <td><strong>LLM 模型选择</strong></td>
+                    <td class="cell-yes">任意 OpenAI 兼容端点</td>
+                    <td class="cell-no">仅 Claude</td>
+                    <td class="cell-no">仅 OpenAI / ChatGPT</td>
+                    <td class="cell-yes">任意 LLM</td>
+                  </tr>
+                  <tr>
+                    <td><strong>持久记忆</strong></td>
+                    <td class="cell-yes">MEMORY.md + USER.md + FTS5</td>
+                    <td class="cell-partial">CLAUDE.md（项目级）</td>
+                    <td class="cell-partial">.codex/ 项目文件</td>
+                    <td class="cell-no">无</td>
+                  </tr>
+                  <tr>
+                    <td><strong>自动技能创建</strong></td>
+                    <td class="cell-yes">40+ 内置 + 自动生成</td>
+                    <td class="cell-no">无</td>
+                    <td class="cell-partial">项目级 skills</td>
+                    <td class="cell-no">无</td>
+                  </tr>
+                  <tr>
+                    <td><strong>消息平台集成</strong></td>
+                    <td class="cell-yes">5+ 平台（Telegram/Discord/Slack/WhatsApp/Signal）</td>
+                    <td class="cell-no">无</td>
+                    <td class="cell-no">无</td>
+                    <td class="cell-no">无</td>
+                  </tr>
+                  <tr>
+                    <td><strong>定时任务</strong></td>
+                    <td class="cell-yes">内置 Cron + 多平台投递</td>
+                    <td class="cell-no">无</td>
+                    <td class="cell-no">无</td>
+                    <td class="cell-no">无</td>
+                  </tr>
+                  <tr>
+                    <td><strong>浏览器自动化</strong></td>
+                    <td class="cell-yes">搜索/提取/点击/截图</td>
+                    <td class="cell-partial">有限支持</td>
+                    <td class="cell-no">无</td>
+                    <td class="cell-partial">URL 抓取</td>
+                  </tr>
+                  <tr>
+                    <td><strong>代码库理解</strong></td>
+                    <td class="cell-partial">通过工具和记忆</td>
+                    <td class="cell-yes">深度代码索引</td>
+                    <td class="cell-yes">项目感知</td>
+                    <td class="cell-yes">repo-map 全局映射</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Git 集成</strong></td>
+                    <td class="cell-partial">通过工具</td>
+                    <td class="cell-yes">原生支持</td>
+                    <td class="cell-yes">原生支持</td>
+                    <td class="cell-yes">自动 commit + diff</td>
+                  </tr>
+                  <tr>
+                    <td><strong>7×24 持久运行</strong></td>
+                    <td class="cell-yes">systemd 服务化</td>
+                    <td class="cell-no">按需启动</td>
+                    <td class="cell-no">按需启动</td>
+                    <td class="cell-no">按需启动</td>
+                  </tr>
+                  <tr>
+                    <td><strong>并行子代理</strong></td>
+                    <td class="cell-yes">RPC 隔离子代理</td>
+                    <td class="cell-partial">有限 subagent</td>
+                    <td class="cell-partial">云端并行</td>
+                    <td class="cell-no">无</td>
+                  </tr>
+                  <tr>
+                    <td><strong>RL / 训练数据生成</strong></td>
+                    <td class="cell-yes">Atropos + 批量轨迹生成</td>
+                    <td class="cell-no">无</td>
+                    <td class="cell-no">无</td>
+                    <td class="cell-no">无</td>
+                  </tr>
+                  <tr>
+                    <td><strong>安装复杂度</strong></td>
+                    <td>一行 curl 命令</td>
+                    <td>npm / brew 安装</td>
+                    <td>npm / brew 安装</td>
+                    <td>pip install</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <article class="comparison-card section-grid-spaced">
+              <span class="comparison-label">关键发现</span>
+              <h3>对比数据的核心洞察</h3>
+              <ul class="challenge-list">
+                <li><strong>定位差异 &gt; 能力差异</strong> — Hermes Agent 和其余三款产品解决的是根本不同的问题。Claude Code / Codex / Aider 是"工具"（用时打开、用完关闭），Hermes 是"基础设施"（持续运行、随时可用）。</li>
+                <li><strong>Hermes 独占领域</strong> — 消息平台集成、定时任务、RL 训练数据生成——这三项能力在其余三款产品中完全不存在，因为它们不是设计目标。</li>
+                <li><strong>编程专深度</strong> — 在纯编程场景中，Claude Code 的代码库索引深度、Aider 的 repo-map 全局映射、Codex 的项目感知仍然优于 Hermes Agent。Hermes 是"什么都能做"的通才，不是编程专家。</li>
+                <li><strong>模型自由度</strong> — Hermes Agent 和 Aider 支持任意 LLM，Claude Code 和 Codex 分别锁定在各自厂商的模型上。在本地部署或成本控制场景中，模型自由度是关键优势。</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 6: Pros & Cons -->
+        <section id="pros-cons" class="section" data-reveal data-present-step data-step-title="各产品优劣势">
+          <div class="section-head">
+            <p class="section-kicker">06 / Pros &amp; Cons</p>
+            <h2>6. 优劣势分析：每款产品适合什么、不适合什么</h2>
+            <p>
+              以下对四款产品进行优劣势总结。判断标准侧重于"自主 Agent"维度的工程实用性。
+            </p>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>Hermes Agent（Nous Research）</span>
+              </button>
+              <div class="subsection-content">
+                <div class="pro-con-grid">
+                  <div class="pro-list">
+                    <h4>✓ 优势</h4>
+                    <ul>
+                      <li><strong>唯一的"持久化个人 Agent"</strong> — 7×24 运行、跨会话记忆、定时任务、消息平台网关，构成不可替代的组合</li>
+                      <li><strong>闭环学习</strong> — 自动技能创建 + 自我改进 + 主动持久化提醒，使用时间越长越有价值</li>
+                      <li><strong>模型无关</strong> — 200+ 模型可选（OpenRouter），不锁定在任何厂商</li>
+                      <li><strong>完全自托管</strong> — 零遥测、零云依赖、MIT 许可，数据完全在用户控制下</li>
+                      <li><strong>MLOps 就绪</strong> — 批量轨迹生成 + Atropos RL，可为下一代模型产出训练数据</li>
+                      <li><strong>$5 VPS 可运行</strong> — Daytona/Modal serverless 后端使空闲成本趋近于零</li>
+                    </ul>
+                  </div>
+                  <div class="con-list">
+                    <h4>✗ 劣势</h4>
+                    <ul>
+                      <li><strong>非编程专家</strong> — 代码库理解深度不如 Claude Code 和 Aider 的专用索引</li>
+                      <li><strong>迭代速度过快</strong> — 2 个月 7 个 Release，API 和配置格式可能不稳定</li>
+                      <li><strong>运维责任</strong> — 自托管意味着用户需自行维护服务器、更新和安全</li>
+                      <li><strong>新项目风险</strong> — 2026-02 刚从 OpenClaw 迁移，长期维护承诺尚未验证</li>
+                      <li><strong>文档上游追赶</strong> — 功能迭代快于文档更新，部分新功能文档缺失</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Claude Code（Anthropic）</span>
+              </button>
+              <div class="subsection-content">
+                <div class="pro-con-grid">
+                  <div class="pro-list">
+                    <h4>✓ 优势</h4>
+                    <ul>
+                      <li><strong>代码理解最深</strong> — Claude 的长上下文窗口 + 代码索引使其在大型代码库中表现最佳</li>
+                      <li><strong>模型质量最高</strong> — Claude Sonnet 4.5 / Opus 在编程基准上领先</li>
+                      <li><strong>CLAUDE.md</strong> — 项目级上下文文件，简单有效</li>
+                      <li><strong>企业就绪</strong> — Anthropic 的安全合规、SLA 和支持</li>
+                    </ul>
+                  </div>
+                  <div class="con-list">
+                    <h4>✗ 劣势</h4>
+                    <ul>
+                      <li><strong>闭源</strong> — 无法审计或自定义 Agent 行为</li>
+                      <li><strong>仅限 Claude 模型</strong> — 100% 供应商锁定</li>
+                      <li><strong>无持久运行</strong> — 按需启动，不支持 7×24 Agent 场景</li>
+                      <li><strong>无消息平台集成</strong> — 仅限终端交互</li>
+                      <li><strong>API 成本</strong> — 高频使用下费用显著</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Codex CLI（OpenAI）</span>
+              </button>
+              <div class="subsection-content">
+                <div class="pro-con-grid">
+                  <div class="pro-list">
+                    <h4>✓ 优势</h4>
+                    <ul>
+                      <li><strong>OpenAI 生态整合</strong> — ChatGPT 订阅直接使用，无需 API 密钥管理</li>
+                      <li><strong>Rust 性能</strong> — 客户端用 Rust 编写，启动和响应速度极快</li>
+                      <li><strong>Sandbox 隔离</strong> — 安全的代码执行环境</li>
+                      <li><strong>Apache 2.0 开源</strong> — CLI 部分可审计</li>
+                      <li><strong>.codex/skills</strong> — 项目级技能支持</li>
+                    </ul>
+                  </div>
+                  <div class="con-list">
+                    <h4>✗ 劣势</h4>
+                    <ul>
+                      <li><strong>仅限 OpenAI 模型</strong> — 供应商锁定</li>
+                      <li><strong>无持久运行</strong> — 按需工具，非常驻服务</li>
+                      <li><strong>无消息平台集成</strong> — 仅限终端</li>
+                      <li><strong>无跨会话记忆</strong> — 不维护用户偏好或项目偏好</li>
+                      <li><strong>云端依赖</strong> — 部分功能需要云端 sandbox</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Aider</span>
+              </button>
+              <div class="subsection-content">
+                <div class="pro-con-grid">
+                  <div class="pro-list">
+                    <h4>✓ 优势</h4>
+                    <ul>
+                      <li><strong>repo-map</strong> — 代码库全局映射是独特的架构级优势，使大型项目的修改更精确</li>
+                      <li><strong>最佳 Git 集成</strong> — 自动 commit + 语义化 commit message + 轻松 undo</li>
+                      <li><strong>模型自由度最高</strong> — 支持几乎任何 LLM，社区维护 LLM 排行榜</li>
+                      <li><strong>成熟稳定</strong> — 3 年开发历史，社区验证充分</li>
+                      <li><strong>100+ 编程语言</strong> — Tree-sitter 驱动的多语言支持</li>
+                    </ul>
+                  </div>
+                  <div class="con-list">
+                    <h4>✗ 劣势</h4>
+                    <ul>
+                      <li><strong>仅限编程</strong> — 不处理非代码任务（邮件、报告、数据分析）</li>
+                      <li><strong>无持久运行</strong> — 按需使用</li>
+                      <li><strong>无记忆系统</strong> — 每次会话独立，不积累用户偏好</li>
+                      <li><strong>无消息平台集成</strong> — 仅限终端</li>
+                      <li><strong>无工具生态</strong> — 不支持浏览器自动化、图像生成等非编程工具</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 7: Verdict -->
+        <section id="verdict" class="section" data-reveal data-present-step data-step-title="场景选择建议">
+          <div class="section-head">
+            <p class="section-kicker">07 / Verdict</p>
+            <h2>7. 选择建议：根据场景选对工具</h2>
+            <p>
+              这四款产品不是互相替代的关系——它们解决不同层面的问题。以下给出具体场景的推荐。
+            </p>
+          </div>
+
+          <div class="arch-grid section-grid-spaced">
+            <article class="arch-card">
+              <span class="arch-tag tag-hermes">场景 1</span>
+              <h4>个人 AI 助手（全能型）</h4>
+              <p>需要一个 7×24 运行的 Agent，通过消息平台随时可用，能处理代码、信息搜索、定时任务、数据分析等多类任务。</p>
+              <ul>
+                <li><strong>推荐：Hermes Agent</strong></li>
+                <li>唯一满足持久运行 + 多平台 + 多能力的方案</li>
+                <li>部署成本：$5/月 VPS 或本机</li>
+              </ul>
+            </article>
+
+            <article class="arch-card">
+              <span class="arch-tag tag-claude">场景 2</span>
+              <h4>专业编程（大型代码库）</h4>
+              <p>在大型已有代码库上进行开发，需要深度代码理解和高质量代码生成。</p>
+              <ul>
+                <li><strong>推荐：Claude Code 或 Aider</strong></li>
+                <li>Claude Code 代码理解最深</li>
+                <li>Aider 的 repo-map 对大型项目更友好</li>
+              </ul>
+            </article>
+
+            <article class="arch-card">
+              <span class="arch-tag tag-codex">场景 3</span>
+              <h4>轻量编程（快速原型）</h4>
+              <p>快速创建新项目或做小型修改，需要低摩擦的入手体验。</p>
+              <ul>
+                <li><strong>推荐：Codex CLI</strong></li>
+                <li>ChatGPT 订阅直接使用，无额外配置</li>
+                <li>Rust 客户端启动极快</li>
+              </ul>
+            </article>
+
+            <article class="arch-card">
+              <span class="arch-tag tag-hermes">场景 4</span>
+              <h4>DevOps / MLOps 自动化</h4>
+              <p>需要定时巡检、自动化报告、批量数据处理和训练数据生成。</p>
+              <ul>
+                <li><strong>推荐：Hermes Agent</strong></li>
+                <li>唯一内置 Cron 调度 + 批量轨迹生成</li>
+                <li>RL 训练集成（Atropos）</li>
+              </ul>
+            </article>
+
+            <article class="arch-card">
+              <span class="arch-tag tag-aider">场景 5</span>
+              <h4>模型无关 + 成本控制</h4>
+              <p>需要使用低成本 LLM（DeepSeek / 本地模型）进行编程，同时保持高质量。</p>
+              <ul>
+                <li><strong>推荐：Aider（编程）/ Hermes Agent（通用）</strong></li>
+                <li>两者都支持任意 LLM</li>
+                <li>Aider 维护 LLM 排行榜帮助选择</li>
+              </ul>
+            </article>
+
+            <article class="arch-card">
+              <span class="arch-tag tag-hermes">场景 6</span>
+              <h4>隐私优先 / 完全离线</h4>
+              <p>数据不能离开本地网络，需要完全自托管和零遥测保证。</p>
+              <ul>
+                <li><strong>推荐：Hermes Agent + 本地 vLLM</strong></li>
+                <li>MIT 许可 + 零遥测 + 本地 LLM</li>
+                <li>所有数据存储在 ~/.hermes/</li>
+              </ul>
+            </article>
+          </div>
+
+          <article class="comparison-card section-grid-spaced">
+            <span class="comparison-label">总结判断</span>
+            <h3>Hermes Agent 的核心命题：Agent 即基础设施</h3>
+            <ul class="challenge-list">
+              <li><strong>最大差异化</strong> — Hermes Agent 是市场上唯一一个把"Agent 作为持久化基础设施"而非"按需工具"来设计的主流开源产品。持久记忆 + 自动技能 + 消息网关 + 定时任务的组合在竞品中找不到替代。</li>
+              <li><strong>最大风险</strong> — 项目从 OpenClaw 迁移仅 2 个月，7 个版本的快速迭代说明架构仍在快速变化。长期维护承诺、API 稳定性和社区生态成熟度需要时间验证。</li>
+              <li><strong>互补而非替代</strong> — 对于专业编程场景，Hermes Agent 不会替代 Claude Code 或 Aider。最优工作流可能是：Hermes Agent 作为 7×24 的"管家"+ Claude Code/Aider 作为编程时的"专家"。</li>
+              <li><strong>关注方向</strong> — MCP（Model Context Protocol）集成、Psyche 分布式训练网络接入、以及 agentskills.io 技能生态的成长，将决定 Hermes Agent 的长期竞争力。</li>
+            </ul>
+          </article>
+        </section>
+
+        <!-- References -->
+        <section id="references" class="section" data-reveal data-present-step data-step-title="参考来源">
+          <div class="section-head">
+            <p class="section-kicker">References</p>
+            <h2>参考来源</h2>
+          </div>
+          <ol class="bib-list">
+            <li id="ref-1"><span class="bib-id">[1]</span> <span class="bib-author">Nous Research.</span> <a href="https://hermes-agent.org/" target="_blank" rel="noopener noreferrer">"Hermes Agent — The AI Agent That Grows With You,"</a> <em>hermes-agent.org,</em> 2026.<span class="bib-note">Hermes Agent 官方网站，包含功能概览、架构说明和快速入门指南。本文核心能力分析的主要来源。</span></li>
+            <li id="ref-2"><span class="bib-id">[2]</span> <span class="bib-author">NousResearch.</span> <a href="https://github.com/NousResearch/hermes-agent" target="_blank" rel="noopener noreferrer">"NousResearch/hermes-agent,"</a> <em>GitHub,</em> 2026.<span class="bib-note">Hermes Agent 开源仓库（64.9k stars, 397 contributors）。包含完整源码、文档、Release 历史和贡献指南。</span></li>
+            <li id="ref-3"><span class="bib-id">[3]</span> <span class="bib-author">Nous Research.</span> <a href="https://hermes-agent.nousresearch.com/docs/" target="_blank" rel="noopener noreferrer">"Hermes Agent Documentation,"</a> <em>hermes-agent.nousresearch.com,</em> 2026.<span class="bib-note">官方文档站，覆盖 CLI 使用、配置、消息网关、安全、工具系统、技能系统、记忆、MCP 集成和架构说明。</span></li>
+            <li id="ref-4"><span class="bib-id">[4]</span> <span class="bib-author">OpenAI.</span> <a href="https://github.com/openai/codex" target="_blank" rel="noopener noreferrer">"openai/codex,"</a> <em>GitHub,</em> 2025–2026.<span class="bib-note">Codex CLI 开源仓库（74.8k stars），OpenAI 的终端编程 Agent。Apache 2.0 许可，Rust + TypeScript 实现。</span></li>
+            <li id="ref-5"><span class="bib-id">[5]</span> <span class="bib-author">Aider-AI.</span> <a href="https://github.com/Aider-AI/aider" target="_blank" rel="noopener noreferrer">"Aider-AI/aider,"</a> <em>GitHub,</em> 2023–2026.<span class="bib-note">Aider 开源仓库（43.2k stars），Paul Gauthier 创建的终端 AI 结对编程工具。以 repo-map 和 Git 集成著称。Apache 2.0 许可。</span></li>
+            <li id="ref-6"><span class="bib-id">[6]</span> <span class="bib-author">Anthropic.</span> <a href="https://code.claude.com/docs" target="_blank" rel="noopener noreferrer">"Claude Code Documentation,"</a> <em>Anthropic,</em> 2025–2026.<span class="bib-note">Claude Code 官方文档。Anthropic 出品的 agentic 编程工具，专注于代码编写和项目理解。</span></li>
+            <li id="ref-7"><span class="bib-id">[7]</span> <span class="bib-author">agentskills.io.</span> <a href="https://agentskills.io/" target="_blank" rel="noopener noreferrer">"Agent Skills Hub,"</a> <em>agentskills.io,</em> 2026.<span class="bib-note">Hermes Agent 技能生态的社区标准和分享平台。定义了 SKILL.md 开放格式。</span></li>
+            <li id="ref-8"><span class="bib-id">[8]</span> <span class="bib-author">NousResearch.</span> <a href="https://github.com/NousResearch/hermes-agent/blob/main/RELEASE_v0.8.0.md" target="_blank" rel="noopener noreferrer">"Hermes Agent v0.8.0 Release Notes,"</a> <em>GitHub,</em> Apr 2026.<span class="bib-note">最新版本发布说明，包含 notify_on_complete、MiMo v2 Pro 集成等新功能。</span></li>
+          </ol>
+        </section>
+      </main>
+
+      <footer>
+        &copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

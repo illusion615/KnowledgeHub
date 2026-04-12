@@ -580,13 +580,53 @@ var knowledgeTree = [
     id: 'education-planning',
     parentId: null,
     type: 'topic',
-    label: { zh: '升学规划', en: 'Education Planning' },
+    label: { zh: '教育', en: 'Education' },
     color: '#e11d48',
     orbitIndex: 3, phase: 3.8, speed: 0.48
   },
   {
-    id: 'shanghai-zhongkao',
+    id: 'edu-fundamentals',
     parentId: 'education-planning',
+    type: 'topic',
+    label: { zh: '基础理论', en: 'Fundamentals' },
+    color: '#f43f5e',
+    phase: 0.2, speed: 0.88
+  },
+  {
+    id: 'edu-calculus',
+    parentId: 'edu-fundamentals',
+    type: 'topic',
+    label: { zh: '微积分', en: 'Calculus' },
+    color: '#fb7185',
+    phase: 0.3, speed: 0.9
+  },
+  {
+    id: 'edu-linear-algebra',
+    parentId: 'edu-fundamentals',
+    type: 'topic',
+    label: { zh: '线性代数', en: 'Linear Algebra' },
+    color: '#e11d48',
+    phase: 1.6, speed: 0.88
+  },
+  {
+    id: 'edu-machine-learning',
+    parentId: 'edu-fundamentals',
+    type: 'topic',
+    label: { zh: '机器学习', en: 'Machine Learning' },
+    color: '#be123c',
+    phase: 3.0, speed: 0.86
+  },
+  {
+    id: 'edu-subject',
+    parentId: 'education-planning',
+    type: 'topic',
+    label: { zh: '学科教育', en: 'Subject Education' },
+    color: '#dc2626',
+    phase: 1.8, speed: 0.85
+  },
+  {
+    id: 'shanghai-zhongkao',
+    parentId: 'edu-subject',
     type: 'topic',
     label: { zh: '上海中考', en: 'Shanghai Zhongkao' },
     color: '#dc2626',
@@ -672,5 +712,74 @@ var knowledgeTree = [
     color: '#0d8f8c',
     phase: 4.5, speed: 0.85,
     relations: ['enterprise-agent-arch', 'hermes-open-model']
+  },
+
+  // ════════════════════════════════════════
+  // 文章 — LLM 百科全书
+  // ════════════════════════════════════════
+  {
+    id: 'llm-wiki',
+    parentId: 'ai-research-model',
+    type: 'article',
+    title: {
+      zh: 'LLM 百科全书：大语言模型关键概念、架构与生态系统全景',
+      en: 'LLM Wiki: Key Concepts, Architectures & Ecosystem of Large Language Models'
+    },
+    summary: {
+      zh: '系统梳理大语言模型的核心架构（Transformer / MoE / 注意力优化）、训练范式（预训练 → SFT → RLHF / DPO / GRPO）、八大模型家族画像（GPT / Claude / Gemini / LLaMA / DeepSeek / Qwen / Mistral / Grok）、四大核心能力（推理 / 工具调用 / 代码 / 多模态）、推理优化技术（量化 / KV Cache / 推测解码）与评测体系（MMLU / SWE-bench / BFCL / Chatbot Arena），附 2017–2025 演进时间线。',
+      en: 'Comprehensive overview of LLM architectures (Transformer / MoE / attention optimization), training paradigms (pre-training → SFT → RLHF / DPO / GRPO), 8 major model families, 4 core capabilities (reasoning / tool use / code / multimodal), inference optimization (quantization / KV Cache / speculative decoding), evaluation benchmarks (MMLU / SWE-bench / BFCL / Chatbot Arena), and a 2017–2025 evolution timeline.'
+    },
+    tags: ['LLM', 'Transformer', 'Model Architecture', 'Training', 'Inference'],
+    date: '2026-04-13',
+    url: 'posts/llm-wiki/index.html',
+    color: '#0ea5e9',
+    phase: 2.2, speed: 0.84,
+    relations: ['hermes-open-model', 'fc-landscape', 'mlx-optimization']
+  },
+
+  // ════════════════════════════════════════
+  // 文章 — Hermes Agent 框架深度研究
+  // ════════════════════════════════════════
+  {
+    id: 'hermes-agent-comparison',
+    parentId: 'ai-research-agent',
+    type: 'article',
+    title: {
+      zh: 'Hermes Agent：自进化开源 AI Agent 框架与同类产品对比',
+      en: 'Hermes Agent: Self-Evolving Open-Source AI Agent Framework vs Claude Code, Codex CLI & Aider'
+    },
+    summary: {
+      zh: '深入分析 Nous Research 的 Hermes Agent 开源自主 AI Agent 框架（64.9k stars），剖析其持久记忆、自动技能创建、多平台消息网关、定时任务调度和并行子代理等核心能力，并与 Claude Code、OpenAI Codex CLI、Aider 进行 15 维全面对比，给出不同场景下的工具选择建议。',
+      en: 'Deep analysis of Nous Research\'s Hermes Agent (64.9k stars) — persistent memory, auto-skill creation, multi-platform gateway, cron scheduling — with a 15-dimension comparison against Claude Code, Codex CLI, and Aider.'
+    },
+    tags: ['Agent Framework', 'Hermes Agent', 'Claude Code', 'Codex', 'Aider'],
+    date: '2026-04-13',
+    url: 'posts/hermes-agent-comparison/index.html',
+    color: '#f97316',
+    phase: 1.8, speed: 0.88,
+    relations: ['hermes-open-model', 'enterprise-agent-arch', 'agentic-skill-exec']
+  },
+
+  // ════════════════════════════════════════
+  // 文章 — LLM Wiki 个人知识管理
+  // ════════════════════════════════════════
+  {
+    id: 'llm-wiki-pkm',
+    parentId: 'ai-research-agent',
+    type: 'article',
+    title: {
+      zh: 'LLM Wiki：用大模型构建持续进化的个人知识库',
+      en: 'LLM Wiki: Building a Continuously Evolving Personal Knowledge Base with LLMs'
+    },
+    summary: {
+      zh: '基于 Andrej Karpathy 的 LLM Wiki 模式，系统分析用 LLM 担任"知识管理员"的新范式：三层架构（Raw Sources / Wiki / Schema）、三种操作（Ingest / Query / Lint）、六大应用场景（个人成长 / 深度研究 / 阅读 / 团队 / 代码库 / 竞品分析），以及社区 5,000+ Stars 催生的工具生态与"第二大脑 vs 研究索引"的核心争议。',
+      en: 'Based on Andrej Karpathy\'s LLM Wiki pattern, a systematic analysis of the new paradigm of using LLMs as "knowledge stewards": three-layer architecture (Raw Sources / Wiki / Schema), three operations (Ingest / Query / Lint), six application scenarios, and the 5,000+ star community ecosystem with the core debate of "second brain vs. research index".'
+    },
+    tags: ['LLM Wiki', 'PKM', 'Knowledge Management', 'Karpathy'],
+    date: '2026-04-13',
+    url: 'posts/llm-wiki-pkm/index.html',
+    color: '#f97316',
+    phase: 4.6, speed: 0.88,
+    relations: ['enterprise-agent-arch', 'copilot-harness-eng', 'knowledge-graph-org']
   }
 ];
