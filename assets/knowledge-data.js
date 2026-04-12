@@ -176,6 +176,25 @@ var knowledgeTree = [
     relations: ['enterprise-agent-arch', 'ai-mud-retro']
   },
   {
+    id: 'copilot-deep-dive',
+    parentId: 'ai-research-vibe-coding',
+    type: 'article',
+    title: {
+      zh: 'GitHub Copilot 深度解析：产品全景、竞品对比与人机协同最佳实践',
+      en: 'GitHub Copilot Deep Dive: Product Landscape, Competitor Analysis & Human-AI Collaboration Best Practices'
+    },
+    summary: {
+      zh: '系统梳理 GitHub Copilot 的八大模块（补全、Agent Mode、Cloud Agent、CLI、Code Review、MCP、SDK、Multi-Model），与 Cursor、Windsurf、Cline、Claude Code 做结构化对比，并给出从 Harness Engineering 到三层委托执行（Local / CLI / Cloud）的人机协同最佳实践。',
+      en: 'A systematic overview of GitHub Copilot\'s eight modules, structured comparison with Cursor, Windsurf, Cline, and Claude Code, plus best practices for human-AI collaboration spanning Harness Engineering to the three-tier delegation model (Local / CLI / Cloud).'
+    },
+    tags: ['GitHub Copilot', 'Vibe Coding', 'AI Engineering', 'Best Practices'],
+    date: '2026-04-12',
+    url: 'posts/copilot-deep-dive/index.html',
+    color: '#14b8a6',
+    phase: 3.8, speed: 0.86,
+    relations: ['copilot-harness-eng', 'enterprise-agent-arch', 'claw-code-analysis']
+  },
+  {
     id: 'text-to-image-prompting',
     parentId: 'ai-research-model',
     type: 'article',
@@ -231,25 +250,6 @@ var knowledgeTree = [
     color: '#0ea5e9',
     phase: 0.8, speed: 0.88,
     relations: ['hermes-open-model', 'enterprise-agent-arch', 'agentic-skill-exec']
-  },
-  {
-    id: 'm4-max-local-models',
-    parentId: 'ai-research-model',
-    type: 'article',
-    title: {
-      zh: 'MacBook Pro M4 Max 64GB 本地模型部署选型：LLM、图像、视频、语音与音乐生成全景',
-      en: 'Local Model Deployment on MacBook Pro M4 Max 64GB: LLM, Image, Video, Voice, and Music Generation'
-    },
-    summary: {
-      zh: '围绕 MacBook Pro M4 Max 64GB 的统一内存边界，对比本地部署大语言模型、Function Calling、文生图、视频生成、语音生成和音乐生成的可行选项，梳理 MLX、llama.cpp、Ollama 与 Diffusers-MPS 的兼容性差异，并给出按任务分层的推荐组合。',
-      en: 'Compares feasible local deployment options on a MacBook Pro M4 Max 64GB across LLMs, function calling, text-to-image, video generation, voice generation, and music generation. Maps compatibility differences across MLX, llama.cpp, Ollama, and Diffusers-MPS, and provides task-based recommendation stacks.'
-    },
-    tags: ['Apple Silicon', 'Local AI', 'LLM', 'Function Calling', 'Multimodal'],
-    date: '2026-04-12',
-    url: 'posts/m4-max-local-models/index.html',
-    color: '#1d9bf0',
-    phase: 4.9, speed: 0.9,
-    relations: ['fc-landscape', 'text-to-image-prompting', 'mlx-optimization']
   },
   {
     id: 'claw-code-analysis',

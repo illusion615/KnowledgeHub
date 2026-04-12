@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GitHub Copilot 深度解析：产品全景、竞品对比与人机协同最佳实践</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(1.9rem, 4.6vw, 3.2rem);
+      line-height: 1.06;
+      letter-spacing: -0.04em;
+      max-width: 20ch;
+    }
+
+    .hero-metrics {
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    }
+
+    .tier-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .tier-card {
+      padding: 22px;
+      border-radius: 22px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+    }
+
+    .tier-card h4 { margin: 0 0 8px; font-size: 1.05rem; line-height: 1.35; }
+    .tier-card p, .tier-card li { color: var(--muted); font-size: 0.92rem; line-height: 1.72; }
+    .tier-card ul { margin: 8px 0 0; padding-left: 18px; }
+
+    .tier-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      margin-bottom: 10px; padding: 6px 12px; border-radius: 999px;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .tier-badge-local { background: rgba(14, 165, 233, 0.12); color: #0369a1; }
+    .tier-badge-cli { background: rgba(16, 185, 129, 0.12); color: #065f46; }
+    .tier-badge-cloud { background: rgba(124, 58, 237, 0.12); color: #5b21b6; }
+    .tier-badge-cursor { background: rgba(234, 179, 8, 0.15); color: #b45309; }
+    .tier-badge-cline { background: rgba(239, 68, 68, 0.14); color: #b91c1c; }
+    .tier-badge-windsurf { background: rgba(59, 130, 246, 0.12); color: #1d4ed8; }
+
+    .score-table-wrap {
+      margin-top: 16px; overflow-x: auto; border-radius: 18px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.78);
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+    }
+    .score-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    .score-table th, .score-table td { padding: 11px 14px; text-align: left; border-bottom: 1px solid rgba(15, 23, 42, 0.06); vertical-align: top; }
+    .score-table th { font-family: "Space Grotesk", "Noto Sans SC", sans-serif; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: rgba(15, 23, 42, 0.03); white-space: nowrap; }
+    .score-table tr:last-child td { border-bottom: none; }
+
+    .status-chip { display: inline-flex; align-items: center; padding: 5px 10px; border-radius: 999px; font-family: "Space Grotesk", "Noto Sans SC", sans-serif; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
+    .status-good { background: rgba(16, 185, 129, 0.14); color: #065f46; }
+    .status-mid { background: rgba(234, 179, 8, 0.15); color: #b45309; }
+    .status-risk { background: rgba(239, 68, 68, 0.14); color: #b91c1c; }
+
+    .decision-flow { display: grid; gap: 12px; margin-top: 16px; }
+    .decision-step { display: grid; grid-template-columns: 48px 1fr; gap: 16px; padding: 18px; border-radius: 22px; border: 1px solid rgba(15, 23, 42, 0.08); background: rgba(255, 255, 255, 0.76); box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05); align-items: start; }
+    .decision-number { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: "Space Grotesk", "Noto Sans SC", sans-serif; font-weight: 700; font-size: 1.05rem; background: rgba(15, 23, 42, 0.06); color: var(--accent); }
+    .decision-step h3 { margin: 0 0 6px; font-size: 1rem; line-height: 1.35; }
+    .decision-step p, .decision-step li { margin: 0; color: var(--muted); font-size: 0.92rem; line-height: 1.75; }
+    .decision-step ul { margin: 8px 0 0; padding-left: 18px; }
+
+    .quote-board { margin-top: 16px; padding: 22px; border-radius: 24px; border: 1px solid rgba(15, 23, 42, 0.08); background: linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(255, 255, 255, 0.72)); box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06); }
+    .quote-board p { margin: 0; color: var(--ink); font-size: 1rem; line-height: 1.8; }
+    .quote-board strong { color: var(--accent); }
+
+    [data-theme="dark"] .tier-card, [data-theme="dark"] .decision-step, [data-theme="dark"] .score-table-wrap, [data-theme="dark"] .quote-board { background: rgba(255, 255, 255, 0.04); border-color: rgba(255, 255, 255, 0.08); box-shadow: 0 16px 34px rgba(0, 0, 0, 0.18); }
+    [data-theme="dark"] .score-table th { background: rgba(255, 255, 255, 0.04); }
+    [data-theme="dark"] .score-table th, [data-theme="dark"] .score-table td { border-bottom-color: rgba(255, 255, 255, 0.06); }
+    [data-theme="dark"] .tier-badge-local { background: rgba(14, 165, 233, 0.2); color: #38bdf8; }
+    [data-theme="dark"] .tier-badge-cli { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    [data-theme="dark"] .tier-badge-cloud { background: rgba(124, 58, 237, 0.2); color: #a78bfa; }
+    [data-theme="dark"] .tier-badge-cursor { background: rgba(234, 179, 8, 0.2); color: #fbbf24; }
+    [data-theme="dark"] .tier-badge-cline { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+    [data-theme="dark"] .tier-badge-windsurf { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
+    [data-theme="dark"] .decision-number { background: rgba(255, 255, 255, 0.08); color: rgba(236, 241, 246, 0.8); }
+    [data-theme="dark"] .status-good { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+    [data-theme="dark"] .status-mid { background: rgba(234, 179, 8, 0.2); color: #fbbf24; }
+    [data-theme="dark"] .status-risk { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+    [data-theme="dark"] .quote-board { background: linear-gradient(135deg, rgba(124, 58, 237, 0.12), rgba(15, 23, 42, 0.82)); }
+    @media (max-width: 640px) { .tier-grid { grid-template-columns: 1fr; } .decision-step { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero" data-present-step data-step-title="文章总览">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            Vibe Coding
+          </div>
+          <div class="topbar-actions">
+            <nav class="nav-links" aria-label="页面章节导航">
+              <a href="#landscape">全景</a>
+              <a href="#surfaces">三种界面</a>
+              <a href="#harness">Harness</a>
+              <a href="#competitors">竞品</a>
+              <a href="#practices">实践</a>
+              <a href="#references">参考</a>
+            </nav>
+          </div>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">GitHub Copilot Deep Dive</span>
+            <h1>GitHub Copilot 深度解析：产品全景、竞品对比与人机协同最佳实践</h1>
+            <p>
+              GitHub Copilot 已经从一个"代码补全插件"演化为覆盖 IDE、CLI 和 Cloud 三层的全栈 AI 开发平台。截至 2026 年 4 月，它包含代码补全、Agent Mode（本地自主编码）、Cloud Agent（异步 PR 生成）、CLI（命令行辅助）、Code Review、MCP 集成、Custom Instructions 和 Copilot SDK 等能力<a href="#ref-1">[1]</a><a href="#ref-2">[2]</a>。本文系统梳理 Copilot 的完整产品线，与 Cursor、Windsurf、Cline 等竞品做结构化对比，并给出从 Harness Engineering 到三层委托执行的人机协同最佳实践。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#landscape">产品全景</a>
+              <a class="button button-secondary" href="#practices">实践指南</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">核心观点</span>
+            <h2>Copilot 的核心优势不在于单点能力最强，而在于它是唯一与 GitHub 生态深度绑定的 AI 编码平台。</h2>
+            <ul class="layer-list section-grid-spaced">
+              <li><span class="layer-number">1</span>三层执行模型（Local → CLI → Cloud）让开发者可以按任务复杂度选择"自己做、问一下、扔出去"。</li>
+              <li><span class="layer-number">2</span>Cloud Agent（原 Project Padawan）可以异步接收 Issue、自动开分支、写代码、跑测试、提 PR — 开发者审核即可。</li>
+              <li><span class="layer-number">3</span>Harness Engineering（.instructions.md + copilot-instructions.md + AGENTS.md）是让 Copilot 从"聪明但随机"变成"可预测且一致"的关键工程实践。</li>
+              <li><span class="layer-number">4</span>竞品 Cursor 在 agent 自主性和 Tab 补全上更激进；但 Copilot 在 GitHub 工作流集成（Issue → PR → Review → Merge）上不可替代。</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">产品线</div>
+            <strong>8 个模块</strong>
+            <span>补全 / Agent / Cloud Agent / CLI / Review / MCP / SDK / Instructions</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">执行层次</div>
+            <strong>3 层</strong>
+            <span>Local（IDE） / CLI（终端） / Cloud（异步）</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">竞品对比</div>
+            <strong>4 家</strong>
+            <span>Cursor / Windsurf / Cline / Claude Code</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">数据截止</div>
+            <strong>2026-04-12</strong>
+            <span>基于 GitHub Changelog 最新条目</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- Section 1: Product Landscape -->
+        <section id="landscape" class="section" data-reveal data-present-step data-step-title="Copilot 产品全景">
+          <div class="section-head">
+            <p class="section-kicker">01 / Product Landscape</p>
+            <h2>1. Copilot 产品全景：从代码补全到全栈 AI 开发平台</h2>
+            <p>2021 年的 Copilot 只做一件事：在你打字的时候自动补全下一行代码。到 2026 年 4 月，它已经扩展为八个模块组成的平台<a href="#ref-1">[1]</a><a href="#ref-2">[2]</a><a href="#ref-3">[3]</a>。</p>
+          </div>
+
+          <div class="tier-grid section-grid-spaced">
+            <article class="tier-card">
+              <span class="tier-badge tier-badge-local">Code Completion</span>
+              <h4>代码补全</h4>
+              <p>基于上下文的 inline suggestion，支持 Next Edit Suggestions（预测你下一步要改哪里）。这是最基础的能力，也是 Copilot 渗透率最高的功能。</p>
+            </article>
+            <article class="tier-card">
+              <span class="tier-badge tier-badge-local">Agent Mode</span>
+              <h4>Agent 模式（IDE 内）</h4>
+              <p>在 VS Code 中让 Copilot 自主规划多步编码任务：分析代码库、执行终端命令、自动修复错误、跨文件编辑。用户保持在 IDE 中审核每一步<a href="#ref-3">[3]</a>。</p>
+            </article>
+            <article class="tier-card">
+              <span class="tier-badge tier-badge-cloud">Cloud Agent</span>
+              <h4>Cloud Agent（原 Project Padawan）</h4>
+              <p>异步执行任务的云端 agent。可以通过 Issue assign、VS Code delegate 或 Mobile 触发。自动开分支、克隆仓库、环境搭建、编码、测试、提 PR<a href="#ref-2">[2]</a><a href="#ref-3">[3]</a>。2026 年 4 月已支持 org runner 控制、commit 签名和 firewall 设置。</p>
+            </article>
+            <article class="tier-card">
+              <span class="tier-badge tier-badge-cli">CLI</span>
+              <h4>Copilot CLI</h4>
+              <p>通过 <code>gh copilot suggest</code> 和 <code>gh copilot explain</code> 在终端中获取命令建议和解释。2026 年 4 月起支持 BYOK（自带密钥）和本地模型<a href="#ref-2">[2]</a>。</p>
+            </article>
+            <article class="tier-card">
+              <span class="tier-badge tier-badge-local">Code Review</span>
+              <h4>代码审查</h4>
+              <p>在 PR 中自动审查代码、发现 bug、提出建议。可以区分主动审查和被动审查。审查后的 PR merge 指标已进入 usage metrics API<a href="#ref-2">[2]</a>。</p>
+            </article>
+            <article class="tier-card">
+              <span class="tier-badge tier-badge-local">MCP & Extensions</span>
+              <h4>MCP 与扩展</h4>
+              <p>通过 Model Context Protocol 连接外部工具和数据源，让 Copilot 可以调用数据库、API、文件系统等。Custom Instructions（organization 级）已 GA<a href="#ref-2">[2]</a>。</p>
+            </article>
+            <article class="tier-card">
+              <span class="tier-badge tier-badge-cloud">SDK</span>
+              <h4>Copilot SDK</h4>
+              <p>2026 年 4 月进入 public preview，允许开发者在自己的应用中集成 Copilot 的能力<a href="#ref-2">[2]</a>。</p>
+            </article>
+            <article class="tier-card">
+              <span class="tier-badge tier-badge-local">Multi-Model</span>
+              <h4>多模型选择</h4>
+              <p>支持 Claude Opus 4.6、GPT-5.4 mini、Gemini 等多模型切换。用户可以根据任务选择合适的模型。</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 2: Three Surfaces -->
+        <section id="surfaces" class="section" data-reveal data-step-title="三种执行界面：Local / CLI / Cloud">
+          <div class="section-head">
+            <p class="section-kicker">02 / Execution Surfaces</p>
+            <h2>2. 三种执行界面：如何根据任务选择 Local、CLI 还是 Cloud</h2>
+            <p>Copilot 最重要的架构特征是提供了三种执行界面，每种对应不同的任务类型和时间模型。理解这三层是高效使用 Copilot 的前提。</p>
+          </div>
+
+          <div class="score-table-wrap section-grid-spaced" data-present-step data-step-title="三层执行模型对比">
+            <table class="score-table">
+              <thead>
+                <tr>
+                  <th>维度</th>
+                  <th>Local（IDE）</th>
+                  <th>CLI（终端）</th>
+                  <th>Cloud Agent</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>运行位置</strong></td>
+                  <td>你的机器（VS Code / VS / JetBrains）</td>
+                  <td>你的终端（gh copilot）</td>
+                  <td>GitHub 服务器（安全沙箱）</td>
+                </tr>
+                <tr>
+                  <td><strong>时间模型</strong></td>
+                  <td>同步，你等它</td>
+                  <td>一问一答，秒级响应</td>
+                  <td>异步，提交后去做别的事</td>
+                </tr>
+                <tr>
+                  <td><strong>擅长</strong></td>
+                  <td>交互式编码、多轮对话、需要看文件上下文</td>
+                  <td>快速查命令写法、解释错误信息</td>
+                  <td>独立的中等任务（bug fix、feature、test）</td>
+                </tr>
+                <tr>
+                  <td><strong>产出</strong></td>
+                  <td>直接改文件</td>
+                  <td>终端输出（命令建议 / 解释）</td>
+                  <td>自动创建 PR</td>
+                </tr>
+                <tr>
+                  <td><strong>人的参与方式</strong></td>
+                  <td>实时审核每一步</td>
+                  <td>看建议、决定是否执行</td>
+                  <td>写清 Issue → 等 PR → Review → Merge</td>
+                </tr>
+                <tr>
+                  <td><strong>适用场景</strong></td>
+                  <td>核心开发、架构设计、调试</td>
+                  <td>运维、环境配置、一次性脚本</td>
+                  <td>backlog 清理、重复性任务、测试生成</td>
+                </tr>
+                <tr>
+                  <td><strong>冲突风险</strong></td>
+                  <td>无（直接在本地）</td>
+                  <td>无（只给建议）</td>
+                  <td>中（需要避免与本地同时改同一文件）</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" type="button">
+                <span>避免 Local 与 Cloud 冲突的关键规则</span>
+                <span class="subsection-icon">+</span>
+              </button>
+              <div class="subsection-content">
+                <ul>
+                  <li><strong>Cloud Agent 永远在独立分支上工作</strong>，永远不直接推 main。</li>
+                  <li><strong>先 push 再委托</strong> — 确保 cloud agent 基于最新代码。</li>
+                  <li><strong>不要同时改同一文件</strong> — 如果委托了涉及文件 A 的任务，在 PR 合并前不要在本地改文件 A。</li>
+                  <li><strong>合并 PR 后本地 git pull</strong> — 保持同步。</li>
+                  <li><strong>用 WRAP 原则写 Issue</strong>：Well-scoped（明确范围）、Reproducible（可复现）、Actionable（可执行）、Pointed（有方向）<a href="#ref-3">[3]</a>。</li>
+                </ul>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" type="button">
+                <span>CLI 的典型用法</span>
+                <span class="subsection-icon">+</span>
+              </button>
+              <div class="subsection-content">
+                <p><code>gh copilot suggest "find all files larger than 100MB in git history"</code> — 获取命令建议。</p>
+                <p><code>gh copilot explain "git reflog expire --expire=now --all"</code> — 解释命令含义。</p>
+                <p>2026 年 4 月起还支持 BYOK 和本地模型<a href="#ref-2">[2]</a>，意味着你可以用自己的 API key 或本地 Ollama/oMLX 模型来驱动 CLI。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 3: Harness Engineering -->
+        <section id="harness" class="section" data-reveal data-step-title="Harness Engineering：让 Copilot 变得可预测">
+          <div class="section-head">
+            <p class="section-kicker">03 / Harness Engineering</p>
+            <h2>3. Harness Engineering：让 Copilot 从"聪明但随机"变成"可预测且一致"</h2>
+            <p>Copilot 的智力不缺，缺的是"对你的项目的理解"。Harness Engineering 就是在项目初期通过结构化的约定文件、上下文框架和指令体系，为 AI 编码助手建立高效协作基础的工程实践<a href="#ref-4">[4]</a>。</p>
+          </div>
+
+          <div class="tier-grid section-grid-spaced" data-present-step data-step-title="Harness 文件层级">
+            <article class="tier-card">
+              <span class="tier-badge tier-badge-local">Layer 1</span>
+              <h4>copilot-instructions.md</h4>
+              <p>项目级全局指令。放在 <code>.github/copilot-instructions.md</code>，对所有 Copilot 交互生效。定义项目风格（语言、框架禁忌、编码规范）。</p>
+            </article>
+            <article class="tier-card">
+              <span class="tier-badge tier-badge-local">Layer 2</span>
+              <h4>.instructions.md（按路径）</h4>
+              <p>放在 <code>.github/instructions/</code> 下，通过 <code>applyTo</code> 字段指定生效路径（如 <code>posts/**/*.html</code>）。让不同目录有不同的规则。</p>
+            </article>
+            <article class="tier-card">
+              <span class="tier-badge tier-badge-local">Layer 3</span>
+              <h4>AGENTS.md</h4>
+              <p>面向 Cloud Agent 的指令文件。告诉异步 agent 项目的构建方式、测试命令和代码规范。</p>
+            </article>
+            <article class="tier-card">
+              <span class="tier-badge tier-badge-cloud">Layer 4</span>
+              <h4>Skills（.copilot/skills/）</h4>
+              <p>可复用的技能包，包含领域知识和工作流。例如代码审查框架、部署检查清单、AI 协作协议等。任务匹配时自动加载。</p>
+            </article>
+            <article class="tier-card">
+              <span class="tier-badge tier-badge-cloud">Layer 5</span>
+              <h4>Memory（/memories/）</h4>
+              <p>持久化记忆系统：user memory（跨项目偏好）、session memory（当前对话）、repo memory（仓库级陷阱和契约）。</p>
+            </article>
+            <article class="tier-card">
+              <span class="tier-badge tier-badge-cli">Layer 6</span>
+              <h4>Organization Custom Instructions</h4>
+              <p>组织级指令，2026 年 4 月已 GA。由 org admin 设置，对组织内所有成员的 Copilot 生效<a href="#ref-2">[2]</a>。</p>
+            </article>
+          </div>
+
+          <div class="quote-board section-grid-spaced">
+            <p><strong>关键洞察：</strong>Harness Engineering 不是一次性工作。它是一套持续演进的协作架构 — 每次发现 Copilot 犯了本不该犯的错，就应该问"哪条指令没写到"，然后补上。好的 harness 会让 Copilot 越用越好，差的 harness 会让每次对话都从零开始。</p>
+          </div>
+        </section>
+
+        <!-- Section 4: Competitor Comparison -->
+        <section id="competitors" class="section" data-reveal data-step-title="竞品对比">
+          <div class="section-head">
+            <p class="section-kicker">04 / Competitor Analysis</p>
+            <h2>4. 竞品对比：Copilot vs Cursor vs Windsurf vs Cline vs Claude Code</h2>
+            <p>AI 编码助手市场已经分化出不同定位。以下对比基于各产品 2026 年 4 月的公开功能<a href="#ref-5">[5]</a><a href="#ref-6">[6]</a>。</p>
+          </div>
+
+          <div class="score-table-wrap section-grid-spaced" data-present-step data-step-title="竞品对比矩阵">
+            <table class="score-table">
+              <thead>
+                <tr>
+                  <th>维度</th>
+                  <th>GitHub Copilot</th>
+                  <th>Cursor</th>
+                  <th>Windsurf</th>
+                  <th>Cline</th>
+                  <th>Claude Code</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>IDE 基座</strong></td>
+                  <td>VS Code / VS / JetBrains 插件</td>
+                  <td>VS Code fork（独立 App）</td>
+                  <td>VS Code fork（独立 App）</td>
+                  <td>VS Code 扩展</td>
+                  <td>CLI（无 IDE）</td>
+                </tr>
+                <tr>
+                  <td><strong>代码补全</strong></td>
+                  <td><span class="status-chip status-good">高</span> Next Edit Suggestions</td>
+                  <td><span class="status-chip status-good">很高</span> Tab 预测极快</td>
+                  <td><span class="status-chip status-good">高</span></td>
+                  <td><span class="status-chip status-mid">中</span></td>
+                  <td>不适用</td>
+                </tr>
+                <tr>
+                  <td><strong>Agent 自主性</strong></td>
+                  <td><span class="status-chip status-good">高</span> Agent Mode + Cloud Agent</td>
+                  <td><span class="status-chip status-good">很高</span> Composer 2 + Cloud Agents</td>
+                  <td><span class="status-chip status-good">高</span> Cascade</td>
+                  <td><span class="status-chip status-good">高</span> 完全自主</td>
+                  <td><span class="status-chip status-good">很高</span> terminal-native</td>
+                </tr>
+                <tr>
+                  <td><strong>云端异步执行</strong></td>
+                  <td><span class="status-chip status-good">深度</span> Issue → PR 全流程</td>
+                  <td><span class="status-chip status-good">有</span> Cloud Agents</td>
+                  <td><span class="status-chip status-risk">无</span></td>
+                  <td><span class="status-chip status-risk">无</span></td>
+                  <td><span class="status-chip status-risk">无</span></td>
+                </tr>
+                <tr>
+                  <td><strong>GitHub 工作流集成</strong></td>
+                  <td><span class="status-chip status-good">原生</span> Issue/PR/Review/Actions</td>
+                  <td><span class="status-chip status-mid">基础</span> PR review（Bugbot）</td>
+                  <td><span class="status-chip status-risk">弱</span></td>
+                  <td><span class="status-chip status-risk">弱</span></td>
+                  <td><span class="status-chip status-mid">基础</span></td>
+                </tr>
+                <tr>
+                  <td><strong>多模型支持</strong></td>
+                  <td>Claude / GPT / Gemini 等</td>
+                  <td>Claude / GPT / Gemini / Grok / 自定义</td>
+                  <td>Claude / GPT / 自定义</td>
+                  <td>任意 API（BYOM）</td>
+                  <td>Claude 专属</td>
+                </tr>
+                <tr>
+                  <td><strong>MCP 集成</strong></td>
+                  <td><span class="status-chip status-good">有</span></td>
+                  <td><span class="status-chip status-good">有</span></td>
+                  <td><span class="status-chip status-mid">有限</span></td>
+                  <td><span class="status-chip status-good">有</span></td>
+                  <td><span class="status-chip status-good">有</span></td>
+                </tr>
+                <tr>
+                  <td><strong>价格（个人）</strong></td>
+                  <td>Free / Pro $10 / Pro+ $39</td>
+                  <td>Free / Pro $20 / Ultra $200</td>
+                  <td>Free / Pro $15</td>
+                  <td>免费（自带 API key）</td>
+                  <td>随 Claude 订阅 / API 计费</td>
+                </tr>
+                <tr>
+                  <td><strong>核心优势</strong></td>
+                  <td>GitHub 生态深度绑定、三层执行模型、企业合规</td>
+                  <td>Tab 补全体验、Composer 2 代码生成质量、codebase 索引</td>
+                  <td>Cascade 流程自动化、入门友好</td>
+                  <td>完全开源、零锁定、BYOM</td>
+                  <td>Claude 模型最强原生体验、terminal 深度集成</td>
+                </tr>
+                <tr>
+                  <td><strong>核心劣势</strong></td>
+                  <td>单点能力不一定最强、Pro+ 价格偏高</td>
+                  <td>绑定 Cursor IDE、GitHub 集成偏弱</td>
+                  <td>生态较小、企业功能少</td>
+                  <td>依赖自行配置 API、无 cloud agent</td>
+                  <td>只有 CLI、无 IDE 集成、仅 Claude 模型</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" type="button">
+                <span>什么时候 Copilot 比 Cursor 更合适</span>
+                <span class="subsection-icon">+</span>
+              </button>
+              <div class="subsection-content">
+                <p>如果你的工作流深度依赖 GitHub（Issue 管理、PR Review、Actions CI），Copilot 的 Cloud Agent 能直接从 Issue 到 PR 全自动化，这是 Cursor 做不到的。如果你的团队需要企业合规、org 级 custom instructions 和 usage metrics，Copilot 是唯一选择。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" type="button">
+                <span>什么时候 Cursor 比 Copilot 更合适</span>
+                <span class="subsection-icon">+</span>
+              </button>
+              <div class="subsection-content">
+                <p>如果你追求最快的 Tab 补全体验、最激进的 agent 自主性（Composer 2），以及更灵活的模型切换（包括 Grok），Cursor 在"单人开发效率"上目前更强<a href="#ref-5">[5]</a>。Cursor 3.0 的新界面和 Bugbot 也在追赶 GitHub 的 code review 能力。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" type="button">
+                <span>Cline 和 Claude Code 的定位</span>
+                <span class="subsection-icon">+</span>
+              </button>
+              <div class="subsection-content">
+                <p><strong>Cline</strong> 适合追求零锁定、自带模型（BYOM）的开发者。它是一个完全开源的 VS Code 扩展，用你自己的 API key 调用任意模型。<strong>Claude Code</strong> 适合 Anthropic 重度用户，它在终端中提供最深度的 Claude 原生体验，但没有 IDE 集成。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" type="button">
+                <span>可以同时用 Copilot 和 Cursor 吗</span>
+                <span class="subsection-icon">+</span>
+              </button>
+              <div class="subsection-content">
+                <p>可以但不推荐在同一个编辑器实例里同时跑两个 AI 助手。建议按场景分工：VS Code + Copilot 做日常开发和 GitHub 工作流，Cursor 用于需要激进 agent 能力的原型开发。两边共享同一个 git 仓库即可。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 5: Best Practices -->
+        <section id="practices" class="section" data-reveal data-step-title="人机协同最佳实践">
+          <div class="section-head">
+            <p class="section-kicker">05 / Best Practices</p>
+            <h2>5. 人机协同最佳实践：从工程规范到日常工作流</h2>
+            <p>以下实践来自在实际项目中密集使用 Copilot 的经验总结，覆盖从项目初始化到日常交互的完整链路。</p>
+          </div>
+
+          <div class="decision-flow section-grid-spaced" data-present-step data-step-title="实践清单">
+            <article class="decision-step">
+              <div class="decision-number">1</div>
+              <div>
+                <h3>第一天就写 Harness</h3>
+                <p>项目创建当天就写 <code>.github/copilot-instructions.md</code>。内容不需要完美，但必须包含：项目用什么语言/框架、有什么禁忌（比如不用 React、不加 node_modules）、文件结构约定。这个文件会随着项目演进持续更新<a href="#ref-4">[4]</a>。</p>
+              </div>
+            </article>
+            <article class="decision-step">
+              <div class="decision-number">2</div>
+              <div>
+                <h3>按路径分层指令</h3>
+                <p>不同目录有不同规则。前端组件、后端 API、测试文件的编码约定往往不同。用 <code>.instructions.md</code> 的 <code>applyTo</code> 字段分别指定，比一个大文件更精准。</p>
+              </div>
+            </article>
+            <article class="decision-step">
+              <div class="decision-number">3</div>
+              <div>
+                <h3>简单记法分配任务</h3>
+                <ul>
+                  <li><strong>需要对话 → Local</strong>：在 VS Code 中与 Copilot 交互式编码</li>
+                  <li><strong>需要命令 → CLI</strong>：<code>gh copilot suggest/explain</code></li>
+                  <li><strong>可以扔出去 → Cloud</strong>：写清 Issue 然后 assign @github-copilot</li>
+                </ul>
+              </div>
+            </article>
+            <article class="decision-step">
+              <div class="decision-number">4</div>
+              <div>
+                <h3>用 Memory 积累项目知识</h3>
+                <p>Repo memory 记录"做错了会发生什么"（陷阱和契约），不记录实现细节。Session memory 记录当前任务计划。User memory 记录跨项目偏好。每次 Copilot 犯了本不该犯的错，就是更新 memory 的时机。</p>
+              </div>
+            </article>
+            <article class="decision-step">
+              <div class="decision-number">5</div>
+              <div>
+                <h3>Skills 封装可复用知识</h3>
+                <p>把反复出现的工作流（如代码审查框架、部署检查清单）封装成 <code>.copilot/skills/</code> 下的 <code>SKILL.md</code>。技能会在任务匹配时自动加载，避免每次对话都重复解释同一套规则。</p>
+              </div>
+            </article>
+            <article class="decision-step">
+              <div class="decision-number">6</div>
+              <div>
+                <h3>Cloud Agent 的 WRAP 原则</h3>
+                <p>写给 Cloud Agent 的 Issue 要遵循 WRAP：<strong>W</strong>ell-scoped（一个 Issue 一个任务）、<strong>R</strong>eproducible（提供复现步骤或明确输入）、<strong>A</strong>ctionable（有明确的完成标准）、<strong>P</strong>ointed（指出涉及的文件或模块）<a href="#ref-3">[3]</a>。</p>
+              </div>
+            </article>
+            <article class="decision-step">
+              <div class="decision-number">7</div>
+              <div>
+                <h3>不要禁用安全检查</h3>
+                <p>不 <code>--no-verify</code>、不跳过 lint、不强制 push。Copilot 生成的代码也需要走正常的 CI 管线。Cloud Agent 的 commit 已经支持签名<a href="#ref-2">[2]</a>，确保审计链完整。</p>
+              </div>
+            </article>
+            <article class="decision-step">
+              <div class="decision-number">8</div>
+              <div>
+                <h3>定期审计 Copilot 的使用效果</h3>
+                <p>GitHub 的 usage metrics API 现在覆盖代码补全、agent 活跃用户、CLI 活动、code review 和 cloud agent<a href="#ref-2">[2]</a>。用这些数据来判断 Copilot 在团队中的实际产出，而不是靠感觉。</p>
+              </div>
+            </article>
+          </div>
+
+          <div class="quote-board section-grid-spaced">
+            <p><strong>最终建议：</strong>Copilot 不是替代开发者的工具，而是一个需要被"训练"的协作者。Harness Engineering 就是训练方式 — 通过 instructions、memory 和 skills 持续积累项目知识，让每一次 AI 交互都比上一次更精准。投入在 harness 上的时间，回报是整个项目生命周期的效率提升。</p>
+          </div>
+        </section>
+
+        <!-- References -->
+        <section id="references" class="section" data-reveal data-present-step data-step-title="参考来源">
+          <div class="section-head">
+            <p class="section-kicker">References</p>
+            <h2>参考来源</h2>
+          </div>
+          <ol class="bib-list">
+            <li id="ref-1"><span class="bib-id">[1]</span> <span class="bib-author">GitHub.</span> <a href="https://docs.github.com/en/copilot/about-github-copilot/what-is-github-copilot" target="_blank" rel="noopener noreferrer">"What is GitHub Copilot?"</a> <em>docs.github.com,</em> 2026.<span class="bib-note">Copilot 官方文档，覆盖功能概述、订阅方式和使用入口。</span></li>
+            <li id="ref-2"><span class="bib-id">[2]</span> <span class="bib-author">GitHub.</span> <a href="https://github.blog/changelog/label/copilot/" target="_blank" rel="noopener noreferrer">"GitHub Changelog — Copilot,"</a> <em>github.blog,</em> 2026.<span class="bib-note">2026 年 4 月 Copilot 更新：Cloud Agent 验证工具 20% 提速、org runner 控制、commit 签名、firewall 设置、CLI 支持 BYOK 和本地模型、Copilot SDK public preview、organization custom instructions GA、usage metrics 扩展。</span></li>
+            <li id="ref-3"><span class="bib-id">[3]</span> <span class="bib-author">Thomas Dohmke.</span> <a href="https://github.blog/news-insights/product-news/github-copilot-the-agent-awakens/" target="_blank" rel="noopener noreferrer">"GitHub Copilot: The agent awakens,"</a> <em>github.blog,</em> 2025.<span class="bib-note">Agent Mode 预览、Copilot Edits GA、Project Padawan（现 Cloud Agent）首次公开。WRAP 原则出自同期发布的 coding agent 最佳实践。</span></li>
+            <li id="ref-4"><span class="bib-id">[4]</span> <span class="bib-author">Knowledge Hub.</span> <a href="../../posts/copilot-harness-engineering/index.html">"AI 编码助手的 Harness Engineering 初始化,"</a> <em>本站,</em> 2026.<span class="bib-note">详细介绍 copilot-instructions.md、.instructions.md、Skills 和 Memory 的分层设计与实战经验。</span></li>
+            <li id="ref-5"><span class="bib-id">[5]</span> <span class="bib-author">Cursor (Anysphere).</span> <a href="https://cursor.com/features" target="_blank" rel="noopener noreferrer">"Cursor Features,"</a> <em>cursor.com,</em> 2026.<span class="bib-note">Cursor 3.0 的功能概述：Composer 2、Cloud Agents、Tab 补全、Bugbot code review、多模型支持、codebase 索引。</span></li>
+            <li id="ref-6"><span class="bib-id">[6]</span> <span class="bib-author">GitHub.</span> <a href="https://docs.github.com/en/copilot/about-github-copilot/github-copilot-features" target="_blank" rel="noopener noreferrer">"GitHub Copilot features,"</a> <em>docs.github.com,</em> 2026.<span class="bib-note">Copilot 完整功能列表：代码补全、Chat、Agent Mode、Cloud Agent、CLI、Code Review、MCP、Extensions。</span></li>
+          </ol>
+        </section>
+      </main>
+
+      <footer>
+        © 2026 GitHub Copilot 深度解析：产品全景、竞品对比与人机协同最佳实践 | 交互式 HTML 页面。
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>
