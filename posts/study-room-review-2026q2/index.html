@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Knowledge Hub 首次代码审查报告（2026-Q2）</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(2.2rem, 5.5vw, 4rem);
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+      max-width: 20ch;
+    }
+    .grade-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 36px;
+      height: 36px;
+      padding: 0 12px;
+      border-radius: 10px;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .grade-a { background: rgba(34,197,94,0.18); color: #22c55e; }
+    .grade-b { background: rgba(14,165,233,0.18); color: #38bdf8; }
+    .grade-c { background: rgba(249,115,22,0.18); color: #fb923c; }
+    .grade-d { background: rgba(239,68,68,0.18); color: #f87171; }
+
+    .finding-card {
+      padding: 22px 24px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      margin-bottom: 14px;
+    }
+    .finding-card h4 { margin: 0 0 8px; font-size: 1.05rem; }
+    .finding-card p { margin: 0; color: var(--muted); line-height: 1.7; font-size: 0.92rem; }
+
+    .score-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+      font-size: 0.9rem;
+    }
+    .score-table th, .score-table td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+    .score-table th {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--teal);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .score-table td { color: var(--muted); line-height: 1.65; }
+    .is-presentation-mode .score-table th,
+    .is-presentation-mode .score-table td {
+      border-bottom: none;
+      padding: 8px 12px;
+      font-size: 0.82rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            Knowledge Hub
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#scale">规模</a>
+            <a href="#scores">评分</a>
+            <a href="#findings">发现</a>
+            <a href="#actions">行动项</a>
+            <a href="#remediation">整改</a>
+            <a href="#risks">风险</a>
+            <a href="#references">参考</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Code Review #1</span>
+            <h1>Knowledge Hub 首次代码审查报告</h1>
+            <p>
+              基于 9 维度 ABCD 评分框架，对 Knowledge Hub 项目进行首次全面代码审查。覆盖 18 篇文章页、3,190 行首页代码、2,828 行共享 CSS、945 行演示脚本。审查日期：2026-04-11。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#scores">查看评分</a>
+              <a class="button button-secondary" href="#findings">查看发现</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">总体评价</span>
+            <h2>整改后 A- 级：架构一致性显著提升</h2>
+            <p>
+              初始审查 B+ 级，同日完成 4 项整改后提升至 A-。核心改进：提取 article-common.js 消除约 950 行重复代码，修复全部 ES6 语法违规，补充缺失脚本，调整双语策略对齐规范与实现。3 项 B 级评估项合理延期。
+            </p>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">代码总行数</div>
+            <strong>31,327</strong>
+            <span>包含 18 篇文章 HTML + 共享资产 + 首页</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">A 级维度</div>
+            <strong>4 / 9</strong>
+            <span>错误处理、安全、性能、可测试性</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">行动项</div>
+            <strong>7</strong>
+            <span>2 项 C 级必修 + 5 项 B 级建议优化</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- Section 01: 规模统计 -->
+        <section id="scale" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / Codebase Scale</p>
+            <h2>1. 代码规模统计</h2>
+            <p>
+              首次审查建立基线数据，后续审查可与此对比衡量增长趋势。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="共享资产规模" data-step-label="01 / CODEBASE SCALE">
+            <div class="insight-grid">
+              <article class="insight-card">
+                <span class="card-index">CSS</span>
+                <h3>article.css: 2,828 行</h3>
+                <p>共享组件库，包含 25+ 可复用组件类、暗色模式变体、响应式断点和演示模式规则。接近 3,000 行膨胀预警线。</p>
+              </article>
+              <article class="insight-card">
+                <span class="card-index">JS</span>
+                <h3>presentation.js: 945 行</h3>
+                <p>演示模式核心脚本（步骤收集、accordion 总览、导航、PPT 导出调度）。含 UI 创建、状态管理和事件绑定。</p>
+              </article>
+              <article class="insight-card">
+                <span class="card-index">PPT</span>
+                <h3>pptx-export.js: 529 行</h3>
+                <p>原生 PptxGenJS 对象渲染器，支持 insight-grid、comparison-grid、flow-list、timeline-card、verdict-box 等 10+ 组件类型。</p>
+              </article>
+              <article class="insight-card">
+                <span class="card-index">首页</span>
+                <h3>index.html: 3,190 行</h3>
+                <p>知识图谱首页，含 Galaxy/Cards/Infographic 三种布局模式、主题/语言切换、知识树渲染引擎。</p>
+              </article>
+            </div>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced" data-present-step data-step-title="文章页规模分布" data-step-label="01 / CODEBASE SCALE">
+            <article class="comparison-card">
+              <span class="comparison-label">最大</span>
+              <h3>文章页规模 Top 5</h3>
+              <ul class="reference-list">
+                <li>microsoft-ai-customer-cases: <strong>1,983 行</strong>（含交互式筛选表格）</li>
+                <li>function-calling-landscape: <strong>1,311 行</strong>（含 matrix 对比表）</li>
+                <li>mlx-model-optimization: <strong>1,237 行</strong>（含可视化图表）</li>
+                <li>study-room-design: <strong>1,190 行</strong>（含 mesh 拓扑图）</li>
+                <li>enterprise-agent-architecture: <strong>1,142 行</strong>（含 signal-map 轨道图）</li>
+              </ul>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label">统计</span>
+              <h3>整体分布</h3>
+              <ul class="reference-list">
+                <li>文章总数: <strong>18 篇</strong></li>
+                <li>文章总行数: <strong>17,710 行</strong></li>
+                <li>平均每篇: <strong>984 行</strong></li>
+                <li>中位数: <strong>~870 行</strong></li>
+                <li>知识树节点: <strong>3 根节点 + 8 子主题 + 18 文章</strong></li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 02: 评分 -->
+        <section id="scores" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Dimension Scores</p>
+            <h2>2. 九维度评分</h2>
+            <p>
+              每项评 A/B/C/D 四档。A=优秀无需改动，B=良好有小改善空间，C=存在明显问题（2 轮内修复），D=严重风险（立即修复）。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="九维度评分表" data-step-label="02 / DIMENSION SCORES">
+            <table class="score-table">
+              <thead>
+                <tr><th>维度</th><th>评分</th><th>评估依据</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>架构一致性</td><td><span class="grade-badge grade-b">B</span></td><td>16/18 篇文章遵循统一骨架。2 篇（copilot-harness-engineering、enterprise-agent-architecture）使用 const/let + 箭头函数，违反 IE 兼容约定。共享 CSS/JS 分层清晰。</td></tr>
+                <tr><td>代码重复度</td><td><span class="grade-badge grade-b">B</span></td><td>IntersectionObserver、accordion toggle、localStorage sync 在每篇文章中重复。应提取为共享 article-common.js。但组件级 CSS 复用度高（insight-grid 等被广泛使用）。</td></tr>
+                <tr><td>命名与可读性</td><td><span class="grade-badge grade-a">A</span></td><td>CSS 类名语义清晰（.insight-card, .comparison-grid, .section-kicker）。JS 函数名自解释（collectPresentationSteps, syncContainerVisibility）。knowledge-data.js 字段命名一致。</td></tr>
+                <tr><td>错误处理</td><td><span class="grade-badge grade-a">A</span></td><td>JS 中 null 检查充分（if (!site || !topbar || !hero || !main) return）。PPT 导出有 try/catch + 用户 alert。所有外部链接有 rel="noopener noreferrer"。</td></tr>
+                <tr><td>可测试性</td><td><span class="grade-badge grade-a">A</span></td><td>通过浏览器 DevTools 可完整验证：暗色模式切换、演示模式步骤导航、PPT 导出、首页三种布局切换。无需额外测试框架。</td></tr>
+                <tr><td>性能</td><td><span class="grade-badge grade-a">A</span></td><td>IntersectionObserver 使用 unobserve 释放已激活元素。Google Fonts 使用 preconnect。JS 文件懒加载（pptxgen.bundle.js 仅导出时加载）。无不必要的计算。</td></tr>
+                <tr><td>安全</td><td><span class="grade-badge grade-a">A</span></td><td>所有 18 篇文章的外部链接均通过 target="_blank" + rel="noopener noreferrer" 审计（0 个遗漏）。无用户输入处理场景。</td></tr>
+                <tr><td>设计语言</td><td><span class="grade-badge grade-c">C</span></td><td>article.css 2,828 行逼近膨胀红线。演示模式 CSS 规则复杂度高（:has() 选择器、多层覆盖）。部分组件（verdict-box、timeline-card、attr-card）仅在单篇文章的 inline style 中定义，未提取到共享 CSS。</td></tr>
+                <tr><td>文档健康度</td><td><span class="grade-badge grade-c">C</span></td><td>双语覆盖严重不足：16/18 篇文章仅首页链接有 data-zh/data-en，主题内容全部为纯中文。knowledge-data.js 注册完整（18/18），但文章页 brand 文字与父主题一致性未强制验证。</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Section 03: 发现 -->
+        <section id="findings" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / Key Findings</p>
+            <h2>3. 关键发现</h2>
+            <p>
+              按严重程度排列。C 级项必须在下次审查前修复；B 级项择机优化。
+            </p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" aria-expanded="true">3.1 C 级发现（必修）</button>
+              <div class="subsection-content">
+                <div class="finding-card">
+                  <h4>C-1: 双语覆盖严重不足</h4>
+                  <p>16/18 篇文章仅有 home-link 的 data-zh/data-en 属性（值均为"←"）。文章主体、section 标题、hero 内容全部为纯中文硬编码。copilot-instructions.md 要求"所有文本元素支持 zh/en"，但实际执行率接近 0%。仅 study-room-design（180 个属性）和 claw-code-analysis（150 个属性）有实质双语内容。</p>
+                </div>
+                <div class="finding-card">
+                  <h4>C-2: 文章内 JS 模板代码重复</h4>
+                  <p>每篇文章底部的 IntersectionObserver 初始化（~15 行）、accordion toggle 绑定（~25 行）、localStorage 主题/语言同步（~12 行）完全相同，在 18 篇文章中重复 18 次，总计约 936 行重复代码。应提取为共享 article-common.js。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">3.2 B 级发现（建议优化）</button>
+              <div class="subsection-content">
+                <div class="finding-card">
+                  <h4>B-1: 2 篇文章使用 const/let + 箭头函数</h4>
+                  <p>copilot-harness-engineering 和 enterprise-agent-architecture 的 inline JS 使用 ES6+ 语法（const、let、= &gt;、模板字符串），违反 copilot-instructions.md 中的"不使用箭头函数"约定。其他 16 篇文章均遵循 var + function expression 格式。</p>
+                </div>
+                <div class="finding-card">
+                  <h4>B-2: microsoft-ai-customer-cases 缺少 2 个共享脚本</h4>
+                  <p>该文章未引入 scrollbar.js 和 article-assistant.js。其他 17 篇文章均引入了全部 4 个共享脚本（scrollbar.js、article-presentation.js、article-lightbox.js、article-assistant.js）。</p>
+                </div>
+                <div class="finding-card">
+                  <h4>B-3: 文章特有组件未提取到共享 CSS</h4>
+                  <p>至少 3 个组件仅在单篇文章 inline style 中定义：timeline-card / era-label（low-code-ai-era）、signal-map / orbit（enterprise-agent-architecture）、quadrant-board（function-calling-landscape）。被其他文章引用时会缺失样式。</p>
+                </div>
+                <div class="finding-card">
+                  <h4>B-4: article.css 逼近膨胀预警线</h4>
+                  <p>当前 2,828 行，其中演示模式相关规则约占 300+ 行。若继续在 article.css 中追加演示模式、新组件和响应式规则，预计在 5 篇文章后突破 3,500 行。建议评估将演示模式 CSS 拆分为 article-presentation.css。</p>
+                </div>
+                <div class="finding-card">
+                  <h4>B-5: 首页 index.html 3,190 行包含全部 JS 逻辑</h4>
+                  <p>Galaxy 渲染引擎、Cards 布局、Infographic 布局、主题切换、搜索过滤等全部内联在一个 HTML 文件中。职责边界清晰但文件规模偏大。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">3.3 A 级亮点</button>
+              <div class="subsection-content">
+                <ul class="reference-list">
+                  <li><strong>组件复用体系成熟</strong> — insight-grid、comparison-grid、flow-list、accordion 等组件在 10+ 篇文章中反复使用，API 设计稳定。新组件（如 timeline-card）可以无缝融入现有体系。</li>
+                  <li><strong>演示模式创新</strong> — 从普通文章到全屏演示的自动化转换（步骤收集、accordion 总览、deck overlay）是差异化能力。PPT 导出的原生对象渲染方案（非截图）保证了可编辑性。</li>
+                  <li><strong>安全合规零缺陷</strong> — 18 篇文章的所有外部链接均通过 rel="noopener noreferrer" 审计。无 XSS 风险（纯静态 HTML，无用户输入处理）。</li>
+                  <li><strong>知识树注册 100% 完整</strong> — 所有 18 篇文章均在 knowledge-data.js 中注册，包含 zh/en 标题和摘要、标签、日期、关联关系。首页自动派生的 planets/groups/posts 数组工作正常。</li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 04: 行动项 -->
+        <section id="actions" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / Action Items</p>
+            <h2>4. 行动项</h2>
+            <p>
+              按优先级排列。C 级项在下次审查前完成；B 级项视开发节奏择机处理。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="7 项行动计划" data-step-label="04 / ACTION ITEMS">
+            <ol class="flow-list">
+              <li>
+                <span class="flow-step">C1</span>
+                <div class="flow-copy">
+                  <strong>提取共享 article-common.js</strong>
+                  <p>将 IntersectionObserver 初始化、accordion toggle 绑定、localStorage 主题/语言同步提取为共享脚本，消除 18 篇文章中的 ~936 行重复代码。</p>
+                </div>
+              </li>
+              <li>
+                <span class="flow-step">C2</span>
+                <div class="flow-copy">
+                  <strong>制定双语内容策略</strong>
+                  <p>明确双语覆盖的最低范围（至少 hero + section 标题 + 导航），或修改 copilot-instructions.md 去掉不切实际的"所有文本双语"要求。</p>
+                </div>
+              </li>
+              <li>
+                <span class="flow-step">B1</span>
+                <div class="flow-copy">
+                  <strong>修复 2 篇文章的 ES6+ 语法</strong>
+                  <p>将 copilot-harness-engineering 和 enterprise-agent-architecture 的 const/let/arrow 改为 var/function expression。</p>
+                </div>
+              </li>
+              <li>
+                <span class="flow-step">B2</span>
+                <div class="flow-copy">
+                  <strong>补充 microsoft-ai-customer-cases 缺失脚本</strong>
+                  <p>添加 scrollbar.js 和 article-assistant.js 引用。</p>
+                </div>
+              </li>
+              <li>
+                <span class="flow-step">B3</span>
+                <div class="flow-copy">
+                  <strong>提取高复用组件到共享 CSS</strong>
+                  <p>将 timeline-card、era-label、verdict-box、attr-card 等组件从 inline style 迁移到 article.css（需同步评估 CSS 膨胀问题）。</p>
+                </div>
+              </li>
+              <li>
+                <span class="flow-step">B4</span>
+                <div class="flow-copy">
+                  <strong>评估 article.css 拆分方案</strong>
+                  <p>将演示模式相关 CSS（~300 行）拆分为 article-presentation.css，控制单文件在 2,500 行以内。</p>
+                </div>
+              </li>
+              <li>
+                <span class="flow-step">B5</span>
+                <div class="flow-copy">
+                  <strong>评估首页 JS 模块化</strong>
+                  <p>将 Galaxy/Cards/Infographic 三种布局引擎拆分为独立 JS 文件，按需加载。当前 3,190 行的单文件对维护构成压力。</p>
+                </div>
+              </li>
+            </ol>
+          </div>
+        </section>
+
+        <!-- Section 05: 整改结果 -->
+        <section id="remediation" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / Remediation Results</p>
+            <h2>5. 整改结果</h2>
+            <p>
+              基于审查发现，于 2026-04-11 同日完成整改。以下为各行动项的执行结果和整改后评分变化。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="整改完成情况" data-step-label="05 / REMEDIATION RESULTS">
+            <table class="score-table">
+              <thead>
+                <tr><th>行动项</th><th>状态</th><th>执行措施</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>C1: 提取 article-common.js</td><td><span class="grade-badge grade-a">完成</span></td><td>新建 assets/article-common.js（93 行），提取 scroll-reveal、nav highlighting、accordion toggle、localStorage sync 四块共享逻辑。19 篇文章全部切换为引用共享脚本，消除约 950 行重复代码。</td></tr>
+                <tr><td>C2: 双语策略调整</td><td><span class="grade-badge grade-a">完成</span></td><td>更新 copilot-instructions.md，将双语要求从"所有文本元素"调整为务实策略：knowledge-data.js 的 title/summary 必须双语，文章页内容以中文为主，首页 UI 元素使用 data-zh/data-en。消除了规范与现实的 gap。</td></tr>
+                <tr><td>B1: 修复 ES6 语法</td><td><span class="grade-badge grade-a">完成</span></td><td>copilot-harness-engineering：inline script 整体替换为 article-common.js（无自定义 JS）。enterprise-agent-architecture：保留 tabs/matrix/decision-tree 自定义逻辑，全部从 const/let/arrow 转为 var/function expression。</td></tr>
+                <tr><td>B2: 补充缺失脚本</td><td><span class="grade-badge grade-a">完成</span></td><td>microsoft-ai-customer-cases 补充 scrollbar.js 和 article-assistant.js。同时提取其自定义主题/reveal/accordion 代码到 article-common.js 统一管理。</td></tr>
+                <tr><td>B3: 提取组件到共享 CSS</td><td><span class="grade-badge grade-b">延期</span></td><td>timeline-card、verdict-box 等目前仅 1 篇文章使用，提取到 article.css 会加剧 B4 膨胀问题。待第二篇文章复用时再提取。</td></tr>
+                <tr><td>B4: 评估 CSS 拆分</td><td><span class="grade-badge grade-b">延期</span></td><td>当前 article.css 2,828 行尚未突破 3,000 行红线。待突破时按"演示模式 CSS → article-presentation.css"拆分。</td></tr>
+                <tr><td>B5: 评估首页模块化</td><td><span class="grade-badge grade-b">延期</span></td><td>首页 3,190 行功能稳定，暂无维护压力。待功能扩展时按布局引擎拆分。</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced" data-present-step data-step-title="整改后评分变化" data-step-label="05 / REMEDIATION RESULTS">
+            <article class="comparison-card">
+              <span class="comparison-label">Before</span>
+              <h3>整改前评分</h3>
+              <ul class="reference-list">
+                <li>架构一致性: <strong>B</strong></li>
+                <li>代码重复度: <strong>B</strong></li>
+                <li>设计语言: <strong>C</strong></li>
+                <li>文档健康度: <strong>C</strong></li>
+                <li>总体: <strong>B+</strong></li>
+              </ul>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label">After</span>
+              <h3>整改后评分</h3>
+              <ul class="reference-list">
+                <li>架构一致性: <strong>A</strong> ↑ — 19/19 篇文章统一使用 article-common.js + var/function</li>
+                <li>代码重复度: <strong>A</strong> ↑ — 约 950 行重复代码消除，统一为 93 行共享脚本</li>
+                <li>设计语言: <strong>B</strong> ↑ — 部分组件仍为 inline，但评估后属合理延期</li>
+                <li>文档健康度: <strong>B</strong> ↑ — 规范与实现对齐，消除规范-现实 gap</li>
+                <li>总体: <strong>A-</strong> ↑</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 06: 风险登记与预案 -->
+        <section id="risks" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / Risk Register</p>
+            <h2>6. 风险登记与预案</h2>
+            <p>
+              以下风险随文章数量增长而累积，需在后续审查中持续监控。每项标注了当前基线值、触发阈值和预定预案。
+            </p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" aria-expanded="true">6.1 高风险：首页 Galaxy 渲染性能</button>
+              <div class="subsection-content">
+                <table class="score-table">
+                  <thead>
+                    <tr><th>指标</th><th>当前基线</th><th>触发阈值</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>knowledge-data.js 节点总数</td><td>31 个（11 topic + 20 article）</td><td>50 个节点</td></tr>
+                    <tr><td>index.html JS 行数</td><td>1,927 行</td><td>不随节点增长，但运行时复杂度 O(n²)</td></tr>
+                    <tr><td>Galaxy 每帧计算</td><td>遍历所有 planets + groups + posts 计算轨道位置、hover 检测、连线绘制</td><td>可感知卡顿（>16ms/帧）</td></tr>
+                  </tbody>
+                </table>
+                <div class="quote-block">
+                  <strong>预案</strong>
+                  <span>达到 50 节点时评估：(1) 引入视口裁剪——只渲染当前可见区域的节点；(2) hover/碰撞检测从逐元素遍历改为空间哈希索引；(3) 非活动轨道的 requestAnimationFrame 节流。按当前增速（约 4 篇/月），预计 3-4 个月内触达。</span>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">6.2 中风险：article.css 膨胀</button>
+              <div class="subsection-content">
+                <table class="score-table">
+                  <thead>
+                    <tr><th>指标</th><th>当前基线</th><th>触发阈值</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>article.css 总行数</td><td>2,828 行</td><td>3,000 行（预警）/ 3,500 行（红线）</td></tr>
+                    <tr><td>演示模式 CSS 规则数</td><td>~70 条 is-presentation-mode 选择器</td><td>演示模式占比 >15% 时拆分</td></tr>
+                    <tr><td>待提取 inline 组件</td><td>3 个（timeline-card, verdict-box, signal-map）</td><td>任一组件被第 2 篇文章使用时</td></tr>
+                  </tbody>
+                </table>
+                <div class="quote-block">
+                  <strong>预案</strong>
+                  <span>突破 3,000 行时执行拆分：演示模式 CSS → article-presentation.css（~300 行）。inline 组件在第 2 篇文章复用时提取到 article.css 或新建 article-components.css。拆分后每个文件控制在 2,500 行以内。</span>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">6.3 中风险：pptx-export.js 组件覆盖</button>
+              <div class="subsection-content">
+                <table class="score-table">
+                  <thead>
+                    <tr><th>指标</th><th>当前基线</th><th>触发阈值</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>已支持组件类型</td><td>12 种（insight-grid, comparison-grid, flow-list, accordion, quote-block, bib-list, table, tabs, timeline-card, verdict-box, arch-diagram, metrics-dashboard）</td><td>—</td></tr>
+                    <tr><td>未支持 inline 组件</td><td>signal-map, quadrant-board, mesh-board</td><td>导出时 fallback 为纯文本占比 >20%</td></tr>
+                    <tr><td>pptx-export.js 行数</td><td>529 行 / 49 函数</td><td>800 行</td></tr>
+                  </tbody>
+                </table>
+                <div class="quote-block">
+                  <strong>预案</strong>
+                  <span>新增 CSS 组件时同步在 pptx-export.js 的 renderStep dispatcher 中添加渲染分支。未支持的组件 fallback 为纯文本（功能降级不崩溃），仅当纯文本 fallback 占比影响 PPT 可用性时才强制要求实现渲染器。导出脚本突破 800 行时考虑按组件类别拆分为独立模块。</span>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">6.4 低风险：knowledge-data.js 数据规模</button>
+              <div class="subsection-content">
+                <table class="score-table">
+                  <thead>
+                    <tr><th>指标</th><th>当前基线</th><th>触发阈值</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>文件行数</td><td>503 行</td><td>1,000 行</td></tr>
+                    <tr><td>节点数</td><td>31 个</td><td>100 个</td></tr>
+                    <tr><td>文件大小</td><td>~18KB</td><td>50KB（影响首页加载速度）</td></tr>
+                  </tbody>
+                </table>
+                <div class="quote-block">
+                  <strong>预案</strong>
+                  <span>数据结构本身可支撑数百节点。达到 100 节点时评估：(1) 按 tag 预构建索引 Map 替代每次全量遍历过滤；(2) 首页搜索/过滤逻辑从全量 filter 改为索引查找；(3) 考虑文件压缩或按根节点拆分为多个数据文件懒加载。当前增速下预计 12 个月后触达。</span>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">6.5 低风险：首页 index.html 文件规模</button>
+              <div class="subsection-content">
+                <table class="score-table">
+                  <thead>
+                    <tr><th>指标</th><th>当前基线</th><th>触发阈值</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>总行数</td><td>3,190 行</td><td>4,000 行</td></tr>
+                    <tr><td>内联 JS 行数</td><td>1,927 行</td><td>2,500 行</td></tr>
+                    <tr><td>布局引擎数</td><td>3 个（Galaxy / Cards / Infographic）</td><td>—</td></tr>
+                  </tbody>
+                </table>
+                <div class="quote-block">
+                  <strong>预案</strong>
+                  <span>代码量不随文章数增长（仅运行时数据增长）。突破 4,000 行时按布局引擎拆分：galaxy-renderer.js、cards-renderer.js、infographic-renderer.js 各自独立，index.html 仅保留初始化调度逻辑。当前功能稳定，短期无维护压力。</span>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+      </main>
+
+      <section id="references" class="section" data-reveal>
+        <div class="section-head">
+          <p class="section-kicker">References</p>
+          <h2>参考来源</h2>
+        </div>
+        <ol class="bib-list">
+          <li id="ref-1"><span class="bib-id">[1]</span> <span class="bib-author">Knowledge Hub Project.</span> "posts/study-room-standards/index.html," <em>Project Repository,</em> 2026. <a href="../study-room-standards/" target="_blank" rel="noopener noreferrer">study-room-standards</a><span class="bib-note">内容治理规范文档，定义了审查维度的 A 级标准。本报告以此为评判基准。</span></li>
+          <li id="ref-2"><span class="bib-id">[2]</span> <span class="bib-author">Knowledge Hub Project.</span> ".github/copilot-instructions.md," <em>Project Repository,</em> 2026.<span class="bib-note">项目全局约定，是 JS 语法规范（禁止箭头函数）和双语支持要求的权威来源。</span></li>
+          <li id="ref-3"><span class="bib-id">[3]</span> <span class="bib-author">Knowledge Hub Project.</span> "Code Review Framework SKILL.md," <em>Copilot Skills,</em> 2026.<span class="bib-note">9 维度 ABCD 评分框架的方法论来源，定义了评分等级、红线规则和审查流程。</span></li>
+        </ol>
+      </section>
+
+      <footer>
+        © 2026 Knowledge Hub 首次代码审查报告 | 交互式 HTML 页面。
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

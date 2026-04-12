@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NousResearch Hermes：面向工具调用与用户对齐的开源微调模型系列</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(2rem, 5vw, 3.6rem);
+      line-height: 1.06;
+      letter-spacing: -0.04em;
+      max-width: 18ch;
+    }
+
+    .hero-metrics {
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    }
+
+    .evolution-timeline {
+      display: grid;
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .evolution-item {
+      display: grid;
+      grid-template-columns: 80px 1fr;
+      gap: 18px;
+      padding: 18px;
+      border-radius: 22px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+      align-items: start;
+    }
+
+    .evolution-version {
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.04em;
+      padding-top: 2px;
+    }
+
+    .evolution-body h4 {
+      margin: 0 0 6px;
+      font-size: 1.02rem;
+      line-height: 1.35;
+    }
+
+    .evolution-body p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.72;
+    }
+
+    .prompt-block {
+      margin-top: 16px;
+      padding: 20px;
+      border-radius: 16px;
+      background: rgba(15, 23, 42, 0.04);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      font-family: "Space Grotesk", monospace;
+      font-size: 0.82rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: var(--ink);
+    }
+
+    .capability-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .capability-card {
+      padding: 20px;
+      border-radius: 22px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+    }
+
+    .capability-card h4 {
+      margin: 0 0 10px;
+      font-size: 1.02rem;
+      line-height: 1.35;
+    }
+
+    .capability-card p,
+    .capability-card li {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.72;
+    }
+
+    .capability-card ul {
+      margin: 8px 0 0;
+      padding-left: 18px;
+    }
+
+    .capability-tag {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 10px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.06);
+      color: var(--muted);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .benchmark-table-wrap {
+      margin-top: 16px;
+      overflow-x: auto;
+      border-radius: 18px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+    }
+
+    .benchmark-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+
+    .benchmark-table th,
+    .benchmark-table td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+    }
+
+    .benchmark-table th {
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-weight: 700;
+      font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: rgba(15, 23, 42, 0.03);
+    }
+
+    .benchmark-table td {
+      color: var(--ink);
+    }
+
+    .benchmark-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .benchmark-table .highlight-cell {
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .workflow-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .workflow-card {
+      padding: 20px;
+      border-radius: 22px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+    }
+
+    .workflow-card h4 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+      line-height: 1.35;
+    }
+
+    .workflow-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.72;
+    }
+
+    .goap-diagram {
+      margin-top: 18px;
+      padding: 20px;
+      border-radius: 18px;
+      background: rgba(13, 143, 140, 0.06);
+      border: 1px solid rgba(13, 143, 140, 0.12);
+    }
+
+    .goap-diagram h4 {
+      margin: 0 0 12px;
+      font-size: 0.96rem;
+      color: var(--teal);
+    }
+
+    .goap-fields {
+      display: grid;
+      gap: 8px;
+    }
+
+    .goap-field {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      gap: 10px;
+      font-size: 0.88rem;
+      line-height: 1.6;
+    }
+
+    .goap-field-label {
+      font-family: "Space Grotesk", monospace;
+      font-weight: 700;
+      color: var(--teal);
+      font-size: 0.82rem;
+    }
+
+    .goap-field-value {
+      color: var(--muted);
+    }
+
+    [data-theme="dark"] .evolution-item,
+    [data-theme="dark"] .capability-card,
+    [data-theme="dark"] .benchmark-table-wrap,
+    [data-theme="dark"] .workflow-card {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.18);
+    }
+
+    [data-theme="dark"] .prompt-block {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.08);
+      color: var(--ink);
+    }
+
+    [data-theme="dark"] .benchmark-table th {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    [data-theme="dark"] .benchmark-table th,
+    [data-theme="dark"] .benchmark-table td {
+      border-bottom-color: rgba(255, 255, 255, 0.06);
+    }
+
+    [data-theme="dark"] .capability-tag {
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(236, 241, 246, 0.76);
+    }
+
+    [data-theme="dark"] .goap-diagram {
+      background: rgba(13, 143, 140, 0.08);
+      border-color: rgba(13, 143, 140, 0.16);
+    }
+
+    .benchmark-figure {
+      margin-top: 16px;
+      padding: 20px;
+      border-radius: 22px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+    }
+
+    .benchmark-figure-label {
+      display: block;
+      margin-bottom: 12px;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .benchmark-figure img {
+      width: 100%;
+      height: auto;
+      border-radius: 14px;
+    }
+
+    .benchmark-figure-caption {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.65;
+    }
+
+    [data-theme="dark"] .benchmark-figure {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.18);
+    }
+
+    [data-theme="dark"] .benchmark-figure img {
+      filter: brightness(0.92) contrast(1.05);
+    }
+
+    @media (max-width: 640px) {
+      .evolution-item {
+        grid-template-columns: 1fr;
+        gap: 6px;
+      }
+
+      .capability-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .workflow-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .goap-field {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero" data-present-step data-step-title="文章总览">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            模型
+          </div>
+          <div class="topbar-actions">
+            <nav class="nav-links" aria-label="页面章节导航">
+              <a href="#overview">概述</a>
+              <a href="#evolution">演进</a>
+              <a href="#alignment">对齐</a>
+              <a href="#capabilities">能力</a>
+              <a href="#function-calling">工具调用</a>
+              <a href="#benchmarks">基准</a>
+              <a href="#positioning">竞争定位</a>
+              <a href="#usage">使用</a>
+              <a href="#references">参考</a>
+            </nav>
+          </div>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Open Source LLM Series</span>
+            <h1>NousResearch Hermes：面向工具调用与用户对齐的开源微调模型</h1>
+            <p>
+              Hermes 是 Nous Research 发布的开源指令微调（instruct-tuned）LLM 系列。最新版本 Hermes 4 基于 Qwen 3 14B / Llama 3.1 70B / 405B 构建，引入 hybrid reasoning（&lt;think&gt; 模式）并将训练数据从 1M 样本 / 1.2B tokens 跃升至 ~5M 样本 / ~60B tokens。其核心设计理念是 neutral alignment — 将 LLM 行为的控制权交还给终端用户，同时在 math、code、STEM 和 agentic tool use 上与同级别闭源模型竞争。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#evolution">演进历程</a>
+              <a class="button button-secondary" href="#function-calling">工具调用详解</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">核心特征</span>
+            <h2>中立对齐、ChatML 格式、原生 function calling、GOAP agentic reasoning。</h2>
+            <ul class="layer-list section-grid-spaced">
+              <li><span class="layer-number">1</span>Neutral alignment：不预设政治/道德偏见，将行为控制权交给用户的 system prompt。</li>
+              <li><span class="layer-number">2</span>ChatML 原生支持：采用 &lt;|im_start|&gt; / &lt;|im_end|&gt; 结构化对话，兼容 OpenAI API。</li>
+              <li><span class="layer-number">3</span>Function calling + JSON mode：内置 &lt;tool_call&gt; 协议与 JSON schema 约束输出。</li>
+              <li><span class="layer-number">4</span>Hybrid reasoning：Hermes 4 引入 &lt;think&gt; 推理模式，可在工具调用前进行深度思考链推理。</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">最新版本</div>
+            <strong>Hermes 4 / 4.3</strong>
+            <span>2025 Q3 发布，14B / 36B / 70B / 405B 多规模覆盖</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">训练数据跃升</div>
+            <strong>1M → 5M 样本</strong>
+            <span>token 量从 1.2B 扩至 ~60B，含推理与非推理混合数据</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">RefusalBench</div>
+            <strong>SOTA</strong>
+            <span>在所有主流开源和闭源模型中拒答率最低</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">开源许可</div>
+            <strong>Apache 2.0 / Llama 3</strong>
+            <span>14B 采用 Apache 2.0，70B/405B 继承 Llama 3 许可</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- Section 1: Overview -->
+        <section id="overview" class="section" data-reveal data-present-step data-step-title="Hermes 定位与设计理念">
+          <div class="section-head">
+            <p class="section-kicker">01 / What Is Hermes</p>
+            <h2>1. Hermes 是什么：一个"用户对齐"而非"厂商对齐"的开源模型系列</h2>
+            <p>
+              在当前 LLM 生态中，大多数指令微调模型的对齐方向由模型提供商决定 — 模型内嵌了哪些拒答策略、遵循哪些伦理准则、表达哪些价值立场，均在训练阶段固化。Hermes 的设计思路反其道而行：通过 neutral alignment 将这些决策权移交给 system prompt 的编写者（即终端开发者和用户），使 LLM 成为一个可塑性更高的推理引擎。
+            </p>
+          </div>
+
+          <div class="insight-grid">
+            <article class="insight-card">
+              <span class="card-index">01</span>
+              <h3>谁在做 Hermes</h3>
+              <p>Nous Research 是一个专注于开源 AI 研究的组织，核心贡献者包括 Ryan Teknium、Jeffrey Quesnelle 和 Chen Guang。Hermes 是其旗舰模型系列。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">02</span>
+              <h3>核心定位</h3>
+              <p>Hermes 定位为"中立对齐的通用指令模型"（neutrally-aligned generalist instruct model），在 function calling、structured output、roleplaying 和 multi-turn conversation 上均有针对性训练。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">03</span>
+              <h3>与 Llama Instruct 的差异</h3>
+              <p>同为基于 Llama 3.1 的微调（70B/405B 版本），Meta 的 Llama Instruct 版本内嵌了预设的安全对齐；Hermes 将对齐策略外置到 system prompt，用户可自行设定行为边界。Hermes 4 通过 RefusalBench SOTA 量化了这一可操控性优势。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">04</span>
+              <h3>训练数据构成</h3>
+              <p>Hermes 系列的训练数据以合成数据（synthetic data）为主。Hermes 4 将训练规模从 ~1M 样本 / 1.2B tokens 扩至 ~5M 样本 / ~60B tokens，在推理（verified reasoning traces）和非推理数据之间做混合配比。训练流程包含 SFT + DPO 两个阶段。</p>
+            </article>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced">
+            <article class="comparison-card">
+              <span class="comparison-label">Neutral Alignment</span>
+              <h3>Neutral Alignment 的含义与边界</h3>
+              <ul class="challenge-list">
+                <li><strong>不是"无对齐"</strong> — Hermes 仍经过 SFT + DPO 训练，具有指令遵循能力和质量控制。差异在于它不预设特定价值立场。</li>
+                <li><strong>不是"无限制"</strong> — 但行为边界由 system prompt 定义而非训练时固化，给应用开发者更多控制空间。</li>
+                <li><strong>设计目的</strong> — 允许同一个模型在不同场景下表现出不同的行为策略，而不是把所有场景约束到同一套固化规则中。</li>
+                <li><strong>工程含义</strong> — 在部署 Hermes 时，开发者必须通过 system prompt 显式设定安全边界，这是一项额外的工程责任。</li>
+              </ul>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label">Use Cases</span>
+              <h3>Hermes 适合哪些场景</h3>
+              <ul class="challenge-list">
+                <li><strong>Agentic 工作流</strong> — 需要模型执行 function calling、多步推理和工具编排的 AI Agent 场景。</li>
+                <li><strong>Structured output</strong> — 需要模型严格输出 JSON schema 格式的数据提取和转换任务。</li>
+                <li><strong>角色扮演 / 创意写作</strong> — Hermes 的 system prompt 可塑性使其适合高度定制化的对话角色。</li>
+                <li><strong>本地部署</strong> — 8B 版本支持 GGUF 量化，可在消费级硬件上通过 llama.cpp / vLLM / Ollama 等工具运行。</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 2: Evolution -->
+        <section id="evolution" class="section" data-reveal data-present-step data-step-title="Hermes 演进时间线">
+          <div class="section-head">
+            <p class="section-kicker">02 / Evolution Timeline</p>
+            <h2>2. 演进（Hermes 1 → 2 → 2 Pro → 3 → 4 → 4.3）：每一代解决了什么问题</h2>
+            <p>
+              Hermes 系列经历了四个主要版本。每个版本都基于当时最强的开源基座模型，并在训练数据、训练方法和能力范围上做出扩展。
+            </p>
+          </div>
+
+          <div class="evolution-timeline section-grid-spaced">
+            <article class="evolution-item">
+              <span class="evolution-version">Hermes 1</span>
+              <div class="evolution-body">
+                <h4>首批高质量 GPT-4 合成数据微调（2023）</h4>
+                <p>基于 LLaMA 1 / LLaMA 2，使用 GPT-4 生成的合成对话数据进行 SFT。定位为通用对话模型，在当时的开源模型中率先验证了"合成数据 + 开源基座"可以接近闭源模型的对话质量。ChatML 在此版本开始作为 prompt format。</p>
+              </div>
+            </article>
+            <article class="evolution-item">
+              <span class="evolution-version">Hermes 2</span>
+              <div class="evolution-body">
+                <h4>扩展到 Mistral / Mixtral / Llama 2 多基座（2023–2024）</h4>
+                <p>从单一基座扩展到 Mistral 7B、Mixtral 8x7B、Llama 2 等多个基座模型。训练数据质量和多样性进一步提升，对话能力、推理能力和代码生成均有显著改善。此版本验证了 Hermes 微调方法在不同基座上的可迁移性。</p>
+              </div>
+            </article>
+            <article class="evolution-item">
+              <span class="evolution-version">Hermes 2 Pro</span>
+              <div class="evolution-body">
+                <h4>引入 Function Calling 和 JSON Mode（2024 Q1–Q2）</h4>
+                <p>在 Hermes 2 的基础上引入两项关键能力：<strong>Function calling</strong>（通过 &lt;tool_call&gt; XML 标记生成函数调用）和 <strong>JSON mode</strong>（严格遵循用户提供的 JSON schema 生成结构化输出）。这使 Hermes 从纯对话模型跨入了 agentic 工具生态。训练使用了专门构造的 function calling 和 schema 遵循数据集。</p>
+              </div>
+            </article>
+            <article class="evolution-item">
+              <span class="evolution-version">Hermes 3</span>
+              <div class="evolution-body">
+                <h4>Llama 3.1 全参数微调 + GOAP 推理（2024 Q3）</h4>
+                <p>基于 Meta Llama 3.1（8B / 70B / 405B），其中 405B 版本是业界首批对 Llama 3.1 405B 进行全参数微调的开源模型。训练方法为 SFT + DPO，合成数据规模和质量进一步扩大。新增 GOAP（Goal-Oriented Action Planning）推理框架的 &lt;scratch_pad&gt; 支持，用于多步工具调用中的规划与反思。arXiv 技术报告：2408.11857。</p>
+              </div>
+            </article>
+            <article class="evolution-item">
+              <span class="evolution-version">Hermes 4</span>
+              <div class="evolution-body">
+                <h4>Hybrid Reasoning + 60B Token 训练规模（2025 Q3）</h4>
+                <p>Hermes 4 是一次结构性升级。<strong>基座多元化：</strong>14B 基于 Qwen 3 14B（Apache 2.0），70B/405B 基于 Llama 3.1。<strong>训练规模跃升：</strong>训练数据从 ~1M 样本 / 1.2B tokens 扩至 ~5M 样本 / ~60B tokens，在推理和非推理数据之间做混合配比。<strong>Hybrid reasoning：</strong>引入 &lt;think&gt;...&lt;/think&gt; 深度推理模式，模型可自主决定是否启用长链推理（也可通过 thinking=True 强制开启）。<strong>RefusalBench SOTA：</strong>在自建的 RefusalBench 基准上，Hermes 4 在所有主流开源和闭源模型中拒答率最低。<strong>vLLM/SGLang 原生支持：</strong>工具解析器内置于 vLLM（hermes）和 SGLang（qwen25），&lt;tool_call&gt; token 可流式解析。技术报告：arXiv 2508.18255。</p>
+              </div>
+            </article>
+            <article class="evolution-item">
+              <span class="evolution-version">Hermes 4.3</span>
+              <div class="evolution-body">
+                <h4>Psyche 分布式训练 + 512K 上下文（2025 Q4）</h4>
+                <p>基于 ByteDance Seed-OSS-36B-Base，36B 参数量在性能上接近（部分超过）Hermes 4 70B。核心创新是训练基础设施：Hermes 4.3 是首个在 Psyche 分布式训练网络上完成生产训练的模型，24 个节点通过 DisTrO 优化器跨数据中心协作，平均吞吐 144k tokens/秒。上下文窗口扩展至 512K。GGUF 量化后可在消费级 GPU 上运行。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 3: Alignment -->
+        <section id="alignment" class="section" data-reveal data-present-step data-step-title="训练方法与对齐策略">
+          <div class="section-head">
+            <p class="section-kicker">03 / Training &amp; Alignment</p>
+            <h2>3. 训练方法：SFT + DPO 两阶段，合成数据为主</h2>
+            <p>
+              Hermes 系列（3 和 4）均采用 SFT + DPO 两阶段流程。Hermes 4 在此基础上将训练数据扩充至 ~5M 样本 / ~60B tokens，包含 verified reasoning traces 以支持 hybrid reasoning 模式。第一阶段 SFT 在基座模型上建立指令遵循、对话、code generation、function calling 和 structured output 等核心能力；第二阶段 DPO 通过偏好对比学习优化输出质量和对齐表现。
+            </p>
+          </div>
+
+          <div class="insight-grid">
+            <article class="insight-card">
+              <span class="card-index">01</span>
+              <h3>SFT 阶段</h3>
+              <p>在基座模型上使用合成数据进行有监督微调。Hermes 4 的 SFT 数据规模达 ~5M 样本，覆盖多轮对话、推理链（含 verified reasoning traces）、代码编写、function calling schemas 和 JSON 模式输出。Hermes 4 14B 使用 ChatML 格式，70B/405B 使用 Llama chat 格式。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">02</span>
+              <h3>DPO 阶段</h3>
+              <p>Direct Preference Optimization 通过对比"优选响应"与"劣选响应"对模型进行偏好对齐，无需训练单独的奖励模型。相比 RLHF，DPO 的训练流程更简洁且稳定性更好，特别适合社区资源有限的开源项目。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">03</span>
+              <h3>合成数据策略</h3>
+              <p>Hermes 自初代起即以合成数据为核心训练材料。这一策略的优势在于可以大规模构造覆盖特定能力维度的高质量样本（如 function calling 流程、JSON schema 遵循），劣势在于可能引入基座模型的偏见和质量上限。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">04</span>
+              <h3>全参数微调与分布式训练</h3>
+              <p>Hermes 3 405B 在 Lambda Labs 的 1-Click Cluster 上完成全参数微调（800GB+ VRAM）。Hermes 4 延续全参数路线，Hermes 4.3 则首次在 Psyche 分布式训练网络上完成生产训练（24 节点，DisTrO 优化器，144k tokens/秒），验证了去中心化训练的可行性。</p>
+            </article>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced">
+            <article class="comparison-card">
+              <span class="comparison-label">Hermes vs Llama Instruct</span>
+              <h3>训练路径对比</h3>
+              <ul class="challenge-list">
+                <li><strong>训练数据</strong> — Llama Instruct 使用人工标注和 RLHF/DPO 数据；Hermes 以 GPT-4 合成数据为主。</li>
+                <li><strong>对齐目标</strong> — Llama Instruct 内嵌 Meta 预设的安全策略；Hermes 追求中立对齐，安全策略由 system prompt 定义。</li>
+                <li><strong>Prompt 格式</strong> — Llama Instruct 使用 Llama 原生 chat template；Hermes 统一使用 ChatML 格式。</li>
+                <li><strong>能力侧重</strong> — 两者在通用对话和推理上各有胜负；Hermes 在 function calling 和 roleplaying 上有更专门的训练。</li>
+              </ul>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label">ChatML Format</span>
+              <h3>为什么 Hermes 坚持 ChatML</h3>
+              <ul class="challenge-list">
+                <li><strong>结构化分隔</strong> — &lt;|im_start|&gt; / &lt;|im_end|&gt; 提供明确的角色边界和轮次分隔，比自然文本标记更不容易被模型误解。</li>
+                <li><strong>OpenAI 兼容</strong> — ChatML 格式与 OpenAI API 的 messages 结构直接对应，工程集成成本低。</li>
+                <li><strong>工具角色扩展</strong> — ChatML 天然支持 system / user / assistant / tool 四种角色，适合 function calling 场景中工具回复的注入。</li>
+                <li><strong>Hermes 4 分化</strong> — Hermes 4 14B 继续使用 ChatML，但 70B/405B（Llama 3.1 基座）改用 Llama chat 格式。部署时需注意基座对应的 template。</li>
+              </ul>
+            </article>
+          </div>
+
+          <div class="prompt-block section-grid-spaced">&lt;!-- Hermes 4 14B (ChatML) --&gt;
+&lt;|im_start|&gt;system
+You are Hermes 4. Be concise and helpful.&lt;|im_end|&gt;
+&lt;|im_start|&gt;user
+Explain the photoelectric effect simply.&lt;|im_end|&gt;
+&lt;|im_start|&gt;assistant</div>
+        </section>
+
+        <!-- Section 4: Core Capabilities -->
+        <section id="capabilities" class="section" data-reveal data-present-step data-step-title="四大核心能力">
+          <div class="section-head">
+            <p class="section-kicker">04 / Core Capabilities</p>
+            <h2>4. 四大核心能力：Function Calling、Structured Output、Agentic Reasoning、Steerability</h2>
+            <p>
+              Hermes 系列在四个维度上做了专门训练和架构级支持。Hermes 4 在每个维度上都有显著提升——特别是引入 hybrid reasoning（&lt;think&gt; 模式）替代了 Hermes 3 的 GOAP scratch_pad。
+            </p>
+          </div>
+
+          <div class="capability-grid section-grid-spaced">
+            <article class="capability-card">
+              <span class="capability-tag">Tool Use</span>
+              <h4>Function Calling</h4>
+              <p>模型可以接收 OpenAI 格式的 tools 定义（JSON schema），在推理过程中生成 &lt;tool_call&gt; 标记的函数调用，并解析 &lt;tool_response&gt; 返回值继续对话。支持单次和多次并发调用。</p>
+              <ul>
+                <li>工具定义在 system prompt 的 &lt;tools&gt; 标签中提供</li>
+                <li>调用结果通过 tool 角色注入回对话</li>
+                <li>支持递归调用（最大深度可配）</li>
+              </ul>
+            </article>
+
+            <article class="capability-card">
+              <span class="capability-tag">Structured</span>
+              <h4>JSON Mode / Structured Output</h4>
+              <p>通过专门的 system prompt 指令和 JSON schema 约束，模型可以输出严格符合用户定义 schema 的 JSON 对象。配合 Pydantic 模型可自动生成 schema 定义。</p>
+              <ul>
+                <li>system prompt 中指定 &lt;schema&gt; 约束</li>
+                <li>支持嵌套对象、可选字段、数组类型</li>
+                <li>提供 JSON schema 验证器脚本</li>
+              </ul>
+            </article>
+
+            <article class="capability-card">
+              <span class="capability-tag">Agentic</span>
+              <h4>Hybrid Reasoning（Hermes 3 GOAP → Hermes 4 &lt;think&gt;）</h4>
+              <p>Hermes 3 引入 GOAP scratch_pad 实现工具调用前的结构化推理。Hermes 4 进一步演进为 &lt;think&gt;...&lt;/think&gt; hybrid reasoning 模式——模型可自主决定是否启用长链推理，也可通过 thinking=True 强制开启，推理与工具调用可交织在同一轮输出中。</p>
+              <ul>
+                <li>Goal：重述用户意图</li>
+                <li>Actions：列出待执行的函数调用序列</li>
+                <li>Observation：总结工具返回结果</li>
+                <li>Reflection：评估是否需要后续调用</li>
+              </ul>
+            </article>
+
+            <article class="capability-card">
+              <span class="capability-tag">Steerability</span>
+              <h4>System Prompt 可塑性</h4>
+              <p>由于 neutral alignment 设计，Hermes 对 system prompt 的遵循度高于大多数预对齐模型。用户可以通过 system prompt 设定模型的人格、语言风格、行为边界和拒答策略，且模型不会因内置对齐策略而覆盖这些指令。</p>
+              <ul>
+                <li>支持角色扮演、教学助手等高度定制场景</li>
+                <li>可设定领域特定的拒答规则</li>
+                <li>Hermes 4 的 steerability 进一步提升，RefusalBench SOTA</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 5: Function Calling Deep Dive -->
+        <section id="function-calling" class="section" data-reveal>
+          <div class="present-step-block" data-present-step data-step-title="Function Calling 工作流">
+            <div class="section-head">
+              <p class="section-kicker">05 / Function Calling Deep Dive</p>
+              <h2>5. Function Calling 完整工作流：从 tool 定义到结果回传</h2>
+              <p>
+                Hermes 的 function calling 不是一个独立模块，而是通过 ChatML 角色系统和专用 XML 标记实现的端到端工具使用流程。以下是完整的六步工作流。
+              </p>
+            </div>
+
+            <div class="workflow-grid section-grid-spaced">
+              <article class="workflow-card">
+                <span class="card-index">01</span>
+                <h4>System Prompt 定义可用工具</h4>
+                <p>在 system 角色消息中，通过 &lt;tools&gt; 标签提供 OpenAI 格式的函数签名列表（JSON schema）。每个工具包含 name、description 和参数定义。</p>
+              </article>
+              <article class="workflow-card">
+                <span class="card-index">02</span>
+                <h4>用户发出请求</h4>
+                <p>用户在 user 角色消息中发出自然语言请求，如"获取特斯拉的股价基本面数据"。</p>
+              </article>
+              <article class="workflow-card">
+                <span class="card-index">03</span>
+                <h4>模型生成 tool_call（可选 &lt;think&gt; 推理）</h4>
+                <p>模型在 assistant 角色中生成 &lt;tool_call&gt; 标记包裹的 JSON 对象，包含函数名和参数。Hermes 4 可在调用前使用 &lt;think&gt; 进行 hybrid reasoning，规划调用策略（Hermes 3 使用 &lt;scratch_pad&gt; GOAP 模式）。</p>
+              </article>
+              <article class="workflow-card">
+                <span class="card-index">04</span>
+                <h4>应用层解析并执行函数</h4>
+                <p>推理代码（inference harness）解析模型输出中的 &lt;tool_call&gt;，提取函数名和参数，调用对应的外部 API 或本地函数。</p>
+              </article>
+              <article class="workflow-card">
+                <span class="card-index">05</span>
+                <h4>工具结果通过 tool 角色回传</h4>
+                <p>函数返回值被包裹在 &lt;tool_response&gt; 标签中，以 tool 角色注入对话历史。模型读取此结果生成自然语言回答。</p>
+              </article>
+              <article class="workflow-card">
+                <span class="card-index">06</span>
+                <h4>递归循环（如需多步调用）</h4>
+                <p>如果首次工具调用的结果不足以回答用户问题，模型可再次生成 tool_call 进入下一轮调用。递归深度由推理代码的 max_depth 参数控制，默认为 5。</p>
+              </article>
+            </div>
+          </div>
+
+          <div class="present-step-block" data-present-step data-step-title="GOAP 推理框架">
+            <div class="section-head present-inline-head">
+              <p class="section-kicker">05B / GOAP Scratch Pad</p>
+              <h2>Agentic 推理：从 Hermes 3 GOAP 到 Hermes 4 Hybrid Reasoning</h2>
+              <p>
+                Hermes 3 引入 GOAP（Goal-Oriented Action Planning）结构化推理模板，通过 &lt;scratch_pad&gt; 实现工具调用前的规划。Hermes 4 将此能力升级为 &lt;think&gt;...&lt;/think&gt; hybrid reasoning 模式——推理与工具调用可交织，模型可自主决定推理深度，且 vLLM/SGLang 原生支持流式解析。以下以 GOAP 格式为例展示推理结构（Hermes 4 的 &lt;think&gt; 模式更灵活，不受此固定模板约束）。
+              </p>
+            </div>
+
+            <div class="goap-diagram section-grid-spaced">
+              <h4>&lt;scratch_pad&gt; 结构示例</h4>
+              <div class="goap-fields">
+                <div class="goap-field">
+                  <span class="goap-field-label">Goal</span>
+                  <span class="goap-field-value">重述用户请求：获取 TSLA 的股票基本面数据。</span>
+                </div>
+                <div class="goap-field">
+                  <span class="goap-field-label">Actions</span>
+                  <span class="goap-field-value">result = functions.get_stock_fundamentals(symbol="TSLA")</span>
+                </div>
+                <div class="goap-field">
+                  <span class="goap-field-label">Observation</span>
+                  <span class="goap-field-value">首次调用前设为 None；工具返回后填充结果摘要。</span>
+                </div>
+                <div class="goap-field">
+                  <span class="goap-field-label">Reflection</span>
+                  <span class="goap-field-value">可用工具中 get_stock_fundamentals 与请求匹配，所需参数 symbol 已由用户提供。执行调用。</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="comparison-grid section-grid-spaced">
+              <article class="comparison-card">
+                <span class="comparison-label">GOAP 设计意图</span>
+                <h3>为什么在工具调用前增加 scratch_pad</h3>
+                <ul class="challenge-list">
+                  <li><strong>减少幻觉调用</strong> — 模型在 Reflection 阶段评估工具相关性和参数完整性，降低无效调用概率。</li>
+                  <li><strong>支持多步规划</strong> — Actions 可以列出多个待执行的函数序列，模型可以规划调用顺序。</li>
+                  <li><strong>可解释性</strong> — scratch_pad 的内容对开发者可见，方便调试和审计 Agent 的决策过程。</li>
+                  <li><strong>与 CoT 的区别</strong> — Chain-of-Thought 是通用推理，GOAP 是面向工具使用任务的结构化规划模板。</li>
+                </ul>
+              </article>
+              <article class="comparison-card next">
+                <span class="comparison-label">Practical Notes</span>
+                <h3>使用 GOAP 时的工程注意事项</h3>
+                <ul class="challenge-list">
+                  <li><strong>token 开销</strong> — scratch_pad 会消耗额外的输出 token，在延迟敏感场景下需权衡。</li>
+                  <li><strong>非强制</strong> — GOAP 通过 system prompt 启用，不使用时模型退回标准 tool_call 模式。</li>
+                  <li><strong>解析要求</strong> — 推理代码需要同时支持解析 &lt;scratch_pad&gt; 和 &lt;tool_call&gt; 标记。</li>
+                  <li><strong>效果依赖模型规模</strong> — 405B 模型的 GOAP 推理质量显著优于 8B，8B 在复杂多步场景下的规划能力有限。</li>
+                </ul>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 6: Benchmarks -->
+        <section id="benchmarks" class="section" data-reveal data-present-step data-step-title="基准测试与竞品对比">
+          <div class="section-head">
+            <p class="section-kicker">06 / Benchmarks &amp; Comparison</p>
+            <h2>6. 基准测试：Hermes 3 → 4 代际跃升与竞品对比</h2>
+            <p>
+              Hermes 3 8B 的 Open LLM Leaderboard 分数（如 MATH Lvl 5 仅 4.76）反映的是 2024 年 Q3 的基座能力上限。Hermes 4 通过切换基座（Qwen 3 / Llama 3.1）和 50 倍训练数据扩充，在 math、code、reasoning 上实现代际跃升。以下对比包含 Hermes 3、Hermes 4 和同级别竞品。
+            </p>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced">
+            <figure class="benchmark-figure">
+              <span class="benchmark-figure-label">Hermes 4 14B Benchmarks（vs Qwen 3 14B / GPT-4o 等）</span>
+              <img src="https://cdn-uploads.huggingface.co/production/uploads/6317aade83d8d2fd903192d9/uzbo2sGy_3PkVMJLDlPwV.png" alt="Hermes 4 14B benchmark comparison table from NousResearch" loading="lazy" />
+              <p class="benchmark-figure-caption">来源：<a href="https://huggingface.co/NousResearch/Hermes-4-14B" target="_blank" rel="noopener noreferrer">Hermes-4-14B Model Card</a>（HuggingFace）。包含 AIME、MATH-500、GPQA、LiveCodeBench、IFEval 等基准与同级别模型的逐项对比。</p>
+            </figure>
+            <figure class="benchmark-figure">
+              <span class="benchmark-figure-label">RefusalBench（跨模型拒答率对比）</span>
+              <img src="https://cdn-uploads.huggingface.co/production/uploads/6317aade83d8d2fd903192d9/t_HvRYPEHV0pc8iS2zHHn.png" alt="RefusalBench comparison across open and closed source models" loading="lazy" />
+              <p class="benchmark-figure-caption">来源：Hermes 4 Model Card。Hermes 4 在 RefusalBench 上超过所有测试的开源和闭源模型（即拒答率最低），量化了 neutral alignment 的可操控性优势。</p>
+            </figure>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced">
+            <figure class="benchmark-figure">
+              <span class="benchmark-figure-label">Hermes 4 70B Benchmarks</span>
+              <img src="https://cdn-uploads.huggingface.co/production/uploads/6317aade83d8d2fd903192d9/Sa-X7ErRF0ej20P8qBv9i.png" alt="Hermes 4 70B benchmark comparison table" loading="lazy" />
+              <p class="benchmark-figure-caption">来源：<a href="https://huggingface.co/NousResearch/Hermes-4-70B" target="_blank" rel="noopener noreferrer">Hermes-4-70B Model Card</a>。70B 规模的跨模型基准对比。</p>
+            </figure>
+            <figure class="benchmark-figure">
+              <span class="benchmark-figure-label">Hermes 4 405B Benchmarks</span>
+              <img src="https://cdn-uploads.huggingface.co/production/uploads/6317aade83d8d2fd903192d9/ZOj3LrFweV7MYwlfP_eiO.png" alt="Hermes 4 405B benchmark comparison table" loading="lazy" />
+              <p class="benchmark-figure-caption">来源：<a href="https://huggingface.co/NousResearch/Hermes-4-405B" target="_blank" rel="noopener noreferrer">Hermes-4-405B Model Card</a>。405B 旗舰版本的跨模型基准对比。</p>
+            </figure>
+          </div>
+
+          <article class="comparison-card section-grid-spaced">
+            <span class="comparison-label">Benchmark Notes</span>
+            <h3>数据说明与局限</h3>
+            <ul class="challenge-list">
+              <li><strong>数据来源</strong> — 上方图表直接引用自 NousResearch 在 HuggingFace 上发布的官方 Model Card，包含 AIME 2024/2025、MATH-500、GPQA Diamond、LiveCodeBench、IFEval、MMLU-Pro 等基准与 GPT-4o、Claude、Qwen、Llama Instruct 等模型的逐项对比。</li>
+              <li><strong>Hermes 3 baseline</strong> — Hermes 3 8B 的 Open LLM Leaderboard 分数（IFEval 61.70, BBH 30.72, MATH Lvl 5 4.76, GPQA 6.38, MMLU-PRO 23.77）可作为代际对比的基准线。</li>
+              <li><strong>RefusalBench</strong> — Nous Research 自建的拒答率基准。Hermes 4 在所有测试模型中得分最高（拒答率最低）。该基准的独立第三方验证尚有限，但量化了 neutral alignment 的差异化价值。</li>
+              <li><strong>评测条件</strong> — 完整的评测设置、温度参数和对比细节见 <a href="https://arxiv.org/abs/2508.18255" target="_blank" rel="noopener noreferrer">Hermes 4 Technical Report</a>（arXiv 2508.18255）。</li>
+            </ul>
+          </article>
+
+          <article class="comparison-card section-grid-spaced">
+            <span class="comparison-label">Function Calling Benchmark Gap</span>
+            <h3>BFCL：Hermes 缺席的 Function Calling 基准</h3>
+            <ul class="challenge-list">
+              <li><strong>BFCL</strong> — <a href="https://gorilla.cs.berkeley.edu/leaderboard.html" target="_blank" rel="noopener noreferrer">Berkeley Function Calling Leaderboard</a>（V4, 2025-12）是当前最权威的 function calling 独立基准，由 UC Berkeley 维护，评测 107+ 个模型在 multi-turn 工具调用、agentic 场景和 web search 上的表现。</li>
+              <li><strong>Hermes 未参评</strong> — 截至 2025 年 12 月最后更新，BFCL 中未收录任何 Hermes（3 或 4）模型。排行榜前列为 Claude Opus 4.5（77.47）、Claude Sonnet 4.5（73.24）、Gemini 3 Pro（72.51）、GLM-4.6（72.38）等。同规模开源模型中，Qwen3-14B（FC）得分 41.03，xLAM-2-8B（46.68）。</li>
+              <li><strong>影响</strong> — 尽管 Hermes 在自身技术报告中展示了 function calling 能力，但缺少 BFCL 等独立第三方基准的验证数据，使其 tool-use 能力难以与 Claude、GPT、Qwen 等竞品在统一标准下定量对比。</li>
+              <li><strong>可能原因</strong> — Hermes 使用自研的 &lt;tool_call&gt; XML 格式（而非标准 OpenAI FC 协议），BFCL 的 FC 模式需要模型原生支持 OpenAI 兼容的 function calling API。Hermes 4 内置了 vLLM hermes tool parser，但可能尚未被 BFCL 评测团队纳入测试。</li>
+            </ul>
+          </article>
+
+          <div class="capability-grid section-grid-spaced">
+            <article class="capability-card">
+              <span class="capability-tag">14B</span>
+              <h4>Hermes 4 14B（Qwen 3 基座）</h4>
+              <p>最新的旗舰轻量版本，基于 Qwen 3 14B，Apache 2.0 许可。支持 hybrid reasoning（&lt;think&gt; 模式）。推荐采样参数：temperature=0.6, top_p=0.95, top_k=20。月下载量约 425k。</p>
+            </article>
+            <article class="capability-card">
+              <span class="capability-tag">36B</span>
+              <h4>Hermes 4.3 36B（Seed-OSS 基座）</h4>
+              <p>基于 ByteDance Seed-OSS-36B-Base，通过 Psyche 分布式训练。512K 上下文。性能接近/部分超过 Hermes 4 70B，GGUF 可在消费级 GPU 上运行。下载量约 9.6k。</p>
+            </article>
+            <article class="capability-card">
+              <span class="capability-tag">70B / 405B</span>
+              <h4>Hermes 4 70B / 405B（Llama 3.1 基座）</h4>
+              <p>大规模版本，使用 Llama 3.1 基座。405B FP8 约 430GB。Nous Portal、Chutes、Nebius、Luminal 等提供推理 API。适合企业级 agentic 部署。</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 7: Competitive Positioning -->
+        <section id="positioning" class="section" data-reveal data-present-step data-step-title="竞争定位与使用场景">
+          <div class="section-head">
+            <p class="section-kicker">07 / Competitive Positioning</p>
+            <h2>7. 竞争定位：Hermes 在开源 LLM 生态中的差异化</h2>
+            <p>
+              开源指令模型市场已高度拥挤（Llama Instruct、Qwen-Chat、Mistral Instruct、Gemma 等）。Hermes 的差异化不在于单项基准的绝对领先，而在于三个维度的组合：neutral alignment 的可操控性、原生 agentic tool use 的工程完整度、以及衍生生态（如 OpenClaw）的实际验证。
+            </p>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced">
+            <article class="comparison-card">
+              <span class="comparison-label">Differentiation</span>
+              <h3>Hermes 的三个差异化维度</h3>
+              <ul class="challenge-list">
+                <li><strong>Neutral alignment 可操控性</strong> — 大多数开源模型内嵌了预设的拒答策略（如 Llama Instruct 的 safety prompt），Hermes 将安全策略外置到 system prompt，使同一模型可适配高限制（企业合规）和低限制（创意/研究）场景。RefusalBench SOTA 量化了这一优势。</li>
+                <li><strong>原生 tool use 工程完整度</strong> — Hermes 不仅训练了 function calling 能力，还提供完整的推理代码仓库（Hermes-Function-Calling, 1.3k stars）、vLLM/SGLang 原生工具解析器、JSON schema 验证器、以及 GOAP/&lt;think&gt; 推理模板。从"模型会调工具"到"工程可部署"的距离比其他模型更短。</li>
+                <li><strong>Agent 生态验证</strong> — Hermes 已成为多个 Agent 平台的默认/推荐模型选项。社区围绕 Hermes 的 tool-calling 格式构建了专门的微调模型（如 OpenClaw 系列），验证了其 agentic 能力在真实工作负载中的可用性。</li>
+              </ul>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label">Hermes &amp; OpenClaw</span>
+              <h3>Hermes 与 OpenClaw 的关系</h3>
+              <ul class="challenge-list">
+                <li><strong>OpenClaw 是什么</strong> — OpenClaw（前身 Clawdbot）是由 Peter Steinberger 创建的开源个人 AI 助手平台（354k GitHub stars），可通过 WhatsApp/Telegram/Discord 等聊天应用控制用户的本地计算机执行任务。</li>
+                <li><strong>为什么与 Hermes 相关</strong> — OpenClaw 默认依赖 Claude API，但社区已构建了基于 Hermes tool-calling 格式训练的专用模型（如 Medina-Qwen3.5-27B-OpenClaw），使 OpenClaw 可用开源模型替代闭源 API。</li>
+                <li><strong>Hermes 4 的影响</strong> — Hermes 4 的 hybrid reasoning + 更强的 tool calling 能力使其成为替代 Claude 驱动 OpenClaw 的更有力候选。社区讨论认为 Hermes 4 级别的开源模型可能减少对闭源 API 的依赖。</li>
+                <li><strong>更广的 Agent 趋势</strong> — 类似的替代趋势出现在其他 Agent 平台中：强 tool-use 开源模型正在蚕食闭源 API 在 agentic 场景中的垄断地位。</li>
+              </ul>
+            </article>
+          </div>
+
+          <div class="insight-grid section-grid-spaced">
+            <article class="insight-card">
+              <span class="card-index">01</span>
+              <h3>Agentic / Tool Use 场景</h3>
+              <p>Hermes 的核心阵地。原生 &lt;tool_call&gt; 协议 + &lt;think&gt; 推理 + vLLM 工具解析器 + 完整推理代码仓库，构成了从训练到部署的完整链路。OpenClaw 等平台的实际验证证明了工程可用性。推荐 14B+ 规模。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">02</span>
+              <h3>本地 / 隐私优先部署</h3>
+              <p>14B Q4 GGUF 约 8GB，可在消费级 GPU 或 Mac 上运行。相比 Llama Instruct 或 Qwen-Chat 的同规模版本，Hermes 的 neutral alignment 使其在没有内置拒答约束的前提下更易适配本地助手场景。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">03</span>
+              <h3>角色扮演 / 创意写作</h3>
+              <p>Hermes 自初代起就在 roleplaying 社区有强用户基础。Neutral alignment 允许模型遵循高度定制的人格设定而不被内置安全层覆盖。Hermes 4 的推理能力进一步提升了角色一致性。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">04</span>
+              <h3>不适合的场景</h3>
+              <p>需要开箱即用的安全护栏（如面向终端消费者的聊天产品）时，Llama Instruct 或 GPT 更合适。Hermes 的 neutral alignment 意味着安全责任转移给部署者。此外，8B 以下规模的 tool calling 质量仍有限。</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 8: Usage -->
+        <section id="usage" class="section" data-reveal data-present-step data-step-title="使用指南与实践建议">
+          <div class="section-head">
+            <p class="section-kicker">08 / Practical Usage</p>
+            <h2>8. 使用指南：从本地运行到 Agent 集成</h2>
+            <p>
+              Hermes 的引导方式不仅依赖于参数规模，还取决于 system prompt 的编写和推理引擎的选择。以下是面向不同场景的实践建议。
+            </p>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced">
+            <article class="comparison-card">
+              <span class="comparison-label">Local Deployment</span>
+              <h3>本地运行指南</h3>
+              <ul class="challenge-list">
+                <li><strong>最低门槛</strong> — Hermes 4 14B Q4 GGUF 约 8GB，可通过 Ollama 或 LM Studio 运行；推荐采样参数 temperature=0.6, top_p=0.95, top_k=20。</li>
+                <li><strong>开发调试</strong> — HuggingFace Transformers + torch float16 + device_map="auto"，支持 Jupyter 交互式推理。</li>
+                <li><strong>生产推理</strong> — vLLM 支持连续 batching 和 OpenAI 兼容端点；SGLang 同样原生支持 Hermes tool parser。</li>
+                <li><strong>Apple Silicon</strong> — 14B GGUF 可通过 llama.cpp 的 Metal backend 在 Mac 上运行，16GB 统一内存可加载 Q4 量化模型。</li>
+              </ul>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label">Agent Integration</span>
+              <h3>Agent 集成建议</h3>
+              <ul class="challenge-list">
+                <li><strong>工具定义格式</strong> — 使用 OpenAI function calling 的 JSON schema 格式定义工具，Hermes 原生支持此格式。</li>
+                <li><strong>启用推理模式</strong> — Hermes 4 通过 thinking=True 或推理 system prompt 启用 &lt;think&gt; hybrid reasoning；Hermes 3 使用 scratch_pad + GOAP。</li>
+                <li><strong>chat_template</strong> — 使用 tokenizer.apply_chat_template() 格式化消息，设置 add_generation_prompt=True。14B 使用 ChatML，70B/405B 使用 Llama chat 格式。</li>
+                <li><strong>安全护栏</strong> — 由于 neutral alignment，必须在 system prompt 中显式设定拒答规则和行为边界。</li>
+              </ul>
+            </article>
+          </div>
+
+          <div class="insight-grid section-grid-spaced">
+            <article class="insight-card">
+              <span class="card-index">01</span>
+              <h3>System Prompt 编写建议</h3>
+              <p>Hermes 的 system prompt 是行为控制的唯一入口。建议明确指定：(1) 模型角色和身份，(2) 允许和禁止的行为范围，(3) 输出格式要求（如 JSON schema），(4) 可用工具定义。避免模糊指令，利用 ChatML 的结构化格式提供精确约束。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">02</span>
+              <h3>规模选择策略</h3>
+              <p>简单对话和 FAQ → 14B 即可胜任；单工具调用和 JSON 输出 → 14B 可用；多步 Agent 编排和 hybrid reasoning → 建议 36B（Hermes 4.3）或 70B+，405B 效果最佳。Hermes 4.3 36B 的性价比最高，接近 70B 性能但 GGUF 可在消费级 GPU 上运行。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">03</span>
+              <h3>社区生态</h3>
+              <p>Hermes 4 14B 月下载量约 425k，已有 7 个微调衍生和 27 个量化版本。Hermes 3 8B 生态更成熟（277 个 adapter、49 个合并模型）。Hermes Function Calling 仓库（1.3k stars）提供完整的推理代码和模板。OpenClaw 社区已基于 Hermes tool-calling 格式构建了专用本地替代模型。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">04</span>
+              <h3>已知局限</h3>
+              <p>Hermes 4 14B 在 math 和 code 上有代际跃升，但在 BFCL 等独立 function calling 基准上仍缺乏第三方验证数据。Neutral alignment 意味着安全护栏需自行搭建，部署时要对安全投入的工程成本有准确预估。Hermes 4 14B（ChatML）和 70B/405B（Llama chat）使用不同 prompt 格式，迁移时需注意模板切换。</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- References -->
+        <section id="references" class="section" data-reveal data-present-step data-step-title="参考来源">
+          <div class="section-head">
+            <p class="section-kicker">References</p>
+            <h2>参考来源</h2>
+          </div>
+          <ol class="bib-list">
+            <li id="ref-1"><span class="bib-id">[1]</span> <span class="bib-author">R. Teknium, J. Quesnelle, C. Guang.</span> <a href="https://arxiv.org/abs/2408.11857" target="_blank" rel="noopener noreferrer">"Hermes 3 Technical Report,"</a> <em>arXiv:2408.11857,</em> Aug 2024.<span class="bib-note">Hermes 3 的官方技术报告，覆盖训练方法（SFT + DPO）、数据构成、基准测试结果和 405B 全参数微调细节。</span></li>
+            <li id="ref-2"><span class="bib-id">[2]</span> <span class="bib-author">R. Teknium, R. Jin, J. Suphavadeeprasit et al.</span> <a href="https://arxiv.org/abs/2508.18255" target="_blank" rel="noopener noreferrer">"Hermes 4 Technical Report,"</a> <em>arXiv:2508.18255,</em> Aug 2025.<span class="bib-note">Hermes 4 技术报告：hybrid reasoning、~5M 样本 / ~60B tokens 训练规模、RefusalBench SOTA 和多基准评测。</span></li>
+            <li id="ref-3"><span class="bib-id">[3]</span> <span class="bib-author">NousResearch.</span> <a href="https://huggingface.co/NousResearch/Hermes-4-14B" target="_blank" rel="noopener noreferrer">"Hermes-4-14B Model Card,"</a> <em>Hugging Face,</em> 2025.<span class="bib-note">Hermes 4 14B（Qwen 3 基座）的完整文档，包含 hybrid reasoning 模式、tool calling 模板和推理参数建议。</span></li>
+            <li id="ref-4"><span class="bib-id">[4]</span> <span class="bib-author">NousResearch.</span> <a href="https://nousresearch.com/introducing-hermes-4-3/" target="_blank" rel="noopener noreferrer">"Introducing Hermes 4.3: Local Intelligence Globally Trained,"</a> <em>Nous Research Blog,</em> 2025.<span class="bib-note">Hermes 4.3 36B 发布公告，记录 Psyche 分布式训练、512K 上下文和 DisTrO 优化器的生产验证。</span></li>
+            <li id="ref-5"><span class="bib-id">[5]</span> <span class="bib-author">NousResearch.</span> <a href="https://github.com/NousResearch/Hermes-Function-Calling" target="_blank" rel="noopener noreferrer">"Hermes-Function-Calling,"</a> <em>GitHub,</em> 2024.<span class="bib-note">官方 function calling 推理代码仓库（1.3k stars），包含 functioncall.py、jsonmode.py、prompt 模板和 GOAP scratch pad 示例。</span></li>
+            <li id="ref-6"><span class="bib-id">[6]</span> <span class="bib-author">Open LLM Leaderboard.</span> <a href="https://huggingface.co/datasets/open-llm-leaderboard/details_NousResearch__Hermes-3-Llama-3.1-8B" target="_blank" rel="noopener noreferrer">"Hermes-3-Llama-3.1-8B Evaluation Results,"</a> <em>Hugging Face,</em> 2024.<span class="bib-note">Hermes 3 8B 的 Open LLM Leaderboard 评测数据：IFEval 61.70、BBH 30.72、MATH 4.76、GPQA 6.38、MuSR 13.62、MMLU-PRO 23.77。</span></li>
+            <li id="ref-7"><span class="bib-id">[7]</span> <span class="bib-author">OpenClaw.</span> <a href="https://openclaw.ai" target="_blank" rel="noopener noreferrer">"OpenClaw — Your Own Personal AI Assistant,"</a> <em>openclaw.ai,</em> 2026.<span class="bib-note">开源个人 AI 助手平台（354k GitHub stars），社区围绕 Hermes tool-calling 格式构建了专用微调模型，验证了 Hermes 在 agentic 场景中的工程可用性。</span></li>
+            <li id="ref-8"><span class="bib-id">[8]</span> <span class="bib-author">R. Rafailov et al.</span> <a href="https://arxiv.org/abs/2305.18290" target="_blank" rel="noopener noreferrer">"Direct Preference Optimization: Your Language Model is Secretly a Reward Model,"</a> <em>arXiv:2305.18290,</em> 2023.<span class="bib-note">DPO 方法论：Hermes 3/4 在 SFT 后使用 DPO 进行偏好对齐，无需单独训练奖励模型。</span></li>
+            <li id="ref-9"><span class="bib-id">[9]</span> <span class="bib-author">S. Patil, H. Mao et al.</span> <a href="https://gorilla.cs.berkeley.edu/leaderboard.html" target="_blank" rel="noopener noreferrer">"Berkeley Function Calling Leaderboard (BFCL V4),"</a> <em>UC Berkeley,</em> 2025.<span class="bib-note">当前最权威的 function calling 独立基准（107+ 模型），截至 2025-12 未收录 Hermes 系列。用于指出 Hermes 在第三方 tool-use 评测中的空白。</span></li>
+          </ol>
+        </section>
+      </main>
+
+      <footer>
+        © 2026 NousResearch Hermes：面向工具调用与用户对齐的开源微调模型系列 | 交互式 HTML 页面。
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

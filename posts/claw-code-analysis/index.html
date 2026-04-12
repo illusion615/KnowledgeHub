@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Claw Code 深度解析：自主编码代理的开源 Harness 实现</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <style>
+    /* Presentation: hide section-head on split sections — deck label provides context */
+    html.is-presentation-mode .section:has([data-present-step]) > .section-head {
+      display: none;
+    }
+
+    .hero-copy h1 {
+      font-size: clamp(2.2rem, 5.5vw, 4.2rem);
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+      max-width: 18ch;
+    }
+    .hero-panel .layer-list { position: relative; }
+    .hero-panel .layer-list li {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.08);
+      color: rgba(246, 248, 251, 0.76);
+    }
+    .hero-panel .layer-number {
+      background: rgba(255, 255, 255, 0.14);
+      color: #fff;
+    }
+
+    .arch-diagram {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 18px;
+      margin-top: 24px;
+    }
+    .arch-block {
+      padding: 22px 20px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .arch-block h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin: 0 0 8px;
+      color: var(--fg);
+    }
+    .arch-block p {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin: 0;
+      line-height: 1.6;
+    }
+    .arch-block .arch-tag {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 3px 10px;
+      border-radius: 8px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      background: rgba(255, 122, 0, 0.12);
+      color: #ff9340;
+    }
+
+    .crate-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+      margin-top: 20px;
+    }
+    .crate-card {
+      padding: 18px 16px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .crate-card h4 {
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin: 0 0 6px;
+      color: var(--accent);
+    }
+    .crate-card p {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin: 0;
+      line-height: 1.55;
+    }
+
+    .lane-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 18px;
+      font-size: 0.82rem;
+    }
+    .lane-table th, .lane-table td {
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .lane-table th {
+      font-weight: 600;
+      color: var(--fg);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .lane-table td {
+      color: var(--muted);
+    }
+    .lane-table .lane-status {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+    .lane-status.merged {
+      background: rgba(16, 185, 129, 0.12);
+      color: #10b981;
+    }
+    .lane-status.open {
+      background: rgba(245, 158, 11, 0.12);
+      color: #f59e0b;
+    }
+
+    .phase-flow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    .phase-item {
+      flex: 1 1 180px;
+      padding: 18px 16px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      text-align: center;
+    }
+    .phase-item .phase-num {
+      display: inline-block;
+      width: 32px;
+      height: 32px;
+      line-height: 32px;
+      border-radius: 50%;
+      background: rgba(255, 122, 0, 0.15);
+      color: #ff9340;
+      font-size: 0.82rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .phase-item h4 {
+      font-size: 0.82rem;
+      font-weight: 600;
+      margin: 0 0 4px;
+      color: var(--fg);
+    }
+    .phase-item p {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .tool-badge-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .tool-badge {
+      padding: 5px 12px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            智能体
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#overview">总览</a>
+            <a href="#philosophy">哲学理念</a>
+            <a href="#architecture">系统架构</a>
+            <a href="#crates">Rust 工作区</a>
+            <a href="#parity">对齐进度</a>
+            <a href="#toolchain">工具链生态</a>
+            <a href="#roadmap">演进路线</a>
+            <a href="#takeaways">关键启示</a>
+            <a href="#references">参考来源</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Open Source Coding Harness</span>
+            <h1>Claw Code 深度解析：自主编码代理的开源 Harness 实现</h1>
+            <p>
+              Claw Code 是由 UltraWorkers 社区维护的开源编码代理 harness，其核心理念是用自主代理来构建自主代理——代码本身由 AI 代理协同编写、测试和部署。项目已从 TypeScript 移植到 Python，当前主力实现为 Rust，包含 9 个 crate、约 48,600 行 Rust 代码、40 个工具定义和完整的 mock 对齐测试体系。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#architecture">查看系统架构</a>
+              <a class="button button-secondary" href="#philosophy">查看核心哲学</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">三层协作系统</span>
+            <h2>人类定方向，Claw 做执行</h2>
+            <p>
+              Claw Code 不是传统的开发工具，而是一个由三层自治系统驱动的编码 harness：工作流层编排任务，事件层路由通知，协作层解决分歧。人类角色被简化为一句话指令输入。
+            </p>
+            <ul class="layer-list" style="margin-top: 18px;">
+              <li><span class="layer-number">1</span>OmX (oh-my-codex) — 工作流编排与执行模式</li>
+              <li><span class="layer-number">2</span>clawhip — 事件与通知路由器</li>
+              <li><span class="layer-number">3</span>OmO (oh-my-openagent) — 多代理协调与冲突解决</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label" data-zh="Rust 代码行数" data-en="Rust LOC">Rust 代码行数</div>
+            <strong>48,600</strong>
+            <span data-zh="9 个 crate，跨 API / 运行时 / CLI / 工具 / 遥测" data-en="9 crates across API / runtime / CLI / tools / telemetry">9 个 crate，跨 API / 运行时 / CLI / 工具 / 遥测</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="暴露工具规格" data-en="Exposed Tool Specs">暴露工具规格</div>
+            <strong>40</strong>
+            <span data-zh="bash / file / grep / web / MCP / LSP / task / agent 等" data-en="bash / file / grep / web / MCP / LSP / task / agent etc.">bash / file / grep / web / MCP / LSP / task / agent 等</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="对齐验证场景" data-en="Parity Scenarios">对齐验证场景</div>
+            <strong>10</strong>
+            <span data-zh="mock 服务 + 确定性 CLI harness 端到端验证" data-en="mock service + deterministic CLI harness end-to-end validation">mock 服务 + 确定性 CLI harness 端到端验证</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- Section 01 — 项目总览 -->
+        <section id="overview" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / Project Overview</p>
+            <h2 data-zh="1. 项目总览" data-en="1. Project Overview">1. 项目总览</h2>
+            <p data-zh="Claw Code 是 ultraworkers/claw-code 仓库的开源编码代理 harness。它最初以 TypeScript 编写，随后被移植为 Python，当前主力实现是 Rust。项目的独特之处在于：代码本身是由自主编码代理协同构建的。" data-en="Claw Code is an open-source coding agent harness from the ultraworkers/claw-code repository. Originally written in TypeScript, then ported to Python, the current primary implementation is in Rust. What makes it unique: the code itself is collaboratively built by autonomous coding agents.">
+              Claw Code 是 ultraworkers/claw-code 仓库的开源编码代理 harness。它最初以 TypeScript 编写，随后被移植为 Python，当前主力实现是 Rust。项目的独特之处在于：代码本身是由自主编码代理协同构建的。
+            </p>
+          </div>
+
+          <div class="insight-grid">
+            <article class="insight-card">
+              <span class="card-index">01</span>
+              <h3 data-zh="背景" data-en="Background">背景</h3>
+              <p data-zh="由 Bellman / Yeachan Heo 和 Yeongyu 发起，项目通过 clawhip、oh-my-openagent、oh-my-claudecode、oh-my-codex 等自主编码工作流推进。仓库在发布 2 小时内即突破 50K star。" data-en="Founded by Bellman / Yeachan Heo and Yeongyu, the project is driven by autonomous coding workflows using clawhip, oh-my-openagent, oh-my-claudecode, and oh-my-codex. The repo surpassed 50K stars within 2 hours of publication.">由 Bellman / Yeachan Heo 和 Yeongyu 发起，项目通过 clawhip、oh-my-openagent、oh-my-claudecode、oh-my-codex 等自主编码工作流推进。仓库在发布 2 小时内即突破 50K star。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">02</span>
+              <h3 data-zh="移植历程" data-en="Porting Journey">移植历程</h3>
+              <p data-zh="TypeScript → Python (src/) → Rust (rust/)。当前 Rust 占比 95.6%，Python 4.4%。Python 层保留了 port manifest 和 parity audit 查询引擎，用于跟踪移植进度。" data-en="TypeScript → Python (src/) → Rust (rust/). Current breakdown: Rust 95.6%, Python 4.4%. Python layer retains port manifest and parity audit query engine for tracking porting progress.">TypeScript → Python (src/) → Rust (rust/)。当前 Rust 占比 95.6%，Python 4.4%。Python 层保留了 port manifest 和 parity audit 查询引擎，用于跟踪移植进度。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">03</span>
+              <h3 data-zh="仓库统计" data-en="Repository Stats">仓库统计</h3>
+              <p data-zh="292 commits on main，9 个 Rust crate，48,599 行 Rust 代码，2,568 行测试代码，3 位作者，开发周期 2026-03-31 → 2026-04-03。" data-en="292 commits on main, 9 Rust crates, 48,599 Rust LOC, 2,568 test LOC, 3 authors, development span 2026-03-31 → 2026-04-03.">292 commits on main，9 个 Rust crate，48,599 行 Rust 代码，2,568 行测试代码，3 位作者，开发周期 2026-03-31 → 2026-04-03。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">04</span>
+              <h3 data-zh="动机" data-en="Motivation">动机</h3>
+              <p data-zh="作者研究了原始代码的 harness 和工具连接方式后，出于法律与伦理考量决定不保留原始快照，转而进行独立的移植重写工作。这不是简单的抄袭，而是基于理解的重新实现。" data-en="After studying the original harness and tool wiring, the author decided not to retain the original snapshot due to legal and ethical considerations, instead performing an independent rewrite. This is a reimplementation based on understanding, not a copy.">作者研究了原始代码的 harness 和工具连接方式后，出于法律与伦理考量决定不保留原始快照，转而进行独立的移植重写工作。这不是简单的抄袭，而是基于理解的重新实现。</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 02 — 哲学理念 -->
+        <section id="philosophy" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Philosophy</p>
+            <h2 data-zh="2. 核心哲学：人类定方向，Claw 做执行" data-en="2. Core Philosophy: Humans Set Direction, Claws Execute">2. 核心哲学：人类定方向，Claw 做执行</h2>
+            <p data-zh="Claw Code 的核心观点是：当编码智能足够便宜且广泛可用时，稀缺资源不再是打字速度，而是架构清晰度、任务分解能力、判断力和产品品味。人类的工作不是超越机器的编码速度，而是决定什么值得被构建。" data-en="Claw Code's core thesis: when coding intelligence becomes cheap and abundant, the scarce resource is no longer typing speed, but architectural clarity, task decomposition, judgment, and product taste. The human's job is not to out-type the machine, but to decide what deserves to exist.">
+              Claw Code 的核心观点是：当编码智能足够便宜且广泛可用时，稀缺资源不再是打字速度，而是架构清晰度、任务分解能力、判断力和产品品味。人类的工作不是超越机器的编码速度，而是决定什么值得被构建。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="核心哲学：传统 vs Claw 模式" class="comparison-grid section-grid-spaced">
+            <article class="comparison-card">
+              <span class="comparison-label" data-zh="传统模式" data-en="Traditional">传统模式</span>
+              <h3 data-zh="人类驱动的开发" data-en="Human-Driven Development">人类驱动的开发</h3>
+              <p data-zh="开发者在终端中逐行编码、手动运行测试、通过 PR review 协作。AI 作为辅助工具提供补全建议。瓶颈是人的打字速度和上下文切换能力。知识在会话间丢失，重复劳动不可避免。" data-en="Developers code line by line in terminals, manually run tests, and collaborate through PR reviews. AI serves as a supplementary tool for completions. The bottleneck is human typing speed and context switching. Knowledge is lost between sessions, and repetitive labor is unavoidable.">开发者在终端中逐行编码、手动运行测试、通过 PR review 协作。AI 作为辅助工具提供补全建议。瓶颈是人的打字速度和上下文切换能力。知识在会话间丢失，重复劳动不可避免。</p>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label" data-zh="Claw 模式" data-en="Claw Mode">Claw 模式</span>
+              <h3 data-zh="自主代理驱动的开发" data-en="Autonomous Agent-Driven Development">自主代理驱动的开发</h3>
+              <p data-zh="人类通过 Discord 发送一句话指令，AI 代理并行分解任务、编写代码、运行测试、解决冲突并推送结果。人可以走开、睡觉或做其他事情。瓶颈转移到了方向判断和架构设计。" data-en="Humans send one-sentence directives via Discord. AI agents decompose tasks in parallel, write code, run tests, resolve conflicts, and push results. Humans can walk away, sleep, or do other things. The bottleneck shifts to directional judgment and architectural design.">人类通过 Discord 发送一句话指令，AI 代理并行分解任务、编写代码、运行测试、解决冲突并推送结果。人可以走开、睡觉或做其他事情。瓶颈转移到了方向判断和架构设计。</p>
+            </article>
+          </div>
+
+          <div data-present-step data-step-title="核心哲学：深层洞察" class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" aria-expanded="true" data-zh="人类接口是 Discord，不是终端" data-en="The Human Interface Is Discord, Not Terminal">人类接口是 Discord，不是终端</button>
+              <div class="subsection-content">
+                <p data-zh="在 Claw Code 的工作流中，关键的人类接口不是 tmux、Vim 或 SSH，而是 Discord 频道。一个人可以在手机上输入一句指令，然后走开。Claw 读取指令，分解为任务，分配角色，编写代码，运行测试，在失败时争论，恢复，并在工作通过时推送。" data-en="In Claw Code's workflow, the key human interface is not tmux, Vim, or SSH, but a Discord channel. A person can type a sentence from a phone and walk away. Claws read the directive, break it into tasks, assign roles, write code, run tests, argue over failures, recover, and push when the work passes.">在 Claw Code 的工作流中，关键的人类接口不是 tmux、Vim 或 SSH，而是 Discord 频道。一个人可以在手机上输入一句指令，然后走开。Claw 读取指令，分解为任务，分配角色，编写代码，运行测试，在失败时争论，恢复，并在工作通过时推送。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false" data-zh="瓶颈已经转移" data-en="The Bottleneck Has Shifted">瓶颈已经转移</button>
+              <div class="subsection-content">
+                <p data-zh="当代理系统能在数小时内重建一个代码库时，稀缺资源变成了：架构清晰度、任务分解能力、判断力、品味、关于什么值得构建的信念，以及知道哪些部分可以并行化、哪些必须保持约束。快速的代理团队不会消除思考的需要，反而让清晰思考变得更有价值。" data-en="When agent systems can rebuild a codebase in hours, the scarce resources become: architectural clarity, task decomposition, judgment, taste, conviction about what is worth building, and knowing which parts can be parallelized and which must stay constrained. A fast agent team does not remove the need for thinking—it makes clear thinking even more valuable.">当代理系统能在数小时内重建一个代码库时，稀缺资源变成了：架构清晰度、任务分解能力、判断力、品味、关于什么值得构建的信念，以及知道哪些部分可以并行化、哪些必须保持约束。快速的代理团队不会消除思考的需要，反而让清晰思考变得更有价值。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false" data-zh="代码是证据，协调系统才是产品" data-en="Code Is Evidence, the Coordination System Is the Product">代码是证据，协调系统才是产品</button>
+              <div class="subsection-content">
+                <p data-zh="不要只盯着生成的文件——它们只是错误的层级。Python 重写是副产品，Rust 重写也是副产品。真正值得研究的是产生它们的系统：一个基于 clawhip 的协调循环，人类提供方向，自主 claw 执行工作。仓库是产出物，协调系统背后的哲学才是教训。" data-en="Don't just stare at the generated files—they are the wrong layer. The Python rewrite is a byproduct, the Rust rewrite is also a byproduct. What's worth studying is the system that produced them: a clawhip-based coordination loop where humans give direction and autonomous claws execute the work. The repository is the artifact; the philosophy behind the coordination system is the lesson.">不要只盯着生成的文件——它们只是错误的层级。Python 重写是副产品，Rust 重写也是副产品。真正值得研究的是产生它们的系统：一个基于 clawhip 的协调循环，人类提供方向，自主 claw 执行工作。仓库是产出物，协调系统背后的哲学才是教训。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 03 — 系统架构 -->
+        <section id="architecture" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / System Architecture</p>
+            <h2 data-zh="3. 三层协作系统架构" data-en="3. Three-Layer Coordination Architecture">3. 三层协作系统架构</h2>
+            <p data-zh="Claw Code 的自主开发能力依赖三个相互独立但协同工作的系统层。每一层解决自主编码中的不同维度问题：工作流编排、事件路由和多代理协作。" data-en="Claw Code's autonomous development capability relies on three independent but collaborating system layers. Each layer addresses a different dimension of autonomous coding: workflow orchestration, event routing, and multi-agent coordination.">
+              Claw Code 的自主开发能力依赖三个相互独立但协同工作的系统层。每一层解决自主编码中的不同维度问题：工作流编排、事件路由和多代理协作。
+            </p>
+          </div>
+
+          <div class="arch-diagram">
+            <div class="arch-block">
+              <h4 data-zh="OmX (oh-my-codex)" data-en="OmX (oh-my-codex)">OmX (oh-my-codex)</h4>
+              <p data-zh="工作流层。将短指令转化为结构化执行：规划关键词、执行模式、持久验证循环、并行多代理工作流。把一句话变成可重复的工作协议。" data-en="Workflow layer. Converts short directives into structured execution: planning keywords, execution modes, persistent verification loops, parallel multi-agent workflows. Turns a sentence into a repeatable work protocol.">工作流层。将短指令转化为结构化执行：规划关键词、执行模式、持久验证循环、并行多代理工作流。把一句话变成可重复的工作协议。</p>
+              <span class="arch-tag" data-zh="任务编排" data-en="Task Orchestration">任务编排</span>
+            </div>
+            <div class="arch-block">
+              <h4 data-zh="clawhip" data-en="clawhip">clawhip</h4>
+              <p data-zh="事件和通知路由器。监控 git commit、tmux session、GitHub issues/PR、代理生命周期事件和频道投递。将监控和通知推出编码代理的上下文窗口，让代理专注实现。" data-en="Event and notification router. Watches git commits, tmux sessions, GitHub issues/PRs, agent lifecycle events, and channel delivery. Pushes monitoring and delivery outside the coding agent's context window so agents stay focused on implementation.">事件和通知路由器。监控 git commit、tmux session、GitHub issues/PR、代理生命周期事件和频道投递。将监控和通知推出编码代理的上下文窗口，让代理专注实现。</p>
+              <span class="arch-tag" data-zh="事件路由" data-en="Event Routing">事件路由</span>
+            </div>
+            <div class="arch-block">
+              <h4 data-zh="OmO (oh-my-openagent)" data-en="OmO (oh-my-openagent)">OmO (oh-my-openagent)</h4>
+              <p data-zh="多代理协调层。处理规划、任务交接、分歧解决和跨代理验证循环。当 Architect、Executor 和 Reviewer 意见不一致时，OmO 提供收敛结构而非发散。" data-en="Multi-agent coordination layer. Handles planning, handoffs, disagreement resolution, and verification loops across agents. When Architect, Executor, and Reviewer disagree, OmO provides convergence structure instead of collapse.">多代理协调层。处理规划、任务交接、分歧解决和跨代理验证循环。当 Architect、Executor 和 Reviewer 意见不一致时，OmO 提供收敛结构而非发散。</p>
+              <span class="arch-tag" data-zh="多代理协调" data-en="Multi-Agent Coordination">多代理协调</span>
+            </div>
+          </div>
+
+          <div class="quote-block" style="margin-top: 28px;">
+            <strong data-zh="设计关键" data-en="Design Insight">设计关键</strong>
+            <span data-zh="clawhip 最重要的设计决策是将通知路由从代理上下文窗口中剥离。编码代理不应该浪费 token 在格式化状态报告和路由通知上——这些是事件层的责任。" data-en="clawhip's most important design decision is stripping notification routing from the agent context window. Coding agents should not waste tokens formatting status reports and routing notifications—that's the event layer's responsibility.">clawhip 最重要的设计决策是将通知路由从代理上下文窗口中剥离。编码代理不应该浪费 token 在格式化状态报告和路由通知上——这些是事件层的责任。</span>
+          </div>
+        </section>
+
+        <!-- Section 04 — Rust 工作区详解 -->
+        <section id="crates" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / Rust Workspace</p>
+            <h2 data-zh="4. Rust Crate 工作区详解" data-en="4. Rust Crate Workspace Deep Dive">4. Rust Crate 工作区详解</h2>
+            <p data-zh="当前 Rust 实现由 9 个 crate 组成，按职责清晰划分为 API 通信、运行时逻辑、CLI 交互、工具实现等层级。以下是各 crate 的职责和关键实现。" data-en="The current Rust implementation consists of 9 crates, cleanly separated by responsibility into API communication, runtime logic, CLI interaction, and tool implementation layers.">
+              当前 Rust 实现由 9 个 crate 组成，按职责清晰划分为 API 通信、运行时逻辑、CLI 交互、工具实现等层级。以下是各 crate 的职责和关键实现。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="Rust Crate 工作区：9 个 Crate 职责" class="crate-grid">
+            <div class="crate-card">
+              <h4>api</h4>
+              <p data-zh="HTTP 客户端、SSE 流解析、请求/响应类型、认证（API Key + OAuth Bearer）" data-en="HTTP client, SSE stream parser, request/response types, auth (API key + OAuth bearer)">HTTP 客户端、SSE 流解析、请求/响应类型、认证（API Key + OAuth Bearer）</p>
+            </div>
+            <div class="crate-card">
+              <h4>runtime</h4>
+              <p data-zh="ConversationRuntime 代理循环、ConfigLoader 层级配置、Session 持久化、权限策略、MCP 客户端、系统 prompt 组装、用量追踪" data-en="ConversationRuntime agentic loop, ConfigLoader hierarchy, Session persistence, permission policy, MCP client, system prompt assembly, usage tracking">ConversationRuntime 代理循环、ConfigLoader 层级配置、Session 持久化、权限策略、MCP 客户端、系统 prompt 组装、用量追踪</p>
+            </div>
+            <div class="crate-card">
+              <h4>tools</h4>
+              <p data-zh="40 个工具规格定义与执行实现：Bash、ReadFile、WriteFile、EditFile、GlobSearch、GrepSearch、WebSearch、WebFetch、Agent、TodoWrite 等" data-en="40 tool spec definitions and execution: Bash, ReadFile, WriteFile, EditFile, GlobSearch, GrepSearch, WebSearch, WebFetch, Agent, TodoWrite etc.">40 个工具规格定义与执行实现：Bash、ReadFile、WriteFile、EditFile、GlobSearch、GrepSearch、WebSearch、WebFetch、Agent、TodoWrite 等</p>
+            </div>
+            <div class="crate-card">
+              <h4>rusty-claude-cli</h4>
+              <p data-zh="主 CLI 二进制（claw 命令）：REPL 交互、单次 prompt、流式输出显示、工具调用渲染、参数解析" data-en="Main CLI binary (claw command): REPL interaction, one-shot prompt, streaming display, tool call rendering, argument parsing">主 CLI 二进制（claw 命令）：REPL 交互、单次 prompt、流式输出显示、工具调用渲染、参数解析</p>
+            </div>
+            <div class="crate-card">
+              <h4>commands</h4>
+              <p data-zh="Slash 命令定义和帮助文本生成：/status、/compact、/clear、/model、/permissions、/config 等" data-en="Slash command definitions and help text: /status, /compact, /clear, /model, /permissions, /config etc.">Slash 命令定义和帮助文本生成：/status、/compact、/clear、/model、/permissions、/config 等</p>
+            </div>
+            <div class="crate-card">
+              <h4>plugins</h4>
+              <p data-zh="插件元数据、注册表和 Hook 集成面：install/enable/disable/uninstall 生命周期管理" data-en="Plugin metadata, registries, and hook integration: install/enable/disable/uninstall lifecycle management">插件元数据、注册表和 Hook 集成面：install/enable/disable/uninstall 生命周期管理</p>
+            </div>
+            <div class="crate-card">
+              <h4>mock-anthropic-service</h4>
+              <p data-zh="确定性 /v1/messages mock 服务，用于 CLI 对齐测试和本地 harness 运行" data-en="Deterministic /v1/messages mock for CLI parity tests and local harness runs">确定性 /v1/messages mock 服务，用于 CLI 对齐测试和本地 harness 运行</p>
+            </div>
+            <div class="crate-card">
+              <h4>compat-harness</h4>
+              <p data-zh="从上游 TypeScript 源码提取工具/prompt 清单，用于对齐验证" data-en="Extracts tool/prompt manifests from upstream TS source for parity validation">从上游 TypeScript 源码提取工具/prompt 清单，用于对齐验证</p>
+            </div>
+            <div class="crate-card">
+              <h4>telemetry</h4>
+              <p data-zh="Session 追踪事件和遥测载荷类型定义" data-en="Session trace events and telemetry payload type definitions">Session 追踪事件和遥测载荷类型定义</p>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="Rust Crate 工作区：CLI 能力与配置" class="subsection-accordion" style="margin-top: 24px;">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false" data-zh="CLI 功能矩阵" data-en="CLI Feature Matrix">CLI 功能矩阵</button>
+              <div class="subsection-content">
+                <div class="tool-badge-grid">
+                  <span class="tool-badge">Anthropic API + streaming ✅</span>
+                  <span class="tool-badge">OAuth login/logout ✅</span>
+                  <span class="tool-badge">Interactive REPL ✅</span>
+                  <span class="tool-badge">Tool system (bash/read/write/edit/grep/glob) ✅</span>
+                  <span class="tool-badge">Web tools (search/fetch) ✅</span>
+                  <span class="tool-badge">Sub-agent orchestration ✅</span>
+                  <span class="tool-badge">Todo tracking ✅</span>
+                  <span class="tool-badge">Notebook editing ✅</span>
+                  <span class="tool-badge">CLAUDE.md / project memory ✅</span>
+                  <span class="tool-badge">Config file hierarchy ✅</span>
+                  <span class="tool-badge">Permission system ✅</span>
+                  <span class="tool-badge">MCP server lifecycle ✅</span>
+                  <span class="tool-badge">Session persistence + resume ✅</span>
+                  <span class="tool-badge">Extended thinking ✅</span>
+                  <span class="tool-badge">Cost tracking ✅</span>
+                  <span class="tool-badge">Git integration ✅</span>
+                  <span class="tool-badge">Model aliases (opus/sonnet/haiku) ✅</span>
+                  <span class="tool-badge">Slash commands ✅</span>
+                  <span class="tool-badge">Hooks (PreToolUse/PostToolUse) 🔧</span>
+                  <span class="tool-badge">Plugin system 📋</span>
+                  <span class="tool-badge">Skills registry 📋</span>
+                </div>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false" data-zh="权限模式" data-en="Permission Modes">权限模式</button>
+              <div class="subsection-content">
+                <p data-zh="CLI 支持三级权限模式，通过 PermissionEnforcer 在工具执行前进行守门检查：" data-en="The CLI supports three permission tiers, enforced by PermissionEnforcer before tool execution:">CLI 支持三级权限模式，通过 PermissionEnforcer 在工具执行前进行守门检查：</p>
+                <ul class="reference-list">
+                  <li><strong>read-only</strong> — <span data-zh="只允许读取操作，bash 中的写入命令被拒绝" data-en="Read operations only, write commands in bash are denied">只允许读取操作，bash 中的写入命令被拒绝</span></li>
+                  <li><strong>workspace-write</strong> — <span data-zh="允许在工作区边界内写入文件，跨越工作区目录的操作被阻止" data-en="File writes allowed within workspace boundaries, operations crossing workspace boundaries are blocked">允许在工作区边界内写入文件，跨越工作区目录的操作被阻止</span></li>
+                  <li><strong>danger-full-access</strong> — <span data-zh="完全访问权限，默认模式" data-en="Full access, default mode">完全访问权限，默认模式</span></li>
+                </ul>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false" data-zh="配置加载优先级" data-en="Config Load Precedence">配置加载优先级</button>
+              <div class="subsection-content">
+                <p data-zh="运行时配置按以下顺序加载，后项覆盖前项：" data-en="Runtime config is loaded in order, with later entries overriding earlier ones:">运行时配置按以下顺序加载，后项覆盖前项：</p>
+                <ol class="reference-list">
+                  <li><code>~/.claw.json</code></li>
+                  <li><code>~/.config/claw/settings.json</code></li>
+                  <li><code>&lt;repo&gt;/.claw.json</code></li>
+                  <li><code>&lt;repo&gt;/.claw/settings.json</code></li>
+                  <li><code>&lt;repo&gt;/.claw/settings.local.json</code></li>
+                </ol>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 05 — 9-Lane 对齐进度 -->
+        <section id="parity" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / Parity Progress</p>
+            <h2 data-zh="5. 九车道对齐验证进度" data-en="5. Nine-Lane Parity Progress">5. 九车道对齐验证进度</h2>
+            <p data-zh="项目使用 9 条并行开发车道（lanes）来组织功能对齐工作，每条车道对应一个独立的功能模块。所有 9 条车道已合并到 main 分支，通过 mock parity harness 进行确定性端到端验证。" data-en="The project uses 9 parallel development lanes to organize parity work, each corresponding to an independent feature module. All 9 lanes have been merged to main, validated through a mock parity harness with deterministic end-to-end verification.">
+              项目使用 9 条并行开发车道（lanes）来组织功能对齐工作，每条车道对应一个独立的功能模块。所有 9 条车道已合并到 main 分支，通过 mock parity harness 进行确定性端到端验证。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="九车道对齐验证：Lane 状态总览" style="overflow-x: auto;">
+            <table class="lane-table">
+              <thead>
+                <tr>
+                  <th data-zh="车道" data-en="Lane">车道</th>
+                  <th data-zh="功能" data-en="Feature">功能</th>
+                  <th data-zh="状态" data-en="Status">状态</th>
+                  <th data-zh="关键文件" data-en="Key File">关键文件</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>1</td>
+                  <td data-zh="Bash 验证" data-en="Bash Validation">Bash 验证</td>
+                  <td><span class="lane-status merged">merged</span></td>
+                  <td><code>bash_validation.rs</code> (+1004 LOC)</td>
+                </tr>
+                <tr>
+                  <td>2</td>
+                  <td data-zh="CI 修复" data-en="CI Fix">CI 修复</td>
+                  <td><span class="lane-status merged">merged</span></td>
+                  <td><code>sandbox.rs</code> (385 LOC)</td>
+                </tr>
+                <tr>
+                  <td>3</td>
+                  <td data-zh="File 工具" data-en="File Tool">File 工具</td>
+                  <td><span class="lane-status merged">merged</span></td>
+                  <td><code>file_ops.rs</code> (744 LOC)</td>
+                </tr>
+                <tr>
+                  <td>4</td>
+                  <td data-zh="TaskRegistry" data-en="TaskRegistry">TaskRegistry</td>
+                  <td><span class="lane-status merged">merged</span></td>
+                  <td><code>task_registry.rs</code> (335 LOC)</td>
+                </tr>
+                <tr>
+                  <td>5</td>
+                  <td data-zh="Task 连接" data-en="Task Wiring">Task 连接</td>
+                  <td><span class="lane-status merged">merged</span></td>
+                  <td><code>tools/src/lib.rs</code></td>
+                </tr>
+                <tr>
+                  <td>6</td>
+                  <td data-zh="Team + Cron" data-en="Team + Cron">Team + Cron</td>
+                  <td><span class="lane-status merged">merged</span></td>
+                  <td><code>team_cron_registry.rs</code> (363 LOC)</td>
+                </tr>
+                <tr>
+                  <td>7</td>
+                  <td data-zh="MCP 生命周期" data-en="MCP Lifecycle">MCP 生命周期</td>
+                  <td><span class="lane-status merged">merged</span></td>
+                  <td><code>mcp_tool_bridge.rs</code> (406 LOC)</td>
+                </tr>
+                <tr>
+                  <td>8</td>
+                  <td data-zh="LSP 客户端" data-en="LSP Client">LSP 客户端</td>
+                  <td><span class="lane-status merged">merged</span></td>
+                  <td><code>lsp_client.rs</code> (438 LOC)</td>
+                </tr>
+                <tr>
+                  <td>9</td>
+                  <td data-zh="权限执行" data-en="Permission Enforcement">权限执行</td>
+                  <td><span class="lane-status merged">merged</span></td>
+                  <td><code>permission_enforcer.rs</code> (340 LOC)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div data-present-step data-step-title="九车道对齐验证：Harness 覆盖与安全" class="subsection-accordion" style="margin-top: 24px;">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false" data-zh="Mock Parity Harness 覆盖" data-en="Mock Parity Harness Coverage">Mock Parity Harness 覆盖</button>
+              <div class="subsection-content">
+                <p data-zh="端到端对齐验证使用确定性 Anthropic 兼容 mock 服务和清洁环境 CLI harness，当前覆盖 10 个脚本化场景：" data-en="E2E parity validation uses a deterministic Anthropic-compatible mock service and clean-environment CLI harness, currently covering 10 scripted scenarios:">端到端对齐验证使用确定性 Anthropic 兼容 mock 服务和清洁环境 CLI harness，当前覆盖 10 个脚本化场景：</p>
+                <div class="tool-badge-grid">
+                  <span class="tool-badge">streaming_text</span>
+                  <span class="tool-badge">read_file_roundtrip</span>
+                  <span class="tool-badge">grep_chunk_assembly</span>
+                  <span class="tool-badge">write_file_allowed</span>
+                  <span class="tool-badge">write_file_denied</span>
+                  <span class="tool-badge">multi_tool_turn_roundtrip</span>
+                  <span class="tool-badge">bash_stdout_roundtrip</span>
+                  <span class="tool-badge">bash_permission_prompt_approved</span>
+                  <span class="tool-badge">bash_permission_prompt_denied</span>
+                  <span class="tool-badge">plugin_tool_roundtrip</span>
+                </div>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false" data-zh="安全防护已实现" data-en="Security Guards Implemented">安全防护已实现</button>
+              <div class="subsection-content">
+                <ul class="reference-list">
+                  <li data-zh="路径穿越防护（符号链接跟随, ../ 逃逸）" data-en="Path traversal prevention (symlink following, ../ escapes)"><strong data-zh="路径穿越" data-en="Path Traversal">路径穿越</strong> — <span data-zh="符号链接跟随和 ../ 逃逸检测" data-en="symlink following and ../ escape detection">符号链接跟随和 ../ 逃逸检测</span></li>
+                  <li><strong data-zh="大小限制" data-en="Size Limits">大小限制</strong> — <span data-zh="读写操作的 MAX_READ_SIZE / MAX_WRITE_SIZE 约束" data-en="MAX_READ_SIZE / MAX_WRITE_SIZE constraints on read/write ops">读写操作的 MAX_READ_SIZE / MAX_WRITE_SIZE 约束</span></li>
+                  <li><strong data-zh="二进制检测" data-en="Binary Detection">二进制检测</strong> — <span data-zh="NUL 字节检测阻止对二进制文件的文本操作" data-en="NUL byte detection blocks text operations on binary files">NUL 字节检测阻止对二进制文件的文本操作</span></li>
+                  <li><strong data-zh="权限模式" data-en="Permission Modes">权限模式</strong> — <span data-zh="read-only 模式下拒绝所有写入和可变 bash 命令" data-en="All writes and mutating bash commands denied in read-only mode">read-only 模式下拒绝所有写入和可变 bash 命令</span></li>
+                </ul>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false" data-zh="仍待完善的能力" data-en="Remaining Gaps">仍待完善的能力</button>
+              <div class="subsection-content">
+                <ul class="reference-list">
+                  <li data-zh="端到端 MCP 运行时生命周期（超出 registry bridge 部分）" data-en="End-to-end MCP runtime lifecycle beyond registry bridge">端到端 MCP 运行时生命周期（超出 registry bridge 部分）</li>
+                  <li data-zh="大输出截断（stdout / 文件内容）" data-en="Output truncation for large stdout/file content">大输出截断（stdout / 文件内容）</li>
+                  <li data-zh="Session compaction 行为匹配" data-en="Session compaction behavior matching">Session compaction 行为匹配</li>
+                  <li data-zh="Token 计数 / 成本追踪精度" data-en="Token counting / cost tracking accuracy">Token 计数 / 成本追踪精度</li>
+                  <li data-zh="CI 在每次提交上保持绿色" data-en="CI green on every commit">CI 在每次提交上保持绿色</li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 06 — 工具链生态 -->
+        <section id="toolchain" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / Toolchain Ecosystem</p>
+            <h2 data-zh="6. 工具链生态：UltraWorkers 套件" data-en="6. Toolchain Ecosystem: UltraWorkers Suite">6. 工具链生态：UltraWorkers 套件</h2>
+            <p data-zh="Claw Code 不是一个孤立的项目，它是 UltraWorkers 生态系统的核心产出。理解完整生态有助于理解为什么 Claw Code 的代码结构看起来不像人类手写。" data-en="Claw Code is not an isolated project—it's a core output of the UltraWorkers ecosystem. Understanding the full ecosystem helps explain why Claw Code's code structure doesn't look hand-written.">
+              Claw Code 不是一个孤立的项目，它是 UltraWorkers 生态系统的核心产出。理解完整生态有助于理解为什么 Claw Code 的代码结构看起来不像人类手写。
+            </p>
+          </div>
+
+          <div class="insight-grid">
+            <article class="insight-card">
+              <span class="card-index">01</span>
+              <h3>clawhip</h3>
+              <p data-zh="事件和通知路由器。监控 git、tmux、GitHub、代理生命周期事件。让编码代理不必在上下文窗口中处理状态汇报，专注于代码实现。" data-en="Event and notification router. Monitors git, tmux, GitHub, and agent lifecycle events. Keeps coding agents focused on implementation, not status reporting.">事件和通知路由器。监控 git、tmux、GitHub、代理生命周期事件。让编码代理不必在上下文窗口中处理状态汇报，专注于代码实现。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">02</span>
+              <h3>oh-my-codex (OmX)</h3>
+              <p data-zh="工作流编排层。提供 $team 模式（协调并行审查）和 $ralph 模式（持久执行 + 验证纪律）。将短指令转化为结构化并行工作流。" data-en="Workflow orchestration layer. Provides $team mode (coordinated parallel review) and $ralph mode (persistent execution + verification discipline). Converts short directives into structured parallel workflows.">工作流编排层。提供 $team 模式（协调并行审查）和 $ralph 模式（持久执行 + 验证纪律）。将短指令转化为结构化并行工作流。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">03</span>
+              <h3>oh-my-openagent (OmO)</h3>
+              <p data-zh="多代理协调框架。当 Architect、Executor、Reviewer 三个角色意见不一致时，提供收敛结构避免循环发散。" data-en="Multi-agent coordination framework. When Architect, Executor, and Reviewer disagree, provides convergence structure to prevent circular divergence.">多代理协调框架。当 Architect、Executor、Reviewer 三个角色意见不一致时，提供收敛结构避免循环发散。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">04</span>
+              <h3>oh-my-claudecode</h3>
+              <p data-zh="Claude Code 的增强层。提供代理级封装，使 Claude Code 可以被 clawhip 和 OmX 调度管理，参与自主编码循环。" data-en="Enhancement layer for Claude Code. Provides agent-level wrapping so Claude Code can be orchestrated by clawhip and OmX, participating in autonomous coding loops.">Claude Code 的增强层。提供代理级封装，使 Claude Code 可以被 clawhip 和 OmX 调度管理，参与自主编码循环。</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 07 — 演进路线 -->
+        <section id="roadmap" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">07 / Evolution Roadmap</p>
+            <h2 data-zh="7. 演进路线：从 CLI 到 Claw-Native 运行时" data-en="7. Roadmap: From CLI to Claw-Native Runtime">7. 演进路线：从 CLI 到 Claw-Native 运行时</h2>
+            <p data-zh="Claw Code 的目标是从「一个人类也能用的 CLI」演进为「Claw-native 执行运行时 + 事件原生编排底座 + 插件/Hook 优先的自主编码 harness」。路线分为五个阶段。" data-en="Claw Code aims to evolve from 'a CLI a human can also drive' to 'a claw-native execution runtime + event-native orchestration substrate + plugin/hook-first autonomous coding harness'. The roadmap has five phases.">
+              Claw Code 的目标是从「一个人类也能用的 CLI」演进为「Claw-native 执行运行时 + 事件原生编排底座 + 插件/Hook 优先的自主编码 harness」。路线分为五个阶段。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="演进路线：五阶段规划" class="phase-flow">
+            <div class="phase-item">
+              <span class="phase-num">1</span>
+              <h4 data-zh="可靠 Worker 启动" data-en="Reliable Worker Boot">可靠 Worker 启动</h4>
+              <p data-zh="就绪握手生命周期、信任提示自动解析、结构化会话控制 API" data-en="Ready-handshake lifecycle, trust prompt auto-resolution, structured session control API">就绪握手生命周期、信任提示自动解析、结构化会话控制 API</p>
+            </div>
+            <div class="phase-item">
+              <span class="phase-num">2</span>
+              <h4 data-zh="事件原生集成" data-en="Event-Native Integration">事件原生集成</h4>
+              <p data-zh="标准车道事件 Schema、失败分类法、可操作摘要压缩" data-en="Canonical lane event schema, failure taxonomy, actionable summary compression">标准车道事件 Schema、失败分类法、可操作摘要压缩</p>
+            </div>
+            <div class="phase-item">
+              <span class="phase-num">3</span>
+              <h4 data-zh="分支/测试感知" data-en="Branch/Test Awareness">分支/测试感知</h4>
+              <p data-zh="陈旧分支检测、绿色度契约、常见失败自动恢复" data-en="Stale-branch detection, green-ness contract, auto-recovery for common failures">陈旧分支检测、绿色度契约、常见失败自动恢复</p>
+            </div>
+            <div class="phase-item">
+              <span class="phase-num">4</span>
+              <h4 data-zh="Claw 优先执行" data-en="Claws-First Execution">Claw 优先执行</h4>
+              <p data-zh="类型化任务包格式、自主编码策略引擎、机器可读车道看板" data-en="Typed task packet format, autonomous coding policy engine, machine-readable lane board">类型化任务包格式、自主编码策略引擎、机器可读车道看板</p>
+            </div>
+            <div class="phase-item">
+              <span class="phase-num">5</span>
+              <h4 data-zh="插件/MCP 成熟" data-en="Plugin/MCP Maturity">插件/MCP 成熟</h4>
+              <p data-zh="一等插件/MCP 生命周期契约、端到端 MCP 对齐、降级模式报告" data-en="First-class plugin/MCP lifecycle contract, end-to-end MCP parity, degraded-mode reporting">一等插件/MCP 生命周期契约、端到端 MCP 对齐、降级模式报告</p>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="演进路线：Clawable 定义与产品原则" class="subsection-accordion" style="margin-top: 24px;">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false" data-zh="「Clawable」的定义" data-en="Definition of 'Clawable'">"Clawable" 的定义</button>
+              <div class="subsection-content">
+                <p data-zh="一个 clawable 的 harness 需要满足七个条件：" data-en="A clawable harness must meet seven criteria:">一个 clawable 的 harness 需要满足七个条件：</p>
+                <ul class="reference-list">
+                  <li data-zh="启动确定性 — 每次启动行为一致" data-en="Deterministic to start">启动确定性 — 每次启动行为一致</li>
+                  <li data-zh="状态和失败模式机器可读" data-en="Machine-readable state and failure modes">状态和失败模式机器可读</li>
+                  <li data-zh="可在无人监控终端时恢复" data-en="Recoverable without human terminal watching">可在无人监控终端时恢复</li>
+                  <li data-zh="分支/测试/worktree 感知" data-en="Branch/test/worktree aware">分支/测试/worktree 感知</li>
+                  <li data-zh="插件/MCP 生命周期感知" data-en="Plugin/MCP lifecycle aware">插件/MCP 生命周期感知</li>
+                  <li data-zh="事件优先而非日志优先" data-en="Event-first, not log-first">事件优先而非日志优先</li>
+                  <li data-zh="可自主执行下一步" data-en="Capable of autonomous next-step execution">可自主执行下一步</li>
+                </ul>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false" data-zh="7 个产品原则" data-en="7 Product Principles">7 个产品原则</button>
+              <div class="subsection-content">
+                <ol class="reference-list">
+                  <li data-zh="状态机优先 — 每个 worker 有显式生命周期状态" data-en="State machine first — every worker has explicit lifecycle states">状态机优先 — 每个 worker 有显式生命周期状态</li>
+                  <li data-zh="事件优于刮取 — 频道输出从类型化事件派生" data-en="Events over scraped prose — channel output derived from typed events">事件优于刮取 — 频道输出从类型化事件派生</li>
+                  <li data-zh="恢复先于升级 — 已知失败模式先自动修复一次" data-en="Recovery before escalation — known failures auto-heal once first">恢复先于升级 — 已知失败模式先自动修复一次</li>
+                  <li data-zh="分支新鲜度先于归责 — 检测陈旧分支后再判断是否为新回归" data-en="Branch freshness before blame — detect stale branches before treating red tests as new regressions">分支新鲜度先于归责 — 检测陈旧分支后再判断是否为新回归</li>
+                  <li data-zh="部分成功是一等公民 — MCP 启动允许部分服务器成功" data-en="Partial success is first-class — MCP startup can succeed for some servers and fail for others">部分成功是一等公民 — MCP 启动允许部分服务器成功</li>
+                  <li data-zh="终端是传输层不是真相源 — 编排状态必须在 tmux/TUI 之上" data-en="Terminal is transport, not truth — orchestration state must live above tmux/TUI">终端是传输层不是真相源 — 编排状态必须在 tmux/TUI 之上</li>
+                  <li data-zh="策略可执行 — 合并/重试/rebase/清理规则由机器执行" data-en="Policy is executable — merge/retry/rebase/cleanup rules are machine-enforced">策略可执行 — 合并/重试/rebase/清理规则由机器执行</li>
+                </ol>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 08 — 关键启示 -->
+        <section id="takeaways" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">08 / Key Takeaways</p>
+            <h2 data-zh="8. 关键启示与思考" data-en="8. Key Takeaways">8. 关键启示与思考</h2>
+            <p data-zh="Claw Code 不仅是一个编码工具——它是自主软件开发的一个公开实验。从这个仓库中可以提取出对企业级代理架构设计有价值的模式和启示。" data-en="Claw Code is not just a coding tool—it's a public experiment in autonomous software development. Patterns and insights valuable for enterprise agent architecture design can be extracted from this repository.">
+              Claw Code 不仅是一个编码工具——它是自主软件开发的一个公开实验。从这个仓库中可以提取出对企业级代理架构设计有价值的模式和启示。
+            </p>
+          </div>
+
+          <div class="insight-grid">
+            <article class="insight-card">
+              <span class="card-index">01</span>
+              <h3 data-zh="关注点分离模式" data-en="Separation of Concerns">关注点分离模式</h3>
+              <p data-zh="通知路由从代理上下文窗口分离（clawhip），工作流编排从代码执行分离（OmX），冲突解决从任务分配分离（OmO）。每一层只做一件事。" data-en="Notification routing is separated from agent context window (clawhip), workflow orchestration from code execution (OmX), conflict resolution from task assignment (OmO). Each layer does only one thing.">通知路由从代理上下文窗口分离（clawhip），工作流编排从代码执行分离（OmX），冲突解决从任务分配分离（OmO）。每一层只做一件事。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">02</span>
+              <h3 data-zh="对齐即测试" data-en="Parity as Testing">对齐即测试</h3>
+              <p data-zh="通过 mock parity harness 实现确定性端到端验证——不依赖真实 API，而是用脚本化场景确保行为一致性。这比传统的集成测试更适合代理系统。" data-en="Deterministic E2E validation through mock parity harness—no dependency on real APIs, using scripted scenarios to ensure behavioral consistency. This is more suitable for agent systems than traditional integration testing.">通过 mock parity harness 实现确定性端到端验证——不依赖真实 API，而是用脚本化场景确保行为一致性。这比传统的集成测试更适合代理系统。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">03</span>
+              <h3 data-zh="Lane 并行模式" data-en="Lane Parallelism">Lane 并行模式</h3>
+              <p data-zh="9 条独立 lane 并行开发，每条 lane 有明确的 commit hash、合并状态和影响范围。这种组织方式允许多个代理同时推进不同功能模块，互不干扰。" data-en="9 independent lanes developed in parallel, each with clear commit hashes, merge status, and scope. This organization allows multiple agents to advance different feature modules simultaneously without interference.">9 条独立 lane 并行开发，每条 lane 有明确的 commit hash、合并状态和影响范围。这种组织方式允许多个代理同时推进不同功能模块，互不干扰。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">04</span>
+              <h3 data-zh="代理即一等开发者" data-en="Agents as First-Class Developers">代理即一等开发者</h3>
+              <p data-zh="Claw Code 的 Roadmap 中最深刻的转变是：从「为人类设计 CLI，代理适配使用」到「为代理设计执行运行时，人类通过 chat 接口提供方向」。终端是传输层而非真相源。" data-en="The most profound shift in Claw Code's roadmap: from 'design CLI for humans, agents adapt' to 'design execution runtime for agents, humans provide direction via chat interface'. Terminal is transport, not truth.">Claw Code 的 Roadmap 中最深刻的转变是：从「为人类设计 CLI，代理适配使用」到「为代理设计执行运行时，人类通过 chat 接口提供方向」。终端是传输层而非真相源。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">05</span>
+              <h3 data-zh="自举悖论" data-en="Bootstrap Paradox">自举悖论</h3>
+              <p data-zh="用代理来构建代理工具本身是一个自举实验。Claw Code 在 3 天内产出 48,600 行 Rust 代码和 292 个 commit，验证了自主编码工作流在高速迭代场景中的可行性，同时也暴露了 CI 稳定性和文档一致性的挑战。" data-en="Using agents to build agent tools is a bootstrap experiment. Claw Code produced 48,600 lines of Rust and 292 commits in 3 days, validating autonomous coding workflow viability in high-velocity iteration while also exposing challenges in CI stability and documentation consistency.">用代理来构建代理工具本身是一个自举实验。Claw Code 在 3 天内产出 48,600 行 Rust 代码和 292 个 commit，验证了自主编码工作流在高速迭代场景中的可行性，同时也暴露了 CI 稳定性和文档一致性的挑战。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">06</span>
+              <h3 data-zh="开源伦理实践" data-en="Open Source Ethics">开源伦理实践</h3>
+              <p data-zh="项目明确声明不持有原始 Claude Code 源材料的所有权，也不隶属于 Anthropic。在研究原始 harness 后选择独立重写而非保留原始快照，体现了对逆向工程和 copyleft 问题的慎重态度。" data-en="The project explicitly states no ownership of original Claude Code source material and no affiliation with Anthropic. Choosing independent rewrite over retaining the original snapshot after studying the harness demonstrates careful consideration of reverse engineering and copyleft issues.">项目明确声明不持有原始 Claude Code 源材料的所有权，也不隶属于 Anthropic。在研究原始 harness 后选择独立重写而非保留原始快照，体现了对逆向工程和 copyleft 问题的慎重态度。</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 09 — 参考来源 -->
+        <section id="references" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">09 / References</p>
+            <h2 data-zh="9. 参考来源" data-en="9. References">9. 参考来源</h2>
+          </div>
+
+          <ol class="bib-list">
+            <li>
+              <span class="bib-id">[1]</span>
+              <span class="bib-author">ultraworkers/claw-code</span> —
+              <a href="https://github.com/ultraworkers/claw-code" target="_blank" rel="noopener">https://github.com/ultraworkers/claw-code</a>
+              <span class="bib-note" data-zh="主仓库，包含 README、PHILOSOPHY、PARITY、ROADMAP、USAGE 等核心文档" data-en="Main repository with README, PHILOSOPHY, PARITY, ROADMAP, USAGE core documents">主仓库，包含 README、PHILOSOPHY、PARITY、ROADMAP、USAGE 等核心文档</span>
+            </li>
+            <li>
+              <span class="bib-id">[2]</span>
+              <span class="bib-author">Yeachan-Heo/clawhip</span> —
+              <a href="https://github.com/Yeachan-Heo/clawhip" target="_blank" rel="noopener">https://github.com/Yeachan-Heo/clawhip</a>
+              <span class="bib-note" data-zh="事件和通知路由器，监控 git/tmux/GitHub/代理生命周期事件" data-en="Event and notification router, monitoring git/tmux/GitHub/agent lifecycle events">事件和通知路由器，监控 git/tmux/GitHub/代理生命周期事件</span>
+            </li>
+            <li>
+              <span class="bib-id">[3]</span>
+              <span class="bib-author">Yeachan-Heo/oh-my-codex</span> —
+              <a href="https://github.com/Yeachan-Heo/oh-my-codex" target="_blank" rel="noopener">https://github.com/Yeachan-Heo/oh-my-codex</a>
+              <span class="bib-note" data-zh="工作流编排层，提供 $team 和 $ralph 执行模式" data-en="Workflow orchestration layer with $team and $ralph execution modes">工作流编排层，提供 $team 和 $ralph 执行模式</span>
+            </li>
+            <li>
+              <span class="bib-id">[4]</span>
+              <span class="bib-author">code-yeongyu/oh-my-openagent</span> —
+              <a href="https://github.com/code-yeongyu/oh-my-openagent" target="_blank" rel="noopener">https://github.com/code-yeongyu/oh-my-openagent</a>
+              <span class="bib-note" data-zh="多代理协调框架，处理规划/交接/分歧解决/验证循环" data-en="Multi-agent coordination framework handling planning/handoffs/disagreement resolution/verification loops">多代理协调框架，处理规划/交接/分歧解决/验证循环</span>
+            </li>
+            <li>
+              <span class="bib-id">[5]</span>
+              <span class="bib-author">Yeachan-Heo/oh-my-claudecode</span> —
+              <a href="https://github.com/Yeachan-Heo/oh-my-claudecode" target="_blank" rel="noopener">https://github.com/Yeachan-Heo/oh-my-claudecode</a>
+              <span class="bib-note" data-zh="Claude Code 增强层，提供代理级封装" data-en="Claude Code enhancement layer with agent-level wrapping">Claude Code 增强层，提供代理级封装</span>
+            </li>
+            <li>
+              <span class="bib-id">[6]</span>
+              <span class="bib-author">Sigrid Jin</span> —
+              <a href="https://x.com/realsigridjin/status/2039472968624185713" target="_blank" rel="noopener">https://x.com/realsigridjin/status/2039472968624185713</a>
+              <span class="bib-note" data-zh="项目背后的公开解释和哲学阐述" data-en="Public explanation and philosophical exposition behind the project">项目背后的公开解释和哲学阐述</span>
+            </li>
+            <li>
+              <span class="bib-id">[7]</span>
+              <span class="bib-author">PARITY.md</span> —
+              <a href="https://github.com/ultraworkers/claw-code/blob/main/PARITY.md" target="_blank" rel="noopener">PARITY.md (main branch)</a>
+              <span class="bib-note" data-zh="9-lane 对齐状态文档，包含 commit hash、LOC 统计和 mock harness 覆盖" data-en="9-lane parity status document with commit hashes, LOC stats, and mock harness coverage">9-lane 对齐状态文档，包含 commit hash、LOC 统计和 mock harness 覆盖</span>
+            </li>
+            <li>
+              <span class="bib-id">[8]</span>
+              <span class="bib-author">ROADMAP.md</span> —
+              <a href="https://github.com/ultraworkers/claw-code/blob/main/ROADMAP.md" target="_blank" rel="noopener">ROADMAP.md (main branch)</a>
+              <span class="bib-note" data-zh="Clawable Coding Harness 演进路线，5 个阶段 + 7 个产品原则" data-en="Clawable Coding Harness evolution roadmap, 5 phases + 7 product principles">Clawable Coding Harness 演进路线，5 个阶段 + 7 个产品原则</span>
+            </li>
+          </ol>
+        </section>
+      </main>
+
+      <footer class="site-footer" data-reveal>
+        <p>© 2026 Claw Code 深度解析：自主编码代理的开源 Harness 实现 | 交互式 HTML 页面。</p>
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

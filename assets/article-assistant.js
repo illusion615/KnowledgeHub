@@ -17,24 +17,159 @@
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
-  function renderMarkdown(text) {
-    var html = text
-      .replace(/```(\w*)\n([\s\S]*?)```/g, function (_, lang, code) {
-        return '<pre class="md-pre"><code>' + escapeHtml(code.replace(/\n$/, '')) + '</code></pre>';
-      })
+  /** Apply inline formatting: bold, italic, inline code */
+  function inlineFormat(str) {
+    return str
       .replace(/`([^`]+)`/g, '<code class="md-code">$1</code>')
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.+?)\*/g, '<em>$1</em>')
-      .replace(/^### (.+)$/gm, '<strong class="md-h3">$1</strong>')
-      .replace(/^## (.+)$/gm, '<strong class="md-h2">$1</strong>')
-      .replace(/^# (.+)$/gm, '<strong class="md-h1">$1</strong>')
-      .replace(/^[-*] (.+)$/gm, '<li>$1</li>')
-      .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
-      .replace(/\n\n/g, '</p><p>')
-      .replace(/\n/g, '<br>');
-    html = html.replace(/((?:<li>.*?<\/li>(?:<br>)?)+)/g, '<ul>$1</ul>');
-    html = html.replace(/<ul><br>/g, '<ul>').replace(/<br><\/ul>/g, '</ul>');
-    return '<p>' + html + '</p>';
+      .replace(/\*(.+?)\*/g, '<em>$1</em>');
+  }
+
+  /**
+   * Block-level Markdown renderer.
+   * Supports: code blocks, headings, unordered/ordered lists,
+   * tables, horizontal rules, and paragraphs.
+   */
+  function renderMarkdown(text) {
+    // 1. Extract fenced code blocks into placeholders
+    var codeBlocks = [];
+    text = text.replace(/```(\w*)\n([\s\S]*?)```/g, function (_, lang, code) {
+      var idx = codeBlocks.length;
+      codeBlocks.push('<pre class="md-pre"><code>' + escapeHtml(code.replace(/\n$/, '')) + '</code></pre>');
+      return '\x00CODE' + idx + '\x00';
+    });
+
+    // 2. Normalise line endings and split into blocks by blank lines
+    var blocks = text.replace(/\r\n/g, '\n').split(/\n{2,}/);
+    var out = [];
+
+    for (var i = 0; i < blocks.length; i++) {
+      var block = blocks[i].replace(/^\n+|\n+$/g, '');
+      if (!block) continue;
+
+      // -- Code-block placeholder --
+      if (/^\x00CODE\d+\x00$/.test(block)) {
+        var ci = parseInt(block.replace(/\x00CODE|\x00/g, ''), 10);
+        out.push(codeBlocks[ci]);
+        continue;
+      }
+
+      var lines = block.split('\n');
+
+      // -- Heading --
+      if (lines.length === 1 && /^#{1,3} /.test(lines[0])) {
+        var m = lines[0].match(/^(#{1,3}) (.+)$/);
+        if (m) {
+          var lvl = m[1].length;
+          out.push('<strong class="md-h' + lvl + '">' + inlineFormat(escapeHtml(m[2])) + '</strong>');
+          continue;
+        }
+      }
+
+      // -- Horizontal rule --
+      if (lines.length === 1 && /^[-*_]{3,}$/.test(lines[0].trim())) {
+        out.push('<hr>');
+        continue;
+      }
+
+      // -- Table: first line contains pipes --
+      if (lines.length >= 2 && lines[0].indexOf('|') !== -1 && /^\|?\s*[-:]+[-| :]*$/.test(lines[1])) {
+        var tableHtml = '<table class="md-table">';
+        // header
+        var hCells = lines[0].split('|').map(function (c) { return c.trim(); }).filter(function (c) { return c !== ''; });
+        // alignment from separator row
+        var sepCells = lines[1].split('|').map(function (c) { return c.trim(); }).filter(function (c) { return c !== ''; });
+        var aligns = sepCells.map(function (s) {
+          if (s.charAt(0) === ':' && s.charAt(s.length - 1) === ':') return 'center';
+          if (s.charAt(s.length - 1) === ':') return 'right';
+          return 'left';
+        });
+        tableHtml += '<thead><tr>';
+        for (var h = 0; h < hCells.length; h++) {
+          tableHtml += '<th style="text-align:' + (aligns[h] || 'left') + '">' + inlineFormat(escapeHtml(hCells[h])) + '</th>';
+        }
+        tableHtml += '</tr></thead><tbody>';
+        for (var r = 2; r < lines.length; r++) {
+          if (!lines[r].trim()) continue;
+          var rCells = lines[r].split('|').map(function (c) { return c.trim(); }).filter(function (c) { return c !== ''; });
+          tableHtml += '<tr>';
+          for (var c = 0; c < hCells.length; c++) {
+            tableHtml += '<td style="text-align:' + (aligns[c] || 'left') + '">' + inlineFormat(escapeHtml(rCells[c] || '')) + '</td>';
+          }
+          tableHtml += '</tr>';
+        }
+        tableHtml += '</tbody></table>';
+        out.push(tableHtml);
+        continue;
+      }
+
+      // -- Unordered list: every line starts with - or * --
+      var isUL = lines.every(function (l) { return /^[\-*] /.test(l); });
+      if (isUL) {
+        var ulHtml = '<ul>';
+        lines.forEach(function (l) {
+          ulHtml += '<li>' + inlineFormat(escapeHtml(l.replace(/^[\-*] /, ''))) + '</li>';
+        });
+        ulHtml += '</ul>';
+        out.push(ulHtml);
+        continue;
+      }
+
+      // -- Ordered list: every line starts with digits. --
+      var isOL = lines.every(function (l) { return /^\d+\. /.test(l); });
+      if (isOL) {
+        var olHtml = '<ol>';
+        lines.forEach(function (l) {
+          olHtml += '<li>' + inlineFormat(escapeHtml(l.replace(/^\d+\. /, ''))) + '</li>';
+        });
+        olHtml += '</ol>';
+        out.push(olHtml);
+        continue;
+      }
+
+      // -- Mixed block: may contain headings + list items + text --
+      // Process line by line and group contiguous list items
+      var pending = [];
+      var listTag = '';
+
+      function flushList() {
+        if (pending.length === 0) return '';
+        var tag = listTag || 'ul';
+        var h = '<' + tag + '>' + pending.join('') + '</' + tag + '>';
+        pending = [];
+        listTag = '';
+        return h;
+      }
+
+      for (var k = 0; k < lines.length; k++) {
+        var ln = lines[k];
+        var headMatch = ln.match(/^(#{1,3}) (.+)$/);
+        if (headMatch) {
+          out.push(flushList());
+          out.push('<strong class="md-h' + headMatch[1].length + '">' + inlineFormat(escapeHtml(headMatch[2])) + '</strong>');
+          continue;
+        }
+        if (/^[\-*] /.test(ln)) {
+          if (listTag === 'ol') out.push(flushList());
+          listTag = 'ul';
+          pending.push('<li>' + inlineFormat(escapeHtml(ln.replace(/^[\-*] /, ''))) + '</li>');
+          continue;
+        }
+        if (/^\d+\. /.test(ln)) {
+          if (listTag === 'ul') out.push(flushList());
+          listTag = 'ol';
+          pending.push('<li>' + inlineFormat(escapeHtml(ln.replace(/^\d+\. /, ''))) + '</li>');
+          continue;
+        }
+        // Regular text line
+        out.push(flushList());
+        out.push('<p>' + inlineFormat(escapeHtml(ln)) + '</p>');
+      }
+      out.push(flushList());
+      continue;
+    }
+
+    return out.join('');
   }
 
   // ---- Inject CSS ----
@@ -166,6 +301,22 @@
     '.assistant-msg-ai .md-h1 { font-size: 1.1em; display: block; margin: 8px 0 4px; }',
     '.assistant-msg-ai .md-h2 { font-size: 1.0em; display: block; margin: 6px 0 3px; }',
     '.assistant-msg-ai .md-h3 { font-size: 0.95em; display: block; margin: 4px 0 2px; }',
+    '.assistant-msg-ai ol { margin: 4px 0 8px 18px; padding: 0; }',
+    '.assistant-msg-ai hr { border: none; border-top: 1px solid rgba(0,0,0,0.1); margin: 10px 0; }',
+    '[data-theme="dark"] .assistant-msg-ai hr { border-color: rgba(255,255,255,0.1); }',
+    '.assistant-msg-ai .md-table {',
+    '  width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 0.84em;',
+    '}',
+    '.assistant-msg-ai .md-table th, .assistant-msg-ai .md-table td {',
+    '  border: 1px solid rgba(0,0,0,0.12); padding: 5px 8px;',
+    '}',
+    '.assistant-msg-ai .md-table th {',
+    '  background: rgba(0,0,0,0.04); font-weight: 600;',
+    '}',
+    '[data-theme="dark"] .assistant-msg-ai .md-table th, [data-theme="dark"] .assistant-msg-ai .md-table td {',
+    '  border-color: rgba(255,255,255,0.1);',
+    '}',
+    '[data-theme="dark"] .assistant-msg-ai .md-table th { background: rgba(255,255,255,0.06); }',
     '',
     '.thinking-dots {',
     '  display: inline-flex; align-items: center; gap: 5px; padding: 6px 2px;',

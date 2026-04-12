@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Function Calling 模型全景：2026 年主流 LLM 工具调用能力深度对比</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(1.8rem, 4.5vw, 3.2rem);
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+      max-width: 20ch;
+    }
+
+    .hero-metrics {
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    }
+
+    .tier-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .tier-card {
+      padding: 22px;
+      border-radius: 22px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+    }
+
+    .tier-card h4 {
+      margin: 0 0 8px;
+      font-size: 1.05rem;
+      line-height: 1.35;
+    }
+
+    .tier-card p,
+    .tier-card li {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.72;
+    }
+
+    .tier-card ul {
+      margin: 8px 0 0;
+      padding-left: 18px;
+    }
+
+    .tier-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 10px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .tier-badge-gold {
+      background: rgba(234, 179, 8, 0.15);
+      color: #b45309;
+    }
+
+    .tier-badge-silver {
+      background: rgba(100, 116, 139, 0.12);
+      color: #475569;
+    }
+
+    .tier-badge-bronze {
+      background: rgba(180, 83, 9, 0.12);
+      color: #92400e;
+    }
+
+    .tier-badge-open {
+      background: rgba(16, 185, 129, 0.12);
+      color: #065f46;
+    }
+
+    .benchmark-table-wrap {
+      margin-top: 16px;
+      overflow-x: auto;
+      border-radius: 18px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+    }
+
+    .benchmark-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.84rem;
+    }
+
+    .benchmark-table th,
+    .benchmark-table td {
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+      white-space: nowrap;
+    }
+
+    .benchmark-table th {
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-weight: 700;
+      font-size: 0.74rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: rgba(15, 23, 42, 0.03);
+      position: sticky;
+      top: 0;
+    }
+
+    .benchmark-table td {
+      color: var(--ink);
+    }
+
+    .benchmark-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .benchmark-table .highlight-cell {
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .benchmark-table .rank-1 { color: #b45309; font-weight: 700; }
+    .benchmark-table .rank-2 { color: #64748b; font-weight: 700; }
+    .benchmark-table .rank-3 { color: #92400e; font-weight: 700; }
+
+    .protocol-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .protocol-card {
+      padding: 20px;
+      border-radius: 22px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+    }
+
+    .protocol-card h4 {
+      margin: 0 0 10px;
+      font-size: 1rem;
+      line-height: 1.35;
+    }
+
+    .protocol-card p,
+    .protocol-card li {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.72;
+    }
+
+    .protocol-card ul {
+      margin: 8px 0 0;
+      padding-left: 18px;
+    }
+
+    .code-block {
+      margin-top: 16px;
+      padding: 20px;
+      border-radius: 16px;
+      background: rgba(15, 23, 42, 0.04);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      font-family: "Space Grotesk", monospace;
+      font-size: 0.78rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: var(--ink);
+    }
+
+    .decision-flow {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .decision-step {
+      display: grid;
+      grid-template-columns: 48px 1fr;
+      gap: 16px;
+      padding: 18px;
+      border-radius: 22px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+      align-items: start;
+    }
+
+    .decision-number {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-weight: 700;
+      font-size: 1.1rem;
+      background: rgba(15, 23, 42, 0.06);
+      color: var(--accent);
+    }
+
+    .decision-body h4 {
+      margin: 0 0 6px;
+      font-size: 1rem;
+      line-height: 1.35;
+    }
+
+    .decision-body p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.72;
+    }
+
+    [data-theme="dark"] .tier-card,
+    [data-theme="dark"] .protocol-card,
+    [data-theme="dark"] .benchmark-table-wrap,
+    [data-theme="dark"] .decision-step {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.18);
+    }
+
+    [data-theme="dark"] .code-block {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    [data-theme="dark"] .benchmark-table th {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    [data-theme="dark"] .benchmark-table th,
+    [data-theme="dark"] .benchmark-table td {
+      border-bottom-color: rgba(255, 255, 255, 0.06);
+    }
+
+    [data-theme="dark"] .tier-badge-gold {
+      background: rgba(234, 179, 8, 0.2);
+      color: #fbbf24;
+    }
+
+    [data-theme="dark"] .tier-badge-silver {
+      background: rgba(148, 163, 184, 0.15);
+      color: #94a3b8;
+    }
+
+    [data-theme="dark"] .tier-badge-bronze {
+      background: rgba(217, 119, 6, 0.15);
+      color: #f59e0b;
+    }
+
+    [data-theme="dark"] .tier-badge-open {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+    }
+
+    [data-theme="dark"] .decision-number {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    @media (max-width: 640px) {
+      .tier-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .protocol-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .decision-step {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero" data-present-step data-step-title="文章总览">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            模型
+          </div>
+          <div class="topbar-actions">
+            <nav class="nav-links" aria-label="页面章节导航">
+              <a href="#landscape">全景</a>
+              <a href="#leaderboard">排行榜</a>
+              <a href="#protocols">协议</a>
+              <a href="#proprietary">闭源模型</a>
+              <a href="#opensource">开源模型</a>
+              <a href="#agentic">Agentic</a>
+              <a href="#decision">选型</a>
+              <a href="#references">参考</a>
+            </nav>
+          </div>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">LLM Tool Use Benchmark</span>
+            <h1>Function Calling 模型全景：主流 LLM 工具调用能力深度对比</h1>
+            <p>
+              Function calling（工具调用）是 LLM 从"文本生成器"演进为"自主行动者"的关键能力。本文基于 Berkeley Function Calling Leaderboard V4（BFCL V4）最新数据，系统对比 Anthropic Claude、Google Gemini、OpenAI GPT、xAI Grok、DeepSeek、Qwen、Meta Llama 等主流模型在 single-turn、multi-turn、agentic web search 和 memory 场景下的 function calling 表现，分析各 vendor 的协议差异与工程取舍，为 AI Agent 架构选型提供量化依据。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#leaderboard">排行榜数据</a>
+              <a class="button button-secondary" href="#decision">选型指南</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">核心发现</span>
+            <h2>Claude Opus 领跑榜首，GLM-4 成为开源之王，Agentic 评测维度颠覆传统排名。</h2>
+            <ul class="layer-list section-grid-spaced">
+              <li><span class="layer-number">1</span>Claude Opus 4.5 以 77.47% Overall 稳居 BFCL V4 榜首，Agentic + Multi-Turn 综合表现碾压竞品。</li>
+              <li><span class="layer-number">2</span>智谱 GLM-4.6 (FC thinking) 以 72.38% 位列第 4，是榜单唯一进入 Top 5 的开源模型（MIT 许可）。</li>
+              <li><span class="layer-number">3</span>BFCL V4 引入 Agentic 评测（40% 权重）：Web Search + Memory + Format Sensitivity，传统 simple/parallel FC 占比降至 10%。</li>
+              <li><span class="layer-number">4</span>OpenAI GPT-5.2 排名第 16（55.87%），GPT-4.1 排名第 20（53.96%）— 在 agentic 维度上落后于 Claude 和 Gemini。</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">评测基准</div>
+            <strong>BFCL V4</strong>
+            <span>Berkeley Function Calling Leaderboard，5,088 条评测用例</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">评测模型数</div>
+            <strong>109 个</strong>
+            <span>涵盖闭源 + 开源 + 专用 FC 微调模型</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">榜首模型</div>
+            <strong>Claude Opus 4.5</strong>
+            <span>77.47% Overall Accuracy，Anthropic 闭源</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">开源之王</div>
+            <strong>GLM-4.6</strong>
+            <span>72.38% Overall，MIT 许可，智谱 AI</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- Section 1: Landscape -->
+        <section id="landscape" class="section" data-reveal data-present-step data-step-title="Function Calling 全景">
+          <div class="section-head">
+            <p class="section-kicker">01 / Landscape Overview</p>
+            <h2>1. Function Calling 全景：从 API 扩展到 Agentic 核心能力</h2>
+            <p>
+              Function calling 的本质是让 LLM 在生成自然语言之外，还能输出结构化的函数调用指令（函数名 + 参数），由外部系统执行后将结果回传模型。这一能力是构建 AI Agent 的基础 — 没有可靠的工具调用，Agent 就无法感知环境、操作数据、调用 API。
+            </p>
+          </div>
+
+          <div class="insight-grid">
+            <article class="insight-card">
+              <span class="card-index">01</span>
+              <h3>什么是 Function Calling</h3>
+              <p>LLM 接收用户指令 + 可用函数声明（name、description、parameters schema），判断是否需要调用函数、调用哪个、传什么参数。模型不执行函数，只输出结构化调用意图（JSON），由应用侧负责执行并将结果回传。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">02</span>
+              <h3>为什么 FC 是 Agent 的基石</h3>
+              <p>Agent 的"感知—推理—行动"循环依赖 FC：感知（调用搜索/数据库查询获取信息）、推理（分析返回结果、决定下一步）、行动（调用 API 执行操作）。FC 是 LLM 与外部世界的唯一结构化接口。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">03</span>
+              <h3>FC vs Prompt-Based 工具调用</h3>
+              <p>原生 FC（Native Function Calling）由模型内置的特殊 token 和训练支持，准确率和格式稳定性远高于 prompt workaround（在 system prompt 中描述工具格式让模型文本输出）。BFCL 同时评测两种模式。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">04</span>
+              <h3>评测维度的演进</h3>
+              <p>BFCL V1 评测 simple/parallel/multiple FC → V2 加入企业级 live data → V3 加入 multi-turn 多轮交互 → V4 加入 agentic 评测（web search + memory + format sensitivity），权重分配：Agentic 40% + Multi-Turn 30% + Live 10% + Non-Live 10% + Hallucination 10%。</p>
+            </article>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced">
+            <article class="comparison-card">
+              <span class="comparison-label">FC 能力分层</span>
+              <h3>从简单到复杂的五个层次</h3>
+              <ul class="challenge-list">
+                <li><strong>Simple FC</strong> — 单轮、单函数调用，提取正确的函数名和参数。所有主流模型都能达到 80%+ 准确率。</li>
+                <li><strong>Parallel FC</strong> — 一次响应中同时调用多个独立函数（如同时查天气和预订餐厅）。需要模型理解函数间无依赖。</li>
+                <li><strong>Multi-Turn FC</strong> — 跨多轮对话的函数调用，模型需要追踪上下文、处理缺失参数、主动询问用户。</li>
+                <li><strong>Compositional FC</strong> — 链式调用：函数 A 的输出作为函数 B 的输入。需要模型规划执行顺序。</li>
+                <li><strong>Agentic FC</strong> — 自主搜索、记忆管理、多步规划。模型在复杂任务中自主决策调用策略。这是区分顶级模型的关键。</li>
+              </ul>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label">BFCL V4 评测架构</span>
+              <h3>五大维度 × 权重分配</h3>
+              <ul class="challenge-list">
+                <li><strong>Agentic（40%）</strong> — Web Search（200 题）+ Memory（465 题），涵盖多跳搜索、向量存储读写、KV 存储和摘要检索。</li>
+                <li><strong>Multi-Turn（30%）</strong> — 200 base + 600 augmented，含缺失函数、缺失参数、长上下文等场景。</li>
+                <li><strong>Live（10%）</strong> — 1,351 条企业级真实 API 调用数据。</li>
+                <li><strong>Non-Live（10%）</strong> — 1,150 条 Python/Java/JS 的 AST 验证用例。</li>
+                <li><strong>Hallucination（10%）</strong> — 1,122 条不相关性测试，衡量模型在不需要调用函数时是否仍然错误调用。</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 2: Leaderboard -->
+        <section id="leaderboard" class="section" data-reveal data-present-step data-step-title="BFCL V4 排行榜">
+          <div class="section-head">
+            <p class="section-kicker">02 / BFCL V4 Leaderboard</p>
+            <h2>2. 排行榜数据：Top 30 模型全维度对比</h2>
+            <p>
+              数据来源：Berkeley Function Calling Leaderboard V4，最后更新 2025-12-16。Overall Accuracy 为 Agentic（40%）+ Multi-Turn（30%）+ Live（10%）+ Non-Live（10%）+ Hallucination（10%）的加权平均。FC = 原生 Function Calling 模式，Prompt = 文本生成 workaround。
+            </p>
+          </div>
+
+          <div class="benchmark-table-wrap section-grid-spaced" data-present-step data-step-title="Top 15 排行榜">
+            <table class="benchmark-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>模型</th>
+                  <th>Overall</th>
+                  <th>Agentic</th>
+                  <th>Multi-Turn</th>
+                  <th>Non-Live</th>
+                  <th>Hallucination</th>
+                  <th>厂商</th>
+                  <th>许可</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="rank-1">1</td>
+                  <td class="rank-1">Claude Opus 4.5 (FC)</td>
+                  <td class="rank-1">77.47%</td>
+                  <td>84.50%</td>
+                  <td>73.76%</td>
+                  <td>79.79%</td>
+                  <td>84.72%</td>
+                  <td>Anthropic</td>
+                  <td>Proprietary</td>
+                </tr>
+                <tr>
+                  <td class="rank-2">2</td>
+                  <td class="rank-2">Claude Sonnet 4.5 (FC)</td>
+                  <td class="rank-2">73.24%</td>
+                  <td>81.00%</td>
+                  <td>64.95%</td>
+                  <td>81.13%</td>
+                  <td>86.61%</td>
+                  <td>Anthropic</td>
+                  <td>Proprietary</td>
+                </tr>
+                <tr>
+                  <td class="rank-3">3</td>
+                  <td class="rank-3">Gemini 3 Pro Preview (P)</td>
+                  <td class="rank-3">72.51%</td>
+                  <td>80.00%</td>
+                  <td>61.72%</td>
+                  <td>83.12%</td>
+                  <td>85.59%</td>
+                  <td>Google</td>
+                  <td>Proprietary</td>
+                </tr>
+                <tr>
+                  <td>4</td>
+                  <td class="highlight-cell">GLM-4.6 (FC thinking)</td>
+                  <td class="highlight-cell">72.38%</td>
+                  <td>77.50%</td>
+                  <td>55.70%</td>
+                  <td>80.90%</td>
+                  <td>84.96%</td>
+                  <td>智谱 AI</td>
+                  <td>MIT</td>
+                </tr>
+                <tr>
+                  <td>5</td>
+                  <td>Grok 4-1 fast reasoning (FC)</td>
+                  <td>69.57%</td>
+                  <td>82.50%</td>
+                  <td>53.98%</td>
+                  <td>78.46%</td>
+                  <td>79.43%</td>
+                  <td>xAI</td>
+                  <td>Proprietary</td>
+                </tr>
+                <tr>
+                  <td>6</td>
+                  <td>Claude Haiku 4.5 (FC)</td>
+                  <td>68.70%</td>
+                  <td>83.50%</td>
+                  <td>54.41%</td>
+                  <td>78.68%</td>
+                  <td>85.11%</td>
+                  <td>Anthropic</td>
+                  <td>Proprietary</td>
+                </tr>
+                <tr>
+                  <td>7</td>
+                  <td>Gemini 3 Pro Preview (FC)</td>
+                  <td>68.14%</td>
+                  <td>68.50%</td>
+                  <td>54.84%</td>
+                  <td>81.72%</td>
+                  <td>77.85%</td>
+                  <td>Google</td>
+                  <td>Proprietary</td>
+                </tr>
+                <tr>
+                  <td>8</td>
+                  <td>o3-2025-04-16 (Prompt)</td>
+                  <td>63.05%</td>
+                  <td>50.50%</td>
+                  <td>51.83%</td>
+                  <td>73.21%</td>
+                  <td>83.98%</td>
+                  <td>OpenAI</td>
+                  <td>Proprietary</td>
+                </tr>
+                <tr>
+                  <td>9</td>
+                  <td>Grok 4-0709 (Prompt)</td>
+                  <td>62.97%</td>
+                  <td>74.00%</td>
+                  <td>50.54%</td>
+                  <td>72.54%</td>
+                  <td>84.30%</td>
+                  <td>xAI</td>
+                  <td>Proprietary</td>
+                </tr>
+                <tr>
+                  <td>10</td>
+                  <td>Grok 4-0709 (FC)</td>
+                  <td>61.38%</td>
+                  <td>82.00%</td>
+                  <td>55.91%</td>
+                  <td>75.57%</td>
+                  <td>75.40%</td>
+                  <td>xAI</td>
+                  <td>Proprietary</td>
+                </tr>
+                <tr>
+                  <td>11</td>
+                  <td>Kimi K2 Instruct (FC)</td>
+                  <td>59.06%</td>
+                  <td>66.50%</td>
+                  <td>29.03%</td>
+                  <td>78.68%</td>
+                  <td>87.34%</td>
+                  <td>MoonshotAI</td>
+                  <td>modified-MIT</td>
+                </tr>
+                <tr>
+                  <td>14</td>
+                  <td>DeepSeek V3.2 (Prompt+Think)</td>
+                  <td>56.73%</td>
+                  <td>58.00%</td>
+                  <td>44.09%</td>
+                  <td>76.02%</td>
+                  <td>67.00%</td>
+                  <td>DeepSeek</td>
+                  <td>MIT</td>
+                </tr>
+                <tr>
+                  <td>16</td>
+                  <td>GPT-5.2 (FC)</td>
+                  <td>55.87%</td>
+                  <td>75.50%</td>
+                  <td>45.81%</td>
+                  <td>70.39%</td>
+                  <td>79.42%</td>
+                  <td>OpenAI</td>
+                  <td>Proprietary</td>
+                </tr>
+                <tr>
+                  <td>20</td>
+                  <td>GPT-4.1 (FC)</td>
+                  <td>53.96%</td>
+                  <td>68.00%</td>
+                  <td>23.87%</td>
+                  <td>69.95%</td>
+                  <td>86.52%</td>
+                  <td>OpenAI</td>
+                  <td>Proprietary</td>
+                </tr>
+                <tr>
+                  <td>23</td>
+                  <td>Qwen3 235B-A22B (Prompt)</td>
+                  <td>52.15%</td>
+                  <td>50.50%</td>
+                  <td>19.35%</td>
+                  <td>78.68%</td>
+                  <td>78.89%</td>
+                  <td>Qwen</td>
+                  <td>Apache-2.0</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="insight-grid section-grid-spaced" data-present-step data-step-title="排行榜关键发现">
+            <article class="insight-card">
+              <span class="card-index">A</span>
+              <h3>Anthropic 统治力</h3>
+              <p>Claude 家族占据 Top 6 中的三席（Opus 4.5 / Sonnet 4.5 / Haiku 4.5）。Claude 在 Agentic 维度上的表现尤为突出（Haiku 4.5 以 83.5% Agentic 超过所有 GPT 和 Gemini 旗舰模型），说明 Anthropic 在 tool use 训练上投入了大量工程资源。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">B</span>
+              <h3>OpenAI 的意外落后</h3>
+              <p>GPT-5.2 排名第 16（55.87%），GPT-4.1 排名第 20（53.96%），o3 在 Prompt 模式下排名第 8（63.05%）但 FC 模式跌至 30。OpenAI 模型在 Multi-Turn 维度普遍弱于 Claude 和 Gemini，反映了其在多轮工具交互训练上的不足。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">C</span>
+              <h3>开源模型的突破</h3>
+              <p>GLM-4.6（MIT）排名第 4，Kimi K2（modified-MIT）排名第 11，DeepSeek V3.2（MIT）排名第 14。开源模型在 Non-Live（传统 FC）维度上已接近甚至超越闭源旗舰，但 Agentic 和 Multi-Turn 维度仍有差距。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">D</span>
+              <h3>FC vs Prompt 模式差异</h3>
+              <p>部分模型在 Prompt 模式下表现反而更好（如 Gemini 3 Pro Prompt 72.51% &gt; FC 68.14%）。这表明原生 FC 模式不总是最优 — 模型的 thinking 能力在 Prompt 模式下可以更灵活地处理工具调用逻辑。</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 3: Protocol Comparison -->
+        <section id="protocols" class="section" data-reveal data-present-step data-step-title="FC 协议对比">
+          <div class="section-head">
+            <p class="section-kicker">03 / Protocol Comparison</p>
+            <h2>3. 协议差异：各厂商 Function Calling 实现方式对比</h2>
+            <p>
+              虽然 function calling 的核心概念相同（声明函数 → 模型决定调用 → 应用执行 → 返回结果），但各厂商在 API 设计、参数格式、调用模式和高级特性上存在显著差异。
+            </p>
+          </div>
+
+          <div class="protocol-grid section-grid-spaced">
+            <article class="protocol-card">
+              <span class="tier-badge tier-badge-gold">OpenAI</span>
+              <h4>Responses API + tools 参数</h4>
+              <ul>
+                <li><strong>函数声明</strong>：JSON Schema 格式，通过 <code>tools</code> 参数传入</li>
+                <li><strong>调用模式</strong>：auto / required / none</li>
+                <li><strong>并行调用</strong>：支持（parallel_tool_calls）</li>
+                <li><strong>Strict 模式</strong>：<code>strict: true</code> 强制模型输出严格匹配 schema</li>
+                <li><strong>Structured Output</strong>：与 FC 共用 JSON Schema 引擎</li>
+                <li><strong>特殊能力</strong>：Predicted Outputs、1M 上下文、prompt caching</li>
+              </ul>
+            </article>
+            <article class="protocol-card">
+              <span class="tier-badge tier-badge-silver">Anthropic</span>
+              <h4>Messages API + tools 参数</h4>
+              <ul>
+                <li><strong>函数声明</strong>：JSON Schema 格式，通过 <code>tools</code> 参数传入</li>
+                <li><strong>调用信号</strong>：<code>stop_reason: "tool_use"</code> + <code>tool_use</code> content block</li>
+                <li><strong>调用模式</strong>：auto / any / tool / none</li>
+                <li><strong>Strict 模式</strong>：<code>strict: true</code> 保证 schema 一致性</li>
+                <li><strong>Server Tools</strong>：web_search、code_execution 等在 Anthropic 侧执行</li>
+                <li><strong>MCP 原生支持</strong>：MCP connector 直接对接 MCP server</li>
+              </ul>
+            </article>
+            <article class="protocol-card">
+              <span class="tier-badge tier-badge-bronze">Google</span>
+              <h4>Gemini API + Tool 对象</h4>
+              <ul>
+                <li><strong>函数声明</strong>：OpenAPI Schema 子集，通过 <code>tools</code> + <code>function_declarations</code> 传入</li>
+                <li><strong>调用模式</strong>：VALIDATED / AUTO / ANY / NONE</li>
+                <li><strong>ID 追踪</strong>：Gemini 3 起每次调用返回唯一 <code>id</code>，用于结果回映射</li>
+                <li><strong>Compositional FC</strong>：原生链式调用（函数 A 输出 → 函数 B 输入）</li>
+                <li><strong>Multimodal 响应</strong>：function response 可包含图片/PDF 等多模态内容</li>
+                <li><strong>思维签名</strong>：Gemini 3 在 FC 中必须传递 thought_signature</li>
+              </ul>
+            </article>
+            <article class="protocol-card">
+              <span class="tier-badge tier-badge-open">开源模型</span>
+              <h4>ChatML / 自定义 token 协议</h4>
+              <ul>
+                <li><strong>Hermes 系列</strong>：<code>&lt;tool_call&gt;</code> 特殊 token + JSON 格式输出</li>
+                <li><strong>Qwen 系列</strong>：原生 FC 支持，兼容 OpenAI function calling 格式</li>
+                <li><strong>GLM 系列</strong>：原生 FC(thinking) 模式，支持调用前推理链</li>
+                <li><strong>部署方式</strong>：通过 vLLM / llama.cpp / Ollama 等推理框架，使用 OpenAI 兼容 API</li>
+                <li><strong>通用限制</strong>：schema 校验不如闭源严格，需要额外的后处理校验</li>
+                <li><strong>MCP 集成</strong>：通过框架层面（如 LangChain、OpenAI SDK）桥接</li>
+              </ul>
+            </article>
+          </div>
+
+          <div class="code-block section-grid-spaced">// OpenAI 格式示例（各厂商基本兼容此格式）
+{
+  "tools": [{
+    "type": "function",
+    "function": {
+      "name": "get_weather",
+      "description": "获取指定城市的当前天气",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "city": { "type": "string", "description": "城市名" },
+          "unit": { "type": "string", "enum": ["celsius", "fahrenheit"] }
+        },
+        "required": ["city"]
+      }
+    }
+  }],
+  "tool_choice": "auto"
+}</div>
+        </section>
+
+        <!-- Section 4: Proprietary Models -->
+        <section id="proprietary" class="section" data-reveal data-present-step data-step-title="闭源模型深度分析">
+          <div class="section-head">
+            <p class="section-kicker">04 / Proprietary Models</p>
+            <h2>4. 闭源模型深度分析：各厂商旗舰 FC 能力对比</h2>
+            <p>
+              闭源模型在 function calling 上投入了大量的专项训练和工程优化。以下按 BFCL V4 表现逐一分析各厂商旗舰模型的优劣势。
+            </p>
+          </div>
+
+          <div class="tier-grid section-grid-spaced">
+            <article class="tier-card">
+              <span class="tier-badge tier-badge-gold">BFCL #1 · 77.47%</span>
+              <h4>Anthropic Claude 家族</h4>
+              <p><strong>核心优势</strong></p>
+              <ul>
+                <li>全系列（Opus / Sonnet / Haiku）均在 Top 6，FC 能力从旗舰到轻量一致</li>
+                <li>Agentic 维度 Haiku 4.5（83.5%）超过竞品旗舰，成本效率极高</li>
+                <li>Hallucination 控制最佳（Sonnet 86.61%），很少在不需要时错误调用函数</li>
+                <li>Server-side tools（web_search / code_execution）减少客户端开发复杂度</li>
+                <li>strict 模式保证 schema 一致性</li>
+              </ul>
+              <p><strong>主要劣势</strong></p>
+              <ul>
+                <li>成本最高（Opus 4.5 $4.38/benchmark），Haiku 性价比更优（$1.68）</li>
+                <li>Prompt 模式下表现骤降（Opus Prompt 仅 33.47%），高度依赖原生 FC 模式</li>
+              </ul>
+            </article>
+            <article class="tier-card">
+              <span class="tier-badge tier-badge-silver">BFCL #3 · 72.51%</span>
+              <h4>Google Gemini 家族</h4>
+              <p><strong>核心优势</strong></p>
+              <ul>
+                <li>Gemini 3 Pro 在 Prompt 模式下排名第 3（72.51%），Non-Live 得分最高（83.12%）</li>
+                <li>原生 Compositional FC：链式调用无需客户端编排</li>
+                <li>Multimodal function response：支持图片/文档作为函数返回值</li>
+                <li>VALIDATED 模式：默认强制 schema 合规，减少格式错误</li>
+                <li>Gemini 2.5 Flash 是最佳性价比选择（56.24%，$2.99/benchmark）</li>
+              </ul>
+              <p><strong>主要劣势</strong></p>
+              <ul>
+                <li>FC 模式（68.14%）低于 Prompt 模式（72.51%），原生 FC 训练可能不充分</li>
+                <li>thought_signature 机制增加了手动管理会话历史的复杂度</li>
+                <li>延迟较高（Prompt 模式 298s，FC 模式 225s）</li>
+              </ul>
+            </article>
+            <article class="tier-card">
+              <span class="tier-badge tier-badge-bronze">BFCL #8 · 63.05%</span>
+              <h4>OpenAI GPT 家族</h4>
+              <p><strong>核心优势</strong></p>
+              <ul>
+                <li>生态最成熟：function calling API 格式成为行业事实标准</li>
+                <li>1M token 上下文 + prompt caching（75% 折扣） 降低长对话成本</li>
+                <li>GPT-4.1 在 ComplexFuncBench 得分 65.5%，tau-bench retail 68.0%</li>
+                <li>Strict 模式保证输出格式一致性</li>
+                <li>GPT-4.1 nano 是最低成本选择（$0.10/M input tokens）</li>
+              </ul>
+              <p><strong>主要劣势</strong></p>
+              <ul>
+                <li>BFCL V4 排名出乎意料地低：GPT-5.2 仅 #16，GPT-4.1 仅 #20</li>
+                <li>Multi-Turn 维度严重落后（GPT-4.1 FC 仅 23.87%）</li>
+                <li>o3 FC 模式跌至 #30（48.56%），reasoning 模型的 FC 适配存在问题</li>
+              </ul>
+            </article>
+            <article class="tier-card">
+              <span class="tier-badge tier-badge-silver">BFCL #5 · 69.57%</span>
+              <h4>xAI Grok 家族</h4>
+              <p><strong>核心优势</strong></p>
+              <ul>
+                <li>Grok 4-1 fast reasoning 排名第 5，Agentic 高达 82.5%</li>
+                <li>多个变体进入 Top 12（reasoning / non-reasoning / Grok 4）</li>
+                <li>Multi-Turn 维度接近 Claude（55.91% FC 模式）</li>
+              </ul>
+              <p><strong>主要劣势</strong></p>
+              <ul>
+                <li>生态不够成熟：SDK、文档、社区支持规模远小于 OpenAI/Anthropic</li>
+                <li>成本偏高：Grok 4-0709 benchmark 成本 $30.38</li>
+                <li>Hallucination 控制相对较弱（Grok 4 FC 75.4%）</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 5: Open Source Models -->
+        <section id="opensource" class="section" data-reveal data-present-step data-step-title="开源模型对比">
+          <div class="section-head">
+            <p class="section-kicker">05 / Open Source Models</p>
+            <h2>5. 开源模型：从专用 FC 微调到通用推理模型的工具调用能力</h2>
+            <p>
+              开源 function calling 模型可分为三类：通用大模型的 FC 能力（Qwen / DeepSeek / GLM / Llama）、专用 FC 微调模型（xLAM / Hammer / Hermes）、以及轻量级 FC 模型（3B-8B 规模部署本地）。
+            </p>
+          </div>
+
+          <div class="benchmark-table-wrap section-grid-spaced" data-present-step data-step-title="开源模型 FC 排名">
+            <table class="benchmark-table">
+              <thead>
+                <tr>
+                  <th>模型</th>
+                  <th>Overall</th>
+                  <th>参数量</th>
+                  <th>Agentic</th>
+                  <th>Multi-Turn</th>
+                  <th>Non-Live</th>
+                  <th>许可</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="highlight-cell">GLM-4.6 (FC thinking)</td>
+                  <td class="highlight-cell">72.38%</td>
+                  <td>未知</td>
+                  <td>77.50%</td>
+                  <td>55.70%</td>
+                  <td>80.90%</td>
+                  <td>MIT</td>
+                </tr>
+                <tr>
+                  <td>Kimi K2 Instruct (FC)</td>
+                  <td>59.06%</td>
+                  <td>MoE</td>
+                  <td>66.50%</td>
+                  <td>29.03%</td>
+                  <td>78.68%</td>
+                  <td>modified-MIT</td>
+                </tr>
+                <tr>
+                  <td>DeepSeek V3.2 (Prompt+Think)</td>
+                  <td>56.73%</td>
+                  <td>MoE 671B</td>
+                  <td>58.00%</td>
+                  <td>44.09%</td>
+                  <td>76.02%</td>
+                  <td>MIT</td>
+                </tr>
+                <tr>
+                  <td>xLAM-2-32b-fc-r (FC)</td>
+                  <td>54.66%</td>
+                  <td>32B</td>
+                  <td>25.50%</td>
+                  <td>20.86%</td>
+                  <td>75.50%</td>
+                  <td>CC-BY-NC-4.0</td>
+                </tr>
+                <tr>
+                  <td>Qwen3-235B-A22B (Prompt)</td>
+                  <td>52.15%</td>
+                  <td>MoE 235B</td>
+                  <td>50.50%</td>
+                  <td>19.35%</td>
+                  <td>78.68%</td>
+                  <td>Apache-2.0</td>
+                </tr>
+                <tr>
+                  <td>Qwen3-32B (FC)</td>
+                  <td>48.71%</td>
+                  <td>32B</td>
+                  <td>21.50%</td>
+                  <td>26.67%</td>
+                  <td>82.01%</td>
+                  <td>Apache-2.0</td>
+                </tr>
+                <tr>
+                  <td>xLAM-2-8b-fc-r (FC)</td>
+                  <td>46.68%</td>
+                  <td>8B</td>
+                  <td>6.50%</td>
+                  <td>13.98%</td>
+                  <td>67.95%</td>
+                  <td>CC-BY-NC-4.0</td>
+                </tr>
+                <tr>
+                  <td>Qwen3-8B (FC)</td>
+                  <td>42.57%</td>
+                  <td>8B</td>
+                  <td>12.00%</td>
+                  <td>14.62%</td>
+                  <td>80.53%</td>
+                  <td>Apache-2.0</td>
+                </tr>
+                <tr>
+                  <td>Llama 4 Maverick 17B (FC)</td>
+                  <td>37.29%</td>
+                  <td>17B×128E</td>
+                  <td>28.00%</td>
+                  <td>18.92%</td>
+                  <td>73.65%</td>
+                  <td>Llama 4 Community</td>
+                </tr>
+                <tr>
+                  <td>Llama 3.3-70B (FC)</td>
+                  <td>31.90%</td>
+                  <td>70B</td>
+                  <td>10.00%</td>
+                  <td>8.17%</td>
+                  <td>76.61%</td>
+                  <td>Llama 3 Community</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="tier-grid section-grid-spaced">
+            <article class="tier-card">
+              <span class="tier-badge tier-badge-open">开源旗舰</span>
+              <h4>GLM-4.6 — 开源 FC 之王</h4>
+              <p>智谱 AI 的 GLM-4.6 (FC thinking) 以 72.38% 闯入 BFCL V4 Top 4，是唯一进入前 5 的开源模型。其"FC thinking"模式在调用函数前执行推理链，在 Agentic（77.5%）和 Non-Live（80.9%）维度上均表现出色。MIT 许可意味着可以自由商用、修改和部署，对企业级场景极具吸引力。</p>
+            </article>
+            <article class="tier-card">
+              <span class="tier-badge tier-badge-open">专用 FC 微调</span>
+              <h4>xLAM / Hammer — 专注工具调用</h4>
+              <p>Salesforce 的 xLAM-2 系列（1B/3B/8B/32B/70B）和 MadeAgents 的 Hammer 2.1 系列（0.5B-7B）是专门为 function calling 微调的模型。它们在传统 Non-Live 维度上表现优异（xLAM-2-32b Non-Live 75.5%），但在 Agentic 和 Multi-Turn 维度上大幅落后，反映出针对性训练数据的局限 — 这些模型被训练来做"精确的单次工具调用"，而非"自主的多步工具编排"。</p>
+            </article>
+            <article class="tier-card">
+              <span class="tier-badge tier-badge-open">通用推理</span>
+              <h4>Qwen3 / DeepSeek — 通用模型的 FC 表现</h4>
+              <p>Qwen3-235B 和 DeepSeek V3.2 作为通用推理模型，FC 能力更多来自于强大的指令遵循和格式控制能力，而非专项 FC 训练。Qwen3 家族在 Non-Live 维度上普遍超过 80%（Qwen3-32B FC 82.01%），但在 Agentic 维度上普遍低于 25%。DeepSeek V3.2 在 Prompt+Thinking 模式下（56.73%）表现远好于纯 FC 模式（54.12%），说明 thinking 能力对工具调用有正向增益。</p>
+            </article>
+            <article class="tier-card">
+              <span class="tier-badge tier-badge-open">Meta Llama</span>
+              <h4>Llama 家族 — 基座能力与 FC 表现不匹配</h4>
+              <p>Meta Llama 4 Maverick（37.29%）和 Llama 3.3-70B（31.9%）的 FC 表现明显低于预期。Llama 4 Scout 更是跌至 28.13%。尽管 Llama 系列在通用基准上表现不错，但其 FC 训练明显不足 — 特别是在 Agentic（Llama 3.3-70B 仅 10%）和 Multi-Turn（仅 8.17%）维度上。</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 6: Agentic -->
+        <section id="agentic" class="section" data-reveal data-present-step data-step-title="Agentic FC 深度分析">
+          <div class="section-head">
+            <p class="section-kicker">06 / Agentic Function Calling</p>
+            <h2>6. Agentic 维度：工具调用从"能用"到"可靠自主行动"的质变</h2>
+            <p>
+              BFCL V4 将 Agentic 评测权重提升至 40%，这一变化深刻反映了行业需求的转向：企业不再只关心"模型能不能调用函数"，而是"模型能不能在复杂、多步、有失败的场景中自主完成任务"。
+            </p>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced">
+            <article class="comparison-card">
+              <span class="comparison-label">Web Search</span>
+              <h3>Agentic Web Search（200 题）</h3>
+              <ul class="challenge-list">
+                <li><strong>测试内容</strong> — 多跳搜索问题（2-4 hop），模型需使用 DuckDuckGo 搜索工具进行多次查询，综合多个来源的信息回答问题。</li>
+                <li><strong>失败模式 1：避免使用工具</strong> — 某些模型倾向于依赖内部知识而非搜索，导致信息过时或不完整。</li>
+                <li><strong>失败模式 2：关键词选择差</strong> — 将整个问题粘贴为搜索查询，而非分解为子问题逐步搜索。</li>
+                <li><strong>失败模式 3：网页内容误读</strong> — 即使检索到正确网页，模型仍然可能错误解读内容（如混淆表格中排名第一和第二的建筑）。</li>
+                <li><strong>关键发现</strong> — 禁用搜索工具后，模型准确率大幅下降，证明模型确实在依赖搜索而非记忆作答。</li>
+              </ul>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label">Memory</span>
+              <h3>Agentic Memory（465 题）</h3>
+              <ul class="challenge-list">
+                <li><strong>Vector Store（155 题）</strong> — 测试模型使用向量数据库进行语义检索的能力。</li>
+                <li><strong>Key-Value Store（155 题）</strong> — 测试模型读写结构化键值存储的能力。</li>
+                <li><strong>Rec-Sum（155 题）</strong> — 测试模型对检索结果进行摘要和推理的能力。</li>
+                <li><strong>核心差异</strong> — Agentic Memory 不只测"能不能调函数"，而是测"能不能正确决策何时读、何时写、何时搜索、何时总结"。</li>
+                <li><strong>格式敏感性</strong> — BFCL V4 还测试了 26 种格式变体（5,200 题），验证模型在 prompt 格式微变时的行为稳定性。</li>
+              </ul>
+            </article>
+          </div>
+
+          <div class="benchmark-table-wrap section-grid-spaced">
+            <table class="benchmark-table">
+              <thead>
+                <tr>
+                  <th>模型</th>
+                  <th>Overall</th>
+                  <th>Agentic</th>
+                  <th>Multi-Turn</th>
+                  <th>Hallucination</th>
+                  <th>成本/benchmark</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Claude Opus 4.5 (FC)</td>
+                  <td class="highlight-cell">77.47%</td>
+                  <td class="highlight-cell">84.50%</td>
+                  <td>73.76%</td>
+                  <td>84.72%</td>
+                  <td>$4.38</td>
+                </tr>
+                <tr>
+                  <td>Claude Haiku 4.5 (FC)</td>
+                  <td>68.70%</td>
+                  <td>83.50%</td>
+                  <td>54.41%</td>
+                  <td>85.11%</td>
+                  <td>$1.68</td>
+                </tr>
+                <tr>
+                  <td>Grok 4-1 fast (FC)</td>
+                  <td>69.57%</td>
+                  <td>82.50%</td>
+                  <td>53.98%</td>
+                  <td>79.43%</td>
+                  <td>$6.74</td>
+                </tr>
+                <tr>
+                  <td>Gemini 3 Pro (Prompt)</td>
+                  <td>72.51%</td>
+                  <td>80.00%</td>
+                  <td>61.72%</td>
+                  <td>85.59%</td>
+                  <td>$12.08</td>
+                </tr>
+                <tr>
+                  <td>GLM-4.6 (FC thinking)</td>
+                  <td>72.38%</td>
+                  <td>77.50%</td>
+                  <td>55.70%</td>
+                  <td>84.96%</td>
+                  <td>$4.34</td>
+                </tr>
+                <tr>
+                  <td>GPT-5.2 (FC)</td>
+                  <td>55.87%</td>
+                  <td>75.50%</td>
+                  <td>45.81%</td>
+                  <td>79.42%</td>
+                  <td>$2.23</td>
+                </tr>
+                <tr>
+                  <td>GPT-4.1 (FC)</td>
+                  <td>53.96%</td>
+                  <td>68.00%</td>
+                  <td>23.87%</td>
+                  <td>86.52%</td>
+                  <td>$1.63</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Section 7: Decision Guide -->
+        <section id="decision" class="section" data-reveal data-present-step data-step-title="选型决策指南">
+          <div class="section-head">
+            <p class="section-kicker">07 / Selection Guide</p>
+            <h2>7. 选型指南：按场景推荐 Function Calling 模型</h2>
+            <p>
+              选择 FC 模型不能只看排行榜分数。成本、延迟、部署限制、许可条款和具体应用场景都是关键因素。以下按典型场景给出推荐。
+            </p>
+          </div>
+
+          <div class="decision-flow section-grid-spaced">
+            <article class="decision-step">
+              <span class="decision-number">1</span>
+              <div class="decision-body">
+                <h4>生产级 AI Agent（高可靠性优先）</h4>
+                <p><strong>推荐：Claude Sonnet 4.5 (FC)</strong> — Overall 73.24%，成本 $4.31/benchmark。兼顾 Agentic（81%）、Multi-Turn（64.95%）和 Hallucination 控制（86.61%）。如果预算充足，Opus 4.5 提供最高可靠性。Haiku 4.5 是高流量场景下的 fallback 选择（68.7%，$1.68）。</p>
+              </div>
+            </article>
+            <article class="decision-step">
+              <span class="decision-number">2</span>
+              <div class="decision-body">
+                <h4>成本敏感的 API 集成（简单 FC 为主）</h4>
+                <p><strong>推荐：GPT-4.1 nano ($0.10/M input) 或 Gemini 2.5 Flash Lite</strong> — 对于简单的 single-turn FC（查天气、调 API、提取结构化数据），GPT-4.1 nano 成本极低且 Non-Live 达 60.77%。Gemini 2.5 Flash（56.24%，$2.99）适合需要 compositional FC 的场景。</p>
+              </div>
+            </article>
+            <article class="decision-step">
+              <span class="decision-number">3</span>
+              <div class="decision-body">
+                <h4>私有化部署 / 数据主权要求</h4>
+                <p><strong>推荐：GLM-4.6 (MIT) 或 Qwen3-32B (Apache-2.0)</strong> — GLM-4.6 以 72.38% 逼近闭源旗舰水平，MIT 许可允许完全自由使用。Qwen3-32B 在 Non-Live 维度达到 82.01%，适合需要高精度单次 FC 的本地部署场景。DeepSeek V3.2（56.73%，MIT）是性价比更高的 MoE 选择。</p>
+              </div>
+            </article>
+            <article class="decision-step">
+              <span class="decision-number">4</span>
+              <div class="decision-body">
+                <h4>边缘设备 / 轻量部署（3B-8B）</h4>
+                <p><strong>推荐：xLAM-2-8b-fc-r 或 Qwen3-8B</strong> — xLAM-2-8b（46.68%）在 Non-Live 维度达 67.95%，专为 FC 优化。Qwen3-8B（42.57%）则更适合需要兼顾对话的场景。Hammer2.1-7b（31.67%）在 Hallucination 控制上优异（90.12%）。</p>
+              </div>
+            </article>
+            <article class="decision-step">
+              <span class="decision-number">5</span>
+              <div class="decision-body">
+                <h4>多模态工具调用</h4>
+                <p><strong>推荐：Gemini 3 Pro</strong> — 唯一原生支持 multimodal function response 的平台（函数返回值可包含图片/PDF），且支持 compositional FC 和 multi-tool use（内置搜索 + 自定义函数混用）。适合需要处理文档、图像、视频的 Agent 场景。</p>
+              </div>
+            </article>
+            <article class="decision-step">
+              <span class="decision-number">6</span>
+              <div class="decision-body">
+                <h4>MCP 生态对接</h4>
+                <p><strong>推荐：Claude 4.5 系列 或 Gemini 3 系列</strong> — Anthropic 提供原生 MCP connector，Gemini SDK 内置 MCP 自动工具调用支持。OpenAI 通过 Responses API + third-party MCP bridge 也可对接，但非原生支持。</p>
+              </div>
+            </article>
+          </div>
+
+          <div class="insight-grid section-grid-spaced" data-present-step data-step-title="选型核心原则">
+            <article class="insight-card">
+              <span class="card-index">!</span>
+              <h3>选型核心原则</h3>
+              <p><strong>不要只看 Overall 得分。</strong>BFCL V4 的权重分配（Agentic 40%）意味着 Overall 主要反映 agentic 能力。如果你的场景以简单 FC 为主（如 API 封装、数据提取），应重点看 Non-Live 和 Live 子分数。如果你在构建自主 Agent，则 Agentic 和 Multi-Turn 是更关键的指标。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">!</span>
+              <h3>FC 模式选择</h3>
+              <p>原生 FC 模式并非总是最优。Gemini 3 Pro 在 Prompt 模式下比 FC 模式高 4.37 分。如果你的推理框架支持，可考虑 Prompt + Thinking 模式（如 DeepSeek V3.2 Prompt+Think 56.73% vs FC 54.12%），让模型在调用前先思考。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">!</span>
+              <h3>成本效率前线</h3>
+              <p>Claude Haiku 4.5 是现阶段"性能/成本"最优解：68.7% Overall，$1.68/benchmark，Agentic 83.5% 超过所有 GPT 旗舰。GPT-4.1 nano（$0.10/M input）是极限低成本选择但 FC 能力有限（33.05%）。Gemini 2.5 Flash Lite（36.87%，$1.18）适合高流量低精度场景。</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 8: References -->
+        <section id="references" class="section" data-reveal data-present-step data-step-title="参考文献">
+          <div class="section-head">
+            <p class="section-kicker">08 / References</p>
+            <h2>8. 参考文献</h2>
+          </div>
+
+          <ol class="bib-list section-grid-spaced">
+            <li>
+              <span class="bib-id">[1]</span>
+              <span class="bib-author">Patil et al., 2025.</span>
+              <em>The Berkeley Function Calling Leaderboard (BFCL): From Tool Use to Agentic Evaluation of Large Language Models.</em>
+              ICML 2025.
+              <a href="https://gorilla.cs.berkeley.edu/leaderboard.html" target="_blank" rel="noopener noreferrer">gorilla.cs.berkeley.edu/leaderboard</a>
+              <span class="bib-note">BFCL V4 完整排行榜数据来源。评测包含 5,088 条用例，覆盖 Agentic / Multi-Turn / Live / Non-Live / Hallucination 五大维度。</span>
+            </li>
+            <li>
+              <span class="bib-id">[2]</span>
+              <span class="bib-author">Berkeley Gorilla Team, 2025.</span>
+              <em>BFCL V4 Agentic Part 1: Web Search.</em>
+              <a href="https://gorilla.cs.berkeley.edu/blogs/15_bfcl_v4_web_search.html" target="_blank" rel="noopener noreferrer">gorilla.cs.berkeley.edu/blogs/15</a>
+              <span class="bib-note">BFCL V4 web search 评测设计、数据生成方法、失败模式分析（避免工具使用 / 关键词选择差 / 网页误读）。</span>
+            </li>
+            <li>
+              <span class="bib-id">[3]</span>
+              <span class="bib-author">OpenAI, 2025.</span>
+              <em>Introducing GPT-4.1 in the API.</em>
+              <a href="https://openai.com/index/gpt-4-1/" target="_blank" rel="noopener noreferrer">openai.com/index/gpt-4-1</a>
+              <span class="bib-note">GPT-4.1 技术细节：Function calling 基准（ComplexFuncBench 65.5%，tau-bench retail 68.0%），1M 上下文，定价。</span>
+            </li>
+            <li>
+              <span class="bib-id">[4]</span>
+              <span class="bib-author">Anthropic, 2026.</span>
+              <em>Tool Use with Claude — Overview.</em>
+              <a href="https://docs.anthropic.com/en/docs/build-with-claude/tool-use/overview" target="_blank" rel="noopener noreferrer">docs.anthropic.com/tool-use</a>
+              <span class="bib-note">Claude 工具调用架构：client tools / server tools 分类，strict 模式，MCP connector 原生支持。</span>
+            </li>
+            <li>
+              <span class="bib-id">[5]</span>
+              <span class="bib-author">Google, 2026.</span>
+              <em>Function Calling with the Gemini API.</em>
+              <a href="https://ai.google.dev/gemini-api/docs/function-calling" target="_blank" rel="noopener noreferrer">ai.google.dev/function-calling</a>
+              <span class="bib-note">Gemini FC 协议：VALIDATED/AUTO/ANY/NONE 模式，compositional FC，multimodal function response，thought signature 机制。</span>
+            </li>
+            <li>
+              <span class="bib-id">[6]</span>
+              <span class="bib-author">Salesforce AI Research, 2025.</span>
+              <em>xLAM-2: Large Action Models for Function Calling.</em>
+              <a href="https://huggingface.co/collections/Salesforce/xlam-2-67ef5be12949d8dcdcb5e2e5" target="_blank" rel="noopener noreferrer">huggingface.co/Salesforce/xlam-2</a>
+              <span class="bib-note">xLAM-2 系列专用 FC 模型，覆盖 1B-70B 规模，Non-Live 维度表现突出。</span>
+            </li>
+          </ol>
+        </section>
+      </main>
+
+      <footer class="page-footer">
+        <p>© 2026 Function Calling 模型全景：主流 LLM 工具调用能力深度对比 | 交互式 HTML 页面。</p>
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

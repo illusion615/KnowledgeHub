@@ -13,7 +13,11 @@ document.addEventListener('DOMContentLoaded', function () {
   var topLevelContainers = [];
   var presentSteps = [];
   var topbarActions;
+  var topbarStart;
+  var topbarCenter;
+  var topbarEnd;
   var presentationToggle;
+  var presentationExport;
   var presentationFloating;
   var presentationExit;
   var presentationPrev;
@@ -24,13 +28,19 @@ document.addEventListener('DOMContentLoaded', function () {
   var presentationTitle;
   var presentationTip;
   var stepScrollTimer = 0;
+  var pptxgenLoader = null;
+  var pptxExportLoader = null;
+  var exportInProgress = false;
 
   if (!site || !topbar || !hero || !main) return;
 
   var labels = {
     zh: {
-      enter: '进入演示',
+      enter: '开始演示',
       exit: '退出演示',
+      export: '导出PPT',
+      exporting: '导出中...',
+      exportError: 'PPT 导出失败，请重试。',
       prev: '上一页',
       next: '下一页',
       tip: '键盘 ← → 切换 · Esc 退出',
@@ -38,8 +48,11 @@ document.addEventListener('DOMContentLoaded', function () {
       fallbackStep: '内容页'
     },
     en: {
-      enter: 'Present mode',
+      enter: 'Start presentation',
       exit: 'Exit presentation',
+      export: 'Export PPT',
+      exporting: 'Exporting...',
+      exportError: 'PowerPoint export failed. Please try again.',
       prev: 'Previous',
       next: 'Next',
       tip: 'Use ← → to navigate · Esc to exit',
@@ -69,9 +82,74 @@ document.addEventListener('DOMContentLoaded', function () {
     return pack[key] || '';
   };
 
+  var ensureTopbarLayout = function () {
+    var existingStart = topbar.querySelector('.topbar-slot-start');
+    var existingCenter = topbar.querySelector('.topbar-slot-center');
+    var existingEnd = topbar.querySelector('.topbar-slot-end');
+    var homeLink;
+    var brand;
+    var navLinks;
+    var actions;
+
+    if (existingStart && existingCenter && existingEnd) {
+      topbarStart = existingStart;
+      topbarCenter = existingCenter;
+      topbarEnd = existingEnd;
+      return;
+    }
+
+    homeLink = topbar.querySelector('.home-link');
+    brand = topbar.querySelector('.brand');
+    navLinks = topbar.querySelector('.nav-links');
+    actions = topbar.querySelector('.topbar-actions');
+
+    topbarStart = document.createElement('div');
+    topbarStart.className = 'topbar-slot topbar-slot-start';
+
+    topbarCenter = document.createElement('div');
+    topbarCenter.className = 'topbar-slot topbar-slot-center';
+
+    topbarEnd = document.createElement('div');
+    topbarEnd.className = 'topbar-slot topbar-slot-end';
+
+    while (topbar.firstChild) {
+      topbar.removeChild(topbar.firstChild);
+    }
+
+    topbar.appendChild(topbarStart);
+    topbar.appendChild(topbarCenter);
+    topbar.appendChild(topbarEnd);
+
+    if (homeLink) {
+      topbarStart.appendChild(homeLink);
+    }
+
+    if (brand) {
+      topbarStart.appendChild(brand);
+    }
+
+    if (navLinks) {
+      topbarCenter.appendChild(navLinks);
+    }
+
+    if (!actions) {
+      actions = document.createElement('div');
+      actions.className = 'topbar-actions';
+    }
+
+    while (actions.firstChild) {
+      if (actions.firstChild !== navLinks) {
+        topbarEnd.appendChild(actions.firstChild);
+      } else {
+        actions.removeChild(actions.firstChild);
+      }
+    }
+
+    topbarEnd.appendChild(actions);
+  };
+
   var ensureTopbarActions = function () {
-    var existing = topbar.querySelector('.topbar-actions');
-    var navLinks = topbar.querySelector('.nav-links');
+    var existing = topbarEnd ? topbarEnd.querySelector('.topbar-actions') : null;
     var actions = existing;
 
     if (actions) {
@@ -80,12 +158,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     actions = document.createElement('div');
     actions.className = 'topbar-actions';
-    topbar.appendChild(actions);
-
-    if (navLinks && navLinks.parentNode === topbar) {
-      actions.appendChild(navLinks);
+    if (topbarEnd) {
+      topbarEnd.appendChild(actions);
+    } else {
+      topbar.appendChild(actions);
     }
-
     return actions;
   };
 
@@ -103,6 +180,17 @@ document.addEventListener('DOMContentLoaded', function () {
     topbarActions.appendChild(toggle);
 
     return toggle;
+  };
+
+  var ensureExportButton = function () {
+    var button = topbar.querySelector('[data-presentation-export]');
+    if (button) return button;
+    button = document.createElement('button');
+    button.className = 'present-export';
+    button.type = 'button';
+    button.setAttribute('data-presentation-export', '');
+    topbarActions.appendChild(button);
+    return button;
   };
 
   var createNavButton = function (direction, labelText) {
@@ -203,6 +291,143 @@ document.addEventListener('DOMContentLoaded', function () {
     return value.trim();
   };
 
+  var sanitizeFileName = function (value) {
+    var source = value || 'presentation';
+    var invalidChars = '\\/:*?"<>|';
+    var result = '';
+    var wasDash = false;
+    var i, ch;
+    for (i = 0; i < source.length; i++) {
+      ch = source.charAt(i);
+      if (ch === ' ' || ch === '\n' || ch === '\r' || ch === '\t') { if (!wasDash) { result += '-'; wasDash = true; } continue; }
+      if (invalidChars.indexOf(ch) !== -1) { if (!wasDash) { result += '-'; wasDash = true; } continue; }
+      result += ch; wasDash = false;
+    }
+    result = result.trim();
+    while (result.charAt(0) === '-') result = result.slice(1);
+    while (result.charAt(result.length - 1) === '-') result = result.slice(0, -1);
+    return result || 'presentation';
+  };
+
+  var resolvePresentationAssetUrl = function (fileName) {
+    var nodes = document.querySelectorAll('script[src]');
+    var resolved = '';
+    nodes.forEach(function (n) {
+      var src = n.getAttribute('src') || '';
+      if (!resolved && src.indexOf('article-presentation.js') !== -1) {
+        resolved = src.replace('article-presentation.js', fileName);
+      }
+    });
+    var base = resolved || fileName;
+    // Cache-bust lazily loaded scripts with a version stamp
+    return base + (base.indexOf('?') === -1 ? '?' : '&') + 'v=20260411c';
+  };
+
+  var ensurePptxGenJS = function () {
+    var ctor = window.PptxGenJS || window.PptxgenJS;
+    if (ctor) return Promise.resolve(ctor);
+    if (pptxgenLoader) return pptxgenLoader;
+    pptxgenLoader = new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = resolvePresentationAssetUrl('pptxgen.bundle.js');
+      s.async = true;
+      s.onload = function () {
+        var c = window.PptxGenJS || window.PptxgenJS;
+        if (c) { resolve(c); return; }
+        reject(new Error('PptxGenJS constructor unavailable.'));
+      };
+      s.onerror = function () { reject(new Error('Failed to load PptxGenJS.')); };
+      document.head.appendChild(s);
+    });
+    return pptxgenLoader;
+  };
+
+  var ensurePptxExport = function () {
+    if (pptxExportLoader) return pptxExportLoader;
+    pptxExportLoader = new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = resolvePresentationAssetUrl('pptx-export.js');
+      s.async = true;
+      s.onload = function () {
+        if (window.StudyRoomPptxExport) { resolve(window.StudyRoomPptxExport); return; }
+        reject(new Error('pptx-export.js loaded but unavailable.'));
+      };
+      s.onerror = function () { reject(new Error('Failed to load pptx-export.js.')); };
+      document.head.appendChild(s);
+    });
+    return pptxExportLoader;
+  };
+
+  var capturePresentationSnapshot = function () {
+    var activeStep = presentSteps[state.index];
+    return { enabled: state.enabled, index: state.index, pageScrollY: window.scrollY, stepScrollTop: activeStep ? activeStep.scrollTop : 0 };
+  };
+
+  var restorePresentationSnapshot = function (snapshot) {
+    if (snapshot.enabled) {
+      state.enabled = true;
+      root.classList.add('is-presentation-mode');
+      setPresentationStep(snapshot.index);
+      var activeStep = presentSteps[snapshot.index];
+      if (activeStep) { activeStep.scrollTop = snapshot.stepScrollTop; syncStepOverflowState(activeStep); }
+      updatePresentationLabels();
+      return;
+    }
+    state.enabled = false;
+    root.classList.remove('is-presentation-mode');
+    restoreAccordionStates();
+    setPresentationStep(snapshot.index);
+    updatePresentationLabels();
+    window.scrollTo(0, snapshot.pageScrollY);
+  };
+
+  var exportWithNativeObjects = function () {
+    var snapshot = capturePresentationSnapshot();
+    return Promise.all([ensurePptxGenJS(), ensurePptxExport()]).then(function (results) {
+      var PptxGenJS = results[0];
+      var exporter = results[1];
+      var palette = exporter.getPalette();
+      var pptx = new PptxGenJS();
+      pptx.layout = 'LAYOUT_WIDE';
+      pptx.author = 'Study Room';
+      pptx.company = 'Study Room';
+      pptx.subject = document.title || 'Presentation';
+      pptx.title = document.title || 'Presentation';
+      pptx.lang = getLang() === 'zh' ? 'zh-CN' : 'en-US';
+      if (exporter.setupMasters) exporter.setupMasters(pptx, palette);
+      if (!snapshot.enabled) enterPresentation();
+      presentSteps.forEach(function (step, stepIndex) {
+        setPresentationStep(stepIndex);
+        exporter.renderStep(pptx, step, stepIndex, stepIndex, presentSteps.length, palette, deriveStepLabel, deriveStepTitle);
+      });
+      restorePresentationSnapshot(snapshot);
+      return pptx.write({ outputType: 'blob' });
+    }, function (error) {
+      restorePresentationSnapshot(snapshot);
+      throw error;
+    });
+  };
+
+  var exportPresentationDeck = function () {
+    if (exportInProgress) return Promise.resolve();
+    exportInProgress = true;
+    updatePresentationLabels();
+    return exportWithNativeObjects().then(function (blob) {
+      var fileName = sanitizeFileName(document.title || 'presentation') + '.pptx';
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = fileName;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      window.setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+    }).catch(function (error) {
+      console.error(error);
+      window.alert(getLabel('exportError'));
+    }).then(function () {
+      exportInProgress = false;
+      updatePresentationLabels();
+    });
+  };
+
   var deriveStepTitle = function (step, index) {
     var explicit = step.getAttribute('data-step-title');
     var heading;
@@ -218,7 +443,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     heading = step.querySelector('.section-head h2, h1, h2, h3');
     if (heading) {
-      return normalizeTitle(heading.textContent);
+      return normalizeTitle(heading.textContent).replace(/^\d+\.\s*/, '');
     }
 
     return getLabel('fallbackStep') + ' ' + String(index + 1);
@@ -260,8 +485,57 @@ document.addEventListener('DOMContentLoaded', function () {
     return result;
   };
 
+  /* ══════════════════════════════════════════════════════
+     Accordion presentation support
+     — Extracts subsection title (without number prefix)
+     — Reads section kicker + h2 for deck label/title
+     — Manages expand/collapse state across enter/exit
+     ══════════════════════════════════════════════════════ */
+  var getAccordionTitle = function (item) {
+    var toggle = item.querySelector('.subsection-toggle');
+    if (!toggle) return '';
+    var span = toggle.querySelector('span:not(.subsection-number)');
+    if (span) return normalizeTitle(span.textContent);
+    return normalizeTitle(toggle.textContent).replace(/^\d+(\.\d+)?\s*/, '');
+  };
+
+  var savedAccordionStates = [];
+
+  var expandAllAccordions = function () {
+    savedAccordionStates = [];
+    var items = main.querySelectorAll('[data-accordion]');
+    items.forEach(function (item) {
+      var btn = item.querySelector('.subsection-toggle');
+      var content = item.querySelector('.subsection-content');
+      savedAccordionStates.push({ item: item, wasOpen: item.classList.contains('is-open') });
+      item.classList.add('is-open');
+      if (btn) btn.setAttribute('aria-expanded', 'true');
+      if (content) content.setAttribute('aria-hidden', 'false');
+    });
+  };
+
+  var restoreAccordionStates = function () {
+    savedAccordionStates.forEach(function (entry) {
+      var btn = entry.item.querySelector('.subsection-toggle');
+      var content = entry.item.querySelector('.subsection-content');
+      if (entry.wasOpen) {
+        entry.item.classList.add('is-open');
+        if (btn) btn.setAttribute('aria-expanded', 'true');
+        if (content) content.setAttribute('aria-hidden', 'false');
+      } else {
+        entry.item.classList.remove('is-open');
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+        if (content) content.setAttribute('aria-hidden', 'true');
+      }
+    });
+    savedAccordionStates = [];
+  };
+
+  /* ══════════════════════════════════════════════════════ */
+
   var collectPresentationSteps = function () {
     var sections = main.querySelectorAll('.section');
+    var postMainSections = site.querySelectorAll('main ~ .section');
 
     topLevelContainers = [];
     presentSteps = [];
@@ -274,8 +548,13 @@ document.addEventListener('DOMContentLoaded', function () {
       topLevelContainers.push(section);
     });
 
+    postMainSections.forEach(function (section) {
+      topLevelContainers.push(section);
+    });
+
     topLevelContainers.forEach(function (container) {
       var nestedSteps;
+      var accordionItems;
 
       if (container.hasAttribute('data-present-step')) {
         presentSteps.push(container);
@@ -287,6 +566,34 @@ document.addEventListener('DOMContentLoaded', function () {
       if (nestedSteps.length > 0) {
         nestedSteps.forEach(function (step) {
           presentSteps.push(step);
+        });
+        return;
+      }
+
+      // Accordion split: overview step (section-head + collapsed toggles) + each [data-accordion] as its own step
+      accordionItems = container.querySelectorAll('[data-accordion]');
+      if (accordionItems.length > 0) {
+        var sHead = container.querySelector('.section-head');
+        var sKicker = sHead ? sHead.querySelector('.section-kicker') : null;
+        var sH2 = sHead ? sHead.querySelector('h2') : null;
+        var kickerStr = sKicker ? normalizeTitle(sKicker.textContent) : '';
+        var h2Str = sH2 ? normalizeTitle(sH2.textContent).replace(/^\d+\.\s*/, '') : '';
+
+        // Overview step: the section itself shows head + collapsed accordion list
+        container.setAttribute('data-present-step', '');
+        container.setAttribute('data-present-overview', '');
+        if (kickerStr) container.setAttribute('data-step-label', kickerStr);
+        container.setAttribute('data-step-title', h2Str || '');
+        autoAssignedSteps.push(container);
+        presentSteps.push(container);
+
+        accordionItems.forEach(function (item) {
+          var subTitle = getAccordionTitle(item);
+          if (kickerStr) item.setAttribute('data-step-label', kickerStr);
+          item.setAttribute('data-step-title', subTitle || h2Str || '');
+          item.setAttribute('data-present-step', '');
+          autoAssignedSteps.push(item);
+          presentSteps.push(item);
         });
         return;
       }
@@ -315,6 +622,12 @@ document.addEventListener('DOMContentLoaded', function () {
       presentationExit.textContent = getLabel('exit');
     }
 
+    if (presentationExport) {
+      presentationExport.textContent = exportInProgress ? getLabel('exporting') : getLabel('export');
+      presentationExport.disabled = exportInProgress;
+      presentationExport.setAttribute('aria-busy', String(exportInProgress));
+    }
+
     if (presentationPrev) {
       presentationPrev.setAttribute('aria-label', prevLabel);
       if (presentationPrev.lastElementChild) {
@@ -340,11 +653,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
       if (!state.enabled) {
         container.classList.remove('is-presentation-hidden');
+        container.classList.remove('is-present-container-passthrough');
         return;
       }
 
       shouldShow = container === activeStep || container.contains(activeStep);
       container.classList.toggle('is-presentation-hidden', !shouldShow);
+
+      // When an overview container holds the active child step,
+      // mark it as passthrough so CSS can show it without the is-active grid sizing
+      var isPassthrough = shouldShow && container !== activeStep
+        && container.hasAttribute('data-present-overview');
+      container.classList.toggle('is-present-container-passthrough', isPassthrough);
     });
   };
 
@@ -478,7 +798,8 @@ document.addEventListener('DOMContentLoaded', function () {
   var enterPresentation = function () {
     state.enabled = true;
     root.classList.add('is-presentation-mode');
-    setPresentationStep(resolvePresentationStepIndex());
+    expandAllAccordions();
+    setPresentationStep(0);
     updatePresentationLabels();
   };
 
@@ -487,6 +808,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     state.enabled = false;
     root.classList.remove('is-presentation-mode');
+    restoreAccordionStates();
     setPresentationStep(state.index);
     updatePresentationLabels();
 
@@ -544,8 +866,10 @@ document.addEventListener('DOMContentLoaded', function () {
     return false;
   };
 
+  ensureTopbarLayout();
   topbarActions = ensureTopbarActions();
   presentationToggle = ensureToggle();
+  presentationExport = ensureExportButton();
   presentationFloating = ensureFloating();
   presentationExit = presentationFloating.querySelector('[data-present-exit]');
   presentationPrev = presentationFloating.querySelector('[data-present-prev]');
@@ -576,6 +900,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     enterPresentation();
+  });
+
+  presentationExport.addEventListener('click', function () {
+    exportPresentationDeck();
   });
 
   presentationExit.addEventListener('click', function () {

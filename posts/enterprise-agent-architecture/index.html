@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
   <style>
     /* Article-specific: hero title sizing */
     .hero-copy h1 {
@@ -29,10 +30,10 @@
     <div class="site">
       <header class="hero">
         <div class="topbar load-in">
-          <a class="home-link" href="../../" data-zh="← 返回首页" data-en="← Home">← 返回首页</a>
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
           <div class="brand">
             <span class="brand-mark"></span>
-            Enterprise Agent Architecture
+            智能体
           </div>
           <nav class="nav-links" aria-label="页面章节导航">
             <a href="#role">架构角色</a>
@@ -892,246 +893,122 @@
     </div>
   </div>
 
+  <script src="../../assets/article-common.js"></script>
   <script>
-    const revealTargets = document.querySelectorAll('.load-in, [data-reveal]');
-    const sectionTargets = document.querySelectorAll('main section[id]');
-    const navLinks = document.querySelectorAll('.nav-links a');
+    // Tab switching
+    document.querySelectorAll('[data-tabs]').forEach(function (tabGroup) {
+      var buttons = Array.prototype.slice.call(tabGroup.querySelectorAll('.tab-button'));
+      var panels = Array.prototype.slice.call(tabGroup.querySelectorAll('.tab-panel'));
 
-    const revealObserver = new IntersectionObserver((entries, observer) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) {
-          return;
-        }
-
-        entry.target.classList.add('is-visible');
-        observer.unobserve(entry.target);
-      });
-    }, {
-      threshold: 0.18,
-      rootMargin: '0px 0px -40px 0px'
-    });
-
-    revealTargets.forEach((target) => {
-      revealObserver.observe(target);
-    });
-
-    const navObserver = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        const id = entry.target.getAttribute('id');
-        const matchingLink = document.querySelector(`.nav-links a[href="#${id}"]`);
-
-        if (!matchingLink) {
-          return;
-        }
-
-        if (entry.isIntersecting) {
-          navLinks.forEach((link) => {
-            link.removeAttribute('aria-current');
-          });
-          matchingLink.setAttribute('aria-current', 'true');
-        }
-      });
-    }, {
-      threshold: 0.4
-    });
-
-    sectionTargets.forEach((section) => {
-      navObserver.observe(section);
-    });
-
-    document.querySelectorAll('.load-in').forEach((element, index) => {
-      element.style.transitionDelay = `${index * 120}ms`;
-    });
-
-    document.querySelectorAll('[data-accordion]').forEach((item) => {
-      const button = item.querySelector('.subsection-toggle');
-      const content = item.querySelector('.subsection-content');
-
-      if (!button || !content) {
-        return;
-      }
-
-      const syncAccordionState = (targetItem, expanded) => {
-        const targetButton = targetItem.querySelector('.subsection-toggle');
-        const targetContent = targetItem.querySelector('.subsection-content');
-
-        if (!targetButton || !targetContent) {
-          return;
-        }
-
-        targetButton.setAttribute('aria-expanded', String(expanded));
-        targetItem.classList.toggle('is-open', expanded);
-        targetContent.setAttribute('aria-hidden', String(!expanded));
-      };
-
-      syncAccordionState(item, item.classList.contains('is-open'));
-
-      button.addEventListener('click', () => {
-        const isExpanded = item.classList.contains('is-open');
-
-        if (!isExpanded) {
-          document.querySelectorAll('[data-accordion]').forEach((otherItem) => {
-            if (otherItem === item) {
-              return;
-            }
-
-            syncAccordionState(otherItem, false);
-          });
-        }
-
-        syncAccordionState(item, !isExpanded);
-      });
-    });
-
-    document.querySelectorAll('[data-tabs]').forEach((tabGroup) => {
-      const buttons = Array.from(tabGroup.querySelectorAll('.tab-button'));
-      const panels = Array.from(tabGroup.querySelectorAll('.tab-panel'));
-
-      buttons.forEach((button) => {
-        button.addEventListener('click', () => {
-          const targetId = button.dataset.tabTarget;
-
-          buttons.forEach((item) => {
+      buttons.forEach(function (button) {
+        button.addEventListener('click', function () {
+          var targetId = button.dataset.tabTarget;
+          buttons.forEach(function (item) {
             item.setAttribute('aria-selected', String(item === button));
           });
-
-          panels.forEach((panel) => {
+          panels.forEach(function (panel) {
             panel.hidden = panel.id !== targetId;
           });
         });
       });
     });
 
-    document.querySelectorAll('[data-matrix]').forEach((matrix) => {
-      const rows = Array.from(matrix.querySelectorAll('tbody tr'));
-      const points = Array.from(matrix.querySelectorAll('.quadrant-point'));
-      const complexityFilter = matrix.querySelector('[data-filter="complexity"]');
-      const autonomyFilter = matrix.querySelector('[data-filter="autonomy"]');
-      const viewButtons = Array.from(matrix.querySelectorAll('.matrix-view-button'));
-      const viewPanels = Array.from(matrix.querySelectorAll('[data-view-panel]'));
+    // Matrix filter + view switching
+    document.querySelectorAll('[data-matrix]').forEach(function (matrix) {
+      var rows = Array.prototype.slice.call(matrix.querySelectorAll('tbody tr'));
+      var points = Array.prototype.slice.call(matrix.querySelectorAll('.quadrant-point'));
+      var complexityFilter = matrix.querySelector('[data-filter="complexity"]');
+      var autonomyFilter = matrix.querySelector('[data-filter="autonomy"]');
+      var viewButtons = Array.prototype.slice.call(matrix.querySelectorAll('.matrix-view-button'));
+      var viewPanels = Array.prototype.slice.call(matrix.querySelectorAll('[data-view-panel]'));
 
-      const applyMatrixFilters = () => {
-        const complexityValue = complexityFilter ? complexityFilter.value : 'all';
-        const autonomyValue = autonomyFilter ? autonomyFilter.value : 'all';
-
-        rows.forEach((row) => {
-          const matchesComplexity = complexityValue === 'all' || row.dataset.complexity === complexityValue;
-          const matchesAutonomy = autonomyValue === 'all' || row.dataset.autonomy === autonomyValue;
-          row.hidden = !(matchesComplexity && matchesAutonomy);
+      var applyMatrixFilters = function () {
+        var complexityValue = complexityFilter ? complexityFilter.value : 'all';
+        var autonomyValue = autonomyFilter ? autonomyFilter.value : 'all';
+        rows.forEach(function (row) {
+          var mc = complexityValue === 'all' || row.dataset.complexity === complexityValue;
+          var ma = autonomyValue === 'all' || row.dataset.autonomy === autonomyValue;
+          row.hidden = !(mc && ma);
         });
-
-        points.forEach((point) => {
-          const matchesComplexity = complexityValue === 'all' || point.dataset.complexity === complexityValue;
-          const matchesAutonomy = autonomyValue === 'all' || point.dataset.autonomy === autonomyValue;
-          point.hidden = !(matchesComplexity && matchesAutonomy);
+        points.forEach(function (point) {
+          var mc = complexityValue === 'all' || point.dataset.complexity === complexityValue;
+          var ma = autonomyValue === 'all' || point.dataset.autonomy === autonomyValue;
+          point.hidden = !(mc && ma);
         });
       };
 
-      const setMatrixView = (targetView) => {
-        viewButtons.forEach((button) => {
+      var setMatrixView = function (targetView) {
+        viewButtons.forEach(function (button) {
           button.setAttribute('aria-selected', String(button.dataset.viewTarget === targetView));
         });
-
-        viewPanels.forEach((panel) => {
+        viewPanels.forEach(function (panel) {
           panel.hidden = panel.dataset.viewPanel !== targetView;
         });
       };
 
-      if (complexityFilter) {
-        complexityFilter.addEventListener('change', applyMatrixFilters);
-      }
-
-      if (autonomyFilter) {
-        autonomyFilter.addEventListener('change', applyMatrixFilters);
-      }
-
-      viewButtons.forEach((button) => {
-        button.addEventListener('click', () => {
+      if (complexityFilter) complexityFilter.addEventListener('change', applyMatrixFilters);
+      if (autonomyFilter) autonomyFilter.addEventListener('change', applyMatrixFilters);
+      viewButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
           setMatrixView(button.dataset.viewTarget || 'table');
         });
       });
-
       setMatrixView('table');
       applyMatrixFilters();
     });
 
-    document.querySelectorAll('[data-decision-tree]').forEach((tree) => {
-      const planning = tree.querySelector('[data-question="planning"]');
-      const domains = tree.querySelector('[data-question="domains"]');
-      const continuous = tree.querySelector('[data-question="continuous"]');
-      const title = tree.querySelector('[data-result-title]');
-      const text = tree.querySelector('[data-result-text]');
+    // Decision tree
+    document.querySelectorAll('[data-decision-tree]').forEach(function (tree) {
+      var planning = tree.querySelector('[data-question="planning"]');
+      var domains = tree.querySelector('[data-question="domains"]');
+      var continuous = tree.querySelector('[data-question="continuous"]');
+      var title = tree.querySelector('[data-result-title]');
+      var text = tree.querySelector('[data-result-text]');
 
-      const updateDecision = () => {
-        const planningValue = planning ? planning.value : 'unknown';
-        const domainsValue = domains ? domains.value : 'unknown';
-        const continuousValue = continuous ? continuous.value : 'unknown';
+      var updateDecision = function () {
+        var pv = planning ? planning.value : 'unknown';
+        var dv = domains ? domains.value : 'unknown';
+        var cv = continuous ? continuous.value : 'unknown';
 
-        if (planningValue === 'unknown' || domainsValue === 'unknown' || continuousValue === 'unknown') {
+        if (pv === 'unknown' || dv === 'unknown' || cv === 'unknown') {
           title.textContent = '请先完成选择';
           text.textContent = '这个交互把 Pattern Selection Decision Tree 直接转成了可操作的选型器，用来帮助判断模式与任务类型的匹配关系。';
           return;
         }
-
-        if (continuousValue === 'yes') {
+        if (cv === 'yes') {
           title.textContent = '推荐：Autonomous Swarm';
           text.textContent = '当任务要求持续自治运行、需要监督 Agent 管理多个 Specialist，并同时施加成本和动作边界时，最接近的推荐模式是 Autonomous Swarm。';
           return;
         }
-
-        if (planningValue === 'yes' && domainsValue === 'yes') {
+        if (pv === 'yes' && dv === 'yes') {
           title.textContent = '推荐：Orchestrator';
           text.textContent = '当请求需要被拆成多个可并行的跨域子任务，并在最后聚合结果时，推荐使用 Orchestrator。';
           return;
         }
-
-        if (planningValue === 'yes' && domainsValue === 'no') {
+        if (pv === 'yes' && dv === 'no') {
           title.textContent = '推荐：Planner-Executor';
           text.textContent = '当任务具有明显顺序依赖，需要先分解步骤再逐步执行，并在失败时重新规划时，最合适的是 Planner-Executor。';
           return;
         }
-
-        if (planningValue === 'no' && domainsValue === 'yes') {
+        if (pv === 'no' && dv === 'yes') {
           title.textContent = '推荐：Router';
           text.textContent = '当问题跨多个领域，但本质上是在不同 Specialist 之间分诊和转交时，推荐使用 Router 模式。';
           return;
         }
-
         title.textContent = '推荐：Single Agent';
         text.textContent = '当任务范围清晰、工具集合明确且不需要多域协作时，Single Agent 仍然是默认起点。';
       };
 
-      [planning, domains, continuous].forEach((select) => {
-        if (!select) {
-          return;
-        }
-
+      [planning, domains, continuous].forEach(function (select) {
+        if (!select) return;
         select.addEventListener('change', updateDecision);
       });
-
       updateDecision();
     });
-
-    // Apply homepage preferences from localStorage
-    (function () {
-      var root = document.documentElement;
-
-      // Theme
-      var stored = localStorage.getItem('theme');
-      var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      var theme = stored || (prefersDark ? 'dark' : 'light');
-      root.setAttribute('data-theme', theme);
-
-      // Language
-      var lang = localStorage.getItem('lang') || 'zh';
-      root.setAttribute('lang', lang === 'zh' ? 'zh-CN' : 'en');
-      document.querySelectorAll('[data-zh][data-en]').forEach(function (el) {
-        var val = el.getAttribute('data-' + lang);
-        if (val !== null) el.innerHTML = val;
-      });
-    })();
   </script>
+  <script src="../../assets/scrollbar.js"></script>
   <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
   <script src="../../assets/article-assistant.js"></script>
 </body>
 </html>
