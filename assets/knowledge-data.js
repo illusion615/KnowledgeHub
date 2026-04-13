@@ -123,8 +123,8 @@ var knowledgeTree = [
       en: 'Enterprise Agent Architecture Design & Application'
     },
     summary: {
-      zh: '企业智能体由 AI 模型驱动，能够感知上下文、推理并围绕目标自主行动。它不是静态聊天机器人，而是位于现有企业应用之上和之间的新认知层，通过自然语言意图驱动 ERP、CRM、数据湖、IoT 与业务 API 协同执行。',
-      en: 'Enterprise agents are powered by AI models, capable of perceiving context, reasoning, and acting autonomously toward goals. Rather than static chatbots, they form a new cognitive layer above and between existing enterprise applications, orchestrating ERP, CRM, data lakes, IoT, and business APIs through natural language intent.'
+      zh: '企业智能体作为现有应用之上的认知层，由 AI 驱动感知上下文、自主推理，通过自然语言意图协调 ERP、CRM 与业务 API 协同执行。',
+      en: 'Enterprise agents form a cognitive layer above existing apps, using AI to perceive context, reason autonomously, and orchestrate ERP, CRM, and business APIs through natural language intent.'
     },
     tags: ['AI Agent', 'Enterprise Architecture'],
     date: '2026-04-08',
@@ -142,8 +142,8 @@ var knowledgeTree = [
       en: 'Agentic AI Adoption Practice: Planning Enterprise Rollout with a Maturity Model'
     },
     summary: {
-      zh: '基于 Microsoft Copilot Studio 的 maturity model overview，梳理企业导入 agentic AI 时应关注的五级成熟度、五大能力支柱，以及从试点走向可规模化运营的落地节奏。',
-      en: 'Based on the Microsoft Copilot Studio maturity model overview, this article maps the five maturity levels, five capability pillars, and a practical rollout cadence for moving agentic AI from isolated pilots to scalable enterprise operations.'
+      zh: '梳理企业导入 Agentic AI 的五级成熟度模型与五大能力支柱，规划从试点到规模化运营的落地节奏。',
+      en: 'Maps the five maturity levels and capability pillars for enterprise agentic AI adoption, from pilot to scalable operations.'
     },
     tags: ['Agentic AI', 'Adoption', 'Maturity Model'],
     date: '2026-04-09',
@@ -165,8 +165,8 @@ var knowledgeTree = [
       en: 'Harness Engineering for AI Coding Assistants'
     },
     summary: {
-      zh: 'Harness Engineering 是在项目启动初期，通过结构化的约定文件、上下文框架和指令体系，为 AI 编码助手建立高效协作基础的工程实践。它不是一次性提示词编写，而是一套持续演进的协作架构。',
-      en: 'Harness Engineering scaffolds structured conventions, context files, and instruction hierarchies at project inception, establishing an efficient collaboration foundation for AI coding assistants. It is not one-time prompt writing but a continuously evolving collaboration architecture.'
+      zh: '通过结构化约定文件、上下文框架和指令体系，在项目初期为 AI 编码助手建立持续演进的协作架构。',
+      en: 'Establishes a continuously evolving collaboration architecture for AI coding assistants through structured conventions, context files, and instruction hierarchies.'
     },
     tags: ['AI Engineering', 'Copilot', 'DevEx'],
     date: '2026-04-08',
@@ -184,8 +184,8 @@ var knowledgeTree = [
       en: 'GitHub Copilot Deep Dive: Product Landscape, Competitor Analysis & Human-AI Collaboration Best Practices'
     },
     summary: {
-      zh: '系统梳理 GitHub Copilot 的八大模块（补全、Agent Mode、Cloud Agent、CLI、Code Review、MCP、SDK、Multi-Model），与 Cursor、Windsurf、Cline、Claude Code 做结构化对比，并给出从 Harness Engineering 到三层委托执行（Local / CLI / Cloud）的人机协同最佳实践。',
-      en: 'A systematic overview of GitHub Copilot\'s eight modules, structured comparison with Cursor, Windsurf, Cline, and Claude Code, plus best practices for human-AI collaboration spanning Harness Engineering to the three-tier delegation model (Local / CLI / Cloud).'
+      zh: '梳理 GitHub Copilot 八大模块，与 Cursor、Windsurf、Claude Code 等竞品结构化对比，给出三层委托执行的人机协同最佳实践。',
+      en: 'Overview of Copilot\'s 8 modules, structured competitive comparison, and best practices for the three-tier human-AI delegation model.'
     },
     tags: ['GitHub Copilot', 'Vibe Coding', 'AI Engineering', 'Best Practices'],
     date: '2026-04-12',
@@ -203,8 +203,8 @@ var knowledgeTree = [
       en: 'Text-to-Image Prompt Engineering: Prompting Strategies Across 5 Models'
     },
     summary: {
-      zh: '对比 GPT Image、Midjourney v6、Stable Diffusion/SDXL、FLUX.1 和 Z-Image-Turbo 五种模型在提示词处理机制上的差异（自然语言 vs 关键词堆叠 vs 参数驱动 vs 单流 DiT）',
-      en: 'Compares 4 text-to-image models (GPT Image, Midjourney v6, SD/SDXL, FLUX.1) across prompting paradigms (natural language vs keyword stacking vs parameter-driven), demonstrates structural differences with same-subject prompts, and distills 3 reusable patterns: SES, Iterative Refinement, and Constraint-First.'
+      zh: '对比 GPT Image、Midjourney、SD/SDXL、FLUX.1 四种模型的提示词机制差异，提炼 SES、迭代精修、约束优先三种可复用模式。',
+      en: 'Compares prompting mechanisms across 4 text-to-image models and distills 3 reusable patterns: SES, Iterative Refinement, and Constraint-First.'
     },
     tags: ['Prompt Engineering', 'Text-to-Image', 'Best Practices'],
     date: '2026-04-10',
@@ -222,8 +222,8 @@ var knowledgeTree = [
       en: 'NousResearch Hermes: Open-Source Fine-Tuned LLM for Tool Use & User Alignment'
     },
     summary: {
-      zh: '系统梳理 Nous Research 的 Hermes 开源模型系列（Hermes 1→2→2 Pro→3），分析其 neutral alignment 设计理念、SFT + DPO 训练方法、ChatML 格式、function calling 与 JSON mode 协议、以及 Hermes 3 引入的 GOAP 结构化推理框架。',
-      en: 'A systematic overview of Nous Research\'s Hermes open-source model series (Hermes 1→2→2 Pro→3), covering neutral alignment philosophy, SFT + DPO training, ChatML format, function calling & JSON mode protocols, and the GOAP structured reasoning framework introduced in Hermes 3.'
+      zh: '梳理 Hermes 开源模型系列（1→2→2 Pro→3）的 neutral alignment 理念、训练方法、function calling 协议与 GOAP 推理框架。',
+      en: 'Overview of the Hermes model series covering neutral alignment, SFT+DPO training, function calling protocols, and GOAP reasoning.'
     },
     tags: ['Open Source LLM', 'Function Calling', 'Hermes'],
     date: '2026-04-10',
@@ -241,8 +241,8 @@ var knowledgeTree = [
       en: 'Function Calling Models Landscape: Deep Comparison of LLM Tool Use Capabilities'
     },
     summary: {
-      zh: '基于 BFCL V4 最新数据，系统对比 Claude、Gemini、GPT、Grok、DeepSeek、Qwen、GLM 等 109 个模型在 Agentic / Multi-Turn / Live / Hallucination 维度的 function calling 表现，分析各厂商协议差异，提供按场景的选型决策指南。',
-      en: 'Based on BFCL V4 data, systematically compares 109 models (Claude, Gemini, GPT, Grok, DeepSeek, Qwen, GLM) across Agentic / Multi-Turn / Live / Hallucination dimensions for function calling, analyzes vendor protocol differences, and provides scenario-based selection guide.'
+      zh: '基于 BFCL V4 数据，对比 109 个模型在 Agentic / Multi-Turn / Hallucination 维度的 function calling 表现，提供按场景选型指南。',
+      en: 'Compares 109 models on function calling across Agentic/Multi-Turn/Hallucination dimensions using BFCL V4 data, with scenario-based selection guide.'
     },
     tags: ['Function Calling', 'LLM Benchmark', 'AI Agent', 'Tool Use'],
     date: '2026-04-11',
@@ -260,8 +260,8 @@ var knowledgeTree = [
       en: 'Claw Code Deep Dive: Open-Source Harness for Autonomous Coding Agents'
     },
     summary: {
-      zh: '深度分析 UltraWorkers 社区的 claw-code 开源项目——一个由自主 AI 代理协同构建的编码 harness。涵盖三层协作架构（OmX/clawhip/OmO）、9 crate Rust 工作区、40 个工具规格、9-lane 对齐验证体系，以及从 CLI 到 claw-native 运行时的五阶段演进路线。',
-      en: 'Deep analysis of UltraWorkers community\'s claw-code open-source project—a coding harness collaboratively built by autonomous AI agents. Covers the three-layer coordination architecture (OmX/clawhip/OmO), 9-crate Rust workspace, 40 tool specs, 9-lane parity validation system, and the five-phase roadmap from CLI to claw-native runtime.'
+      zh: '分析 claw-code 开源项目的三层协作架构、9 crate Rust 工作区、40 个工具规格和从 CLI 到原生运行时的五阶段路线。',
+      en: 'Analyzes claw-code\'s three-layer architecture, 9-crate Rust workspace, 40 tool specs, and five-phase roadmap from CLI to native runtime.'
     },
     tags: ['Coding Agent', 'Open Source', 'Rust', 'Autonomous Development'],
     date: '2026-04-11',
@@ -283,8 +283,8 @@ var knowledgeTree = [
       en: 'LLM Client Refactor: Multi-Provider Runtime Design'
     },
     summary: {
-      zh: '把 AI-MUD 中 1905 行的单体 llm_client 重构为 Role API、Dispatch、Provider Protocol 与运行时控制面分离的多 Provider 架构，并补上 dual semaphore、模型级熔断和连接池复用等稳定性机制。',
-      en: 'Refactors AI-MUD\'s 1905-line monolithic llm_client into a multi-provider runtime that separates the Role API, dispatch layer, provider protocol, and runtime controls, while adding dual semaphores, per-model circuit breakers, and connection-pool reuse.'
+      zh: '将 1905 行单体 llm_client 重构为 Role API / Dispatch / Provider 分离的多 Provider 架构，补上熔断与连接池复用机制。',
+      en: 'Refactors a 1905-line monolithic client into multi-provider architecture with separated Role API, dispatch, circuit breakers, and connection pooling.'
     },
     tags: ['LLM Runtime', 'Architecture', 'Reliability'],
     date: '2026-04-09',
@@ -302,8 +302,8 @@ var knowledgeTree = [
       en: 'Agentic Skill Execution Design Practice'
     },
     summary: {
-      zh: '在 AI-MUD 项目中，我们构建了由 7 个 AI 角色组成的智能体编排系统——导演台。本文记录了从同步工具调用到两阶段异步 Skill 编排的架构演进，以及 Agent 行为控制、记忆管理和角色分派的设计实践。',
-      en: 'In the AI-MUD project, we built a 7-role AI agent orchestration system — the Director System. This article documents the architecture evolution from synchronous tool calls to two-phase async Skill orchestration, plus design practices for agent behavior control, memory management, and role dispatch.'
+      zh: '记录 AI-MUD 导演台从同步工具调用到两阶段异步 Skill 编排的架构演进，涵盖行为控制、记忆管理和角色分派。',
+      en: 'Documents the Director System\'s evolution from sync tool calls to two-phase async Skill orchestration, covering behavior control and memory management.'
     },
     tags: ['AI Agent', 'Game Dev', 'Architecture'],
     date: '2026-04-09',
@@ -321,8 +321,8 @@ var knowledgeTree = [
       en: 'AI-MUD Project Retro: Product-Grade Vibe Coding'
     },
     summary: {
-      zh: '经历 156+ 轮正式迭代、14 次代码审查和 17 个架构决策，回顾了如何在保持 Vibe Coding 敏捷性的同时实现产品级工程质量。分享门禁制度、归档规范和 AI Copilot 协作的实战经验。',
-      en: 'With 156+ formal iterations, 14 code reviews, and 17 ADRs, this retrospective explores how to achieve product-grade engineering quality while maintaining vibe coding agility. Shares gate systems, archival standards, and hands-on AI Copilot collaboration experience.'
+      zh: '回顾 156+ 轮迭代、14 次代码审查和 17 个架构决策，分享 Vibe Coding 与产品级工程质量兼顾的实战经验。',
+      en: 'Retrospective on 156+ iterations, 14 code reviews, and 17 ADRs — balancing vibe coding agility with product-grade engineering quality.'
     },
     tags: ['Vibe Coding', 'Project Management', 'DevEx'],
     date: '2026-04-09',
@@ -340,8 +340,8 @@ var knowledgeTree = [
       en: 'MLX Model Optimization on Apple Silicon'
     },
     summary: {
-      zh: '从零构建基于 MLX 框架的 FLUX 图像生成管线（Z-Image-Turbo），实现 23GB→6GB 的 4-bit 量化压缩。通过 mx.compile、分阶段内存释放和微服务隔离，使 16GB Mac 也能运行 6B 参数模型。',
-      en: 'Built a FLUX image generation pipeline (Z-Image-Turbo) from scratch using Apple MLX framework, achieving 23GB→6GB memory via 4-bit quantization. Using mx.compile, phased memory release, and microservice isolation to enable 6B parameter models on 16GB Macs.'
+      zh: '基于 MLX 框架构建 FLUX 图像管线，实现 23GB→6GB 的 4-bit 量化，通过分阶段内存释放使 16GB Mac 运行 6B 模型。',
+      en: 'Built a FLUX pipeline on MLX with 4-bit quantization (23GB→6GB), enabling 6B models on 16GB Macs via phased memory release.'
     },
     tags: ['MLX', 'Apple Silicon', 'Model Optimization'],
     date: '2026-04-09',
@@ -363,8 +363,8 @@ var knowledgeTree = [
       en: 'Microsoft AI Customer Cases: 1000+ Enterprise Transformation Stories'
     },
     summary: {
-      zh: '基于 Microsoft Cloud Blog 精选代表性案例，按产品、行业、业务成果分类，涵盖客户痛点、解决方案、使用产品、量化收益与客户证言，支持交互式筛选与查询。',
-      en: 'Curated customer cases from Microsoft Cloud Blog, categorized by product, industry, and business outcome. Covers pain points, solutions, products used, quantified benefits, and customer testimonials with interactive filtering.'
+      zh: '精选 Microsoft Cloud Blog 代表性案例，按产品、行业、业务成果分类，涵盖痛点、方案、量化收益，支持交互式筛选。',
+      en: 'Curated Microsoft AI customer cases by product, industry, and outcomes, with pain points, solutions, and interactive filtering.'
     },
     tags: ['Customer Cases', 'AI Transformation', 'Microsoft AI'],
     date: '2026-04-10',
@@ -383,8 +383,8 @@ var knowledgeTree = [
       en: 'Low-Code in the AI Era: Evolution Analysis with Power Apps'
     },
     summary: {
-      zh: '从低代码的原始初衷出发，分析"Low Code is Dead"争论的本质，以 Microsoft Power Apps 为案例追溯其四阶段演进路径（表单工具→应用平台→AI集成→Agent编排），提炼决定低代码平台存亡的六项关键属性，并给出竞品生态挑战与未来趋势预测。',
-      en: 'Starting from the original promise of low-code, analyzes the essence of the "Low Code is Dead" debate, traces Power Apps through four evolution phases (form tool → app platform → AI integration → agent orchestration), distills six survival attributes for low-code platforms, and provides competitive landscape analysis with future trend predictions.'
+      zh: '以 Power Apps 为案例追溯低代码四阶段演进（表单→平台→AI→Agent），提炼决定平台存亡的六项关键属性与趋势预测。',
+      en: 'Traces low-code evolution through four phases using Power Apps, distilling six survival attributes and future trend predictions.'
     },
     tags: ['Low-Code', 'Power Apps', 'AI Era', 'Platform Strategy'],
     date: '2026-04-11',
@@ -402,8 +402,8 @@ var knowledgeTree = [
       en: 'Power Apps Vibe Coding: Design Philosophy, Dual-Track Architecture & Competitive Comparison'
     },
     summary: {
-      zh: '分析 Microsoft 对 Vibe Coding 的双轨回应：浏览器端 Power Apps Vibe（Plan+Data+App 一体化）和 IDE 端 Canvas Apps MCP Authoring Plugin（GitHub Copilot CLI / Claude Code）。从设计理念（治理优先 vs 自由代码）、目标场景、工作流、与 Cursor/Bolt/Lovable 的六维度对比，以及 Code View 只读、仅英文、导出断连等关键限制进行系统分析。',
-      en: 'Analyzes Microsoft\'s dual-track Vibe Coding response: browser-based Power Apps Vibe (Plan+Data+App unified) and IDE-based Canvas Apps MCP Authoring Plugin (GitHub Copilot CLI / Claude Code). Covers design philosophy (governance-first vs free code), target scenarios, workflows, six-dimension comparison with Cursor/Bolt/Lovable, and key limitations including read-only Code View, English-only, and export disconnection.'
+      zh: '分析 Microsoft Vibe Coding 双轨方案：浏览器端 Power Apps Vibe 和 IDE 端 MCP Plugin，与 Cursor/Bolt/Lovable 做六维对比。',
+      en: 'Analyzes Microsoft\'s dual-track Vibe Coding: browser-based Power Apps Vibe and IDE-based MCP Plugin, with six-dimension competitive comparison.'
     },
     tags: ['Vibe Coding', 'Power Apps', 'MCP', 'AI Development'],
     date: '2026-04-11',
@@ -425,8 +425,8 @@ var knowledgeTree = [
       en: 'Microsoft Copilot Studio: Constraints & Engineering Boundaries'
     },
     summary: {
-      zh: '系统整理 Copilot Studio 的配额（8,000 RPM / GenAI 50–100 RPM 阶梯）、硬限制（1,000 Topics、8,000 字符 Instructions、512MB 文件）、知识源约束（4–6h 同步、7MB 无许可限制）和 generative orchestration 已知限制，为企业 Agent 方案选型提供量化依据。',
-      en: 'Systematically catalogs Copilot Studio quotas (8,000 RPM / GenAI 50–100 RPM tiered), hard limits (1,000 Topics, 8,000-char Instructions, 512MB files), knowledge source constraints (4–6h sync, 7MB unlicensed cap), and generative orchestration known limitations for enterprise agent solution design.'
+      zh: '整理 Copilot Studio 的 RPM 配额、Topics/Instructions 硬限制、知识源同步约束和 generative orchestration 已知限制。',
+      en: 'Catalogs Copilot Studio quotas, hard limits on Topics/Instructions, knowledge source sync constraints, and orchestration limitations.'
     },
     tags: ['Copilot Studio', 'Platform Constraints', 'Enterprise Agent'],
     date: '2026-04-09',
@@ -444,8 +444,8 @@ var knowledgeTree = [
       en: 'Copilot Studio Memory Management: Variable Scopes, Conversation History & Knowledge Retrieval'
     },
     summary: {
-      zh: '系统整理 Copilot Studio Agent 的四层记忆机制：Topic 变量（单 Topic 作用域）、Global 变量（会话级，不跨会话持久化）、对话历史（orchestrator 有限窗口，大小未公开）和知识源检索（4–6h 同步，只读）。包含 5 项缺失能力的变通方案。',
-      en: 'Catalogs four memory layers in Copilot Studio agents: Topic variables (single-topic scope), Global variables (session-scoped, no cross-session persistence), conversation history (limited orchestrator window, size undisclosed), and knowledge retrieval (4–6h sync, read-only). Includes workarounds for 5 missing capabilities.'
+      zh: '整理 Copilot Studio 四层记忆机制：Topic 变量、Global 变量、对话历史和知识检索，包含 5 项缺失能力的变通方案。',
+      en: 'Catalogs four memory layers in Copilot Studio agents with workarounds for 5 missing capabilities across variables, history, and retrieval.'
     },
     tags: ['Copilot Studio', 'Memory Management', 'State Architecture'],
     date: '2026-04-09',
@@ -463,8 +463,8 @@ var knowledgeTree = [
       en: 'Microsoft Copilot Studio: Positioning, Capabilities, Adoption & Pricing'
     },
     summary: {
-      zh: '从产品定位、核心能力（generative/classic orchestration、1,400+ connectors）、竞品对比（vs Azure Bot Service / M365 Copilot）、落地场景与 Copilot Credits 成本估算、安全治理（DLP / Purview / CMK）、快速启动 5 步和许可路径（试用 / 独立 / Teams / Pay-as-you-go）七个维度提供选型决策依据。',
-      en: 'Covers seven decision dimensions: product positioning, core capabilities (generative/classic orchestration, 1,400+ connectors), comparison (vs Azure Bot Service / M365 Copilot), scenarios with Copilot Credits cost estimates, security governance (DLP / Purview / CMK), 5-step quickstart, and licensing paths (trial / standalone / Teams / Pay-as-you-go).'
+      zh: '从定位、能力、竞品对比、成本估算、安全治理、快速启动和许可路径七个维度提供 Copilot Studio 选型决策依据。',
+      en: 'Decision guide across 7 dimensions: positioning, capabilities, comparison, cost, governance, quickstart, and licensing.'
     },
     tags: ['Copilot Studio', 'Platform Overview', 'Licensing'],
     date: '2026-04-09',
@@ -486,8 +486,8 @@ var knowledgeTree = [
       en: 'Knowledge Hub Design Document: Architecture of an Interactive Knowledge Graph'
     },
     summary: {
-      zh: '从设计目标、价值主张、研究到发布的全流程工作流、四层架构（展示 / 逻辑 / 数据 / 共享资源）、四布局首页（Galaxy / Cards / Infographic / Cell）、执行门禁与项目量化指标（39,000+ 行跟踪源码、49 个知识节点、30 篇注册文章）多个维度完整记录 Knowledge Hub 的零框架知识管理系统设计。',
-      en: 'Comprehensive design document covering goals, value proposition, the end-to-end research-to-publish workflow, four-layer architecture (Presentation / Logic / Data / Shared Assets), four homepage layouts (Galaxy / Cards / Infographic / Cell), execution gates, and quantitative metrics (39,000+ tracked source lines, 49 knowledge nodes, 30 registered articles) of this zero-framework knowledge management system.'
+      zh: '完整记录 Knowledge Hub 的设计目标、四层架构、四种首页布局、研究到发布工作流和量化指标。',
+      en: 'Full design document covering goals, four-layer architecture, four homepage layouts, research-to-publish workflow, and quantitative metrics.'
     },
     tags: ['Design Document', 'Architecture', 'Knowledge Graph'],
     date: '2026-04-11',
@@ -509,8 +509,8 @@ var knowledgeTree = [
       en: 'Knowledge Hub Content Governance: Research, Writing, Layout & Audit Standards'
     },
     summary: {
-      zh: '从研究选题、内容撰写、渐进式布局、组件使用、演示模式和质量审核六个维度，提炼 Knowledge Hub 项目的单一权威设计规范。涵盖 25+ 共享组件用法、密集内容拆分规则、accordion 总览步骤逻辑，以及基于 9 维度 ABCD 框架的审核标准。',
-      en: 'Single authoritative design spec for Knowledge Hub across six dimensions: research, writing, progressive layout, component library, presentation mode, and quality audit. Covers 25+ shared component usage, dense content splitting rules, accordion overview step logic, and 9-dimension ABCD audit framework.'
+      zh: '从研究、撰写、布局、组件、演示和审核六个维度提炼 Knowledge Hub 的单一权威设计规范，涵盖 25+ 组件用法。',
+      en: 'Authoritative spec across research, writing, layout, components, presentation, and audit — covering 25+ shared component patterns.'
     },
     tags: ['Design Standards', 'Content Governance', 'Knowledge Hub'],
     date: '2026-04-11',
@@ -528,8 +528,8 @@ var knowledgeTree = [
       en: 'Knowledge Hub Code Review #1 (2026-Q2)'
     },
     summary: {
-      zh: '基于 9 维度 ABCD 评分框架，对 18 篇文章页、3,190 行首页代码、2,828 行共享 CSS 进行首次全面审查。总体评价 B+ 级：架构清晰、组件复用度高；主要风险集中在 JS 规范不一致（2 篇使用箭头函数）、双语覆盖不足（16/18 篇仅导航双语）、article.css 逼近膨胀红线。包含 7 项行动计划。',
-      en: 'First comprehensive review of 18 article pages, 3,190-line homepage, and 2,828-line shared CSS using the 9-dimension ABCD framework. Overall grade: B+. Strong architecture and component reuse; key risks in JS convention violations (2 articles using arrow functions), bilingual coverage gap (16/18 articles navigation-only), and article.css approaching bloat threshold. Includes 7 action items.'
+      zh: '基于 9 维度 ABCD 框架对 18 篇文章和首页代码进行全面审查，总体 B+ 级，附 7 项行动计划。',
+      en: 'Comprehensive B+ review of 18 articles and homepage using the 9-dimension ABCD framework, with 7 action items.'
     },
     tags: ['Code Review', 'Quality Audit', 'Knowledge Hub'],
     date: '2026-04-11',
@@ -547,8 +547,8 @@ var knowledgeTree = [
       en: 'Knowledge Graph Organization Research: Theoretical Foundations, Implementation & Comparison of Six Paradigms'
     },
     summary: {
-      zh: '基于认知科学（Ausubel 有意义学习理论、Miller\'s Law）和信息可视化理论（Shneiderman Mantra），系统研究层级树、概念图、Zettelkasten、Treemap、双曲树和语义知识图谱六种知识组织范式，从九个维度对比分析，并为 Knowledge Hub 制定三阶段渐进式混合架构演进路线。',
-      en: 'Based on cognitive science (Ausubel\'s meaningful learning theory, Miller\'s Law) and information visualization theory (Shneiderman\'s Mantra), systematically researches six knowledge organization paradigms — hierarchical tree, concept map, Zettelkasten, treemap, hyperbolic tree, and semantic knowledge graph — with a 9-dimension comparison matrix and a 3-phase progressive hybrid architecture roadmap for Knowledge Hub.'
+      zh: '基于认知科学与信息可视化理论，对比层级树、概念图等六种知识组织范式，制定三阶段混合架构演进路线。',
+      en: 'Compares six knowledge organization paradigms grounded in cognitive science, with a three-phase hybrid architecture roadmap.'
     },
     tags: ['Knowledge Graph', 'Information Visualization', 'Knowledge Organization', 'Architecture'],
     date: '2026-04-12',
@@ -645,8 +645,8 @@ var knowledgeTree = [
       en: 'Shanghai Zhongkao Volunteer Strategy: Path Planning for Jianping Dijie Students Targeting Top 4 Schools'
     },
     summary: {
-      zh: '基于建平地杰中学年级前20、一模580/635的考生实际情况，系统分析自主招生、名额分配到区、名额分配到校、统一批次四条录取路径的策略选择，提供竞争力评估、分数预测、志愿排列方案和风险对冲建议。',
-      en: 'Based on a top-20 ranked student at Jianping Dijie Middle School with 580/635 mock exam score, systematically analyzes strategy choices across four admission pathways, providing competitiveness assessment, score prediction, volunteer filing plan, and risk hedging recommendations.'
+      zh: '基于建平地杰年级前 20 考生情况，分析四条录取路径策略，提供分数预测、志愿排列和风险对冲建议。',
+      en: 'Analyzes four admission pathways for a top-20 Jianping Dijie student, with score predictions, volunteer planning, and risk hedging.'
     },
     tags: ['中考', '志愿填报', '四校', '策略规划'],
     date: '2026-04-12',
@@ -664,8 +664,8 @@ var knowledgeTree = [
       en: 'Shanghai Zhongkao Policy Analysis & Top 4 Schools Admission Data (2022–2025)'
     },
     summary: {
-      zh: '系统梳理2022年新中考改革后的招录制度（自主招生/名额分配到区/名额分配到校/统一批次），汇总四校2022–2025年各批次录取分数线、浦东新区名额分配数据、建平地杰中学历年四校录取统计，为志愿填报提供量化决策依据。',
-      en: 'Systematically reviews the post-2022 reformed admission system, compiles Top 4 schools admission score data across all batches from 2022-2025, Pudong district quota data, and Jianping Dijie historical admission statistics for quantitative decision-making in volunteer filing.'
+      zh: '梳理 2022 新中考改革后招录制度，汇总四校 2022–2025 各批次分数线与浦东名额分配数据，提供量化决策依据。',
+      en: 'Reviews post-2022 reformed admission system with Top 4 schools score data (2022–2025) and Pudong quota statistics.'
     },
     tags: ['中考', '四校', '录取数据', '政策分析'],
     date: '2026-04-12',
@@ -683,8 +683,8 @@ var knowledgeTree = [
       en: 'Shanghai Top 4 Schools & Branch Campuses: Academics, Culture & Resources Deep Dive'
     },
     summary: {
-      zh: '从学术特色、高考出口、竞赛实力、学风文化、大学资源和校园设施六个维度，系统画像上海中学、华二附中、复旦附中、交大附中 4 所本部及 10 所分校，并提供性格-学校适配指南和四校分校 vs 八大金刚对比分析。',
-      en: 'Profiles Shanghai top 4 high schools and 10 branch campuses across 6 dimensions: academics, gaokao outcomes, olympiad strength, school culture, university resources, and facilities. Includes personality-school matching guide and branch campus vs Big 8 comparison.'
+      zh: '从学术、高考、竞赛、学风、大学资源和设施六维度画像四校本部及 10 所分校，含性格适配指南。',
+      en: 'Profiles 4 top schools and 10 branches across 6 dimensions with personality-school matching guide.'
     },
     tags: ['中考', '四校', '学校画像', '择校'],
     date: '2026-04-12',
@@ -703,8 +703,8 @@ var knowledgeTree = [
       en: 'AI Radar 2026W15: Top 20 AI Events This Week'
     },
     summary: {
-      zh: '覆盖 2026 年 4 月上半月模型发布（Claude Mythos / Meta 闭源 / GLM-5.1 登顶）、Agent 生态控制权冲突（OpenClaw vs Anthropic）、EU AI Act 治理挑战、基础设施地缘风险及安全伦理事件。每件事附入选理由、观点分析和行动建议。',
-      en: 'Covers top 20 AI events from early April 2026 across model releases, agent ecosystem conflicts, governance challenges, infrastructure risks, and safety concerns. Each event includes selection rationale, analysis, and action recommendations.'
+      zh: '覆盖 2026 年 4 月上半月 20 件 AI 大事：模型发布、Agent 生态冲突、治理挑战与安全伦理，附分析和行动建议。',
+      en: 'Top 20 AI events from early April 2026 covering model releases, agent conflicts, governance, and safety, with analysis and recommendations.'
     },
     tags: ['AI Radar', 'Weekly', 'Industry Analysis'],
     date: '2026-04-12',
@@ -726,8 +726,8 @@ var knowledgeTree = [
       en: 'LLM Wiki: Key Concepts, Architectures & Ecosystem of Large Language Models'
     },
     summary: {
-      zh: '系统梳理大语言模型的核心架构（Transformer / MoE / 注意力优化）、训练范式（预训练 → SFT → RLHF / DPO / GRPO）、八大模型家族画像（GPT / Claude / Gemini / LLaMA / DeepSeek / Qwen / Mistral / Grok）、四大核心能力（推理 / 工具调用 / 代码 / 多模态）、推理优化技术（量化 / KV Cache / 推测解码）与评测体系（MMLU / SWE-bench / BFCL / Chatbot Arena），附 2017–2025 演进时间线。',
-      en: 'Comprehensive overview of LLM architectures (Transformer / MoE / attention optimization), training paradigms (pre-training → SFT → RLHF / DPO / GRPO), 8 major model families, 4 core capabilities (reasoning / tool use / code / multimodal), inference optimization (quantization / KV Cache / speculative decoding), evaluation benchmarks (MMLU / SWE-bench / BFCL / Chatbot Arena), and a 2017–2025 evolution timeline.'
+      zh: '全景梳理 LLM 核心架构、训练范式、八大模型家族、四大能力、推理优化与评测体系，附 2017–2025 演进时间线。',
+      en: 'Comprehensive LLM overview: architectures, training, 8 model families, 4 capabilities, inference optimization, and evaluation benchmarks.'
     },
     tags: ['LLM', 'Transformer', 'Model Architecture', 'Training', 'Inference'],
     date: '2026-04-13',
@@ -745,8 +745,8 @@ var knowledgeTree = [
       en: 'MacBook Pro M4 Max 64GB Local Model Deployment: LLM, Image, Video, Speech & Music Stack'
     },
     summary: {
-      zh: '围绕 M4 Max 64GB 统一内存机器，系统比较本地 LLM、Function Calling、文生图、视频、语音与音乐生成的可行性，按内存占用、运行时成熟度、Apple 兼容性与交互体验给出适合 Apple Silicon 的组合建议。',
-      en: 'For an M4 Max 64GB unified-memory machine, this article compares local LLM, function calling, image, video, speech, and music generation options, and recommends Apple Silicon-friendly stacks by memory footprint, runtime maturity, platform compatibility, and interaction quality.'
+      zh: '系统比较 M4 Max 64GB 上本地 LLM、文生图、视频、语音与音乐生成方案，按内存和兼容性给出组合建议。',
+      en: 'Compares local AI stacks for M4 Max 64GB across LLM, image, video, speech, and music with Apple Silicon recommendations.'
     },
     tags: ['Apple Silicon', 'Local AI', 'Model Selection', 'MLX'],
     date: '2026-04-12',
@@ -768,8 +768,8 @@ var knowledgeTree = [
       en: 'Hermes Agent: Self-Evolving Open-Source AI Agent Framework vs Claude Code, Codex CLI & Aider'
     },
     summary: {
-      zh: '深入分析 Nous Research 的 Hermes Agent 开源自主 AI Agent 框架（64.9k stars），剖析其持久记忆、自动技能创建、多平台消息网关、定时任务调度和并行子代理等核心能力，并与 Claude Code、OpenAI Codex CLI、Aider 进行 15 维全面对比，给出不同场景下的工具选择建议。',
-      en: 'Deep analysis of Nous Research\'s Hermes Agent (64.9k stars) — persistent memory, auto-skill creation, multi-platform gateway, cron scheduling — with a 15-dimension comparison against Claude Code, Codex CLI, and Aider.'
+      zh: '剖析 Hermes Agent 的持久记忆、自动技能创建和并行子代理能力，与 Claude Code、Codex CLI、Aider 做 15 维对比。',
+      en: 'Analyzes Hermes Agent\'s core capabilities with a 15-dimension comparison against Claude Code, Codex CLI, and Aider.'
     },
     tags: ['Agent Framework', 'Hermes Agent', 'Claude Code', 'Codex', 'Aider'],
     date: '2026-04-13',
@@ -791,8 +791,8 @@ var knowledgeTree = [
       en: 'LLM Wiki: Building a Continuously Evolving Personal Knowledge Base with LLMs'
     },
     summary: {
-      zh: '基于 Andrej Karpathy 的 LLM Wiki 模式，系统分析用 LLM 担任"知识管理员"的新范式：三层架构（Raw Sources / Wiki / Schema）、三种操作（Ingest / Query / Lint）、六大应用场景（个人成长 / 深度研究 / 阅读 / 团队 / 代码库 / 竞品分析），以及社区 5,000+ Stars 催生的工具生态与"第二大脑 vs 研究索引"的核心争议。',
-      en: 'Based on Andrej Karpathy\'s LLM Wiki pattern, a systematic analysis of the new paradigm of using LLMs as "knowledge stewards": three-layer architecture (Raw Sources / Wiki / Schema), three operations (Ingest / Query / Lint), six application scenarios, and the 5,000+ star community ecosystem with the core debate of "second brain vs. research index".'
+      zh: '分析 Karpathy 提出的 LLM Wiki 模式：三层架构、三种操作、六大场景，以及“第二大脑 vs 研究索引”的核心争议。',
+      en: 'Analyzes Karpathy\'s LLM Wiki pattern: three-layer architecture, three operations, six scenarios, and the second brain vs research index debate.'
     },
     tags: ['LLM Wiki', 'PKM', 'Knowledge Management', 'Karpathy'],
     date: '2026-04-13',

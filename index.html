@@ -951,6 +951,41 @@
       font-size: 0.72rem; color: var(--muted); white-space: nowrap;
     }
 
+    /* ---- Color Scheme Picker ---- */
+    .scheme-picker {
+      display: flex; flex-wrap: wrap; gap: 10px;
+    }
+    .scheme-picker-option {
+      width: 68px; height: 48px;
+      border-radius: 12px; border: 2px solid var(--card-border);
+      background: var(--ctrl-bg); cursor: pointer;
+      display: flex; align-items: stretch;
+      gap: 0; padding: 0; overflow: hidden;
+      transition: border-color 0.25s, box-shadow 0.25s, transform 0.2s;
+      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+      position: relative;
+    }
+    .scheme-picker-option:hover {
+      border-color: var(--accent); transform: translateY(-1px);
+    }
+    .scheme-picker-option.is-active {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1.5px var(--accent), 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .scheme-swatch {
+      flex: 1; min-width: 0;
+    }
+    .scheme-picker-label {
+      position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%);
+      font-size: 0.6rem; color: var(--muted); white-space: nowrap;
+      opacity: 0; transition: opacity 0.2s;
+      pointer-events: none;
+    }
+    .scheme-picker-option:hover .scheme-picker-label,
+    .scheme-picker-option.is-active .scheme-picker-label {
+      opacity: 1;
+    }
+
     /* ---- Cards Layout ---- */
     .layout-cards-view {
       position: fixed; inset: 0;
@@ -1508,6 +1543,10 @@
         </div>
       </section>
       <section class="settings-section">
+        <h3 data-zh="色系" data-en="Color Scheme">色系</h3>
+        <div class="scheme-picker" id="scheme-picker"></div>
+      </section>
+      <section class="settings-section">
         <h3 data-zh="阅读字体" data-en="Reading Font">阅读字体</h3>
         <div class="font-picker" id="font-picker"></div>
       </section>
@@ -1560,6 +1599,26 @@
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"><line x1="4" y1="4" x2="20" y2="20"/><path d="M12 2 L22 12 L12 22 L2 12 Z"/></svg>
             </span>
             <span class="layout-picker-label" data-zh="隐藏" data-en="Hidden">隐藏</span>
+          </button>
+        </div>
+      </section>
+      <section class="settings-section" id="arc-sort-section" style="display:none">
+        <h3 data-zh="排列顺序" data-en="Sort Order">排列顺序</h3>
+        <div class="layout-picker" id="arc-sort-picker">
+          <button class="layout-picker-option is-active" data-arc-sort="default" type="button">
+            <span class="layout-picker-label" data-zh="默认" data-en="Default">默认</span>
+          </button>
+          <button class="layout-picker-option" data-arc-sort="title-asc" type="button">
+            <span class="layout-picker-label" data-zh="标题 ↑" data-en="Title ↑">标题 ↑</span>
+          </button>
+          <button class="layout-picker-option" data-arc-sort="title-desc" type="button">
+            <span class="layout-picker-label" data-zh="标题 ↓" data-en="Title ↓">标题 ↓</span>
+          </button>
+          <button class="layout-picker-option" data-arc-sort="date-asc" type="button">
+            <span class="layout-picker-label" data-zh="日期 ↑" data-en="Date ↑">日期 ↑</span>
+          </button>
+          <button class="layout-picker-option" data-arc-sort="date-desc" type="button">
+            <span class="layout-picker-label" data-zh="日期 ↓" data-en="Date ↓">日期 ↓</span>
           </button>
         </div>
       </section>
@@ -1767,6 +1826,30 @@
       (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     var currentLayout = localStorage.getItem('layout') || 'galaxy';
     var spokeStyle = localStorage.getItem('spokeStyle') || 'solid';
+    var arcSortMode = localStorage.getItem('arcSortMode') || 'default';
+    var currentScheme = localStorage.getItem('colorScheme') || 'default';
+    var colorSchemes = [
+      { id: 'default', label: { zh: '默认', en: 'Default' }, dots: ['#ff7a00', '#0d8f8c', '#e0b04b', '#e8eaef'], light: {}, dark: {} },
+      { id: 'blue', label: { zh: '海蓝', en: 'Ocean' }, dots: ['#0A1931', '#1A3D63', '#4A7FA7', '#B3CFE5'],
+        light: { '--bg': '#EEF3F8', '--ink': '#0A1931', '--muted': '#4A7FA7', '--accent': '#1A3D63', '--teal': '#4A7FA7', '--gold': '#B3CFE5', '--orbit-stroke': 'rgba(26,61,99,0.10)', '--node-glow': 'rgba(26,61,99,0.22)', '--card-bg': 'rgba(179,207,229,0.28)', '--card-border': 'rgba(179,207,229,0.45)', '--card-shadow': '0 2px 8px rgba(10,25,49,0.04), 0 12px 40px rgba(10,25,49,0.07), 0 0 0 1px rgba(179,207,229,0.4) inset', '--line-color': 'rgba(26,61,99,0.22)', '--ctrl-bg': 'rgba(179,207,229,0.30)', '--ctrl-hover': 'rgba(179,207,229,0.55)' },
+        dark: { '--bg': '#0A1931', '--ink': '#F6FAFD', '--muted': '#B3CFE5', '--accent': '#4A7FA7', '--teal': '#4A7FA7', '--gold': '#B3CFE5', '--orbit-stroke': 'rgba(179,207,229,0.09)', '--node-glow': 'rgba(74,127,167,0.35)', '--card-bg': 'rgba(26,61,99,0.55)', '--card-border': 'rgba(179,207,229,0.08)', '--card-shadow': '0 2px 8px rgba(0,0,0,0.2), 0 16px 48px rgba(0,0,0,0.4), 0 0 0 1px rgba(179,207,229,0.06) inset', '--line-color': 'rgba(74,127,167,0.35)', '--ctrl-bg': 'rgba(179,207,229,0.06)', '--ctrl-hover': 'rgba(179,207,229,0.12)' } },
+      { id: 'green', label: { zh: '翠绿', en: 'Forest' }, dots: ['#051F20', '#163832', '#235347', '#8EB69B'],
+        light: { '--bg': '#ECF5EF', '--ink': '#051F20', '--muted': '#235347', '--accent': '#235347', '--teal': '#8EB69B', '--gold': '#DAF1DE', '--orbit-stroke': 'rgba(35,83,71,0.10)', '--node-glow': 'rgba(35,83,71,0.22)', '--card-bg': 'rgba(142,182,155,0.22)', '--card-border': 'rgba(142,182,155,0.40)', '--card-shadow': '0 2px 8px rgba(5,31,32,0.04), 0 12px 40px rgba(5,31,32,0.07), 0 0 0 1px rgba(218,241,222,0.4) inset', '--line-color': 'rgba(35,83,71,0.22)', '--ctrl-bg': 'rgba(142,182,155,0.25)', '--ctrl-hover': 'rgba(142,182,155,0.50)' },
+        dark: { '--bg': '#051F20', '--ink': '#DAF1DE', '--muted': '#8EB69B', '--accent': '#8EB69B', '--teal': '#8EB69B', '--gold': '#DAF1DE', '--orbit-stroke': 'rgba(142,182,155,0.09)', '--node-glow': 'rgba(142,182,155,0.30)', '--card-bg': 'rgba(22,56,50,0.65)', '--card-border': 'rgba(142,182,155,0.08)', '--card-shadow': '0 2px 8px rgba(0,0,0,0.2), 0 16px 48px rgba(0,0,0,0.4), 0 0 0 1px rgba(142,182,155,0.06) inset', '--line-color': 'rgba(142,182,155,0.30)', '--ctrl-bg': 'rgba(142,182,155,0.06)', '--ctrl-hover': 'rgba(142,182,155,0.12)' } },
+      { id: 'rose', label: { zh: '玫瑰', en: 'Rose' }, dots: ['#4C1D3D', '#A33757', '#DC586D', '#FB9590'],
+        light: { '--bg': '#FCF0EE', '--ink': '#4C1D3D', '--muted': '#A33757', '--accent': '#DC586D', '--teal': '#A33757', '--gold': '#FFBB94', '--orbit-stroke': 'rgba(163,55,87,0.10)', '--node-glow': 'rgba(220,88,109,0.22)', '--card-bg': 'rgba(251,149,144,0.18)', '--card-border': 'rgba(251,149,144,0.40)', '--card-shadow': '0 2px 8px rgba(76,29,61,0.04), 0 12px 40px rgba(76,29,61,0.07), 0 0 0 1px rgba(255,187,148,0.4) inset', '--line-color': 'rgba(220,88,109,0.22)', '--ctrl-bg': 'rgba(251,149,144,0.20)', '--ctrl-hover': 'rgba(251,149,144,0.42)' },
+        dark: { '--bg': '#4C1D3D', '--ink': '#FFBB94', '--muted': '#FB9590', '--accent': '#DC586D', '--teal': '#FB9590', '--gold': '#FFBB94', '--orbit-stroke': 'rgba(251,149,144,0.09)', '--node-glow': 'rgba(220,88,109,0.35)', '--card-bg': 'rgba(133,46,78,0.55)', '--card-border': 'rgba(251,149,144,0.08)', '--card-shadow': '0 2px 8px rgba(0,0,0,0.2), 0 16px 48px rgba(0,0,0,0.4), 0 0 0 1px rgba(251,149,144,0.06) inset', '--line-color': 'rgba(220,88,109,0.35)', '--ctrl-bg': 'rgba(251,149,144,0.06)', '--ctrl-hover': 'rgba(251,149,144,0.12)' } },
+      { id: 'purple', label: { zh: '紫罗兰', en: 'Violet' }, dots: ['#49225B', '#6E3482', '#A56ABD', '#E7DBEF'],
+        light: { '--bg': '#F5EDF9', '--ink': '#49225B', '--muted': '#6E3482', '--accent': '#A56ABD', '--teal': '#6E3482', '--gold': '#E7DBEF', '--orbit-stroke': 'rgba(110,52,130,0.10)', '--node-glow': 'rgba(165,106,189,0.22)', '--card-bg': 'rgba(231,219,239,0.35)', '--card-border': 'rgba(231,219,239,0.55)', '--card-shadow': '0 2px 8px rgba(73,34,91,0.04), 0 12px 40px rgba(73,34,91,0.07), 0 0 0 1px rgba(245,235,250,0.4) inset', '--line-color': 'rgba(165,106,189,0.22)', '--ctrl-bg': 'rgba(231,219,239,0.35)', '--ctrl-hover': 'rgba(231,219,239,0.60)' },
+        dark: { '--bg': '#49225B', '--ink': '#F5EBFA', '--muted': '#E7DBEF', '--accent': '#A56ABD', '--teal': '#E7DBEF', '--gold': '#F5EBFA', '--orbit-stroke': 'rgba(231,219,239,0.09)', '--node-glow': 'rgba(165,106,189,0.35)', '--card-bg': 'rgba(110,52,130,0.55)', '--card-border': 'rgba(231,219,239,0.08)', '--card-shadow': '0 2px 8px rgba(0,0,0,0.2), 0 16px 48px rgba(0,0,0,0.4), 0 0 0 1px rgba(231,219,239,0.06) inset', '--line-color': 'rgba(165,106,189,0.35)', '--ctrl-bg': 'rgba(231,219,239,0.06)', '--ctrl-hover': 'rgba(231,219,239,0.12)' } },
+      { id: 'earth', label: { zh: '大地', en: 'Earth' }, dots: ['#3E2522', '#8C6E63', '#D3A376', '#FFE0B2'],
+        light: { '--bg': '#FAF3EC', '--ink': '#3E2522', '--muted': '#8C6E63', '--accent': '#D3A376', '--teal': '#8C6E63', '--gold': '#FFE0B2', '--orbit-stroke': 'rgba(140,110,99,0.10)', '--node-glow': 'rgba(211,163,118,0.22)', '--card-bg': 'rgba(255,224,178,0.28)', '--card-border': 'rgba(255,224,178,0.50)', '--card-shadow': '0 2px 8px rgba(62,37,34,0.04), 0 12px 40px rgba(62,37,34,0.07), 0 0 0 1px rgba(255,242,223,0.4) inset', '--line-color': 'rgba(211,163,118,0.22)', '--ctrl-bg': 'rgba(255,224,178,0.30)', '--ctrl-hover': 'rgba(255,224,178,0.55)' },
+        dark: { '--bg': '#3E2522', '--ink': '#FFF2DF', '--muted': '#D3A376', '--accent': '#D3A376', '--teal': '#D3A376', '--gold': '#FFE0B2', '--orbit-stroke': 'rgba(211,163,118,0.09)', '--node-glow': 'rgba(211,163,118,0.35)', '--card-bg': 'rgba(140,110,99,0.45)', '--card-border': 'rgba(211,163,118,0.08)', '--card-shadow': '0 2px 8px rgba(0,0,0,0.2), 0 16px 48px rgba(0,0,0,0.4), 0 0 0 1px rgba(211,163,118,0.06) inset', '--line-color': 'rgba(211,163,118,0.35)', '--ctrl-bg': 'rgba(211,163,118,0.06)', '--ctrl-hover': 'rgba(211,163,118,0.12)' } },
+      { id: 'gray', label: { zh: '灰调', en: 'Monochrome' }, dots: ['#2A0800', '#775144', '#C09891', '#F4D8D8'],
+        light: { '--bg': '#F4ECEC', '--ink': '#2A0800', '--muted': '#775144', '--accent': '#775144', '--teal': '#C09891', '--gold': '#F4D8D8', '--orbit-stroke': 'rgba(119,81,68,0.10)', '--node-glow': 'rgba(119,81,68,0.18)', '--card-bg': 'rgba(192,152,145,0.22)', '--card-border': 'rgba(192,152,145,0.40)', '--card-shadow': '0 2px 8px rgba(42,8,0,0.04), 0 12px 40px rgba(42,8,0,0.07), 0 0 0 1px rgba(244,216,216,0.4) inset', '--line-color': 'rgba(119,81,68,0.18)', '--ctrl-bg': 'rgba(192,152,145,0.22)', '--ctrl-hover': 'rgba(192,152,145,0.45)' },
+        dark: { '--bg': '#2A0800', '--ink': '#F4D8D8', '--muted': '#C09891', '--accent': '#C09891', '--teal': '#C09891', '--gold': '#F4D8D8', '--orbit-stroke': 'rgba(192,152,145,0.09)', '--node-glow': 'rgba(192,152,145,0.28)', '--card-bg': 'rgba(119,81,68,0.45)', '--card-border': 'rgba(192,152,145,0.08)', '--card-shadow': '0 2px 8px rgba(0,0,0,0.2), 0 16px 48px rgba(0,0,0,0.4), 0 0 0 1px rgba(192,152,145,0.06) inset', '--line-color': 'rgba(192,152,145,0.28)', '--ctrl-bg': 'rgba(192,152,145,0.06)', '--ctrl-hover': 'rgba(192,152,145,0.12)' } }
+    ];
+    var schemeVarKeys = ['--bg','--ink','--muted','--accent','--teal','--gold','--orbit-stroke','--node-glow','--card-bg','--card-border','--card-shadow','--line-color','--ctrl-bg','--ctrl-hover'];
     var openMode = localStorage.getItem('openMode') || 'same';
     var bgTexture = localStorage.getItem('bgTexture') || 'stars';
     var activePostId = null;
@@ -2023,6 +2106,7 @@
         });
         // Re-render font picker labels for new language
         renderFontPicker();
+        renderSchemePicker();
       });
       // Sync initial state
       langPicker.querySelectorAll('.layout-picker-option').forEach(function (b) {
@@ -2098,8 +2182,77 @@
     renderFontPicker();
     applyFont(currentFont);
 
+    // ============ COLOR SCHEME ============
+    function applyColorScheme(schemeId, t) {
+      var scheme = null;
+      colorSchemes.forEach(function (s) { if (s.id === schemeId) scheme = s; });
+      if (!scheme) scheme = colorSchemes[0];
+      var mode = t || theme;
+      var vars = mode === 'dark' ? scheme.dark : scheme.light;
+      var root = document.documentElement.style;
+      schemeVarKeys.forEach(function (key) {
+        if (vars[key]) { root.setProperty(key, vars[key]); }
+        else { root.removeProperty(key); }
+      });
+      updateSchemeAccentStyles(vars['--accent']);
+    }
+
+    function updateSchemeAccentStyles(accent) {
+      var styleId = 'scheme-dynamic-style';
+      var existing = document.getElementById(styleId);
+      if (existing) existing.remove();
+      if (!accent) return;
+      var s = document.createElement('style');
+      s.id = styleId;
+      s.textContent =
+        '.layout-picker-option.is-active { border-color: ' + accent + '; background: ' + accent + '1a; box-shadow: 0 0 0 1px ' + accent + ' inset, 0 4px 16px ' + accent + '1a; }' +
+        '[data-theme="dark"] .layout-picker-option.is-active { background: ' + accent + '22; }' +
+        '.layout-picker-option.is-active .layout-picker-icon { color: ' + accent + '; }' +
+        '.font-picker-option.is-active { border-color: ' + accent + '; background: ' + accent + '12; }' +
+        '[data-theme="dark"] .font-picker-option.is-active { background: ' + accent + '22; }' +
+        '.scheme-picker-option.is-active { border-color: ' + accent + '; box-shadow: 0 0 0 1.5px ' + accent + ', 0 4px 12px rgba(0,0,0,0.1); }';
+      document.head.appendChild(s);
+    }
+
+    function renderSchemePicker() {
+      var container = document.getElementById('scheme-picker');
+      if (!container) return;
+      container.innerHTML = '';
+      colorSchemes.forEach(function (s) {
+        var btn = document.createElement('button');
+        btn.className = 'scheme-picker-option' + (s.id === currentScheme ? ' is-active' : '');
+        btn.type = 'button';
+        btn.setAttribute('data-scheme', s.id);
+        btn.title = s.label[lang] || s.label.zh;
+        var html = '';
+        s.dots.forEach(function (c) {
+          html += '<span class="scheme-swatch" style="background:' + c + '"></span>';
+        });
+        btn.innerHTML = html + '<span class="scheme-picker-label">' + (s.label[lang] || s.label.zh) + '</span>';
+        container.appendChild(btn);
+      });
+    }
+
+    var schemePickerEl = document.getElementById('scheme-picker');
+    if (schemePickerEl) {
+      schemePickerEl.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-scheme]');
+        if (!btn) return;
+        currentScheme = btn.getAttribute('data-scheme');
+        localStorage.setItem('colorScheme', currentScheme);
+        applyColorScheme(currentScheme);
+        schemePickerEl.querySelectorAll('.scheme-picker-option').forEach(function (b) {
+          b.classList.toggle('is-active', b.getAttribute('data-scheme') === currentScheme);
+        });
+      });
+    }
+
+    renderSchemePicker();
+    applyColorScheme(currentScheme);
+
     function applyTheme(t) {
       document.documentElement.setAttribute('data-theme', t);
+      applyColorScheme(currentScheme, t);
       var themeBtn = document.getElementById('theme-toggle');
       themeBtn.innerHTML = getThemeIconSvg();
       themeBtn.setAttribute('aria-label', t === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
@@ -2961,9 +3114,11 @@
       var picker = document.getElementById('layout-picker');
       var buttons = picker.querySelectorAll('.layout-picker-option');
       var spokeSection = document.getElementById('spoke-style-section');
+      var arcSortSection = document.getElementById('arc-sort-section');
 
-      // Show/hide spoke style section based on current layout
+      // Show/hide spoke style and sort sections based on current layout
       spokeSection.style.display = (currentLayout === 'infographic') ? '' : 'none';
+      arcSortSection.style.display = (currentLayout === 'infographic') ? '' : 'none';
 
       buttons.forEach(function (btn) {
         if (btn.getAttribute('data-layout') === currentLayout) {
@@ -2979,12 +3134,16 @@
           currentLayout = layout;
           localStorage.setItem('layout', layout);
           spokeSection.style.display = (layout === 'infographic') ? '' : 'none';
+          arcSortSection.style.display = (layout === 'infographic') ? '' : 'none';
           applyLayout(layout);
         });
       });
 
       // Spoke style picker
       initSpokePicker();
+
+      // Arc sort picker
+      initArcSortPicker();
     }
 
     function initSpokePicker() {
@@ -3003,6 +3162,29 @@
           btn.classList.add('is-active');
           spokeStyle = style;
           localStorage.setItem('spokeStyle', style);
+          if (currentLayout === 'infographic') renderInfographicView();
+        });
+      });
+    }
+
+    // ── Open mode picker ──
+    function initArcSortPicker() {
+      var sortPicker = document.getElementById('arc-sort-picker');
+      if (!sortPicker) return;
+      var sortBtns = sortPicker.querySelectorAll('.layout-picker-option');
+      sortBtns.forEach(function (btn) {
+        if (btn.getAttribute('data-arc-sort') === arcSortMode) {
+          btn.classList.add('is-active');
+        } else {
+          btn.classList.remove('is-active');
+        }
+        btn.addEventListener('click', function () {
+          var mode = btn.getAttribute('data-arc-sort');
+          if (mode === arcSortMode) return;
+          sortBtns.forEach(function (b) { b.classList.remove('is-active'); });
+          btn.classList.add('is-active');
+          arcSortMode = mode;
+          localStorage.setItem('arcSortMode', mode);
           if (currentLayout === 'infographic') renderInfographicView();
         });
       });
@@ -3817,6 +3999,30 @@
               getAllArticles(item.data.id).some(function (a) { return matchesSearch(a, searchQuery); });
           });
         }
+        // Apply sort mode
+        if (arcSortMode && arcSortMode !== 'default') {
+          items = items.slice(); // clone to avoid mutating source
+          items.sort(function (a, b) {
+            var aLabel, bLabel, aDate, bDate;
+            if (arcSortMode === 'title-asc' || arcSortMode === 'title-desc') {
+              aLabel = a.data.label ? a.data.label[lang] : (a.data.title ? a.data.title[lang] : a.data.id);
+              bLabel = b.data.label ? b.data.label[lang] : (b.data.title ? b.data.title[lang] : b.data.id);
+              aLabel = aLabel || '';
+              bLabel = bLabel || '';
+              return arcSortMode === 'title-asc'
+                ? aLabel.localeCompare(bLabel, lang === 'zh' ? 'zh-Hans' : 'en')
+                : bLabel.localeCompare(aLabel, lang === 'zh' ? 'zh-Hans' : 'en');
+            }
+            if (arcSortMode === 'date-asc' || arcSortMode === 'date-desc') {
+              aDate = a.data.date || '0000-00-00';
+              bDate = b.data.date || '0000-00-00';
+              return arcSortMode === 'date-asc'
+                ? aDate.localeCompare(bDate)
+                : bDate.localeCompare(aDate);
+            }
+            return 0;
+          });
+        }
         return items;
       }
 
@@ -4161,6 +4367,21 @@
         // Detail card disabled — article info shown on spokes
       }
 
+      // ── Color helpers ──
+
+      function isDarkTheme() {
+        return document.documentElement.getAttribute('data-theme') === 'dark';
+      }
+
+      function lerpColor(hex1, hex2, t) {
+        var r1 = parseInt(hex1.slice(1, 3), 16), g1 = parseInt(hex1.slice(3, 5), 16), b1 = parseInt(hex1.slice(5, 7), 16);
+        var r2 = parseInt(hex2.slice(1, 3), 16), g2 = parseInt(hex2.slice(3, 5), 16), b2 = parseInt(hex2.slice(5, 7), 16);
+        var r = Math.round(r1 + (r2 - r1) * t);
+        var g = Math.round(g1 + (g2 - g1) * t);
+        var b = Math.round(b1 + (b2 - b1) * t);
+        return '#' + [r, g, b].map(function (c) { return Math.max(0, Math.min(255, c)).toString(16).padStart(2, '0'); }).join('');
+      }
+
       // ── Render ──
 
       function render() {
@@ -4201,10 +4422,48 @@
           var hasArt = items.some(function (it) { return it.type === 'article'; });
           var gap = getNodeGap(depth, items.length, hasArt);
           var angles = [], colors = [];
-          items.forEach(function (item, j) {
-            angles.push(getWheelAngle(j, items.length, lvl.angle, gap));
-            colors.push(nodeColor(item.data));
-          });
+
+          // ── Scheme-aware spoke colors ──
+          var scheme = colorSchemes.find(function (s) { return s.id === currentScheme; }) || colorSchemes[0];
+          var schemeDots = scheme.dots || ['#ff7a00', '#0d8f8c', '#e0b04b', '#e8eaef'];
+
+          if (depth === 0) {
+            // Root topics: cycle through scheme dots
+            items.forEach(function (item, j) {
+              angles.push(getWheelAngle(j, items.length, lvl.angle, gap));
+              colors.push(schemeDots[j % schemeDots.length]);
+            });
+          } else {
+            // Child level: derive gradient from the parent's scheme color
+            var parentLvl = arcLevels[depth - 1];
+            var parentItems = getItemsForLevel(depth - 1);
+            var parentIdx = parentLvl ? Math.min(parentLvl.selectedIdx, parentItems.length - 1) : 0;
+            // Walk up to find the root ancestor's scheme color
+            var rootColor = schemeDots[0];
+            var walkDepth = depth - 1;
+            while (walkDepth > 0) {
+              var wlvl = arcLevels[walkDepth - 1];
+              var witems = getItemsForLevel(walkDepth - 1);
+              if (wlvl && witems.length) {
+                walkDepth--;
+              } else break;
+            }
+            // Root ancestor index at depth 0
+            var rootLvl = arcLevels[0];
+            var rootItems = getItemsForLevel(0);
+            var rootIdx = rootLvl ? Math.min(rootLvl.selectedIdx, rootItems.length - 1) : 0;
+            rootColor = schemeDots[rootIdx % schemeDots.length];
+
+            items.forEach(function (item, j) {
+              angles.push(getWheelAngle(j, items.length, lvl.angle, gap));
+              // Gradient: first child is deepest (closest to parent color), last is lightest
+              var ratio = items.length > 1 ? j / (items.length - 1) : 0;
+              // Lighten toward white (light theme) or a brighter gray (dark theme)
+              var lightTarget = isDarkTheme() ? '#a0b0c0' : '#e8ecf2';
+              var lightened = lerpColor(rootColor, lightTarget, ratio * 0.6);
+              colors.push(lightened);
+            });
+          }
           var spokeSelIdx = (arcState.focusArc === depth) ? lvl.selectedIdx : -1;
           drawArcSpokes(depth, angles, colors, spokeSelIdx, items);
 
@@ -4567,6 +4826,28 @@
           if (lvl.timer) clearTimeout(lvl.timer);
         });
       };
+
+      // ── Initial state: first topic at 3 o'clock (angle 0), selected, children expanded ──
+      var initItems = getItemsForLevel(0);
+      if (initItems.length > 0) {
+        var initAngle0 = angleForLevel(0, 0, initItems.length);
+        arcLevels[0].selectedIdx = 0;
+        arcLevels[0].angle = initAngle0;
+        arcLevels[0].targetAngle = initAngle0;
+        // Auto-expand children of the first topic
+        if (initItems[0].type === 'topic') {
+          var childItems0 = getItemsForLevel(1);
+          if (childItems0.length > 0) {
+            ensureLevel(1);
+            var childAngle0 = angleForLevel(1, 0, childItems0.length);
+            arcLevels[1].selectedIdx = 0;
+            arcLevels[1].angle = childAngle0;
+            arcLevels[1].targetAngle = childAngle0;
+            arcLevels[1].collapsing = false;
+            arcLevels[1].visible = true;
+          }
+        }
+      }
 
       render();
     }

@@ -27,6 +27,7 @@ applyTo: "index.html"
    ```
 3. `parentId` 指向任意已存在的 topic 节点 id
 4. 错开 `phase` 值避免视觉重叠
+5. `summary.zh` ≤ 100 字符、`summary.en` ≤ 160 字符（控制在 4 行以内，Infographic 轮幅内不溢出）
 
 ### 添加新分类/分组（分支节点）
 - 在 `knowledgeTree[]` 添加：

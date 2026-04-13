@@ -37,6 +37,7 @@
 ## Research-To-Publish Workflow
 - When the user gives a research topic, follow this sequence: frame the research question and audience → collect source anchors and measurement conditions → draft the article structure → run fact / logic / terminology review → update `assets/knowledge-data.js` only after the article is complete and reviewed → publish/share from the same HTML source
 - Do not register a new article in `knowledge-data.js` before the page exists and the title / summary / tags / parent topic are finalized
+- **Summary length**: `knowledge-data.js` 中的 `summary.zh` / `summary.en` 必须控制在 4 行以内（中文 ≤ 100 字符，英文 ≤ 160 字符）。保留核心信息，去除冗余细节和枚举列表
 - If quantitative evidence is missing, state the gap explicitly instead of filling it with vague language
 - When updating a published article, keep the article body and its `knowledge-data.js` summary/metadata synchronized in the same change
 
