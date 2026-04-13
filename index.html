@@ -3954,22 +3954,21 @@
 
       // ── Geometry helpers ──
 
-      // Each level gets its own gap based on viewport & item count,
-      // ensuring enough angular space for text at every depth.
-
-      function getNodeGap(arcIdx, total, hasArticles) {
-        // Always use level 0 item count for gap calculation,
-        // so all levels share the same angular grid as root topics.
-        var items0 = getItemsForLevel(0);
+      // Compute level 0 gap once; all levels reuse the same angular spacing.
+      var level0Gap = (function () {
+        var items0 = planets; // root topics
         var total0 = items0.length;
-        if (total0 <= 1) total0 = total;
-        var r = arcOuterR(arcIdx);
-        var margin = 80;
-        var maxHalf = Math.asin(Math.min(0.95, (H / 2 - margin) / r));
-        var visibleSpan = 2 * maxHalf;
-        var fitGap = (visibleSpan * 0.85) / (total0 - 1);
-        var minGap = hasArticles ? minArticleGap : 0.08;
-        return Math.max(minGap, Math.min(defaultNodeGap, fitGap));
+        if (total0 <= 1) return defaultNodeGap;
+        var r0 = arcOuterR(0);
+        var margin0 = 80;
+        var maxHalf0 = Math.asin(Math.min(0.95, (H / 2 - margin0) / r0));
+        var visibleSpan0 = 2 * maxHalf0;
+        var fitGap0 = (visibleSpan0 * 0.85) / (total0 - 1);
+        return Math.max(0.08, Math.min(defaultNodeGap, fitGap0));
+      })();
+
+      function getNodeGap() {
+        return level0Gap;
       }
 
       function getWheelAngle(idx, total, rotation, gap) {
