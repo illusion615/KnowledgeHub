@@ -25,7 +25,7 @@
 - Bilingual support: `knowledge-data.js` entries must have zh/en title and summary; article page content is primarily Chinese; homepage UI elements use `data-zh` / `data-en` attributes
 
 ## Homepage Architecture
-- Full-screen knowledge graph with three layout modes: Galaxy / Cards / Infographic
+- Full-screen knowledge graph with four layout modes: Galaxy / Cards / Infographic / Cell
 - Knowledge hierarchy stored in `assets/knowledge-data.js` as flat `knowledgeTree[]` (adjacency list)
 - **Adding articles**: edit `knowledgeTree[]` in `assets/knowledge-data.js`, set `parentId` to parent topic
 - **Adding topic groups**: add `{ type: 'topic', parentId, ... }` entry — depth unlimited
@@ -33,6 +33,12 @@
 - **NEVER** hardcode knowledge data in `index.html` — always use `assets/knowledge-data.js`
 - `index.html` auto-derives `planets`, `groups`, `posts` arrays from `knowledgeTree` via tree utilities
 - All text elements support zh/en via `data-zh` / `data-en` attributes
+
+## Research-To-Publish Workflow
+- When the user gives a research topic, follow this sequence: frame the research question and audience → collect source anchors and measurement conditions → draft the article structure → run fact / logic / terminology review → update `assets/knowledge-data.js` only after the article is complete and reviewed → publish/share from the same HTML source
+- Do not register a new article in `knowledge-data.js` before the page exists and the title / summary / tags / parent topic are finalized
+- If quantitative evidence is missing, state the gap explicitly instead of filling it with vague language
+- When updating a published article, keep the article body and its `knowledge-data.js` summary/metadata synchronized in the same change
 
 ## Coding Conventions
 - Pure vanilla JS — no jQuery, no React, no npm

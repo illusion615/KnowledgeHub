@@ -486,8 +486,8 @@ var knowledgeTree = [
       en: 'Knowledge Hub Design Document: Architecture of an Interactive Knowledge Graph'
     },
     summary: {
-      zh: '从设计目标、设计理念、设计思路、四层架构（展示 / 逻辑 / 数据 / 共享资源）、三模式渲染引擎（Galaxy / Cards / Infographic）、功能矩阵和项目量化指标（23,000+ 行代码、20 个知识节点、39 个标签）七个维度完整记录 Knowledge Hub 的零框架知识管理系统设计。',
-      en: 'Comprehensive design document covering goals, philosophy, approach, four-layer architecture (Presentation / Logic / Data / Shared Assets), triple-mode rendering engine (Galaxy / Cards / Infographic), feature matrix, and quantitative metrics (23,000+ LOC, 20 knowledge nodes, 39 tags) of this zero-framework knowledge management system.'
+      zh: '从设计目标、价值主张、研究到发布的全流程工作流、四层架构（展示 / 逻辑 / 数据 / 共享资源）、四布局首页（Galaxy / Cards / Infographic / Cell）、执行门禁与项目量化指标（39,000+ 行跟踪源码、49 个知识节点、30 篇注册文章）多个维度完整记录 Knowledge Hub 的零框架知识管理系统设计。',
+      en: 'Comprehensive design document covering goals, value proposition, the end-to-end research-to-publish workflow, four-layer architecture (Presentation / Logic / Data / Shared Assets), four homepage layouts (Galaxy / Cards / Infographic / Cell), execution gates, and quantitative metrics (39,000+ tracked source lines, 49 knowledge nodes, 30 registered articles) of this zero-framework knowledge management system.'
     },
     tags: ['Design Document', 'Architecture', 'Knowledge Graph'],
     date: '2026-04-11',
@@ -735,6 +735,25 @@ var knowledgeTree = [
     color: '#0ea5e9',
     phase: 2.2, speed: 0.84,
     relations: ['hermes-open-model', 'fc-landscape', 'mlx-optimization']
+  },
+  {
+    id: 'm4-max-local-models',
+    parentId: 'ai-research-model',
+    type: 'article',
+    title: {
+      zh: 'MacBook Pro M4 Max 64GB 本地模型部署选型：LLM、图像、视频、语音与音乐生成全景',
+      en: 'MacBook Pro M4 Max 64GB Local Model Deployment: LLM, Image, Video, Speech & Music Stack'
+    },
+    summary: {
+      zh: '围绕 M4 Max 64GB 统一内存机器，系统比较本地 LLM、Function Calling、文生图、视频、语音与音乐生成的可行性，按内存占用、运行时成熟度、Apple 兼容性与交互体验给出适合 Apple Silicon 的组合建议。',
+      en: 'For an M4 Max 64GB unified-memory machine, this article compares local LLM, function calling, image, video, speech, and music generation options, and recommends Apple Silicon-friendly stacks by memory footprint, runtime maturity, platform compatibility, and interaction quality.'
+    },
+    tags: ['Apple Silicon', 'Local AI', 'Model Selection', 'MLX'],
+    date: '2026-04-12',
+    url: 'posts/m4-max-local-models/index.html',
+    color: '#38bdf8',
+    phase: 4.9, speed: 0.86,
+    relations: ['mlx-optimization', 'llm-wiki', 'fc-landscape', 'text-to-image-prompting']
   },
 
   // ════════════════════════════════════════

@@ -6,7 +6,7 @@ applyTo: "index.html"
 
 - Homepage is a full-screen interactive canvas — NOT a traditional page layout
 - All `var` declarations must be at the top of the DOMContentLoaded scope (avoid hoisting bugs)
-- Three layout modes: Galaxy (orbital), Cards (grid), Infographic (arc hierarchy)
+- Four layout modes: Galaxy (orbital), Cards (grid), Infographic (arc hierarchy), Cell (organic bubble hierarchy)
 - All visible text must have `data-zh` and `data-en` attributes for bilingual support
 - Settings (theme, lang, layout) persist via `localStorage`
 
