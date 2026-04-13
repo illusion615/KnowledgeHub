@@ -3954,24 +3954,9 @@
 
       // ── Geometry helpers ──
 
-      // Compute the angular extent of the selected spoke at a given depth.
-      // Returns the half-width of that spoke (from center to boundary).
-      function getParentSpokeHalf(depth) {
-        if (depth < 0) return Math.PI * 0.42; // root: use viewport-based span
-        var items = getItemsForLevel(depth);
-        if (!items.length) return defaultNodeGap * 0.5;
-        var lvl = arcLevels[depth];
-        if (!lvl) return defaultNodeGap * 0.5;
-        var total = items.length;
-        var gap = getLevelGap(depth);
-        var selIdx = Math.min(lvl.selectedIdx, total - 1);
-        // Boundaries are mid-points between adjacent item angles
-        // The selected spoke extends from midpoint-left to midpoint-right
-        if (total === 1) return gap * 0.56;
-        var halfBelow = (selIdx > 0) ? gap / 2 : gap * 0.56;
-        var halfAbove = (selIdx < total - 1) ? gap / 2 : gap * 0.56;
-        return (halfBelow + halfAbove) / 2;
-      }
+      // Each spoke's angular width = gap. N items → total boundary span = N × gap.
+      // For child levels: N_child × gap_child = gap_parent → gap_child = gap_parent / N_child.
+      // This guarantees child boundaries align exactly with the parent's selected spoke edges.
 
       function getLevelGap(depth) {
         if (depth === 0) {
@@ -3986,15 +3971,12 @@
           var fitGap0 = (visibleSpan0 * 0.85) / (total0 - 1);
           return Math.max(0.08, Math.min(defaultNodeGap, fitGap0));
         }
-        // Deeper levels: fit children within the parent's selected spoke
-        var parentHalf = getParentSpokeHalf(depth - 1);
-        var parentSpan = parentHalf * 2;
+        // Deeper levels: children divide the parent's selected spoke equally
+        var parentGap = getLevelGap(depth - 1);
         var items = getItemsForLevel(depth);
         var total = items.length;
-        if (total <= 1) return parentSpan * 0.8;
-        var childGap = (parentSpan * 0.88) / (total - 1);
-        var minGap = items.some(function (it) { return it.type === 'article'; }) ? 0.12 : 0.06;
-        return Math.max(minGap, childGap);
+        if (total <= 0) return parentGap;
+        return parentGap / total;
       }
 
       function getNodeGap(arcIdx, total, hasArticles) {
