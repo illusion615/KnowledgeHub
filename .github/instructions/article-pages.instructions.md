@@ -161,9 +161,10 @@ The complete nesting structure every article **MUST** follow (CSS classes that p
 
 - Default presentation steps are hero + each `.section`; use `data-present-step` and optional `data-step-title` only for custom slide granularity
 - `article-presentation.js` automatically splits accordion sections into overview + detail steps
+- Overview pages render subsections as a centered card grid (flex row-wrap, auto-fit ~3 columns) with only subsection number and title visible; `.subsection-content` is hidden; non-accordion siblings (`.paradigm-grid`, `.flow-list`, `.insight-grid`, etc.) are also hidden via `display: none !important`
 - Hero may keep its in-flow title; content slides rely on the shared deck overlay for active step title
 - Dense content (matrices, tables, stacked accordions) should be split into multiple `data-present-step` slides rather than shrinking type
-- Section-head is automatically hidden in presentation mode for sections with nested `[data-present-step]` (CSS `:has()` rule)
+- Section-head is automatically hidden in presentation mode for sections with nested `[data-present-step]` (CSS `:has()` rule); on overview pages the section-head description `<p>` is shown centered
 
 ## Other Rules
 

@@ -795,7 +795,7 @@ a {
   position: absolute;
   top: clamp(22px, 3.8vh, 40px);
   left: clamp(28px, 4.4vw, 56px);
-  max-width: min(520px, calc(100vw - 220px));
+  max-width: calc(100vw - 220px);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -814,7 +814,7 @@ a {
 
 .present-deck-title {
   font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
-  font-size: clamp(1.35rem, 2.1vw, 1.9rem);
+  font-size: clamp(1.6rem, 2.6vw, 2.4rem);
   line-height: 1.08;
   letter-spacing: -0.03em;
 }
@@ -1055,6 +1055,12 @@ a {
   display: none;
 }
 
+/* 1a. On overview step, hide non-accordion siblings (paradigm-grid, flow-list, etc.)
+       Only .section-head, .subsection-accordion and [data-accordion] items should be visible */
+.is-presentation-mode .section[data-present-overview].is-active > *:not(.section-head):not(.subsection-accordion):not([data-accordion]):not([data-present-step]) {
+  display: none !important;
+}
+
 /* 1b. Overview step: show description + collapsed accordion list, but NOT kicker/h2 (deck carries those) */
 .is-presentation-mode .section[data-present-overview].is-active > .section-head {
   display: block;
@@ -1063,28 +1069,86 @@ a {
 .is-presentation-mode .section[data-present-overview].is-active > .section-head h2 {
   display: none;
 }
+
+/* Overview layout — vertically centered flex row-wrap */
+.is-presentation-mode .section[data-present-overview].is-active {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  align-content: center;
+  justify-content: center;
+  min-height: calc(100vh - 160px);
+  padding: 0 clamp(40px, 6vw, 100px);
+  gap: 24px;
+}
+/* section-head: full width row, centered description */
+.is-presentation-mode .section[data-present-overview].is-active > .section-head {
+  flex: 0 0 100%;
+  text-align: center;
+  margin-bottom: 16px;
+}
+.is-presentation-mode .section[data-present-overview].is-active > .section-head p {
+  font-size: clamp(1.05rem, 1.4vw, 1.25rem);
+  line-height: 1.7;
+  opacity: 0.78;
+  margin: 0;
+}
+
+/* Card grid — .subsection-accordion wrapper */
 .is-presentation-mode .section[data-present-overview].is-active .subsection-accordion {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 24px;
+  flex: 0 0 100%;
+  max-width: 1100px;
 }
+/* When no .subsection-accordion wrapper — direct children use flex sizing */
+.is-presentation-mode .section[data-present-overview].is-active > [data-accordion][data-present-step] {
+  flex: 1 1 260px;
+  max-width: 380px;
+}
+
+/* Card item styling */
 .is-presentation-mode .section[data-present-overview].is-active [data-accordion][data-present-step] {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   height: auto;
   max-height: none;
-  min-height: 0;
+  min-height: 120px;
   width: auto;
   overflow: visible;
   padding: 0;
   margin: 0;
   border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
   background: var(--panel);
   box-shadow: var(--shadow);
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
   animation: none;
+  text-align: center;
 }
 .is-presentation-mode .section[data-present-overview].is-active .subsection-toggle {
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 28px 24px;
   pointer-events: none;
+  text-align: center;
+}
+.is-presentation-mode .section[data-present-overview].is-active .subsection-toggle::after {
+  display: none;
+}
+.is-presentation-mode .section[data-present-overview].is-active .subsection-number {
+  font-size: 2rem;
+  opacity: 0.35;
+  font-weight: 800;
+  line-height: 1;
 }
 .is-presentation-mode .section[data-present-overview].is-active .subsection-content {
   display: none !important;
@@ -1166,7 +1230,7 @@ a {
 .is-presentation-mode .hero-copy p,
 .is-presentation-mode .section-head p,
 .is-presentation-mode .tab-panel p {
-  max-width: 72ch;
+  max-width: none;
 }
 
 .is-presentation-mode .section-head p {
