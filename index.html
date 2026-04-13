@@ -56,6 +56,7 @@
       height: 100vh;
       width: 100vw;
       -webkit-font-smoothing: antialiased;
+      overscroll-behavior: none;
     }
 
     body::before {
@@ -279,7 +280,7 @@
     }
 
     /* ---- graph canvas ---- */
-    .graph { position: fixed; inset: 0; width: 100%; height: 100%; cursor: grab; }
+    .graph { position: fixed; inset: 0; width: 100%; height: 100%; cursor: grab; touch-action: none; }
     .graph:active { cursor: grabbing; }
 
     .graph-stage {
@@ -654,6 +655,7 @@
       gap: 12px;
       max-height: calc(min(72vh, 560px) - 112px);
       overflow: auto;
+      overscroll-behavior: contain;
       padding-right: 4px;
     }
     .planet-panel-item {
@@ -714,7 +716,6 @@
       display: flex; align-items: center; gap: 8px;
       padding: 0 24px;
       overflow-x: auto; overflow-y: hidden;
-      -webkit-overflow-scrolling: touch;
       pointer-events: auto;
     }
     .tag-cloud-label {
@@ -783,6 +784,7 @@
       transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
       display: flex; flex-direction: column;
       overflow-y: auto;
+      overscroll-behavior: contain;
     }
     [data-theme="dark"] .settings-panel {
       background: linear-gradient(180deg, rgba(22,26,34,0.88), rgba(14,17,23,0.82));
@@ -953,6 +955,7 @@
     .layout-cards-view {
       position: fixed; inset: 0;
       overflow-y: auto;
+      overscroll-behavior: contain;
       padding: 88px 40px 80px;
       display: none;
       z-index: 1;
@@ -1034,6 +1037,7 @@
       display: none;
       z-index: 1;
       cursor: default;
+      touch-action: none;
     }
     body[data-layout="infographic"] .infographic-view { display: block; }
     body[data-layout="infographic"] .graph,
@@ -1046,6 +1050,7 @@
       display: none;
       z-index: 1;
       cursor: grab;
+      touch-action: none;
     }
     .cell-view:active { cursor: grabbing; }
     body[data-layout="cell"] .cell-view { display: block; }
@@ -1160,6 +1165,7 @@
       flex-direction: column;
       gap: 3px;
       box-sizing: border-box;
+      -webkit-user-select: none;
       user-select: none;
       pointer-events: none;
       text-rendering: optimizeLegibility;
@@ -1777,6 +1783,9 @@
     var SCALE_MIN = 0.3;
     var SCALE_MAX = 3.0;
     var drag = { active: false, moved: false, startX: 0, startY: 0, camX: 0, camY: 0 };
+    var graphTouch = { mode: '', moved: false, startX: 0, startY: 0, camX: 0, camY: 0, startScale: 1, startDistance: 0, worldX: 0, worldY: 0 };
+    var graphTouchSuppressClick = false;
+    var graphTouchSuppressTimer = null;
 
     var planetMap = {};
     var postMap = {};
@@ -1817,16 +1826,86 @@
     cardEl.addEventListener('mouseenter', beginHoverPause);
     cardEl.addEventListener('mouseleave', endHoverPause);
 
+    function clampNumber(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function getTouchCenter(touches) {
+      var touchA = touches[0];
+      var touchB = touches[1] || touchA;
+      return {
+        x: (touchA.clientX + touchB.clientX) / 2,
+        y: (touchA.clientY + touchB.clientY) / 2
+      };
+    }
+
+    function getTouchDistance(touches) {
+      var dx;
+      var dy;
+      if (!touches || touches.length < 2) return 0;
+      dx = touches[1].clientX - touches[0].clientX;
+      dy = touches[1].clientY - touches[0].clientY;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    function zoomCameraAt(camera, focusX, focusY, nextScale, minScale, maxScale) {
+      var clampedScale = clampNumber(nextScale, minScale, maxScale);
+      var factor = clampedScale / camera.scale;
+      camera.x = focusX - (focusX - camera.x) * factor;
+      camera.y = focusY - (focusY - camera.y) * factor;
+      camera.scale = clampedScale;
+      return clampedScale;
+    }
+
+    function anchorCameraToTouch(camera, focusX, focusY, worldX, worldY, nextScale, minScale, maxScale) {
+      var clampedScale = clampNumber(nextScale, minScale, maxScale);
+      camera.scale = clampedScale;
+      camera.x = focusX - worldX * clampedScale;
+      camera.y = focusY - worldY * clampedScale;
+      return clampedScale;
+    }
+
+    function shouldBlockGraphPan(target) {
+      return target.closest('.node') || target.closest('.planet') ||
+        target.closest('.card') || target.closest('.planet-panel') ||
+        target.closest('.tag-chip') || target.closest('.ctrl-btn');
+    }
+
+    function shouldBlockGraphPinch(target) {
+      return target.closest('.card') || target.closest('.planet-panel');
+    }
+
+    function scheduleGraphClickSuppression() {
+      if (graphTouchSuppressTimer) clearTimeout(graphTouchSuppressTimer);
+      graphTouchSuppressClick = true;
+      graphTouchSuppressTimer = setTimeout(function () {
+        graphTouchSuppressClick = false;
+        graphTouchSuppressTimer = null;
+      }, 280);
+    }
+
+    function beginGraphPinch(touches) {
+      var center = getTouchCenter(touches);
+      graphTouch.mode = 'pinch';
+      graphTouch.moved = true;
+      graphTouch.startScale = cam.scale;
+      graphTouch.startDistance = Math.max(1, getTouchDistance(touches));
+      graphTouch.worldX = (center.x - cam.x) / cam.scale;
+      graphTouch.worldY = (center.y - cam.y) / cam.scale;
+      scheduleGraphClickSuppression();
+    }
+
+    function resetGraphTouch() {
+      graphTouch.mode = '';
+      graphTouch.moved = false;
+    }
+
     // Zoom (mouse wheel)
     graphEl.addEventListener('wheel', function (e) {
       if (e.target.closest('.planet-panel')) return;
       e.preventDefault();
       var f = e.deltaY < 0 ? 1.12 : 1 / 1.12;
-      var newScale = Math.max(SCALE_MIN, Math.min(SCALE_MAX, cam.scale * f));
-      f = newScale / cam.scale;
-      cam.x = e.clientX - (e.clientX - cam.x) * f;
-      cam.y = e.clientY - (e.clientY - cam.y) * f;
-      cam.scale = newScale;
+      zoomCameraAt(cam, e.clientX, e.clientY, cam.scale * f, SCALE_MIN, SCALE_MAX);
     }, { passive: false });
 
     // Pan (drag on empty space)
@@ -1851,6 +1930,77 @@
     window.addEventListener('mouseup', function () {
       drag.active = false;
     });
+
+    graphEl.addEventListener('touchstart', function (e) {
+      var touch;
+      if (currentLayout !== 'galaxy') return;
+      if (e.touches.length === 2) {
+        if (shouldBlockGraphPinch(e.target)) return;
+        beginGraphPinch(e.touches);
+        e.preventDefault();
+        return;
+      }
+      if (e.touches.length !== 1 || shouldBlockGraphPan(e.target)) return;
+      touch = e.touches[0];
+      graphTouch.mode = 'pan';
+      graphTouch.moved = false;
+      graphTouch.startX = touch.clientX;
+      graphTouch.startY = touch.clientY;
+      graphTouch.camX = cam.x;
+      graphTouch.camY = cam.y;
+    }, { passive: false });
+
+    graphEl.addEventListener('touchmove', function (e) {
+      var touch;
+      var center;
+      var distance;
+      var nextScale;
+      var dx;
+      var dy;
+      if (currentLayout !== 'galaxy') return;
+      if (e.touches.length === 2) {
+        if (shouldBlockGraphPinch(e.target)) return;
+        if (graphTouch.mode !== 'pinch') beginGraphPinch(e.touches);
+        center = getTouchCenter(e.touches);
+        distance = Math.max(1, getTouchDistance(e.touches));
+        nextScale = graphTouch.startScale * (distance / graphTouch.startDistance);
+        anchorCameraToTouch(cam, center.x, center.y, graphTouch.worldX, graphTouch.worldY, nextScale, SCALE_MIN, SCALE_MAX);
+        e.preventDefault();
+        return;
+      }
+      if (e.touches.length !== 1 || graphTouch.mode !== 'pan') return;
+      touch = e.touches[0];
+      dx = touch.clientX - graphTouch.startX;
+      dy = touch.clientY - graphTouch.startY;
+      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+        graphTouch.moved = true;
+        scheduleGraphClickSuppression();
+      }
+      cam.x = graphTouch.camX + dx;
+      cam.y = graphTouch.camY + dy;
+      e.preventDefault();
+    }, { passive: false });
+
+    graphEl.addEventListener('touchend', function (e) {
+      var touch;
+      if (currentLayout !== 'galaxy') return;
+      if (graphTouch.mode === 'pinch' && e.touches.length === 1) {
+        touch = e.touches[0];
+        graphTouch.mode = 'pan';
+        graphTouch.moved = true;
+        graphTouch.startX = touch.clientX;
+        graphTouch.startY = touch.clientY;
+        graphTouch.camX = cam.x;
+        graphTouch.camY = cam.y;
+        scheduleGraphClickSuppression();
+        return;
+      }
+      if (e.touches.length === 0) resetGraphTouch();
+    }, { passive: false });
+
+    graphEl.addEventListener('touchcancel', function () {
+      resetGraphTouch();
+    }, { passive: false });
 
     // ============ THEME / LANG / FONT ============
     document.getElementById('theme-toggle').addEventListener('click', function () {
@@ -2443,6 +2593,14 @@
 
     function onGraphClick(e) {
       if (drag.moved) { drag.moved = false; return; }
+      if (graphTouchSuppressClick) {
+        graphTouchSuppressClick = false;
+        if (graphTouchSuppressTimer) {
+          clearTimeout(graphTouchSuppressTimer);
+          graphTouchSuppressTimer = null;
+        }
+        return;
+      }
       if (e.target.closest('.node') || e.target.closest('.card') || e.target.closest('.planet') || e.target.closest('.planet-panel')) return;
       closeCard();
       // Also deselect planet
@@ -3100,8 +3258,17 @@
       var W = window.innerWidth, H = window.innerHeight;
       var cellCam = { x: W / 2, y: H / 2, scale: 0.85 };
       var cellDrag = { active: false, moved: false, sx: 0, sy: 0, cx: 0, cy: 0 };
+      var cellTouch = { mode: '', moved: false, startX: 0, startY: 0, camX: 0, camY: 0, startScale: 1, startDistance: 0, worldX: 0, worldY: 0 };
       var simNodes = []; // flat list of all simulation nodes
       var simFrame = null;
+      var cellWheelHandler = null;
+      var cellMouseDownHandler = null;
+      var cellMoveHandler = null;
+      var cellUpHandler = null;
+      var cellTouchStartHandler = null;
+      var cellTouchMoveHandler = null;
+      var cellTouchEndHandler = null;
+      var cellTouchCancelHandler = null;
 
       // Organic border-radius presets
       var blobShapes = [
@@ -3347,40 +3514,133 @@
       function updateCellCamera() {
         stage.style.transform = 'translate(' + cellCam.x + 'px,' + cellCam.y + 'px) scale(' + cellCam.scale + ')';
       }
+
+      function beginCellPinch(touches) {
+        var center = getTouchCenter(touches);
+        cellTouch.mode = 'pinch';
+        cellTouch.moved = true;
+        cellTouch.startScale = cellCam.scale;
+        cellTouch.startDistance = Math.max(1, getTouchDistance(touches));
+        cellTouch.worldX = (center.x - cellCam.x) / cellCam.scale;
+        cellTouch.worldY = (center.y - cellCam.y) / cellCam.scale;
+      }
+
+      function resetCellTouch() {
+        cellTouch.mode = '';
+        cellTouch.moved = false;
+      }
+
       updateCellCamera();
 
-      cellViewEl.addEventListener('wheel', function (e) {
+      cellWheelHandler = function (e) {
         if (currentLayout !== 'cell') return;
         e.preventDefault();
         var f = e.deltaY < 0 ? 1.12 : 1 / 1.12;
-        var ns = Math.max(0.15, Math.min(5, cellCam.scale * f));
-        f = ns / cellCam.scale;
-        cellCam.x = e.clientX - (e.clientX - cellCam.x) * f;
-        cellCam.y = e.clientY - (e.clientY - cellCam.y) * f;
-        cellCam.scale = ns;
+        zoomCameraAt(cellCam, e.clientX, e.clientY, cellCam.scale * f, 0.15, 5);
         updateCellCamera();
-      }, { passive: false });
+      };
+      cellViewEl.addEventListener('wheel', cellWheelHandler, { passive: false });
 
-      cellViewEl.addEventListener('mousedown', function (e) {
+      cellMouseDownHandler = function (e) {
         if (e.button !== 0) return;
         cellDrag.active = true; cellDrag.moved = false;
         cellDrag.sx = e.clientX; cellDrag.sy = e.clientY;
         cellDrag.cx = cellCam.x; cellDrag.cy = cellCam.y;
-      });
-      var cellMoveHandler = function (e) {
+      };
+      cellViewEl.addEventListener('mousedown', cellMouseDownHandler);
+
+      cellMoveHandler = function (e) {
         if (!cellDrag.active || currentLayout !== 'cell') return;
         cellDrag.moved = true;
         cellCam.x = cellDrag.cx + (e.clientX - cellDrag.sx);
         cellCam.y = cellDrag.cy + (e.clientY - cellDrag.sy);
         updateCellCamera();
       };
-      var cellUpHandler = function () { cellDrag.active = false; };
+      cellUpHandler = function () { cellDrag.active = false; };
       window.addEventListener('mousemove', cellMoveHandler);
       window.addEventListener('mouseup', cellUpHandler);
+
+      cellTouchStartHandler = function (e) {
+        var touch;
+        if (currentLayout !== 'cell') return;
+        if (e.touches.length === 2) {
+          beginCellPinch(e.touches);
+          e.preventDefault();
+          return;
+        }
+        if (e.touches.length !== 1 || e.target.closest('.cell-article')) return;
+        touch = e.touches[0];
+        cellTouch.mode = 'pan';
+        cellTouch.moved = false;
+        cellTouch.startX = touch.clientX;
+        cellTouch.startY = touch.clientY;
+        cellTouch.camX = cellCam.x;
+        cellTouch.camY = cellCam.y;
+      };
+
+      cellTouchMoveHandler = function (e) {
+        var touch;
+        var center;
+        var distance;
+        var nextScale;
+        var dx;
+        var dy;
+        if (currentLayout !== 'cell') return;
+        if (e.touches.length === 2) {
+          if (cellTouch.mode !== 'pinch') beginCellPinch(e.touches);
+          center = getTouchCenter(e.touches);
+          distance = Math.max(1, getTouchDistance(e.touches));
+          nextScale = cellTouch.startScale * (distance / cellTouch.startDistance);
+          anchorCameraToTouch(cellCam, center.x, center.y, cellTouch.worldX, cellTouch.worldY, nextScale, 0.15, 5);
+          updateCellCamera();
+          e.preventDefault();
+          return;
+        }
+        if (e.touches.length !== 1 || cellTouch.mode !== 'pan') return;
+        touch = e.touches[0];
+        dx = touch.clientX - cellTouch.startX;
+        dy = touch.clientY - cellTouch.startY;
+        if (Math.abs(dx) > 4 || Math.abs(dy) > 4) cellTouch.moved = true;
+        cellCam.x = cellTouch.camX + dx;
+        cellCam.y = cellTouch.camY + dy;
+        updateCellCamera();
+        e.preventDefault();
+      };
+
+      cellTouchEndHandler = function (e) {
+        var touch;
+        if (currentLayout !== 'cell') return;
+        if (cellTouch.mode === 'pinch' && e.touches.length === 1) {
+          touch = e.touches[0];
+          cellTouch.mode = 'pan';
+          cellTouch.moved = true;
+          cellTouch.startX = touch.clientX;
+          cellTouch.startY = touch.clientY;
+          cellTouch.camX = cellCam.x;
+          cellTouch.camY = cellCam.y;
+          return;
+        }
+        if (e.touches.length === 0) resetCellTouch();
+      };
+
+      cellTouchCancelHandler = function () {
+        resetCellTouch();
+      };
+
+      cellViewEl.addEventListener('touchstart', cellTouchStartHandler, { passive: false });
+      cellViewEl.addEventListener('touchmove', cellTouchMoveHandler, { passive: false });
+      cellViewEl.addEventListener('touchend', cellTouchEndHandler, { passive: false });
+      cellViewEl.addEventListener('touchcancel', cellTouchCancelHandler, { passive: false });
 
       // Cleanup
       cellViewEl._cleanup = function () {
         if (simFrame) cancelAnimationFrame(simFrame);
+        cellViewEl.removeEventListener('wheel', cellWheelHandler);
+        cellViewEl.removeEventListener('mousedown', cellMouseDownHandler);
+        cellViewEl.removeEventListener('touchstart', cellTouchStartHandler);
+        cellViewEl.removeEventListener('touchmove', cellTouchMoveHandler);
+        cellViewEl.removeEventListener('touchend', cellTouchEndHandler);
+        cellViewEl.removeEventListener('touchcancel', cellTouchCancelHandler);
         window.removeEventListener('mousemove', cellMoveHandler);
         window.removeEventListener('mouseup', cellUpHandler);
       };
@@ -3413,6 +3673,11 @@
         animFrame: null,
         isAnimating: false
       };
+      var arcTouch = { active: false, moved: false, startX: 0, startY: 0, focusArc: 0, axis: '' };
+      var arcTouchStartHandler = null;
+      var arcTouchMoveHandler = null;
+      var arcTouchEndHandler = null;
+      var arcTouchCancelHandler = null;
 
       var container = infographicViewEl;
       container.innerHTML = '';
@@ -4043,6 +4308,56 @@
         spinLevel(arcState.focusArc, delta);
       }
 
+      function moveArcFocusForward() {
+        var nextDepth = arcState.focusArc + 1;
+        var nextItems;
+        var curDepth;
+        var curItems;
+        var curLvl;
+        var curItem;
+        var childItems;
+        var initAngle;
+        if (nextDepth < arcLevels.length && arcLevels[nextDepth].visible && !arcLevels[nextDepth].collapsing) {
+          nextItems = getItemsForLevel(nextDepth);
+          if (nextItems.length > 0) {
+            arcState.focusArc = nextDepth;
+            render();
+          }
+          return;
+        }
+        curDepth = arcState.focusArc;
+        curItems = getItemsForLevel(curDepth);
+        curLvl = arcLevels[curDepth];
+        if (!curItems.length || !curLvl) return;
+        curItem = curItems[curLvl.selectedIdx];
+        if (!curItem || curItem.type !== 'topic') return;
+        childItems = getItemsForLevel(curDepth + 1);
+        if (!childItems.length) return;
+        ensureLevel(curDepth + 1);
+        initAngle = angleForLevel(curDepth + 1, 0, childItems.length);
+        arcLevels[curDepth + 1].selectedIdx = 0;
+        arcLevels[curDepth + 1].angle = initAngle;
+        arcLevels[curDepth + 1].targetAngle = initAngle;
+        arcLevels[curDepth + 1].collapsing = false;
+        arcLevels[curDepth + 1].visible = false;
+        clearTimeout(arcLevels[curDepth + 1].timer);
+        arcLevels[curDepth + 1].timer = setTimeout(function () {
+          arcLevels[curDepth + 1].visible = true;
+          arcState.focusArc = curDepth + 1;
+          render();
+        }, 200);
+        render();
+      }
+
+      function moveArcFocusBackward() {
+        if (arcState.focusArc > 0) {
+          arcState.focusArc--;
+          hideDetail();
+          trimLevels(arcState.focusArc);
+          startAnim();
+        }
+      }
+
       // ── Determine max navigable depth ──
       function getMaxDepth() {
         return arcLevels.length - 1;
@@ -4068,17 +4383,23 @@
         return bestLevel;
       }
 
+      function setArcFocusAtPoint(px, py) {
+        var targetArc = getArcLevelAtXY(px, py);
+        if (targetArc > getMaxDepth()) targetArc = getMaxDepth();
+        if (targetArc !== arcState.focusArc) {
+          arcState.focusArc = targetArc;
+          updateFocusClasses();
+        }
+        return targetArc;
+      }
+
       // ── Event handlers ──
 
       function onArcScroll(e) {
         if (currentLayout !== 'infographic') return;
         e.preventDefault();
         var delta = e.deltaY > 0 ? 1 : -1;
-        var targetArc = getArcLevelAtXY(e.clientX, e.clientY);
-        if (targetArc > getMaxDepth()) targetArc = getMaxDepth();
-        if (targetArc !== arcState.focusArc) {
-          arcState.focusArc = targetArc;
-        }
+        setArcFocusAtPoint(e.clientX, e.clientY);
         handleVerticalInput(delta);
       }
       container.addEventListener('wheel', onArcScroll, { passive: false });
@@ -4114,14 +4435,69 @@
 
       function onArcMouseMove(e) {
         if (currentLayout !== 'infographic') return;
-        var targetArc = getArcLevelAtXY(e.clientX, e.clientY);
-        if (targetArc > getMaxDepth()) targetArc = getMaxDepth();
-        if (targetArc !== arcState.focusArc) {
-          arcState.focusArc = targetArc;
-          updateFocusClasses();
-        }
+        setArcFocusAtPoint(e.clientX, e.clientY);
       }
       container.addEventListener('mousemove', onArcMouseMove);
+
+      arcTouchStartHandler = function (e) {
+        var touch;
+        if (currentLayout !== 'infographic' || e.touches.length !== 1) return;
+        touch = e.touches[0];
+        arcTouch.active = true;
+        arcTouch.moved = false;
+        arcTouch.axis = '';
+        arcTouch.startX = touch.clientX;
+        arcTouch.startY = touch.clientY;
+        arcTouch.focusArc = setArcFocusAtPoint(touch.clientX, touch.clientY);
+      };
+
+      arcTouchMoveHandler = function (e) {
+        var touch;
+        var dx;
+        var dy;
+        if (currentLayout !== 'infographic' || !arcTouch.active || e.touches.length !== 1) return;
+        touch = e.touches[0];
+        dx = touch.clientX - arcTouch.startX;
+        dy = touch.clientY - arcTouch.startY;
+        if (!arcTouch.axis) {
+          if (Math.abs(dx) < 18 && Math.abs(dy) < 18) return;
+          arcTouch.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+        }
+        if (arcTouch.axis === 'y' && Math.abs(dy) > 28) {
+          arcState.focusArc = arcTouch.focusArc;
+          handleVerticalInput(dy < 0 ? 1 : -1);
+          arcTouch.startX = touch.clientX;
+          arcTouch.startY = touch.clientY;
+          arcTouch.moved = true;
+          e.preventDefault();
+        } else if (arcTouch.axis === 'x' && Math.abs(dx) > 44) {
+          arcState.focusArc = arcTouch.focusArc;
+          if (dx > 0) moveArcFocusForward();
+          else moveArcFocusBackward();
+          arcTouch.focusArc = arcState.focusArc;
+          arcTouch.startX = touch.clientX;
+          arcTouch.startY = touch.clientY;
+          arcTouch.moved = true;
+          e.preventDefault();
+        }
+      };
+
+      arcTouchEndHandler = function () {
+        arcTouch.active = false;
+        arcTouch.moved = false;
+        arcTouch.axis = '';
+      };
+
+      arcTouchCancelHandler = function () {
+        arcTouch.active = false;
+        arcTouch.moved = false;
+        arcTouch.axis = '';
+      };
+
+      container.addEventListener('touchstart', arcTouchStartHandler, { passive: false });
+      container.addEventListener('touchmove', arcTouchMoveHandler, { passive: false });
+      container.addEventListener('touchend', arcTouchEndHandler, { passive: false });
+      container.addEventListener('touchcancel', arcTouchCancelHandler, { passive: false });
 
       function onArcKeydown(e) {
         if (currentLayout !== 'infographic') return;
@@ -4132,53 +4508,11 @@
 
         } else if (e.key === 'ArrowRight') {
           e.preventDefault();
-          var nextDepth = arcState.focusArc + 1;
-          // If child level already expanded and visible, just move focus
-          if (nextDepth < arcLevels.length && arcLevels[nextDepth].visible && !arcLevels[nextDepth].collapsing) {
-            var nextItems = getItemsForLevel(nextDepth);
-            if (nextItems.length > 0) {
-              arcState.focusArc = nextDepth;
-              render();
-            }
-          } else {
-            // Expand: check if current selected item is a topic with children
-            var curDepth = arcState.focusArc;
-            var curItems = getItemsForLevel(curDepth);
-            var curLvl = arcLevels[curDepth];
-            if (curItems.length && curLvl) {
-              var curItem = curItems[curLvl.selectedIdx];
-              if (curItem && curItem.type === 'topic') {
-                var childItems = getItemsForLevel(curDepth + 1);
-                if (childItems.length > 0) {
-                  ensureLevel(curDepth + 1);
-                  var initAngle = angleForLevel(curDepth + 1, 0, childItems.length);
-                  arcLevels[curDepth + 1].selectedIdx = 0;
-                  arcLevels[curDepth + 1].angle = initAngle;
-                  arcLevels[curDepth + 1].targetAngle = initAngle;
-                  arcLevels[curDepth + 1].collapsing = false;
-                  arcLevels[curDepth + 1].visible = false;
-                  clearTimeout(arcLevels[curDepth + 1].timer);
-                  arcLevels[curDepth + 1].timer = setTimeout(function () {
-                    arcLevels[curDepth + 1].visible = true;
-                    arcState.focusArc = curDepth + 1;
-                    render();
-                  }, 200);
-                  render();
-                }
-              }
-            }
-          }
+          moveArcFocusForward();
 
         } else if (e.key === 'ArrowLeft') {
           e.preventDefault();
-          if (arcState.focusArc > 0) {
-            var prevFocus = arcState.focusArc;
-            arcState.focusArc--;
-            hideDetail();
-            // Collapse levels deeper than new focus
-            trimLevels(arcState.focusArc);
-            startAnim();
-          }
+          moveArcFocusBackward();
 
         } else if (e.key === 'Enter') {
           e.preventDefault();
@@ -4189,37 +4523,7 @@
           var item = items[lvl.selectedIdx];
 
           if (item.type === 'topic') {
-            // Expand: ensure next level exists and enter it
-            var childItems = getItemsForLevel(depth + 1);
-            if (childItems.length > 0) {
-              if (depth + 1 < arcLevels.length && arcLevels[depth + 1].visible) {
-                // Already expanded — simply move focus
-                arcState.focusArc = depth + 1;
-                render();
-                var ci = childItems[arcLevels[depth + 1].selectedIdx];
-                if (ci && ci.type === 'article') {
-                  showDetailForLevel(depth + 1, arcLevels[depth + 1].selectedIdx);
-                }
-              } else {
-                ensureLevel(depth + 1);
-                var initAngle = angleForLevel(depth + 1, 0, childItems.length);
-                arcLevels[depth + 1].selectedIdx = 0;
-                arcLevels[depth + 1].angle = initAngle;
-                arcLevels[depth + 1].targetAngle = initAngle;
-                arcLevels[depth + 1].visible = false;
-                clearTimeout(arcLevels[depth + 1].timer);
-                arcLevels[depth + 1].timer = setTimeout(function () {
-                  arcLevels[depth + 1].visible = true;
-                  arcState.focusArc = depth + 1;
-                  render();
-                  var ci2 = getItemsForLevel(depth + 1);
-                  if (ci2.length && ci2[0].type === 'article') {
-                    showDetailForLevel(depth + 1, 0);
-                  }
-                }, 200);
-                render();
-              }
-            }
+            moveArcFocusForward();
           } else if (item.type === 'article' && item.data.url) {
             navigateToArticle(item.data.url);
           }
@@ -4252,6 +4556,10 @@
       container._arcCleanup = function () {
         container.removeEventListener('wheel', onArcScroll);
         container.removeEventListener('mousemove', onArcMouseMove);
+        container.removeEventListener('touchstart', arcTouchStartHandler);
+        container.removeEventListener('touchmove', arcTouchMoveHandler);
+        container.removeEventListener('touchend', arcTouchEndHandler);
+        container.removeEventListener('touchcancel', arcTouchCancelHandler);
         document.removeEventListener('keydown', onArcKeydown);
         window.removeEventListener('resize', arcResizeHandler);
         if (arcState.animFrame) cancelAnimationFrame(arcState.animFrame);
