@@ -526,7 +526,7 @@
     if (gameActive) {
       stopGame();
     } else {
-      if (typeof currentLayout !== 'undefined' && currentLayout === 'cell') startGame();
+      if (document.body.getAttribute('data-layout') === 'cell') startGame();
     }
   });
 

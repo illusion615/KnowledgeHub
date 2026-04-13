@@ -1166,12 +1166,32 @@ document.addEventListener('DOMContentLoaded', function () {
     return bestIndex;
   };
 
+  var requestBrowserFullscreen = function () {
+    var el = document.documentElement;
+    if (el.requestFullscreen) {
+      el.requestFullscreen().catch(function () {});
+    } else if (el.webkitRequestFullscreen) {
+      el.webkitRequestFullscreen();
+    }
+  };
+
+  var exitBrowserFullscreen = function () {
+    var fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+    if (!fsEl) return;
+    if (document.exitFullscreen) {
+      document.exitFullscreen().catch(function () {});
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    }
+  };
+
   var enterPresentation = function () {
     state.enabled = true;
     root.classList.add('is-presentation-mode');
     expandAllAccordions();
     setPresentationStep(0);
     updatePresentationLabels();
+    requestBrowserFullscreen();
   };
 
   var exitPresentation = function () {
@@ -1182,6 +1202,7 @@ document.addEventListener('DOMContentLoaded', function () {
     restoreAccordionStates();
     setPresentationStep(state.index);
     updatePresentationLabels();
+    exitBrowserFullscreen();
 
     if (activeStep) {
       activeStep.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1312,4 +1333,13 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!state.enabled) return;
     syncStepOverflowState(presentSteps[state.index]);
   });
+
+  var onFullscreenChange = function () {
+    var fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+    if (!fsEl && state.enabled) {
+      exitPresentation();
+    }
+  };
+  document.addEventListener('fullscreenchange', onFullscreenChange);
+  document.addEventListener('webkitfullscreenchange', onFullscreenChange);
 });
