@@ -3937,11 +3937,26 @@
       var defaultNodeGap = 0.32;
       var minArticleGap = 0.28; // articles need more height for rich content
 
-      // ── Geometry helpers (all use arcIdx for radius calc) ──
+      // ── Progressive level widths: level 0 thin, deeper levels wider ──
+      function arcLevelWidth(d) {
+        if (d === 0) return arcGap * 0.50;
+        return arcGap * Math.min(1.30, 0.80 + 0.18 * d);
+      }
+      function arcOuterR(d) {
+        var r = baseRadius;
+        for (var i = 1; i <= d; i++) r += arcLevelWidth(i);
+        return r;
+      }
+      function arcInnerR(d) {
+        if (d === 0) return baseRadius - arcLevelWidth(0);
+        return arcOuterR(d - 1);
+      }
+
+      // ── Geometry helpers ──
 
       function getNodeGap(arcIdx, total, hasArticles) {
         if (total <= 1) return hasArticles ? Math.max(defaultNodeGap, minArticleGap) : defaultNodeGap;
-        var r = baseRadius + arcIdx * arcGap;
+        var r = arcOuterR(arcIdx);
         var margin = 80;
         var maxHalf = Math.asin(Math.min(0.95, (H / 2 - margin) / r));
         var visibleSpan = 2 * maxHalf;
@@ -3957,7 +3972,7 @@
       }
 
       function getArcXY(arcIdx, angle) {
-        var r = baseRadius + arcIdx * arcGap;
+        var r = arcOuterR(arcIdx);
         return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
       }
 
@@ -4085,7 +4100,7 @@
       // ── SVG drawing ──
 
       function drawArcRing(arcIdx) {
-        var r = baseRadius + arcIdx * arcGap;
+        var r = arcOuterR(arcIdx);
         var span = (arcIdx === 0) ? Math.PI * 0.85 : Math.PI * 0.7;
         var startA = -span / 2, endA = span / 2;
         var x1 = cx + r * Math.cos(startA), y1 = cy + r * Math.sin(startA);
@@ -4101,9 +4116,8 @@
 
       function drawArcSpokes(arcIdx, nodeAngles, nodeColors, selectedIdx, items) {
         if (!nodeAngles || !nodeAngles.length) return;
-        var r = baseRadius + arcIdx * arcGap;
-        var prevR = (arcIdx > 0) ? baseRadius + (arcIdx - 1) * arcGap : 0;
-        var innerR = (arcIdx === 0) ? r * 0.35 : prevR;
+        var r = arcOuterR(arcIdx);
+        var innerR = arcInnerR(arcIdx);
         var outerR = r;
 
         var boundaries = [];
@@ -4628,16 +4642,14 @@
         var dist = Math.sqrt(Math.pow(px - cx, 2) + Math.pow(py - cy, 2));
         // Match against actual spoke boundaries (innerR..outerR)
         for (var d = getMaxDepth(); d >= 0; d--) {
-          var r = baseRadius + d * arcGap;
-          var prevR = (d > 0) ? baseRadius + (d - 1) * arcGap : 0;
-          var innerR = (d === 0) ? r * 0.35 : prevR;
-          var outerR = r;
-          if (dist >= innerR && dist <= outerR) return d;
+          var iR = arcInnerR(d);
+          var oR = arcOuterR(d);
+          if (dist >= iR && dist <= oR) return d;
         }
         // Fallback: nearest arc ring
         var bestLevel = 0, bestDist = Infinity;
         for (var d2 = 0; d2 <= getMaxDepth(); d2++) {
-          var r2 = baseRadius + d2 * arcGap;
+          var r2 = arcOuterR(d2);
           var dd = Math.abs(dist - r2);
           if (dd < bestDist) { bestDist = dd; bestLevel = d2; }
         }
