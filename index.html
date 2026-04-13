@@ -1220,6 +1220,10 @@
       color: #fff; border-radius: 8px; cursor: pointer;
     }
     .cell-game-over button:hover { background: rgba(255,255,255,0.25); }
+    .cell-game-actions { display: flex; gap: 16px; justify-content: center; }
+    .cell-game-over .win-title { color: #00ddff; }
+    .cell-game-over .lose-title { color: #ff4444; }
+    .cell-game-over button + button { margin-left: 0; }
 
     .arc-svg {
       position: absolute; inset: 0;
@@ -1589,9 +1593,14 @@
   <canvas class="cell-game-overlay" id="cell-game-canvas"></canvas>
   <div class="cell-game-hud" id="cell-game-hud">SCORE: 0</div>
   <div class="cell-game-over" id="cell-game-over">
-    <h2>GAME OVER</h2>
+    <h2 id="cell-game-title">GAME OVER</h2>
     <p id="cell-game-final-score">SCORE: 0</p>
-    <button id="cell-game-restart">再来一局</button>
+    <p id="cell-game-round-info" style="display:none"></p>
+    <div class="cell-game-actions">
+      <button id="cell-game-restart">再来一局</button>
+      <button id="cell-game-next" style="display:none">下一轮</button>
+      <button id="cell-game-quit">退出</button>
+    </div>
   </div>
 
   <nav class="tag-cloud" id="tag-cloud">
@@ -3379,10 +3388,22 @@
       // Rebuild tag cloud
       buildTagCloud();
 
-      // Re-render alternate layouts
-      if (currentLayout === 'cards') renderCardsView();
-      else if (currentLayout === 'infographic') renderInfographicView();
-      else if (currentLayout === 'cell') renderCellView();
+      // Re-render alternate layouts (with proper cleanup)
+      if (currentLayout === 'cards') {
+        renderCardsView();
+      } else if (currentLayout === 'infographic') {
+        if (infographicViewEl._arcCleanup) {
+          infographicViewEl._arcCleanup();
+          infographicViewEl._arcCleanup = null;
+        }
+        renderInfographicView();
+      } else if (currentLayout === 'cell') {
+        if (cellViewEl._cleanup) {
+          cellViewEl._cleanup();
+          cellViewEl._cleanup = null;
+        }
+        renderCellView();
+      }
     }
 
     function applyLayout(layout) {
