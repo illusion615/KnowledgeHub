@@ -3954,33 +3954,18 @@
 
       // ── Geometry helpers ──
 
-      // Each spoke's angular width = gap. N items → total boundary span = N × gap.
-      // For child levels: N_child × gap_child = gap_parent → gap_child = gap_parent / N_child.
-      // This guarantees child boundaries align exactly with the parent's selected spoke edges.
-
-      function getLevelGap(depth) {
-        if (depth === 0) {
-          // Root level: fit items based on viewport
-          var items0 = getItemsForLevel(0);
-          var total0 = items0.length;
-          if (total0 <= 1) return defaultNodeGap;
-          var r0 = arcOuterR(0);
-          var margin0 = 80;
-          var maxHalf0 = Math.asin(Math.min(0.95, (H / 2 - margin0) / r0));
-          var visibleSpan0 = 2 * maxHalf0;
-          var fitGap0 = (visibleSpan0 * 0.85) / (total0 - 1);
-          return Math.max(0.08, Math.min(defaultNodeGap, fitGap0));
-        }
-        // Deeper levels: children divide the parent's selected spoke equally
-        var parentGap = getLevelGap(depth - 1);
-        var items = getItemsForLevel(depth);
-        var total = items.length;
-        if (total <= 0) return parentGap;
-        return parentGap / total;
-      }
+      // Each level gets its own gap based on viewport & item count,
+      // ensuring enough angular space for text at every depth.
 
       function getNodeGap(arcIdx, total, hasArticles) {
-        return getLevelGap(arcIdx);
+        if (total <= 1) return hasArticles ? Math.max(defaultNodeGap, minArticleGap) : defaultNodeGap;
+        var r = arcOuterR(arcIdx);
+        var margin = 80;
+        var maxHalf = Math.asin(Math.min(0.95, (H / 2 - margin) / r));
+        var visibleSpan = 2 * maxHalf;
+        var fitGap = (visibleSpan * 0.85) / (total - 1);
+        var minGap = hasArticles ? minArticleGap : 0.08;
+        return Math.max(minGap, Math.min(defaultNodeGap, fitGap));
       }
 
       function getWheelAngle(idx, total, rotation, gap) {
