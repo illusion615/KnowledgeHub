@@ -820,5 +820,28 @@ var knowledgeTree = [
     color: '#f97316',
     phase: 4.6, speed: 0.88,
     relations: ['enterprise-agent-arch', 'copilot-harness-eng', 'knowledge-graph-org']
+  },
+
+  // ════════════════════════════════════════
+  // 文章 — Progressive Disclosure 设计原理
+  // ════════════════════════════════════════
+  {
+    id: 'progressive-disclosure',
+    parentId: 'knowledge-hub',
+    type: 'article',
+    title: {
+      zh: 'Progressive Disclosure：渐进呈现的认知原理、实现模式与设计实践',
+      en: 'Progressive Disclosure: Cognitive Foundations, Implementation Patterns & Design Practice'
+    },
+    summary: {
+      zh: '从 Miller、Hick 等认知科学原理出发，梳理渐进呈现的三种分类、六种 UI 模式和五步设计流程，附反模式分析。',
+      en: 'Traces progressive disclosure from cognitive science (Miller, Hick) through three categories, six UI patterns, and a five-step design process.'
+    },
+    tags: ['Progressive Disclosure', 'Interaction Design', 'Cognitive Science', 'UX'],
+    date: '2026-04-14',
+    url: 'posts/progressive-disclosure/index.html',
+    color: '#14b8a6',
+    phase: 2.8, speed: 0.82,
+    relations: ['study-room-design', 'knowledge-graph-org', 'study-room-standards']
   }
 ];

@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Progressive Disclosure：渐进呈现的认知原理、实现模式与设计实践</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(1.8rem, 4.4vw, 3rem);
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+      max-width: 22ch;
+    }
+
+    .hero-metrics {
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+
+    /* ── Principle cards ── */
+    .principle-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .principle-card {
+      padding: 22px;
+      border-radius: 22px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+    }
+
+    .principle-card h4 { margin: 0 0 8px; font-size: 1.05rem; line-height: 1.35; }
+    .principle-card p, .principle-card li { color: var(--muted); font-size: 0.92rem; line-height: 1.72; }
+    .principle-card ul { margin: 8px 0 0; padding-left: 18px; }
+
+    .principle-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      margin-bottom: 10px; padding: 6px 12px; border-radius: 999px;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .principle-badge-miller { background: rgba(14, 165, 233, 0.12); color: #0369a1; }
+    .principle-badge-hick { background: rgba(124, 58, 237, 0.12); color: #5b21b6; }
+    .principle-badge-cognitive { background: rgba(16, 185, 129, 0.12); color: #065f46; }
+    .principle-badge-chunking { background: rgba(234, 179, 8, 0.15); color: #b45309; }
+
+    /* ── Pattern cards ── */
+    .pattern-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .pattern-card {
+      padding: 22px;
+      border-radius: 22px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+    }
+
+    .pattern-card h4 { margin: 0 0 8px; font-size: 1.05rem; line-height: 1.35; }
+    .pattern-card p { color: var(--muted); font-size: 0.92rem; line-height: 1.72; }
+
+    .pattern-icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 42px; height: 42px; margin-bottom: 12px; border-radius: 14px;
+      font-size: 1.3rem;
+      background: rgba(15, 23, 42, 0.05);
+    }
+
+    /* ── Comparison table ── */
+    .compare-table-wrap {
+      margin-top: 16px; overflow-x: auto; border-radius: 18px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.78);
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+    }
+    .compare-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    .compare-table th, .compare-table td { padding: 11px 14px; text-align: left; border-bottom: 1px solid rgba(15, 23, 42, 0.06); vertical-align: top; }
+    .compare-table th { font-family: "Space Grotesk", "Noto Sans SC", sans-serif; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: rgba(15, 23, 42, 0.03); white-space: nowrap; }
+    .compare-table tr:last-child td { border-bottom: none; }
+
+    /* ── Flow steps ── */
+    .flow-steps {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .flow-step {
+      display: grid;
+      grid-template-columns: 48px 1fr;
+      gap: 16px;
+      padding: 18px;
+      border-radius: 22px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+      align-items: start;
+    }
+    .flow-number {
+      width: 48px; height: 48px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-weight: 700; font-size: 1.05rem;
+      background: rgba(15, 23, 42, 0.06); color: var(--accent);
+    }
+    .flow-step h3 { margin: 0 0 6px; font-size: 1rem; line-height: 1.35; }
+    .flow-step p { margin: 0; color: var(--muted); font-size: 0.92rem; line-height: 1.75; }
+
+    /* ── Case card ── */
+    .case-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+    .case-card {
+      padding: 22px;
+      border-radius: 22px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+    }
+    .case-card h4 { margin: 0 0 8px; font-size: 1.05rem; line-height: 1.35; }
+    .case-card p, .case-card li { color: var(--muted); font-size: 0.92rem; line-height: 1.72; }
+    .case-card ul { margin: 8px 0 0; padding-left: 18px; }
+    .case-label {
+      display: inline-flex; align-items: center;
+      margin-bottom: 10px; padding: 5px 10px; border-radius: 999px;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase; white-space: nowrap;
+      background: rgba(14, 165, 233, 0.12); color: #0369a1;
+    }
+
+    /* ── Anti-pattern card ── */
+    .antipattern-card {
+      padding: 22px;
+      border-radius: 22px;
+      border: 1px solid rgba(239, 68, 68, 0.18);
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+      margin-top: 14px;
+    }
+    .antipattern-card h4 { margin: 0 0 8px; font-size: 1.05rem; line-height: 1.35; color: #dc2626; }
+    .antipattern-card p, .antipattern-card li { color: var(--muted); font-size: 0.92rem; line-height: 1.72; }
+    .antipattern-card ul { margin: 8px 0 0; padding-left: 18px; }
+
+    /* ── Quote board ── */
+    .quote-board {
+      margin-top: 16px; padding: 22px; border-radius: 24px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.08), rgba(255, 255, 255, 0.72));
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
+    }
+    .quote-board p { margin: 0; color: var(--ink); font-size: 1rem; line-height: 1.8; }
+    .quote-board strong { color: var(--accent); }
+
+    /* ── Dark mode ── */
+    [data-theme="dark"] .principle-card,
+    [data-theme="dark"] .pattern-card,
+    [data-theme="dark"] .case-card,
+    [data-theme="dark"] .compare-table-wrap,
+    [data-theme="dark"] .flow-step,
+    [data-theme="dark"] .quote-board { background: rgba(255, 255, 255, 0.04); border-color: rgba(255, 255, 255, 0.08); box-shadow: 0 16px 34px rgba(0, 0, 0, 0.18); }
+    [data-theme="dark"] .antipattern-card { background: rgba(255, 255, 255, 0.04); border-color: rgba(239, 68, 68, 0.22); box-shadow: 0 16px 34px rgba(0, 0, 0, 0.18); }
+    [data-theme="dark"] .compare-table th { background: rgba(255, 255, 255, 0.04); }
+    [data-theme="dark"] .compare-table th,
+    [data-theme="dark"] .compare-table td { border-bottom-color: rgba(255, 255, 255, 0.06); }
+    [data-theme="dark"] .principle-badge-miller { background: rgba(14, 165, 233, 0.2); color: #38bdf8; }
+    [data-theme="dark"] .principle-badge-hick { background: rgba(124, 58, 237, 0.2); color: #a78bfa; }
+    [data-theme="dark"] .principle-badge-cognitive { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    [data-theme="dark"] .principle-badge-chunking { background: rgba(234, 179, 8, 0.2); color: #fbbf24; }
+    [data-theme="dark"] .flow-number { background: rgba(255, 255, 255, 0.08); color: rgba(236, 241, 246, 0.8); }
+    [data-theme="dark"] .pattern-icon { background: rgba(255, 255, 255, 0.08); }
+    [data-theme="dark"] .case-label { background: rgba(14, 165, 233, 0.2); color: #38bdf8; }
+    [data-theme="dark"] .antipattern-card h4 { color: #fca5a5; }
+    [data-theme="dark"] .quote-board { background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(15, 23, 42, 0.82)); }
+
+    @media (max-width: 640px) {
+      .principle-grid, .pattern-grid, .case-grid { grid-template-columns: 1fr; }
+      .flow-step { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero" data-present-step data-step-title="文章总览">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            Knowledge Hub
+          </div>
+          <div class="topbar-actions">
+            <nav class="nav-links" aria-label="页面章节导航">
+              <a href="#cognitive">认知基础</a>
+              <a href="#definition">定义与分类</a>
+              <a href="#patterns">实现模式</a>
+              <a href="#process">设计流程</a>
+              <a href="#cases">实战案例</a>
+              <a href="#antipatterns">反模式</a>
+              <a href="#references">参考</a>
+            </nav>
+          </div>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Interaction Design Pattern</span>
+            <h1>Progressive Disclosure：渐进呈现的认知原理、实现模式与设计实践</h1>
+            <p>
+              Progressive Disclosure（渐进呈现）是交互设计领域历史最悠久、应用最广泛的设计模式之一。它的核心策略是：先展示最重要的少量选项，仅在用户主动请求时才揭示更多细节<a href="#ref-1">[1]</a>。该模式源自 1985 年 Kristina Hooper Woolsey 在 Apple Human Interface Group 提出的选择性信息呈现理念<a href="#ref-4">[4]</a>，由 Jakob Nielsen 在 2006 年系统阐述为交互设计原则<a href="#ref-1">[1]</a>。本文从认知科学基础出发，梳理渐进呈现的三种分类、六种 UI 实现模式、五步设计流程，并结合实战案例和反模式分析，为复杂界面的信息架构提供可操作的设计指南。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#cognitive">认知基础</a>
+              <a class="button button-secondary" href="#patterns">实现模式</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">核心观点</span>
+            <h2>渐进呈现通过匹配人类认知带宽来管理界面复杂性，而非简单地删减功能。</h2>
+            <ul class="layer-list section-grid-spaced">
+              <li><span class="layer-number">1</span>认知科学基础：Miller's Law（工作记忆 7±2）和 Hick's Law（选项越多决策越慢）共同解释了为什么信息分层呈现有效。</li>
+              <li><span class="layer-number">2</span>渐进呈现同时提升可用性三大指标：可学习性（learnability）、使用效率（efficiency）和错误率（error rate）<a href="#ref-1">[1]</a>。</li>
+              <li><span class="layer-number">3</span>两个关键设计决策：初级/次级功能的正确划分，以及从初级到次级层级的过渡入口必须具备清晰的信息线索。</li>
+              <li><span class="layer-number">4</span>超过 2 层的渐进呈现层级通常导致低可用性 — 用户容易在层级间迷失<a href="#ref-1">[1]</a>。</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">起源年份</div>
+            <strong>1985</strong>
+            <span>Apple Human Interface Group</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">分类</div>
+            <strong>3 种</strong>
+            <span>步骤式 / 条件式 / 上下文式</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">UI 模式</div>
+            <strong>6 种</strong>
+            <span>手风琴 / 标签 / 下拉 / 对话框 / 滚动 / 向导</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">可用性提升</div>
+            <strong>3 项</strong>
+            <span>可学习性 / 效率 / 低错误率</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- Section 1: 认知科学基础                       -->
+        <!-- ═══════════════════════════════════════════ -->
+        <section id="cognitive" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / Cognitive Foundations</p>
+            <h2>认知科学基础：为什么渐进呈现有效</h2>
+            <p>渐进呈现的有效性建立在四项认知心理学原理之上。理解这些原理，才能在设计中做出正确的信息分层决策，而非机械套用模式。</p>
+          </div>
+
+          <div class="principle-grid section-grid-spaced">
+            <article class="principle-card">
+              <span class="principle-badge principle-badge-miller">Miller's Law</span>
+              <h4>工作记忆容量有限</h4>
+              <p>George Miller 在 1956 年发现，人类工作记忆平均可保持 <strong>7±2</strong> 个信息块（chunks）<a href="#ref-5">[5]</a>。后续研究（Cowan, 2001）将这个数字修正为 <strong>3–5</strong> 个<a href="#ref-6">[6]</a>。</p>
+              <p>对设计的启示：界面同时呈现的信息若超出工作记忆容量，用户将无法有效比较和决策。渐进呈现通过分层降低同时可见的信息量，使其保持在认知带宽之内。</p>
+            </article>
+
+            <article class="principle-card">
+              <span class="principle-badge principle-badge-hick">Hick's Law</span>
+              <h4>选项越多决策越慢</h4>
+              <p>Hick 和 Hyman（1952）证明：决策时间与选项数量的对数成正比 — <strong>RT = a + b · log₂(n)</strong><a href="#ref-7">[7]</a>。10 个选项比 2 个选项的决策时间增加约 3.3 倍。</p>
+              <p>对设计的启示：减少首屏选项数量直接降低用户的决策延迟。渐进呈现将高频选项放在首层，低频选项推迟到次级界面。</p>
+            </article>
+
+            <article class="principle-card">
+              <span class="principle-badge principle-badge-cognitive">Cognitive Load Theory</span>
+              <h4>认知负荷理论</h4>
+              <p>Sweller（1988）将认知负荷分为三类<a href="#ref-8">[8]</a>：<strong>内在负荷</strong>（任务本身复杂性）、<strong>外在负荷</strong>（界面设计引入的干扰）和<strong>相关负荷</strong>（用于理解和学习的认知资源）。</p>
+              <p>渐进呈现直接削减外在认知负荷 — 隐藏当前任务不需要的信息，释放认知资源用于高效决策。</p>
+            </article>
+
+            <article class="principle-card">
+              <span class="principle-badge principle-badge-chunking">Chunking</span>
+              <h4>信息分块</h4>
+              <p>分块（chunking）将离散信息组织为有意义的组<a href="#ref-9">[9]</a>。例如电话号码 19195552743 分块为 (919)-555-2743 后，认知负荷从 11 个数字降为 3 个信息块。</p>
+              <p>渐进呈现是分块在交互层面的应用：将功能分为「核心」和「高级」两组，每组内部再按逻辑分块，使用户在每个层级都面对可管理的信息量。</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- Section 2: 定义、历史与分类                     -->
+        <!-- ═══════════════════════════════════════════ -->
+        <section id="definition" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Definition &amp; Taxonomy</p>
+            <h2>定义、历史与三种分类</h2>
+            <p>从 1985 年的萌芽到 2006 年的系统化，渐进呈现经历了从经验直觉到设计原则的演进。当代实践将其细分为三种互补的策略模式。</p>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>历史脉络：从 Apple HIG 到 NNG 原则</span>
+              </button>
+              <div class="subsection-content">
+                <p><strong>1985 — 萌芽</strong>：Kristina Hooper Woolsey 在 Apple Human Interface Group 提出选择性信息披露的设计理念，主张"在界面设计中必须仔细考虑如何选择性地向用户呈现系统信息，提供精心挑选的信息片段以构建对系统的整体理解"<a href="#ref-4">[4]</a>。这段论述出现在 Norman &amp; Draper 编辑的《User Centered System Design》（1986）中。</p>
+                <p><strong>1995 — 命名</strong>：Jakob Nielsen 将 progressive disclosure 确立为交互设计模式的正式名称，应用于应用程序和网站设计。</p>
+                <p><strong>2006 — 系统化</strong>：Nielsen 在 Nielsen Norman Group 发表权威文章，将渐进呈现定义为"先向用户展示少量最重要的选项，仅在用户请求时提供更多专特选项"<a href="#ref-1">[1]</a>，并明确区分了 Progressive Disclosure 与 Staged Disclosure 两种变体。</p>
+                <p><strong>2010s–2020s — 扩展应用</strong>：随着移动端和复杂 SaaS 应用的兴起，渐进呈现从桌面应用扩展到响应式 Web、移动 App、AI 界面和内容设计领域。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>核心定义与运作机制</span>
+              </button>
+              <div class="subsection-content">
+                <p>渐进呈现的运作机制可以归纳为两条规则<a href="#ref-1">[1]</a>：</p>
+                <ol>
+                  <li><strong>初始显示核心选项</strong> — 只展示用户最频繁使用的功能或最重要的信息。</li>
+                  <li><strong>按需揭示细节</strong> — 通过明确的交互入口（按钮、链接、展开控件）让用户在需要时获取更多内容。</li>
+                </ol>
+                <p>经典案例是 macOS 的打印对话框：初始界面只显示份数和打印机选择；点击"显示详细信息"后才展开纸张大小、缩放、双面打印等高级设置。</p>
+                <p>渐进呈现改善可用性的三个维度<a href="#ref-1">[1]</a>：</p>
+                <ul>
+                  <li><strong>可学习性</strong>（Learnability）— 新手用户聚焦于核心功能，降低学习门槛。</li>
+                  <li><strong>使用效率</strong>（Efficiency）— 所有用户都不需要扫描大量不常用功能。</li>
+                  <li><strong>错误率</strong>（Error Rate）— 隐藏高级设置防止新手误操作。</li>
+                </ul>
+                <p>Nielsen 的研究表明，帮助用户优先关注核心功能不会导致其对系统产生"受限的心智模型" — 相反，用户在分层引导下对系统的理解更准确<a href="#ref-1">[1]</a>。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>三种分类：步骤式、条件式、上下文式</span>
+              </button>
+              <div class="subsection-content">
+                <div class="compare-table-wrap">
+                  <table class="compare-table">
+                    <thead>
+                      <tr>
+                        <th>分类</th>
+                        <th>机制</th>
+                        <th>典型场景</th>
+                        <th>UI 载体</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><strong>Step-by-step（步骤式）</strong></td>
+                        <td>将复杂任务拆分为顺序步骤，每步只展示对应信息</td>
+                        <td>电商结账流程、注册向导、配置表单</td>
+                        <td>Wizard / 多步表单 / Stepper</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Conditional（条件式）</strong></td>
+                        <td>隐藏特定元素和功能直到用户主动请求</td>
+                        <td>高级搜索选项、打印对话框、设置面板</td>
+                        <td>按钮 / 展开控件 / 下拉菜单</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Contextual（上下文式）</strong></td>
+                        <td>基于用户当前情境自动提供相关信息</td>
+                        <td>工具提示、上下文帮助、自适应导航</td>
+                        <td>Tooltip / Popover / 内联帮助</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p>三种分类并非互斥 — 一个设计方案中通常会混合使用。例如电商结账（步骤式）中的运费计算提示（上下文式）和高级配送选项（条件式）<a href="#ref-2">[2]</a>。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>辨析：Progressive Disclosure vs. Staged Disclosure vs. Progressive Enabling</span>
+              </button>
+              <div class="subsection-content">
+                <div class="compare-table-wrap">
+                  <table class="compare-table">
+                    <thead>
+                      <tr>
+                        <th>维度</th>
+                        <th>Progressive Disclosure</th>
+                        <th>Staged Disclosure</th>
+                        <th>Progressive Enabling</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><strong>初始展示</strong></td>
+                        <td>核心功能</td>
+                        <td>任务序列中最先使用的功能</td>
+                        <td>基础功能</td>
+                      </tr>
+                      <tr>
+                        <td><strong>后续展示</strong></td>
+                        <td>次要/高级功能</td>
+                        <td>任务后续步骤（可能同等重要）</td>
+                        <td>用户掌握后解锁的高级功能</td>
+                      </tr>
+                      <tr>
+                        <td><strong>用户是否需要后续内容</strong></td>
+                        <td>通常不需要 — 多数用户在首层完成任务</td>
+                        <td>是 — 除非用户中途放弃</td>
+                        <td>否 — 但随着熟练度可逐步解锁</td>
+                      </tr>
+                      <tr>
+                        <td><strong>导航方式</strong></td>
+                        <td>层级式（首层→次层→可返回首层）</td>
+                        <td>线性（逐步前进）</td>
+                        <td>渐进解锁（类似游戏关卡）</td>
+                      </tr>
+                      <tr>
+                        <td><strong>主要收益</strong></td>
+                        <td>可学习性：新手聚焦核心功能</td>
+                        <td>简洁性：每步目的清晰</td>
+                        <td>掌控感：用户按自己节奏学习</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p>Staged Disclosure（Wizard）在步骤间相互依赖时表现不佳 — Nielsen 的研究中，某酒店预订系统将所有预订阶段放在一页，虽然方便了"what-if"探索，但信用卡表单的侵入性反而增加了错误率。最佳方案是 2 页折中：探索性信息放第一页，支付信息放第二页<a href="#ref-1">[1]</a>。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- Section 3: 实现模式                           -->
+        <!-- ═══════════════════════════════════════════ -->
+        <section id="patterns" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / Implementation Patterns</p>
+            <h2>六种 UI 实现模式</h2>
+            <p>渐进呈现在界面层面有六种成熟的实现模式，每种适用于不同的信息结构和交互场景。</p>
+          </div>
+
+          <div class="pattern-grid section-grid-spaced">
+            <article class="pattern-card">
+              <div class="pattern-icon">📂</div>
+              <h4>手风琴（Accordion）</h4>
+              <p>用户控制展开/折叠，适合 FAQ、产品详情、文档章节等需要选择性深入的场景。每个手风琴项是一个独立的信息块，用户可以只阅读需要的部分<a href="#ref-2">[2]</a>。</p>
+              <p><strong>优势</strong>：减少滚动、支持非线性浏览。<br /><strong>风险</strong>：内容过多时可能需要用户逐个展开才能找到信息。</p>
+            </article>
+
+            <article class="pattern-card">
+              <div class="pattern-icon">📑</div>
+              <h4>标签页（Tabs）</h4>
+              <p>将内容按类别组织到平行标签中，用户在标签间切换以查看不同维度的信息。适合内容量相近、维度明确的场景（如产品规格/评价/Q&amp;A）<a href="#ref-2">[2]</a>。</p>
+              <p><strong>优势</strong>：分类清晰、减少滚动。<br /><strong>风险</strong>：标签过多或标签命名不清会增加认知负担。</p>
+            </article>
+
+            <article class="pattern-card">
+              <div class="pattern-icon">📋</div>
+              <h4>下拉菜单（Dropdown）</h4>
+              <p>隐藏长列表以保持界面整洁。适合国家/城市选择、排序筛选等选项多但同一时刻只需一个值的场景<a href="#ref-2">[2]</a>。</p>
+              <p><strong>优势</strong>：空间效率极高。<br /><strong>风险</strong>：长列表内的选项如果没有搜索/分组，扫描成本可能很高。</p>
+            </article>
+
+            <article class="pattern-card">
+              <div class="pattern-icon">💬</div>
+              <h4>对话框与工具提示（Dialog / Tooltip）</h4>
+              <p>在用户 hover 或 click 时提供额外信息，不离开当前任务。macOS 打印对话框的"显示详细信息"、表单字段的帮助图标都属于此类<a href="#ref-1">[1]</a><a href="#ref-2">[2]</a>。</p>
+              <p><strong>优势</strong>：上下文相关、不打断主流程。<br /><strong>风险</strong>：触发方式不明显时用户可能完全忽略。</p>
+            </article>
+
+            <article class="pattern-card">
+              <div class="pattern-icon">📜</div>
+              <h4>滚动呈现（Scroll Reveal）</h4>
+              <p>将最重要的内容放在可视区域上方（above the fold），补充信息通过滚动获取。落地页、长文章常用此模式 — 用户可以立即决策或滚动了解更多<a href="#ref-2">[2]</a>。</p>
+              <p><strong>优势</strong>：自然的阅读流、无需额外交互学习。<br /><strong>风险</strong>：重要信息如果在 fold 以下可能被遗漏。</p>
+            </article>
+
+            <article class="pattern-card">
+              <div class="pattern-icon">🧙</div>
+              <h4>向导（Wizard / Stepper）</h4>
+              <p>将复杂流程拆分为线性步骤，每步只显示当前需要的信息。电商结账、账户设置、配置流程的标准模式<a href="#ref-1">[1]</a>。</p>
+              <p><strong>优势</strong>：每步简单明确、支持中途保存。<br /><strong>风险</strong>：步骤间相互依赖时用户需要频繁返回修改。</p>
+            </article>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>模式选择矩阵：按场景选型</span>
+              </button>
+              <div class="subsection-content">
+                <div class="compare-table-wrap">
+                  <table class="compare-table">
+                    <thead>
+                      <tr>
+                        <th>场景</th>
+                        <th>推荐模式</th>
+                        <th>原因</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>多步骤线性任务（结账、注册）</td>
+                        <td>Wizard / Stepper</td>
+                        <td>步骤间有依赖关系，线性流程降低出错概率</td>
+                      </tr>
+                      <tr>
+                        <td>高级设置 / 可选功能</td>
+                        <td>Dialog / 展开按钮</td>
+                        <td>大多数用户不需要，按需显示即可</td>
+                      </tr>
+                      <tr>
+                        <td>内容密集型页面（文档、FAQ）</td>
+                        <td>Accordion</td>
+                        <td>用户可选择性深入感兴趣的主题</td>
+                      </tr>
+                      <tr>
+                        <td>同级维度切换（规格/评价/Q&amp;A）</td>
+                        <td>Tabs</td>
+                        <td>内容量相近，用户需要在维度间比较</td>
+                      </tr>
+                      <tr>
+                        <td>长列表选择（国家、分类）</td>
+                        <td>Dropdown + 搜索</td>
+                        <td>高空间效率，搜索解决扫描成本问题</td>
+                      </tr>
+                      <tr>
+                        <td>长文章 / 落地页</td>
+                        <td>Scroll Reveal</td>
+                        <td>自然阅读流，无额外学习成本</td>
+                      </tr>
+                      <tr>
+                        <td>字段级帮助 / 术语解释</td>
+                        <td>Tooltip / Popover</td>
+                        <td>不离开当前上下文即可获取信息</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- Section 4: 设计流程                           -->
+        <!-- ═══════════════════════════════════════════ -->
+        <section id="process" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / Design Process</p>
+            <h2>五步设计流程</h2>
+            <p>渐进呈现不是在完成设计后"把一些东西藏起来"，而是一个从用户研究开始的系统化设计过程<a href="#ref-2">[2]</a>。</p>
+          </div>
+
+          <div class="flow-steps section-grid-spaced">
+            <article class="flow-step">
+              <div class="flow-number">1</div>
+              <div>
+                <h3>识别用户需求</h3>
+                <p>通过用户访谈、可用性测试和使用频率统计，确定用户最常使用的功能和最急需的信息。GOV.UK 银行假日页面的重新设计就是从用户研究中发现"大多数人只想知道下一个假日的日期"这一关键洞察开始的<a href="#ref-2">[2]</a>。对于已有产品，代码埋点的功能使用频率数据是最可靠的依据<a href="#ref-1">[1]</a>。</p>
+              </div>
+            </article>
+
+            <article class="flow-step">
+              <div class="flow-number">2</div>
+              <div>
+                <h3>优先级排序</h3>
+                <p>使用卡片分类（card sorting）和亲和图（affinity mapping）将功能和信息分为核心层（首屏）和次要层（按需显示）。核心层的选择标准：高频使用、任务关键、用户期望<a href="#ref-1">[1]</a>。需要注意的是：核心层不能包含会让用户困惑的功能，否则反而降低效率。</p>
+              </div>
+            </article>
+
+            <article class="flow-step">
+              <div class="flow-number">3</div>
+              <div>
+                <h3>确定详情层级</h3>
+                <p>为每个信息块确定展示的详细程度。首屏通常只需要标题级摘要或关键指标；展开后提供完整解释。实践中不要超过 <strong>2 层</strong>层级 — 3 层以上的设计通常导致用户迷失<a href="#ref-1">[1]</a>。如果功能多到需要 3 层以上，应优先考虑简化整体设计。</p>
+              </div>
+            </article>
+
+            <article class="flow-step">
+              <div class="flow-number">4</div>
+              <div>
+                <h3>设计过渡入口</h3>
+                <p>从首层到次层的过渡必须满足两个条件<a href="#ref-1">[1]</a>：(1) <strong>机制简单</strong> — 交互方式直观（一次点击/展开）；(2) <strong>信息线索清晰</strong> — 按钮或链接的标签必须准确传达次层内容的预期（即具备强"信息气味"）。标签模糊的"更多"或"高级"按钮会降低可发现性。</p>
+              </div>
+            </article>
+
+            <article class="flow-step">
+              <div class="flow-number">5</div>
+              <div>
+                <h3>原型与测试</h3>
+                <p>构建交互原型进行可用性测试<a href="#ref-2">[2]</a>，重点验证两点：(1) 用户能否在核心层完成主要任务？(2) 当用户需要次级功能时，能否顺利找到过渡入口？测试中常见的问题是：过度隐藏导致用户找不到需要的功能。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- Section 5: 实战案例                           -->
+        <!-- ═══════════════════════════════════════════ -->
+        <section id="cases" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / Case Studies</p>
+            <h2>实战案例分析</h2>
+            <p>以下四个案例展示了渐进呈现在不同领域的应用方式，以及各自的设计权衡。</p>
+          </div>
+
+          <div class="case-grid section-grid-spaced">
+            <article class="case-card">
+              <span class="case-label">Government</span>
+              <h4>GOV.UK 银行假日页面</h4>
+              <p>原始设计密集展示所有假日信息，用户反馈"信息过载、找不到想要的"。用户研究发现核心需求是"下一个假日是哪天"。</p>
+              <ul>
+                <li><strong>重新设计</strong>：最近的假日放在页面顶部，使用醒目的视觉层级；后续假日按时间顺序以较小字体列出</li>
+                <li><strong>模式</strong>：Scroll Reveal + 视觉层级</li>
+                <li><strong>效果</strong>：这个案例成为英国政府数字服务（GDS）最经典的内容设计成功案例<a href="#ref-2">[2]</a></li>
+              </ul>
+            </article>
+
+            <article class="case-card">
+              <span class="case-label">Search</span>
+              <h4>Google 搜索 → 高级搜索</h4>
+              <p>Google 首页只有一个搜索框和两个按钮 — 极致的渐进呈现<a href="#ref-2">[2]</a>。</p>
+              <ul>
+                <li><strong>首层</strong>：单一输入框，满足 99% 用户的搜索需求</li>
+                <li><strong>次层</strong>：高级搜索页提供语言、地区、精确短语、更新日期等多字段筛选</li>
+                <li><strong>设计亮点</strong>：首层的简洁性使 Google 搜索成为互联网上最易学的界面之一</li>
+              </ul>
+            </article>
+
+            <article class="case-card">
+              <span class="case-label">OS Interface</span>
+              <h4>macOS 打印对话框</h4>
+              <p>渐进呈现的经典教科书案例<a href="#ref-1">[1]</a>，也是 Nielsen 在 2006 年原文中重点讨论的例子。</p>
+              <ul>
+                <li><strong>首层</strong>：打印机选择、份数、页面范围</li>
+                <li><strong>次层</strong>："显示详细信息"按钮展开纸张大小、缩放、双面打印、对齐等高级选项</li>
+                <li><strong>设计权衡</strong>：Nielsen 指出近年来打印对话框趋于"膨胀"，部分应用在首层展示了过多选项<a href="#ref-1">[1]</a></li>
+              </ul>
+            </article>
+
+            <article class="case-card">
+              <span class="case-label">Knowledge Platform</span>
+              <h4>Knowledge Hub 文章系统</h4>
+              <p>本站采用了多层渐进呈现设计来展示技术研究内容。</p>
+              <ul>
+                <li><strong>首层</strong>：Hero 区域展示核心观点和关键指标，用户可以在 10 秒内判断文章是否相关</li>
+                <li><strong>次层</strong>：各 Section 通过 scroll-reveal 动画渐次呈现，手风琴组件允许用户选择性深入</li>
+                <li><strong>模式组合</strong>：Scroll Reveal（整体结构）+ Accordion（深度内容）+ Tooltip（术语解释），三种模式协同工作</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- Section 6: 反模式与边界                       -->
+        <!-- ═══════════════════════════════════════════ -->
+        <section id="antipatterns" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / Anti-Patterns &amp; Boundaries</p>
+            <h2>反模式与设计边界</h2>
+            <p>渐进呈现并非万能药。错误的应用会产生比不分层更糟的体验。以下是四种常见反模式和该模式的适用边界。</p>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>四种反模式</span>
+              </button>
+              <div class="subsection-content">
+                <article class="antipattern-card">
+                  <h4>反模式 1：过度隐藏（Over-Hiding）</h4>
+                  <p>将用户常用功能错误地归入次级层。如果用户频繁需要展开才能完成常规任务，渐进呈现反而增加了操作步骤。</p>
+                  <p><strong>诊断方法</strong>：如果用户测试中超过 30% 的参与者需要进入次级层才能完成核心任务，说明首级/次级的划分有误。</p>
+                </article>
+
+                <article class="antipattern-card">
+                  <h4>反模式 2：层级过深（Deep Nesting）</h4>
+                  <p>超过 2 层的嵌套渐进呈现导致用户迷失方向。Nielsen 明确指出："在实践中，超过 2 层的设计通常可用性很差，因为用户经常在层级间迷失"<a href="#ref-1">[1]</a>。</p>
+                  <p><strong>替代方案</strong>：如果功能多到需要 3 层以上，优先简化功能集；不能简化时，将高级功能按逻辑分组为多个平行的二级入口。</p>
+                </article>
+
+                <article class="antipattern-card">
+                  <h4>反模式 3：信息线索缺失（Missing Scent）</h4>
+                  <p>过渡入口的标签含糊不清（如只写"更多"、"高级"或一个 ··· 图标），用户无法预判展开后的内容。</p>
+                  <p><strong>改进方法</strong>：按钮标签应包含具体内容预期，如"显示详细打印设置"比"高级"提供更强的信息线索<a href="#ref-1">[1]</a>。</p>
+                </article>
+
+                <article class="antipattern-card">
+                  <h4>反模式 4：步骤间强依赖的向导（Interdependent Wizards）</h4>
+                  <p>当向导的各步骤需要频繁交叉修改时，线性流程反而阻碍了探索。Nielsen 引用的酒店预订案例表明：房型、价格、日期之间有密集的 what-if 交互，强制分页增加了认知成本<a href="#ref-1">[1]</a>。</p>
+                  <p><strong>替代方案</strong>：将相互依赖的信息放在同一页面，仅将独立步骤（如支付信息）分离到次级页面。</p>
+                </article>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>适用边界与决策检查表</span>
+              </button>
+              <div class="subsection-content">
+                <p>渐进呈现并非所有场景都适用。以下检查表帮助判断是否应该使用：</p>
+                <div class="compare-table-wrap">
+                  <table class="compare-table">
+                    <thead>
+                      <tr>
+                        <th>条件</th>
+                        <th>适合渐进呈现</th>
+                        <th>不适合渐进呈现</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>功能使用频率差异</td>
+                        <td>核心功能与高级功能频率差异大</td>
+                        <td>大部分功能使用频率相近</td>
+                      </tr>
+                      <tr>
+                        <td>用户群体差异</td>
+                        <td>新手与专家共用同一界面</td>
+                        <td>所有用户都是同等水平的专家</td>
+                      </tr>
+                      <tr>
+                        <td>信息量</td>
+                        <td>内容/功能数量超出单屏承载能力</td>
+                        <td>信息量本身就很少</td>
+                      </tr>
+                      <tr>
+                        <td>任务结构</td>
+                        <td>任务有明确的主线和可选分支</td>
+                        <td>所有信息对任务同等重要</td>
+                      </tr>
+                      <tr>
+                        <td>响应时间要求</td>
+                        <td>用户需要快速做出首次决策</td>
+                        <td>用户需要全面比较后再决策</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>AI 时代的渐进呈现</span>
+              </button>
+              <div class="subsection-content">
+                <p>AI 驱动的界面为渐进呈现引入了新的维度：</p>
+                <ul>
+                  <li><strong>自适应披露</strong> — AI 可以根据用户的使用历史和当前上下文，动态决定哪些信息值得首层展示。Slack 的 Slackbot 新手引导就是一个例子：使用机器人对话逐步介绍功能，而非一次性展示所有界面<a href="#ref-7">[7]</a>。</li>
+                  <li><strong>对话式渐进呈现</strong> — 聊天界面本身就是渐进呈现的天然载体：用户提问，系统按需回答，信息量完全由用户的提问深度控制。</li>
+                  <li><strong>智能默认值</strong> — AI 可以预测用户最可能需要的配置，减少首层选项数量。例如 GitHub Copilot 的建议按置信度排序，高置信度建议直接内联显示，低置信度建议需要用户主动触发。</li>
+                </ul>
+                <p>但 AI 驱动的渐进呈现需要谨慎处理：过度"智能"的隐藏可能导致用户感到失控 — 用户需要一个可预测的方式来"查看所有选项"，即使 AI 已经帮他们做了筛选。</p>
+              </div>
+            </article>
+          </div>
+
+          <div class="quote-board section-grid-spaced">
+            <p><strong>Progressive disclosure 和 staged disclosure 都是管理现代用户界面功能过剩的策略。它们都有超过 30 年的历史，并在无数应用中证明了自身价值。</strong> — Jakob Nielsen, 2006<a href="#ref-1">[1]</a></p>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- References                                  -->
+        <!-- ═══════════════════════════════════════════ -->
+        <section id="references" class="section" data-reveal data-present-step data-step-title="参考来源">
+          <div class="section-head">
+            <p class="section-kicker">References</p>
+            <h2>参考来源</h2>
+          </div>
+          <ol class="bib-list">
+            <li id="ref-1"><span class="bib-id">[1]</span> <span class="bib-author">Jakob Nielsen.</span> <a href="https://www.nngroup.com/articles/progressive-disclosure/" target="_blank" rel="noopener noreferrer">"Progressive Disclosure,"</a> <em>Nielsen Norman Group,</em> 2006.<span class="bib-note">渐进呈现的权威定义，涵盖 Progressive Disclosure 与 Staged Disclosure 的区别、两项关键设计准则和可用性提升的三个维度。</span></li>
+            <li id="ref-2"><span class="bib-id">[2]</span> <span class="bib-author">UXPin.</span> <a href="https://www.uxpin.com/studio/blog/what-is-progressive-disclosure/" target="_blank" rel="noopener noreferrer">"What is Progressive Disclosure? Show &amp; Hide the Right Information,"</a> <em>UXPin Studio,</em> 2023.<span class="bib-note">渐进呈现的三种分类（步骤式/条件式/上下文式）、五种 UI 模式（手风琴/标签/下拉/滚动/对话框）和 GOV.UK / Google / Dropbox 等实战案例。</span></li>
+            <li id="ref-3"><span class="bib-id">[3]</span> <span class="bib-author">Wikipedia.</span> <a href="https://en.wikipedia.org/wiki/Progressive_disclosure" target="_blank" rel="noopener noreferrer">"Progressive disclosure,"</a> <em>Wikipedia,</em> 2025.<span class="bib-note">渐进呈现的定义和历史概述，追溯到 Kristina Hooper Woolsey 的 1985 年 Apple HIG 理念。</span></li>
+            <li id="ref-4"><span class="bib-id">[4]</span> <span class="bib-author">Donald A. Norman &amp; Stephen W. Draper (eds.).</span> <em>User Centered System Design: New Perspectives on Human-Computer Interaction,</em> Lawrence Erlbaum Associates, 1986. ISBN 0-89859-781-1.<span class="bib-note">包含 Woolsey 关于选择性信息披露的原始论述，是渐进呈现理念的源头文献。</span></li>
+            <li id="ref-5"><span class="bib-id">[5]</span> <span class="bib-author">George A. Miller.</span> <a href="https://psycnet.apa.org/record/1957-02914-001" target="_blank" rel="noopener noreferrer">"The Magical Number Seven, Plus or Minus Two,"</a> <em>Psychological Review,</em> 63(2): 81–97, 1956.<span class="bib-note">工作记忆容量 7±2 的经典论文，分块（chunking）概念的发源。</span></li>
+            <li id="ref-6"><span class="bib-id">[6]</span> <span class="bib-author">Nelson Cowan.</span> <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2864034/" target="_blank" rel="noopener noreferrer">"The Magical Mystery Four: How is Working Memory Capacity Limited, and Why?"</a> <em>Current Directions in Psychological Science,</em> 2010.<span class="bib-note">将 Miller 的 7±2 修正为 3–5 个信息块的工作记忆容量，更贴近现代实验数据。</span></li>
+            <li id="ref-7"><span class="bib-id">[7]</span> <span class="bib-author">Jon Yablonski.</span> <a href="https://lawsofux.com/hicks-law/" target="_blank" rel="noopener noreferrer">"Hick's Law,"</a> <em>Laws of UX,</em> 2026.<span class="bib-note">Hick's Law 的定义、公式和设计应用，包含 Google 首页、Apple TV 遥控器和 Slack 渐进引导三个案例。</span></li>
+            <li id="ref-8"><span class="bib-id">[8]</span> <span class="bib-author">John Sweller.</span> "Cognitive Load During Problem Solving: Effects on Learning," <em>Cognitive Science,</em> 12(2): 257–285, 1988.<span class="bib-note">认知负荷理论的创始论文，区分了内在负荷、外在负荷和相关负荷三类。</span></li>
+            <li id="ref-9"><span class="bib-id">[9]</span> <span class="bib-author">Kate Moran.</span> <a href="https://www.nngroup.com/articles/chunking/" target="_blank" rel="noopener noreferrer">"How Chunking Helps Content Processing,"</a> <em>Nielsen Norman Group,</em> 2016.<span class="bib-note">信息分块在 UX 中的应用，包含对 Miller 7±2 在 UX 领域常见误用的纠正。</span></li>
+          </ol>
+        </section>
+      </main>
+
+      <footer>
+         &copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>
