@@ -509,11 +509,11 @@ var knowledgeTree = [
       en: 'Knowledge Hub Content Governance: Research, Writing, Layout & Audit Standards'
     },
     summary: {
-      zh: '从研究、撰写、布局、组件、演示和审核六个维度提炼 Knowledge Hub 的单一权威设计规范，涵盖 25+ 组件用法。',
-      en: 'Authoritative spec across research, writing, layout, components, presentation, and audit — covering 25+ shared component patterns.'
+      zh: '涵盖研究、撰写、首页模块架构、布局组件、演示和审核七个维度的单一权威设计规范（v1.1）。',
+      en: 'Authoritative spec v1.1 covering research, writing, homepage modules, layout components, presentation, and audit standards.'
     },
     tags: ['Design Standards', 'Content Governance', 'Knowledge Hub'],
-    date: '2026-04-11',
+    date: '2026-04-13',
     url: 'posts/study-room-standards/index.html',
     color: '#14b8a6',
     phase: 1.2, speed: 0.82,
@@ -557,6 +557,25 @@ var knowledgeTree = [
     phase: 0.5, speed: 0.80,
     relations: ['study-room-design', 'study-room-standards', 'study-room-review-2026q2']
   },
+  {
+    id: 'homepage-architecture-review',
+    parentId: 'knowledge-hub',
+    type: 'article',
+    title: {
+      zh: '首页 index.html 架构审查报告',
+      en: 'Homepage index.html Architecture Review'
+    },
+    summary: {
+      zh: '对 5,608 行首页深度架构审查：4 种布局耦合分析、2 个上帝函数拆分方案、模块化重构路线图。',
+      en: 'Deep architecture review of the 5,608-line homepage: coupling analysis across 4 layouts, god-function splits, and modular refactoring roadmap.'
+    },
+    tags: ['Architecture Review', 'Code Review', 'Knowledge Hub', 'Refactoring'],
+    date: '2026-04-13',
+    url: 'posts/homepage-architecture-review/index.html',
+    color: '#0d8f8c',
+    phase: 3.8, speed: 0.78,
+    relations: ['study-room-review-2026q2', 'study-room-design', 'study-room-standards']
+  },
 
   // ════════════════════════════════════════
   // 二级分组 — AI 时事雷达（定期刊物）
@@ -582,7 +601,8 @@ var knowledgeTree = [
     type: 'topic',
     label: { zh: '教育', en: 'Education' },
     color: '#e11d48',
-    orbitIndex: 3, phase: 3.8, speed: 0.48
+    orbitIndex: 3, phase: 3.8, speed: 0.48,
+    hidden: true
   },
   {
     id: 'edu-fundamentals',

@@ -96,6 +96,7 @@
           <nav class="nav-links" aria-label="页面章节导航">
             <a href="#research">研究规范</a>
             <a href="#writing">撰写规范</a>
+            <a href="#homepage">首页架构</a>
             <a href="#layout">布局规范</a>
             <a href="#components">组件库</a>
             <a href="#presentation">演示规范</a>
@@ -134,9 +135,9 @@
 
         <div class="hero-metrics load-in">
           <div class="metric">
-            <div class="metric-label">共享 CSS 组件</div>
-            <strong>25+</strong>
-            <span>insight-grid、comparison-grid、flow-list 等可复用布局组件</span>
+            <div class="metric-label">共享资产</div>
+            <strong>10</strong>
+            <span>article.css (3,029行) + 6 个文章 JS 模块 + 4 个首页专属模块</span>
           </div>
           <div class="metric">
             <div class="metric-label">审核维度</div>
@@ -145,8 +146,8 @@
           </div>
           <div class="metric">
             <div class="metric-label">规范版本</div>
-            <strong>v1.0</strong>
-            <span>2026-04-11 首次从实践中提炼并文档化</span>
+            <strong>v1.1</strong>
+            <span>2026-04-13 补充首页模块架构、更新脚本加载规范</span>
           </div>
         </div>
       </header>
@@ -262,8 +263,8 @@
                   <li>
                     <span class="flow-step">5</span>
                     <div class="flow-copy">
-                      <strong>Footer + Scripts</strong>
-                      <p>© 行 → IntersectionObserver（必须选择 '.load-in, [data-reveal]'）→ accordion 处理 → localStorage 主题/语言同步 → 加载 scrollbar.js + article-presentation.js + article-lightbox.js + article-assistant.js</p>
+                      <strong>Footer + Scripts（严格加载顺序）</strong>
+                      <p>© 行 → <code>article-common.js</code>（自动处理 scroll-reveal、accordion、nav 高亮、localStorage 同步——禁止 inline 重复实现）→ 文章专有 inline script（仅自定义交互）→ <code>article-presentation.js</code> → <code>scrollbar.js</code></p>
                     </div>
                   </li>
                 </ol>
@@ -290,6 +291,45 @@
                   <li><strong>关联关系</strong> — <code>relations: ['other-id']</code> 用于建立文章间的可视化连线。</li>
                   <li><strong>品牌名</strong> — 页面左上角 <code>.brand</code> 文本必须与 knowledge-data.js 中父主题的 label 一致。</li>
                 </ul>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 02b: 首页模块架构 -->
+        <section id="homepage" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02b / Homepage Module Architecture</p>
+            <h2>2b. 首页模块化架构</h2>
+            <p>
+              首页 index.html 经 2026-04-13 架构重构后从 5,608 行降至 3,686 行。核心布局引擎提取为独立模块，通过显式接口与宿主通信。
+            </p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span>首页脚本加载顺序</span></button>
+              <div class="subsection-content">
+                <ol class="flow-list">
+                  <li><span class="flow-step">1</span><div class="flow-copy"><strong>scrollbar.js + knowledge-data.js</strong><p>基础增强和唯一数据源。knowledgeTree[] 全局数组供所有布局使用。</p></div></li>
+                  <li><span class="flow-step">2</span><div class="flow-copy"><strong>color-schemes.js + pan-zoom.js + infographic-view.js</strong><p>配色方案数据、统一平移缩放控制器、弧线轮盘引擎。均为全局函数/变量。</p></div></li>
+                  <li><span class="flow-step">3</span><div class="flow-copy"><strong>index.html 内联 &lt;script&gt;</strong><p>DOMContentLoaded 内：树工具函数 → Galaxy → Cards → Cell（调用 PanZoomController）→ 设置面板 → 搜索。</p></div></li>
+                  <li><span class="flow-step">4</span><div class="flow-copy"><strong>cell-game.js</strong><p>自包含 IIFE，DOMContentLoaded 后自初始化。仅在 Cell 布局下可启动。</p></div></li>
+                </ol>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span>模块接口契约</span></button>
+              <div class="subsection-content">
+                <table class="spec-table">
+                  <thead><tr><th>模块</th><th>接口</th><th>依赖</th></tr></thead>
+                  <tbody>
+                    <tr><td><code>pan-zoom.js</code> (183行)</td><td><code>PanZoomController(container, camera, opts)</code></td><td>全局 clampNumber, getTouchCenter, zoomCameraAt, anchorCameraToTouch</td></tr>
+                    <tr><td><code>infographic-view.js</code> (1,056行)</td><td><code>renderInfographicViewModule(ctx)</code>，ctx 含 13 个命名依赖</td><td>全局 colorSchemes</td></tr>
+                    <tr><td><code>cell-game.js</code> (540行)</td><td>IIFE 自初始化，DOM ID 获取元素</td><td>全局 currentLayout, window._cellGameActive</td></tr>
+                    <tr><td><code>color-schemes.js</code> (24行)</td><td>全局 var colorSchemes 数组</td><td>无</td></tr>
+                  </tbody>
+                </table>
               </div>
             </article>
           </div>
@@ -393,6 +433,21 @@
                     <tr><td>引用块</td><td>关键判断或总结</td><td><code>.quote-block</code>（含 <code>margin-top: 18px</code>）</td></tr>
                     <tr><td>Tab 面板</td><td>多视角对比</td><td><code>.tab-shell</code> + <code>.tab-list</code> + <code>.tab-panel</code></td></tr>
                     <tr><td>参考文献</td><td>文末引用列表</td><td><code>.bib-list</code> + <code>.bib-id</code> + <code>.bib-note</code></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span>4.4 共享 JS 模块</span></button>
+              <div class="subsection-content">
+                <table class="spec-table">
+                  <thead><tr><th>模块</th><th>行数</th><th>职责</th></tr></thead>
+                  <tbody>
+                    <tr><td><code>article-common.js</code></td><td>96</td><td>scroll-reveal、accordion toggle、nav 高亮、localStorage 主题/语言/字体同步</td></tr>
+                    <tr><td><code>article-presentation.js</code></td><td>1,314</td><td>演示模式：步骤收集、deck overlay、PPT 导出调度、分享按钮</td></tr>
+                    <tr><td><code>article-lightbox.js</code></td><td>63</td><td>图片点击放大灯箱</td></tr>
+                    <tr><td><code>article-assistant.js</code></td><td>619</td><td>LLM 辅助阅读：摘要、追问、内容解释（需连接 LLM Provider）</td></tr>
+                    <tr><td><code>pptx-export.js</code></td><td>199</td><td>PptxGenJS 组件渲染器：10+ 组件类型到可编辑 PPTX</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -521,9 +576,10 @@
               <button class="subsection-toggle" aria-expanded="false">6.3 审核频率与输出</button>
               <div class="subsection-content">
                 <ul class="reference-list">
-                  <li><strong>触发条件</strong> — 每新增 5 篇文章或每月进行一次周期审查；共享 CSS/JS 发生重大变更时立即审查。</li>
-                  <li><strong>输出物</strong> — 审查报告作为一篇文章发布在 Knowledge Hub 中，包含 9 维度评分、发现的问题和改进建议。</li>
+                  <li><strong>触发条件</strong> — 每新增 5 篇文章或每月审查；共享 CSS/JS 重大变更时立即审查；首页架构重构后必须专项审查。</li>
+                  <li><strong>输出物</strong> — 审查报告作为文章发布，包含 9 维度评分和改进建议。重构类审查应包含"重构执行记录"章节形成闭环。</li>
                   <li><strong>行动项跟踪</strong> — D 级评分项立即修复；C 级项在 2 个迭代内修复；B 级项择机优化。</li>
+                  <li><strong>基线数据</strong> — 当前基线（2026-04-13）：32 篇文章、index.html 3,686 行、article.css 3,029 行、4 个首页模块。</li>
                 </ul>
               </div>
             </article>
@@ -541,6 +597,8 @@
           <li id="ref-2"><span class="bib-id">[2]</span> <span class="bib-author">Knowledge Hub Project.</span> ".github/instructions/article-pages.instructions.md," <em>Project Repository,</em> 2026.<span class="bib-note">文章页专用规则：CSS 引用、暗色模式、演示模式、footer 格式等。</span></li>
           <li id="ref-3"><span class="bib-id">[3]</span> <span class="bib-author">Knowledge Hub Project.</span> "assets/article.css," <em>Project Repository,</em> 2026.<span class="bib-note">共享组件库的实现：25+ CSS 组件类的样式定义和暗色模式变体。</span></li>
           <li id="ref-4"><span class="bib-id">[4]</span> <span class="bib-author">Knowledge Hub Project.</span> "assets/article-presentation.js," <em>Project Repository,</em> 2026.<span class="bib-note">演示模式的核心逻辑：步骤收集、accordion 总览、PPT 导出调度。</span></li>
+          <li id="ref-5"><span class="bib-id">[5]</span> <span class="bib-author">Knowledge Hub Project.</span> "assets/article-common.js," <em>Project Repository,</em> 2026.<span class="bib-note">文章公共初始化脚本。所有文章必须首先加载，禁止 inline 重复其功能。</span></li>
+          <li id="ref-6"><span class="bib-id">[6]</span> <span class="bib-author">Knowledge Hub Project.</span> "posts/homepage-architecture-review/," <em>Project Repository,</em> 2026-04-13.<span class="bib-note">首页架构审查与重构报告。Section 2b 的依据来源。</span></li>
         </ol>
       </section>
 
