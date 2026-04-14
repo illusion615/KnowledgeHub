@@ -830,12 +830,12 @@ var knowledgeTree = [
     parentId: 'knowledge-hub',
     type: 'article',
     title: {
-      zh: 'Progressive Disclosure：渐进呈现的认知原理、实现模式与设计实践',
-      en: 'Progressive Disclosure: Cognitive Foundations, Implementation Patterns & Design Practice'
+      zh: 'Progressive Disclosure：作为设计哲学的渐进呈现',
+      en: 'Progressive Disclosure: A Design Philosophy Beyond UI Controls'
     },
     summary: {
-      zh: '从 Miller、Hick 等认知科学原理出发，梳理渐进呈现的三种分类、六种 UI 模式和五步设计流程，附反模式分析。',
-      en: 'Traces progressive disclosure from cognitive science (Miller, Hick) through three categories, six UI patterns, and a five-step design process.'
+      zh: '从认知哲学、信息架构、产品策略、叙事教育到 UI 控件五个层次解析渐进呈现，附六种模式和反模式分析。',
+      en: 'Explores progressive disclosure across five layers: cognitive philosophy, information architecture, product strategy, narrative design, and UI controls.'
     },
     tags: ['Progressive Disclosure', 'Interaction Design', 'Cognitive Science', 'UX'],
     date: '2026-04-14',
