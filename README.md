@@ -1,71 +1,14 @@
 # Knowledge Hub
 
-Knowledge Hub is a static HTML knowledge site for study notes, engineering retrospectives, and architecture articles. It features an interactive knowledge graph homepage and structured, progressive disclosure article pages. All content is authored in plain HTML with shared CSS and JS for consistent styling and presentation behavior.
+一个纯静态 HTML 知识站点，包含交互式知识图谱首页与结构化渐进披露文章页。通过 GitHub Pages 发布。
 
-## Current Status
+## Change Log
 
-- Homepage: interactive knowledge graph landing page in `index.html`
-- Publishing model: static site for GitHub Pages
-- Build step: none
-- Frontend stack: vanilla HTML, CSS, and JavaScript
-- Shared article system: `assets/article.css` and `assets/article-presentation.js`
-
-## Current Content
-
-- `enterprise-agent-architecture` — 企业智能体架构设计与应用
-- `agentic-skill-execution` — 智能体技能执行架构设计实践
-- `copilot-harness-engineering` — AI 编码助手的 Harness Engineering 初始化
-- `llm-client-architecture` — LLM Client 架构重构：多 Provider 运行时设计实践
-- `mlx-model-optimization` — Apple Silicon 上的 MLX 模型优化实践
-- `ai-mud-project-retro` — AI-MUD 项目回顾：产品级 Vibe Coding 实践
-- `agentic-ai-adoption-practice` — Agentic AI 导入实践：用成熟度模型规划企业落地
-- `copilot-studio-constraints` — Microsoft Copilot Studio 约束条件与工程边界
-- `copilot-studio-memory` — Copilot Studio 记忆管理机制：变量作用域、对话历史与知识检索
-- `copilot-studio-overview` — Microsoft Copilot Studio：定位、能力、落地路径与费用
-- `text-to-image-prompting` — 文生图提示词工程：五种模型的提示策略对比与可复用模式
-
-## Repository Structure
-
-```text
-index.html                          # Knowledge Hub homepage / interactive graph
-assets/
-  article.css                       # Shared article styling
-  article-presentation.js           # Shared presentation-mode behavior
-posts/
-  enterprise-agent-architecture/
-    index.html
-  agentic-skill-execution/
-    index.html
-  copilot-harness-engineering/
-    index.html
-  llm-client-architecture/
-    index.html
-  mlx-model-optimization/
-    index.html
-  ai-mud-project-retro/
-    index.html
-  agentic-ai-adoption-practice/
-    index.html
-  copilot-studio-constraints/
-    index.html
-  copilot-studio-memory/
-    index.html
-  copilot-studio-overview/
-    index.html
-  text-to-image-prompting/
-    index.html
-```
-
-## Article Model
-
-- Each article is a self-contained HTML page
-- Articles share typography, layout, and theme tokens through `assets/article.css`
-- Articles share presentation mode through `assets/article-presentation.js`
-- Homepage preferences such as theme and language are reused across article pages
-
-## Local Preview
-
-Open `index.html` directly in a browser, or serve the repository with any static file server.
+### 2026-04-14
+- **微积分系列文章**：新增 5 篇面向中学生的微积分入门系列（变化的语言 → 极限 → 导数 → 积分 → 基本定理），注册到知识图谱
+- **KaTeX 公式渲染**：新增 `article-math.js`，通过 CDN 加载 KaTeX 渲染 `data-latex` 属性公式；聊天窗口同步支持 `$...$` / `$$...$$` LaTeX 语法
+- **Bug 修复**：showHidden 变量 hoisting 导致刷新后设置失效；演示模式 chat 对话框 z-index 被遮挡；缺少 `article-assistant.js` 的页面无 FAB 显示
+- **演示模式胶囊**：无 LLM 配置时自动隐藏 chat 按钮并自适应高度
 
 ## License
 
