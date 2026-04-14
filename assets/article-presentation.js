@@ -31,6 +31,16 @@ document.addEventListener('DOMContentLoaded', function () {
   var pptxgenLoader = null;
   var pptxExportLoader = null;
   var exportInProgress = false;
+  var narrationLoader = null;
+  var narrationController = null;
+  var presentationAutoPlay;
+  var narrationIndicator;
+  var narrationSubtitle;
+  var narrationState = 'idle';
+  var narrationStartTime = 0;
+  var mediaRecorder = null;
+  var recordedChunks = [];
+  var recordingStream = null;
 
   if (!site || !topbar || !hero || !main) return;
 
@@ -55,7 +65,18 @@ document.addEventListener('DOMContentLoaded', function () {
       next: '下一页',
       tip: '键盘 ← → 切换 · Esc 退出',
       fallbackHero: '文章总览',
-      fallbackStep: '内容页'
+      fallbackStep: '内容页',
+      autoPlay: '自动讲解',
+      pauseNarration: '暂停讲解',
+      resumeNarration: '继续讲解',
+      narrationComplete: '讲解完成',
+      narrationError: '讲解生成失败',
+      narrationGenerating: '正在生成讲解…',
+      narrationDuration: '总时长',
+      record: '录制视频',
+      recording: '录制中…',
+      recordStop: '停止录制',
+      recordSaved: '视频已保存'
     },
     en: {
       enter: 'Start presentation',
@@ -77,7 +98,18 @@ document.addEventListener('DOMContentLoaded', function () {
       next: 'Next',
       tip: 'Use ← → to navigate · Esc to exit',
       fallbackHero: 'Overview',
-      fallbackStep: 'Step'
+      fallbackStep: 'Step',
+      autoPlay: 'Auto narrate',
+      pauseNarration: 'Pause',
+      resumeNarration: 'Resume',
+      narrationComplete: 'Narration complete',
+      narrationError: 'Narration failed',
+      narrationGenerating: 'Generating narration…',
+      narrationDuration: 'Duration',
+      record: 'Record Video',
+      recording: 'Recording…',
+      recordStop: 'Stop Recording',
+      recordSaved: 'Video Saved'
     }
   };
 
@@ -274,6 +306,15 @@ document.addEventListener('DOMContentLoaded', function () {
     emailItem.innerHTML = '<svg viewBox="0 0 24 24" fill="none"><rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" stroke-width="2"/><path d="M22 7l-10 7L2 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="share-item-label"></span>';
     menu.appendChild(emailItem);
 
+    // Record video item
+    var recordItem = document.createElement('button');
+    recordItem.className = 'share-menu-item';
+    recordItem.type = 'button';
+    recordItem.setAttribute('role', 'menuitem');
+    recordItem.setAttribute('data-share-record', '');
+    recordItem.innerHTML = '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="7" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg><span class="share-item-label"></span>';
+    menu.appendChild(recordItem);
+
     wrapper.appendChild(menu);
     topbarActions.appendChild(wrapper);
 
@@ -373,6 +414,13 @@ document.addEventListener('DOMContentLoaded', function () {
       shareEmailNewsletter();
     });
 
+    // Record video handler
+    recordItem.addEventListener('click', function () {
+      wrapper.classList.remove('is-open');
+      btn.setAttribute('aria-expanded', 'false');
+      toggleRecording();
+    });
+
     return wrapper;
   };
 
@@ -433,6 +481,7 @@ document.addEventListener('DOMContentLoaded', function () {
     presentationExit.className = 'present-exit';
     presentationExit.type = 'button';
     presentationExit.setAttribute('data-present-exit', '');
+    presentationExit.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
     floating.appendChild(presentationExit);
 
     presentationPrev = createNavButton('prev', getLabel('prev'));
@@ -460,13 +509,304 @@ document.addEventListener('DOMContentLoaded', function () {
 
     floating.appendChild(status);
 
+    // Narration subtitle overlay (outside floating for independent positioning)
+    narrationSubtitle = document.createElement('div');
+    narrationSubtitle.className = 'narration-subtitle';
+    narrationSubtitle.setAttribute('aria-live', 'polite');
+
     if (footer && footer.parentNode === site) {
       site.insertBefore(floating, footer);
+      site.insertBefore(narrationSubtitle, footer);
     } else {
       site.appendChild(floating);
+      site.appendChild(narrationSubtitle);
     }
 
     return floating;
+  };
+
+  /* ── Narration FAB — takes over assistant-fab in presentation mode ── */
+  var NARRATION_SVG_PLAY = '<span class="narration-indicator"><span></span><span></span><span></span></span>';
+  var NARRATION_SVG_PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>';
+  var NARRATION_SVG_STOP = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
+  var NARRATION_SVG_WAVE = '<span class="narration-indicator is-active"><span></span><span></span><span></span></span>';
+  var NARRATION_SVG_GENERATING = '<span class="narration-generating-spinner"></span>';
+  var NARRATION_SVG_CHAT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
+
+  var SVG_SETTINGS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>';
+  var SVG_RECORD = '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="7" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>';
+
+  var narrationCapsuleSettingsBtn = null;
+  var narrationCapsuleRecordBtn = null;
+  var narrationCapsuleChatBtn = null;
+
+  var ensureNarrationFab = function () {
+    // Reuse existing assistant-fab or create a new one
+    var fab = document.querySelector('.assistant-fab');
+    if (!fab) {
+      fab = document.createElement('button');
+      fab.className = 'assistant-fab';
+      fab.innerHTML = NARRATION_SVG_CHAT;
+      document.body.appendChild(fab);
+    }
+    presentationAutoPlay = fab;
+    return fab;
+  };
+
+  /** Build capsule structure inside the FAB (only in presentation mode) */
+  var buildCapsuleStructure = function () {
+    var fab = presentationAutoPlay;
+    if (!fab) return;
+
+    // Build capsule inner structure if not already built
+    if (!fab.querySelector('.narration-capsule-actions')) {
+      // Save original HTML to restore on exit
+      fab.setAttribute('data-original-html', fab.innerHTML);
+
+      var actions = document.createElement('div');
+      actions.className = 'narration-capsule-actions';
+
+      // Settings button
+      narrationCapsuleSettingsBtn = document.createElement('button');
+      narrationCapsuleSettingsBtn.className = 'narration-capsule-btn';
+      narrationCapsuleSettingsBtn.type = 'button';
+      narrationCapsuleSettingsBtn.setAttribute('aria-label', getLang() === 'zh' ? '讲解设置' : 'Settings');
+      narrationCapsuleSettingsBtn.innerHTML = SVG_SETTINGS;
+      actions.appendChild(narrationCapsuleSettingsBtn);
+
+      // Record button
+      narrationCapsuleRecordBtn = document.createElement('button');
+      narrationCapsuleRecordBtn.className = 'narration-capsule-btn';
+      narrationCapsuleRecordBtn.type = 'button';
+      narrationCapsuleRecordBtn.setAttribute('aria-label', getLang() === 'zh' ? '录制视频' : 'Record');
+      narrationCapsuleRecordBtn.innerHTML = SVG_RECORD;
+      actions.appendChild(narrationCapsuleRecordBtn);
+
+      // Chat button — only if assistant dialog exists (LLM configured)
+      var hasAssistant = !!document.querySelector('.assistant-dialog');
+      narrationCapsuleChatBtn = document.createElement('button');
+      narrationCapsuleChatBtn.className = 'narration-capsule-btn';
+      narrationCapsuleChatBtn.type = 'button';
+      narrationCapsuleChatBtn.setAttribute('aria-label', getLang() === 'zh' ? 'AI 助手' : 'AI Chat');
+      narrationCapsuleChatBtn.innerHTML = NARRATION_SVG_CHAT;
+      if (!hasAssistant) {
+        narrationCapsuleChatBtn.style.display = 'none';
+      }
+      actions.appendChild(narrationCapsuleChatBtn);
+
+      var divider = document.createElement('div');
+      divider.className = 'narration-capsule-divider';
+      actions.appendChild(divider);
+
+      var mainArea = document.createElement('div');
+      mainArea.className = 'narration-capsule-main';
+      // Will be populated by updateAutoPlayButton
+
+      fab.innerHTML = '';
+      fab.appendChild(actions);
+      fab.appendChild(mainArea);
+
+      // Adjust expanded height based on visible buttons
+      var visibleBtnCount = hasAssistant ? 3 : 2;
+      fab.style.setProperty('--capsule-expanded-height', (visibleBtnCount * 44 + 1 + 52) + 'px');
+    }
+
+    return fab;
+  };
+
+  var ensureNarrationSettingsPanel = function () {
+    var existing = document.querySelector('.narration-settings-panel');
+    if (existing) return existing;
+
+    var panel = document.createElement('div');
+    panel.className = 'narration-settings-panel';
+    panel.innerHTML = [
+      '<div class="narration-settings-header">',
+      '  <strong>' + (getLang() === 'zh' ? '讲解设置' : 'Narration Settings') + '</strong>',
+      '  <button class="narration-settings-close" type="button" aria-label="Close">' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
+        '</button>',
+      '</div>',
+      '<label class="narration-setting-row">',
+      '  <span>' + (getLang() === 'zh' ? '语言' : 'Language') + '</span>',
+      '  <select class="narration-select" data-narration-setting="lang">',
+      '    <option value="auto">' + (getLang() === 'zh' ? '跟随页面' : 'Follow page') + '</option>',
+      '    <option value="zh">中文</option>',
+      '    <option value="en">English</option>',
+      '  </select>',
+      '</label>',
+      '<label class="narration-setting-row">',
+      '  <span>' + (getLang() === 'zh' ? '语速' : 'Speed') + '</span>',
+      '  <input type="range" class="narration-range" data-narration-setting="rate" min="0.5" max="1.5" step="0.1" value="0.92" />',
+      '  <span class="narration-rate-value">0.92</span>',
+      '</label>',
+      '<div class="narration-setting-row narration-voice-row">',
+      '  <span>' + (getLang() === 'zh' ? '语音' : 'Voice') + '</span>',
+      '  <select class="narration-select narration-voice-select" data-narration-setting="voiceName">',
+      '    <option value="">' + (getLang() === 'zh' ? '自动' : 'Auto') + '</option>',
+      '  </select>',
+      '  <button class="narration-voice-test" type="button" aria-label="' + (getLang() === 'zh' ? '试听' : 'Preview') + '" title="' + (getLang() === 'zh' ? '试听' : 'Preview') + '">' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>' +
+        '</button>',
+      '</div>'
+    ].join('\n');
+
+    document.body.appendChild(panel);
+
+    // Settings keys: global = 'narration-settings', per-article = 'narration-settings:' + slug
+    var articleSlug = window.location.pathname.replace(/\/$/, '').split('/').pop() || '';
+    var globalKey = 'narration-settings';
+    var articleKey = articleSlug ? ('narration-settings:' + articleSlug) : '';
+
+    // Load: per-article overrides global
+    var saved = {};
+    try { saved = JSON.parse(localStorage.getItem(globalKey)) || {}; } catch (e) {}
+    if (articleKey) {
+      try {
+        var articleSaved = JSON.parse(localStorage.getItem(articleKey));
+        if (articleSaved) {
+          // Merge: article settings override global
+          Object.keys(articleSaved).forEach(function (k) { if (articleSaved[k] !== undefined && articleSaved[k] !== '') saved[k] = articleSaved[k]; });
+        }
+      } catch (e) {}
+    }
+
+    var langSelect = panel.querySelector('[data-narration-setting="lang"]');
+    var rateInput = panel.querySelector('[data-narration-setting="rate"]');
+    var rateValue = panel.querySelector('.narration-rate-value');
+    var voiceSelect = panel.querySelector('[data-narration-setting="voiceName"]');
+    var voiceTestBtn = panel.querySelector('.narration-voice-test');
+
+    if (saved.lang) langSelect.value = saved.lang;
+    if (saved.rate) { rateInput.value = saved.rate; rateValue.textContent = saved.rate; }
+
+    // Populate voices directly from browser Speech API
+    var voicesPopulated = false;
+    var populateVoices = function () {
+      if (!window.speechSynthesis) return;
+      var allVoices = window.speechSynthesis.getVoices();
+      if (!allVoices || !allVoices.length) return;
+      voicesPopulated = true;
+
+      // Determine which language to filter by
+      var filterLang = langSelect.value;
+      if (filterLang === 'auto') filterLang = getLang();
+      var langPrefix = (filterLang === 'zh') ? 'zh' : 'en';
+
+      // Remember current selection
+      var currentVal = voiceSelect.value;
+
+      // Clear all except "Auto"
+      while (voiceSelect.options.length > 1) {
+        voiceSelect.removeChild(voiceSelect.lastChild);
+      }
+
+      // Add matching voices
+      allVoices.forEach(function (v) {
+        if (v.lang.indexOf(langPrefix) !== 0) return;
+        var opt = document.createElement('option');
+        opt.value = v.name;
+        // Format: extract dialect from lang tag, show as "Name · Dialect"
+        var dialect = v.lang;
+        // Map common lang codes to short readable labels
+        var dialectMap = {
+          'zh-CN': '普通话', 'zh-TW': '台湾', 'zh-HK': '粤语',
+          'en-US': 'US', 'en-GB': 'UK', 'en-AU': 'AU', 'en-IN': 'IN', 'en-IE': 'IE', 'en-ZA': 'ZA'
+        };
+        var dialectLabel = dialectMap[v.lang] || v.lang;
+        // Extract core name — strip parenthetical region info since we show dialect separately
+        var coreName = v.name.replace(/\s*\(.*\)\s*$/, '');
+        opt.textContent = coreName + ' · ' + dialectLabel;
+        opt.title = v.name + ' (' + v.lang + ')';
+        voiceSelect.appendChild(opt);
+      });
+
+      // Restore selection
+      if (currentVal) voiceSelect.value = currentVal;
+      if (saved.voiceName && !currentVal) voiceSelect.value = saved.voiceName;
+      panel.removeAttribute('data-voices-pending');
+    };
+
+    // Try immediately
+    populateVoices();
+
+    // Listen for async voice loading
+    if (window.speechSynthesis) {
+      window.speechSynthesis.addEventListener('voiceschanged', populateVoices);
+    }
+
+    // Re-populate when language changes
+    langSelect.addEventListener('change', function () {
+      // Reset voice selection when language changes
+      voiceSelect.value = '';
+      populateVoices();
+    });
+
+    var saveSettings = function () {
+      var s = {
+        lang: langSelect.value === 'auto' ? '' : langSelect.value,
+        rate: parseFloat(rateInput.value),
+        voiceName: voiceSelect.value
+      };
+      // Save as global default
+      localStorage.setItem(globalKey, JSON.stringify(s));
+      // Also save per-article override
+      if (articleKey) {
+        localStorage.setItem(articleKey, JSON.stringify(s));
+      }
+    };
+
+    langSelect.addEventListener('change', saveSettings);
+    rateInput.addEventListener('input', function () {
+      rateValue.textContent = parseFloat(rateInput.value).toFixed(2);
+      saveSettings();
+    });
+    voiceSelect.addEventListener('change', saveSettings);
+
+    // Voice test/preview button
+    var testUtterance = null;
+    voiceTestBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!window.speechSynthesis) return;
+      // Cancel any ongoing test
+      window.speechSynthesis.cancel();
+
+      var testText = (getLang() === 'zh' || langSelect.value === 'zh')
+        ? '这是一段语音测试，你可以听到当前选择的语音效果。'
+        : 'This is a voice preview. You can hear how the selected voice sounds.';
+
+      var utt = new SpeechSynthesisUtterance(testText);
+      var filterLang = langSelect.value;
+      if (filterLang === 'auto') filterLang = getLang();
+      utt.lang = (filterLang === 'zh') ? 'zh-CN' : 'en-US';
+      utt.rate = parseFloat(rateInput.value) || 0.92;
+
+      // Pick selected voice
+      if (voiceSelect.value) {
+        var allV = window.speechSynthesis.getVoices();
+        var match = allV.filter(function (v) { return v.name === voiceSelect.value; });
+        if (match.length) utt.voice = match[0];
+      }
+
+      voiceTestBtn.classList.add('is-testing');
+      utt.onend = function () { voiceTestBtn.classList.remove('is-testing'); };
+      utt.onerror = function () { voiceTestBtn.classList.remove('is-testing'); };
+      window.speechSynthesis.speak(utt);
+    });
+
+    panel.querySelector('.narration-settings-close').addEventListener('click', function () {
+      panel.classList.remove('is-open');
+    });
+
+    // Close on outside click
+    document.addEventListener('click', function (e) {
+      if (panel.classList.contains('is-open') && !panel.contains(e.target) && !e.target.closest('.present-settings') && !e.target.closest('.narration-capsule-btn')) {
+        panel.classList.remove('is-open');
+      }
+    });
+
+    return panel;
   };
 
   var normalizeTitle = function (value) {
@@ -523,6 +863,31 @@ document.addEventListener('DOMContentLoaded', function () {
       document.head.appendChild(s);
     });
     return pptxgenLoader;
+  };
+
+  var hasNarrationSupport = function () {
+    try {
+      var s = JSON.parse(localStorage.getItem('llm-settings'));
+      return !!(s && s.provider !== 'none' && s.endpoint && s.model &&
+               window.speechSynthesis && window.SpeechSynthesisUtterance);
+    } catch (e) { return false; }
+  };
+
+  var ensureNarration = function () {
+    if (narrationLoader) return narrationLoader;
+    narrationLoader = new Promise(function (resolve, reject) {
+      if (window.StudyRoomNarration) { resolve(window.StudyRoomNarration); return; }
+      var s = document.createElement('script');
+      s.src = resolvePresentationAssetUrl('article-narration.js');
+      s.async = true;
+      s.onload = function () {
+        if (window.StudyRoomNarration) { resolve(window.StudyRoomNarration); return; }
+        reject(new Error('article-narration.js loaded but unavailable.'));
+      };
+      s.onerror = function () { reject(new Error('Failed to load article-narration.js.')); };
+      document.head.appendChild(s);
+    });
+    return narrationLoader;
   };
 
   var ensurePptxExport = function () {
@@ -952,6 +1317,47 @@ document.addEventListener('DOMContentLoaded', function () {
         step.setAttribute('data-step-title', deriveStepTitle(step, index));
       }
     });
+
+    // Add ending slide with thank-you + QR code
+    var endSlide = document.querySelector('.present-end-slide');
+    if (!endSlide) {
+      endSlide = document.createElement('div');
+      endSlide.className = 'present-end-slide';
+      endSlide.setAttribute('data-present-step', '');
+      endSlide.setAttribute('data-step-title', '');
+      endSlide.setAttribute('data-step-label', '');
+      autoAssignedSteps.push(endSlide);
+
+      var endInner = document.createElement('div');
+      endInner.className = 'present-end-inner';
+
+      var endTitle = document.createElement('h2');
+      endTitle.className = 'present-end-title';
+      endTitle.textContent = getLang() === 'zh' ? '感谢收看' : 'Thank You';
+      endInner.appendChild(endTitle);
+
+      var endQrWrap = document.createElement('div');
+      endQrWrap.className = 'present-end-qr';
+      var endQrImg = document.createElement('img');
+      endQrImg.alt = 'QR Code';
+      endQrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=8&data=' + encodeURIComponent(window.location.href);
+      endQrWrap.appendChild(endQrImg);
+      var endQrTip = document.createElement('span');
+      endQrTip.className = 'present-end-qr-tip';
+      endQrTip.textContent = getLang() === 'zh' ? '扫码访问' : 'Scan to visit';
+      endQrWrap.appendChild(endQrTip);
+      endInner.appendChild(endQrWrap);
+
+      var endBrand = document.createElement('p');
+      endBrand.className = 'present-end-brand';
+      endBrand.textContent = 'illusion615 Knowledge Hub';
+      endInner.appendChild(endBrand);
+
+      endSlide.appendChild(endInner);
+      site.appendChild(endSlide);
+      topLevelContainers.push(endSlide);
+    }
+    presentSteps.push(endSlide);
   };
 
   var updatePresentationLabels = function () {
@@ -963,7 +1369,8 @@ document.addEventListener('DOMContentLoaded', function () {
     presentationToggle.classList.toggle('is-active', state.enabled);
 
     if (presentationExit) {
-      presentationExit.textContent = getLabel('exit');
+      presentationExit.setAttribute('aria-label', getLabel('exit'));
+      presentationExit.setAttribute('title', getLabel('exit'));
     }
 
     // Update share dropdown labels
@@ -996,6 +1403,10 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       if (emailLabel) {
         emailLabel.textContent = getLabel('emailNewsletter');
+      }
+      var recordLabel = shareWrapper.querySelector('[data-share-record] .share-item-label');
+      if (recordLabel) {
+        recordLabel.textContent = isRecording() ? getLabel('recordStop') : getLabel('record');
       }
     }
 
@@ -1052,6 +1463,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (presentationFloating) {
       presentationFloating.classList.toggle('is-hero-step', !!(activeStep && activeStep.classList.contains('hero')));
+      presentationFloating.classList.toggle('is-end-slide', !!(activeStep && activeStep.classList.contains('present-end-slide')));
     }
 
     if (!state.enabled || !activeStep) {
@@ -1185,17 +1597,289 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   };
 
+  /* ── Subtitle display — one sentence at a time ── */
+  var formatDuration = function (ms) {
+    var totalSec = Math.round(ms / 1000);
+    var min = Math.floor(totalSec / 60);
+    var sec = totalSec % 60;
+    if (min > 0) {
+      return min + ':' + (sec < 10 ? '0' : '') + sec;
+    }
+    return sec + 's';
+  };
+
+  var showSubtitleSentence = function (text) {
+    if (!narrationSubtitle) return;
+    if (!text) {
+      narrationSubtitle.textContent = '';
+      narrationSubtitle.classList.remove('is-visible');
+      return;
+    }
+    narrationSubtitle.textContent = text;
+    narrationSubtitle.classList.add('is-visible');
+  };
+
+  /* ── Screen recording via getDisplayMedia ── */
+  var isRecording = function () {
+    return mediaRecorder && mediaRecorder.state === 'recording';
+  };
+
+  var stopRecording = function () {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+    }
+    if (recordingStream) {
+      recordingStream.getTracks().forEach(function (t) { t.stop(); });
+      recordingStream = null;
+    }
+    root.classList.remove('is-recording');
+  };
+
+  var toggleRecording = function () {
+    // If already recording, stop
+    if (isRecording()) {
+      stopRecording();
+      return;
+    }
+
+    // Check API support
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+      window.alert(getLang() === 'zh' ? '当前浏览器不支持屏幕录制' : 'Screen recording is not supported in this browser');
+      return;
+    }
+
+    // Hint: user should select "Entire Screen" and enable system audio
+    var hint = getLang() === 'zh'
+      ? '请选择"整个屏幕"并勾选"同时共享系统音频"以录入语音讲解'
+      : 'Select "Entire Screen" and enable "Share system audio" to capture narration';
+    if (narrationSubtitle) {
+      showSubtitleSentence(hint);
+    }
+
+    // Request screen capture with system audio
+    navigator.mediaDevices.getDisplayMedia({
+      video: true,
+      audio: true,
+      systemAudio: 'include'
+    }).then(function (stream) {
+      recordingStream = stream;
+      recordedChunks = [];
+
+      // Determine supported format
+      var mimeType = 'video/webm;codecs=vp9,opus';
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'video/webm;codecs=vp8,opus';
+      }
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'video/webm';
+      }
+
+      mediaRecorder = new MediaRecorder(stream, { mimeType: mimeType });
+
+      mediaRecorder.ondataavailable = function (e) {
+        if (e.data && e.data.size > 0) {
+          recordedChunks.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = function () {
+        var blob = new Blob(recordedChunks, { type: mimeType });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = sanitizeFileName(document.title || 'presentation') + '.webm';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+        recordedChunks = [];
+
+        if (presentationTip) {
+          var origTip = presentationTip.textContent;
+          presentationTip.textContent = getLabel('recordSaved');
+          setTimeout(function () { presentationTip.textContent = origTip; }, 3000);
+        }
+      };
+
+      // If user stops sharing via browser UI, clean up
+      var videoTracks = stream.getVideoTracks();
+      if (videoTracks.length) {
+        videoTracks[0].addEventListener('ended', function () {
+          if (isRecording()) {
+            stopRecording();
+          }
+        });
+      }
+
+      mediaRecorder.start(1000); // collect data every second
+      root.classList.add('is-recording');
+      showSubtitleSentence(''); // clear hint
+
+      // Auto-start narration if not already running
+      if (!state.enabled) {
+        enterPresentation();
+      }
+      if (narrationState === 'idle' && hasNarrationSupport()) {
+        setTimeout(function () { handleAutoPlayClick(); }, 400);
+      }
+    }).catch(function (err) {
+      console.error('Recording failed:', err);
+      // User cancelled permission dialog — do nothing
+    });
+  };
+
   var enterPresentation = function () {
     state.enabled = true;
     root.classList.add('is-presentation-mode');
+    // Take over the FAB for narration
+    ensureNarrationFab();
+    if (presentationAutoPlay && hasNarrationSupport()) {
+      buildCapsuleStructure();
+      wireCapsuleHandlers();
+      presentationAutoPlay.classList.add('is-narration-mode');
+      var mainArea = presentationAutoPlay.querySelector('.narration-capsule-main');
+      if (mainArea) mainArea.innerHTML = NARRATION_SVG_PLAY;
+      presentationAutoPlay.setAttribute('aria-label', getLabel('autoPlay'));
+    }
     expandAllAccordions();
     setPresentationStep(0);
     updatePresentationLabels();
     requestBrowserFullscreen();
+
+    // Auto-start narration if enabled in global settings
+    if (hasNarrationSupport() && localStorage.getItem('narration-autostart') === 'true') {
+      setTimeout(function () {
+        handleAutoPlayClick();
+      }, 600);
+    }
+  };
+
+  var stopNarration = function () {
+    if (narrationController && narrationController.isActive()) {
+      narrationController.stop();
+    }
+    showSubtitleSentence('');
+    narrationState = 'idle';
+    root.classList.remove('is-narrating');
+    updateAutoPlayButton();
+  };
+
+  var updateAutoPlayButton = function () {
+    if (!presentationAutoPlay) return;
+    if (!state.enabled) return; // only in presentation mode
+    var mainArea = presentationAutoPlay.querySelector('.narration-capsule-main');
+    if (!mainArea) return;
+    if (narrationState === 'generating') {
+      mainArea.innerHTML = NARRATION_SVG_GENERATING;
+      presentationAutoPlay.setAttribute('aria-label', getLabel('narrationGenerating'));
+    } else if (narrationState === 'playing') {
+      mainArea.innerHTML = NARRATION_SVG_WAVE;
+      presentationAutoPlay.setAttribute('aria-label', getLabel('pauseNarration'));
+    } else if (narrationState === 'paused') {
+      mainArea.innerHTML = NARRATION_SVG_PLAY;
+      presentationAutoPlay.setAttribute('aria-label', getLabel('resumeNarration'));
+    } else {
+      // idle
+      mainArea.innerHTML = NARRATION_SVG_PLAY;
+      presentationAutoPlay.setAttribute('aria-label', getLabel('autoPlay'));
+    }
+  };
+
+  var handleAutoPlayClick = function () {
+    if (!state.enabled) return;
+    if (!hasNarrationSupport()) return;
+
+    // If narrating — stop
+    if (narrationState === 'playing' || narrationState === 'generating') {
+      stopNarration();
+      return;
+    }
+
+    // If paused — resume
+    if (narrationState === 'paused') {
+      if (narrationController) narrationController.resume();
+      narrationState = 'playing';
+      root.classList.add('is-narrating');
+      updateAutoPlayButton();
+      return;
+    }
+
+    // idle → start narration
+    presentationAutoPlay.disabled = true;
+    var mainArea = presentationAutoPlay.querySelector('.narration-capsule-main');
+    if (mainArea) mainArea.innerHTML = NARRATION_SVG_GENERATING;
+    ensureNarration().then(function (narrationModule) {
+      presentationAutoPlay.disabled = false;
+
+      if (!narrationController) {
+        narrationController = narrationModule.createController({
+          onSlideComplete: function (status) {
+            if (status === 'next') {
+              goToNextStep();
+              // playSlide for new index will be triggered by syncToSlide in goToNextStep
+            } else {
+              // 'done' — last slide finished
+              var elapsed = Date.now() - narrationStartTime;
+              stopNarration();
+              if (presentationTip) {
+                var origTip = presentationTip.textContent;
+                presentationTip.textContent = getLabel('narrationComplete') + ' · ' + getLabel('narrationDuration') + ' ' + formatDuration(elapsed);
+                setTimeout(function () {
+                  presentationTip.textContent = origTip;
+                }, 5000);
+              }
+            }
+          },
+          onStateChange: function (newState) {
+            narrationState = newState;
+            root.classList.toggle('is-narrating', newState === 'playing' || newState === 'generating');
+            updateAutoPlayButton();
+          },
+          onSubtitle: function (text) {
+            showSubtitleSentence(text);
+          },
+          onError: function () {
+            if (presentationTip) {
+              var origTip = presentationTip.textContent;
+              presentationTip.textContent = getLabel('narrationError');
+              setTimeout(function () {
+                presentationTip.textContent = origTip;
+              }, 2000);
+            }
+          }
+        });
+      }
+
+      narrationController.start(presentSteps, state.index, getLang);
+      narrationStartTime = Date.now();
+    }).catch(function (err) {
+      presentationAutoPlay.disabled = false;
+      console.error('Narration load failed:', err);
+    });
   };
 
   var exitPresentation = function () {
     var activeStep = presentSteps[state.index];
+
+    stopNarration();
+    if (isRecording()) stopRecording();
+
+    // Restore FAB to chat mode
+    if (presentationAutoPlay) {
+      presentationAutoPlay.classList.remove('is-narration-mode');
+      var originalHtml = presentationAutoPlay.getAttribute('data-original-html');
+      if (originalHtml) {
+        presentationAutoPlay.innerHTML = originalHtml;
+        presentationAutoPlay.removeAttribute('data-original-html');
+      } else {
+        presentationAutoPlay.innerHTML = NARRATION_SVG_CHAT;
+      }
+      presentationAutoPlay.setAttribute('aria-label', 'AI Assistant');
+      narrationCapsuleSettingsBtn = null;
+      narrationCapsuleRecordBtn = null;
+      narrationCapsuleChatBtn = null;
+      capsuleHandlersWired = false;
+    }
 
     state.enabled = false;
     root.classList.remove('is-presentation-mode');
@@ -1212,11 +1896,17 @@ document.addEventListener('DOMContentLoaded', function () {
   var goToPreviousStep = function () {
     if (!state.enabled || state.index <= 0) return;
     setPresentationStep(state.index - 1);
+    if (narrationController && narrationController.isActive()) {
+      narrationController.syncToSlide(state.index);
+    }
   };
 
   var goToNextStep = function () {
     if (!state.enabled || state.index >= presentSteps.length - 1) return;
     setPresentationStep(state.index + 1);
+    if (narrationController && narrationController.isActive()) {
+      narrationController.syncToSlide(state.index);
+    }
   };
 
   var scheduleStepScrollingClear = function (step, delay) {
@@ -1306,6 +1996,61 @@ document.addEventListener('DOMContentLoaded', function () {
     goToNextStep();
   });
 
+  // Narration — only get FAB reference at init (don't modify its content)
+  ensureNarrationFab();
+  var narrationSettingsPanel = ensureNarrationSettingsPanel();
+  var capsuleHandlersWired = false;
+
+  var wireCapsuleHandlers = function () {
+    if (capsuleHandlersWired) return;
+    capsuleHandlersWired = true;
+
+    // Wire capsule Settings button
+    if (narrationCapsuleSettingsBtn) {
+      narrationCapsuleSettingsBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        narrationSettingsPanel.classList.toggle('is-open');
+      });
+    }
+
+    // Wire capsule Record button
+    if (narrationCapsuleRecordBtn) {
+      narrationCapsuleRecordBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        toggleRecording();
+      });
+    }
+
+    // Wire capsule Chat button
+    if (narrationCapsuleChatBtn) {
+      narrationCapsuleChatBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        // Toggle the assistant dialog (created by article-assistant.js)
+        var dialog = document.querySelector('.assistant-dialog');
+        var assistantFab = document.querySelector('.assistant-fab');
+        if (dialog) {
+          var isOpen = dialog.classList.contains('is-open');
+          dialog.classList.toggle('is-open', !isOpen);
+          if (!isOpen) {
+            var input = dialog.querySelector('.assistant-input');
+            if (input) input.focus();
+          }
+        }
+      });
+    }
+
+    // Wire capsule main area (Narrator)
+    var capsuleMain = presentationAutoPlay ? presentationAutoPlay.querySelector('.narration-capsule-main') : null;
+    if (capsuleMain) {
+      capsuleMain.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (state.enabled && hasNarrationSupport()) {
+          handleAutoPlayClick();
+        }
+      });
+    }
+  };
+
   document.addEventListener('keydown', function (event) {
     if (!state.enabled) return;
 
@@ -1332,6 +2077,16 @@ document.addEventListener('DOMContentLoaded', function () {
   window.addEventListener('resize', function () {
     if (!state.enabled) return;
     syncStepOverflowState(presentSteps[state.index]);
+  });
+
+  // Visibility change — pause narration when tab hidden
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden && narrationController && narrationState === 'playing') {
+      narrationController.pause();
+      narrationState = 'paused';
+      root.classList.remove('is-narrating');
+      updateAutoPlayButton();
+    }
   });
 
   var onFullscreenChange = function () {

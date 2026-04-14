@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>导数：捕捉瞬间的变化率</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(1.6rem, 4.2vw, 2.8rem);
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      max-width: 22ch;
+    }
+
+    /* ── Math ── */
+    .math-block {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 20px 24px;
+      margin: 16px 0;
+      border-radius: 16px;
+      background: rgba(15, 23, 42, 0.03);
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: var(--ink);
+    }
+    [data-theme="dark"] .math-block {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+    .math-block .math-frac {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0 6px;
+    }
+    .math-block .math-frac-num { display: block; text-align: center; line-height: 1.3; border-bottom: 2px solid var(--ink); padding-bottom: 3px; }
+    .math-block .math-frac-den { display: block; text-align: center; line-height: 1.3; padding-top: 3px; }
+    .math-sm { font-size: 0.95rem; font-weight: 600; }
+
+    /* ── Cards ── */
+    .scenario-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+    .scenario-card {
+      padding: 22px;
+      border-radius: 22px;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      box-shadow: var(--card-shadow);
+    }
+    .scenario-card h4 { margin: 0 0 8px; font-size: 1.05rem; }
+    .scenario-card p { color: var(--muted); font-size: 0.92rem; line-height: 1.72; margin: 0; }
+    .scenario-icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 42px; height: 42px; margin-bottom: 12px; border-radius: 14px;
+      font-size: 1.3rem;
+      background: rgba(124, 58, 237, 0.12);
+    }
+
+    /* ── Tables ── */
+    .compare-wrap {
+      margin-top: 16px; overflow-x: auto; border-radius: 18px;
+      border: 1px solid var(--card-border); background: var(--card-bg); box-shadow: var(--card-shadow);
+    }
+    .compare-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    .compare-table th, .compare-table td {
+      padding: 11px 14px; text-align: left;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.06); vertical-align: top;
+    }
+    .compare-table th {
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.74rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--muted); background: rgba(15, 23, 42, 0.03); white-space: nowrap;
+    }
+    .compare-table tr:last-child td { border-bottom: none; }
+    [data-theme="dark"] .compare-table th { background: rgba(255,255,255,0.04); }
+    [data-theme="dark"] .compare-table td { border-color: rgba(255,255,255,0.06); }
+
+    /* ── Diagram ── */
+    .diagram-wrap {
+      margin: 16px 0; padding: 20px; border-radius: 16px;
+      background: rgba(15, 23, 42, 0.03); border: 1px solid rgba(15, 23, 42, 0.06);
+      display: flex; justify-content: center;
+    }
+    .diagram-wrap svg { width: 100%; max-width: 520px; height: auto; }
+    .diagram-wrap svg text { font-family: "Space Grotesk", "Noto Sans SC", sans-serif; }
+    [data-theme="dark"] .diagram-wrap { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.06); }
+
+    /* ── Callout ── */
+    .insight-callout {
+      padding: 20px 24px; border-radius: 18px;
+      background: linear-gradient(135deg, rgba(124,58,237,0.08), rgba(14,165,233,0.08));
+      border: 1px solid rgba(124,58,237,0.15); margin: 16px 0;
+    }
+    .insight-callout h4 { margin: 0 0 8px; font-size: 0.95rem; color: var(--accent); }
+    .insight-callout p { margin: 0; font-size: 0.9rem; line-height: 1.72; color: var(--ink); }
+
+    /* ── Step flow ── */
+    .step-flow { display: grid; gap: 12px; margin-top: 16px; }
+    .step-item {
+      display: grid; grid-template-columns: 48px 1fr; gap: 16px; padding: 18px;
+      border-radius: 18px; border: 1px solid var(--card-border);
+      background: var(--card-bg); box-shadow: var(--card-shadow);
+    }
+    .step-num {
+      display: flex; align-items: center; justify-content: center;
+      width: 42px; height: 42px; border-radius: 50%;
+      background: rgba(124, 58, 237, 0.12); color: #7c3aed;
+      font-family: "Space Grotesk", sans-serif; font-size: 1.1rem; font-weight: 700;
+    }
+    .step-item h4 { margin: 0 0 6px; font-size: 0.95rem; }
+    .step-item p { margin: 0; font-size: 0.88rem; line-height: 1.72; color: var(--muted); }
+
+    /* ── Rule card ── */
+    .rule-card {
+      padding: 22px;
+      border-radius: 22px;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      box-shadow: var(--card-shadow);
+      margin-bottom: 14px;
+    }
+    .rule-card h4 { margin: 0 0 10px; font-size: 1rem; }
+    .rule-card p { color: var(--muted); font-size: 0.9rem; line-height: 1.72; margin: 0 0 8px; }
+    .rule-card p:last-child { margin-bottom: 0; }
+
+    /* ── Series nav ── */
+    .series-nav {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 16px;
+    }
+    .series-nav-card {
+      padding: 16px 20px; border-radius: 16px;
+      border: 1px solid var(--card-border); background: var(--card-bg);
+      color: var(--ink); text-decoration: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .series-nav-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+    .series-nav-card .series-num {
+      font-family: "Space Grotesk", sans-serif; font-size: 0.7rem; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+    }
+    .series-nav-card h4 { margin: 4px 0 0; font-size: 0.9rem; }
+    .series-nav-current { border-color: #7c3aed; background: rgba(124,58,237,0.06); }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            微积分
+          </div>
+          <div class="topbar-actions">
+            <nav class="nav-links" aria-label="页面章节导航">
+              <a href="#definition">定义</a>
+              <a href="#hands-on">动手算</a>
+              <a href="#rules">基本法则</a>
+              <a href="#applications">应用</a>
+              <a href="#nav">导航</a>
+            </nav>
+          </div>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">微积分系列 · 第三篇</span>
+            <h1>导数：捕捉瞬间的变化率</h1>
+            <p>过山车在最高点那一瞬间有多快？无人机在转弯时加速度是多少？导数就是为了精确回答这类"某一瞬间有多快"的问题而生的工具。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#definition">开始学习</a>
+              <a class="button button-secondary" href="#nav">系列导航</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">你将获得</span>
+            <h2>掌握"瞬时速度"的计算</h2>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span>导数的定义与直觉含义</li>
+              <li><span class="layer-number">2</span>亲手计算 f(x) = x² 的导数</li>
+              <li><span class="layer-number">3</span>四条基本求导法则</li>
+              <li><span class="layer-number">4</span>三个真实世界应用案例</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">系列编号</div>
+            <strong>3 / 5</strong>
+            <span>核心概念</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">前置知识</div>
+            <strong>第 1–2 篇</strong>
+            <span>极限思想</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">难度</div>
+            <strong>★★★☆☆</strong>
+            <span>需要动手算</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">阅读时间</div>
+            <strong>~18 min</strong>
+            <span>含计算练习</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- ═══════════════════════════════════════ -->
+        <!-- Section 1: 导数的定义 -->
+        <!-- ═══════════════════════════════════════ -->
+        <section id="definition" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / 从平均到瞬间</p>
+            <h2>导数到底是什么？</h2>
+            <p>上一篇我们知道了：把 Δx 缩到无穷小（取极限），就能从平均变化率跳到瞬时变化率。这个极限值，就叫做导数。</p>
+          </div>
+
+          <div class="subsection-accordion load-in">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>导数的正式定义</span>
+              </button>
+              <div class="subsection-content">
+                <p>对于函数 f(x)，它在点 x 处的导数定义为：</p>
+                <div class="math-block" data-latex="f'(x) = \lim_{\Delta x \to 0} \frac{f(x + \Delta x) - f(x)}{\Delta x}"></div>
+                <p>翻译成人话：</p>
+                <div class="step-flow">
+                  <div class="step-item">
+                    <div class="step-num">1</div>
+                    <div>
+                      <h4>取一个小增量 Δx</h4>
+                      <p>从 x 移动一小步到 x + Δx。</p>
+                    </div>
+                  </div>
+                  <div class="step-item">
+                    <div class="step-num">2</div>
+                    <div>
+                      <h4>算函数值的变化</h4>
+                      <p>f(x + Δx) − f(x) 就是 y 值变了多少。</p>
+                    </div>
+                  </div>
+                  <div class="step-item">
+                    <div class="step-num">3</div>
+                    <div>
+                      <h4>算平均变化率</h4>
+                      <p>变化量除以步长 = [f(x+Δx) − f(x)] / Δx。</p>
+                    </div>
+                  </div>
+                  <div class="step-item">
+                    <div class="step-num">4</div>
+                    <div>
+                      <h4>让步长趋向零</h4>
+                      <p>取 Δx → 0 的极限，得到精确的瞬时变化率。</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>用汽车时速表来理解</span>
+              </button>
+              <div class="subsection-content">
+                <p>你车上的速度表显示的就是导数：</p>
+                <div class="scenario-grid">
+                  <div class="scenario-card">
+                    <div class="scenario-icon">📏</div>
+                    <h4>里程表</h4>
+                    <p>记录的是你<strong>总共走了多远</strong>——这是函数 s(t)，距离随时间的函数。</p>
+                  </div>
+                  <div class="scenario-card">
+                    <div class="scenario-icon">⚡</div>
+                    <h4>速度表</h4>
+                    <p>显示的是你<strong>此刻有多快</strong>——这是 s'(t)，距离函数的导数，也就是速度 v(t)。</p>
+                  </div>
+                  <div class="scenario-card">
+                    <div class="scenario-icon">🎢</div>
+                    <h4>推背感</h4>
+                    <p>你感受到的加速/减速的力——这是 v'(t)，速度的导数，也就是加速度 a(t)。导数的导数！</p>
+                  </div>
+                </div>
+                <div class="insight-callout">
+                  <h4>一串"导数链"</h4>
+                  <p>位置 s(t) → 对时间求导 → 速度 v(t) → 再求导 → 加速度 a(t)。每次求导，我们都进入"更深一层"的变化——<strong>变化的变化</strong>。</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════ -->
+        <!-- Section 2: 亲手计算 -->
+        <!-- ═══════════════════════════════════════ -->
+        <section id="hands-on" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / 动手试试</p>
+            <h2>亲手算一个导数</h2>
+            <p>来，我们用最简单的例子——f(x) = x²——走一遍求导过程。这是你真正"理解"导数的关键。</p>
+          </div>
+
+          <div class="subsection-accordion load-in">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>f(x) = x² 的导数推导</span>
+              </button>
+              <div class="subsection-content">
+                <div class="step-flow">
+                  <div class="step-item">
+                    <div class="step-num">1</div>
+                    <div>
+                      <h4>写出 f(x + Δx)</h4>
+                      <p>f(x + Δx) = (x + Δx)² = x² + 2x·Δx + (Δx)²</p>
+                    </div>
+                  </div>
+                  <div class="step-item">
+                    <div class="step-num">2</div>
+                    <div>
+                      <h4>计算变化量 f(x + Δx) − f(x)</h4>
+                      <p>= (x² + 2x·Δx + (Δx)²) − x² = 2x·Δx + (Δx)²</p>
+                    </div>
+                  </div>
+                  <div class="step-item">
+                    <div class="step-num">3</div>
+                    <div>
+                      <h4>除以 Δx</h4>
+                      <p>= (2x·Δx + (Δx)²) / Δx = 2x + Δx</p>
+                    </div>
+                  </div>
+                  <div class="step-item">
+                    <div class="step-num">4</div>
+                    <div>
+                      <h4>取极限 Δx → 0</h4>
+                      <p>lim (2x + Δx) = 2x &emsp;（Δx → 0 时 Δx 项消失）</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="math-block" data-latex="f(x) = x^2 \implies f'(x) = 2x"></div>
+                <div class="insight-callout">
+                  <h4>这意味着什么？</h4>
+                  <p>当 x = 3 时，f'(3) = 6，表示在 x = 3 这个位置，曲线 y = x² 的"陡峭程度"是 6——也就是说，x 每增加一个极小单位，y 大约增加 6 倍那么多。当 x = 0 时，f'(0) = 0——曲线在最低点是"平的"，完全不上升也不下降。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>数值验证</span>
+              </button>
+              <div class="subsection-content">
+                <p>让我们在 x = 3 处，用越来越小的 Δx 来验证 f'(3) 确实等于 6：</p>
+                <div class="compare-wrap">
+                  <table class="compare-table">
+                    <thead>
+                      <tr>
+                        <th>Δx</th>
+                        <th>f(3 + Δx) = (3 + Δx)²</th>
+                        <th>[f(3+Δx) − f(3)] / Δx</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr><td>1</td><td>16</td><td>(16 − 9) / 1 = 7</td></tr>
+                      <tr><td>0.1</td><td>9.61</td><td>(9.61 − 9) / 0.1 = 6.1</td></tr>
+                      <tr><td>0.01</td><td>9.0601</td><td>(9.0601 − 9) / 0.01 = 6.01</td></tr>
+                      <tr><td>0.001</td><td>9.006001</td><td>= 6.001</td></tr>
+                      <tr><td>0.0001</td><td>9.00060001</td><td>= 6.0001</td></tr>
+                      <tr><td>→ 0</td><td>→ 9</td><td><strong>→ 6 ✓</strong></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p>Δx 越小，结果越接近 6。这就是极限的力量——不需要 Δx 真的变成 0，只需要观察趋势就能得到精确答案。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════ -->
+        <!-- Section 3: 基本求导法则 -->
+        <!-- ═══════════════════════════════════════ -->
+        <section id="rules" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / 求导捷径</p>
+            <h2>四条让你事半功倍的法则</h2>
+            <p>每次都用定义去推导太慢。数学家总结了一些规律（可以用定义严格证明），让求导变得像查字典一样快。</p>
+          </div>
+
+          <div class="subsection-accordion load-in">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>幂法则（最常用！）</span>
+              </button>
+              <div class="subsection-content">
+                <div class="rule-card">
+                  <h4>幂法则 Power Rule</h4>
+                  <div class="math-block" data-latex="f(x) = x^n \implies f'(x) = n \cdot x^{n-1}"></div>
+                  <p>"指数拿下来乘，原来的指数减 1。"</p>
+                </div>
+                <div class="compare-wrap">
+                  <table class="compare-table">
+                    <thead><tr><th>f(x)</th><th>用幂法则</th><th>f'(x)</th></tr></thead>
+                    <tbody>
+                      <tr><td>x²</td><td>2 · x²⁻¹</td><td>2x</td></tr>
+                      <tr><td>x³</td><td>3 · x³⁻¹</td><td>3x²</td></tr>
+                      <tr><td>x⁵</td><td>5 · x⁵⁻¹</td><td>5x⁴</td></tr>
+                      <tr><td>x¹ = x</td><td>1 · x⁰</td><td>1</td></tr>
+                      <tr><td>x⁰ = 1（常数）</td><td>0 · x⁻¹</td><td>0</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="insight-callout">
+                  <h4>常数的导数为零</h4>
+                  <p>这很好理解——一个不变的量，它的"变化率"当然是 0。比如你停在原地不动，速度自然是 0。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>常数倍法则和加法法则</span>
+              </button>
+              <div class="subsection-content">
+                <div class="rule-card">
+                  <h4>常数倍法则</h4>
+                  <div class="math-block" data-latex="[c \cdot f(x)]' = c \cdot f'(x)"></div>
+                  <p>"常数可以直接提出来。" 比如 (3x²)' = 3 · 2x = 6x。</p>
+                </div>
+                <div class="rule-card">
+                  <h4>加法法则（和差法则）</h4>
+                  <div class="math-block" data-latex="[f(x) + g(x)]' = f'(x) + g'(x)"></div>
+                  <p>"各部分分别求导再加起来。" 比如 (x³ + 5x²)' = 3x² + 10x。</p>
+                </div>
+                <p>有了这三条法则，你已经可以求任意多项式的导数了！试试这个：</p>
+                <div class="math-block" data-latex="f(x) = 2x^4 - 3x^2 + 7x - 5"></div>
+                <div class="math-block" data-latex="f'(x) = 8x^3 - 6x + 7"></div>
+                <p>（常数 −5 的导数为 0 直接消掉了。）</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>几何含义：斜率为零的点</span>
+              </button>
+              <div class="subsection-content">
+                <p>导数还能告诉我们函数图像的"地形"——哪里上升、哪里下降、哪里是顶峰或谷底。</p>
+                <div class="scenario-grid">
+                  <div class="scenario-card">
+                    <div class="scenario-icon">📈</div>
+                    <h4>f'(x) &gt; 0</h4>
+                    <p>函数在<strong>上升</strong>——图形向右上方走。</p>
+                  </div>
+                  <div class="scenario-card">
+                    <div class="scenario-icon">📉</div>
+                    <h4>f'(x) &lt; 0</h4>
+                    <p>函数在<strong>下降</strong>——图形向右下方走。</p>
+                  </div>
+                  <div class="scenario-card">
+                    <div class="scenario-icon">⛰️</div>
+                    <h4>f'(x) = 0</h4>
+                    <p>函数到了<strong>顶峰或谷底</strong>——刚好"拐弯"的地方。</p>
+                  </div>
+                </div>
+                <div class="insight-callout">
+                  <h4>这就是优化的基础</h4>
+                  <p>要找一个函数的最大值或最小值，只要找到 f'(x) = 0 的点——在工程中，这叫做<strong>优化问题</strong>。比如：用固定长度的铁丝围一个矩形牧场，怎么围面积最大？答案就藏在导数等于零的地方。</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════ -->
+        <!-- Section 4: 现实应用 -->
+        <!-- ═══════════════════════════════════════ -->
+        <section id="applications" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / 导数在行动</p>
+            <h2>三个真实世界的案例</h2>
+            <p>学了导数不是只为了做题——工程师、科学家和设计师每天都在用它。</p>
+          </div>
+
+          <div class="subsection-accordion load-in">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>过山车设计：控制 G 力</span>
+              </button>
+              <div class="subsection-content">
+                <p>过山车工程师设计轨道时，最关心的不是速度——而是<strong>加速度</strong>（速度的导数）和<strong>加加速度</strong>（加速度的导数，也叫 jerk）。</p>
+                <div class="step-flow">
+                  <div class="step-item">
+                    <div class="step-num">v</div>
+                    <div>
+                      <h4>速度 v(t)：轨道的速率</h4>
+                      <p>过山车在最高点速度最慢（势能最大），最低点速度最快（动能最大）。</p>
+                    </div>
+                  </div>
+                  <div class="step-item">
+                    <div class="step-num">a</div>
+                    <div>
+                      <h4>加速度 a(t) = v'(t)：乘客感受到的推力</h4>
+                      <p>a(t) 太大 → 乘客不舒服甚至危险。设计标准限制在 ±4g 以内。</p>
+                    </div>
+                  </div>
+                  <div class="step-item">
+                    <div class="step-num">j</div>
+                    <div>
+                      <h4>jerk j(t) = a'(t)：推力变化的突然程度</h4>
+                      <p>如果加速度突然变化（jerk 很大），人会感到"被猛推"。好的过山车设计要让 jerk 尽量平滑。</p>
+                    </div>
+                  </div>
+                </div>
+                <p>一条过山车轨道就是一个空间曲线函数，工程师通过计算它的一阶、二阶和三阶导数来确保安全和舒适。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>无人机飞控：实时加速度计算</span>
+              </button>
+              <div class="subsection-content">
+                <p>无人机的飞行控制器每秒计算数百次导数：</p>
+                <div class="scenario-grid">
+                  <div class="scenario-card">
+                    <div class="scenario-icon">📍</div>
+                    <h4>位置传感器（GPS）</h4>
+                    <p>告诉飞控"我现在在哪"——这是 s(t)。</p>
+                  </div>
+                  <div class="scenario-card">
+                    <div class="scenario-icon">🧭</div>
+                    <h4>速度估算 = s'(t)</h4>
+                    <p>飞控对位置求导得到速度，判断是否偏离航线。</p>
+                  </div>
+                  <div class="scenario-card">
+                    <div class="scenario-icon">🔄</div>
+                    <h4>加速度 = s''(t)</h4>
+                    <p>再求一次导，得到加速度，用来调整电机输出。</p>
+                  </div>
+                </div>
+                <p>当无人机遇到一阵大风被吹偏时，导数帮助飞控在几毫秒内检测到偏离，计算修正量并调整四个电机的转速——这一切都是导数的实时应用。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>经济学：边际成本</span>
+              </button>
+              <div class="subsection-content">
+                <p>一家饮料工厂，生产成本 C 和产量 q 的关系是：</p>
+                <div class="math-block" data-latex="C(q) = 0.01q^3 - 0.6q^2 + 13q + 100 \;\text{(元)}"></div>
+                <p>工厂经理想知道：<strong>当产量是 30 瓶时，多生产 1 瓶大约增加多少成本？</strong></p>
+                <p>这就是<strong>边际成本</strong>——成本函数的导数：</p>
+                <div class="math-block" data-latex="C'(q) = 0.03q^2 - 1.2q + 13"></div>
+                <div class="math-block" data-latex="C'(30) = 0.03 \times 900 - 1.2 \times 30 + 13 = 4\;\text{元/瓶}"></div>
+                <div class="insight-callout">
+                  <h4>导数 = 做决策的工具</h4>
+                  <p>经理知道：在产量 30 瓶时，每多产一瓶成本约增加 4 元。如果每瓶售价 5 元，多生产是划算的。如果售价只有 3 元，就应该减产。<strong>导数把"要不要多生产"变成了一道简单的比较题。</strong></p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════ -->
+        <!-- Section 5: 系列导航 -->
+        <!-- ═══════════════════════════════════════ -->
+        <section id="nav" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / 系列导航</p>
+            <h2>继续你的旅程</h2>
+          </div>
+
+          <div class="series-nav load-in">
+            <a class="series-nav-card" href="../calculus-intro-change/">
+              <div class="series-num">第 1 篇</div>
+              <h4>变化的语言：从速度表到微积分</h4>
+            </a>
+            <a class="series-nav-card" href="../calculus-limits/">
+              <div class="series-num">第 2 篇</div>
+              <h4>逼近的艺术：极限思想入门</h4>
+            </a>
+            <div class="series-nav-card series-nav-current">
+              <div class="series-num">第 3 篇 · 当前</div>
+              <h4>导数：捕捉瞬间的变化率</h4>
+            </div>
+            <a class="series-nav-card" href="../calculus-integrals/">
+              <div class="series-num">第 4 篇</div>
+              <h4>积分：化零为整的累积术</h4>
+            </a>
+            <a class="series-nav-card" href="../calculus-fundamental-theorem/">
+              <div class="series-num">第 5 篇</div>
+              <h4>微积分基本定理：最优美的数学联系</h4>
+            </a>
+          </div>
+
+          <div class="insight-callout load-in" style="margin-top: 20px;">
+            <h4>下一篇预告</h4>
+            <p>导数告诉我们"变化有多快"，那<strong>积分</strong>就是它的镜像——"所有变化加起来总共多少"。第 4 篇我们将学习如何精确计算曲线下方的面积，用无穷多个极小矩形拼出任意形状。</p>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <p>&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。</p>
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-math.js"></script>
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

@@ -12,6 +12,22 @@
   try { settings = JSON.parse(localStorage.getItem('llm-settings')); } catch (e) {}
   if (!settings || settings.provider === 'none' || !settings.endpoint || !settings.model) return;
 
+  // ---- Ensure KaTeX is available for LaTeX rendering in chat ----
+  var KATEX_VERSION = '0.16.11';
+  if (!document.querySelector('link[href*="katex"]')) {
+    var katexLink = document.createElement('link');
+    katexLink.rel = 'stylesheet';
+    katexLink.href = 'https://cdn.jsdelivr.net/npm/katex@' + KATEX_VERSION + '/dist/katex.min.css';
+    katexLink.crossOrigin = 'anonymous';
+    document.head.appendChild(katexLink);
+  }
+  if (typeof katex === 'undefined' && !document.querySelector('script[src*="katex"]')) {
+    var katexScript = document.createElement('script');
+    katexScript.src = 'https://cdn.jsdelivr.net/npm/katex@' + KATEX_VERSION + '/dist/katex.min.js';
+    katexScript.crossOrigin = 'anonymous';
+    document.head.appendChild(katexScript);
+  }
+
   // ---- Lightweight Markdown to HTML ----
   function escapeHtml(str) {
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -31,12 +47,27 @@
    * tables, horizontal rules, and paragraphs.
    */
   function renderMarkdown(text) {
-    // 1. Extract fenced code blocks into placeholders
+    // 1a. Extract fenced code blocks into placeholders
     var codeBlocks = [];
     text = text.replace(/```(\w*)\n([\s\S]*?)```/g, function (_, lang, code) {
       var idx = codeBlocks.length;
       codeBlocks.push('<pre class="md-pre"><code>' + escapeHtml(code.replace(/\n$/, '')) + '</code></pre>');
       return '\x00CODE' + idx + '\x00';
+    });
+
+    // 1b. Extract LaTeX blocks ($$...$$ display and $...$ inline) into placeholders
+    var latexBlocks = [];
+    // Display math first (greedy $$)
+    text = text.replace(/\$\$([\s\S]+?)\$\$/g, function (_, latex) {
+      var idx = latexBlocks.length;
+      latexBlocks.push({ latex: latex.trim(), display: true });
+      return '\x00LATEX' + idx + '\x00';
+    });
+    // Inline math ($...$) — avoid matching $$ or currency-like patterns
+    text = text.replace(/\$([^\$\n]+?)\$/g, function (_, latex) {
+      var idx = latexBlocks.length;
+      latexBlocks.push({ latex: latex.trim(), display: false });
+      return '\x00LATEX' + idx + '\x00';
     });
 
     // 2. Normalise line endings and split into blocks by blank lines
@@ -169,7 +200,35 @@
       continue;
     }
 
-    return out.join('');
+    var html = out.join('');
+
+    // Restore LaTeX placeholders as data-latex-render spans
+    html = html.replace(/\x00LATEX(\d+)\x00/g, function (_, idx) {
+      var entry = latexBlocks[parseInt(idx, 10)];
+      if (!entry) return '';
+      var tag = entry.display ? 'div' : 'span';
+      var cls = entry.display ? 'assistant-math-display' : 'assistant-math-inline';
+      return '<' + tag + ' class="' + cls + '" data-latex-render="' + escapeHtml(entry.latex) + '"></' + tag + '>';
+    });
+
+    return html;
+  }
+
+  /** Post-process a DOM element to render LaTeX via KaTeX */
+  function renderLatexInEl(el) {
+    if (typeof katex === 'undefined') return;
+    var nodes = el.querySelectorAll('[data-latex-render]');
+    for (var i = 0; i < nodes.length; i++) {
+      var node = nodes[i];
+      var latex = node.getAttribute('data-latex-render');
+      var isDisplay = node.classList.contains('assistant-math-display');
+      try {
+        katex.render(latex, node, { displayMode: isDisplay, throwOnError: false, strict: false });
+        node.removeAttribute('data-latex-render');
+      } catch (e) {
+        node.textContent = latex;
+      }
+    }
   }
 
   // ---- Inject CSS ----
@@ -318,6 +377,10 @@
     '}',
     '[data-theme="dark"] .assistant-msg-ai .md-table th { background: rgba(255,255,255,0.06); }',
     '',
+    '/* LaTeX math in chat */',
+    '.assistant-math-display { display: block; text-align: center; margin: 10px 0; overflow-x: auto; }',
+    '.assistant-math-inline { display: inline; }',
+    '',
     '.thinking-dots {',
     '  display: inline-flex; align-items: center; gap: 5px; padding: 6px 2px;',
     '}',
@@ -358,7 +421,12 @@
     '@media (max-width: 640px) {',
     '  .assistant-fab { right: 16px; bottom: 16px; width: 46px; height: 46px; }',
     '  .assistant-dialog { right: 8px; bottom: 72px; width: calc(100vw - 16px); height: calc(100vh - 100px); }',
-    '}'
+    '}',
+    '',
+    '/* Raise z-index in presentation mode so dialog appears above presentation UI */',
+    '.is-presentation-mode .assistant-dialog { z-index: 10004; }',
+    '.is-presentation-mode .assistant-dialog.is-expanded { z-index: 10005; }',
+    '.is-presentation-mode .assistant-backdrop { z-index: 10004; }'
   ].join('\n');
   document.head.appendChild(style);
 
@@ -474,6 +542,7 @@
       div.textContent = content;
     } else {
       div.innerHTML = renderMarkdown(content);
+      renderLatexInEl(div);
     }
     messagesEl.appendChild(div);
     messagesEl.scrollTop = messagesEl.scrollHeight;
@@ -481,7 +550,7 @@
   }
 
   function buildMessages(userQuery) {
-    var systemMsg = '你是一个知识文章助手。以下是当前文章的内容，请基于文章内容回答用户的问题。如果问题超出文章范围，请如实说明。回答时可使用 Markdown 格式。\n\n---\n' + articleContext + '\n---';
+    var systemMsg = '你是一个知识文章助手。以下是当前文章的内容，请基于文章内容回答用户的问题。如果问题超出文章范围，请如实说明。回答时可使用 Markdown 格式，数学公式请使用 LaTeX 语法（行内公式用 $...$，独立公式用 $$...$$）。\n\n---\n' + articleContext + '\n---';
     var messages = [{ role: 'system', content: systemMsg }];
     conversationHistory.forEach(function (m) { messages.push(m); });
     messages.push({ role: 'user', content: userQuery });
@@ -530,6 +599,7 @@
           renderTimer = null;
           if (aiDiv) {
             aiDiv.innerHTML = renderMarkdown(fullText);
+            renderLatexInEl(aiDiv);
             messagesEl.scrollTop = messagesEl.scrollHeight;
           }
         }, 80);
@@ -545,6 +615,7 @@
             messagesEl.appendChild(aiDiv);
           }
           aiDiv.innerHTML = renderMarkdown(fullText || '(无回复)');
+          renderLatexInEl(aiDiv);
           messagesEl.scrollTop = messagesEl.scrollHeight;
           conversationHistory.push({ role: 'assistant', content: fullText });
           isSending = false;

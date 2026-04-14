@@ -853,6 +853,27 @@
       transition: opacity 0.2s;
     }
     .settings-btn-save:hover { opacity: 0.88; }
+    .settings-range-row {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .settings-range {
+      flex: 1; accent-color: var(--accent);
+    }
+    .settings-range-value {
+      width: 32px; text-align: right;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 0.78rem; color: var(--muted);
+    }
+    .settings-voice-row {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .settings-voice-row .settings-select {
+      flex: 1; min-width: 0;
+    }
+    .narr-voice-preview {
+      flex-shrink: 0; width: auto; margin-top: 0;
+      padding: 6px 12px; font-size: 0.78rem;
+    }
 
     /* ---- toggle switch ---- */
     .settings-toggle {
@@ -1804,6 +1825,41 @@
         </div>
         <button class="settings-btn-save" id="llm-save" data-zh="保存设置" data-en="Save Settings">保存设置</button>
       </section>
+      <section class="settings-section">
+        <h3 data-zh="语音讲解设置" data-en="Narration Voice Settings">语音讲解设置</h3>
+        <div class="settings-field">
+          <label class="settings-label" for="narr-lang" data-zh="讲解语言" data-en="Narration Language">讲解语言</label>
+          <select class="settings-select" id="narr-lang">
+            <option value="auto" data-zh="跟随页面" data-en="Follow page">跟随页面</option>
+            <option value="zh">中文</option>
+            <option value="en">English</option>
+          </select>
+        </div>
+        <div class="settings-field">
+          <label class="settings-label" for="narr-rate" data-zh="语速" data-en="Speed">语速</label>
+          <div class="settings-range-row">
+            <input class="settings-range" type="range" id="narr-rate" min="0.5" max="1.5" step="0.1" value="0.92" />
+            <span class="settings-range-value" id="narr-rate-value">0.92</span>
+          </div>
+        </div>
+        <div class="settings-field">
+          <label class="settings-label" for="narr-voice" data-zh="语音" data-en="Voice">语音</label>
+          <div class="settings-voice-row">
+            <select class="settings-select" id="narr-voice">
+              <option value="" data-zh="自动" data-en="Auto">自动</option>
+            </select>
+            <button class="settings-btn-test narr-voice-preview" id="narr-voice-preview" type="button" data-zh="试听" data-en="Preview">试听</button>
+          </div>
+        </div>
+        <button class="settings-btn-save" id="narr-save" data-zh="保存设置" data-en="Save Settings">保存设置</button>
+        <div class="settings-toggle" style="margin-top: 14px;">
+          <span class="settings-toggle-label" data-zh="演示时自动开始语音讲解" data-en="Auto-start narration in presentation">演示时自动开始语音讲解</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="narr-autostart" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </section>
     </div>
   </aside>
 
@@ -1870,6 +1926,7 @@
     // ============ DERIVED COMPAT ARRAYS ============
     // allPlanets/allGroups/allPosts: every node (for Galaxy DOM creation)
     // planets/groups/posts: filtered by showHidden (for rendering)
+    var showHidden = localStorage.getItem('showHidden') === 'true';
     var allPlanets = [];
     var allGroups = [];
     var allPosts = [];
@@ -1959,7 +2016,7 @@
     var schemeVarKeys = ['--bg','--ink','--muted','--accent','--teal','--gold','--orbit-stroke','--node-glow','--card-bg','--card-border','--card-shadow','--line-color','--ctrl-bg','--ctrl-hover'];
     var openMode = localStorage.getItem('openMode') || 'same';
     var bgTexture = localStorage.getItem('bgTexture') || 'stars';
-    var showHidden = localStorage.getItem('showHidden') === 'true';
+    // showHidden declared earlier (before rebuildDerivedArrays)
     var activePostId = null;
     var hoverPostId = null;
     var selectedPlanetId = null;
@@ -3105,6 +3162,112 @@
           statusEl.textContent = '';
           statusEl.className = 'settings-status';
         }, 2000);
+      });
+
+      // ── Narration voice settings ──
+      var narrLang = document.getElementById('narr-lang');
+      var narrRate = document.getElementById('narr-rate');
+      var narrRateValue = document.getElementById('narr-rate-value');
+      var narrVoice = document.getElementById('narr-voice');
+      var narrPreview = document.getElementById('narr-voice-preview');
+      var narrSave = document.getElementById('narr-save');
+
+      // Load saved global narration settings
+      var narrSaved = null;
+      try { narrSaved = JSON.parse(localStorage.getItem('narration-settings')); } catch (e) {}
+      if (narrSaved) {
+        if (narrSaved.lang) narrLang.value = narrSaved.lang;
+        if (narrSaved.rate) { narrRate.value = narrSaved.rate; narrRateValue.textContent = narrSaved.rate; }
+      }
+
+      // Populate voice list
+      var narrDialectMap = {
+        'zh-CN': '普通话', 'zh-TW': '台湾', 'zh-HK': '粤语',
+        'en-US': 'US', 'en-GB': 'UK', 'en-AU': 'AU', 'en-IN': 'IN', 'en-IE': 'IE', 'en-ZA': 'ZA'
+      };
+
+      var populateNarrVoices = function () {
+        if (!window.speechSynthesis) return;
+        var allVoices = window.speechSynthesis.getVoices();
+        if (!allVoices || !allVoices.length) return;
+
+        var filterLang = narrLang.value;
+        if (filterLang === 'auto') filterLang = (localStorage.getItem('lang') || 'zh');
+        var langPrefix = (filterLang === 'zh') ? 'zh' : 'en';
+        var currentVal = narrVoice.value;
+
+        while (narrVoice.options.length > 1) {
+          narrVoice.removeChild(narrVoice.lastChild);
+        }
+
+        allVoices.forEach(function (v) {
+          if (v.lang.indexOf(langPrefix) !== 0) return;
+          var opt = document.createElement('option');
+          opt.value = v.name;
+          var dialectLabel = narrDialectMap[v.lang] || v.lang;
+          var coreName = v.name.replace(/\s*\(.*\)\s*$/, '');
+          opt.textContent = coreName + ' · ' + dialectLabel;
+          opt.title = v.name + ' (' + v.lang + ')';
+          narrVoice.appendChild(opt);
+        });
+
+        if (currentVal) narrVoice.value = currentVal;
+        if (narrSaved && narrSaved.voiceName && !currentVal) narrVoice.value = narrSaved.voiceName;
+      };
+
+      populateNarrVoices();
+      if (window.speechSynthesis) {
+        window.speechSynthesis.addEventListener('voiceschanged', populateNarrVoices);
+      }
+
+      narrLang.addEventListener('change', function () {
+        narrVoice.value = '';
+        populateNarrVoices();
+      });
+
+      narrRate.addEventListener('input', function () {
+        narrRateValue.textContent = parseFloat(narrRate.value).toFixed(2);
+      });
+
+      // Voice preview
+      narrPreview.addEventListener('click', function () {
+        if (!window.speechSynthesis) return;
+        window.speechSynthesis.cancel();
+        var filterLang = narrLang.value;
+        if (filterLang === 'auto') filterLang = (localStorage.getItem('lang') || 'zh');
+        var testText = (filterLang === 'zh')
+          ? '这是一段语音测试，你可以听到当前选择的语音效果。'
+          : 'This is a voice preview. You can hear how the selected voice sounds.';
+        var utt = new SpeechSynthesisUtterance(testText);
+        utt.lang = (filterLang === 'zh') ? 'zh-CN' : 'en-US';
+        utt.rate = parseFloat(narrRate.value) || 0.92;
+        if (narrVoice.value) {
+          var allV = window.speechSynthesis.getVoices();
+          var match = allV.filter(function (v) { return v.name === narrVoice.value; });
+          if (match.length) utt.voice = match[0];
+        }
+        window.speechSynthesis.speak(utt);
+      });
+
+      // Save narration settings
+      narrSave.addEventListener('click', function () {
+        var s = {
+          lang: narrLang.value === 'auto' ? '' : narrLang.value,
+          rate: parseFloat(narrRate.value),
+          voiceName: narrVoice.value
+        };
+        localStorage.setItem('narration-settings', JSON.stringify(s));
+        narrSave.textContent = '✓ 已保存';
+        setTimeout(function () {
+          narrSave.textContent = '保存设置';
+        }, 2000);
+      });
+
+      // Auto-start narration toggle
+      var narrAutostart = document.getElementById('narr-autostart');
+      narrAutostart.checked = localStorage.getItem('narration-autostart') === 'true';
+      narrAutostart.addEventListener('change', function () {
+        localStorage.setItem('narration-autostart', narrAutostart.checked ? 'true' : 'false');
       });
     }
 

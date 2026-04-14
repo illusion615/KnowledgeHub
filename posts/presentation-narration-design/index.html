@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>演示模式自动讲解：基于 LLM 的 Narrative 生成与语音合成设计</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(2rem, 5vw, 3.6rem);
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      max-width: 20ch;
+    }
+
+    /* Architecture diagram */
+    .arch-diagram {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0;
+      margin: 28px 0;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid var(--card-border);
+    }
+    .arch-layer {
+      padding: 22px 28px;
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      align-items: flex-start;
+      gap: 18px;
+    }
+    .arch-layer:last-child { border-bottom: none; }
+    .arch-layer-tag {
+      flex-shrink: 0;
+      display: inline-block;
+      padding: 4px 14px;
+      border-radius: 8px;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+    }
+    .arch-layer-tag.ui      { background: rgba(13,143,140,0.14); color: var(--teal); }
+    .arch-layer-tag.engine   { background: rgba(255,122,0,0.12); color: var(--accent); }
+    .arch-layer-tag.llm      { background: rgba(124,58,237,0.12); color: #7c3aed; }
+    .arch-layer-tag.speech   { background: rgba(224,176,75,0.12); color: var(--gold); }
+    [data-theme="dark"] .arch-layer-tag.ui      { background: rgba(13,143,140,0.22); }
+    [data-theme="dark"] .arch-layer-tag.engine   { background: rgba(255,122,0,0.18); }
+    [data-theme="dark"] .arch-layer-tag.llm      { background: rgba(124,58,237,0.18); }
+    [data-theme="dark"] .arch-layer-tag.speech   { background: rgba(224,176,75,0.18); }
+    .arch-layer-body h4 {
+      margin: 0 0 6px;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+    .arch-layer-body p {
+      margin: 0;
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* State machine */
+    .state-machine {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 24px 0;
+      align-items: center;
+      justify-content: center;
+    }
+    .state-node {
+      padding: 14px 22px;
+      border-radius: 14px;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 0.88rem;
+      font-weight: 700;
+      text-align: center;
+      min-width: 120px;
+    }
+    .state-node.idle       { background: rgba(0,0,0,0.04); color: var(--muted); border: 2px solid var(--card-border); }
+    .state-node.generating { background: rgba(124,58,237,0.1); color: #7c3aed; border: 2px solid rgba(124,58,237,0.3); }
+    .state-node.playing    { background: rgba(13,143,140,0.1); color: var(--teal); border: 2px solid rgba(13,143,140,0.3); }
+    .state-node.paused     { background: rgba(255,122,0,0.1); color: var(--accent); border: 2px solid rgba(255,122,0,0.3); }
+    [data-theme="dark"] .state-node.idle { background: rgba(255,255,255,0.04); }
+    [data-theme="dark"] .state-node.generating { background: rgba(124,58,237,0.15); }
+    [data-theme="dark"] .state-node.playing    { background: rgba(13,143,140,0.15); }
+    [data-theme="dark"] .state-node.paused     { background: rgba(255,122,0,0.15); }
+    .state-arrow {
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-family: "Space Grotesk", sans-serif;
+      white-space: nowrap;
+    }
+
+    /* Pipeline timeline */
+    .pipeline-visual {
+      margin: 24px 0;
+      padding: 28px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      overflow-x: auto;
+    }
+    .pipeline-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 10px;
+      font-size: 0.82rem;
+    }
+    .pipeline-row:last-child { margin-bottom: 0; }
+    .pipeline-label {
+      flex-shrink: 0;
+      width: 80px;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 700;
+      font-size: 0.78rem;
+      color: var(--muted);
+      text-align: right;
+      padding-right: 12px;
+    }
+    .pipeline-bar {
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 600;
+      font-size: 0.72rem;
+      color: #fff;
+      white-space: nowrap;
+      padding: 0 12px;
+    }
+    .pipeline-bar.gen  { background: #7c3aed; }
+    .pipeline-bar.speak { background: var(--teal); }
+    .pipeline-bar.gap   { background: transparent; }
+    .pipeline-spacer { flex-shrink: 0; }
+
+    /* UI mockup */
+    .ui-mockup {
+      margin: 24px 0;
+      padding: 32px 28px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      position: relative;
+    }
+    .mockup-floating {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      align-items: center;
+    }
+    .mockup-deck {
+      font-size: 0.82rem;
+      color: var(--muted);
+      text-align: center;
+    }
+    .mockup-deck strong { color: var(--ink); margin-left: 4px; }
+    .mockup-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .mockup-btn {
+      padding: 8px 18px;
+      border-radius: 10px;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--ink);
+      cursor: default;
+    }
+    .mockup-btn.primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .mockup-btn.active {
+      background: var(--teal);
+      color: #fff;
+      border-color: var(--teal);
+    }
+    .mockup-status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .mockup-indicator {
+      display: inline-flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 14px;
+    }
+    .mockup-indicator span {
+      width: 3px;
+      background: var(--accent);
+      border-radius: 1.5px;
+      animation: narration-wave 1.2s ease-in-out infinite;
+    }
+    .mockup-indicator span:nth-child(1) { height: 40%; animation-delay: 0s; }
+    .mockup-indicator span:nth-child(2) { height: 70%; animation-delay: 0.2s; }
+    .mockup-indicator span:nth-child(3) { height: 50%; animation-delay: 0.4s; }
+    @keyframes narration-wave {
+      0%, 100% { transform: scaleY(0.5); }
+      50% { transform: scaleY(1); }
+    }
+    .mockup-subtitle {
+      margin-top: 18px;
+      padding: 10px 20px;
+      background: rgba(0,0,0,0.72);
+      color: #fff;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      text-align: center;
+      max-width: 72%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* Decision table */
+    .decision-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 0.85rem;
+    }
+    .decision-table th,
+    .decision-table td {
+      padding: 12px 16px;
+      border: 1px solid var(--card-border);
+      text-align: left;
+      vertical-align: top;
+    }
+    .decision-table th {
+      background: rgba(0,0,0,0.03);
+      font-weight: 700;
+      font-size: 0.82rem;
+      white-space: nowrap;
+    }
+    [data-theme="dark"] .decision-table th {
+      background: rgba(255,255,255,0.04);
+    }
+    .decision-table td:first-child {
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    /* Edge case table */
+    .edge-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 0.85rem;
+    }
+    .edge-table th,
+    .edge-table td {
+      padding: 10px 14px;
+      border: 1px solid var(--card-border);
+      text-align: left;
+      vertical-align: top;
+    }
+    .edge-table th {
+      background: rgba(0,0,0,0.03);
+      font-weight: 700;
+      font-size: 0.82rem;
+    }
+    [data-theme="dark"] .edge-table th {
+      background: rgba(255,255,255,0.04);
+    }
+
+    /* Prompt box */
+    .prompt-box {
+      margin: 18px 0;
+      padding: 22px 26px;
+      border-radius: 16px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      font-size: 0.86rem;
+      line-height: 1.7;
+      color: var(--ink);
+    }
+    .prompt-box .prompt-label {
+      display: inline-block;
+      padding: 3px 12px;
+      border-radius: 6px;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 10px;
+    }
+    .prompt-box .prompt-label.sys { background: rgba(124,58,237,0.12); color: #7c3aed; }
+    .prompt-box .prompt-label.user { background: rgba(13,143,140,0.14); color: var(--teal); }
+    [data-theme="dark"] .prompt-box .prompt-label.sys { background: rgba(124,58,237,0.18); }
+    [data-theme="dark"] .prompt-box .prompt-label.user { background: rgba(13,143,140,0.22); }
+
+    /* Compat grid */
+    .compat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 14px;
+      margin: 20px 0;
+    }
+    .compat-card {
+      padding: 18px 16px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      text-align: center;
+    }
+    .compat-card .compat-icon {
+      font-size: 1.6rem;
+      margin-bottom: 6px;
+    }
+    .compat-card .compat-name {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .compat-card .compat-ver {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* Phase cards */
+    .phase-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+      margin: 24px 0;
+    }
+    .phase-card {
+      padding: 28px 24px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      box-shadow: var(--card-shadow);
+    }
+    .phase-card h4 {
+      margin: 0 0 6px;
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+    .phase-card .phase-tag {
+      display: inline-block;
+      padding: 3px 12px;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 14px;
+    }
+    .phase-tag.mvp     { background: rgba(13,143,140,0.14); color: var(--teal); }
+    .phase-tag.polish   { background: rgba(255,122,0,0.12); color: var(--accent); }
+    .phase-tag.future   { background: rgba(124,58,237,0.12); color: #7c3aed; }
+    [data-theme="dark"] .phase-tag.mvp     { background: rgba(13,143,140,0.22); }
+    [data-theme="dark"] .phase-tag.polish   { background: rgba(255,122,0,0.18); }
+    [data-theme="dark"] .phase-tag.future   { background: rgba(124,58,237,0.18); }
+    .phase-card ul {
+      margin: 0;
+      padding: 0 0 0 18px;
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    /* File tree */
+    .file-tree {
+      margin: 20px 0;
+      padding: 22px 26px;
+      border-radius: 16px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.82rem;
+      line-height: 1.9;
+      color: var(--ink);
+      white-space: pre;
+      overflow-x: auto;
+    }
+    .file-tree .ft-new  { color: var(--teal); font-weight: 700; }
+    .file-tree .ft-mod  { color: var(--accent); font-weight: 700; }
+    .file-tree .ft-ref  { color: var(--muted); }
+    .file-tree .ft-note { color: #7c3aed; font-style: italic; font-family: "Noto Sans SC", sans-serif; font-size: 0.78rem; }
+
+    /* Pipeline sizing */
+    .pipeline-bar-gen-sm  { width: 80px; }
+    .pipeline-bar-speak-lg { width: 200px; }
+    .pipeline-spacer-sm   { width: 60px; }
+    .pipeline-spacer-md   { width: 120px; }
+    .pipeline-spacer-lg   { width: 284px; }
+
+    /* Edge table extra margin */
+    .mt-18 { margin-top: 18px; }
+
+    /* Mockup CC button override */
+    .mockup-btn-cc {
+      padding: 4px 10px;
+      font-size: 0.72rem;
+    }
+
+    /* Indicator preview */
+    .indicator-preview {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0;
+    }
+    .mockup-indicator-lg { height: 24px; }
+    .mockup-indicator-lg span { width: 4px; }
+    .indicator-caption {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    @media (max-width: 640px) {
+      .state-machine { flex-direction: column; }
+      .pipeline-visual { padding: 18px; }
+      .compat-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            Knowledge Hub
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#requirement">需求</a>
+            <a href="#architecture">架构</a>
+            <a href="#narration-engine">引擎</a>
+            <a href="#integration">集成</a>
+            <a href="#ui-design">UI</a>
+            <a href="#edge-cases">边界</a>
+            <a href="#decisions">决策</a>
+            <a href="#roadmap">路线</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Design Document</span>
+            <h1>演示模式自动讲解设计</h1>
+            <p>
+              为演示模式增加 LLM 驱动的自动讲解功能。幻灯片负责信息披露，讲解词负责引导和强调——模拟一位 presenter 正在做 talk 的体验，而非简单的定时切换或文字朗读。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#architecture">查看架构</a>
+              <a class="button button-secondary" href="#roadmap">实施路线</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">核心理念</span>
+            <h2>Deck 披露信息，Narrative 引导理解</h2>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span>每页由 LLM 生成 presenter 风格讲解词</li>
+              <li><span class="layer-number">2</span>Web Speech API 语音合成，零外部依赖</li>
+              <li><span class="layer-number">3</span>Look-ahead pipeline 预生成下一页</li>
+              <li><span class="layer-number">4</span>惰性加载，无 LLM 配置时静默隐藏</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label" data-zh="新增文件" data-en="New File">新增文件</div>
+            <strong>1</strong>
+            <span data-zh="article-narration.js — 惰性加载的讲解引擎" data-en="article-narration.js — lazy-loaded narration engine">article-narration.js — 惰性加载的讲解引擎</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="外部依赖" data-en="External Dependencies">外部依赖</div>
+            <strong>0</strong>
+            <span data-zh="Web Speech API + 现有 LLM 设置，无新增依赖" data-en="Web Speech API + existing LLM settings, zero new deps">Web Speech API + 现有 LLM 设置，无新增依赖</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="语音引擎" data-en="Speech Engine">语音引擎</div>
+            <strong>Web Speech</strong>
+            <span data-zh="浏览器原生 SpeechSynthesis API，离线可用" data-en="Browser-native SpeechSynthesis API, works offline">浏览器原生 SpeechSynthesis API，离线可用</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="生成策略" data-en="Generation Strategy">生成策略</div>
+            <strong>Look-ahead</strong>
+            <span data-zh="当前页 + 下一页并行，缓存已生成 narrative" data-en="Current + next slide in parallel, cache generated narratives">当前页 + 下一页并行，缓存已生成 narrative</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- Section 01: 需求概述 -->
+        <section id="requirement" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / Requirement</p>
+            <h2>需求概述</h2>
+            <p>当前演示模式支持手动翻页浏览，但缺少自动播放和讲解能力。目标是增加一种由 LLM 驱动的自动讲解模式，让演示体验接近真人 presenter 做 talk。</p>
+          </div>
+
+          <div class="insight-grid">
+            <article class="insight-card">
+              <span class="card-index">01</span>
+              <h3>角色分工</h3>
+              <p>幻灯片（Deck）承担信息披露职能——结构化地展示数据、列表、图表、对比。讲解词（Narrative）承担引导与强调职能——以演讲者视角串联逻辑、提示重点、提供页间过渡。两者互补，不重复。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">02</span>
+              <h3>不是什么</h3>
+              <p>不是定时切换——每页停留时间由讲解词长度决定，而非固定秒数。不是照读文字——LLM 生成的是 presenter 口吻的总结和引导，不是 slide 文本的复述。不是预录音频——讲解词实时生成，每次可能略有不同。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">03</span>
+              <h3>Graceful Degradation</h3>
+              <p>未配置 LLM 设置时，auto-play 按钮完全隐藏，不影响现有功能。浏览器不支持 Speech API 时同理。零干扰的渐进增强策略。</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 02: 系统架构 -->
+        <section id="architecture" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Architecture</p>
+            <h2>系统架构</h2>
+            <p>新增惰性加载模块 article-narration.js，通过回调与宿主 article-presentation.js 通信。遵循 pptx-export.js 的惰性加载先例。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>四层架构</span>
+              </button>
+              <div class="subsection-content">
+                <div class="arch-diagram">
+                  <div class="arch-layer">
+                    <span class="arch-layer-tag ui">UI Layer</span>
+                    <div class="arch-layer-body">
+                      <h4>演示浮动控件</h4>
+                      <p>Auto-play 按钮（▶/⏸ 切换）、说话指示器动画、字幕叠层、CC 切换按钮。宿主 article-presentation.js 负责创建和管理。</p>
+                    </div>
+                  </div>
+                  <div class="arch-layer">
+                    <span class="arch-layer-tag engine">Controller</span>
+                    <div class="arch-layer-body">
+                      <h4>NarrationController</h4>
+                      <p>编排整个播放流程的状态机。管理 start / pause / resume / stop / syncToSlide 生命周期，协调文本提取、LLM 生成、语音播放三个子系统。内部维护 narrative 缓存（Map&lt;slideIndex, string&gt;）和 look-ahead 管线。</p>
+                    </div>
+                  </div>
+                  <div class="arch-layer">
+                    <span class="arch-layer-tag llm">LLM</span>
+                    <div class="arch-layer-body">
+                      <h4>Narrative 生成器</h4>
+                      <p>从 slide DOM 提取可见文本 → 构造 presenter 风格 system prompt → 非流式 fetch 请求 LLM → 返回 2-3 句讲解词。复用 article-assistant.js 的 localStorage('llm-settings') 配置（Ollama / OpenAI / Azure）。</p>
+                    </div>
+                  </div>
+                  <div class="arch-layer">
+                    <span class="arch-layer-tag speech">Speech</span>
+                    <div class="arch-layer-body">
+                      <h4>语音合成器</h4>
+                      <p>封装 Web Speech API（SpeechSynthesis + SpeechSynthesisUtterance）。自动选择 zh-CN / en-US 高质量语音，语速 0.92。处理 Chrome 长文本 bug（按句拆分）、语音列表异步加载、页面可见性变化。</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>文件清单</span>
+              </button>
+              <div class="subsection-content">
+                <div class="file-tree"><span class="ft-new">assets/article-narration.js</span>   <span class="ft-note">← 新建：讲解引擎 + 语音合成 + LLM 生成</span>
+<span class="ft-mod">assets/article-presentation.js</span> <span class="ft-note">← 修改：auto-play 按钮 + 惰性加载 + 导航钩子</span>
+<span class="ft-mod">assets/article.css</span>             <span class="ft-note">← 修改：讲解 UI 样式</span>
+<span class="ft-ref">assets/article-assistant.js</span>    <span class="ft-note">← 参考：复用 LLM 集成模式</span>
+<span class="ft-ref">assets/pptx-export.js</span>          <span class="ft-note">← 参考：惰性加载先例</span></div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>模块 API</span>
+              </button>
+              <div class="subsection-content">
+                <p>新模块通过 <code>window.StudyRoomNarration</code> 暴露工厂方法，返回 NarrationController 实例：</p>
+                <table class="edge-table">
+                  <thead>
+                    <tr>
+                      <th>方法</th>
+                      <th>签名</th>
+                      <th>说明</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><code>start</code></td>
+                      <td>(steps, index, getLang)</td>
+                      <td>从指定 slide 启动自动讲解</td>
+                    </tr>
+                    <tr>
+                      <td><code>pause</code></td>
+                      <td>()</td>
+                      <td>暂停语音 + 冻结状态</td>
+                    </tr>
+                    <tr>
+                      <td><code>resume</code></td>
+                      <td>()</td>
+                      <td>恢复语音播放</td>
+                    </tr>
+                    <tr>
+                      <td><code>stop</code></td>
+                      <td>()</td>
+                      <td>取消所有：语音、pending 请求、计时器</td>
+                    </tr>
+                    <tr>
+                      <td><code>syncToSlide</code></td>
+                      <td>(index)</td>
+                      <td>手动导航时同步；取消当前语音，切到新 slide</td>
+                    </tr>
+                    <tr>
+                      <td><code>isActive</code></td>
+                      <td>() → boolean</td>
+                      <td>是否处于 playing 或 paused 状态</td>
+                    </tr>
+                    <tr>
+                      <td><code>getState</code></td>
+                      <td>() → string</td>
+                      <td>idle / generating / playing / paused</td>
+                    </tr>
+                    <tr>
+                      <td><code>destroy</code></td>
+                      <td>()</td>
+                      <td>清理所有资源</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 03: Narration Engine -->
+        <section id="narration-engine" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / Narration Engine</p>
+            <h2>讲解引擎</h2>
+            <p>讲解引擎包含三个核心子系统：文本提取、LLM Narrative 生成、Web Speech 语音合成，以及协调它们的 NarrationController 状态机。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>状态机</span>
+              </button>
+              <div class="subsection-content">
+                <p>NarrationController 的四个状态及转换路径：</p>
+                <div class="state-machine">
+                  <div class="state-node idle">idle</div>
+                  <span class="state-arrow">— start() →</span>
+                  <div class="state-node generating">generating</div>
+                  <span class="state-arrow">— LLM 返回 →</span>
+                  <div class="state-node playing">playing</div>
+                  <span class="state-arrow">— pause() ⇄ resume() →</span>
+                  <div class="state-node paused">paused</div>
+                </div>
+                <p>playing 状态下语音结束（utterance.onend）触发 onSlideComplete 回调 → 宿主调用 goToNextStep() → 进入下一页的 generating 状态。stop() 从任意状态回到 idle。最后一页播放完毕自动 stop()。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>文本提取</span>
+              </button>
+              <div class="subsection-content">
+                <p>与 article-assistant.js 的全文提取不同，讲解引擎只提取当前活跃 slide 的可见内容：</p>
+                <div class="flow-list">
+                  <div class="flow-item">
+                    <span class="flow-number">1</span>
+                    <div class="flow-body">
+                      <strong>提取标题层</strong>
+                      <p>读取 data-step-title 和 data-step-label 属性值作为结构化标题信息</p>
+                    </div>
+                  </div>
+                  <div class="flow-item">
+                    <span class="flow-number">2</span>
+                    <div class="flow-body">
+                      <strong>遍历可见子元素</strong>
+                      <p>提取 innerText，跳过 aria-hidden=true、未展开的 .subsection-content、display:none 元素</p>
+                    </div>
+                  </div>
+                  <div class="flow-item">
+                    <span class="flow-number">3</span>
+                    <div class="flow-body">
+                      <strong>合并与截断</strong>
+                      <p>将标题和正文合并，截断至 2000 字符，确保 LLM prompt 不超限</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>LLM Narrative 生成</span>
+              </button>
+              <div class="subsection-content">
+                <p>使用非流式请求生成 2-3 句 presenter 风格讲解词（短回复，流式无收益）。复用现有 llm-settings 配置。</p>
+
+                <div class="prompt-box">
+                  <span class="prompt-label sys">System Prompt（中文）</span>
+                  <p>你是一位正在进行演示的讲解者。你的任务是根据当前幻灯片的内容，生成2-3句自然的演讲讲解词。</p>
+                  <p><strong>规则：</strong>不要照读幻灯片上的文字。用口语化的演讲语气，像在对听众说话。总结该页的核心要点。如果不是第一页，提供与上一页的过渡。如果有重要数据或对比，通过语气强调。控制在 50-80 字以内。</p>
+                </div>
+
+                <div class="prompt-box">
+                  <span class="prompt-label sys">System Prompt（英文）</span>
+                  <p>You are a presenter narrating a slide deck live. Generate 2-3 sentences of natural presenter commentary for the current slide.</p>
+                  <p><strong>Rules:</strong> Do NOT read the slide text verbatim. Use a conversational speaking tone. Summarize the key takeaway. Provide transitions from previous topics. Emphasize important data. Keep it under 60 words.</p>
+                </div>
+
+                <div class="prompt-box">
+                  <span class="prompt-label user">User Prompt 模板</span>
+                  <p>幻灯片 {index}/{total}<br/>标签: {label}<br/>标题: {title}<br/>内容:<br/>{body}</p>
+                </div>
+
+                <p>请求超时 15 秒。超时或错误时跳过该页讲解，3 秒后自动前进。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Web Speech API 封装</span>
+              </button>
+              <div class="subsection-content">
+                <p>封装 SpeechSynthesisUtterance，处理语音选择、长文本拆分和浏览器兼容性。</p>
+                <table class="edge-table">
+                  <thead>
+                    <tr>
+                      <th>配置项</th>
+                      <th>值</th>
+                      <th>说明</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>语言</td>
+                      <td>zh-CN / en-US</td>
+                      <td>根据 getLang() 自动切换</td>
+                    </tr>
+                    <tr>
+                      <td>语速</td>
+                      <td>0.92</td>
+                      <td>略慢于默认，清晰度优先</td>
+                    </tr>
+                    <tr>
+                      <td>音调</td>
+                      <td>1.0</td>
+                      <td>自然音调</td>
+                    </tr>
+                    <tr>
+                      <td>语音选择</td>
+                      <td>Premium 优先</td>
+                      <td>优先名称含 Premium / Enhanced / Natural 的高质量语音</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <table class="edge-table mt-18">
+                  <thead>
+                    <tr>
+                      <th>已知问题</th>
+                      <th>处理方式</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>getVoices() 异步加载</td>
+                      <td>监听 voiceschanged 事件，首次加载时缓存语音列表</td>
+                    </tr>
+                    <tr>
+                      <td>Chrome 长文本 bug（&gt;15s 中断）</td>
+                      <td>超过 200 字符按句号拆分，串行播放各段</td>
+                    </tr>
+                    <tr>
+                      <td>Safari 需要用户手势</td>
+                      <td>auto-play 按钮的 click 事件本身满足手势要求</td>
+                    </tr>
+                    <tr>
+                      <td>页面不可见时语音可能暂停</td>
+                      <td>visibilitychange 事件中处理暂停/恢复</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Look-Ahead Pipeline</span>
+              </button>
+              <div class="subsection-content">
+                <p>核心优化策略：在当前 slide 语音播放期间，提前生成下一页的 narrative，消除页间等待。</p>
+                <div class="pipeline-visual">
+                  <div class="pipeline-row">
+                    <span class="pipeline-label">Slide N</span>
+                    <div class="pipeline-bar gen pipeline-bar-gen-sm">Generate(N)</div>
+                    <div class="pipeline-bar speak pipeline-bar-speak-lg">Speak(N)</div>
+                  </div>
+                  <div class="pipeline-row">
+                    <span class="pipeline-label">预生成</span>
+                    <div class="pipeline-spacer pipeline-spacer-sm"></div>
+                    <div class="pipeline-bar gen pipeline-bar-gen-sm">Generate(N+1)</div>
+                    <div class="pipeline-spacer pipeline-spacer-md"></div>
+                    <span class="state-arrow">← 与 Speak(N) 并行</span>
+                  </div>
+                  <div class="pipeline-row">
+                    <span class="pipeline-label">Slide N+1</span>
+                    <div class="pipeline-spacer pipeline-spacer-lg"></div>
+                    <div class="pipeline-bar speak pipeline-bar-speak-lg">Speak(N+1) ← 已缓存</div>
+                  </div>
+                </div>
+                <p>缓存采用 <code>Map&lt;number, string&gt;</code>，按 slide index 索引。同一 session 内不失效——用户倒退再前进时可直接复用已生成的 narrative，无需重新请求 LLM。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 04: 演示集成 -->
+        <section id="integration" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / Integration</p>
+            <h2>演示集成</h2>
+            <p>新功能通过四个集成点接入现有演示引擎：按钮注入、惰性加载、导航钩子、标签扩展。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>Auto-Play 按钮</span>
+              </button>
+              <div class="subsection-content">
+                <p>在 ensureFloating() 创建的浮动控件中，于 Prev 和 Exit 按钮之间插入 auto-play 按钮。按钮使用 ▶（play）/ ⏸（pause）SVG 图标切换。</p>
+                <p><strong>可见性条件</strong>：仅当同时满足 (1) localStorage 中有有效的 llm-settings 且 (2) 浏览器支持 window.speechSynthesis 时显示。否则 display: none。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>惰性加载</span>
+              </button>
+              <div class="subsection-content">
+                <p>复用 pptx-export.js 的加载模式：</p>
+                <div class="flow-list">
+                  <div class="flow-item">
+                    <span class="flow-number">1</span>
+                    <div class="flow-body">
+                      <strong>首次点击 auto-play</strong>
+                      <p>调用 ensureNarration()，通过 resolvePresentationAssetUrl() 解析 article-narration.js 路径</p>
+                    </div>
+                  </div>
+                  <div class="flow-item">
+                    <span class="flow-number">2</span>
+                    <div class="flow-body">
+                      <strong>注入 script 标签</strong>
+                      <p>创建 &lt;script async&gt; 并 append 到 &lt;head&gt;，返回 Promise</p>
+                    </div>
+                  </div>
+                  <div class="flow-item">
+                    <span class="flow-number">3</span>
+                    <div class="flow-body">
+                      <strong>onload 回调</strong>
+                      <p>检查 window.StudyRoomNarration 是否可用，resolve 或 reject</p>
+                    </div>
+                  </div>
+                  <div class="flow-item">
+                    <span class="flow-number">4</span>
+                    <div class="flow-body">
+                      <strong>后续点击</strong>
+                      <p>直接返回缓存的 Promise，不重复加载</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>导航钩子</span>
+              </button>
+              <div class="subsection-content">
+                <p>在现有导航函数中插入 narration 感知逻辑：</p>
+                <table class="edge-table">
+                  <thead>
+                    <tr>
+                      <th>触发点</th>
+                      <th>行为</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>goToNextStep() / goToPreviousStep()</td>
+                      <td>如果 narration 活跃 → syncToSlide(newIndex)：取消当前语音，切到新 slide</td>
+                    </tr>
+                    <tr>
+                      <td>exitPresentation()</td>
+                      <td>如果 narration 活跃 → stop()：清理所有资源</td>
+                    </tr>
+                    <tr>
+                      <td>onFullscreenChange（退出全屏）</td>
+                      <td>如果 narration 活跃 → stop()：与退出演示联动</td>
+                    </tr>
+                    <tr>
+                      <td>narration onSlideComplete 回调</td>
+                      <td>宿主调用 goToNextStep()；最后一页时 stop() + 短暂提示</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>标签扩展</span>
+              </button>
+              <div class="subsection-content">
+                <p>在 labels 对象中新增双语条目：</p>
+                <table class="edge-table">
+                  <thead>
+                    <tr>
+                      <th>Key</th>
+                      <th>中文</th>
+                      <th>English</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>autoPlay</td><td>自动讲解</td><td>Auto narrate</td></tr>
+                    <tr><td>pauseNarration</td><td>暂停讲解</td><td>Pause</td></tr>
+                    <tr><td>resumeNarration</td><td>继续讲解</td><td>Resume</td></tr>
+                    <tr><td>narrationComplete</td><td>讲解完成</td><td>Narration complete</td></tr>
+                    <tr><td>narrationError</td><td>讲解生成失败</td><td>Narration failed</td></tr>
+                    <tr><td>narrationGenerating</td><td>正在生成讲解…</td><td>Generating narration…</td></tr>
+                    <tr><td>subtitles</td><td>字幕</td><td>Subtitles</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 05: UI 设计 -->
+        <section id="ui-design" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / UI Design</p>
+            <h2>UI 设计</h2>
+            <p>在现有浮动控件基础上增加 auto-play 按钮、说话指示器和字幕叠层，保持视觉一致性。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>浮动控件布局</span>
+              </button>
+              <div class="subsection-content">
+                <p>改造后的浮动控件实时预览：</p>
+                <div class="ui-mockup">
+                  <div class="mockup-floating">
+                    <div class="mockup-deck">
+                      <span>03 / Architecture</span>
+                      <strong>系统架构</strong>
+                    </div>
+                    <div class="mockup-controls">
+                      <span class="mockup-btn">◄ 上一页</span>
+                      <span class="mockup-btn active">⏸ 暂停讲解</span>
+                      <span class="mockup-btn primary">退出演示</span>
+                      <span class="mockup-btn">下一页 ►</span>
+                    </div>
+                    <div class="mockup-status">
+                      <div class="mockup-indicator">
+                        <span></span><span></span><span></span>
+                      </div>
+                      <span>3 / 12</span>
+                      <span>|</span>
+                      <span>正在讲解…</span>
+                      <span class="mockup-btn mockup-btn-cc">CC</span>
+                    </div>
+                    <div class="mockup-subtitle">
+                      接下来我们看系统的整体架构。讲解引擎作为独立模块惰性加载，通过回调机制与演示控制器通信…
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>说话指示器</span>
+              </button>
+              <div class="subsection-content">
+                <p>三条竖线波动动画，放在 counter 左侧。使用 CSS @keyframes 实现，无 JS 开销。仅在 playing 状态显示。</p>
+                <div class="indicator-preview">
+                  <div class="mockup-indicator mockup-indicator-lg">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                  <span class="indicator-caption">← 实际效果（CSS 动画）</span>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>字幕叠层</span>
+              </button>
+              <div class="subsection-content">
+                <p>半透明黑底白字条，固定在 slide 底部。默认开启，可通过 CC 按钮切换。偏好持久化到 localStorage('narration-subtitles')。</p>
+                <p>关键样式属性：</p>
+                <ul class="reference-list">
+                  <li>position: fixed; bottom: 80px（避开浮动控件）</li>
+                  <li>max-width: 72%，居中对齐</li>
+                  <li>background: rgba(0, 0, 0, 0.72)，圆角 8px</li>
+                  <li>opacity 过渡动画，is-visible 时显示</li>
+                  <li>z-index: 10001（高于浮动控件）</li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 06: 边界情况 -->
+        <section id="edge-cases" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / Edge Cases</p>
+            <h2>错误处理与边界情况</h2>
+            <p>系统设计覆盖 12 种边界场景，确保任何异常都不会阻断演示流程。</p>
+          </div>
+
+          <table class="edge-table">
+            <thead>
+              <tr>
+                <th>场景</th>
+                <th>处理方式</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>浏览器不支持 Speech API</td>
+                <td>隐藏 auto-play 按钮，不报错</td>
+              </tr>
+              <tr>
+                <td>未配置 LLM settings</td>
+                <td>隐藏 auto-play 按钮，不报错</td>
+              </tr>
+              <tr>
+                <td>LLM 请求超时（&gt;15s）</td>
+                <td>跳过该 slide 讲解，3s 后自动前进，状态栏短暂提示</td>
+              </tr>
+              <tr>
+                <td>LLM 返回错误</td>
+                <td>同上</td>
+              </tr>
+              <tr>
+                <td>LLM 返回空内容</td>
+                <td>跳过该 slide，立即前进</td>
+              </tr>
+              <tr>
+                <td>退出全屏</td>
+                <td>停止 auto-play（现有 exitPresentation() 联动）</td>
+              </tr>
+              <tr>
+                <td>手动点击 Prev/Next</td>
+                <td>取消当前语音，syncToSlide() 到新 slide</td>
+              </tr>
+              <tr>
+                <td>Escape 退出演示</td>
+                <td>stop() 清理所有资源</td>
+              </tr>
+              <tr>
+                <td>最后一页讲解完毕</td>
+                <td>auto-play 自动停止，提示 2s 后恢复</td>
+              </tr>
+              <tr>
+                <td>Chrome 长文本 bug</td>
+                <td>按句号切割 narrative，串行播放各段</td>
+              </tr>
+              <tr>
+                <td>语音列表异步加载</td>
+                <td>onvoiceschanged 事件监听，缓存语音列表</td>
+              </tr>
+              <tr>
+                <td>页面不可见</td>
+                <td>visibilitychange → 暂停语音，可见时恢复</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- Section 07: 设计决策 -->
+        <section id="decisions" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">07 / Design Decisions</p>
+            <h2>设计决策记录</h2>
+            <p>七项关键架构决策，每项记录选项、选择和理由。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>决策矩阵</span>
+              </button>
+              <div class="subsection-content">
+                <table class="decision-table">
+                  <thead>
+                    <tr>
+                      <th>决策</th>
+                      <th>选项</th>
+                      <th>选择</th>
+                      <th>理由</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>模块位置</td>
+                      <td>内联 vs 独立文件</td>
+                      <td>独立文件 article-narration.js</td>
+                      <td>保持 presentation.js 聚焦；支持惰性加载；遵循 pptx-export.js 先例</td>
+                    </tr>
+                    <tr>
+                      <td>LLM 请求</td>
+                      <td>流式 vs 非流式</td>
+                      <td>非流式</td>
+                      <td>Narrative 短（2-3句），流式增加复杂度无收益</td>
+                    </tr>
+                    <tr>
+                      <td>语音引擎</td>
+                      <td>Web Speech vs 云端 TTS</td>
+                      <td>Web Speech API</td>
+                      <td>零成本、零依赖、offline-capable；v2 可扩展</td>
+                    </tr>
+                    <tr>
+                      <td>生成策略</td>
+                      <td>全量预生成 vs look-ahead vs on-demand</td>
+                      <td>Look-ahead (current + next)</td>
+                      <td>全量启动慢；on-demand 页间等待长；look-ahead 平衡二者</td>
+                    </tr>
+                    <tr>
+                      <td>缓存范围</td>
+                      <td>in-memory vs sessionStorage</td>
+                      <td>in-memory</td>
+                      <td>v1 简单优先；倒退可复用；session 结束自然清理</td>
+                    </tr>
+                    <tr>
+                      <td>字幕叠层</td>
+                      <td>始终显示 vs 可切换</td>
+                      <td>可切换（默认开）</td>
+                      <td>现场演示可能觉得干扰；CC toggle 给予控制权</td>
+                    </tr>
+                    <tr>
+                      <td>降级策略</td>
+                      <td>报错 vs 静默隐藏</td>
+                      <td>静默隐藏</td>
+                      <td>无 LLM / 无 Speech → 按钮不可见，零干扰</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>浏览器兼容性</span>
+              </button>
+              <div class="subsection-content">
+                <p>核心 API 在所有目标浏览器上均有支持：</p>
+                <div class="compat-grid">
+                  <div class="compat-card">
+                    <div class="compat-icon">🌐</div>
+                    <div class="compat-name">Chrome</div>
+                    <div class="compat-ver">33+ (Speech) · 103+ (AbortSignal.timeout)</div>
+                  </div>
+                  <div class="compat-card">
+                    <div class="compat-icon">🧭</div>
+                    <div class="compat-name">Safari</div>
+                    <div class="compat-ver">14.1+ (Speech) · 16+ (AbortSignal.timeout)</div>
+                  </div>
+                  <div class="compat-card">
+                    <div class="compat-icon">🦊</div>
+                    <div class="compat-name">Firefox</div>
+                    <div class="compat-ver">49+ (Speech) · 100+ (AbortSignal.timeout)</div>
+                  </div>
+                  <div class="compat-card">
+                    <div class="compat-icon">📘</div>
+                    <div class="compat-name">Edge</div>
+                    <div class="compat-ver">14+ (Speech) · 103+ (AbortSignal.timeout)</div>
+                  </div>
+                </div>
+                <p>无新增外部依赖。LLM 后端复用现有 llm-settings 配置。代码遵循项目规范：vanilla JS、var 声明、forEach + function expressions、无箭头函数。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 08: 实施路线 -->
+        <section id="roadmap" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">08 / Roadmap</p>
+            <h2>实施路线</h2>
+            <p>分三个阶段交付：MVP 核心能力、UI Polish、远期增强。</p>
+          </div>
+
+          <div class="phase-grid">
+            <div class="phase-card">
+              <span class="phase-tag mvp">Phase 1 — MVP</span>
+              <h4>Core</h4>
+              <ul>
+                <li>文本提取器</li>
+                <li>LLM narrative 生成（非流式）</li>
+                <li>Web Speech API 封装</li>
+                <li>NarrationController 状态机</li>
+                <li>Auto-play 按钮 + 惰性加载</li>
+                <li>导航钩子接线</li>
+                <li>基本错误处理</li>
+              </ul>
+            </div>
+            <div class="phase-card">
+              <span class="phase-tag polish">Phase 2 — Polish</span>
+              <h4>体验优化</h4>
+              <ul>
+                <li>字幕叠层 + CC toggle</li>
+                <li>说话指示器动画</li>
+                <li>Look-ahead 预生成优化</li>
+                <li>语音选择优化（Premium 优先）</li>
+                <li>Chrome 长文本拆分</li>
+              </ul>
+            </div>
+            <div class="phase-card">
+              <span class="phase-tag future">Phase 3 — Enhanced</span>
+              <h4>远期增强</h4>
+              <ul>
+                <li>Narrative 缓存持久化（sessionStorage）</li>
+                <li>自定义 TTS 提供商（Edge TTS / 云端）</li>
+                <li>Narrative 可编辑</li>
+                <li>语速控制滑块</li>
+                <li>逐句高亮（sentence-level onboundary）</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>验收清单</span>
+              </button>
+              <div class="subsection-content">
+                <p><strong>功能测试</strong></p>
+                <ul class="reference-list">
+                  <li>配置 llm-settings → 进入演示模式 → auto-play 按钮可见</li>
+                  <li>未配置 → 按钮隐藏</li>
+                  <li>点击 ▶ → 第一页 narrative 生成 → 语音朗读 → 结束后自动翻到第二页</li>
+                  <li>点击 ⏸ → 语音暂停 → 页面停留；再点 ▶ → 语音恢复</li>
+                  <li>Auto-play 期间按方向键 → 当前语音停止 → 跳到对应页重新讲解</li>
+                  <li>Escape → narration 停止 → 退出演示</li>
+                  <li>最后一页讲解完毕 → auto-play 自动停止</li>
+                  <li>LLM 超时 → 跳过该页 → 自动前进</li>
+                  <li>CC 按钮 toggle → 字幕显示/隐藏</li>
+                </ul>
+                <p><strong>语言测试</strong></p>
+                <ul class="reference-list">
+                  <li>zh 模式 → 中文 system prompt → 中文语音</li>
+                  <li>en 模式 → 英文 system prompt → 英文语音</li>
+                </ul>
+                <p><strong>浏览器测试</strong></p>
+                <ul class="reference-list">
+                  <li>macOS Chrome — 语音合成正常</li>
+                  <li>macOS Safari — 语音合成正常</li>
+                  <li>无 Speech API 的浏览器 — 按钮隐藏</li>
+                </ul>
+                <p><strong>回归测试</strong></p>
+                <ul class="reference-list">
+                  <li>不开启 auto-play 时，演示模式所有现有功能不受影响</li>
+                  <li>PPT 导出、PDF 导出、键盘导航、分享功能正常</li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <p>&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。</p>
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+</body>
+</html>

@@ -494,7 +494,26 @@ var knowledgeTree = [
     url: 'posts/study-room-design/index.html',
     color: '#0fb5ae',
     phase: 3.8, speed: 0.75,
-    relations: ['copilot-harness-eng']
+    relations: ['copilot-harness-eng', 'presentation-narration-design']
+  },
+  {
+    id: 'presentation-narration-design',
+    parentId: 'knowledge-hub',
+    type: 'article',
+    title: {
+      zh: '演示模式自动讲解：LLM Narrative 生成与语音合成设计',
+      en: 'Presentation Auto-Narrate: LLM Narrative Generation & Speech Synthesis Design'
+    },
+    summary: {
+      zh: '为演示模式增加 LLM 驱动的自动讲解，含四层架构、状态机、Look-ahead pipeline 和 Web Speech API 集成。',
+      en: 'Adds LLM-driven auto-narration to presentation mode with four-layer architecture, state machine, look-ahead pipeline, and Web Speech API.'
+    },
+    tags: ['Design Document', 'Presentation', 'LLM', 'Speech'],
+    date: '2026-04-14',
+    url: 'posts/presentation-narration-design/index.html',
+    color: '#7c3aed',
+    phase: 4.5, speed: 0.7,
+    relations: ['study-room-design']
   },
 
   // ════════════════════════════════════════
@@ -620,6 +639,106 @@ var knowledgeTree = [
     color: '#fb7185',
     phase: 0.3, speed: 0.9
   },
+
+  // ════════════════════════════════════════
+  // 微积分系列文章（5 篇）
+  // ════════════════════════════════════════
+  {
+    id: 'calculus-intro-change',
+    parentId: 'edu-calculus',
+    type: 'article',
+    title: {
+      zh: '变化的语言：从速度表到微积分',
+      en: 'The Language of Change: From Speedometers to Calculus'
+    },
+    summary: {
+      zh: '以手机电量、冰淇淋融化、骑车上学等日常场景引入"变化率"概念，揭示代数的局限与微积分的必要性。',
+      en: 'Introduces the concept of rate of change through everyday scenarios, revealing why algebra falls short and calculus is needed.'
+    },
+    tags: ['Calculus', 'Rate of Change', 'Introduction'],
+    date: '2026-04-14',
+    url: 'posts/calculus-intro-change/index.html',
+    color: '#fb7185',
+    phase: 0.2, speed: 0.92,
+    relations: ['calculus-limits']
+  },
+  {
+    id: 'calculus-limits',
+    parentId: 'edu-calculus',
+    type: 'article',
+    title: {
+      zh: '逼近的艺术：极限思想入门',
+      en: 'The Art of Approaching: Introduction to Limits'
+    },
+    summary: {
+      zh: '通过芝诺悖论、无穷级数和相机变焦类比，建立"无限逼近可以得到精确结果"的极限直觉。',
+      en: 'Builds limit intuition through Zeno\'s paradox, infinite series, and camera zoom analogies.'
+    },
+    tags: ['Calculus', 'Limits', 'Infinity'],
+    date: '2026-04-14',
+    url: 'posts/calculus-limits/index.html',
+    color: '#fb7185',
+    phase: 1.0, speed: 0.90,
+    relations: ['calculus-intro-change', 'calculus-derivatives']
+  },
+  {
+    id: 'calculus-derivatives',
+    parentId: 'edu-calculus',
+    type: 'article',
+    title: {
+      zh: '导数：捕捉瞬间的变化率',
+      en: 'Derivatives: Capturing Instantaneous Rate of Change'
+    },
+    summary: {
+      zh: '从割线到切线、从平均速度到瞬时速度，用过山车和无人机案例讲解导数的几何与物理意义。',
+      en: 'From secant to tangent lines, explains derivatives through roller coaster and drone examples.'
+    },
+    tags: ['Calculus', 'Derivatives', 'Tangent Line'],
+    date: '2026-04-14',
+    url: 'posts/calculus-derivatives/index.html',
+    color: '#fb7185',
+    phase: 1.8, speed: 0.88,
+    relations: ['calculus-limits', 'calculus-integrals']
+  },
+  {
+    id: 'calculus-integrals',
+    parentId: 'edu-calculus',
+    type: 'article',
+    title: {
+      zh: '积分：化零为整的累积术',
+      en: 'Integrals: The Art of Accumulation'
+    },
+    summary: {
+      zh: '用切片求和思想理解积分，从 GPS 里程到降雨量累计，展示"曲线下面积"的广泛应用。',
+      en: 'Explains integrals through slice-and-sum thinking, from GPS mileage to rainfall accumulation.'
+    },
+    tags: ['Calculus', 'Integrals', 'Riemann Sum'],
+    date: '2026-04-14',
+    url: 'posts/calculus-integrals/index.html',
+    color: '#fb7185',
+    phase: 2.6, speed: 0.86,
+    relations: ['calculus-derivatives', 'calculus-fundamental-theorem']
+  },
+  {
+    id: 'calculus-fundamental-theorem',
+    parentId: 'edu-calculus',
+    type: 'article',
+    title: {
+      zh: '微积分基本定理：最优美的数学联系',
+      en: 'The Fundamental Theorem of Calculus: The Most Beautiful Connection'
+    },
+    summary: {
+      zh: '揭示导数与积分的互逆关系，用水箱、过山车设计等案例展示基本定理如何统一微积分并驱动现代工程。',
+      en: 'Reveals the inverse relationship between derivatives and integrals, showing how the theorem unifies calculus and powers engineering.'
+    },
+    tags: ['Calculus', 'Fundamental Theorem', 'Newton', 'Leibniz'],
+    date: '2026-04-14',
+    url: 'posts/calculus-fundamental-theorem/index.html',
+    color: '#fb7185',
+    phase: 3.4, speed: 0.84,
+    relations: ['calculus-integrals', 'calculus-derivatives']
+  },
+
   {
     id: 'edu-linear-algebra',
     parentId: 'edu-fundamentals',
