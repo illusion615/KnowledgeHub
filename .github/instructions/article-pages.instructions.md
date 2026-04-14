@@ -6,16 +6,36 @@ applyTo: "posts/**/*.html"
 
 ## Script & CSS Loading
 
-- Link shared CSS via `<link rel="stylesheet" href="../../assets/article.css" />` before any inline `<style>`
-- Link shared scrollbar CSS via `<link rel="stylesheet" href="../../assets/scrollbar.css" />`
-- Only article-specific overrides (e.g., hero title sizing, custom component colors) go in inline `<style>`
+### CSS（`<head>` 内，inline `<style>` 之前）
+
+1. `<link rel="stylesheet" href="../../assets/article.css" />`
+2. `<link rel="stylesheet" href="../../assets/scrollbar.css" />`
+3. 仅文章特有的覆盖样式放在 inline `<style>` 中
+
 - Include all dark mode CSS variants for **shared components** in `assets/article.css` — NEVER in inline `<style>`
 - Dark mode rules for **article-specific** components (e.g., custom tag colors) go in inline `<style>`
-- At bottom of `<body>`, include shared scripts in this exact order:
-  1. `<script src="../../assets/article-common.js"></script>`
-  2. Article's inline `<script>` (custom components only — see "Forbidden JS" below)
-  3. `<script src="../../assets/article-presentation.js"></script>`
-  4. `<script src="../../assets/scrollbar.js"></script>` (if scrollbar imported)
+
+### JS（`</body>` 前，按此顺序）
+
+必选脚本（**每篇文章都必须包含**，缺一即为 bug）：
+
+1. `<script src="../../assets/article-common.js"></script>` — 滚动动画、手风琴、主题同步
+2. `<script src="../../assets/article-presentation.js"></script>` — 演示模式
+3. `<script src="../../assets/scrollbar.js"></script>` — 自定义滚动条
+4. `<script src="../../assets/article-lightbox.js"></script>` — 图片灯箱
+5. `<script src="../../assets/article-assistant.js"></script>` — AI 助手 FAB + 对话框
+
+可选脚本（按需添加，放在 article-common.js 之前）：
+
+- `<script src="../../assets/article-math.js"></script>` — KaTeX 公式渲染（仅数学类文章）
+
+文章自身的 inline `<script>` 放在 article-common.js 之前。
+
+### 新建文章后的检查清单
+
+1. 用 `grep -L 'article-assistant' posts/*/index.html` 检查是否有遗漏脚本
+2. 在浏览器中确认：阅读模式右下角出现 chat FAB（需本地 LLM 设置）
+3. 进入演示模式 → hover capsule → 确认 settings / record / chat / narrator 四个按钮均可见
 
 ## Forbidden JS in Inline Scripts
 

@@ -979,59 +979,58 @@
           <div class="section-head">
             <p class="section-kicker">05 / UI Design</p>
             <h2>UI 设计</h2>
-            <p>在现有浮动控件基础上增加 auto-play 按钮、说话指示器和字幕叠层，保持视觉一致性。</p>
+            <p>演示模式的交互控件采用右下角胶囊 FAB 设计，将讲解、录制、设置、AI Chat 四个功能聚合在一个入口。</p>
           </div>
 
           <div class="subsection-accordion">
             <article class="subsection-item is-open" data-accordion>
               <button class="subsection-toggle">
-                <span>浮动控件布局</span>
+                <span>胶囊 FAB</span>
               </button>
               <div class="subsection-content">
-                <p>改造后的浮动控件实时预览：</p>
-                <div class="ui-mockup">
-                  <div class="mockup-floating">
-                    <div class="mockup-deck">
-                      <span>03 / Architecture</span>
-                      <strong>系统架构</strong>
-                    </div>
-                    <div class="mockup-controls">
-                      <span class="mockup-btn">◄ 上一页</span>
-                      <span class="mockup-btn active">⏸ 暂停讲解</span>
-                      <span class="mockup-btn primary">退出演示</span>
-                      <span class="mockup-btn">下一页 ►</span>
-                    </div>
-                    <div class="mockup-status">
-                      <div class="mockup-indicator">
-                        <span></span><span></span><span></span>
-                      </div>
-                      <span>3 / 12</span>
-                      <span>|</span>
-                      <span>正在讲解…</span>
-                      <span class="mockup-btn mockup-btn-cc">CC</span>
-                    </div>
-                    <div class="mockup-subtitle">
-                      接下来我们看系统的整体架构。讲解引擎作为独立模块惰性加载，通过回调机制与演示控制器通信…
-                    </div>
-                  </div>
-                </div>
+                <p>右下角的 FAB 在演示模式下从 AI Chat 图标切换为说话指示器。Hover 时向上展开为胶囊形状，露出四个功能按钮。</p>
+                <table class="edge-table">
+                  <thead>
+                    <tr>
+                      <th>按钮</th>
+                      <th>图标</th>
+                      <th>功能</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Settings</td>
+                      <td>⚙ 齿轮</td>
+                      <td>打开讲解设置面板（语言/语速/语音/试听）</td>
+                    </tr>
+                    <tr>
+                      <td>Record</td>
+                      <td>⊙ 录制</td>
+                      <td>启动 getDisplayMedia 屏幕录制 + 自动讲解</td>
+                    </tr>
+                    <tr>
+                      <td>Chat</td>
+                      <td>💬 对话</td>
+                      <td>切换 AI 助手对话框（复用 article-assistant.js）</td>
+                    </tr>
+                    <tr>
+                      <td>Narrator</td>
+                      <td>三竖线指示器</td>
+                      <td>开始/停止语音讲解。播放时竖线有波动动画</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p>关键 CSS 属性：<code>height: 52px → 198px</code>（hover 展开），<code>border-radius: 26px</code>（胶囊形），<code>overflow: hidden</code> + <code>justify-content: flex-end</code>（从底部向上生长）。动作按钮区域默认 <code>opacity: 0</code>，hover 时淡入。</p>
               </div>
             </article>
 
             <article class="subsection-item" data-accordion>
               <button class="subsection-toggle">
-                <span>说话指示器</span>
+                <span>页码与状态栏</span>
               </button>
               <div class="subsection-content">
-                <p>三条竖线波动动画，放在 counter 左侧。使用 CSS @keyframes 实现，无 JS 开销。仅在 playing 状态显示。</p>
-                <div class="indicator-preview">
-                  <div class="mockup-indicator mockup-indicator-lg">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                  </div>
-                  <span class="indicator-caption">← 实际效果（CSS 动画）</span>
-                </div>
+                <p>页码计数器放置在 FAB 左侧（right: 92px, bottom: 32px），与 FAB 垂直居中对齐。仅显示页码（如 "3 / 28"），无背景无边框，半透明白色文字。标题和操作提示已移除。</p>
+                <p>讲解完成后，页码区域短暂显示 "讲解完成 · 总时长 X:XX"（5 秒后恢复）。</p>
               </div>
             </article>
 
@@ -1040,15 +1039,44 @@
                 <span>字幕叠层</span>
               </button>
               <div class="subsection-content">
-                <p>半透明黑底白字条，固定在 slide 底部。默认开启，可通过 CC 按钮切换。偏好持久化到 localStorage('narration-subtitles')。</p>
-                <p>关键样式属性：</p>
+                <p>底部居中的半透明字幕条，逐句显示当前正在朗读的文本。每个语音 chunk 开始播放时更新字幕内容（onChunkStart 回调）。</p>
+                <p>关键样式：</p>
                 <ul class="reference-list">
-                  <li>position: fixed; bottom: 80px（避开浮动控件）</li>
-                  <li>max-width: 72%，居中对齐</li>
-                  <li>background: rgba(0, 0, 0, 0.72)，圆角 8px</li>
-                  <li>opacity 过渡动画，is-visible 时显示</li>
-                  <li>z-index: 10001（高于浮动控件）</li>
+                  <li>position: fixed; bottom: 16px，居中对齐</li>
+                  <li>max-width: 70%，可换行</li>
+                  <li>background: rgba(0, 0, 0, 0.6) + backdrop-filter: blur(8px)</li>
+                  <li>opacity 0/1 过渡，is-visible class 控制显隐</li>
                 </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>演示控件简化</span>
+              </button>
+              <div class="subsection-content">
+                <p>为保持幻灯片内容的沉浸感，多个控件采用极简设计：</p>
+                <ul class="reference-list">
+                  <li>退出按钮：SVG ✕ 图标，无背景无边框，半透明白色（hover 变亮）</li>
+                  <li>左右导航箭头：无背景无边框，hover 仅改变颜色和 opacity</li>
+                  <li>讲解播放时：导航箭头自动隐藏（opacity: 0, pointer-events: none）</li>
+                  <li>结束页：deck overlay 自动隐藏（.present-floating.is-end-slide .present-deck display: none）</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>结束页</span>
+              </button>
+              <div class="subsection-content">
+                <p>演示最后一页为动态生成的结束页，全屏居中显示：</p>
+                <ul class="reference-list">
+                  <li>"感谢收看" 大标题（clamp(2rem, 4vw, 3.2rem)）</li>
+                  <li>当前页面 URL 的二维码（qrserver.com API 生成，140x140px）+ "扫码访问" 提示</li>
+                  <li>"illusion615 Knowledge Hub" 品牌标识（大写，半透明）</li>
+                </ul>
+                <p>退出演示模式时结束页隐藏，不影响正常阅读。</p>
               </div>
             </article>
           </div>
@@ -1478,5 +1506,7 @@
   <script src="../../assets/article-common.js"></script>
   <script src="../../assets/article-presentation.js"></script>
   <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
 </body>
 </html>

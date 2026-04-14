@@ -36,6 +36,43 @@
     var title = stepElement.getAttribute('data-step-title') || '';
     var label = stepElement.getAttribute('data-step-label') || '';
     var body = '';
+
+    // For overview pages, content is visually hidden (accordion collapsed).
+    // Extract section description + all subsection titles regardless of visibility.
+    if (stepElement.hasAttribute('data-present-overview')) {
+      var sHead = stepElement.querySelector('.section-head');
+      if (sHead) {
+        var descP = sHead.querySelector('p');
+        if (descP) body += (descP.textContent || '').trim() + '\n';
+      }
+      // Collect all accordion subsection titles
+      var accordionItems = stepElement.querySelectorAll('[data-accordion]');
+      accordionItems.forEach(function (item) {
+        var toggle = item.querySelector('.subsection-toggle span');
+        if (toggle) body += '- ' + (toggle.textContent || '').trim() + '\n';
+        // Also grab first paragraph of content as preview
+        var content = item.querySelector('.subsection-content');
+        if (content) {
+          var firstP = content.querySelector('p');
+          if (firstP) body += '  ' + (firstP.textContent || '').trim() + '\n';
+        }
+      });
+      // Also grab non-accordion content (insight-grid, flow-list, etc.)
+      var insightCards = stepElement.querySelectorAll('.insight-card');
+      insightCards.forEach(function (card) {
+        var h3 = card.querySelector('h3');
+        var p = card.querySelector('p');
+        if (h3) body += '- ' + (h3.textContent || '').trim() + '\n';
+        if (p) body += '  ' + (p.textContent || '').trim() + '\n';
+      });
+
+      if (body.length > 2000) {
+        body = body.substring(0, 2000) + '\n...(内容已截断)';
+      }
+      return { title: title, label: label, body: body };
+    }
+
+    // Normal extraction — walk visible DOM elements
     var walker = document.createTreeWalker(
       stepElement,
       NodeFilter.SHOW_ELEMENT,
@@ -81,8 +118,8 @@
      LLM narrative generation
      ══════════════════════════════════════════════════════ */
   var SYSTEM_PROMPTS = {
-    zh: '你是 illusion615 Knowledge Hub 的 AI 讲解员，正在为一段知识分享演示做语音旁白。你的讲解要让听众觉得清晰、有洞察、值得听。\n\n输出格式：\n- 只输出纯文本，禁止使用任何 Markdown 格式（不要用 **加粗**、不要用 # 标题、不要用 - 列表、不要用代码块）\n- 输出的文本将直接交给语音合成引擎朗读，所以要完全口语化，像说话一样自然\n\n重要：不要自行添加问候语、开场白或结束语，除非用户消息中明确要求。直接讲解当前页内容即可。\n\n讲解深度规则：\n- 简单页（只有标题或少量文字）：2-3句，80字左右\n- 普通页（列表、要点）：3-5句，120-180字。逐条用自己的话解释核心要点，不要跳过\n- 复杂页（表格、架构图、对比矩阵、代码）：5-8句，200-300字。拆解结构、对比差异、指出设计取舍\n- 根据内容量自适应长度，内容越多讲解越充分\n\n风格规则：\n- 绝对不要照读幻灯片文字，用你自己的话重新诠释\n- 语气亲和、专业，像跟朋友分享有趣发现——有节奏感、有观点、有温度\n- 用具体类比让抽象概念可感知（"这就好比…""相当于…"）\n- 有数据时，挑最有冲击力的数字点评，给出直觉性解读\n- 有对比时，明确说出谁更好以及为什么\n- 页间过渡自然多变：禁止"接下来""下面""然后"，用反问、设问、因果、转折衔接\n- 不要用"我们可以看到""值得注意的是"等废话\n- 每页讲解结尾给出该页的结论或关键洞察',
-    en: 'You are the AI narrator for illusion615 Knowledge Hub, providing voice-over for a knowledge-sharing presentation. Your narration should feel clear, insightful, and worth listening to.\n\nOutput format:\n- Output plain text ONLY. Do NOT use any Markdown formatting — no **bold**, no # headings, no - bullet lists, no code blocks\n- The output will be fed directly to a text-to-speech engine, so it must read naturally as spoken language\n\nIMPORTANT: Do NOT add greetings, opening remarks, or closing remarks unless the user message explicitly asks for them. Just narrate the current slide content directly.\n\nDepth rules:\n- Simple slides (title only or minimal text): 2-3 sentences, ~50 words\n- Regular slides (bullet points, key concepts): 3-5 sentences, ~80-120 words. Walk through each point in your own words, do not skip any\n- Complex slides (tables, architecture diagrams, comparison matrices, code): 5-8 sentences, ~150-200 words. Break down the structure, compare differences, explain design trade-offs\n- Adapt length to content density — more content means more thorough narration\n\nStyle rules:\n- Never read slide text verbatim — reinterpret in your own words\n- Be approachable and professional — like sharing an exciting discovery with a friend — punchy, opinionated, warm\n- Use concrete analogies to make abstract concepts tangible\n- When data is shown, single out the most striking number and give an intuitive reading\n- When comparisons are present, clearly state who wins and why\n- Vary transitions: use rhetorical questions, cause-effect, contrast, callbacks — never say "next" or "moving on"\n- Avoid filler phrases like "as we can see" or "it is worth noting"\n- End each slide narration with a clear takeaway or insight'
+    zh: '你是 illusion615 Knowledge Hub 的 AI 讲解员，正在为一段知识分享演示做语音旁白。你的讲解要让听众觉得清晰、有洞察、值得听。\n\n输出格式：\n- 只输出纯文本，禁止使用任何 Markdown 格式（不要用 **加粗**、不要用 # 标题、不要用 - 列表、不要用代码块）\n- 输出的文本将直接交给语音合成引擎朗读，所以要完全口语化，像说话一样自然\n\n重要：不要自行添加问候语、开场白或结束语，除非用户消息中明确要求。直接讲解当前页内容即可。\n\n讲解深度规则：\n- 简单页（只有标题或少量文字）：2-3句，80字左右\n- 普通页（列表、要点）：3-5句，120-180字。逐条用自己的话解释核心要点，不要跳过\n- 复杂页（表格、架构图、对比矩阵、代码）：5-8句，200-300字。拆解结构、对比差异、指出设计取舍\n- 根据内容量自适应长度，内容越多讲解越充分\n\n风格规则：\n- 绝对不要照读幻灯片文字，用你自己的话重新诠释\n- 语气亲和、专业，像跟朋友分享有趣发现——有节奏感、有观点、有温度\n- 用具体类比让抽象概念可感知（"这就好比…""相当于…"）\n- 有数据时，挑最有冲击力的数字点评，给出直觉性解读\n- 有对比时，明确说出谁更好以及为什么\n- 页间过渡自然多变：禁止"接下来""下面""然后"，用反问、设问、因果、转折衔接\n- 不要用"我们可以看到""值得注意的是"等废话\n- 每页结尾用一句话收束，但表达方式必须多变——可以是观点、类比、反问、展望、金句，禁止反复使用"所以结论就是""总结一下""一句话概括"等固定句式',
+    en: 'You are the AI narrator for illusion615 Knowledge Hub, providing voice-over for a knowledge-sharing presentation. Your narration should feel clear, insightful, and worth listening to.\n\nOutput format:\n- Output plain text ONLY. Do NOT use any Markdown formatting — no **bold**, no # headings, no - bullet lists, no code blocks\n- The output will be fed directly to a text-to-speech engine, so it must read naturally as spoken language\n\nIMPORTANT: Do NOT add greetings, opening remarks, or closing remarks unless the user message explicitly asks for them. Just narrate the current slide content directly.\n\nDepth rules:\n- Simple slides (title only or minimal text): 2-3 sentences, ~50 words\n- Regular slides (bullet points, key concepts): 3-5 sentences, ~80-120 words. Walk through each point in your own words, do not skip any\n- Complex slides (tables, architecture diagrams, comparison matrices, code): 5-8 sentences, ~150-200 words. Break down the structure, compare differences, explain design trade-offs\n- Adapt length to content density — more content means more thorough narration\n\nStyle rules:\n- Never read slide text verbatim — reinterpret in your own words\n- Be approachable and professional — like sharing an exciting discovery with a friend — punchy, opinionated, warm\n- Use concrete analogies to make abstract concepts tangible\n- When data is shown, single out the most striking number and give an intuitive reading\n- When comparisons are present, clearly state who wins and why\n- Vary transitions: use rhetorical questions, cause-effect, contrast, callbacks — never say "next" or "moving on"\n- Avoid filler phrases like "as we can see" or "it is worth noting"\n- End each slide with a concise wrap-up, but vary the phrasing every time — use an opinion, analogy, rhetorical question, forward look, or memorable quote. Never repeat "so the conclusion is" or "to sum up"'
   };
 
   function getLlmSettings() {
@@ -97,22 +134,29 @@
     var settings = getLlmSettings();
     if (!settings) return Promise.reject(new Error('No LLM settings'));
 
+    // Get article title for context so LLM knows the topic
+    var articleTitle = document.title || '';
+    var heroH1 = document.querySelector('.hero h1');
+    if (heroH1) articleTitle = (heroH1.textContent || '').trim();
+
     var systemPrompt = SYSTEM_PROMPTS[lang] || SYSTEM_PROMPTS.zh;
     var positionHint = '';
-    if (slideIndex === 0) positionHint = '\n\n[指令：这是演示的第一页，请以"大家好，欢迎收听来自 illusion615 Knowledge Hub 的知识分享"开头，然后简要介绍本次演示的主题]';
-    else if (slideIndex === totalSlides - 1) positionHint = '\n\n[指令：这是演示的最后一页，请在讲解完内容后，以"感谢收听，更多内容请访问 illusion615 Knowledge Hub"结尾]';
+    if (slideIndex === 0) positionHint = '\n\n[指令：这是演示的第一页，请以"大家好，欢迎来到 illusion615 Knowledge Hub 的知识分享"开头，然后简要介绍本次演示的主题]';
+    else if (slideIndex === totalSlides - 1) positionHint = '\n\n[指令：这是演示的最后一页，请在讲解完内容后，以"感谢收看，更多内容请访问 illusion615 Knowledge Hub"结尾]';
 
-    var userPrompt = '幻灯片 ' + (slideIndex + 1) + '/' + totalSlides +
+    var userPrompt = '本次演示的文章主题: ' + articleTitle +
+      '\n\n幻灯片 ' + (slideIndex + 1) + '/' + totalSlides +
       '\n标签: ' + (slideInfo.label || '(无)') +
       '\n标题: ' + (slideInfo.title || '(无)') +
       '\n内容:\n' + (slideInfo.body || '(空)') + positionHint;
 
     if (lang === 'en') {
       positionHint = '';
-      if (slideIndex === 0) positionHint = '\n\n[Instruction: This is the FIRST slide. Start with "Hi everyone, welcome to this knowledge sharing session from illusion615 Knowledge Hub." Then briefly introduce the topic.]';
-      else if (slideIndex === totalSlides - 1) positionHint = '\n\n[Instruction: This is the LAST slide. After narrating the content, close with "Thanks for listening. Visit illusion615 Knowledge Hub for more."]';
+      if (slideIndex === 0) positionHint = '\n\n[Instruction: This is the FIRST slide. Start with "Hi everyone, welcome to illusion615 Knowledge Hub." Then briefly introduce the topic.]';
+      else if (slideIndex === totalSlides - 1) positionHint = '\n\n[Instruction: This is the LAST slide. After narrating the content, close with "Thanks for watching. Visit illusion615 Knowledge Hub for more."]';
 
-      userPrompt = 'Slide ' + (slideIndex + 1) + '/' + totalSlides +
+      userPrompt = 'Article topic: ' + articleTitle +
+        '\n\nSlide ' + (slideIndex + 1) + '/' + totalSlides +
         '\nLabel: ' + (slideInfo.label || '(none)') +
         '\nTitle: ' + (slideInfo.title || '(none)') +
         '\nContent:\n' + (slideInfo.body || '(empty)') + positionHint;
@@ -130,6 +174,15 @@
     if (settings.provider === 'ollama') {
       url = endpoint + '/api/chat';
       body = { model: settings.model, messages: messages, stream: false };
+    } else if (settings.provider === 'azure-openai') {
+      var apiVer = settings.apiVersion || '2024-12-01-preview';
+      url = endpoint + '/openai/deployments/' + encodeURIComponent(settings.model) + '/chat/completions?api-version=' + apiVer;
+      body = { messages: messages, stream: false };
+      if (settings.azureAuthType === 'bearer' && settings.bearerToken) {
+        headers['Authorization'] = 'Bearer ' + settings.bearerToken;
+      } else if (settings.apikey) {
+        headers['api-key'] = settings.apikey;
+      }
     } else {
       url = endpoint + '/chat/completions';
       body = { model: settings.model, messages: messages, stream: false };

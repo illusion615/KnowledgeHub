@@ -576,6 +576,15 @@
     if (settings.provider === 'ollama') {
       url = endpoint + '/api/chat';
       body = { model: settings.model, messages: buildMessages(query), stream: true };
+    } else if (settings.provider === 'azure-openai') {
+      var apiVer = settings.apiVersion || '2024-12-01-preview';
+      url = endpoint + '/openai/deployments/' + encodeURIComponent(settings.model) + '/chat/completions?api-version=' + apiVer;
+      body = { messages: buildMessages(query), stream: true };
+      if (settings.azureAuthType === 'bearer' && settings.bearerToken) {
+        headers['Authorization'] = 'Bearer ' + settings.bearerToken;
+      } else if (settings.apikey) {
+        headers['api-key'] = settings.apikey;
+      }
     } else {
       url = endpoint + '/chat/completions';
       body = { model: settings.model, messages: buildMessages(query), stream: true };
@@ -585,7 +594,14 @@
     fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) })
     .then(function (res) {
       if (!res.ok) throw new Error('HTTP ' + res.status);
+      handleStreamResponse(res, thinkingEl, query);
+    })
+    .catch(function (err) {
+      handleSendError(err, thinkingEl);
+    });
+  }
 
+  function handleStreamResponse(res, thinkingEl, query) {
       var aiDiv = null;
       var fullText = '';
       var reader = res.body.getReader();
@@ -668,8 +684,9 @@
       }
 
       return reader.read().then(processChunk);
-    })
-    .catch(function (err) {
+  }
+
+  function handleSendError(err, thinkingEl) {
       var msg = err.message;
       if (msg === 'Failed to fetch' && window.location.protocol === 'file:') {
         msg = '无法连接。从 file:// 协议访问时浏览器可能阻止跨域请求。\n建议：使用 python3 -m http.server 启动本地服务器。\nOllama 用户：确认已设置 OLLAMA_ORIGINS=*';
@@ -680,7 +697,6 @@
       isSending = false;
       sendBtn.disabled = false;
       messagesEl.scrollTop = messagesEl.scrollHeight;
-    });
   }
 
   sendBtn.addEventListener('click', sendMessage);

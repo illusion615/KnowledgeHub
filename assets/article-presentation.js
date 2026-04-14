@@ -509,6 +509,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     floating.appendChild(status);
 
+    // Bottom-left brand logo
+    var brandLogo = document.createElement('div');
+    brandLogo.className = 'present-brand-logo';
+    brandLogo.innerHTML = '<span class="present-brand-dot"></span><span class="present-brand-text"><span class="present-brand-owner">illusion615\'s</span><span class="present-brand-name">Knowledge Hub</span></span>';
+    floating.appendChild(brandLogo);
+
     // Narration subtitle overlay (outside floating for independent positioning)
     narrationSubtitle = document.createElement('div');
     narrationSubtitle.className = 'narration-subtitle';
@@ -1728,6 +1734,32 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   };
 
+  /* ── Countdown overlay before narration starts ── */
+  var showCountdown = function (callback) {
+    var overlay = document.createElement('div');
+    overlay.className = 'present-countdown-overlay';
+    document.body.appendChild(overlay);
+
+    var count = 3;
+    var showNumber = function () {
+      if (count <= 0) {
+        overlay.classList.add('is-fading-out');
+        setTimeout(function () {
+          if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+          callback();
+        }, 400);
+        return;
+      }
+      overlay.innerHTML = '<span class="present-countdown-num">' + count + '</span>';
+      var numEl = overlay.querySelector('.present-countdown-num');
+      numEl.offsetWidth;
+      numEl.classList.add('is-animating');
+      count--;
+      setTimeout(showNumber, 1000);
+    };
+    showNumber();
+  };
+
   var enterPresentation = function () {
     state.enabled = true;
     root.classList.add('is-presentation-mode');
@@ -1746,11 +1778,11 @@ document.addEventListener('DOMContentLoaded', function () {
     updatePresentationLabels();
     requestBrowserFullscreen();
 
-    // Auto-start narration if enabled in global settings
+    // Auto-start narration with countdown
     if (hasNarrationSupport() && localStorage.getItem('narration-autostart') === 'true') {
-      setTimeout(function () {
+      showCountdown(function () {
         handleAutoPlayClick();
-      }, 600);
+      });
     }
   };
 

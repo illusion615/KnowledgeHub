@@ -831,6 +831,11 @@
     }
     .settings-select:focus,
     .settings-input:focus { border-color: var(--accent); }
+    .settings-hint {
+      display: block; margin-top: 4px; font-size: 0.72rem;
+      color: var(--ink-muted, #888); opacity: 0.75; line-height: 1.4;
+      word-break: break-all;
+    }
     .settings-actions {
       display: flex; align-items: center; gap: 12px; margin-top: 16px;
     }
@@ -1804,6 +1809,7 @@
             <option value="none">未连接</option>
             <option value="ollama">Ollama</option>
             <option value="openai-compat">OpenAI 兼容</option>
+            <option value="azure-openai">Azure OpenAI</option>
           </select>
         </div>
         <div class="settings-field" id="field-endpoint">
@@ -1818,6 +1824,22 @@
         <div class="settings-field" id="field-apikey" hidden>
           <label class="settings-label" for="llm-apikey" data-zh="API Key" data-en="API Key">API Key</label>
           <input class="settings-input" type="password" id="llm-apikey" placeholder="sk-..." />
+        </div>
+        <div class="settings-field" id="field-api-version" hidden>
+          <label class="settings-label" for="llm-api-version" data-zh="API Version" data-en="API Version">API Version</label>
+          <input class="settings-input" type="text" id="llm-api-version" placeholder="2024-12-01-preview" />
+        </div>
+        <div class="settings-field" id="field-azure-auth-type" hidden>
+          <label class="settings-label" for="llm-azure-auth-type" data-zh="认证方式" data-en="Auth Type">认证方式</label>
+          <select class="settings-select" id="llm-azure-auth-type">
+            <option value="apikey">API Key</option>
+            <option value="bearer">Bearer Token (Entra ID)</option>
+          </select>
+        </div>
+        <div class="settings-field" id="field-bearer-token" hidden>
+          <label class="settings-label" for="llm-bearer-token" data-zh="Bearer Token" data-en="Bearer Token">Bearer Token</label>
+          <input class="settings-input" type="password" id="llm-bearer-token" placeholder="eyJ0eX..." />
+          <small class="settings-hint" data-zh="通过 az account get-access-token --resource https://cognitiveservices.azure.com 获取" data-en="Get via: az account get-access-token --resource https://cognitiveservices.azure.com">通过 az account get-access-token --resource https://cognitiveservices.azure.com 获取</small>
         </div>
         <div class="settings-actions">
           <button class="settings-btn-test" id="llm-test" data-zh="测试连接" data-en="Test Connection">测试连接</button>
@@ -3013,6 +3035,12 @@
       var fieldEndpoint = document.getElementById('field-endpoint');
       var fieldModel = document.getElementById('field-model');
       var fieldApikey = document.getElementById('field-apikey');
+      var fieldApiVersion = document.getElementById('field-api-version');
+      var apiVersionInput = document.getElementById('llm-api-version');
+      var azureAuthTypeSel = document.getElementById('llm-azure-auth-type');
+      var fieldAzureAuthType = document.getElementById('field-azure-auth-type');
+      var fieldBearerToken = document.getElementById('field-bearer-token');
+      var bearerTokenInput = document.getElementById('llm-bearer-token');
       var testBtn = document.getElementById('llm-test');
       var statusEl = document.getElementById('llm-status');
       var saveBtn = document.getElementById('llm-save');
@@ -3050,6 +3078,9 @@
         endpointInput.value = saved.endpoint || '';
         modelInput.value = saved.model || '';
         apikeyInput.value = saved.apikey || '';
+        apiVersionInput.value = saved.apiVersion || '';
+        if (saved.azureAuthType) azureAuthTypeSel.value = saved.azureAuthType;
+        bearerTokenInput.value = saved.bearerToken || '';
       }
 
       // Provider change → show/hide fields
@@ -3058,24 +3089,57 @@
         modelInput.hidden = false;
         modelSelect.hidden = true;
         modelSelect.innerHTML = '';
+        // reset placeholders to defaults
+        endpointInput.placeholder = 'http://localhost:11434';
+        modelInput.placeholder = 'qwen3:8b';
+        apikeyInput.placeholder = 'sk-...';
+        // hide Azure-specific fields by default
+        fieldAzureAuthType.hidden = true;
+        fieldBearerToken.hidden = true;
         if (provider === 'none') {
           fieldEndpoint.hidden = true;
           fieldModel.hidden = true;
           fieldApikey.hidden = true;
+          fieldApiVersion.hidden = true;
         } else if (provider === 'ollama') {
           fieldEndpoint.hidden = false;
           fieldModel.hidden = false;
           fieldApikey.hidden = true;
+          fieldApiVersion.hidden = true;
           if (!endpointInput.value) endpointInput.value = 'http://localhost:11434';
         } else if (provider === 'openai-compat') {
           fieldEndpoint.hidden = false;
           fieldModel.hidden = false;
           fieldApikey.hidden = false;
+          fieldApiVersion.hidden = true;
           if (!endpointInput.value) endpointInput.value = 'https://api.openai.com/v1';
+        } else if (provider === 'azure-openai') {
+          fieldEndpoint.hidden = false;
+          fieldModel.hidden = false;
+          fieldApiVersion.hidden = false;
+          fieldAzureAuthType.hidden = false;
+          endpointInput.placeholder = 'https://{resource}.openai.azure.com';
+          modelInput.placeholder = 'gpt-4o';
+          apikeyInput.placeholder = '';
+          if (!apiVersionInput.value) apiVersionInput.value = '2024-12-01-preview';
+          syncAzureAuthFields();
         }
         statusEl.textContent = '';
         statusEl.className = 'settings-status';
       }
+
+      function syncAzureAuthFields() {
+        var authType = azureAuthTypeSel.value;
+        if (authType === 'bearer') {
+          fieldApikey.hidden = true;
+          fieldBearerToken.hidden = false;
+        } else {
+          fieldApikey.hidden = false;
+          fieldBearerToken.hidden = true;
+        }
+      }
+      azureAuthTypeSel.addEventListener('change', syncAzureAuthFields);
+
       providerSel.addEventListener('change', syncFields);
       syncFields();
 
@@ -3096,6 +3160,22 @@
         var headers = { 'Content-Type': 'application/json' };
         if (provider === 'ollama') {
           testUrl = endpoint + '/api/tags';
+        } else if (provider === 'azure-openai') {
+          var apiVer = apiVersionInput.value || '2024-12-01-preview';
+          testUrl = endpoint + '/openai/models?api-version=' + apiVer;
+          var azAuthType = azureAuthTypeSel.value;
+          if (azAuthType === 'bearer') {
+            var bt = bearerTokenInput.value;
+            if (!bt) {
+              statusEl.textContent = '请填写 Bearer Token';
+              statusEl.className = 'settings-status is-err';
+              return;
+            }
+            headers['Authorization'] = 'Bearer ' + bt;
+          } else {
+            var azKey = apikeyInput.value;
+            if (azKey) headers['api-key'] = azKey;
+          }
         } else {
           testUrl = endpoint + '/models';
           var key = apikeyInput.value;
@@ -3107,8 +3187,13 @@
             if (!res.ok) throw new Error('HTTP ' + res.status);
             return res.json();
           })
-          .then(function (data) {
+          .then(handleTestResult)
+          .catch(handleTestError);
+      });
+
+      function handleTestResult(data) {
             var models = [];
+            var provider = providerSel.value;
             if (provider === 'ollama' && data.models) {
               data.models.forEach(function (m) { models.push(m.name || m.model); });
             } else if (data.data) {
@@ -3140,12 +3225,12 @@
                 modelInput.value = modelSelect.value;
               };
             }
-          })
-          .catch(function (err) {
+      }
+
+      function handleTestError(err) {
             statusEl.textContent = '✗ ' + err.message;
             statusEl.className = 'settings-status is-err';
-          });
-      });
+      }
 
       // Save settings
       saveBtn.addEventListener('click', function () {
@@ -3153,7 +3238,10 @@
           provider: providerSel.value,
           endpoint: endpointInput.value,
           model: modelInput.value,
-          apikey: apikeyInput.value
+          apikey: apikeyInput.value,
+          apiVersion: apiVersionInput.value,
+          azureAuthType: azureAuthTypeSel.value,
+          bearerToken: bearerTokenInput.value
         };
         localStorage.setItem('llm-settings', JSON.stringify(settings));
         statusEl.textContent = '✓ 已保存';
