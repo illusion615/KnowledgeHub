@@ -252,6 +252,25 @@ var knowledgeTree = [
     relations: ['hermes-open-model', 'enterprise-agent-arch', 'agentic-skill-exec']
   },
   {
+    id: 'llm-literary-creation',
+    parentId: 'ai-research-model',
+    type: 'article',
+    title: {
+      zh: 'LLM 文学创作可行性研究：最新模型格局、商业案例与经营逻辑',
+      en: 'LLM Literary Creation Feasibility: Model Landscape, Cases & Business Logic'
+    },
+    summary: {
+      zh: '以 2025-2026 最新模型、专项 benchmark 与 8 个商业案例为基线，分析 LLM 文学创作的结构性短板、模型分工和 AI 写作生意的经营逻辑。',
+      en: 'Uses 2025-2026 model docs, specialized benchmarks, and 8 business cases to analyze structural limits, model specialization, and the business logic of AI writing.'
+    },
+    tags: ['LLM', 'Creative Writing', 'Model Landscape', 'Business Cases'],
+    date: '2026-04-15',
+    url: 'posts/llm-literary-creation/index.html',
+    color: '#0ea5e9',
+    phase: 1.6, speed: 0.86,
+    relations: ['text-to-image-prompting', 'hermes-open-model']
+  },
+  {
     id: 'claw-code-analysis',
     parentId: 'ai-research-agent',
     type: 'article',
@@ -962,5 +981,28 @@ var knowledgeTree = [
     color: '#14b8a6',
     phase: 2.8, speed: 0.82,
     relations: ['study-room-design', 'knowledge-graph-org', 'study-room-standards']
+  },
+
+  // ════════════════════════════════════════
+  // 文章 — Dataverse Security Role 完全指南
+  // ════════════════════════════════════════
+  {
+    id: 'dataverse-security-roles',
+    parentId: 'power-apps',
+    type: 'article',
+    title: {
+      zh: 'Dataverse Security Role 完全指南',
+      en: 'Dataverse Security Role Complete Guide'
+    },
+    summary: {
+      zh: '为初学者梳理 Dataverse 安全角色核心概念、8 种表权限、5 个访问级别、15+ 预定义角色及场景速查。',
+      en: 'Covers Dataverse security role fundamentals: 8 table privileges, 5 access levels, 15+ predefined roles, and scenario quick-reference.'
+    },
+    tags: ['Dataverse', 'Security Role', 'Power Platform', 'RBAC'],
+    date: '2026-04-15',
+    url: 'posts/dataverse-security-roles/index.html',
+    color: '#742fa5',
+    phase: 4.8, speed: 0.84,
+    relations: ['powerapps-vibe-coding', 'low-code-ai-era']
   }
 ];

@@ -66,9 +66,6 @@
         if (p) body += '  ' + (p.textContent || '').trim() + '\n';
       });
 
-      if (body.length > 2000) {
-        body = body.substring(0, 2000) + '\n...(内容已截断)';
-      }
       return { title: title, label: label, body: body };
     }
 
@@ -106,11 +103,6 @@
       }
     }
 
-    // Truncate to 2000 chars
-    if (body.length > 2000) {
-      body = body.substring(0, 2000) + '\n...(内容已截断)';
-    }
-
     return { title: title, label: label, body: body };
   }
 
@@ -134,18 +126,12 @@
     var settings = getLlmSettings();
     if (!settings) return Promise.reject(new Error('No LLM settings'));
 
-    // Get article title for context so LLM knows the topic
-    var articleTitle = document.title || '';
-    var heroH1 = document.querySelector('.hero h1');
-    if (heroH1) articleTitle = (heroH1.textContent || '').trim();
-
     var systemPrompt = SYSTEM_PROMPTS[lang] || SYSTEM_PROMPTS.zh;
     var positionHint = '';
     if (slideIndex === 0) positionHint = '\n\n[指令：这是演示的第一页，请以"大家好，欢迎来到 illusion615 Knowledge Hub 的知识分享"开头，然后简要介绍本次演示的主题]';
     else if (slideIndex === totalSlides - 1) positionHint = '\n\n[指令：这是演示的最后一页，请在讲解完内容后，以"感谢收看，更多内容请访问 illusion615 Knowledge Hub"结尾]';
 
-    var userPrompt = '本次演示的文章主题: ' + articleTitle +
-      '\n\n幻灯片 ' + (slideIndex + 1) + '/' + totalSlides +
+    var userPrompt = '幻灯片 ' + (slideIndex + 1) + '/' + totalSlides +
       '\n标签: ' + (slideInfo.label || '(无)') +
       '\n标题: ' + (slideInfo.title || '(无)') +
       '\n内容:\n' + (slideInfo.body || '(空)') + positionHint;
@@ -155,8 +141,7 @@
       if (slideIndex === 0) positionHint = '\n\n[Instruction: This is the FIRST slide. Start with "Hi everyone, welcome to illusion615 Knowledge Hub." Then briefly introduce the topic.]';
       else if (slideIndex === totalSlides - 1) positionHint = '\n\n[Instruction: This is the LAST slide. After narrating the content, close with "Thanks for watching. Visit illusion615 Knowledge Hub for more."]';
 
-      userPrompt = 'Article topic: ' + articleTitle +
-        '\n\nSlide ' + (slideIndex + 1) + '/' + totalSlides +
+      userPrompt = 'Slide ' + (slideIndex + 1) + '/' + totalSlides +
         '\nLabel: ' + (slideInfo.label || '(none)') +
         '\nTitle: ' + (slideInfo.title || '(none)') +
         '\nContent:\n' + (slideInfo.body || '(empty)') + positionHint;
@@ -174,15 +159,6 @@
     if (settings.provider === 'ollama') {
       url = endpoint + '/api/chat';
       body = { model: settings.model, messages: messages, stream: false };
-    } else if (settings.provider === 'azure-openai') {
-      var apiVer = settings.apiVersion || '2024-12-01-preview';
-      url = endpoint + '/openai/deployments/' + encodeURIComponent(settings.model) + '/chat/completions?api-version=' + apiVer;
-      body = { messages: messages, stream: false };
-      if (settings.azureAuthType === 'bearer' && settings.bearerToken) {
-        headers['Authorization'] = 'Bearer ' + settings.bearerToken;
-      } else if (settings.apikey) {
-        headers['api-key'] = settings.apikey;
-      }
     } else {
       url = endpoint + '/chat/completions';
       body = { model: settings.model, messages: messages, stream: false };
@@ -520,6 +496,25 @@
         if (langFn) getLang = langFn;
         setState('generating');
         playSlide(index);
+      },
+
+      /** Pre-generate narrative for a slide without starting speech. Returns Promise. */
+      pregenerate: function (steps, index, langFn) {
+        presentSteps = steps;
+        totalSlides = steps.length;
+        if (langFn) getLang = langFn;
+        if (narrativeCache[index] !== undefined) return Promise.resolve(narrativeCache[index]);
+        var step = steps[index];
+        if (!step) return Promise.resolve('');
+        var slideInfo = extractSlideText(step);
+        var lang = getEffectiveLang();
+        return generateNarrative(slideInfo, index, totalSlides, lang, null).then(function (text) {
+          narrativeCache[index] = text || '';
+          return narrativeCache[index];
+        }).catch(function () {
+          narrativeCache[index] = '';
+          return '';
+        });
       },
 
       pause: function () {

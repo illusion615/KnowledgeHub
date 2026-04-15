@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dataverse Security Role 完全指南：概念、预定义角色与最佳实践</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(2.1rem, 5vw, 3.6rem);
+      line-height: 1.06;
+      letter-spacing: -0.04em;
+      max-width: 22ch;
+    }
+
+    .hero-metrics {
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    }
+
+    .role-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+
+    .role-table th {
+      text-align: left;
+      padding: 10px 12px;
+      background: rgba(15, 23, 42, 0.04);
+      border-bottom: 2px solid rgba(15, 23, 42, 0.1);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-weight: 700;
+      font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .role-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+      line-height: 1.6;
+      color: var(--ink);
+    }
+
+    .role-table td:first-child {
+      font-weight: 600;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      white-space: nowrap;
+    }
+
+    [data-theme="dark"] .role-table th {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    [data-theme="dark"] .role-table td {
+      border-color: rgba(255, 255, 255, 0.06);
+    }
+
+    .access-level-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+
+    .access-card {
+      padding: 18px;
+      border-radius: 22px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+    }
+
+    .access-card h4 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+    }
+
+    .access-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.72;
+    }
+
+    .access-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 32px;
+      height: 32px;
+      margin-bottom: 10px;
+      border-radius: 999px;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .access-icon-org { background: rgba(239, 68, 68, 0.1); color: rgba(239, 68, 68, 0.9); }
+    .access-icon-pcbu { background: rgba(245, 158, 11, 0.1); color: rgba(245, 158, 11, 0.9); }
+    .access-icon-bu { background: rgba(59, 130, 246, 0.1); color: rgba(59, 130, 246, 0.9); }
+    .access-icon-user { background: rgba(16, 185, 129, 0.1); color: rgba(16, 185, 129, 0.9); }
+    .access-icon-none { background: rgba(107, 114, 128, 0.1); color: rgba(107, 114, 128, 0.9); }
+
+    [data-theme="dark"] .access-card {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.18);
+    }
+
+    .scenario-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px;
+    }
+
+    .scenario-card {
+      padding: 20px;
+      border-radius: 22px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+    }
+
+    .scenario-card h4 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+    }
+
+    .scenario-card p {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.72;
+    }
+
+    .scenario-card .role-tag {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      background: rgba(124, 58, 237, 0.1);
+      color: rgba(124, 58, 237, 0.9);
+      font-size: 0.78rem;
+      font-weight: 600;
+      margin-right: 6px;
+      margin-bottom: 4px;
+    }
+
+    [data-theme="dark"] .scenario-card {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.18);
+    }
+
+    [data-theme="dark"] .scenario-card .role-tag {
+      background: rgba(124, 58, 237, 0.2);
+    }
+
+    .layer-flow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .layer-flow .flow-item {
+      padding: 10px 18px;
+      border-radius: 16px;
+      background: rgba(15, 23, 42, 0.03);
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+
+    .layer-flow .flow-arrow {
+      font-size: 1.2rem;
+      color: var(--muted);
+    }
+
+    [data-theme="dark"] .layer-flow .flow-item {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .table-scroll {
+      overflow-x: auto;
+    }
+
+    .accordion-gap {
+      margin-top: 32px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero" data-present-step data-step-title="文章总览">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            Power Apps
+          </div>
+          <div class="topbar-actions">
+            <nav class="nav-links" aria-label="页面章节导航">
+              <a href="#overview">安全概览</a>
+              <a href="#core-concepts">核心概念</a>
+              <a href="#access-levels">访问级别</a>
+              <a href="#predefined-roles">预定义角色</a>
+              <a href="#scenarios">场景速查</a>
+              <a href="#security-layers">安全分层</a>
+              <a href="#best-practices">最佳实践</a>
+              <a href="#references">参考资料</a>
+            </nav>
+          </div>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Dataverse Security Guide</span>
+            <h1>Dataverse Security Role 完全指南</h1>
+            <p>
+              Microsoft Dataverse 使用基于角色的安全模型（RBAC）控制对环境中数据和资源的访问。本文为初学者梳理安全角色的核心概念、8 种表权限、5 个访问级别、15+ 预定义角色的作用域，并提供常见场景的角色配置速查表。所有内容基于 Microsoft Learn 官方文档。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#predefined-roles">查看预定义角色</a>
+              <a class="button button-secondary" href="#scenarios">场景速查</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">安全模型五层防线</span>
+            <h2>从环境隔离到列级安全的纵深防御体系</h2>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span>环境级：Environment 隔离 + Security Group 准入</li>
+              <li><span class="layer-number">2</span>角色级：Security Role 控制表操作权限</li>
+              <li><span class="layer-number">3</span>记录级：Business Unit + Ownership + Sharing</li>
+              <li><span class="layer-number">4</span>列级：Column Security Profile 保护敏感字段</li>
+              <li><span class="layer-number">5</span>层级：Hierarchy Security 实现上下级数据可见性</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">安全模型</div>
+            <strong>RBAC</strong>
+            <span>基于角色的访问控制</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">表权限类型</div>
+            <strong>8 种</strong>
+            <span>Create / Read / Write / Delete / Append / Append To / Assign / Share</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">访问级别</div>
+            <strong>5 级</strong>
+            <span>None → User → BU → Parent:Child → Org</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">预定义角色</div>
+            <strong>15+</strong>
+            <span>从 App Opener 到 System Administrator</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+
+        <!-- ====== Section 1: 安全概览 ====== -->
+        <section id="overview" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / Security Overview</p>
+            <h2>Dataverse 安全模型概览</h2>
+            <p>Dataverse 的安全模型设计为在最小摩擦下保护数据——用户能完成所需工作，同时无法触及其权限范围之外的数据和操作。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>什么是 Dataverse？</span>
+              </button>
+              <div class="subsection-content">
+                <p>Microsoft Dataverse 是 Power Platform（Power Apps、Power Automate、Copilot Studio）的底层数据平台。它提供标准化的数据存储、业务逻辑层和安全控制层，帮助组织安全地存储和管理业务数据。</p>
+                <p>关键特性：</p>
+                <ul>
+                  <li><strong>标准化数据模型</strong>：预置 Account、Contact、Activity 等核心业务表，也可创建自定义表。</li>
+                  <li><strong>内置安全层</strong>：认证由 Microsoft Entra ID 处理，授权由 Security Role、Business Unit、Team 等安全构建模块协同完成。</li>
+                  <li><strong>多租户隔离</strong>：通过 Environment 实现安全边界，不同环境可配置不同的安全策略。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>安全模型的整体架构</span>
+              </button>
+              <div class="subsection-content">
+                <p>Dataverse 安全模型可以从简单的"宽松访问"一直配置到精细的"记录+字段级别控制"。整个模型由以下几层组成：</p>
+                <ol>
+                  <li><strong>Licensing（许可证）</strong>：第一道闸门——用户必须拥有正确的许可证（如 Power Apps Premium）才能访问 Dataverse 环境。</li>
+                  <li><strong>Environment Security Group</strong>：通过 Microsoft Entra Security Group 控制谁可以进入环境。</li>
+                  <li><strong>Security Role</strong>：在环境内控制用户对数据表的操作权限。</li>
+                  <li><strong>Business Unit</strong>：将用户和数据分区，配合 Security Role 的访问级别控制跨部门可见性。</li>
+                  <li><strong>Team</strong>：将用户分组，统一授权——Owner Team 和 Access Team 分别解决不同场景。</li>
+                  <li><strong>Record Sharing</strong>：点对点的记录共享机制，处理不在角色/BU 覆盖范围内的例外访问。</li>
+                  <li><strong>Column Security Profile</strong>：保护单个列（如身份证号、薪资），独立于记录级权限。</li>
+                  <li><strong>Hierarchy Security</strong>：Manager 或 Position 层级继承，让上级可以看到下属的数据。</li>
+                </ol>
+                <p><strong>核心原则</strong>：所有权限授予都是<strong>累加式的（Additive）</strong>——系统取用户所有角色的最大权限范围。授予了组织级（Organization）读取权限后，无法通过其他设置再"收回"单条记录的可见性。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>记录访问判定流程</span>
+              </button>
+              <div class="subsection-content">
+                <p>当用户试图对一条记录执行操作（如 Read、Write、Delete）时，Dataverse 按以下两阶段做判定：</p>
+                <p><strong>第一阶段：Privilege Check（权限检查）</strong></p>
+                <p>确认用户（直接或通过 Team）是否拥有对该表的操作权限。如果没有任何角色包含该权限，直接拒绝。此阶段不关心访问级别（Access Level）。</p>
+                <p><strong>第二阶段：Access Check（访问范围检查）</strong></p>
+                <p>确认用户是否有权操作<em>这条具体记录</em>。系统会依次检查四种途径：</p>
+                <ol>
+                  <li><strong>Ownership（所有权）</strong>：用户是记录的 Owner，或用户所在 Team 是记录的 Owner。</li>
+                  <li><strong>Role Access（角色范围）</strong>：用户角色的访问级别覆盖了该记录所在的 Business Unit。</li>
+                  <li><strong>Shared Access（共享）</strong>：记录被直接或通过 Team 共享给了用户。</li>
+                  <li><strong>Hierarchy Access（层级继承）</strong>：用户是记录拥有者的上级（Manager / Position hierarchy）。</li>
+                </ol>
+                <p>任意一条途径命中，即授予访问权限。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ====== Section 2: 核心概念 ====== -->
+        <section id="core-concepts" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Core Concepts</p>
+            <h2>Security Role 核心概念</h2>
+            <p>理解 Security Role 需要掌握三个维度：权限类型（Privilege）、访问级别（Access Level）和权限归属（Owner vs. Org-owned）。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>8 种表权限（Table Privileges）</span>
+              </button>
+              <div class="subsection-content">
+                <p>每个 Security Role 可以对 Dataverse 中的每张表授予以下 8 种操作权限：</p>
+                <div class="table-scroll">
+                  <table class="role-table">
+                    <thead>
+                      <tr><th>权限</th><th>英文</th><th>说明</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td>创建</td><td>Create</td><td>允许新建记录。</td></tr>
+                      <tr><td>读取</td><td>Read</td><td>允许打开记录查看内容。</td></tr>
+                      <tr><td>更新</td><td>Write</td><td>允许修改记录字段值。</td></tr>
+                      <tr><td>删除</td><td>Delete</td><td>允许永久移除记录。</td></tr>
+                      <tr><td>附加</td><td>Append</td><td>将当前记录关联到另一条记录。例如：将 Note 附加到 Opportunity。多对多关系时需双方表都有 Append 权限。</td></tr>
+                      <tr><td>附加到</td><td>Append To</td><td>允许别的记录关联到当前记录。例如：允许 Note 附加到此 Opportunity。</td></tr>
+                      <tr><td>分配</td><td>Assign</td><td>将记录的所有权转移给另一个用户或团队。</td></tr>
+                      <tr><td>共享</td><td>Share</td><td>将记录的访问权限授予另一个用户，同时保留自己的访问权。</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p>此外，Security Role 还有两类特殊权限：</p>
+                <ul>
+                  <li><strong>Miscellaneous Privileges（杂项权限）</strong>：非记录级的任务权限，如"发布文章""激活业务规则"。</li>
+                  <li><strong>Privacy-related Privileges（隐私权限）</strong>：控制数据能否被导出到 Excel、打印或集成到外部系统。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>表的所有权类型</span>
+              </button>
+              <div class="subsection-content">
+                <p>Dataverse 表有两种所有权类型，决定了权限控制的粒度：</p>
+                <ul>
+                  <li><strong>User/Team Owned（用户/团队拥有）</strong>：支持完整的 5 级访问控制。每条记录有明确的 Owner，可以是用户或 Owner Team。大多数业务表（Account、Contact 等）采用此类型。</li>
+                  <li><strong>Organization Owned（组织拥有）</strong>：只有两个选项——有权限或没权限。不支持 BU 级、User 级的细粒度控制。典型场景是配置数据表。</li>
+                </ul>
+                <p>所有权类型在创建表时确定，之后<strong>无法更改</strong>。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Security Role 的权限累加原则</span>
+              </button>
+              <div class="subsection-content">
+                <p>Dataverse 的权限计算遵循<strong>加法原则</strong>：</p>
+                <ul>
+                  <li>一个用户可以拥有<strong>多个</strong> Security Role。</li>
+                  <li>用户也可以是多个 Team 的成员，Team 上的 Security Role 同样累加到用户身上。</li>
+                  <li>系统取所有来源中<strong>最大（最宽松）</strong>的权限范围。</li>
+                  <li>一旦授予了高级别权限（如 Organization 级 Read），无法通过其他角色"减少"该权限。</li>
+                </ul>
+                <p><strong>常见错误</strong>：管理员因调试权限问题而临时授予 Organization 级访问，之后忘记收回——这会导致安全模型像"瑞士奶酪"一样到处是洞。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Member's Privilege Inheritance</span>
+              </button>
+              <div class="subsection-content">
+                <p>创建或编辑 Security Role 时，可以设置 <strong>Member's privilege inheritance</strong> 选项：</p>
+                <ul>
+                  <li><strong>Team privileges only</strong>：用户仅在 Team 上下文中获得权限。没有个人权限的成员可以创建记录，但记录归 Team 所有。仅在拥有 User 级 Create / Read 权限时才能访问 Team 拥有的记录。</li>
+                  <li><strong>Direct User (Basic) access level and Team privileges</strong>（默认值）：角色直接赋予用户个人权限。用户可以以自己的名义创建记录并访问自己拥有/创建的记录。</li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ====== Section 3: 访问级别 ====== -->
+        <section id="access-levels" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / Access Levels</p>
+            <h2>5 个访问级别详解</h2>
+            <p>每个权限都可以设置一个访问级别，决定用户能够在多大范围内执行该操作。级别从窄到宽排列。</p>
+          </div>
+
+          <div class="access-level-grid">
+            <div class="access-card load-in">
+              <div class="access-icon access-icon-none">✕</div>
+              <h4>None（无）</h4>
+              <p>不允许任何访问。用户不能对该表执行此操作。</p>
+            </div>
+            <div class="access-card load-in">
+              <div class="access-icon access-icon-user">U</div>
+              <h4>User（用户级）</h4>
+              <p>用户只能访问<strong>自己拥有的</strong>记录，以及与自己/自己所在 Team 共享的记录。适合普通业务人员。</p>
+            </div>
+            <div class="access-card load-in">
+              <div class="access-icon access-icon-bu">BU</div>
+              <h4>Business Unit（业务单元级）</h4>
+              <p>用户能访问<strong>所在 Business Unit</strong> 中所有用户的记录。自动包含 User 级访问。适合部门经理。</p>
+            </div>
+            <div class="access-card load-in">
+              <div class="access-icon access-icon-pcbu">P</div>
+              <h4>Parent: Child BU（父子 BU 级）</h4>
+              <p>用户能访问本 BU 及<strong>所有下属 BU</strong> 的记录。自动包含 BU 级和 User 级。适合分管多个部门的管理者。</p>
+            </div>
+            <div class="access-card load-in">
+              <div class="access-icon access-icon-org">O</div>
+              <h4>Organization（组织级）</h4>
+              <p>用户能访问组织内<strong>所有</strong>记录，无论属于哪个 BU。权限最高，通常仅授予管理员。自动包含所有其他级别。</p>
+            </div>
+          </div>
+
+          <div class="subsection-accordion accordion-gap">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Organization-owned 表的特殊性</span>
+              </button>
+              <div class="subsection-content">
+                <p>如果表的所有权是 Organization-owned（而非 User/Team-owned），则访问级别只有两个选项：Organization 或 None。不支持 User、BU、Parent:Child 级别——因为记录没有个人所有者。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Permission Settings（权限预设组）</span>
+              </button>
+              <div class="subsection-content">
+                <p>为快速配置表权限，Dataverse 提供了预定义权限组合，可一键应用到表上：</p>
+                <div class="table-scroll">
+                  <table class="role-table">
+                    <thead>
+                      <tr><th>预设名称</th><th>含义</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td>No Access</td><td>该角色的用户对此表完全无权限。</td></tr>
+                      <tr><td>Full Access</td><td>用户可以查看和编辑组织内所有记录。</td></tr>
+                      <tr><td>Collaborate</td><td>用户可以查看所有记录，但只能编辑自己的。</td></tr>
+                      <tr><td>Private</td><td>用户只能查看和编辑自己的记录。</td></tr>
+                      <tr><td>Reference</td><td>用户只能查看记录，不能编辑。</td></tr>
+                      <tr><td>Custom</td><td>表示权限已被手动修改，不匹配任何预设。</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ====== Section 4: 预定义角色 ====== -->
+        <section id="predefined-roles" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / Predefined Roles</p>
+            <h2>预定义 Security Role 详解</h2>
+            <p>Dataverse 环境内置了多个预定义角色，覆盖从最小权限到完全管理权限的各种需求。预定义角色<strong>不可编辑</strong>——自定义需求请复制后修改。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>无 Dataverse 数据库环境的角色</span>
+              </button>
+              <div class="subsection-content">
+                <p>没有 Dataverse 数据库的 Power Platform 环境仅有两个预定义角色：</p>
+                <div class="table-scroll">
+                  <table class="role-table">
+                    <thead>
+                      <tr><th>角色名称</th><th>关键能力</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>Environment Admin</td>
+                        <td>可以执行所有环境管理操作：添加/移除用户、配置 Dataverse 数据库、创建 DLP 策略、查看和管理该环境中创建的所有资源。</td>
+                      </tr>
+                      <tr>
+                        <td>Environment Maker</td>
+                        <td>可以创建 App、Connection、Custom API、Flow 等资源，并分享给组织内用户。但<strong>不能访问环境中的数据</strong>。</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>含 Dataverse 数据库环境的角色</span>
+              </button>
+              <div class="subsection-content">
+                <p>当环境配置了 Dataverse 数据库后，安全模型变得更加丰富。以下是所有预定义角色：</p>
+                <div class="table-scroll">
+                  <table class="role-table">
+                    <thead>
+                      <tr><th>角色名称</th><th>定位与权限</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>System Administrator</td>
+                        <td><strong>最高权限</strong>。可以完全自定义或管理环境，包括创建、修改、分配 Security Role；可以查看环境中的所有数据。环境配置 Dataverse 后，应使用此角色代替 Environment Admin。</td>
+                      </tr>
+                      <tr>
+                        <td>System Customizer</td>
+                        <td>可以完全自定义环境（创建/修改表、字段、视图等）。可以查看所有<strong>自定义表</strong>的数据。但对 Account、Contact、Activity 等核心表，<strong>只能查看自己创建的记录</strong>。</td>
+                      </tr>
+                      <tr>
+                        <td>Basic User</td>
+                        <td>可以运行 App 并对自己拥有的记录执行常规操作。拥有核心业务表（Account、Contact、Activity、Process）的权限。<em>（前称 Common Data Service User）</em></td>
+                      </tr>
+                      <tr>
+                        <td>Environment Maker</td>
+                        <td>可以创建 App、Connection、Custom API、Flow 等资源。但<strong>没有数据访问权限</strong>。创建连接 Dataverse 的 App 需额外分配 System Customizer 角色。</td>
+                      </tr>
+                      <tr>
+                        <td>App Opener</td>
+                        <td><strong>最小权限模板</strong>。仅有运行 Model-driven App 的基础权限。不包含核心业务表权限。主要用途是作为创建自定义角色的基础模板——复制后按需添加权限。</td>
+                      </tr>
+                      <tr>
+                        <td>Delegate</td>
+                        <td>允许代码以另一个用户的身份执行操作（Impersonate）。通常与其他角色配合使用。</td>
+                      </tr>
+                      <tr>
+                        <td>Global Administrator</td>
+                        <td>Microsoft 365 全局管理员角色。必须<strong>自我提升</strong>（self-elevate）为 System Administrator 后才能管理 Dataverse。</td>
+                      </tr>
+                      <tr>
+                        <td>Power Platform Administrator</td>
+                        <td>Power Platform 服务管理员。需自我提升为 System Administrator 后才能执行管理操作。</td>
+                      </tr>
+                      <tr>
+                        <td>Dynamics 365 Administrator</td>
+                        <td>Dynamics 365 服务管理员。同样需要自我提升为 System Administrator。</td>
+                      </tr>
+                      <tr>
+                        <td>Support User</td>
+                        <td>拥有自定义设置和业务管理设置的完全读取权限，便于支持人员排查配置问题。<strong>不能访问核心记录</strong>。不可分配给用户。</td>
+                      </tr>
+                      <tr>
+                        <td>Service Reader</td>
+                        <td>对所有表（含自定义表）拥有完全 Read 权限。供服务使用，<strong>不可分配给用户或 Team</strong>。</td>
+                      </tr>
+                      <tr>
+                        <td>Service Writer</td>
+                        <td>对所有表拥有 Create、Read、Write 权限。供服务使用，<strong>不可分配给用户或 Team</strong>。</td>
+                      </tr>
+                      <tr>
+                        <td>Service Deleted</td>
+                        <td>对所有表拥有完全 Delete 权限。供服务使用，<strong>不可分配给用户或 Team</strong>。</td>
+                      </tr>
+                      <tr>
+                        <td>Office Collaborator</td>
+                        <td>对组织内共享的记录拥有 Read 权限。不能访问其他核心/自定义表记录。分配给 Office Collaborators Owner Team，而非个人用户。</td>
+                      </tr>
+                      <tr>
+                        <td>Website App Owner</td>
+                        <td>拥有 Azure Portal 中网站应用程序注册的用户。</td>
+                      </tr>
+                      <tr>
+                        <td>Website Owner</td>
+                        <td>创建 Power Pages 网站的用户。受管角色，不可更改。</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>各角色可创建的资源对比</span>
+              </button>
+              <div class="subsection-content">
+                <p>不同预定义角色对 Power Platform 资源的创建能力：</p>
+                <div class="table-scroll">
+                  <table class="role-table">
+                    <thead>
+                      <tr><th>资源类型</th><th>Environment Maker</th><th>Basic User</th><th>System Customizer</th><th>System Admin</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td>Canvas App</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
+                      <tr><td>Cloud Flow</td><td>✓（非 Solution）</td><td>✓</td><td>✓</td><td>✓</td></tr>
+                      <tr><td>Connector</td><td>✓（非 Solution）</td><td>✓</td><td>✓</td><td>✓</td></tr>
+                      <tr><td>Connection</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
+                      <tr><td>Data Gateway</td><td>—</td><td>✓</td><td>—</td><td>✓</td></tr>
+                      <tr><td>Dataflow</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
+                      <tr><td>Dataverse Tables</td><td>—</td><td>—</td><td>✓</td><td>✓</td></tr>
+                      <tr><td>Model-driven App</td><td>✓</td><td>—</td><td>✓</td><td>✓</td></tr>
+                      <tr><td>Solution Framework</td><td>✓</td><td>—</td><td>✓</td><td>✓</td></tr>
+                      <tr><td>Desktop Flow</td><td>—</td><td>—</td><td>✓</td><td>✓</td></tr>
+                      <tr><td>AI Builder</td><td>—</td><td>—</td><td>✓</td><td>✓</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>应用专属角色（Dynamics 365）</span>
+              </button>
+              <div class="subsection-content">
+                <p>部署 Dynamics 365 应用后，环境中会自动添加更多角色：</p>
+                <ul>
+                  <li><strong>Dynamics 365 Sales</strong>：Sales Manager、Salesperson 等预定义角色。</li>
+                  <li><strong>Dynamics 365 Customer Service</strong>：Omnichannel 相关角色。</li>
+                  <li><strong>Dynamics 365 Field Service</strong>：Field Service 相关角色定义。</li>
+                  <li><strong>Dynamics 365 Marketing</strong>：Marketing 自动化相关角色。</li>
+                  <li><strong>Dynamics 365 Finance</strong>：公共部门安全角色。</li>
+                </ul>
+                <p>这些角色由各应用包带入，一般不需要手动创建。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ====== Section 5: 场景速查 ====== -->
+        <section id="scenarios" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / Quick Reference</p>
+            <h2>常见场景的角色配置速查</h2>
+            <p>根据用户需要完成的任务，快速定位所需角色。</p>
+          </div>
+
+          <div class="scenario-grid">
+            <div class="scenario-card load-in">
+              <h4>运行一个 Model-driven App</h4>
+              <p>用户只需要打开并使用已构建好的应用，查看和编辑自己的数据。</p>
+              <span class="role-tag">Basic User</span>
+              <span class="role-tag">+ App 的 Share 权限</span>
+            </div>
+
+            <div class="scenario-card load-in">
+              <h4>运行一个 Canvas App（连接 Dataverse）</h4>
+              <p>用户使用 Canvas App 读写 Dataverse 数据。</p>
+              <span class="role-tag">Basic User</span>
+              <span class="role-tag">或自定义角色</span>
+            </div>
+
+            <div class="scenario-card load-in">
+              <h4>创建/修改 Canvas App 或 Flow</h4>
+              <p>Maker 需要在环境中构建应用或自动化流程。</p>
+              <span class="role-tag">Environment Maker</span>
+            </div>
+
+            <div class="scenario-card load-in">
+              <h4>创建/修改 Dataverse 自定义表</h4>
+              <p>需要创建或修改表结构、字段、关系、视图、表单。</p>
+              <span class="role-tag">System Customizer</span>
+              <span class="role-tag">+ Environment Maker</span>
+            </div>
+
+            <div class="scenario-card load-in">
+              <h4>管理 Security Role 和用户权限</h4>
+              <p>需要创建/修改安全角色、分配角色给用户、管理 BU 和 Team。</p>
+              <span class="role-tag">System Administrator</span>
+            </div>
+
+            <div class="scenario-card load-in">
+              <h4>管理整个环境（DLP、审计、备份）</h4>
+              <p>执行环境级别的管理操作：数据丢失防护策略、审计配置、环境备份与恢复。</p>
+              <span class="role-tag">System Administrator</span>
+              <span class="role-tag">或 Power Platform Admin</span>
+            </div>
+
+            <div class="scenario-card load-in">
+              <h4>代码中以其他用户身份操作</h4>
+              <p>Plugin 或后端服务需要 Impersonate 其他用户来执行数据操作。</p>
+              <span class="role-tag">Delegate</span>
+              <span class="role-tag">+ 目标操作权限</span>
+            </div>
+
+            <div class="scenario-card load-in">
+              <h4>创建最小权限的自定义角色</h4>
+              <p>需要为特定应用场景创建一个权限精确控制的角色。</p>
+              <span class="role-tag">复制 App Opener</span>
+              <span class="role-tag">按需添加权限</span>
+            </div>
+
+            <div class="scenario-card load-in">
+              <h4>查看所有部门的数据（只读）</h4>
+              <p>高管或审计人员需要跨部门查看所有数据但不需要编辑。</p>
+              <span class="role-tag">自定义角色</span>
+              <span class="role-tag">Organization 级 Read</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ====== Section 6: 安全分层 ====== -->
+        <section id="security-layers" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / Security Layers</p>
+            <h2>超越 Security Role 的安全分层</h2>
+            <p>Security Role 只是 Dataverse 安全体系的一层。完整的数据保护需要理解所有安全构建模块。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>Business Unit（业务单元）</span>
+              </button>
+              <div class="subsection-content">
+                <p>Business Unit（BU）是<strong>安全边界</strong>，而非组织架构的直接映射。每个 Dataverse 环境有一个<strong>根 BU</strong>（不可更改），可以创建子 BU 形成树状层级。</p>
+                <p>关键规则：</p>
+                <ul>
+                  <li>每个用户<strong>必须属于且仅属于一个</strong> BU。</li>
+                  <li>用户创建的记录默认归属其所在 BU。</li>
+                  <li>Security Role 的访问级别与 BU 层级联动：User 级仅限自己；BU 级覆盖同 BU 所有用户；Parent:Child 级覆盖本 BU 及所有子 BU。</li>
+                </ul>
+                <p><strong>现代化 BU（Modernized Business Units）</strong>：开启后，用户可以拥有来自不同 BU 的 Security Role，实现矩阵式权限管理——同一用户可以访问多个 BU 的数据。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Team（团队）</span>
+              </button>
+              <div class="subsection-content">
+                <p>Team 是另一个重要的安全构建模块，归属于 Business Unit：</p>
+                <ul>
+                  <li><strong>Default Team</strong>：每个 BU 自动创建，包含该 BU 的所有用户，成员由系统动态管理。</li>
+                  <li><strong>Owner Team</strong>：可以拥有记录（Record Owner）。给 Team 赋予 Security Role 后，所有成员自动获得该权限。是批量授权的高效方式。</li>
+                  <li><strong>Access Team</strong>：不能拥有记录或被赋予 Security Role。通过 Record Sharing 机制工作，用户因记录被共享给 Access Team 而获得访问权限。性能更优。</li>
+                  <li><strong>Microsoft Entra Group Team</strong>：与 Entra Security Group 关联的 Dataverse Team，实现与 Entra ID 的自动同步——在 Entra 中添加/移除成员即可自动管理 Dataverse 权限。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Record Sharing（记录共享）</span>
+              </button>
+              <div class="subsection-content">
+                <p>当 Security Role + BU 的组合无法覆盖某个特殊的访问需求时，可以逐条共享记录。共享支持 5 种途径：</p>
+                <ol>
+                  <li>直接与用户共享。</li>
+                  <li>通过关联记录继承共享（相关记录的共享传递到关联记录）。</li>
+                  <li>与 Team 共享（Team 成员获得访问权）。</li>
+                  <li>通过关联记录与 Team 的共享关系继承。</li>
+                  <li>与整个 Organization 共享。</li>
+                </ol>
+                <p><strong>注意</strong>：Sharing 应作为<strong>例外机制</strong>使用，因为它的性能不如 Role-based 访问控制，且更难审计和排查问题。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Column Security Profile（列级安全）</span>
+              </button>
+              <div class="subsection-content">
+                <p>当记录级权限控制不够精细时，可以启用<strong>列级安全</strong>来保护敏感字段（如身份证号、薪资、手机号）。</p>
+                <p>工作原理：</p>
+                <ol>
+                  <li>在目标列上启用 Column-level Security。</li>
+                  <li>创建 Column Security Profile，指定该列的 Create / Read / Update 权限。</li>
+                  <li>将 Profile 关联到用户或 Team。</li>
+                </ol>
+                <p><strong>重要</strong>：列级安全与记录级安全完全独立——用户必须<strong>先有记录的访问权限</strong>，Column Security Profile 才会生效。不要过度使用列级安全，它会增加系统开销。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Hierarchy Security（层级安全）</span>
+              </button>
+              <div class="subsection-content">
+                <p>Hierarchy Security 允许上级自动看到下属的数据，无需逐条共享。两种模型：</p>
+                <ul>
+                  <li><strong>Manager Hierarchy</strong>：基于用户表的 Manager 字段。直属上级可以 Read/Write/Append/AppendTo 下属数据；间接上级只有 Read 权限。管理链必须在同一 BU 或父 BU 中。</li>
+                  <li><strong>Position Hierarchy</strong>：基于自定义的职位层级。与 Manager 关系无关，可以跨 BU 访问。适合需要跨部门数据可见性的场景（如客服组织）。</li>
+                </ul>
+                <p>可以通过 <strong>Depth</strong> 参数限制上级的可见层数。例如 Depth=2 意味着 CEO 只能看到直属下级和再下一级的数据。</p>
+                <p>Hierarchy Security 默认禁用，需在 Power Platform admin center → Settings → Users + Permissions → Hierarchy security 中开启。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ====== Section 7: 最佳实践 ====== -->
+        <section id="best-practices" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">07 / Best Practices</p>
+            <h2>配置 Security Role 的最佳实践</h2>
+            <p>来自官方文档和社区经验的安全角色配置建议。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>最小权限原则</span>
+              </button>
+              <div class="subsection-content">
+                <ul>
+                  <li><strong>从 App Opener 或 Basic User 复制</strong>：创建自定义角色时，从预定义的最小权限角色出发，逐步添加所需权限。不要从 System Administrator 删减——容易遗漏。</li>
+                  <li><strong>区分 Maker 和 User</strong>：构建 App 的人需要 Environment Maker + System Customizer；使用 App 的人只需要 Basic User 或自定义角色。</li>
+                  <li><strong>避免 Organization 级别</strong>：除非业务确实需要全组织数据可见性，否则优先使用 User 或 BU 级。</li>
+                  <li><strong>审计"临时提权"</strong>：排查问题时临时授予高权限，问题解决后必须立即回收。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>角色设计策略</span>
+              </button>
+              <div class="subsection-content">
+                <ul>
+                  <li><strong>按应用拆分角色</strong>：为每个 App 创建专用角色，而非用一个"大角色"覆盖所有 App。这样用户只有其使用的 App 需要的权限。</li>
+                  <li><strong>利用 Team 批量授权</strong>：将 Security Role 赋给 Owner Team，然后管理 Team 成员——比逐人分配角色更高效、更易管理。</li>
+                  <li><strong>结合 Entra Security Group</strong>：将 BU 与 Entra Security Group 关联，通过 Entra 管理成员来控制 Dataverse 权限——实现单一身份管理入口。</li>
+                  <li><strong>减少 BU 数量</strong>：优先使用较少的 BU + Hierarchy Security 组合。大量 BU 会增加维护成本和复杂度。</li>
+                  <li><strong>描述性命名</strong>：角色名称和描述应清晰说明用途（如"销售代表 - 读写客户和商机"），方便后续审计和交接。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>常见陷阱与排查</span>
+              </button>
+              <div class="subsection-content">
+                <ul>
+                  <li><strong>"瑞士奶酪"式权限</strong>：因反复调试而随意提升权限级别，导致安全模型千疮百孔。建议定期审视所有自定义角色的权限配置。</li>
+                  <li><strong>Append 和 Append To 的混淆</strong>：Append 赋给"被附加的记录"（如 Note），Append To 赋给"接收附加的记录"（如 Opportunity）。两者方向相反。</li>
+                  <li><strong>忘记 Sharing 的性能代价</strong>：大量使用 Record Sharing 会降低查询性能。如果发现需要频繁共享，应考虑调整 Security Role 或 BU 结构。</li>
+                  <li><strong>Solution 导入的副作用</strong>：如果 Solution 中包含已重命名的预定义角色，导入时可能会恢复原名。导入前检查 Solution 中的角色定义。</li>
+                  <li><strong>使用 Check Access 功能</strong>：在记录的命令栏中使用 Check Access，可以查看用户通过哪条途径获得了对该记录的访问权限——是 Role、Sharing 还是 Hierarchy。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>跨环境安全管理</span>
+              </button>
+              <div class="subsection-content">
+                <p>Security Role 和 Column Security Profile 可以通过 <strong>Dataverse Solution</strong>（解决方案）打包并在环境间迁移。但以下内容<strong>不会自动迁移</strong>，需在每个环境中单独配置：</p>
+                <ul>
+                  <li>Business Unit 结构</li>
+                  <li>Team 定义和成员</li>
+                  <li>用户的角色分配</li>
+                  <li>Record Sharing 配置</li>
+                </ul>
+                <p>建议在 Dev → Test → Prod 的 ALM 流程中，统一管理 Security Role 的 Solution，但在每个环境中单独配置用户分配和 BU 映射。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ====== Section 8: 参考资料 ====== -->
+        <section id="references" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">08 / References</p>
+            <h2>参考资料</h2>
+          </div>
+
+          <ol class="bib-list">
+            <li id="ref-1">
+              <span class="bib-id">[1]</span>
+              <span class="bib-author">Microsoft Learn</span>
+              <a href="https://learn.microsoft.com/en-us/power-platform/admin/security-roles-privileges" target="_blank" rel="noopener noreferrer">Security roles and privileges for Dataverse</a>
+              <span class="bib-note">Security Role 的创建、编辑、权限配置和用户分配。</span>
+            </li>
+            <li id="ref-2">
+              <span class="bib-id">[2]</span>
+              <span class="bib-author">Microsoft Learn</span>
+              <a href="https://learn.microsoft.com/en-us/power-platform/admin/database-security" target="_blank" rel="noopener noreferrer">Role-based security roles for Dataverse</a>
+              <span class="bib-note">预定义角色列表及各角色可创建的资源对比。</span>
+            </li>
+            <li id="ref-3">
+              <span class="bib-id">[3]</span>
+              <span class="bib-author">Microsoft Learn</span>
+              <a href="https://learn.microsoft.com/en-us/power-platform/admin/wp-security-cds" target="_blank" rel="noopener noreferrer">Security concepts in Microsoft Dataverse</a>
+              <span class="bib-note">安全模型核心概念：RBAC、Business Unit、Team、Record Sharing、Column Security。</span>
+            </li>
+            <li id="ref-4">
+              <span class="bib-id">[4]</span>
+              <span class="bib-author">Microsoft Learn</span>
+              <a href="https://learn.microsoft.com/en-us/power-platform/admin/how-record-access-determined" target="_blank" rel="noopener noreferrer">How access to a record is determined</a>
+              <span class="bib-note">记录访问判定流程：Privilege Check → Access Check（Ownership / Role / Sharing / Hierarchy）。</span>
+            </li>
+            <li id="ref-5">
+              <span class="bib-id">[5]</span>
+              <span class="bib-author">Microsoft Learn</span>
+              <a href="https://learn.microsoft.com/en-us/power-platform/admin/hierarchy-security" target="_blank" rel="noopener noreferrer">Hierarchy security to control access</a>
+              <span class="bib-note">Manager Hierarchy 和 Position Hierarchy 的配置与使用。</span>
+            </li>
+            <li id="ref-6">
+              <span class="bib-id">[6]</span>
+              <span class="bib-author">Microsoft Learn</span>
+              <a href="https://learn.microsoft.com/en-us/power-platform/admin/wp-security" target="_blank" rel="noopener noreferrer">Security in Microsoft Dataverse</a>
+              <span class="bib-note">Dataverse 安全体系总览：从认证到授权的完整链路。</span>
+            </li>
+            <li id="ref-7">
+              <span class="bib-id">[7]</span>
+              <span class="bib-author">Microsoft Learn</span>
+              <a href="https://learn.microsoft.com/en-us/training/modules/get-started-security-roles/" target="_blank" rel="noopener noreferrer">Get started with security roles in Microsoft Dataverse - Training</a>
+              <span class="bib-note">官方交互式培训模块：Security Role 入门。</span>
+            </li>
+          </ol>
+        </section>
+
+      </main>
+
+      <footer>
+        <p>&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。</p>
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

@@ -1654,83 +1654,95 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    // Hint: user should select "Entire Screen" and enable system audio
-    var hint = getLang() === 'zh'
-      ? '请选择"整个屏幕"并勾选"同时共享系统音频"以录入语音讲解'
-      : 'Select "Entire Screen" and enable "Share system audio" to capture narration';
-    if (narrationSubtitle) {
-      showSubtitleSentence(hint);
-    }
-
-    // Request screen capture with system audio
+    // Step 1: Request screen capture first (browser dialog)
     navigator.mediaDevices.getDisplayMedia({
       video: true,
       audio: true,
       systemAudio: 'include'
     }).then(function (stream) {
-      recordingStream = stream;
-      recordedChunks = [];
+      // Step 2: Show "preparing" overlay
+      var prepOverlay = document.createElement('div');
+      prepOverlay.className = 'present-countdown-overlay';
+      prepOverlay.innerHTML = '<span class="present-countdown-num is-animating">' +
+        (getLang() === 'zh' ? '准备中…' : 'Preparing…') + '</span>';
+      document.body.appendChild(prepOverlay);
 
-      // Determine supported format
-      var mimeType = 'video/webm;codecs=vp9,opus';
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = 'video/webm;codecs=vp8,opus';
-      }
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = 'video/webm';
-      }
-
-      mediaRecorder = new MediaRecorder(stream, { mimeType: mimeType });
-
-      mediaRecorder.ondataavailable = function (e) {
-        if (e.data && e.data.size > 0) {
-          recordedChunks.push(e.data);
-        }
-      };
-
-      mediaRecorder.onstop = function () {
-        var blob = new Blob(recordedChunks, { type: mimeType });
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url;
-        a.download = sanitizeFileName(document.title || 'presentation') + '.webm';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
-        recordedChunks = [];
-
-        if (presentationTip) {
-          var origTip = presentationTip.textContent;
-          presentationTip.textContent = getLabel('recordSaved');
-          setTimeout(function () { presentationTip.textContent = origTip; }, 3000);
-        }
-      };
-
-      // If user stops sharing via browser UI, clean up
-      var videoTracks = stream.getVideoTracks();
-      if (videoTracks.length) {
-        videoTracks[0].addEventListener('ended', function () {
-          if (isRecording()) {
-            stopRecording();
-          }
-        });
-      }
-
-      mediaRecorder.start(1000); // collect data every second
-      root.classList.add('is-recording');
-      showSubtitleSentence(''); // clear hint
-
-      // Auto-start narration if not already running
+      // Step 3: Enter presentation mode if not already
       if (!state.enabled) {
         enterPresentation();
       }
-      if (narrationState === 'idle' && hasNarrationSupport()) {
-        setTimeout(function () { handleAutoPlayClick(); }, 400);
-      }
-    }).catch(function (err) {
-      console.error('Recording failed:', err);
-      // User cancelled permission dialog — do nothing
+      setPresentationStep(0);
+
+      // Step 4: Pre-generate first slide narrative
+      ensureNarrationController().then(function (ctrl) {
+        return ctrl.pregenerate(presentSteps, 0, getLang);
+      }).then(function () {
+        // Step 5: Remove prep overlay, show countdown
+        if (prepOverlay.parentNode) prepOverlay.parentNode.removeChild(prepOverlay);
+
+        showCountdown(function () {
+          // Step 6: 1s pause, then start recording + narration
+          setTimeout(function () {
+            // Setup MediaRecorder
+            recordingStream = stream;
+            recordedChunks = [];
+
+            var mimeType = 'video/webm;codecs=vp9,opus';
+            if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm;codecs=vp8,opus';
+            if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm';
+
+            mediaRecorder = new MediaRecorder(stream, { mimeType: mimeType });
+            mediaRecorder.ondataavailable = function (e) {
+              if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+            };
+            mediaRecorder.onstop = function () {
+              var blob = new Blob(recordedChunks, { type: mimeType });
+              var url = URL.createObjectURL(blob);
+              var a = document.createElement('a');
+              a.href = url;
+              a.download = sanitizeFileName(document.title || 'presentation') + '.webm';
+              document.body.appendChild(a); a.click(); document.body.removeChild(a);
+              setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+              recordedChunks = [];
+              if (presentationTip) {
+                var origTip = presentationTip.textContent;
+                presentationTip.textContent = getLabel('recordSaved');
+                setTimeout(function () { presentationTip.textContent = origTip; }, 3000);
+              }
+            };
+
+            var videoTracks = stream.getVideoTracks();
+            if (videoTracks.length) {
+              videoTracks[0].addEventListener('ended', function () {
+                if (isRecording()) stopRecording();
+              });
+            }
+
+            mediaRecorder.start(1000);
+            root.classList.add('is-recording');
+            narrationStartTime = Date.now();
+            narrationController.start(presentSteps, 0, getLang);
+          }, 1000);
+        });
+      }).catch(function () {
+        // Pregen failed — still proceed
+        if (prepOverlay.parentNode) prepOverlay.parentNode.removeChild(prepOverlay);
+        showCountdown(function () {
+          setTimeout(function () {
+            recordingStream = stream;
+            recordedChunks = [];
+            var mimeType = 'video/webm';
+            mediaRecorder = new MediaRecorder(stream, { mimeType: mimeType });
+            mediaRecorder.ondataavailable = function (e) { if (e.data && e.data.size > 0) recordedChunks.push(e.data); };
+            mediaRecorder.start(1000);
+            root.classList.add('is-recording');
+            narrationStartTime = Date.now();
+            handleAutoPlayClick();
+          }, 1000);
+        });
+      });
+    }).catch(function () {
+      // User cancelled screen capture dialog — do nothing
     });
   };
 
@@ -1777,13 +1789,63 @@ document.addEventListener('DOMContentLoaded', function () {
     setPresentationStep(0);
     updatePresentationLabels();
     requestBrowserFullscreen();
+  };
 
-    // Auto-start narration with countdown
-    if (hasNarrationSupport() && localStorage.getItem('narration-autostart') === 'true') {
-      showCountdown(function () {
-        handleAutoPlayClick();
-      });
-    }
+  /** Prepare narration controller (lazy load + create). Returns Promise<controller>. */
+  var ensureNarrationController = function () {
+    return ensureNarration().then(function (narrationModule) {
+      if (!narrationController) {
+        narrationController = narrationModule.createController({
+          onSlideComplete: function (status) {
+            if (status === 'next') {
+              goToNextStep();
+            } else {
+              var elapsed = Date.now() - narrationStartTime;
+              stopNarration();
+              if (isRecording()) stopRecording();
+              if (presentationTip) {
+                var origTip = presentationTip.textContent;
+                presentationTip.textContent = getLabel('narrationComplete') + ' · ' + getLabel('narrationDuration') + ' ' + formatDuration(elapsed);
+                setTimeout(function () { presentationTip.textContent = origTip; }, 5000);
+              }
+            }
+          },
+          onStateChange: function (newState) {
+            narrationState = newState;
+            root.classList.toggle('is-narrating', newState === 'playing' || newState === 'generating');
+            updateAutoPlayButton();
+          },
+          onSubtitle: function (text) { showSubtitleSentence(text); },
+          onError: function () {
+            if (presentationTip) {
+              var origTip = presentationTip.textContent;
+              presentationTip.textContent = getLabel('narrationError');
+              setTimeout(function () { presentationTip.textContent = origTip; }, 2000);
+            }
+          }
+        });
+      }
+      return narrationController;
+    });
+  };
+
+  /** Auto-start flow: pregen slide 0 during countdown, then start narration. */
+  var startAutoNarration = function () {
+    // Pre-generate first slide during countdown
+    var pregenDone = false;
+    ensureNarrationController().then(function (ctrl) {
+      return ctrl.pregenerate(presentSteps, 0, getLang);
+    }).then(function () { pregenDone = true; }).catch(function () { pregenDone = true; });
+
+    showCountdown(function () {
+      // Wait for pregen if not done yet, then start
+      var tryStart = function () {
+        if (!pregenDone) { setTimeout(tryStart, 100); return; }
+        narrationStartTime = Date.now();
+        narrationController.start(presentSteps, state.index, getLang);
+      };
+      tryStart();
+    });
   };
 
   var stopNarration = function () {
@@ -1840,50 +1902,10 @@ document.addEventListener('DOMContentLoaded', function () {
     presentationAutoPlay.disabled = true;
     var mainArea = presentationAutoPlay.querySelector('.narration-capsule-main');
     if (mainArea) mainArea.innerHTML = NARRATION_SVG_GENERATING;
-    ensureNarration().then(function (narrationModule) {
+    ensureNarrationController().then(function (ctrl) {
       presentationAutoPlay.disabled = false;
-
-      if (!narrationController) {
-        narrationController = narrationModule.createController({
-          onSlideComplete: function (status) {
-            if (status === 'next') {
-              goToNextStep();
-              // playSlide for new index will be triggered by syncToSlide in goToNextStep
-            } else {
-              // 'done' — last slide finished
-              var elapsed = Date.now() - narrationStartTime;
-              stopNarration();
-              if (presentationTip) {
-                var origTip = presentationTip.textContent;
-                presentationTip.textContent = getLabel('narrationComplete') + ' · ' + getLabel('narrationDuration') + ' ' + formatDuration(elapsed);
-                setTimeout(function () {
-                  presentationTip.textContent = origTip;
-                }, 5000);
-              }
-            }
-          },
-          onStateChange: function (newState) {
-            narrationState = newState;
-            root.classList.toggle('is-narrating', newState === 'playing' || newState === 'generating');
-            updateAutoPlayButton();
-          },
-          onSubtitle: function (text) {
-            showSubtitleSentence(text);
-          },
-          onError: function () {
-            if (presentationTip) {
-              var origTip = presentationTip.textContent;
-              presentationTip.textContent = getLabel('narrationError');
-              setTimeout(function () {
-                presentationTip.textContent = origTip;
-              }, 2000);
-            }
-          }
-        });
-      }
-
-      narrationController.start(presentSteps, state.index, getLang);
       narrationStartTime = Date.now();
+      ctrl.start(presentSteps, state.index, getLang);
     }).catch(function (err) {
       presentationAutoPlay.disabled = false;
       console.error('Narration load failed:', err);
@@ -2014,6 +2036,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     enterPresentation();
+
+    // Auto-start narration with countdown if enabled
+    if (hasNarrationSupport() && localStorage.getItem('narration-autostart') === 'true') {
+      startAutoNarration();
+    }
   });
 
   presentationExit.addEventListener('click', function () {
