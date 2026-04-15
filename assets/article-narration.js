@@ -42,19 +42,44 @@
     if (stepElement.hasAttribute('data-present-overview')) {
       var sHead = stepElement.querySelector('.section-head');
       if (sHead) {
-        var descP = sHead.querySelector('p');
+        var kicker = sHead.querySelector('.section-kicker');
+        if (kicker) body += (kicker.textContent || '').trim() + '\n';
+        var headH2 = sHead.querySelector('h2');
+        if (headH2) body += (headH2.textContent || '').trim() + '\n';
+        var descP = sHead.querySelector('p:not(.section-kicker)');
         if (descP) body += (descP.textContent || '').trim() + '\n';
       }
-      // Collect all accordion subsection titles
+      // Collect all accordion subsection titles + key content
       var accordionItems = stepElement.querySelectorAll('[data-accordion]');
       accordionItems.forEach(function (item) {
         var toggle = item.querySelector('.subsection-toggle span');
         if (toggle) body += '- ' + (toggle.textContent || '').trim() + '\n';
-        // Also grab first paragraph of content as preview
         var content = item.querySelector('.subsection-content');
         if (content) {
-          var firstP = content.querySelector('p');
-          if (firstP) body += '  ' + (firstP.textContent || '').trim() + '\n';
+          // Grab all paragraphs (not just first)
+          var paras = content.querySelectorAll('p');
+          paras.forEach(function (p) {
+            var t = (p.textContent || '').trim();
+            if (t && t.length > 10) body += '  ' + t + '\n';
+          });
+          // Grab insight callout content
+          var callouts = content.querySelectorAll('.insight-callout');
+          callouts.forEach(function (c) {
+            var ch = c.querySelector('h4');
+            var cp = c.querySelector('p');
+            if (ch) body += '  [' + (ch.textContent || '').trim() + '] ';
+            if (cp) body += (cp.textContent || '').trim() + '\n';
+          });
+          // Grab scenario card titles
+          var cards = content.querySelectorAll('.scenario-card h4');
+          cards.forEach(function (h) {
+            body += '  · ' + (h.textContent || '').trim() + '\n';
+          });
+          // Grab step-flow item titles
+          var stepItems = content.querySelectorAll('.step-item h4');
+          stepItems.forEach(function (h) {
+            body += '  · ' + (h.textContent || '').trim() + '\n';
+          });
         }
       });
       // Also grab non-accordion content (insight-grid, flow-list, etc.)
