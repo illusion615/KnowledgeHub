@@ -94,18 +94,20 @@
       return { title: title, label: label, body: body };
     }
 
-    // Normal extraction — walk visible DOM elements
+    // Normal extraction — walk DOM elements (ignore CSS visibility since
+    // non-active steps are display:none during lookahead, but we still need their text)
     var walker = document.createTreeWalker(
       stepElement,
       NodeFilter.SHOW_ELEMENT,
       {
         acceptNode: function (node) {
-          // Skip hidden elements
+          // Skip aria-hidden elements (presentation chrome, not content)
           if (node.getAttribute('aria-hidden') === 'true') return NodeFilter.FILTER_REJECT;
+          // Skip toggled-off subsection content in normal reading mode
           if (node.classList.contains('subsection-content') &&
               node.getAttribute('aria-hidden') === 'true') return NodeFilter.FILTER_REJECT;
-          var style = window.getComputedStyle(node);
-          if (style.display === 'none' || style.visibility === 'hidden') return NodeFilter.FILTER_REJECT;
+          // Skip presentation-only elements
+          if (node.classList.contains('present-inline-head')) return NodeFilter.FILTER_REJECT;
           return NodeFilter.FILTER_ACCEPT;
         }
       }
