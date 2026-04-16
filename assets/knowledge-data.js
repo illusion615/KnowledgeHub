@@ -249,7 +249,7 @@ var knowledgeTree = [
     url: 'posts/function-calling-landscape/index.html',
     color: '#0ea5e9',
     phase: 0.8, speed: 0.88,
-    relations: ['hermes-open-model', 'enterprise-agent-arch', 'agentic-skill-exec', 'fc-best-practices']
+    relations: ['hermes-open-model', 'enterprise-agent-arch', 'agentic-skill-exec']
   },
   {
     id: 'fc-best-practices',
@@ -260,15 +260,15 @@ var knowledgeTree = [
       en: 'Function Calling Engineering Guide: Best Practices, Model Differences & Pitfalls'
     },
     summary: {
-      zh: '系统梳理 OpenAI/Anthropic/Google 三大 vendor 的 FC 协议差异，总结 schema 设计、错误处理、调用模式等 28 条工程最佳实践。',
-      en: 'Covers FC protocol differences across OpenAI/Anthropic/Google, with 28 engineering best practices on schema design, error handling, and calling modes.'
+      zh: '基于生产经验总结 function calling 工程实践：schema 设计、错误处理、模型间差异对比和常见陷阱与解法。',
+      en: 'Production-tested function calling practices: schema design, error handling, cross-model differences, and common pitfalls with solutions.'
     },
-    tags: ['Function Calling', 'Best Practices', 'AI Engineering', 'Tool Use'],
+    tags: ['Function Calling', 'Best Practices', 'AI Engineering'],
     date: '2026-04-16',
     url: 'posts/function-calling-best-practices/index.html',
     color: '#0ea5e9',
-    phase: 1.2, speed: 0.85,
-    relations: ['fc-landscape', 'enterprise-agent-arch', 'agentic-skill-exec']
+    phase: 1.6, speed: 0.88,
+    relations: ['fc-landscape', 'enterprise-agent-arch']
   },
   {
     id: 'llm-literary-creation',
@@ -450,6 +450,25 @@ var knowledgeTree = [
     phase: 1.4, speed: 0.88,
     relations: ['low-code-ai-era', 'copilot-harness-eng']
   },
+  {
+    id: 'dataverse-security-roles',
+    parentId: 'power-apps',
+    type: 'article',
+    title: {
+      zh: 'Dataverse Security Role 完全指南：概念、预定义角色与最佳实践',
+      en: 'Dataverse Security Role Guide: Concepts, Predefined Roles & Best Practices'
+    },
+    summary: {
+      zh: '系统梳理 Dataverse 安全角色体系：核心概念、9 个预定义角色权限矩阵、角色分配策略和生产环境最佳实践。',
+      en: 'Comprehensive guide to Dataverse security roles: concepts, 9 predefined role permission matrices, assignment strategies, and production best practices.'
+    },
+    tags: ['Dataverse', 'Security', 'Power Platform', 'RBAC'],
+    date: '2026-04-16',
+    url: 'posts/dataverse-security-roles/index.html',
+    color: '#a855f7',
+    phase: 2.4, speed: 0.82,
+    relations: ['low-code-ai-era']
+  },
 
   // ════════════════════════════════════════
   // 文章 — Copilot Studio（挂在二级分组下）
@@ -520,8 +539,8 @@ var knowledgeTree = [
       en: 'Copilot Studio vs Agents SDK: Positioning, Relationship & Scenario Selection'
     },
     summary: {
-      zh: '基于官方文档对比 Copilot Studio（低代码平台）与 M365 Agents SDK（Pro-code 框架）的职责边界、协作模式和六个场景选型依据。',
-      en: 'Compares Copilot Studio (low-code platform) with M365 Agents SDK (pro-code framework) on scope, collaboration patterns, and 6 scenario-based selection criteria.'
+      zh: '基于官方文档对比 Copilot Studio（低代码）与 M365 Agents SDK（Pro-code）的职责边界、协作模式和六个场景选型依据。',
+      en: 'Compares Copilot Studio (low-code) with M365 Agents SDK (pro-code) on scope, collaboration, and 6 scenario-based selection criteria.'
     },
     tags: ['Copilot Studio', 'Agent SDK', 'Architecture Decision', 'Foundry'],
     date: '2026-04-16',
@@ -571,6 +590,25 @@ var knowledgeTree = [
     color: '#7c3aed',
     phase: 4.5, speed: 0.7,
     relations: ['study-room-design']
+  },
+  {
+    id: 'markdown-rendering-pipeline',
+    parentId: 'knowledge-hub',
+    type: 'article',
+    title: {
+      zh: 'Markdown 渲染管线：内容与展现解耦',
+      en: 'Markdown Rendering Pipeline: Decoupling Content from Presentation'
+    },
+    summary: {
+      zh: '提出从纯 HTML 向 Markdown 渲染管线演进的方案：三阶段路线图、技术选型对比和渐进式迁移策略。',
+      en: 'Proposes evolving from pure HTML to a Markdown rendering pipeline: three-phase roadmap, tech comparison, and incremental migration strategy.'
+    },
+    tags: ['Architecture', 'Markdown', 'Content Pipeline', 'Knowledge Hub'],
+    date: '2026-04-16',
+    url: 'posts/markdown-rendering-pipeline/index.html',
+    color: '#0fb5ae',
+    phase: 2.8, speed: 0.75,
+    relations: ['study-room-design', 'study-room-standards']
   },
 
   // ════════════════════════════════════════
@@ -627,6 +665,25 @@ var knowledgeTree = [
     relations: ['study-room-standards', 'study-room-design']
   },
   {
+    id: 'architecture-review-2026-0415',
+    parentId: 'knowledge-hub-reviews',
+    type: 'article',
+    title: {
+      zh: 'Knowledge Hub 周期架构复盘（2026-04-15）',
+      en: 'Knowledge Hub Periodic Architecture Review (2026-04-15)'
+    },
+    summary: {
+      zh: '第二次 9 维度审查：40 篇文章、演示脚本 +64.3% 膨胀、CSS 突破红线，综合 C+，含拆分方案与 7 项行动计划。',
+      en: 'Second 9-dimension review: 40 articles, presentation script +64.3% bloat, CSS past red line, overall C+, with split plan and 7 action items.'
+    },
+    tags: ['Architecture Review', 'Code Review', 'Knowledge Hub'],
+    date: '2026-04-15',
+    url: 'posts/architecture-review-2026-0415/index.html',
+    color: '#0d8f8c',
+    phase: 1.5, speed: 0.80,
+    relations: ['study-room-review-2026q2', 'homepage-architecture-review', 'study-room-standards']
+  },
+  {
     id: 'knowledge-graph-org',
     parentId: 'knowledge-hub',
     type: 'article',
@@ -663,25 +720,6 @@ var knowledgeTree = [
     color: '#0d8f8c',
     phase: 3.8, speed: 0.78,
     relations: ['study-room-review-2026q2', 'study-room-design', 'study-room-standards']
-  },
-  {
-    id: 'architecture-review-2026-0415',
-    parentId: 'knowledge-hub-reviews',
-    type: 'article',
-    title: {
-      zh: 'Knowledge Hub 周期架构复盘（2026-04-15）',
-      en: 'Knowledge Hub Periodic Architecture Review (2026-04-15)'
-    },
-    summary: {
-      zh: '第二次 9 维度审查：40 篇文章、演示脚本 +64.3% 膨胀、CSS 突破红线，综合 C+，含拆分方案与 7 项行动计划。',
-      en: 'Second 9-dimension review: 40 articles, presentation script +64.3% bloat, CSS past red line, overall C+, with split plan and 7 action items.'
-    },
-    tags: ['Architecture Review', 'Code Review', 'Knowledge Hub'],
-    date: '2026-04-15',
-    url: 'posts/architecture-review-2026-0415/index.html',
-    color: '#0d8f8c',
-    phase: 1.5, speed: 0.80,
-    relations: ['study-room-review-2026q2', 'homepage-architecture-review', 'study-room-standards']
   },
 
   // ════════════════════════════════════════
@@ -939,6 +977,26 @@ var knowledgeTree = [
     color: '#0d8f8c',
     phase: 4.5, speed: 0.85,
     relations: ['enterprise-agent-arch', 'hermes-open-model']
+  },
+
+  {
+    id: 'ai-radar-2026w16',
+    parentId: 'ai-radar',
+    type: 'article',
+    title: {
+      zh: 'AI 时事雷达 2026W16：Agent 平台化加速、模型性能争议与治理落地',
+      en: 'AI Radar 2026W16: Agent Platformization, Model Quality Concerns & Governance Data'
+    },
+    summary: {
+      zh: '覆盖 2026 年 4 月第三周 16 件 AI 大事：Agent 平台化四方混战、Claude 变蠢争议、Stanford HAI 报告揭示中美差距收窄至 2.7%。',
+      en: '16 AI events from mid-April 2026: agent platformization race, Claude quality concerns, Stanford HAI report showing US-China gap narrowing to 2.7%.'
+    },
+    tags: ['AI Radar', 'Weekly', 'Industry Analysis'],
+    date: '2026-04-16',
+    url: 'posts/ai-radar-2026w16/index.html',
+    color: '#0d8f8c',
+    phase: 5.0, speed: 0.85,
+    relations: ['ai-radar-2026w15', 'enterprise-agent-arch']
   },
 
   // ════════════════════════════════════════

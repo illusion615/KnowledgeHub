@@ -387,8 +387,8 @@
           </div>
           <div class="metric">
             <div class="metric-label">主运行栈</div>
-            <strong>4 条</strong>
-            <span>MLX / llama.cpp / Ollama / Diffusers-MPS</span>
+            <strong>5 条</strong>
+            <span>MLX (oMLX/vMLX) / llama.cpp / Ollama / Diffusers-MPS</span>
           </div>
           <div class="metric">
             <div class="metric-label">主力参数档</div>
@@ -716,9 +716,9 @@
         <section id="engines" class="section" data-reveal data-step-title="模型运行引擎对比">
           <div class="section-head">
             <p class="section-kicker">04 / Model Engines</p>
-            <h2>4. 模型运行引擎对比：Ollama、oMLX、LM Studio、MLX-LM、llama.cpp、Jan 和 GPT4All</h2>
+            <h2>4. 模型运行引擎横评：oMLX、vMLX、Ollama、LM Studio、MLX-LM、llama.cpp、Jan 和 GPT4All</h2>
             <p>
-              "模型"和"跑模型的引擎"是两回事。同一个 Qwen3-14B，用 MLX-LM 跑和用 oMLX 跑，速度、功能和开发体验可以差一个等级。这一节把七个最常见的本地引擎 / 平台放在一起比较，维度是：<strong>推理性能</strong>、<strong>Apple Silicon 兼容性</strong>、<strong>功能丰富度</strong>（API、工具调用、RAG、MCP）和<strong>社区活跃度</strong>。
+              "模型"和"跑模型的引擎"是两回事。同一个 Qwen3-14B，用 MLX-LM 跑和用 oMLX 跑，速度、功能和开发体验可以差一个等级。这一节把八个最常见的本地引擎 / 平台放在一起比较，维度是：<strong>推理性能</strong>、<strong>Apple Silicon 兼容性</strong>、<strong>功能丰富度</strong>（API、工具调用、多模态、RAG、MCP）和<strong>社区活跃度</strong>。其中 oMLX 和 vMLX 是 2026 年 MLX 原生赛道最值得关注的两个全功能推理服务器，本节将重点展开它们的差异。
             </p>
           </div>
 
@@ -769,8 +769,17 @@
                   <td><span class="status-chip status-good">高</span></td>
                   <td><span class="status-chip status-good">最高</span></td>
                   <td><span class="status-chip status-good">很高</span></td>
+                  <td><span class="status-chip status-good">很高</span></td>
+                  <td>MLX 原生 LLM 服务化首选（10.3K stars / 48 贡献者）。基于 mlx-lm 构建，continuous batching、2 层 KV cache（RAM 热层 + SSD 冷层）、DFlash 投机解码（1.7–4.1x 加速）、oQ GPTQ 增强量化、多模型并存 + LRU。支持 VLM/OCR、embedding/reranker、tool calling、MCP。原生 PyObjC 菜单栏 App 内存开销极低。Homebrew 服务 / Claude Code 优化。社区基准平台 10 万+条提交<a href="#ref-19">[19]</a>。</td>
+                </tr>
+                <tr>
+                  <td><strong>vMLX</strong></td>
+                  <td>Electron App + CLI + API</td>
                   <td><span class="status-chip status-good">高</span></td>
-                  <td>MLX 原生推理服务化首选。基于 mlx-lm 构建，加入 continuous batching、SSD 分级 KV cache、多模型并存、菜单栏管理与 OpenAI/Anthropic 兼容 API<a href="#ref-19">[19]</a>。支持 tool calling、VLM、embedding 和 MCP。是"把 MLX-LM 变成生产级推理服务器"的最佳方案。</td>
+                  <td><span class="status-chip status-good">最高</span></td>
+                  <td><span class="status-chip status-good">很高</span></td>
+                  <td><span class="status-chip status-mid">中</span></td>
+                  <td>全栈多模态首选（313 stars / 5 贡献者）。5 层 KV cache（Prefix + Paged + KV Quant q4/q8 + Disk + Block Disk）、JANG 自适应混合精度量化、Smelt 部分 MoE 专家加载、分布式 pipeline parallelism 跨多台 Mac。覆盖 LLM/VLM + 文生图（Flux Schnell/Dev/Klein）+ 图像编辑 + TTS（Kokoro）+ STT（Whisper）。14 种 tool calling 解析器 + 26+ 内置工具。OpenAI + Anthropic + Ollama 兼容 API + API Gateway 单端口多模型路由<a href="#ref-20">[20]</a>。</td>
                 </tr>
                 <tr>
                   <td><strong>llama.cpp</strong></td>
@@ -806,10 +815,30 @@
           <div class="subsection-accordion section-grid-spaced" data-present-step data-step-title="引擎选型细节">
             <article class="subsection-item is-open" data-accordion>
               <button class="subsection-toggle" type="button">
-                <span>Ollama vs LM Studio：哪个更适合日常？</span>
+                <span>oMLX vs vMLX：MLX 赛道的两条路线</span>
               </button>
               <div class="subsection-content">
-                <p>如果你主要需要 API 接入和自动化，Ollama 更适合 — 它天生是一个 daemon 服务，开机后台运行，任何脚本或应用直接调用 REST 接口<a href="#ref-3">[3]</a>。如果你更想要可视化聊天、参数调节和模型管理界面，LM Studio 是更好的选择。LM Studio 0.4 以后还支持 headless 模式 (llmster)，可以纯粹当 server 用<a href="#ref-14">[14]</a>。两者都基于 llama.cpp 后端，切换成本极低。</p>
+                <p><strong>oMLX（10.3K stars，48 贡献者）</strong>和 <strong>vMLX（313 stars，5 贡献者）</strong>都是基于 Apple MLX 构建的全功能本地推理服务器，但设计哲学完全不同。</p>
+                <p><strong>架构哲学</strong>：oMLX 专注于 LLM 推理品质 — 它只做文本/VLM，但把推理路径打磨得极深：DFlash 投机解码（block diffusion，Qwen3.5-9B 上实测 4.1x 加速<a href="#ref-21">[21]</a>）、oQ GPTQ 增强量化、Claude Code 专用优化（context scaling + SSE keep-alive）。vMLX 走全栈路线 — LLM、VLM、文生图（Flux）、图编辑（Qwen/Kontext）、TTS（Kokoro）、STT（Whisper）全部整合在同一个 API 服务器里。</p>
+                <p><strong>缓存架构</strong>：oMLX 采用 2 层设计（RAM 热层 + SSD 冷层），block-based，灵感来自 vLLM，即使服务器重启也能从 SSD 恢复。vMLX 设计了 5 层栈（Memory-Aware Prefix、Paged、KV Quant q4/q8、Disk、Block Disk），加上 Hybrid SSM 缓存（支持 Mamba + Attention 混合架构如 Nemotron-H）。</p>
+                <p><strong>量化方案</strong>：oMLX 提供标准 MLX 量化 + oQ（基于 GPTQ 的增强量化，支持 MoE batched expert 处理）。vMLX 的 JANG 自适应混合精度量化按层类型分配不同 bit 宽度 — 在 MiniMax M2.5 上 JANG_2L（2-bit 混合）达到 74% 准确率 vs MLX 标准 4-bit 26.5%（来源：vMLX README，MMLU-Pro 测试）。</p>
+                <p><strong>投机解码</strong>：oMLX 集成了 DFlash（block diffusion speculative decoding），用 1B 参数的 draft 模型并行生成 16 个 token 后由 target 模型一次验证，输出无损。在 M5 Max 64GB 上，Qwen3.5-9B 从 31 tok/s 加速到 127 tok/s<a href="#ref-21">[21]</a>。vMLX 支持传统 draft model + Prompt Lookup Decoding（无需 draft 模型，利用 n-gram 匹配，适合结构化输出如 JSON/代码）。</p>
+                <p><strong>桌面端</strong>：oMLX 用原生 PyObjC 构建 macOS 菜单栏 App — 内存开销极低，纯后台服务。vMLX 用 Electron + React 构建 5 模式桌面 App（Chat/Server/Image/Tools/API），功能更全（含内置 agentic 编程聊天、图像生成 UI、模型转换工具），但 Electron 本身约占 200-400MB 额外内存。</p>
+                <p><strong>社区与成熟度</strong>：oMLX 社区更大（10.3K stars、48 贡献者、99,974 条用户基准提交），发展了 63 个 release。vMLX 更年轻（313 stars、5 贡献者），但迭代极快（14 个 engine release + 74 个 Studio release），在多模态功能覆盖上走得更远。</p>
+                <p><strong>独有能力</strong>：oMLX 有 DFlash 投机解码、oQ 量化、Claude Code 优化、Homebrew 服务模式、社区基准平台。vMLX 有 JANG 混合精度量化、Smelt 部分专家加载（MoE 模型超出 RAM 时只加载部分 expert）、分布式 pipeline parallelism（多台 Mac 联合推理）、API Gateway 单端口多模型路由、Ollama 兼容 API。</p>
+                <p><strong>选择建议</strong>：如果你主要跑 LLM/VLM 推理并追求极致吞吐和社区生态，选 oMLX（特别是搭配 DFlash 可以让中等模型接近大模型的体验）。如果你需要一个引擎统一覆盖 LLM + 图像 + 音频，并且看重内置 GUI 和 agentic 工具链，选 vMLX。二者都支持 OpenAI + Anthropic 兼容 API，上层应用切换成本可控。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" type="button">
+                <span>vMLX 多模态能力：在 M4 Max 64GB 上能跑什么</span>
+              </button>
+              <div class="subsection-content">
+                <p>vMLX 通过集成 mflux 和 mlx-audio，在同一个 API 服务器内提供文生图、图编辑、TTS 和 STT 能力，无需额外安装 Diffusers 或 ComfyUI<a href="#ref-20">[20]</a>。</p>
+                <p><strong>文生图</strong>：支持 Flux Schnell（4 步快速生成，约 6-24GB 显存）、Flux Dev（20 步高质量，约 6-24GB）、Z-Image Turbo（4 步快速）和 FLUX.2 Klein 4B/9B — 均为 MLX 原生推理路径。在 M4 Max 64GB 上，同时加载 LLM + Flux Schnell 4-bit 是可行的。</p>
+                <p><strong>图编辑</strong>：支持 Qwen Image Edit（指令式编辑，约 54GB 全精度 — M4 Max 64GB 会非常紧张）和 Flux Kontext（主题一致性编辑）。实际使用建议选 Kontext 而非 Qwen Image Edit，后者的内存需求接近硬件极限。</p>
+                <p><strong>音频</strong>：TTS 通过 Kokoro（82M 参数），STT 通过 Whisper — 两者内存占用极低，可以和 LLM 共存无压力。通过 <code>/v1/audio/speech</code> 和 <code>/v1/audio/transcriptions</code> 标准 API 调用。</p>
+                <p><strong>对比 Diffusers + MPS 路线</strong>：vMLX 的优势是统一 API 和零环境隔离成本 — 你不需要额外的 Python 虚拟环境、PyTorch 版本管理或 ComfyUI 节点配置。劣势是 mflux 的模型生态不如 Diffusers 丰富（不支持 SDXL LoRA、ControlNet 等高级工作流），且没有 ComfyUI 的可视化节点编辑器。如果你的图像任务是"快速生成插图"，vMLX 路线更简单；如果是"精细控制构图和风格迁移"，仍然需要 Diffusers + ComfyUI。</p>
               </div>
             </article>
             <article class="subsection-item" data-accordion>
@@ -824,10 +853,10 @@
             </article>
             <article class="subsection-item" data-accordion>
               <button class="subsection-toggle" type="button">
-                <span>MLX-LM 的优势到底在哪</span>
+                <span>Ollama vs LM Studio：哪个更适合日常</span>
               </button>
               <div class="subsection-content">
-                <p>MLX-LM 是 Apple 官方的 ML 框架上层库，推理路径直接走 Metal shader graph，不经过 GGUF / GGML 转换<a href="#ref-1">[1]</a>。在 Apple Silicon 上，MLX 通常比 llama.cpp 的 GGUF 路线在吞吐上更快（社区测试 MLX q4 达到 90 tok/s vs llama.cpp 49 tok/s），但模型格式生态不如 GGUF 丰富。适合"确定了用什么模型，追求跑得最快"的场景。</p>
+                <p>如果你主要需要 API 接入和自动化，Ollama 更适合 — 它天生是一个 daemon 服务，开机后台运行，任何脚本或应用直接调用 REST 接口<a href="#ref-3">[3]</a>。如果你更想要可视化聊天、参数调节和模型管理界面，LM Studio 是更好的选择。LM Studio 0.4 以后还支持 headless 模式 (llmster)，可以纯粹当 server 用<a href="#ref-14">[14]</a>。两者都基于 llama.cpp 后端，切换成本极低。但注意：Ollama 和 LM Studio 都不支持文生图或音频生成 — 需要这些能力必须走 vMLX 或 Diffusers 路线。</p>
               </div>
             </article>
             <article class="subsection-item" data-accordion>
@@ -851,13 +880,13 @@
           <div class="category-grid section-grid-spaced">
             <article class="category-card">
               <span class="category-badge">Dev</span>
-              <h3>开发者：oMLX 或 Ollama</h3>
-              <p>如果你主要跑 MLX 格式模型，oMLX 是最强选择 — continuous batching、SSD KV cache 和 Claude Code 优化都是原生 MLX 路线独有的。如果你需要跑 GGUF 格式或追求最广的社区教程覆盖，Ollama 仍是默认首选。</p>
+              <h3>开发者：oMLX 或 vMLX</h3>
+              <p>如果主要跑 LLM/VLM 推理，oMLX 是专精选择 — DFlash 投机解码、Claude Code 优化和 Homebrew 服务模式是纯 LLM 路线独有的。如果需要一个引擎统一覆盖 LLM + 图像 + 音频（如 agentic 应用同时调用 chat、image gen 和 TTS），vMLX 适合用单 API 串联全栈。GGUF 生态优先则仍选 Ollama。</p>
             </article>
             <article class="category-card">
               <span class="category-badge">Power User</span>
-              <h3>高阶用户：LM Studio</h3>
-              <p>同时支持 GGUF 和 MLX 双引擎、可视化调参、MCP 集成、headless 部署。是功能覆盖面最广的单一平台。</p>
+              <h3>高阶用户：vMLX 或 LM Studio</h3>
+              <p>vMLX MLX Studio 提供最完整的 GUI — Chat、Server、Image、Tools、API 五模式切换。LM Studio 胜在跨平台（macOS/Windows/Linux）和 GGUF + MLX 双引擎，适合在不同设备间切换。二者都支持 MCP 和 OpenAI 兼容 API。</p>
             </article>
             <article class="category-card">
               <span class="category-badge">Casual</span>
@@ -872,7 +901,7 @@
             <p class="section-kicker">05 / Runtime Stacks</p>
             <h2>5. 推荐运行栈：不要试图用一套框架统一所有任务</h2>
             <p>
-              本地模型部署在 Mac 上最常见的误区，是试图用一种框架覆盖 LLM、图像、视频和音频。实际上更合理的方式是按任务拆栈：LLM 用 MLX 或 GGUF；图像和音频用 Diffusers/MPS；视频只在有明确需求时单独搭建实验环境。
+              本地模型部署在 Mac 上最常见的误区，是试图用一种框架覆盖 LLM、图像、视频和音频。实际上更合理的方式是按任务拆栈：LLM 用 oMLX 或 Ollama；图像和音频用 Diffusers/MPS 或 vMLX；视频只在有明确需求时单独搭建实验环境。或者，若追求统一管理，用 vMLX 一个服务器覆盖全部模态。
             </p>
           </div>
 
@@ -906,11 +935,11 @@
             </article>
             <article class="stack-card">
               <span class="stack-badge">Stack D</span>
-              <h3>Diffusers + PyTorch MPS</h3>
+              <h3>Diffusers + MPS 或 vMLX</h3>
               <ul>
                 <li>图像、音频和部分视频任务的主通道。</li>
-                <li>官方明确支持 Apple Silicon，但提醒 attention slicing、batch 不稳定和大张量限制<a href="#ref-6">[6]</a>。</li>
-                <li>适合做多模态实验环境，不建议和主 LLM 环境混装在同一个 Python 解释器里。</li>
+                <li>Diffusers + MPS 官方明确支持 Apple Silicon，但需注意 attention slicing、batch 不稳定和大张量限制<a href="#ref-6">[6]</a>。适合需要 LoRA、ControlNet 等高级管线的场景。</li>
+                <li>vMLX 的 mflux 路线提供更简单的替代方案：统一 API 端口、无需额外 PyTorch 环境，代价是不支持 SDXL 生态中的高级插件和工作流节点<a href="#ref-20">[20]</a>。</li>
               </ul>
             </article>
           </div>
@@ -920,14 +949,14 @@
               <div class="decision-number">1</div>
               <div>
                 <h3>日常助手栈</h3>
-                <p>Qwen3-14B 4-bit + MLX-LM。若应用要用 OpenAI 风格函数调用，在外面包一层 Ollama 或 llama.cpp server。</p>
+                <p>Qwen3-14B 4-bit + oMLX（推荐，含 DFlash 投机解码 + Homebrew 服务 + Claude Code 优化）或 Ollama（GGUF 生态优先）。如需同时跑图像/音频，用 vMLX 一站式替代。</p>
               </div>
             </article>
             <article class="decision-step">
               <div class="decision-number">2</div>
               <div>
                 <h3>图像创作栈</h3>
-                <p>SDXL 走 ComfyUI 或 Diffusers/MPS 打基础；FLUX.1-schnell 作为高质量补充。两者分环境安装，避免 PyTorch、xformers、社区插件互相污染。</p>
+                <p>高级工作流（LoRA/ControlNet/ComfyUI）→ SDXL + Diffusers/MPS；快速插图生成 → vMLX Flux Schnell（<code>pip install vmlx[image]</code>，无需额外环境）。FLUX.1-schnell 作为高质量补充，两种路线分环境安装。</p>
               </div>
             </article>
             <article class="decision-step">
@@ -956,24 +985,38 @@
             </p>
           </div>
 
-          <div class="summary-grid section-grid-spaced" data-present-step data-step-title="三套推荐组合">
+          <div class="summary-grid section-grid-spaced" data-present-step data-step-title="四套推荐组合">
             <article class="summary-card">
               <span class="summary-badge">Default Build</span>
               <h3>默认工作组合</h3>
               <ul>
                 <li>LLM：Qwen3-14B 4-bit</li>
-                <li>Function Calling：Ollama 或 llama.cpp server</li>
-                <li>文生图：SDXL</li>
+                <li>引擎：oMLX（DFlash 投机解码 + Homebrew 服务）</li>
+                <li>Function Calling：oMLX 内置 tool calling</li>
+                <li>文生图：SDXL via Diffusers/MPS</li>
                 <li>语音：Kokoro</li>
                 <li>音乐：MusicGen-medium</li>
               </ul>
-              <p>这是综合稳定性、中文能力、资源占用和部署难度后的最佳平衡点。</p>
+              <p>纯 LLM 推理走 oMLX 最优。图像/音频分栈部署，环境隔离最稳定。</p>
+            </article>
+            <article class="summary-card">
+              <span class="summary-badge">Unified Build</span>
+              <h3>一体化组合（vMLX）</h3>
+              <ul>
+                <li>LLM：Qwen3-14B 4-bit</li>
+                <li>引擎：vMLX（单 API 服务器）</li>
+                <li>文生图：Flux Schnell 4-bit（vMLX 内置）</li>
+                <li>语音：Kokoro TTS + Whisper STT（vMLX 内置）</li>
+                <li>Function Calling：14 种自动解析器 + 26+ 内置工具</li>
+              </ul>
+              <p>用 vMLX 统一所有模态。单服务器、单 API 端口、零环境隔离成本。适合快速搭建 agentic 应用的开发者。</p>
             </article>
             <article class="summary-card">
               <span class="summary-badge">Quality Build</span>
               <h3>质量优先组合</h3>
               <ul>
                 <li>LLM：Qwen3-32B 或 GLM-4-32B 离线任务 + Qwen3-14B 常驻</li>
+                <li>引擎：oMLX（多模型 LRU + DFlash）</li>
                 <li>文生图：FLUX.1-schnell</li>
                 <li>语音：F5-TTS</li>
                 <li>音乐：Stable Audio Open 1.0</li>
@@ -997,14 +1040,14 @@
               <div class="decision-number">A</div>
               <div>
                 <h3>如果你主要做本地知识助手与 Agent</h3>
-                <p>直接选 Qwen3-14B。它在中文、JSON、结构化输出和工具调用上的综合平衡，加上 thinking/non-thinking 混合模式，是 M4 Max 64GB 上最值得长期使用的主力模型。若 function calling 是核心需求，额外测试 GLM-4-32B-0414。</p>
+                <p>直接选 Qwen3-14B + oMLX。oMLX 的 DFlash 投机解码可让中等模型接近大模型的交互体验（Qwen3.5-9B 从 31 tok/s 加速到 127 tok/s，测于 M5 Max 64GB<a href="#ref-21">[21]</a>）。若需要同时调用图像和音频生成，用 vMLX 一站式替代。若 function calling 是核心需求，额外测试 GLM-4-32B-0414。</p>
               </div>
             </article>
             <article class="decision-step">
               <div class="decision-number">B</div>
               <div>
                 <h3>如果你主要做图像创作</h3>
-                <p>先上 SDXL，确认 MPS、VAE、LoRA 和工作流节点都跑顺，再追加 FLUX.1-schnell。不要从最重的模型开始，否则你会把时间消耗在环境对齐而不是产出上。</p>
+                <p>精细控制路线：先上 SDXL + Diffusers/MPS，确认 VAE、LoRA、ControlNet 和 ComfyUI 节点跑顺，再追加 FLUX.1-schnell。快速生成路线：vMLX + Flux Schnell（<code>pip install vmlx[image]</code> → <code>vmlx serve schnell</code>），无需 PyTorch 环境，但不支持 SDXL 生态插件。</p>
               </div>
             </article>
             <article class="decision-step">
@@ -1041,7 +1084,9 @@
             <li id="ref-16"><span class="bib-id">[16]</span> <span class="bib-author">Nomic AI.</span> <a href="https://www.nomic.ai/gpt4all" target="_blank" rel="noopener noreferrer">"GPT4All,"</a> <em>nomic.ai,</em> 2026.<span class="bib-note">全离线本地 LLM 客户端，支持 macOS / Windows / Linux，LocalDocs RAG 可对本地文件问答，不提供 tool calling API。</span></li>
             <li id="ref-17"><span class="bib-id">[17]</span> <span class="bib-author">智谱 AI / Z.ai.</span> <a href="https://github.com/THUDM/GLM-4" target="_blank" rel="noopener noreferrer">"GLM-4-0414 Model Series,"</a> <em>GitHub,</em> 2025.<span class="bib-note">GLM-4-32B-0414 在 BFCL V4 开源 FC 榜排名第一（72.38%，MIT 许可），强 agent / 代码 / 报告能力。GLM-Z1-32B-0414 为深度推理版，支持 rumination。llama.cpp、vLLM、Transformers 均已合并模型实现。</span></li>
             <li id="ref-18"><span class="bib-id">[18]</span> <span class="bib-author">Meta AI.</span> <a href="https://ai.meta.com/blog/llama-4-multimodal-intelligence/" target="_blank" rel="noopener noreferrer">"The Llama 4 herd: The beginning of a new era of natively multimodal AI innovation,"</a> <em>ai.meta.com,</em> 2025.<span class="bib-note">Llama 4 Scout（109B 总参 / 17B 激活 / 16 experts）和 Maverick（400B 总参 / 17B 激活 / 128 experts）为 MoE 架构，原生多模态，Scout 支持 10M 上下文。</span></li>
-            <li id="ref-19"><span class="bib-id">[19]</span> <span class="bib-author">jundot.</span> <a href="https://github.com/jundot/omlx" target="_blank" rel="noopener noreferrer">"oMLX — LLM inference server with continuous batching &amp; SSD caching for Apple Silicon,"</a> <em>GitHub,</em> 2026.<span class="bib-note">基于 mlx-lm 构建的 Apple Silicon 原生推理服务器（9.5K stars，Apache 2.0）。continuous batching、block-based 分级 KV cache（RAM 热层 + SSD 冷层）、多模型并存 + LRU 管理、macOS 菜单栏 App、OpenAI/Anthropic 兼容 API、VLM/OCR/embedding/reranker、tool calling 和 MCP 集成。</span></li>
+            <li id="ref-19"><span class="bib-id">[19]</span> <span class="bib-author">jundot.</span> <a href="https://github.com/jundot/omlx" target="_blank" rel="noopener noreferrer">"oMLX — LLM inference server with continuous batching &amp; SSD caching for Apple Silicon,"</a> <em>GitHub,</em> 2026.<span class="bib-note">Apple Silicon 原生推理服务器（10.3K stars，48 贡献者，Apache 2.0）。continuous batching、2 层 KV cache（RAM 热层 + SSD 冷层）、DFlash 投机解码集成、oQ GPTQ 增强量化、多模型并存 + LRU 管理、macOS 原生 PyObjC 菜单栏 App、Homebrew 守护进程、OpenAI/Anthropic 兼容 API、VLM/OCR/embedding/reranker、tool calling 和 MCP 集成、Claude Code 优化。社区基准平台 omlx.ai 收集 99,974+ 条用户提交结果。</span></li>
+            <li id="ref-20"><span class="bib-id">[20]</span> <span class="bib-author">jjang-ai.</span> <a href="https://github.com/jjang-ai/vmlx" target="_blank" rel="noopener noreferrer">"vMLX — Local AI Engine for Apple Silicon,"</a> <em>GitHub,</em> 2026.<span class="bib-note">全栈多模态本地 AI 引擎（313 stars，Apache 2.0）。5 层 KV cache 栈、JANG 自适应混合精度量化、Smelt 部分 MoE 专家加载、分布式 pipeline parallelism。覆盖 LLM/VLM + 文生图（Flux Schnell/Dev/Klein via mflux）+ 图编辑（Qwen/Kontext）+ TTS（Kokoro）+ STT（Whisper）。14 种 tool calling 解析器、26+ 内置工具。OpenAI + Anthropic + Ollama 兼容 API + API Gateway。配套桌面 App MLX Studio（Electron，5 模式）。</span></li>
+            <li id="ref-21"><span class="bib-id">[21]</span> <span class="bib-author">Chen, Jian et al.</span> <a href="https://github.com/bstnxbt/dflash-mlx" target="_blank" rel="noopener noreferrer">"dflash-mlx — DFlash Speculative Decoding for Apple Silicon,"</a> <em>GitHub,</em> 2026.<span class="bib-note">基于 block diffusion 的无损投机解码（arXiv: 2602.06036）。1B draft 模型并行生成 16 token，target 一次验证。Qwen3.5-9B 在 M5 Max 64GB 上从 31 tok/s 加速到 127 tok/s（4.1x）。已集成至 oMLX v0.3.5。</span></li>
           </ol>
         </section>
       </main>

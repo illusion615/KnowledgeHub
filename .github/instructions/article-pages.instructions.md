@@ -191,6 +191,74 @@ The complete nesting structure every article **MUST** follow (CSS classes that p
 - Dense content (matrices, tables, stacked accordions) should be split into multiple `data-present-step` slides rather than shrinking type
 - Section-head is automatically hidden in presentation mode for sections with nested `[data-present-step]` (CSS `:has()` rule); on overview pages the section-head description `<p>` is shown centered
 
+### Accordion auto-split — how it works
+
+When a `<section>` contains `[data-accordion]` items and does **NOT** have `data-present-step`:
+
+1. **Overview step**: section itself becomes a step (`data-present-overview`); section-head description shown centered, accordion items rendered as cards (title only, collapsed)
+2. **Detail steps**: each `.subsection-item[data-accordion]` becomes an independent step; `.subsection-toggle` is hidden; `.subsection-content` is force-displayed; title comes from the deck bar overlay
+
+**NEVER** add `data-present-step` to a `<section>` that contains accordions — it skips the auto-split and renders the entire section as one oversized slide.
+
+### Subsection content — writing for dual-mode readability
+
+Content inside `.subsection-content` must work in both reading mode (narrow column) and presentation mode (full viewport slide). Follow these rules:
+
+#### Structured fields pattern (e.g., AI Radar event cards)
+
+When subsection content has ≥3 labeled field blocks, use the `.event-field` + `.event-field-label` + `.action-box` pattern:
+
+```html
+<div class="subsection-content">
+  <div class="event-meta"><span class="event-tag event-tag-model">Tag</span></div>
+  <div class="event-field">
+    <div class="event-field-label">FIELD LABEL</div>
+    <p>Field content text.</p>
+  </div>
+  <!-- more event-field blocks... -->
+  <div class="action-box">
+    <div class="event-field-label">ACTION LABEL</div>
+    <p>Action content.</p>
+  </div>
+</div>
+```
+
+Presentation mode auto-layouts these as a **2-column grid** (collapses to 1-col below 900px):
+- `.event-meta` spans full width (top)
+- First `.event-field` spans full width (primary description)
+- Remaining fields flow into 2 columns
+- `.action-box` spans full width (bottom), with distinct background
+
+#### Rich component pattern (most knowledge articles)
+
+When subsection content uses structured components (`.comparison-grid`, `.insight-grid`, `.flow-list`, `.layer-list`), **no special treatment needed** — these components already have responsive grid layouts that work at any width.
+
+#### Pure prose pattern (avoid in subsections)
+
+**Do NOT** put long unstructured paragraphs directly inside `.subsection-content`. In presentation mode they render as a wall of text with no visual hierarchy. Instead:
+- Break into labeled field blocks (`.event-field` pattern)
+- Or use structured components (`.insight-card`, `.comparison-grid`)
+- Or split into multiple accordion items, each focused on one point
+
+### Title hierarchy in presentation mode
+
+The deck bar overlay (top-left of viewport) shows:
+- **Label** (`data-step-label`): section kicker (e.g., "01 / AGENT PLATFORMIZATION")
+- **Title** (`data-step-title`): subsection title or section title
+
+**NEVER** duplicate the deck bar title inside the slide content. Specifically:
+- Do NOT inject `.present-inline-head` into accordion items — the deck bar handles it
+- Do NOT add redundant `<h2>` or `<h3>` inside `.subsection-content` that repeats the toggle title
+- Overview cards show only the `.subsection-toggle span` text — do NOT add extra title elements
+
+### TTS narration considerations
+
+Content text is extracted and sent to LLM for narration script generation, then spoken via Web Speech API. Write content with TTS in mind:
+- Numbers with units: write `2.7%` not `百分之二点七` — the TTS preprocessor handles conversion
+- Avoid bare decimal numbers without context (e.g., `2.7` alone) — always pair with unit or description
+- Use full-width punctuation in Chinese content for natural speech pauses
+- Keep individual subsection content under ~800 characters for optimal narration chunk sizing
+
 ## Other Rules
 
 - Use semantic section structure: `.section` with `data-reveal`, `.section-head` with `.section-kicker`

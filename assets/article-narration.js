@@ -234,6 +234,161 @@
     return chunks.length ? chunks : [text];
   }
 
+  /* ══════════════════════════════════════════════════════
+     VibeVoice TTS via local API (OpenAI-compatible)
+     Returns audio as WAV, played via AudioContext for
+     recording compatibility.
+     ══════════════════════════════════════════════════════ */
+  var vibeAudioCtx = null;
+  var vibeMediaDest = null;
+
+  function getVibeAudioContext() {
+    if (!vibeAudioCtx) {
+      vibeAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return vibeAudioCtx;
+  }
+
+  /** Get VibeVoice MediaStream destination for recording. */
+  function getVibeMediaStreamDest() {
+    if (!vibeMediaDest) {
+      vibeMediaDest = getVibeAudioContext().createMediaStreamDestination();
+    }
+    return vibeMediaDest;
+  }
+
+  function getVibeVoiceSettings() {
+    var settings = {};
+    try { settings = JSON.parse(localStorage.getItem('narration-settings')) || {}; } catch (e) {}
+    var articleSlug = window.location.pathname.replace(/\/$/, '').split('/').pop() || '';
+    if (articleSlug) {
+      try {
+        var article = JSON.parse(localStorage.getItem('narration-settings:' + articleSlug)) || {};
+        Object.keys(article).forEach(function (k) { if (article[k] !== undefined && article[k] !== '') settings[k] = article[k]; });
+      } catch (e) {}
+    }
+    return {
+      endpoint: settings.vibeEndpoint || 'http://127.0.0.1:8191/v1',
+      voice: settings.vibeVoice || 'en-Emma_woman',
+      rate: settings.rate || 0.92
+    };
+  }
+
+  /**
+   * Speak text using VibeVoice API via AudioContext.
+   * Processes text chunk by chunk for subtitle sync.
+   */
+  function speakVibeVoice(text, lang, callbacks, speechSettings) {
+    var chunks = splitIntoChunks(text);
+    var chunkIndex = 0;
+    var cancelled = false;
+    var paused = false;
+    var currentSource = null;
+    var pauseTime = 0;
+    var startOffset = 0;
+    var currentBuffer = null;
+
+    var cb = callbacks || {};
+    var vs = getVibeVoiceSettings();
+    var ctx = getVibeAudioContext();
+    var dest = getVibeMediaStreamDest();
+
+    function playChunk() {
+      if (cancelled || chunkIndex >= chunks.length) {
+        if (!cancelled && cb.onEnd) cb.onEnd();
+        return;
+      }
+
+      if (cb.onChunkStart) cb.onChunkStart(chunks[chunkIndex]);
+
+      var fetchBody = {
+        model: 'VibeVoice-Realtime-0.5B-4bit',
+        input: chunks[chunkIndex],
+        voice: vs.voice,
+        speed: speechSettings && speechSettings.rate ? speechSettings.rate : (vs.rate || 1.0)
+      };
+
+      fetch(vs.endpoint + '/audio/speech', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer dummy'
+        },
+        body: JSON.stringify(fetchBody)
+      })
+      .then(function (res) {
+        if (!res.ok) throw new Error('VibeVoice HTTP ' + res.status);
+        return res.arrayBuffer();
+      })
+      .then(function (arrayBuf) {
+        if (cancelled) return;
+        return ctx.decodeAudioData(arrayBuf);
+      })
+      .then(function (audioBuf) {
+        if (cancelled || !audioBuf) return;
+        currentBuffer = audioBuf;
+        startOffset = 0;
+
+        var source = ctx.createBufferSource();
+        source.buffer = audioBuf;
+        // Connect to both speakers and recording destination
+        source.connect(ctx.destination);
+        source.connect(dest);
+        currentSource = source;
+
+        source.onended = function () {
+          currentSource = null;
+          currentBuffer = null;
+          chunkIndex++;
+          if (!cancelled && !paused) {
+            playChunk();
+          }
+        };
+
+        source.start(0);
+      })
+      .catch(function (err) {
+        if (cancelled) return;
+        console.error('VibeVoice chunk error:', err);
+        // Fall through to next chunk
+        chunkIndex++;
+        if (!cancelled && !paused) {
+          playChunk();
+        }
+        if (cb.onError) cb.onError(err);
+      });
+    }
+
+    playChunk();
+
+    return {
+      pause: function () {
+        paused = true;
+        if (currentSource) {
+          try { currentSource.stop(); } catch (e) {}
+          currentSource = null;
+        }
+      },
+      resume: function () {
+        paused = false;
+        // Cannot resume AudioBufferSourceNode — skip to next chunk
+        if (chunkIndex < chunks.length && !currentSource) {
+          playChunk();
+        }
+      },
+      cancel: function () {
+        cancelled = true;
+        if (currentSource) {
+          try { currentSource.stop(); } catch (e) {}
+          currentSource = null;
+        }
+      },
+      getMediaStream: function () {
+        return dest.stream;
+      }
+    };
+  }
+
   /**
    * Speak text using Web Speech API.
    * Returns an object with pause/resume/cancel methods for control.
@@ -454,7 +609,7 @@
 
       var lang = getEffectiveLang();
       var ss = getSpeechSettings();
-      currentSpeaker = speak(text, lang, {
+      var speakCallbacks = {
         onChunkStart: function (chunkText) {
           onSubtitle(chunkText);
         },
@@ -472,7 +627,14 @@
             advanceOrStop(index);
           }
         }
-      }, ss);
+      };
+
+      // Use VibeVoice for English, Web Speech API for others
+      if (lang === 'en' && ss.ttsProvider === 'vibevoice') {
+        currentSpeaker = speakVibeVoice(text, lang, speakCallbacks, ss);
+      } else {
+        currentSpeaker = speak(text, lang, speakCallbacks, ss);
+      }
     }
 
     function advanceOrStop(index) {
@@ -582,6 +744,9 @@
   window.StudyRoomNarration = {
     createController: createController,
     isAvailable: isAvailable,
-    getVoiceList: getVoiceList
+    getVoiceList: getVoiceList,
+    getVibeAudioStream: function () {
+      return getVibeMediaStreamDest().stream;
+    }
   };
 })();

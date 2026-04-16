@@ -154,15 +154,15 @@
       top: 0; left: 0; right: 0;
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      padding: 18px 36px 28px;
+      align-items: flex-start;
+      padding: 18px 36px 56px;
       z-index: 10;
       pointer-events: none;
       background: rgba(232, 234, 239, 0.55);
       -webkit-backdrop-filter: blur(20px) saturate(1.4);
       backdrop-filter: blur(20px) saturate(1.4);
-      -webkit-mask-image: linear-gradient(to bottom, #000 60%, transparent 100%);
-      mask-image: linear-gradient(to bottom, #000 60%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent 100%);
+      mask-image: linear-gradient(to bottom, #000 40%, transparent 100%);
     }
     [data-theme="dark"] .overlay-header {
       background: rgba(14, 17, 23, 0.55);
@@ -912,15 +912,15 @@
     /* ---- footer ---- */
     .overlay-footer {
       position: fixed; bottom: 0; left: 0; right: 0;
-      text-align: center; padding: 34px 24px 18px;
+      text-align: center; padding: 56px 24px 18px;
       font-size: 0.72rem; color: var(--muted);
       letter-spacing: 0.04em;
       z-index: 10; pointer-events: none; opacity: 0.92;
       background: rgba(232, 234, 239, 0.72);
       -webkit-backdrop-filter: blur(22px) saturate(1.45);
       backdrop-filter: blur(22px) saturate(1.45);
-      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.85) 22%, #000 42%, #000 100%);
-      mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.85) 22%, #000 42%, #000 100%);
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.6) 35%, #000 60%, #000 100%);
+      mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.6) 35%, #000 60%, #000 100%);
     }
       [data-theme="dark"] .overlay-footer {
       background: rgba(14, 17, 23, 0.72);
@@ -1267,22 +1267,21 @@
     .arc-ring-0 { stroke: #ff7a00; opacity: 0.14; }
     .arc-ring-1 { stroke: #0d8f8c; opacity: 0.14; }
     .arc-ring-2 { stroke: #7c3aed; opacity: 0.14; }
-    .arc-ring.is-focused { opacity: 0.45; stroke-width: 2.5; }
+    .arc-ring.is-focused { opacity: 0.45; stroke-width: 1.5; }
     .arc-ring-glow {
       fill: none;
-      stroke-width: 6;
-      opacity: 0;
       stroke-linecap: round;
-      filter: blur(6px);
-      transition: opacity 0.4s;
+      pointer-events: none;
     }
-    .arc-ring-glow.is-focused {
-      opacity: 0.5;
-      animation: arcGlowFlow 4s linear infinite;
+    .arc-ring-glow-outer {
+      stroke-width: 12;
+      filter: blur(10px);
+      opacity: 0.7;
     }
-    @keyframes arcGlowFlow {
-      from { stroke-dashoffset: 0; }
-      to   { stroke-dashoffset: -600; }
+    .arc-ring-glow-inner {
+      stroke-width: 3;
+      filter: blur(2px);
+      opacity: 0.9;
     }
     .arc-spoke {
       fill: none;
@@ -1890,6 +1889,27 @@
           </div>
         </div>
         <button class="settings-btn-save" id="narr-save" data-zh="保存设置" data-en="Save Settings">保存设置</button>
+        <div class="settings-field" style="margin-top: 14px;">
+          <label class="settings-label" for="narr-tts" data-zh="TTS 引擎" data-en="TTS Engine">TTS 引擎</label>
+          <select class="settings-select" id="narr-tts">
+            <option value="browser" data-zh="浏览器内置" data-en="Browser">浏览器内置</option>
+            <option value="vibevoice">VibeVoice (EN)</option>
+          </select>
+        </div>
+        <div class="settings-field" id="narr-vibe-voice-field">
+          <label class="settings-label" for="narr-vibe-voice" data-zh="AI 语音" data-en="AI Voice">AI 语音</label>
+          <div class="settings-voice-row">
+            <select class="settings-select" id="narr-vibe-voice">
+              <option value="en-Emma_woman">Emma (Woman)</option>
+              <option value="en-Grace_woman">Grace (Woman)</option>
+              <option value="en-Carter_man">Carter (Man)</option>
+              <option value="en-Davis_man">Davis (Man)</option>
+              <option value="en-Frank_man">Frank (Man)</option>
+              <option value="en-Mike_man">Mike (Man)</option>
+            </select>
+            <button class="settings-btn-test narr-voice-preview" id="narr-vibe-preview" type="button" data-zh="试听" data-en="Preview">试听</button>
+          </div>
+        </div>
         <div class="settings-toggle" style="margin-top: 14px;">
           <span class="settings-toggle-label" data-zh="演示时自动开始语音讲解" data-en="Auto-start narration in presentation">演示时自动开始语音讲解</span>
           <label class="toggle-switch">
@@ -3275,6 +3295,9 @@
       var narrVoice = document.getElementById('narr-voice');
       var narrPreview = document.getElementById('narr-voice-preview');
       var narrSave = document.getElementById('narr-save');
+      var narrTts = document.getElementById('narr-tts');
+      var narrVibeVoice = document.getElementById('narr-vibe-voice');
+      var narrVibeField = document.getElementById('narr-vibe-voice-field');
 
       // Load saved global narration settings
       var narrSaved = null;
@@ -3282,7 +3305,16 @@
       if (narrSaved) {
         if (narrSaved.lang) narrLang.value = narrSaved.lang;
         if (narrSaved.rate) { narrRate.value = narrSaved.rate; narrRateValue.textContent = narrSaved.rate; }
+        if (narrSaved.ttsProvider) narrTts.value = narrSaved.ttsProvider;
+        if (narrSaved.vibeVoice) narrVibeVoice.value = narrSaved.vibeVoice;
       }
+
+      // Show/hide VibeVoice field
+      var syncVibeField = function () {
+        narrVibeField.hidden = narrTts.value !== 'vibevoice';
+      };
+      syncVibeField();
+      narrTts.addEventListener('change', syncVibeField);
 
       // Populate voice list
       var narrDialectMap = {
@@ -3353,12 +3385,50 @@
         window.speechSynthesis.speak(utt);
       });
 
+      // VibeVoice preview
+      var narrVibePreview = document.getElementById('narr-vibe-preview');
+      narrVibePreview.addEventListener('click', function () {
+        var testText = 'This is a voice preview. You can hear how the selected voice sounds.';
+        narrVibePreview.textContent = '...';
+        fetch('http://127.0.0.1:8191/v1/audio/speech', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer dummy' },
+          body: JSON.stringify({
+            model: 'VibeVoice-Realtime-0.5B-4bit',
+            input: testText,
+            voice: narrVibeVoice.value || 'en-Emma_woman',
+            speed: parseFloat(narrRate.value) || 1.0
+          })
+        })
+        .then(function (res) {
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          return res.arrayBuffer();
+        })
+        .then(function (buf) {
+          var ctx = new (window.AudioContext || window.webkitAudioContext)();
+          return ctx.decodeAudioData(buf).then(function (audioBuf) {
+            var src = ctx.createBufferSource();
+            src.buffer = audioBuf;
+            src.connect(ctx.destination);
+            src.onended = function () { narrVibePreview.textContent = '试听'; };
+            src.start(0);
+            narrVibePreview.textContent = '播放中';
+          });
+        })
+        .catch(function () {
+          narrVibePreview.textContent = '试听';
+          window.alert('VibeVoice 试听失败，请确认服务已启动 (http://127.0.0.1:8191)');
+        });
+      });
+
       // Save narration settings
       narrSave.addEventListener('click', function () {
         var s = {
           lang: narrLang.value === 'auto' ? '' : narrLang.value,
           rate: parseFloat(narrRate.value),
-          voiceName: narrVoice.value
+          voiceName: narrVoice.value,
+          ttsProvider: narrTts.value,
+          vibeVoice: narrVibeVoice.value
         };
         localStorage.setItem('narration-settings', JSON.stringify(s));
         narrSave.textContent = '✓ 已保存';

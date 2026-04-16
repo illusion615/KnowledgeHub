@@ -65,6 +65,15 @@ function renderInfographicViewModule(ctx) {
   svgEl.setAttribute('height', '100%');
   container.appendChild(svgEl);
 
+  // Persistent glow overlay SVG — never cleared by render()
+  var glowSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  glowSvg.setAttribute('class', 'arc-svg');
+  glowSvg.setAttribute('width', '100%');
+  glowSvg.setAttribute('height', '100%');
+  glowSvg.style.pointerEvents = 'none';
+  container.appendChild(glowSvg);
+  var glowFocusedDepth = -1; // track which depth has glow
+
   // Detail card
   var detailEl = document.createElement('a');
   detailEl.className = 'arc-detail';
@@ -307,7 +316,6 @@ function renderInfographicViewModule(ctx) {
     var d = 'M ' + x1 + ' ' + y1 + ' A ' + r + ' ' + r + ' 0 ' + la + ' 1 ' + x2 + ' ' + y2;
     var isFocused = arcState.focusArc === arcIdx;
 
-    // Base ring
     var scheme = ctx.colorSchemes.find(function (s) { return s.id === ctx.currentScheme; }) || ctx.colorSchemes[0];
     var schemeDots = scheme.dots || ['#ff7a00', '#0d8f8c', '#e0b04b', '#e8eaef'];
     var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -317,30 +325,76 @@ function renderInfographicViewModule(ctx) {
     path.setAttribute('class', cls);
     path.setAttribute('stroke', schemeDots[arcIdx % schemeDots.length]);
     svgEl.appendChild(path);
+  }
 
-    // Glow overlay (flowing light with soft gradient dash)
-    var defs = svgEl.querySelector('defs');
-    if (!defs) {
-      defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-      svgEl.insertBefore(defs, svgEl.firstChild);
-    }
-    var glowColor = schemeDots[arcIdx % schemeDots.length];
-    var glowGradId = 'arc-glow-grad-' + arcIdx;
-    // Create a repeating pattern: fade-in → bright → fade-out → transparent
-    var arcLen = r * span;
-    var segLen = 150; // px per glow blob
-    var repeatCount = Math.max(2, Math.ceil(arcLen / segLen));
-    var dashOn = segLen * 0.4;
-    var dashOff = segLen * 0.6;
+  // Rebuild glow only when focused depth changes — lives in persistent glowSvg
+  function updateGlow() {
+    var depth = arcState.focusArc;
+    if (depth === glowFocusedDepth) return; // no change, keep animation running
+    glowFocusedDepth = depth;
+    glowSvg.innerHTML = '';
 
-    var glow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    glow.setAttribute('d', d);
-    var glowCls = 'arc-ring-glow arc-ring-glow-' + arcIdx;
-    if (isFocused) glowCls += ' is-focused';
-    glow.setAttribute('class', glowCls);
-    glow.setAttribute('stroke', glowColor);
-    glow.setAttribute('stroke-dasharray', dashOn + ' ' + dashOff);
-    svgEl.appendChild(glow);
+    var r = arcOuterR(depth);
+    var span = Math.PI * 0.85;
+    var startA = -span / 2, endA = span / 2;
+    var x1 = cx + r * Math.cos(startA), y1 = cy + r * Math.sin(startA);
+    var x2 = cx + r * Math.cos(endA),   y2 = cy + r * Math.sin(endA);
+    var la = span > Math.PI ? 1 : 0;
+    var d = 'M ' + x1 + ' ' + y1 + ' A ' + r + ' ' + r + ' 0 ' + la + ' 1 ' + x2 + ' ' + y2;
+
+    var scheme = ctx.colorSchemes.find(function (s) { return s.id === ctx.currentScheme; }) || ctx.colorSchemes[0];
+    var schemeDots = scheme.dots || ['#ff7a00', '#0d8f8c', '#e0b04b', '#e8eaef'];
+    var glowColor = schemeDots[depth % schemeDots.length];
+    var gradId = 'arc-glow-sweep-persistent';
+
+    var defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    var grad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+    grad.setAttribute('id', gradId);
+    grad.setAttribute('gradientUnits', 'userSpaceOnUse');
+    grad.setAttribute('x1', cx - r); grad.setAttribute('y1', cy - r);
+    grad.setAttribute('x2', cx + r); grad.setAttribute('y2', cy + r);
+
+    var stops = [
+      { off: '0%',   color: glowColor, op: '0' },
+      { off: '15%',  color: glowColor, op: '0.4' },
+      { off: '25%',  color: '#fff',    op: '0.9' },
+      { off: '35%',  color: glowColor, op: '0.4' },
+      { off: '50%',  color: glowColor, op: '0' },
+      { off: '65%',  color: glowColor, op: '0.3' },
+      { off: '75%',  color: '#fff',    op: '0.7' },
+      { off: '85%',  color: glowColor, op: '0.3' },
+      { off: '100%', color: glowColor, op: '0' }
+    ];
+    stops.forEach(function (s) {
+      var stop = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+      stop.setAttribute('offset', s.off);
+      stop.setAttribute('stop-color', s.color);
+      stop.setAttribute('stop-opacity', s.op);
+      grad.appendChild(stop);
+    });
+
+    var anim = document.createElementNS('http://www.w3.org/2000/svg', 'animateTransform');
+    anim.setAttribute('attributeName', 'gradientTransform');
+    anim.setAttribute('type', 'rotate');
+    anim.setAttribute('from', '0 ' + cx + ' ' + cy);
+    anim.setAttribute('to', '360 ' + cx + ' ' + cy);
+    anim.setAttribute('dur', '12s');
+    anim.setAttribute('repeatCount', 'indefinite');
+    grad.appendChild(anim);
+    defs.appendChild(grad);
+    glowSvg.appendChild(defs);
+
+    var glowOuter = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    glowOuter.setAttribute('d', d);
+    glowOuter.setAttribute('class', 'arc-ring-glow arc-ring-glow-outer');
+    glowOuter.setAttribute('stroke', 'url(#' + gradId + ')');
+    glowSvg.appendChild(glowOuter);
+
+    var glowInner = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    glowInner.setAttribute('d', d);
+    glowInner.setAttribute('class', 'arc-ring-glow arc-ring-glow-inner');
+    glowInner.setAttribute('stroke', 'url(#' + gradId + ')');
+    glowSvg.appendChild(glowInner);
   }
 
   function drawArcSpokes(arcIdx, nodeAngles, nodeColors, selectedIdx, items) {
@@ -429,7 +483,7 @@ function renderInfographicViewModule(ctx) {
       }
       var spokeColor = isDark ? '#2a3040' : '#c0c4d0';
       var spokeOpac = (spokeStyle === 'transparent') ? '0.18' : '0.35';
-      boundaries.forEach(function (ba) {
+      boundaries.forEach(function (ba, bi) {
         var sx1=cx+innerR*Math.cos(ba),sy1=cy+innerR*Math.sin(ba);
         var sx2=cx+outerR*Math.cos(ba),sy2=cy+outerR*Math.sin(ba);
         var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -700,7 +754,7 @@ function renderInfographicViewModule(ctx) {
           colors.push(lightened);
         });
       }
-      var spokeSelIdx = (arcState.focusArc === depth) ? lvl.selectedIdx : -1;
+      var spokeSelIdx = lvl.selectedIdx;
       drawArcSpokes(depth, angles, colors, spokeSelIdx, items);
 
       if (groupEl) {
@@ -709,9 +763,56 @@ function renderInfographicViewModule(ctx) {
 
       if (!lvl.visible) break;
     }
+
+    // ── Draw selected-path highlight lines from innermost to outermost ──
+    var maxRenderedDepth = Math.min(arcLevels.length - 1, depth || 0);
+    var isDarkHL = document.documentElement.getAttribute('data-theme') === 'dark';
+    var schemeHL = ctx.colorSchemes.find(function (s) { return s.id === ctx.currentScheme; }) || ctx.colorSchemes[0];
+    var dotsHL = schemeHL.dots || ['#ff7a00','#0d8f8c','#e0b04b','#e8eaef'];
+    // Compute the two boundary angles of the selected spoke at level 0
+    var items0HL = getItemsForLevel(0);
+    if (items0HL.length > 0) {
+      var lvl0HL = arcLevels[0];
+      var sel0 = lvl0HL ? Math.min(lvl0HL.selectedIdx, items0HL.length - 1) : 0;
+      var gap0 = getNodeGap(0, items0HL.length, false);
+      var angle0 = getWheelAngle(sel0, items0HL.length, lvl0HL.angle, gap0);
+      var halfGapHL = level0Gap / 2;
+      var boundaryAngles = [angle0 - halfGapHL, angle0 + halfGapHL];
+      var hlInnerR = arcInnerR(0);
+      var hlOuterR = arcOuterR(maxRenderedDepth);
+      var hlColor = dotsHL[sel0 % dotsHL.length];
+
+      boundaryAngles.forEach(function (ba) {
+        var lx1 = cx + hlInnerR * Math.cos(ba), ly1 = cy + hlInnerR * Math.sin(ba);
+        var lx2 = cx + hlOuterR * Math.cos(ba), ly2 = cy + hlOuterR * Math.sin(ba);
+        var hlLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        hlLine.setAttribute('x1', lx1); hlLine.setAttribute('y1', ly1);
+        hlLine.setAttribute('x2', lx2); hlLine.setAttribute('y2', ly2);
+        hlLine.setAttribute('stroke', isDarkHL ? '#ffffff' : '#1a1a2e');
+        hlLine.setAttribute('stroke-width', '2');
+        hlLine.setAttribute('opacity', isDarkHL ? '0.5' : '0.4');
+        hlLine.setAttribute('class', 'arc-path-highlight');
+        svgEl.appendChild(hlLine);
+      });
+    }
+
+    // Update glow on persistent overlay (only rebuilds when focus depth changes)
+    updateGlow();
   }
 
   // ── Animation engine (dynamic levels) ──
+
+  // ── Gentle pulse for selected spoke (JS-driven, no CSS filter/animation) ──
+  var pulseFrame = null;
+  function runPulse() {
+    var t = Date.now() / 1000;
+    var val = 0.92 + 0.08 * Math.sin(t * 1.2); // range 0.84–1.0, ~5.2s cycle
+    svgEl.querySelectorAll('.arc-spoke-fill.is-active').forEach(function (el) {
+      el.setAttribute('fill-opacity', val.toFixed(3));
+    });
+    pulseFrame = requestAnimationFrame(runPulse);
+  }
+  pulseFrame = requestAnimationFrame(runPulse);
 
   function animateRoulette() {
     var moving = false;
@@ -1041,6 +1142,7 @@ function renderInfographicViewModule(ctx) {
     cy = H / 2;
     baseRadius = W * 0.28;
     arcGap = W * 0.18;
+    glowFocusedDepth = -1; // force glow rebuild on resize
     render();
   };
   window.addEventListener('resize', arcResizeHandler);
@@ -1056,6 +1158,7 @@ function renderInfographicViewModule(ctx) {
     document.removeEventListener('keydown', onArcKeydown);
     window.removeEventListener('resize', arcResizeHandler);
     if (arcState.animFrame) cancelAnimationFrame(arcState.animFrame);
+    if (pulseFrame) cancelAnimationFrame(pulseFrame);
     arcLevels.forEach(function (lvl) {
       if (lvl.timer) clearTimeout(lvl.timer);
     });
