@@ -91,7 +91,7 @@
         if (p) body += '  ' + (p.textContent || '').trim() + '\n';
       });
 
-      return { title: title, label: label, body: body };
+      return { title: title, label: label, body: body, isOverview: true };
     }
 
     // Normal extraction — walk DOM elements (ignore CSS visibility since
@@ -130,7 +130,7 @@
       }
     }
 
-    return { title: title, label: label, body: body };
+    return { title: title, label: label, body: body, isOverview: false };
   }
 
   /* ══════════════════════════════════════════════════════
@@ -169,6 +169,10 @@
       '\n标题: ' + (slideInfo.title || '(无)') +
       '\n内容:\n' + (slideInfo.body || '(空)') + positionHint;
 
+    if (slideInfo.isOverview) {
+      userPrompt += '\n\n[指令：这是一个章节概览页，下面的子节会逐个展开讲解。请只用 2-3 句话简要概括本章的主题和要点，不要展开细节。控制在 60 字以内。]';
+    }
+
     if (lang === 'en') {
       positionHint = '';
       if (slideIndex === 0) positionHint = '\n\n[Instruction: This is the FIRST slide. Start with "Hi everyone, welcome to illusion615 Knowledge Hub." Then briefly introduce the topic.]';
@@ -179,6 +183,10 @@
         '\nLabel: ' + (slideInfo.label || '(none)') +
         '\nTitle: ' + (slideInfo.title || '(none)') +
         '\nContent:\n' + (slideInfo.body || '(empty)') + positionHint;
+
+      if (slideInfo.isOverview) {
+        userPrompt += '\n\n[Instruction: This is a section overview page. The subsections will be covered in detail on the following slides. Keep it to 2-3 sentences summarizing the section theme. Stay under 50 words.]';
+      }
     }
 
     var messages = [
