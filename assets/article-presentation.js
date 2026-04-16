@@ -1,3 +1,68 @@
+// ======================================
+// article-presentation.js — Presentation mode controller
+// ======================================
+//
+// Architecture overview:
+//   This is the main orchestrator for presentation mode across all article pages.
+//   It runs inside a single DOMContentLoaded closure and manages:
+//
+//   1. TOPBAR LAYOUT (lines ~134–230)
+//      Restructures .topbar into slot-start / slot-center / slot-end,
+//      creates the presentation toggle button and share dropdown.
+//
+//   2. SHARE DROPDOWN (lines ~235–450)
+//      Build the share menu with 6 modes: copy URL, WeChat QR, PPT export,
+//      PDF export, email newsletter, screen recording. Each mode's heavy logic
+//      is lazy-loaded from extracted modules.
+//
+//   3. FLOATING OVERLAY (lines ~449–555)
+//      The bottom status bar during presentation: deck label, counter,
+//      prev/next nav, exit button, brand logo.
+//
+//   4. NARRATION FAB (lines ~546–595)
+//      Reuses .assistant-fab in presentation mode as a narration capsule.
+//      Capsule structure and settings panel are lazy-loaded from
+//      article-narration-ui.js.
+//
+//   5. UTILITIES & LAZY LOADERS (lines ~596–770)
+//      Title normalization, filename sanitization, asset URL resolution,
+//      lazy loaders for PptxGenJS, pptx-export, narration engine,
+//      email share, screen recording, and narration UI modules.
+//
+//   6. EXPORT FUNCTIONS (lines ~775–895)
+//      PPT export (via PptxGenJS + pptx-export.js), PDF export (via print),
+//      email newsletter (delegates to article-email-share.js).
+//
+//   7. STEP DISCOVERY (lines ~896–1118)
+//      Collects presentation steps from sections, [data-present-step],
+//      and accordion items. Auto-assigns step titles and labels.
+//      Builds ending slide with QR code.
+//
+//   8. UI STATE SYNC (lines ~1119–1335)
+//      Label updates, container visibility toggling, step overflow detection,
+//      step navigation (setPresentationStep), scroll position resolution.
+//
+//   9. NARRATION FLOW (lines ~1357–1575)
+//      Countdown overlay, enter/exit presentation, narration controller
+//      lifecycle (start/stop/pause/resume), auto-play button state machine.
+//
+//  10. NAVIGATION & EVENTS (lines ~1579–1826)
+//      Step forward/back, scroll tracking, keyboard listeners (← → Esc Space),
+//      resize, visibility change, fullscreen change handlers.
+//
+// Lazy-loaded modules (NOT in article HTML, loaded on demand):
+//   - article-email-share.js    → window.StudyRoomEmailShare
+//   - article-screen-recording.js → window.StudyRoomScreenRecording
+//   - article-narration-ui.js   → window.StudyRoomNarrationUI
+//   - article-narration.js      → window.StudyRoomNarration (narration engine)
+//   - pptx-export.js            → window.StudyRoomPptxExport
+//   - pptxgen.bundle.js         → window.PptxGenJS
+//
+// State:
+//   state.enabled  — boolean, whether presentation mode is active
+//   state.index    — current step index (0-based)
+//   narrationState — 'idle' | 'generating' | 'playing' | 'paused'
+//
 document.addEventListener('DOMContentLoaded', function () {
   var root = document.documentElement;
   var site = document.querySelector('.site') || document.body;
@@ -38,9 +103,6 @@ document.addEventListener('DOMContentLoaded', function () {
   var narrationSubtitle;
   var narrationState = 'idle';
   var narrationStartTime = 0;
-  var mediaRecorder = null;
-  var recordedChunks = [];
-  var recordingStream = null;
 
   if (!site || !topbar || !hero || !main) return;
 
@@ -559,260 +621,41 @@ document.addEventListener('DOMContentLoaded', function () {
     return fab;
   };
 
-  /** Build capsule structure inside the FAB (only in presentation mode) */
+  /** Build capsule structure inside the FAB (only in presentation mode) — delegates to lazy module */
   var buildCapsuleStructure = function () {
     var fab = presentationAutoPlay;
     if (!fab) return;
-
-    // Build capsule inner structure if not already built
-    if (!fab.querySelector('.narration-capsule-actions')) {
-      // Save original HTML to restore on exit
-      fab.setAttribute('data-original-html', fab.innerHTML);
-
-      var actions = document.createElement('div');
-      actions.className = 'narration-capsule-actions';
-
-      // Settings button
-      narrationCapsuleSettingsBtn = document.createElement('button');
-      narrationCapsuleSettingsBtn.className = 'narration-capsule-btn';
-      narrationCapsuleSettingsBtn.type = 'button';
-      narrationCapsuleSettingsBtn.setAttribute('aria-label', getLang() === 'zh' ? '讲解设置' : 'Settings');
-      narrationCapsuleSettingsBtn.innerHTML = SVG_SETTINGS;
-      actions.appendChild(narrationCapsuleSettingsBtn);
-
-      // Record button
-      narrationCapsuleRecordBtn = document.createElement('button');
-      narrationCapsuleRecordBtn.className = 'narration-capsule-btn';
-      narrationCapsuleRecordBtn.type = 'button';
-      narrationCapsuleRecordBtn.setAttribute('aria-label', getLang() === 'zh' ? '录制视频' : 'Record');
-      narrationCapsuleRecordBtn.innerHTML = SVG_RECORD;
-      actions.appendChild(narrationCapsuleRecordBtn);
-
-      // Chat button — only if assistant dialog exists (LLM configured)
-      var hasAssistant = !!document.querySelector('.assistant-dialog');
-      narrationCapsuleChatBtn = document.createElement('button');
-      narrationCapsuleChatBtn.className = 'narration-capsule-btn';
-      narrationCapsuleChatBtn.type = 'button';
-      narrationCapsuleChatBtn.setAttribute('aria-label', getLang() === 'zh' ? 'AI 助手' : 'AI Chat');
-      narrationCapsuleChatBtn.innerHTML = NARRATION_SVG_CHAT;
-      if (!hasAssistant) {
-        narrationCapsuleChatBtn.style.display = 'none';
-      }
-      actions.appendChild(narrationCapsuleChatBtn);
-
-      var divider = document.createElement('div');
-      divider.className = 'narration-capsule-divider';
-      actions.appendChild(divider);
-
-      var mainArea = document.createElement('div');
-      mainArea.className = 'narration-capsule-main';
-      // Will be populated by updateAutoPlayButton
-
-      fab.innerHTML = '';
-      fab.appendChild(actions);
-      fab.appendChild(mainArea);
-
-      // Adjust expanded height based on visible buttons
-      var visibleBtnCount = hasAssistant ? 3 : 2;
-      fab.style.setProperty('--capsule-expanded-height', (visibleBtnCount * 44 + 1 + 52) + 'px');
+    if (window.StudyRoomNarrationUI) {
+      var result = window.StudyRoomNarrationUI.buildCapsule(fab, getLang, {
+        play: NARRATION_SVG_PLAY, chat: NARRATION_SVG_CHAT,
+        settings: SVG_SETTINGS, record: SVG_RECORD
+      });
+      narrationCapsuleSettingsBtn = result.settingsBtn || null;
+      narrationCapsuleRecordBtn = result.recordBtn || null;
+      narrationCapsuleChatBtn = result.chatBtn || null;
+    } else {
+      ensureNarrationUI().then(function (mod) {
+        var result = mod.buildCapsule(fab, getLang, {
+          play: NARRATION_SVG_PLAY, chat: NARRATION_SVG_CHAT,
+          settings: SVG_SETTINGS, record: SVG_RECORD
+        });
+        narrationCapsuleSettingsBtn = result.settingsBtn || null;
+        narrationCapsuleRecordBtn = result.recordBtn || null;
+        narrationCapsuleChatBtn = result.chatBtn || null;
+        wireCapsuleHandlers();
+      }).catch(function (err) { console.error('NarrationUI load failed:', err); });
     }
-
     return fab;
   };
 
   var ensureNarrationSettingsPanel = function () {
     var existing = document.querySelector('.narration-settings-panel');
     if (existing) return existing;
-
-    var panel = document.createElement('div');
-    panel.className = 'narration-settings-panel';
-    panel.innerHTML = [
-      '<div class="narration-settings-header">',
-      '  <strong>' + (getLang() === 'zh' ? '讲解设置' : 'Narration Settings') + '</strong>',
-      '  <button class="narration-settings-close" type="button" aria-label="Close">' +
-          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
-        '</button>',
-      '</div>',
-      '<label class="narration-setting-row">',
-      '  <span>' + (getLang() === 'zh' ? '语言' : 'Language') + '</span>',
-      '  <select class="narration-select" data-narration-setting="lang">',
-      '    <option value="auto">' + (getLang() === 'zh' ? '跟随页面' : 'Follow page') + '</option>',
-      '    <option value="zh">中文</option>',
-      '    <option value="en">English</option>',
-      '  </select>',
-      '</label>',
-      '<label class="narration-setting-row">',
-      '  <span>' + (getLang() === 'zh' ? '语速' : 'Speed') + '</span>',
-      '  <input type="range" class="narration-range" data-narration-setting="rate" min="0.5" max="1.5" step="0.1" value="0.92" />',
-      '  <span class="narration-rate-value">0.92</span>',
-      '</label>',
-      '<div class="narration-setting-row narration-voice-row">',
-      '  <span>' + (getLang() === 'zh' ? '语音' : 'Voice') + '</span>',
-      '  <select class="narration-select narration-voice-select" data-narration-setting="voiceName">',
-      '    <option value="">' + (getLang() === 'zh' ? '自动' : 'Auto') + '</option>',
-      '  </select>',
-      '  <button class="narration-voice-test" type="button" aria-label="' + (getLang() === 'zh' ? '试听' : 'Preview') + '" title="' + (getLang() === 'zh' ? '试听' : 'Preview') + '">' +
-          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>' +
-        '</button>',
-      '</div>'
-    ].join('\n');
-
-    document.body.appendChild(panel);
-
-    // Settings keys: global = 'narration-settings', per-article = 'narration-settings:' + slug
-    var articleSlug = window.location.pathname.replace(/\/$/, '').split('/').pop() || '';
-    var globalKey = 'narration-settings';
-    var articleKey = articleSlug ? ('narration-settings:' + articleSlug) : '';
-
-    // Load: per-article overrides global
-    var saved = {};
-    try { saved = JSON.parse(localStorage.getItem(globalKey)) || {}; } catch (e) {}
-    if (articleKey) {
-      try {
-        var articleSaved = JSON.parse(localStorage.getItem(articleKey));
-        if (articleSaved) {
-          // Merge: article settings override global
-          Object.keys(articleSaved).forEach(function (k) { if (articleSaved[k] !== undefined && articleSaved[k] !== '') saved[k] = articleSaved[k]; });
-        }
-      } catch (e) {}
+    if (window.StudyRoomNarrationUI) {
+      return window.StudyRoomNarrationUI.createSettingsPanel(getLang);
     }
-
-    var langSelect = panel.querySelector('[data-narration-setting="lang"]');
-    var rateInput = panel.querySelector('[data-narration-setting="rate"]');
-    var rateValue = panel.querySelector('.narration-rate-value');
-    var voiceSelect = panel.querySelector('[data-narration-setting="voiceName"]');
-    var voiceTestBtn = panel.querySelector('.narration-voice-test');
-
-    if (saved.lang) langSelect.value = saved.lang;
-    if (saved.rate) { rateInput.value = saved.rate; rateValue.textContent = saved.rate; }
-
-    // Populate voices directly from browser Speech API
-    var voicesPopulated = false;
-    var populateVoices = function () {
-      if (!window.speechSynthesis) return;
-      var allVoices = window.speechSynthesis.getVoices();
-      if (!allVoices || !allVoices.length) return;
-      voicesPopulated = true;
-
-      // Determine which language to filter by
-      var filterLang = langSelect.value;
-      if (filterLang === 'auto') filterLang = getLang();
-      var langPrefix = (filterLang === 'zh') ? 'zh' : 'en';
-
-      // Remember current selection
-      var currentVal = voiceSelect.value;
-
-      // Clear all except "Auto"
-      while (voiceSelect.options.length > 1) {
-        voiceSelect.removeChild(voiceSelect.lastChild);
-      }
-
-      // Add matching voices
-      allVoices.forEach(function (v) {
-        if (v.lang.indexOf(langPrefix) !== 0) return;
-        var opt = document.createElement('option');
-        opt.value = v.name;
-        // Format: extract dialect from lang tag, show as "Name · Dialect"
-        var dialect = v.lang;
-        // Map common lang codes to short readable labels
-        var dialectMap = {
-          'zh-CN': '普通话', 'zh-TW': '台湾', 'zh-HK': '粤语',
-          'en-US': 'US', 'en-GB': 'UK', 'en-AU': 'AU', 'en-IN': 'IN', 'en-IE': 'IE', 'en-ZA': 'ZA'
-        };
-        var dialectLabel = dialectMap[v.lang] || v.lang;
-        // Extract core name — strip parenthetical region info since we show dialect separately
-        var coreName = v.name.replace(/\s*\(.*\)\s*$/, '');
-        opt.textContent = coreName + ' · ' + dialectLabel;
-        opt.title = v.name + ' (' + v.lang + ')';
-        voiceSelect.appendChild(opt);
-      });
-
-      // Restore selection
-      if (currentVal) voiceSelect.value = currentVal;
-      if (saved.voiceName && !currentVal) voiceSelect.value = saved.voiceName;
-      panel.removeAttribute('data-voices-pending');
-    };
-
-    // Try immediately
-    populateVoices();
-
-    // Listen for async voice loading
-    if (window.speechSynthesis) {
-      window.speechSynthesis.addEventListener('voiceschanged', populateVoices);
-    }
-
-    // Re-populate when language changes
-    langSelect.addEventListener('change', function () {
-      // Reset voice selection when language changes
-      voiceSelect.value = '';
-      populateVoices();
-    });
-
-    var saveSettings = function () {
-      var s = {
-        lang: langSelect.value === 'auto' ? '' : langSelect.value,
-        rate: parseFloat(rateInput.value),
-        voiceName: voiceSelect.value
-      };
-      // Save as global default
-      localStorage.setItem(globalKey, JSON.stringify(s));
-      // Also save per-article override
-      if (articleKey) {
-        localStorage.setItem(articleKey, JSON.stringify(s));
-      }
-    };
-
-    langSelect.addEventListener('change', saveSettings);
-    rateInput.addEventListener('input', function () {
-      rateValue.textContent = parseFloat(rateInput.value).toFixed(2);
-      saveSettings();
-    });
-    voiceSelect.addEventListener('change', saveSettings);
-
-    // Voice test/preview button
-    var testUtterance = null;
-    voiceTestBtn.addEventListener('click', function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      if (!window.speechSynthesis) return;
-      // Cancel any ongoing test
-      window.speechSynthesis.cancel();
-
-      var testText = (getLang() === 'zh' || langSelect.value === 'zh')
-        ? '这是一段语音测试，你可以听到当前选择的语音效果。'
-        : 'This is a voice preview. You can hear how the selected voice sounds.';
-
-      var utt = new SpeechSynthesisUtterance(testText);
-      var filterLang = langSelect.value;
-      if (filterLang === 'auto') filterLang = getLang();
-      utt.lang = (filterLang === 'zh') ? 'zh-CN' : 'en-US';
-      utt.rate = parseFloat(rateInput.value) || 0.92;
-
-      // Pick selected voice
-      if (voiceSelect.value) {
-        var allV = window.speechSynthesis.getVoices();
-        var match = allV.filter(function (v) { return v.name === voiceSelect.value; });
-        if (match.length) utt.voice = match[0];
-      }
-
-      voiceTestBtn.classList.add('is-testing');
-      utt.onend = function () { voiceTestBtn.classList.remove('is-testing'); };
-      utt.onerror = function () { voiceTestBtn.classList.remove('is-testing'); };
-      window.speechSynthesis.speak(utt);
-    });
-
-    panel.querySelector('.narration-settings-close').addEventListener('click', function () {
-      panel.classList.remove('is-open');
-    });
-
-    // Close on outside click
-    document.addEventListener('click', function (e) {
-      if (panel.classList.contains('is-open') && !panel.contains(e.target) && !e.target.closest('.present-settings') && !e.target.closest('.narration-capsule-btn')) {
-        panel.classList.remove('is-open');
-      }
-    });
-
-    return panel;
+    // Will be created when module loads
+    return null;
   };
 
   var normalizeTitle = function (value) {
@@ -910,6 +753,88 @@ document.addEventListener('DOMContentLoaded', function () {
       document.head.appendChild(s);
     });
     return pptxExportLoader;
+  };
+
+  /* ── Lazy loaders for extracted modules ── */
+  var emailShareLoader = null;
+  var ensureEmailShare = function () {
+    if (window.StudyRoomEmailShare) return Promise.resolve(window.StudyRoomEmailShare);
+    if (emailShareLoader) return emailShareLoader;
+    emailShareLoader = new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = resolvePresentationAssetUrl('article-email-share.js');
+      s.async = true;
+      s.onload = function () {
+        if (window.StudyRoomEmailShare) { resolve(window.StudyRoomEmailShare); return; }
+        reject(new Error('article-email-share.js loaded but unavailable.'));
+      };
+      s.onerror = function () { reject(new Error('Failed to load article-email-share.js.')); };
+      document.head.appendChild(s);
+    });
+    return emailShareLoader;
+  };
+
+  var screenRecordingLoader = null;
+  var screenRecordingCtrl = null;
+  var ensureScreenRecording = function () {
+    if (screenRecordingCtrl) return Promise.resolve(screenRecordingCtrl);
+    if (window.StudyRoomScreenRecording) {
+      screenRecordingCtrl = window.StudyRoomScreenRecording({
+        root: root, getLang: getLang, getLabel: getLabel,
+        sanitizeFileName: sanitizeFileName, enterPresentation: enterPresentation,
+        setPresentationStep: setPresentationStep,
+        ensureNarrationController: ensureNarrationController,
+        showCountdown: showCountdown, handleAutoPlayClick: handleAutoPlayClick,
+        getPresentSteps: function () { return presentSteps; },
+        getState: function () { return state; },
+        presentationTip: presentationTip
+      });
+      return Promise.resolve(screenRecordingCtrl);
+    }
+    if (screenRecordingLoader) return screenRecordingLoader;
+    screenRecordingLoader = new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = resolvePresentationAssetUrl('article-screen-recording.js');
+      s.async = true;
+      s.onload = function () {
+        if (window.StudyRoomScreenRecording) {
+          screenRecordingCtrl = window.StudyRoomScreenRecording({
+            root: root, getLang: getLang, getLabel: getLabel,
+            sanitizeFileName: sanitizeFileName, enterPresentation: enterPresentation,
+            setPresentationStep: setPresentationStep,
+            ensureNarrationController: ensureNarrationController,
+            showCountdown: showCountdown, handleAutoPlayClick: handleAutoPlayClick,
+            getPresentSteps: function () { return presentSteps; },
+            getState: function () { return state; },
+            presentationTip: presentationTip
+          });
+          resolve(screenRecordingCtrl);
+          return;
+        }
+        reject(new Error('article-screen-recording.js loaded but unavailable.'));
+      };
+      s.onerror = function () { reject(new Error('Failed to load article-screen-recording.js.')); };
+      document.head.appendChild(s);
+    });
+    return screenRecordingLoader;
+  };
+
+  var narrationUILoader = null;
+  var ensureNarrationUI = function () {
+    if (window.StudyRoomNarrationUI) return Promise.resolve(window.StudyRoomNarrationUI);
+    if (narrationUILoader) return narrationUILoader;
+    narrationUILoader = new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = resolvePresentationAssetUrl('article-narration-ui.js');
+      s.async = true;
+      s.onload = function () {
+        if (window.StudyRoomNarrationUI) { resolve(window.StudyRoomNarrationUI); return; }
+        reject(new Error('article-narration-ui.js loaded but unavailable.'));
+      };
+      s.onerror = function () { reject(new Error('Failed to load article-narration-ui.js.')); };
+      document.head.appendChild(s);
+    });
+    return narrationUILoader;
   };
 
   var capturePresentationSnapshot = function () {
@@ -1026,121 +951,11 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   var shareEmailNewsletter = function () {
-    var lang = getLang();
-    var title = document.title || 'Newsletter';
-
-    // Build full-page clone preserving all original styles
-    var docClone = document.documentElement.cloneNode(true);
-
-    // Expand all accordions so deep-dives are visible
-    docClone.querySelectorAll('[data-accordion]').forEach(function (item) {
-      item.classList.add('is-open');
-      var btn = item.querySelector('.subsection-toggle');
-      var content = item.querySelector('.subsection-content');
-      if (btn) btn.setAttribute('aria-expanded', 'true');
-      if (content) {
-        content.setAttribute('aria-hidden', 'false');
-        content.style.maxHeight = 'none';
-        content.style.overflow = 'visible';
-      }
+    ensureEmailShare().then(function (mod) {
+      mod.share(getLang);
+    }).catch(function (err) {
+      console.error('Email share load failed:', err);
     });
-
-    // Strip interactive / non-email elements
-    var removeSelectors = [
-      '.topbar', '.present-floating', '.backdrop', 'script', 'footer',
-      '.ai-assistant-entry', '.ai-assistant-panel',
-      '[data-presentation-toggle]', '.share-wrapper',
-      '.present-nav', '.present-exit', '.present-status'
-    ];
-    removeSelectors.forEach(function (sel) {
-      docClone.querySelectorAll(sel).forEach(function (el) {
-        if (el.parentNode) el.parentNode.removeChild(el);
-      });
-    });
-
-    // Force light theme for email readability
-    docClone.setAttribute('data-theme', 'light');
-
-    // Remove all scroll-reveal opacity so content is visible immediately
-    docClone.querySelectorAll('[data-reveal]').forEach(function (el) {
-      el.style.opacity = '1';
-      el.style.transform = 'none';
-    });
-    docClone.querySelectorAll('.load-in').forEach(function (el) {
-      el.style.opacity = '1';
-      el.style.transform = 'none';
-    });
-
-    // Convert external CSS links to absolute URLs so the preview window can load them
-    var origin = window.location.origin;
-    var basePath = window.location.pathname.replace(/[^\/]*$/, '');
-    docClone.querySelectorAll('link[rel="stylesheet"]').forEach(function (link) {
-      var href = link.getAttribute('href');
-      if (href && href.indexOf('http') !== 0) {
-        if (href.indexOf('/') === 0) {
-          link.setAttribute('href', origin + href);
-        } else {
-          link.setAttribute('href', origin + basePath + href);
-        }
-      }
-    });
-
-    // Convert Google Fonts links to absolute (already absolute usually, but be safe)
-    docClone.querySelectorAll('link[href*="fonts.googleapis"]').forEach(function (link) {
-      // already absolute, no change needed
-    });
-
-    // Inject newsletter-specific overrides
-    var overrideStyle = docClone.querySelector('head').appendChild(document.createElement('style'));
-    overrideStyle.textContent = ''
-      + 'body { overflow: auto !important; }'
-      + '.page-shell { min-height: auto !important; }'
-      + '.backdrop, .orb { display: none !important; }'
-      + '.site { max-width: 780px; margin: 0 auto; padding: 24px 32px; }'
-      + '.subsection-content[aria-hidden="false"] { max-height: none !important; overflow: visible !important; }'
-      + '.newsletter-banner { position: sticky; top: 0; z-index: 9999; background: #2563eb; color: #fff;'
-      + '  padding: 10px 20px; text-align: center; font-size: 14px; line-height: 1.5;'
-      + '  border-radius: 0 0 8px 8px; font-family: -apple-system, sans-serif; }'
-      + '.newsletter-banner a { color: #fff; text-decoration: underline; margin-left: 12px; cursor: pointer; }'
-      + '@media print { .newsletter-banner { display: none; } }';
-
-    // Add helper banner at top of body
-    var body = docClone.querySelector('body');
-    var banner = document.createElement('div');
-    banner.className = 'newsletter-banner';
-    var bannerText = lang === 'zh'
-      ? '全选 (⌘A) → 复制 (⌘C) → 粘贴到邮件正文'
-      : 'Select All (⌘A) → Copy (⌘C) → Paste into email body';
-    var mailtoLabel = lang === 'zh' ? '打开邮件客户端' : 'Open email client';
-    banner.innerHTML = bannerText + '<a data-mailto-trigger>' + mailtoLabel + '</a>';
-    body.insertBefore(banner, body.firstChild);
-
-    // Append source link at bottom
-    var sourceFooter = document.createElement('div');
-    sourceFooter.style.cssText = 'max-width:780px;margin:32px auto 24px;padding:16px 32px;border-top:1px solid #e5e7eb;font-size:13px;color:#9ca3af;';
-    sourceFooter.innerHTML = 'Source: <a href="' + window.location.href + '" style="color:#2563eb;">' + title + '</a>';
-    body.appendChild(sourceFooter);
-
-    var fullHtml = '<!DOCTYPE html>\n' + docClone.outerHTML;
-
-    // Open preview window with full-styled content
-    var win = window.open('', '_blank');
-    if (win) {
-      win.document.write(fullHtml);
-      win.document.close();
-      win.document.title = '✉ ' + title;
-
-      // Wire up the mailto link inside the preview window
-      var mailtoTrigger = win.document.querySelector('[data-mailto-trigger]');
-      if (mailtoTrigger) {
-        mailtoTrigger.addEventListener('click', function (e) {
-          e.preventDefault();
-          var subject = encodeURIComponent(title);
-          var mailBody = encodeURIComponent(title + '\n\n' + window.location.href);
-          win.location.href = 'mailto:?subject=' + subject + '&body=' + mailBody;
-        });
-      }
-    }
   };
 
   var deriveStepTitle = function (step, index) {
@@ -1625,124 +1440,20 @@ document.addEventListener('DOMContentLoaded', function () {
     narrationSubtitle.classList.add('is-visible');
   };
 
-  /* ── Screen recording via getDisplayMedia ── */
+  /* ── Screen recording — delegated to article-screen-recording.js ── */
   var isRecording = function () {
-    return mediaRecorder && mediaRecorder.state === 'recording';
+    return screenRecordingCtrl && screenRecordingCtrl.isRecording();
   };
 
   var stopRecording = function () {
-    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-      mediaRecorder.stop();
-    }
-    if (recordingStream) {
-      recordingStream.getTracks().forEach(function (t) { t.stop(); });
-      recordingStream = null;
-    }
-    root.classList.remove('is-recording');
+    if (screenRecordingCtrl) screenRecordingCtrl.stop();
   };
 
   var toggleRecording = function () {
-    // If already recording, stop
-    if (isRecording()) {
-      stopRecording();
-      return;
-    }
-
-    // Check API support
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-      window.alert(getLang() === 'zh' ? '当前浏览器不支持屏幕录制' : 'Screen recording is not supported in this browser');
-      return;
-    }
-
-    // Step 1: Request screen capture first (browser dialog)
-    navigator.mediaDevices.getDisplayMedia({
-      video: true,
-      audio: true,
-      systemAudio: 'include'
-    }).then(function (stream) {
-      // Step 2: Show "preparing" overlay
-      var prepOverlay = document.createElement('div');
-      prepOverlay.className = 'present-countdown-overlay';
-      prepOverlay.innerHTML = '<span class="present-countdown-num is-animating">' +
-        (getLang() === 'zh' ? '准备中…' : 'Preparing…') + '</span>';
-      document.body.appendChild(prepOverlay);
-
-      // Step 3: Enter presentation mode if not already
-      if (!state.enabled) {
-        enterPresentation();
-      }
-      setPresentationStep(0);
-
-      // Step 4: Pre-generate first slide narrative
-      ensureNarrationController().then(function (ctrl) {
-        return ctrl.pregenerate(presentSteps, 0, getLang);
-      }).then(function () {
-        // Step 5: Remove prep overlay, show countdown
-        if (prepOverlay.parentNode) prepOverlay.parentNode.removeChild(prepOverlay);
-
-        showCountdown(function () {
-          // Step 6: 1s pause, then start recording + narration
-          setTimeout(function () {
-            // Setup MediaRecorder
-            recordingStream = stream;
-            recordedChunks = [];
-
-            var mimeType = 'video/webm;codecs=vp9,opus';
-            if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm;codecs=vp8,opus';
-            if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm';
-
-            mediaRecorder = new MediaRecorder(stream, { mimeType: mimeType });
-            mediaRecorder.ondataavailable = function (e) {
-              if (e.data && e.data.size > 0) recordedChunks.push(e.data);
-            };
-            mediaRecorder.onstop = function () {
-              var blob = new Blob(recordedChunks, { type: mimeType });
-              var url = URL.createObjectURL(blob);
-              var a = document.createElement('a');
-              a.href = url;
-              a.download = sanitizeFileName(document.title || 'presentation') + '.webm';
-              document.body.appendChild(a); a.click(); document.body.removeChild(a);
-              setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
-              recordedChunks = [];
-              if (presentationTip) {
-                var origTip = presentationTip.textContent;
-                presentationTip.textContent = getLabel('recordSaved');
-                setTimeout(function () { presentationTip.textContent = origTip; }, 3000);
-              }
-            };
-
-            var videoTracks = stream.getVideoTracks();
-            if (videoTracks.length) {
-              videoTracks[0].addEventListener('ended', function () {
-                if (isRecording()) stopRecording();
-              });
-            }
-
-            mediaRecorder.start(1000);
-            root.classList.add('is-recording');
-            narrationStartTime = Date.now();
-            narrationController.start(presentSteps, 0, getLang);
-          }, 1000);
-        });
-      }).catch(function () {
-        // Pregen failed — still proceed
-        if (prepOverlay.parentNode) prepOverlay.parentNode.removeChild(prepOverlay);
-        showCountdown(function () {
-          setTimeout(function () {
-            recordingStream = stream;
-            recordedChunks = [];
-            var mimeType = 'video/webm';
-            mediaRecorder = new MediaRecorder(stream, { mimeType: mimeType });
-            mediaRecorder.ondataavailable = function (e) { if (e.data && e.data.size > 0) recordedChunks.push(e.data); };
-            mediaRecorder.start(1000);
-            root.classList.add('is-recording');
-            narrationStartTime = Date.now();
-            handleAutoPlayClick();
-          }, 1000);
-        });
-      });
-    }).catch(function () {
-      // User cancelled screen capture dialog — do nothing
+    ensureScreenRecording().then(function (ctrl) {
+      ctrl.toggle();
+    }).catch(function (err) {
+      console.error('Screen recording load failed:', err);
     });
   };
 
@@ -1829,22 +1540,40 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   };
 
-  /** Auto-start flow: pregen slide 0 during countdown, then start narration. */
+  /** Auto-start flow: show prep overlay → pregen slide 0 → countdown → start narration. */
   var startAutoNarration = function () {
-    // Pre-generate first slide during countdown
-    var pregenDone = false;
+    // Show FAB generating state
+    var mainArea = presentationAutoPlay ? presentationAutoPlay.querySelector('.narration-capsule-main') : null;
+    if (mainArea) mainArea.innerHTML = NARRATION_SVG_GENERATING;
+
+    // Show "preparing" overlay
+    var prepOverlay = document.createElement('div');
+    prepOverlay.className = 'present-countdown-overlay';
+    prepOverlay.innerHTML = '<span class="present-countdown-num is-animating">' +
+      (getLang() === 'zh' ? '准备中…' : 'Preparing…') + '</span>';
+    document.body.appendChild(prepOverlay);
+
+    // Pre-generate first slide narrative
     ensureNarrationController().then(function (ctrl) {
       return ctrl.pregenerate(presentSteps, 0, getLang);
-    }).then(function () { pregenDone = true; }).catch(function () { pregenDone = true; });
+    }).then(function () {
+      // Pregen done — remove prep overlay, show countdown
+      if (prepOverlay.parentNode) prepOverlay.parentNode.removeChild(prepOverlay);
+      if (mainArea) mainArea.innerHTML = NARRATION_SVG_PLAY;
 
-    showCountdown(function () {
-      // Wait for pregen if not done yet, then start
-      var tryStart = function () {
-        if (!pregenDone) { setTimeout(tryStart, 100); return; }
+      showCountdown(function () {
         narrationStartTime = Date.now();
         narrationController.start(presentSteps, state.index, getLang);
-      };
-      tryStart();
+      });
+    }).catch(function () {
+      // Pregen failed — still proceed
+      if (prepOverlay.parentNode) prepOverlay.parentNode.removeChild(prepOverlay);
+      if (mainArea) mainArea.innerHTML = NARRATION_SVG_PLAY;
+
+      showCountdown(function () {
+        narrationStartTime = Date.now();
+        handleAutoPlayClick();
+      });
     });
   };
 
@@ -2057,6 +1786,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Narration — only get FAB reference at init (don't modify its content)
   ensureNarrationFab();
+  // Lazy-load narration UI module for settings panel
+  ensureNarrationUI().then(function (mod) {
+    narrationSettingsPanel = mod.createSettingsPanel(getLang);
+  }).catch(function () {});
   var narrationSettingsPanel = ensureNarrationSettingsPanel();
   var capsuleHandlersWired = false;
 

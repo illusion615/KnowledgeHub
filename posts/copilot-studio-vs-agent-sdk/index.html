@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Copilot Studio 与 M365 Agents SDK：产品定位、协作关系与场景选型</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(2.0rem, 4.5vw, 3.4rem);
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+      max-width: 24ch;
+    }
+
+    .hero-metrics {
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+
+    /* ── 对比表格 ── */
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      margin-top: 10px;
+    }
+
+    .compare-table th {
+      text-align: left;
+      padding: 10px 14px;
+      background: rgba(15, 23, 42, 0.04);
+      border-bottom: 2px solid rgba(15, 23, 42, 0.1);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-weight: 700;
+      font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .compare-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+      line-height: 1.65;
+      color: var(--ink);
+    }
+
+    [data-theme="dark"] .compare-table th {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    [data-theme="dark"] .compare-table td {
+      border-color: rgba(255, 255, 255, 0.06);
+    }
+
+    /* ── 场景卡片 ── */
+    .scenario-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-top: 14px;
+    }
+
+    .scenario-card {
+      padding: 22px 20px;
+      border-radius: 22px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: var(--card-bg);
+      box-shadow: var(--card-shadow);
+    }
+
+    .scenario-card h4 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+    }
+
+    .scenario-card p, .scenario-card ul {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.72;
+    }
+
+    .scenario-card ul {
+      padding-left: 18px;
+      margin-top: 6px;
+    }
+
+    .scenario-label {
+      display: inline-block;
+      padding: 3px 10px;
+      margin-bottom: 10px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+    }
+
+    .label-studio {
+      background: rgba(124, 58, 237, 0.1);
+      color: rgba(124, 58, 237, 0.9);
+    }
+
+    .label-sdk {
+      background: rgba(14, 165, 233, 0.1);
+      color: rgba(14, 165, 233, 0.9);
+    }
+
+    .label-both {
+      background: rgba(249, 115, 22, 0.1);
+      color: rgba(249, 115, 22, 0.9);
+    }
+
+    [data-theme="dark"] .label-studio {
+      background: rgba(124, 58, 237, 0.2);
+    }
+
+    [data-theme="dark"] .label-sdk {
+      background: rgba(14, 165, 233, 0.2);
+    }
+
+    [data-theme="dark"] .label-both {
+      background: rgba(249, 115, 22, 0.2);
+    }
+
+    /* ── 架构分层 ── */
+    .arch-flow {
+      display: grid;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .arch-flow-single {
+      grid-template-columns: 1fr;
+      max-width: 560px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .arch-flow-5col {
+      grid-template-columns: repeat(5, 1fr);
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .arch-flow-7col {
+      grid-template-columns: repeat(7, 1fr);
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* ── 架构分层图：并排布局 ── */
+    .arch-layer {
+      max-width: 620px;
+      margin: 14px auto 0;
+    }
+
+    .arch-layer-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 8px 0;
+    }
+
+    .arch-layer-full {
+      margin: 8px 0;
+    }
+
+    .arch-layer-divider {
+      text-align: center;
+      font-size: 1.2rem;
+      color: var(--muted);
+      padding: 2px 0;
+    }
+
+    .arch-layer-or {
+      text-align: center;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 2px 0;
+    }
+
+    .arch-block {
+      text-align: center;
+      padding: 16px 10px;
+      border-radius: 14px;
+      font-size: 0.82rem;
+      line-height: 1.5;
+      font-weight: 600;
+    }
+
+    .arch-block-purple {
+      background: rgba(124, 58, 237, 0.08);
+      color: rgba(124, 58, 237, 0.9);
+      border: 1px solid rgba(124, 58, 237, 0.15);
+    }
+
+    .arch-block-blue {
+      background: rgba(14, 165, 233, 0.08);
+      color: rgba(14, 165, 233, 0.9);
+      border: 1px solid rgba(14, 165, 233, 0.15);
+    }
+
+    .arch-block-teal {
+      background: rgba(20, 184, 166, 0.08);
+      color: rgba(20, 184, 166, 0.9);
+      border: 1px solid rgba(20, 184, 166, 0.15);
+    }
+
+    .arch-block-orange {
+      background: rgba(249, 115, 22, 0.08);
+      color: rgba(249, 115, 22, 0.9);
+      border: 1px solid rgba(249, 115, 22, 0.15);
+    }
+
+    .arch-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      color: var(--muted);
+    }
+
+    .arch-hint {
+      font-size: 0.75rem;
+      opacity: 0.7;
+    }
+
+    [data-theme="dark"] .arch-block-purple {
+      background: rgba(124, 58, 237, 0.15);
+    }
+
+    [data-theme="dark"] .arch-block-blue {
+      background: rgba(14, 165, 233, 0.15);
+    }
+
+    [data-theme="dark"] .arch-block-teal {
+      background: rgba(20, 184, 166, 0.15);
+    }
+
+    [data-theme="dark"] .arch-block-orange {
+      background: rgba(249, 115, 22, 0.15);
+    }
+
+    /* ── 决策流程 ── */
+    .decision-list {
+      list-style: none;
+      padding: 0;
+      margin: 14px 0 0;
+      counter-reset: decision;
+    }
+
+    .decision-list li {
+      counter-increment: decision;
+      padding: 14px 18px 14px 54px;
+      position: relative;
+      border-radius: 14px;
+      margin-bottom: 8px;
+      background: var(--card-bg);
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      font-size: 0.92rem;
+      line-height: 1.72;
+      color: var(--ink);
+    }
+
+    .decision-list li::before {
+      content: counter(decision);
+      position: absolute;
+      left: 16px;
+      top: 14px;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: rgba(14, 165, 233, 0.1);
+      color: rgba(14, 165, 233, 0.9);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    /* ── 辅助工具类 ── */
+    .caption-muted {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .mt-14 {
+      margin-top: 14px;
+    }
+
+    .code-block {
+      background: rgba(15, 23, 42, 0.04);
+      border-radius: 12px;
+      padding: 16px;
+      overflow-x: auto;
+      font-size: 0.82rem;
+      line-height: 1.6;
+      color: var(--ink);
+    }
+
+    [data-theme="dark"] .code-block {
+      background: rgba(255, 255, 255, 0.04);
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero" data-present-step data-step-title="文章总览">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            Copilot Studio
+          </div>
+          <div class="topbar-actions">
+            <nav class="nav-links" aria-label="页面章节导航">
+              <a href="#positioning">定位</a>
+              <a href="#studio">Studio</a>
+              <a href="#sdk">SDK</a>
+              <a href="#relationship">关系</a>
+              <a href="#comparison">对比</a>
+              <a href="#scenarios">场景</a>
+              <a href="#decision">选型</a>
+              <a href="#references">参考</a>
+            </nav>
+          </div>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Architecture Decision Guide</span>
+            <h1>Copilot Studio 与 M365 Agents SDK：产品定位、协作关系与场景选型</h1>
+            <p>
+              Microsoft 构建 AI Agent 的两个核心产品——Copilot Studio 和 M365 Agents SDK——服务于不同用户群体，解决不同层面的问题。本文基于 Microsoft Learn 官方文档，从产品定位、技术边界、协作关系和六个具体场景分析两者各自适用的条件。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#relationship">协作关系</a>
+              <a class="button button-secondary" href="#scenarios">场景分析</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">关键区分</span>
+            <h2>不同层面的工具，各有明确边界</h2>
+            <ul class="layer-list section-grid-spaced">
+              <li><span class="layer-number">1</span>Copilot Studio 是一个可视化 Agent 构建平台，内置编排、NLU、Knowledge 和渠道发布，目标用户是业务人员和 IT 管理员。</li>
+              <li><span class="layer-number">2</span>M365 Agents SDK 是一个 Pro-code 开发框架，提供 Activity 协议处理、多渠道适配和状态管理，目标用户是开发者。</li>
+              <li><span class="layer-number">3</span>两者共享 Activity 通信协议和渠道基础设施（Teams / M365 Copilot / Web），可以在同一项目中协同使用。</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">Copilot Studio</div>
+            <strong>低代码平台</strong>
+            <span>GUI 画布 + 自然语言创建 Agent</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">M365 Agents SDK</div>
+            <strong>开发框架</strong>
+            <span>C# / JS / Python — AI 服务无关</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">共享协议</div>
+            <strong>Activity Protocol</strong>
+            <span>标准通信格式，跨渠道统一</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- 01 / 产品定位 -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <section id="positioning" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / Positioning</p>
+            <h2>两个产品解决不同层面的问题</h2>
+            <p>Copilot Studio 和 Agents SDK 在 Microsoft 智能体技术栈中分别承担不同的职责。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>1.1 定位一览</span>
+              </button>
+              <div class="subsection-content">
+                <table class="compare-table">
+                  <thead>
+                    <tr>
+                      <th>维度</th>
+                      <th>Copilot Studio</th>
+                      <th>M365 Agents SDK</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>产品类型</strong></td>
+                      <td>SaaS 平台（Web 应用 + Teams 应用）</td>
+                      <td>开源开发框架（NuGet / npm / PyPI 包）</td>
+                    </tr>
+                    <tr>
+                      <td><strong>目标用户</strong></td>
+                      <td>业务分析师、IT 管理员、Citizen Developer</td>
+                      <td>软件开发者</td>
+                    </tr>
+                    <tr>
+                      <td><strong>核心职责</strong></td>
+                      <td>端到端 Agent 构建：NLU → 编排 → Knowledge → 渠道发布</td>
+                      <td>Agent 通信容器：Activity 协议 → 状态管理 → 多渠道适配</td>
+                    </tr>
+                    <tr>
+                      <td><strong>AI 编排</strong></td>
+                      <td>内置（Generative Orchestration / Topic 路由）</td>
+                      <td>不内置；开发者自选（Semantic Kernel / LangChain / Azure OpenAI 等）</td>
+                    </tr>
+                    <tr>
+                      <td><strong>编码需求</strong></td>
+                      <td>零代码（可选 Pro-code 扩展）</td>
+                      <td>全部编码</td>
+                    </tr>
+                    <tr>
+                      <td><strong>托管</strong></td>
+                      <td>Microsoft 全托管（多租户）</td>
+                      <td>开发者自行部署（Azure App Service / Container Apps 等）</td>
+                    </tr>
+                    <tr>
+                      <td><strong>前身</strong></td>
+                      <td>Power Virtual Agents</td>
+                      <td>Bot Framework SDK v4</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>1.2 类比理解</span>
+              </button>
+              <div class="subsection-content">
+                <p>两者的关系类似于 Power Apps 和 ASP.NET Core：</p>
+                <ul>
+                  <li><strong>Power Apps</strong>（≈ Copilot Studio）：低代码平台，内置数据连接、UI 渲染、身份验证，面向 Citizen Developer 快速构建业务应用。</li>
+                  <li><strong>ASP.NET Core</strong>（≈ Agents SDK）：编程框架，提供 HTTP pipeline、中间件、路由，开发者自行选择 ORM、前端、认证方案。</li>
+                </ul>
+                <p>选择哪个取决于：<strong>谁来构建</strong>（业务团队 vs 开发团队）、<strong>需要多少控制权</strong>（平台内置 vs 自定义编排）、<strong>维护成本谁承担</strong>（平台运维 vs 自运维）。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- 02 / Copilot Studio -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <section id="studio" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Copilot Studio</p>
+            <h2>Copilot Studio：低代码 Agent 平台</h2>
+            <p>端到端的可视化 Agent 构建体验，从创建到发布全在平台内完成。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>2.1 覆盖范围</span>
+              </button>
+              <div class="subsection-content">
+                <p>Copilot Studio 是一个垂直整合的平台，在一个产品中覆盖了 Agent 构建的完整链路：</p>
+                <ul>
+                  <li><strong>意图理解</strong>：内置 NLU 模型，将用户输入匹配到最佳 Topic；Generative Orchestration 模式下基于 GPT 自动路由。</li>
+                  <li><strong>对话编排</strong>：Topic 画布定义对话流（问题节点 → 条件分支 → 消息输出 → 行动调用），无需编码。</li>
+                  <li><strong>知识接入</strong>：支持 SharePoint、Dataverse、上传文件、公共网站、Power Platform Connectors 作为 Knowledge 源，自动 RAG。</li>
+                  <li><strong>工具调用</strong>：1,400+ Power Platform 预置 Connectors（SharePoint / Dynamics 365 / SAP / ServiceNow 等）和自定义 Connectors。</li>
+                  <li><strong>工作流</strong>：Agent Flow（基于 Power Automate）可作为 Agent 的 Tool 被调用，也可独立运行。</li>
+                  <li><strong>渠道发布</strong>：一键发布到 Teams、Web、Facebook、Azure Bot Service 支持的渠道。</li>
+                  <li><strong>M365 Copilot 扩展</strong>：Agent 可发布为 M365 Copilot 的扩展，用户在 Copilot 中直接调用。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>2.2 技术边界</span>
+              </button>
+              <div class="subsection-content">
+                <p>Copilot Studio 通过标准化换取简单性，以下是平台当前的技术边界：</p>
+                <ul>
+                  <li><strong>模型不可选</strong>：编排模型由平台管理（Azure OpenAI GPT 系列），不支持自行指定基座模型。</li>
+                  <li><strong>编排逻辑不可编程</strong>：Generative Orchestration 的路由决策基于 Topic/Tool 的 description，无法注入自定义推理循环。</li>
+                  <li><strong>运行时不可自定义</strong>：Agent 运行在 Microsoft 托管的多租户环境，不支持 VNet、自定义容器或 Bring-Your-Own 资源。</li>
+                  <li><strong>状态管理有限</strong>：Topic 变量和 Global 变量两级作用域；无内置的跨会话持久化状态。</li>
+                  <li><strong>Activity 类型受限</strong>：平台自动处理 Activity 协议，开发者无法直接操作 TurnContext 或注册自定义 Activity 类型处理器。</li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- 03 / Agents SDK -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <section id="sdk" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / Agents SDK</p>
+            <h2>M365 Agents SDK：Pro-Code Agent 框架</h2>
+            <p>为开发者提供构建多渠道 Agent 的通信基础设施和编程模型。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>3.1 SDK 的职责</span>
+              </button>
+              <div class="subsection-content">
+                <p>M365 Agents SDK（前身 Bot Framework SDK v4）是一个开发框架，负责 Agent 与渠道之间的通信层：</p>
+                <ul>
+                  <li><strong>Activity 协议处理</strong>：解析和构造符合 Activity Protocol 规范的结构化消息（Message / Event / Invoke / ConversationUpdate / Typing 等）。</li>
+                  <li><strong>Turn 管理</strong>：每次用户交互创建 TurnContext，开发者通过 TurnContext 读取输入、管理状态、发送回复。</li>
+                  <li><strong>多渠道适配</strong>：同一段 Agent 代码可部署到 M365 Copilot、Teams、Web Chat（DirectLine）、Slack 等渠道，SDK 处理各渠道的格式差异。</li>
+                  <li><strong>状态管理</strong>：提供 TurnState 管理会话状态、用户状态和对话状态的持久化。</li>
+                  <li><strong>Adaptive Cards</strong>：支持在 Teams 等渠道中发送富卡片交互。</li>
+                  <li><strong>Streaming</strong>：支持向 M365 Copilot 等要求流式响应的渠道发送增量输出。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>3.2 SDK 不负责什么</span>
+              </button>
+              <div class="subsection-content">
+                <p>Agents SDK 是 AI 无关的通信层，以下能力需要开发者自行选择和集成：</p>
+                <ul>
+                  <li><strong>AI 模型调用</strong>：SDK 不绑定任何 LLM。开发者自行集成 Azure OpenAI、OpenAI、Anthropic 或开源模型。</li>
+                  <li><strong>意图识别和 NLU</strong>：SDK 不内置 NLU；开发者可使用 CLU（LUIS 继任者）、Semantic Kernel 或自定义分类器。</li>
+                  <li><strong>编排逻辑</strong>：SDK 不提供 Topic 路由或 Generative Orchestration。需要编排的场景可集成 Semantic Kernel、LangChain 或 AutoGen。</li>
+                  <li><strong>Knowledge / RAG</strong>：SDK 不提供知识检索功能。开发者通过 Azure AI Search、Qdrant 或其他 vector store 自行实现。</li>
+                  <li><strong>工具连接器</strong>：没有预置的 1,400 Connectors 生态。外部系统调用通过标准 HTTP 客户端或 SDK 实现。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>3.3 代码结构示例</span>
+              </button>
+              <div class="subsection-content">
+                <p>以下是 Agents SDK 创建一个 Echo Agent 的最小代码（C#）：</p>
+                <pre class="code-block"><code>builder.AddAgent(sp =&gt;
+{
+    var agent = new AgentApplication(
+        sp.GetRequiredService&lt;AgentApplicationOptions&gt;());
+
+    agent.OnActivity(ActivityTypes.Message,
+        async (turnContext, turnState, cancellationToken) =&gt;
+    {
+        var text = turnContext.Activity.Text;
+        await turnContext.SendActivityAsync(
+            MessageFactory.Text($"Echo: {text}"),
+            cancellationToken);
+    });
+});</code></pre>
+                <p class="caption-muted">从这个基础容器出发，开发者可以自行加入 Azure OpenAI 调用（AI 推理）、Semantic Kernel（编排）、Azure AI Search（知识检索）等组件。SDK 不限制技术选型。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>3.4 渠道差异处理</span>
+              </button>
+              <div class="subsection-content">
+                <p>Agents SDK 将渠道差异抽象到 Activity 协议层，但各渠道仍有特定约束：</p>
+                <table class="compare-table">
+                  <thead>
+                    <tr>
+                      <th>渠道</th>
+                      <th>特点</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>Microsoft Teams</strong></td>
+                      <td>支持 Adaptive Cards、消息更新/删除、Invoke Activity（Task Module）、Teams 特有 ChannelData（@mention、会议信息）。</td>
+                    </tr>
+                    <tr>
+                      <td><strong>M365 Copilot</strong></td>
+                      <td>以 Message Activity 为主；要求 Streaming 响应；支持 Citations；不支持 Typing Activity 和富卡片。</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Web Chat / DirectLine</strong></td>
+                      <td>HTTP 协议；完整支持所有 Activity 类型和自定义 ChannelData。</td>
+                    </tr>
+                    <tr>
+                      <td><strong>第三方（Slack / Facebook）</strong></td>
+                      <td>部分 Activity 类型受限；Card 渲染行为不一致。</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- 04 / 协作关系 -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <section id="relationship" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / Relationship</p>
+            <h2>两者如何协作</h2>
+            <p>Copilot Studio 和 Agents SDK 共享底层协议，可以在同一解决方案中协同工作。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>4.1 共享基础：Activity Protocol</span>
+              </button>
+              <div class="subsection-content">
+                <p>两个产品都基于同一套 Activity Protocol 通信规范。该协议定义了 Activity 的结构化 JSON 格式（type / from / recipient / text / attachments / channelData 等字段），是 Microsoft Teams、M365 Copilot、Copilot Studio 和 Agents SDK 之间的通用语言。</p>
+                <p>这意味着：</p>
+                <ul>
+                  <li>Copilot Studio 构建的 Agent 和 Agents SDK 构建的 Agent 可以发布到同一批渠道（Teams / M365 Copilot / Web Chat）。</li>
+                  <li>两者构建的 Agent 在渠道端的用户体验一致——终端用户无法区分 Agent 是低代码还是 Pro-code 构建的。</li>
+                  <li>两者可以通过 Activity Protocol 实现互调（Copilot Studio Agent ↔ SDK Agent）。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>4.2 架构分层</span>
+              </button>
+              <div class="subsection-content">
+                <p>在 Microsoft 智能体技术栈中，两者处于不同的架构层：</p>
+                <div class="arch-layer">
+                  <div class="arch-layer-full">
+                    <div class="arch-block arch-block-teal">
+                      <strong>渠道层</strong><br />
+                      M365 Copilot · Teams · Web Chat · Slack<br />
+                      <span class="arch-hint">（两者共享的发布目标）</span>
+                    </div>
+                  </div>
+                  <div class="arch-layer-divider">↕</div>
+                  <div class="arch-layer-row">
+                    <div class="arch-block arch-block-purple">
+                      <strong>Copilot Studio</strong><br />
+                      NLU + Topic 画布<br />
+                      Generative Orchestration<br />
+                      Knowledge + Connectors<br />
+                      <span class="arch-hint">（垂直整合，一体化）</span>
+                    </div>
+                    <div class="arch-block arch-block-blue">
+                      <strong>M365 Agents SDK</strong><br />
+                      Activity Protocol<br />
+                      TurnContext + 状态管理<br />
+                      渠道适配层<br />
+                      <span class="arch-hint">（通信框架，AI 自选组装）</span>
+                    </div>
+                  </div>
+                  <div class="arch-layer-divider">↕</div>
+                  <div class="arch-layer-full">
+                    <div class="arch-block arch-block-orange">
+                      <strong>AI 服务与工具层</strong><br />
+                      Azure OpenAI · Semantic Kernel · Azure AI Search · 自定义 API<br />
+                      <span class="arch-hint">（Copilot Studio 已内置；SDK 路径需开发者自行组装）</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>4.3 互调能力：谁能调用谁</span>
+              </button>
+              <div class="subsection-content">
+                <p>以下是截至 2026-04 的互调能力矩阵，部分能力处于 Public Preview 阶段：</p>
+                <table class="compare-table">
+                  <thead>
+                    <tr>
+                      <th>调用方向</th>
+                      <th>实现方式</th>
+                      <th>状态</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>Copilot Studio → SDK Agent</strong></td>
+                      <td>在 Copilot Studio 的 Agents 页面选择 Add an agent → Connect to an external agent → Microsoft 365 Agents SDK。填入 SDK Agent 的 messaging endpoint URL（默认 <code>/api/messages</code>），配置认证方式后即可连接。连接后 Copilot Studio Agent 可在对话中自动路由或手动 Redirect 到 SDK Agent。</td>
+                      <td>Preview</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Copilot Studio → Foundry Agent</strong></td>
+                      <td>Add an agent → Microsoft Foundry。提供 Foundry Project Endpoint URL 和 Agent Id 即可连接。</td>
+                      <td>Preview</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Copilot Studio → 其他 Copilot Studio Agent</strong></td>
+                      <td>Add an agent → 选择同环境中的另一个 Copilot Studio Agent 作为 Connected Agent。也可创建 Child Agent（轻量子 Agent，嵌在主 Agent 内部）。</td>
+                      <td>GA</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Copilot Studio → A2A 协议 Agent</strong></td>
+                      <td>Add an agent → Agent-to-Agent。通过 A2A 协议端点连接任何兼容 A2A 的外部 Agent。</td>
+                      <td>Preview</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Copilot Studio → Fabric Data Agent</strong></td>
+                      <td>Add an agent → Fabric Data Agent。已知限制：不支持通过 Redirect 节点调用，不支持在 instructions 中引用，不支持部署到 M365 Copilot。</td>
+                      <td>Preview</td>
+                    </tr>
+                    <tr>
+                      <td><strong>SDK Agent → Copilot Studio Agent</strong></td>
+                      <td>Agents SDK 仓库提供 Copilot Studio Client sample（C# / JS / Python），SDK Agent 代码中通过该 Client 将对话转交给 Copilot Studio Agent。</td>
+                      <td>Sample</td>
+                    </tr>
+                    <tr>
+                      <td><strong>SDK Agent → SDK Agent</strong></td>
+                      <td>开发者自行通过 HTTP / gRPC / Activity Protocol 实现 Agent 间通信，SDK 不限制互调方式。</td>
+                      <td>GA</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>4.4 常见问题直答</span>
+              </button>
+              <div class="subsection-content">
+                <p><strong>Q：Copilot Studio 能否通过 Agents SDK 调用 M365 原生 Agent（如 Researcher）？</strong></p>
+                <p>不能直接调用。M365 原生 Agent（Researcher、Analyst 等）是 Microsoft 内置的 Agent，不对外暴露 messaging endpoint 或 Agent Id。Copilot Studio 的 Connected Agent 机制只能连接到开发者自己部署的 SDK Agent、Foundry Agent、A2A Agent 或同环境的 Copilot Studio Agent。M365 原生 Agent 只能在 M365 Copilot 内由 Copilot 编排器自动调度，第三方 Agent 无法主动调用。</p>
+
+                <p><strong>Q：Copilot Studio Agent 和 SDK Agent 在 M365 Copilot 中是什么关系？</strong></p>
+                <p>两者在 M365 Copilot 中都是「扩展 Agent」——用户通过 @mention 或侧边栏选择后进入该 Agent 的独立对话上下文。它们与 M365 内置 Agent 不共享编排器，无法在同一轮对话中被 Copilot 编排器混合调度。</p>
+
+                <p><strong>Q：SDK Agent 部署在哪里？</strong></p>
+                <p>SDK Agent 是开发者自行托管的应用，通常部署在 Azure App Service 或 Container Apps 上，通过 Azure Bot Service 注册渠道。Copilot Studio Agent 通过 Connected Agent 功能连接到这个 endpoint。SDK Agent 的运维（扩缩容、监控、安全）由开发团队负责。</p>
+
+                <p><strong>Q：Copilot Studio 的 Connected Agent 和 Child Agent 有什么区别？</strong></p>
+                <p>Child Agent 是在同一个 Copilot Studio Agent 内部创建的子模块，共享主 Agent 的配置和部署。Connected Agent 是独立发布的外部 Agent（可在另一个 Copilot Studio 环境、Azure、或其他基础设施上运行），通过 endpoint URL 连接到主 Agent。Child Agent 适合团队集中管理的场景；Connected Agent 适合跨团队或跨平台集成。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>4.5 与 Foundry Agent Service 的关系</span>
+              </button>
+              <div class="subsection-content">
+                <p>Microsoft Foundry Agent Service 是另一个相关产品，提供全托管的 Agent 运行时。它与 Copilot Studio 和 Agents SDK 的关系：</p>
+                <ul>
+                  <li><strong>Foundry Prompt Agent</strong>：在 Foundry Portal 中通过 Instructions + Model + Tools 配置创建的 Agent，无需编码，定位与 Copilot Studio 有重叠但生态不同（Copilot Studio 偏 Power Platform 生态；Foundry 偏 Azure AI 生态）。</li>
+                  <li><strong>Foundry Hosted Agent</strong>：开发者用 Agent Framework SDK 或 LangGraph 编写代码，部署为容器运行在 Foundry 托管的基础设施上。适合需要全托管运行时的 Pro-code Agent。</li>
+                  <li><strong>M365 Agents SDK 的角色</strong>：无论 Agent 后端是 Copilot Studio、Foundry 还是自建服务，M365 Agents SDK 都可以作为渠道连接层，将 Agent 发布到 Teams / M365 Copilot。</li>
+                </ul>
+                <p class="caption-muted">本文聚焦 Copilot Studio 与 Agents SDK 的对比；Foundry Agent Service 的详细分析参见相关文章。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- 05 / 核心差异对比 -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <section id="comparison" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / Comparison</p>
+            <h2>核心差异对比</h2>
+            <p>10 个维度的结构化对比。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>5.1 全维度对比表</span>
+              </button>
+              <div class="subsection-content">
+                <table class="compare-table">
+                  <thead>
+                    <tr>
+                      <th>维度</th>
+                      <th>Copilot Studio</th>
+                      <th>M365 Agents SDK</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>构建方式</strong></td>
+                      <td>GUI 画布 + 自然语言描述</td>
+                      <td>代码（C# / JavaScript / Python）</td>
+                    </tr>
+                    <tr>
+                      <td><strong>AI 编排</strong></td>
+                      <td>内置 Generative / Classic 两种模式</td>
+                      <td>不内置；自选 Semantic Kernel / LangChain 等</td>
+                    </tr>
+                    <tr>
+                      <td><strong>模型选择</strong></td>
+                      <td>平台管理（Azure OpenAI GPT 系列）</td>
+                      <td>开发者自选（任意 LLM Provider）</td>
+                    </tr>
+                    <tr>
+                      <td><strong>知识集成</strong></td>
+                      <td>内置 RAG（SharePoint / 文件 / Dataverse / 网站）</td>
+                      <td>自行实现（Azure AI Search / 自建 Vector Store）</td>
+                    </tr>
+                    <tr>
+                      <td><strong>外部系统</strong></td>
+                      <td>1,400+ Power Platform Connectors</td>
+                      <td>标准 HTTP 调用 / 自定义 SDK</td>
+                    </tr>
+                    <tr>
+                      <td><strong>发布渠道</strong></td>
+                      <td>Teams / Web / Facebook / M365 Copilot</td>
+                      <td>Teams / Web Chat / M365 Copilot / Slack / 自定义</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Activity 控制</strong></td>
+                      <td>平台自动处理，开发者不接触 TurnContext</td>
+                      <td>完全控制 TurnContext / Activity Type / ChannelData</td>
+                    </tr>
+                    <tr>
+                      <td><strong>托管</strong></td>
+                      <td>全托管（Microsoft 运维）</td>
+                      <td>自行部署（Azure App Service / Container Apps 等）</td>
+                    </tr>
+                    <tr>
+                      <td><strong>计费</strong></td>
+                      <td>Copilot Credits（按事件类型分级）</td>
+                      <td>Azure 计算资源 + 所选 AI 服务的 Token 用量</td>
+                    </tr>
+                    <tr>
+                      <td><strong>上线速度</strong></td>
+                      <td>简单场景 30 分钟内</td>
+                      <td>取决于开发复杂度，通常数天到数周</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- 06 / 场景分析 -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <section id="scenarios" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / Scenarios</p>
+            <h2>六个场景的选型分析</h2>
+            <p>每个场景列出需求特征和选型依据。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>6.1 场景概览</span>
+              </button>
+              <div class="subsection-content">
+                <div class="scenario-grid">
+                  <div class="scenario-card">
+                    <span class="scenario-label label-studio">Copilot Studio</span>
+                    <h4>IT Helpdesk 自助服务</h4>
+                    <p>员工在 Teams 问 IT 问题，Agent 从 SharePoint 知识库检索答案。</p>
+                  </div>
+                  <div class="scenario-card">
+                    <span class="scenario-label label-studio">Copilot Studio</span>
+                    <h4>销售报价查询</h4>
+                    <p>销售在 M365 Copilot 中查询产品价格和库存，Agent 调用 Dynamics 365 Connector。</p>
+                  </div>
+                  <div class="scenario-card">
+                    <span class="scenario-label label-sdk">Agents SDK</span>
+                    <h4>Teams 协作 Agent</h4>
+                    <p>深度集成 Teams 特有能力：Adaptive Cards 交互表单、Task Module、@mention、消息更新。</p>
+                  </div>
+                  <div class="scenario-card">
+                    <span class="scenario-label label-sdk">Agents SDK</span>
+                    <h4>多模型推理 Agent</h4>
+                    <p>使用 Semantic Kernel 编排多模型调用（GPT-4o 推理 + Claude 验证），嵌入自有 Web 应用。</p>
+                  </div>
+                  <div class="scenario-card">
+                    <span class="scenario-label label-sdk">Agents SDK</span>
+                    <h4>嵌入产品的对话功能</h4>
+                    <p>SaaS 产品内嵌 AI 助手，通过 DirectLine 接入，完全自定义 UI 和交互逻辑。</p>
+                  </div>
+                  <div class="scenario-card">
+                    <span class="scenario-label label-both">协同使用</span>
+                    <h4>客服前台 + 业务后端</h4>
+                    <p>Copilot Studio 处理 FAQ；复杂请求路由到 SDK Agent 做业务逻辑处理。</p>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>6.2 场景 A：IT Helpdesk（Copilot Studio）</span>
+              </button>
+              <div class="subsection-content">
+                <p><strong>需求</strong>：员工在 Teams 中提问密码重置、VPN 配置等 IT 问题；无法解决时创建 ServiceNow 工单。</p>
+                <div class="arch-flow arch-flow-5col">
+                  <div class="arch-block arch-block-purple">员工<br/>(Teams)</div>
+                  <div class="arch-arrow">→</div>
+                  <div class="arch-block arch-block-purple">Copilot Studio<br/>Agent</div>
+                  <div class="arch-arrow">→</div>
+                  <div class="arch-block arch-block-orange">SharePoint KB<br/>+ ServiceNow<br/>Connector</div>
+                </div>
+                <p class="mt-14"><strong>选 Copilot Studio 的依据：</strong></p>
+                <ul>
+                  <li>知识源是 SharePoint 文档，Copilot Studio 直接接入，无需实现 RAG 管线。</li>
+                  <li>ServiceNow 是预置 Connector，IT 管理员在画布中配置即可使用。</li>
+                  <li>维护者是 IT 运维团队而非开发团队，GUI 画布更新 Topic 无需代码部署。</li>
+                  <li>如果用 Agents SDK 构建相同功能，开发者需要自行实现：SharePoint Graph API 调用 + 文本向量化 + 检索逻辑 + ServiceNow REST API 集成 + Teams 渠道适配——工作量与收益不成比例。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>6.3 场景 B：Teams 协作 Agent（Agents SDK）</span>
+              </button>
+              <div class="subsection-content">
+                <p><strong>需求</strong>：项目管理 Agent 在 Teams 频道中运行，支持通过 Adaptive Card 表单收集需求、Task Module 弹窗展示详细信息、根据 @mention 分派任务、实时更新之前发送的消息。</p>
+                <div class="arch-flow arch-flow-7col">
+                  <div class="arch-block arch-block-teal">Teams<br/>Channel</div>
+                  <div class="arch-arrow">→</div>
+                  <div class="arch-block arch-block-blue">Agents SDK<br/>Agent</div>
+                  <div class="arch-arrow">→</div>
+                  <div class="arch-block arch-block-blue">Semantic<br/>Kernel</div>
+                  <div class="arch-arrow">→</div>
+                  <div class="arch-block arch-block-orange">Azure DevOps<br/>API</div>
+                </div>
+                <p class="mt-14"><strong>选 Agents SDK 的依据：</strong></p>
+                <ul>
+                  <li>需要处理 Teams 特有的 Invoke Activity（task/fetch、task/submit），Copilot Studio 不暴露 Activity 类型级别的控制。</li>
+                  <li>需要更新已发送的消息（如状态变更后自动刷新之前的 Adaptive Card），需要 TurnContext.UpdateActivityAsync()。</li>
+                  <li>需要解析 ChannelData 中的 Teams 特有数据（meeting info、@mention resolution）。</li>
+                  <li>Agent 逻辑包含自定义状态机（需求 → 评审 → 分派 → 追踪 → 关闭），超出 Topic 画布的线性流程能力。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>6.4 场景 C：多模型推理 Agent（Agents SDK）</span>
+              </button>
+              <div class="subsection-content">
+                <p><strong>需求</strong>：法律合同审查 Agent，使用 GPT-4o 做初始分析，调用 Claude 做交叉验证，对比结果后生成最终意见。Agent 部署为 Web 应用的后端服务。</p>
+                <div class="arch-flow arch-flow-7col">
+                  <div class="arch-block arch-block-teal">Web App<br/>(DirectLine)</div>
+                  <div class="arch-arrow">→</div>
+                  <div class="arch-block arch-block-blue">SDK Agent<br/>+ Semantic Kernel</div>
+                  <div class="arch-arrow">→</div>
+                  <div class="arch-block arch-block-orange">Azure OpenAI<br/>+ Anthropic API</div>
+                  <div class="arch-arrow">→</div>
+                  <div class="arch-block arch-block-teal">审查<br/>报告</div>
+                </div>
+                <p class="mt-14"><strong>选 Agents SDK 的依据：</strong></p>
+                <ul>
+                  <li>需要调用非 Azure OpenAI 的模型（Anthropic Claude），Copilot Studio 不支持自选模型 Provider。</li>
+                  <li>需要自定义推理流程：两个模型的输出需要对比后合并，这种逻辑无法在 Topic 画布中表达。</li>
+                  <li>通过 DirectLine 嵌入已有 Web 应用，需要自定义 UI 而非 Copilot Studio 的标准 Web Chat 组件。</li>
+                  <li>Semantic Kernel 提供 Plugin / Planner 编排能力，开发者可以精确控制模型调用顺序和结果合并策略。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>6.5 场景 D：SaaS 产品内嵌 Agent（Agents SDK）</span>
+              </button>
+              <div class="subsection-content">
+                <p><strong>需求</strong>：一个 B2B SaaS 产品（如项目管理工具）需要在产品内嵌入 AI 助手，用户在产品 UI 中直接与 Agent 对话，Agent 可以操作产品内的数据。</p>
+                <div class="arch-flow arch-flow-5col">
+                  <div class="arch-block arch-block-teal">产品 UI<br/>(DirectLine SDK)</div>
+                  <div class="arch-arrow">→</div>
+                  <div class="arch-block arch-block-blue">SDK Agent<br/>(Azure App Service)</div>
+                  <div class="arch-arrow">→</div>
+                  <div class="arch-block arch-block-orange">产品 DB<br/>+ 内部 API</div>
+                </div>
+                <p class="mt-14"><strong>选 Agents SDK 的依据：</strong></p>
+                <ul>
+                  <li>产品需要完全自定义的 Chat UI（品牌一致性），不能使用 Copilot Studio 的标准 Web Chat 小部件。</li>
+                  <li>Agent 需要直接访问产品的内部数据库和 API，这些是私有接口，没有对应的 Power Platform Connector。</li>
+                  <li>需要在 Agent 代码中实现产品级别的权限检查（租户隔离、角色授权），这超出 Copilot Studio 的变量作用域能力。</li>
+                  <li>部署在产品已有的 Azure 基础设施上（App Service / AKS），运维团队统一管理。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>6.6 场景 E：客服前台 + 业务后端（协同使用）</span>
+              </button>
+              <div class="subsection-content">
+                <p><strong>需求</strong>：客服系统接收大量咨询。80% 是标准问题（退货政策、账户查询），20% 需要业务逻辑处理（退款计算、合规审查）。</p>
+                <div class="arch-flow arch-flow-7col">
+                  <div class="arch-block arch-block-purple">客户<br/>(Teams / Web)</div>
+                  <div class="arch-arrow">→</div>
+                  <div class="arch-block arch-block-purple">Copilot Studio<br/>前台 Agent</div>
+                  <div class="arch-arrow">路由 →</div>
+                  <div class="arch-block arch-block-blue">SDK Agent<br/>(业务逻辑)</div>
+                  <div class="arch-arrow">→</div>
+                  <div class="arch-block arch-block-orange">CRM<br/>+ ERP</div>
+                </div>
+                <p class="mt-14"><strong>协同使用的依据：</strong></p>
+                <ul>
+                  <li>标准问题由 Copilot Studio 处理：Knowledge 源接入产品文档，Connectors 查询订单状态——客服运营团队可自行维护。</li>
+                  <li>复杂请求通过 Agent Flow（HTTP Action）路由到部署在 Azure 上的 SDK Agent，后者实现退款计算、合规规则等业务逻辑。</li>
+                  <li>用户体验无缝：客户在同一对话中完成，路由在后端发生，无需切换界面。</li>
+                  <li>职责分离：客服团队管低代码部分（更新 FAQ、调整回复话术），开发团队管代码部分（业务规则、API 集成）。</li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- 07 / 选型决策 -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <section id="decision" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">07 / Decision Framework</p>
+            <h2>选型决策</h2>
+            <p>基于需求特征判断适用产品。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>7.1 判断标准</span>
+              </button>
+              <div class="subsection-content">
+                <table class="compare-table">
+                  <thead>
+                    <tr>
+                      <th>条件</th>
+                      <th>指向</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>构建和维护者是业务团队 / IT 管理员</td>
+                      <td>Copilot Studio</td>
+                    </tr>
+                    <tr>
+                      <td>知识源在 SharePoint / Dataverse / 公共网站</td>
+                      <td>Copilot Studio（内置 RAG）</td>
+                    </tr>
+                    <tr>
+                      <td>外部系统有对应的 Power Platform Connector</td>
+                      <td>Copilot Studio</td>
+                    </tr>
+                    <tr>
+                      <td>需要发布为 M365 Copilot 扩展</td>
+                      <td>两者均可</td>
+                    </tr>
+                    <tr>
+                      <td>需要操作 Teams 特有能力（Adaptive Cards / Task Module / Invoke）</td>
+                      <td>Agents SDK</td>
+                    </tr>
+                    <tr>
+                      <td>需要自选 AI 模型（非 Azure OpenAI）</td>
+                      <td>Agents SDK</td>
+                    </tr>
+                    <tr>
+                      <td>需要自定义推理/编排逻辑</td>
+                      <td>Agents SDK</td>
+                    </tr>
+                    <tr>
+                      <td>需要嵌入已有应用（自定义 UI）</td>
+                      <td>Agents SDK（DirectLine）</td>
+                    </tr>
+                    <tr>
+                      <td>需要访问私有 API / 内部数据库</td>
+                      <td>Agents SDK</td>
+                    </tr>
+                    <tr>
+                      <td>标准问答 + 少量复杂逻辑</td>
+                      <td>协同使用</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>7.2 决策注意事项</span>
+              </button>
+              <div class="subsection-content">
+                <ul>
+                  <li><strong>不存在替代关系</strong>：Copilot Studio 是完整平台（含编排 + 运行时 + 工具），Agents SDK 是通信框架（需自行组装 AI 能力）。选择取决于团队技能结构和项目需求，而非产品优劣。</li>
+                  <li><strong>运维成本差异</strong>：Copilot Studio 的运维由 Microsoft 承担（SaaS 模式）。Agents SDK 构建的 Agent 需要开发团队负责 CI/CD、基础设施、监控和版本管理。</li>
+                  <li><strong>可以逐步演进</strong>：从 Copilot Studio 开始验证场景可行性；当需求超出平台边界时，将复杂部分用 Agents SDK 实现，两者通过 HTTP / Activity Protocol 集成。</li>
+                  <li><strong>许可条件不同</strong>：Copilot Studio 需要独立的 Copilot Studio 订阅或附带在 Dynamics 365 / M365 Copilot 许可中。Agents SDK 是开源免费（MIT 协议），成本来自 Azure 计算和 AI 服务消耗。</li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- 参考来源 -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <section id="references" class="section" data-reveal data-present-step data-step-title="参考来源">
+          <div class="section-head">
+            <p class="section-kicker">References</p>
+            <h2>参考来源</h2>
+          </div>
+          <ol class="bib-list">
+            <li id="ref-1"><span class="bib-id">[1]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/fundamentals-what-is-copilot-studio" target="_blank" rel="noopener noreferrer">"Copilot Studio overview,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">Copilot Studio 产品定位、Agent/Agent Flow 定义、两种使用模式（独立 / M365 扩展）和渠道发布。</span></li>
+            <li id="ref-2"><span class="bib-id">[2]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-365/agents-sdk/agents-sdk-overview" target="_blank" rel="noopener noreferrer">"Microsoft 365 Agents SDK overview,"</a> <em>Microsoft Learn,</em> 2025.<span class="bib-note">Agents SDK 产品定位、Agent 容器模型、AI 无关设计原则、C#/JS/Python 支持。</span></li>
+            <li id="ref-3"><span class="bib-id">[3]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-365/agents-sdk/activity-protocol" target="_blank" rel="noopener noreferrer">"Understanding the Activity Protocol,"</a> <em>Microsoft Learn,</em> 2025.<span class="bib-note">Activity Protocol 规范、Activity 类型（Message / Event / Invoke / ConversationUpdate）、TurnContext 编程模型。</span></li>
+            <li id="ref-4"><span class="bib-id">[4]</span> <span class="bib-author">Microsoft.</span> <a href="https://github.com/microsoft/agents" target="_blank" rel="noopener noreferrer">"Microsoft 365 Agents SDK — GitHub,"</a> <em>GitHub,</em> 2026.<span class="bib-note">SDK 仓库结构、与 Semantic Kernel / Azure AI Foundry / Copilot Studio 的关系说明和 Sample 代码。</span></li>
+            <li id="ref-5"><span class="bib-id">[5]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/advanced-connectors" target="_blank" rel="noopener noreferrer">"Use Power Platform connectors as tools,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">Copilot Studio 通过 Power Platform Connectors 集成外部服务的机制和认证模式。</span></li>
+            <li id="ref-6"><span class="bib-id">[6]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/azure/foundry/agents/overview" target="_blank" rel="noopener noreferrer">"What is Microsoft Foundry Agent Service?"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">Foundry Agent Service 定位和三类 Agent（Prompt / Workflow / Hosted），作为补充背景参考。</span></li>
+            <li id="ref-7"><span class="bib-id">[7]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/authoring-add-other-agents" target="_blank" rel="noopener noreferrer">"Add other agents overview,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">Copilot Studio 多 Agent 架构：Child Agent、Connected Agent、外部 Agent（SDK / Foundry / A2A / Fabric）连接方式和已知限制。</span></li>
+            <li id="ref-8"><span class="bib-id">[8]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/add-agent-microsoft-365-agents-sdk-agent" target="_blank" rel="noopener noreferrer">"Connect to a Microsoft 365 Agents SDK agent (preview),"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">Copilot Studio 连接 SDK Agent 的具体步骤：endpoint URL、认证配置和数据流责任说明。</span></li>
+            <li id="ref-9"><span class="bib-id">[9]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/microsoft-copilot-extend-copilot-extensions" target="_blank" rel="noopener noreferrer">"Extend Microsoft 365 Copilot with agents,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">Copilot Studio Agent 发布到 M365 Copilot 的流程，Agent 在 M365 Copilot 中的行为模式。</span></li>
+          </ol>
+        </section>
+      </main>
+
+      <footer>
+         &copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

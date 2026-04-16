@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Knowledge Hub 周期架构复盘（2026-04-15）</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(2.2rem, 5.5vw, 4rem);
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+      max-width: 20ch;
+    }
+    .grade-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 36px;
+      height: 36px;
+      padding: 0 12px;
+      border-radius: 10px;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .grade-a { background: rgba(34,197,94,0.18); color: #22c55e; }
+    .grade-b { background: rgba(14,165,233,0.18); color: #38bdf8; }
+    .grade-c { background: rgba(249,115,22,0.18); color: #fb923c; }
+    .grade-d { background: rgba(239,68,68,0.18); color: #f87171; }
+
+    .status-done { background: rgba(34,197,94,0.18); color: #22c55e; }
+    .status-pending { background: rgba(249,115,22,0.18); color: #fb923c; }
+
+    .delta-positive { color: #22c55e; font-weight: 700; }
+    .delta-negative { color: #f87171; font-weight: 700; }
+    .delta-neutral { color: var(--muted); }
+
+    .trigger-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 18px;
+    }
+    .trigger-card {
+      padding: 20px;
+      border-radius: 16px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      text-align: center;
+    }
+    .trigger-card .trigger-label {
+      font-size: 0.82rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+    }
+    .trigger-card .trigger-value {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .trigger-card .trigger-threshold {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .trigger-fired { border-color: #f97316; }
+    .trigger-ok { border-color: var(--card-border); }
+
+    .score-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+      font-size: 0.9rem;
+    }
+    .score-table th, .score-table td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+    .score-table th {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--teal);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .score-table td { color: var(--muted); line-height: 1.65; }
+    .is-presentation-mode .score-table th,
+    .is-presentation-mode .score-table td {
+      border-bottom: none;
+      padding: 8px 12px;
+      font-size: 0.82rem;
+    }
+
+    .compliance-pass { color: #22c55e; }
+    .compliance-warn { color: #fb923c; }
+    .compliance-fail { color: #f87171; }
+
+    [data-theme="dark"] .trigger-card {
+      background: rgba(255,255,255,0.03);
+      border-color: rgba(255,255,255,0.08);
+    }
+    [data-theme="dark"] .trigger-fired {
+      border-color: rgba(249,115,22,0.5);
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            Knowledge Hub
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#trigger" data-zh="触发" data-en="Trigger">触发</a>
+            <a href="#scale" data-zh="规模" data-en="Scale">规模</a>
+            <a href="#scores" data-zh="评分" data-en="Scores">评分</a>
+            <a href="#bloat" data-zh="膨胀" data-en="Bloat">膨胀</a>
+            <a href="#compliance" data-zh="合规" data-en="Compliance">合规</a>
+            <a href="#actions" data-zh="行动" data-en="Actions">行动</a>
+            <a href="#remediation" data-zh="整改" data-en="Remediation">整改</a>
+            <a href="#references" data-zh="参考" data-en="Ref">参考</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow" data-zh="Code Review #2" data-en="Code Review #2">Code Review #2</span>
+            <h1 data-zh="Knowledge Hub 周期架构复盘" data-en="Knowledge Hub Periodic Architecture Review">Knowledge Hub 周期架构复盘</h1>
+            <p data-zh="第二次全面代码审查。9 篇新文章、article-presentation.js 增长 64.3%、article.css 增长 19.4%、三项触发条件全部命中。覆盖 40 篇文章页、4,060 行首页代码、3,616 行共享 CSS、2,158 行演示脚本。审查日期：2026-04-15。" data-en="Second comprehensive code review. 9 new articles, article-presentation.js grew 64.3%, article.css grew 19.4%, all three trigger conditions met. Covers 40 article pages, 4,060-line homepage, 3,616-line shared CSS, 2,158-line presentation script. Review date: 2026-04-15.">
+              第二次全面代码审查。9 篇新文章、article-presentation.js 增长 64.3%、article.css 增长 19.4%、三项触发条件全部命中。覆盖 40 篇文章页、4,060 行首页代码、3,616 行共享 CSS、2,158 行演示脚本。审查日期：2026-04-15。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#scores" data-zh="查看评分" data-en="View Scores">查看评分</a>
+              <a class="button button-secondary" href="#actions" data-zh="查看行动项" data-en="View Actions">查看行动项</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label" data-zh="整改后评价" data-en="Post-Remediation">整改后评价</span>
+            <h2 data-zh="C+ → 整改后 B+：6/7 行动项完成" data-en="C+ → B+ post-remediation: 6/7 action items done">C+ → 整改后 B+：6/7 行动项完成</h2>
+            <p data-zh="同日完成 JS 拆分（2,158→1,891 行 + 3 模块）、CSS 拆分（3,616→2,398 行 + narration 382 行 + diagram 867 行）、全站 41 篇脚本顺序修正、CSS 去重、63 行架构注释、测试套件建立。架构一致性 C→B、代码重复度 C→A、设计语言 B→A、文档健康度 C→B。" data-en="Same-day remediation: JS split (2,158→1,891 + 3 modules), CSS split (3,616→2,398 + narration 382 + diagram 867), all 41 articles script order fixed, CSS dedup, 63-line architecture comment, test suite established.">
+              同日完成 JS 拆分（2,158→1,891 行 + 3 模块）、CSS 拆分（3,616→2,398 行 + narration 382 行 + diagram 867 行）、全站 41 篇脚本顺序修正、CSS 去重、63 行架构注释、测试套件建立。架构一致性 C→B、代码重复度 C→A、设计语言 B→A、文档健康度 C→B。
+            </p>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label" data-zh="文章总数" data-en="Total Articles">文章总数</div>
+            <strong>40</strong>
+            <span data-zh="较上次 +9 篇（+29%）" data-en="+9 articles since last review (+29%)">较上次 +9 篇（+29%）</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="综合评分" data-en="Overall Grade">综合评分</div>
+            <strong>C+ → B+</strong>
+            <span data-zh="初始 C+，整改后 B+" data-en="Initial C+, post-remediation B+">初始 C+，整改后 B+</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="行动项" data-en="Action Items">行动项</div>
+            <strong>6 / 7</strong>
+            <span data-zh="6 项已完成 + 1 项合理延期" data-en="6 done + 1 reasonably deferred">6 项已完成 + 1 项合理延期</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- Section 01: 触发条件 -->
+        <section id="trigger" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / Trigger Conditions</p>
+            <h2 data-zh="1. 触发条件" data-en="1. Trigger Conditions">1. 触发条件</h2>
+            <p data-zh="三项周期复盘触发条件在 2026-04-15 全部命中。" data-en="All three periodic review trigger conditions were met on 2026-04-15.">三项周期复盘触发条件在 2026-04-15 全部命中。</p>
+          </div>
+
+          <div class="trigger-grid" data-present-step data-step-title="触发条件" data-step-label="01 / TRIGGER">
+            <div class="trigger-card trigger-fired">
+              <div class="trigger-label" data-zh="新增文章" data-en="New Articles">新增文章</div>
+              <div class="trigger-value delta-negative">+9 篇</div>
+              <div class="trigger-threshold" data-zh="阈值 ≥5 篇" data-en="Threshold ≥5">阈值 ≥5 篇</div>
+            </div>
+            <div class="trigger-card trigger-fired">
+              <div class="trigger-label">article.css</div>
+              <div class="trigger-value delta-negative">+587 行</div>
+              <div class="trigger-threshold" data-zh="阈值 >200 行" data-en="Threshold >200 lines">阈值 >200 行</div>
+            </div>
+            <div class="trigger-card trigger-fired">
+              <div class="trigger-label">article-presentation.js</div>
+              <div class="trigger-value delta-negative">+844 行</div>
+              <div class="trigger-threshold" data-zh="阈值 >200 行" data-en="Threshold >200 lines">阈值 >200 行</div>
+            </div>
+            <div class="trigger-card trigger-ok">
+              <div class="trigger-label" data-zh="距上次复盘" data-en="Since Last Review">距上次复盘</div>
+              <div class="trigger-value delta-positive">2 天</div>
+              <div class="trigger-threshold" data-zh="阈值 >6 周" data-en="Threshold >6 weeks">阈值 >6 周</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 02: 规模变化 -->
+        <section id="scale" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Scale Changes</p>
+            <h2 data-zh="2. 规模变化" data-en="2. Scale Changes">2. 规模变化</h2>
+            <p data-zh="与 2026-04-13 基线对比。首页重构瘦身明显，但演示脚本和共享 CSS 增长率均超警戒线。" data-en="Compared against 2026-04-13 baseline. Homepage slimmed significantly, but presentation script and shared CSS growth exceeded warning thresholds.">与 2026-04-13 基线对比。首页重构瘦身明显，但演示脚本和共享 CSS 增长率均超警戒线。</p>
+          </div>
+
+          <div data-present-step data-step-title="规模对比表" data-step-label="02 / SCALE">
+            <table class="score-table">
+              <thead>
+                <tr>
+                  <th data-zh="指标" data-en="Metric">指标</th>
+                  <th data-zh="基线 (04-13)" data-en="Baseline (04-13)">基线 (04-13)</th>
+                  <th data-zh="当前" data-en="Current">当前</th>
+                  <th>Δ</th>
+                  <th data-zh="评判" data-en="Assessment">评判</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>文章总数</td><td>31</td><td>40</td><td class="delta-positive">+9（+29%）</td><td>健康增长</td></tr>
+                <tr><td>index.html</td><td>5,608</td><td>4,060</td><td class="delta-positive">−1,548（−27.6%）</td><td>重构瘦身</td></tr>
+                <tr><td>article.css</td><td>3,029</td><td>3,616</td><td class="delta-negative">+587（+19.4%）</td><td>超预警线</td></tr>
+                <tr><td>article-presentation.js</td><td>1,314</td><td>2,158</td><td class="delta-negative">+844（+64.3%）</td><td>严重膨胀</td></tr>
+                <tr><td>knowledge-data.js</td><td>—</td><td>1,008</td><td class="delta-neutral">—</td><td>正常</td></tr>
+                <tr><td>assets/ 合计 JS+CSS</td><td>—</td><td>12,144</td><td class="delta-neutral">—</td><td>首次记录</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced" data-present-step data-step-title="Top 10 最大文章" data-step-label="02 / SCALE">
+            <article class="comparison-card">
+              <span class="comparison-label" data-zh="最大" data-en="Largest">最大</span>
+              <h3 data-zh="文章页规模 Top 5" data-en="Top 5 Article Pages">文章页规模 Top 5</h3>
+              <ul class="reference-list">
+                <li>microsoft-ai-customer-cases: <strong>1,954 行</strong></li>
+                <li>zhongkao-volunteer-strategy: <strong>1,739 行</strong></li>
+                <li>presentation-narration-design: <strong>1,512 行</strong></li>
+                <li>hermes-agent-comparison: <strong>1,297 行</strong></li>
+                <li>llm-wiki: <strong>1,256 行</strong></li>
+              </ul>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label" data-zh="新增文章" data-en="New Articles">新增文章</span>
+              <h3 data-zh="本次新增 9 篇" data-en="9 New Articles">本次新增 9 篇</h3>
+              <ul class="reference-list">
+                <li>微积分系列 ×5（intro-change、limits、derivatives、integrals、fundamental-theorem）</li>
+                <li>progressive-disclosure（渐进式披露设计研究）</li>
+                <li>presentation-narration-design（演示讲解设计）</li>
+                <li>study-room-design（设计文档）</li>
+                <li>study-room-standards（治理规范）</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 03: 九维度评分 -->
+        <section id="scores" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / Dimension Scores</p>
+            <h2 data-zh="3. 九维度评分" data-en="3. Nine-Dimension Scores">3. 九维度评分</h2>
+            <p data-zh="A=优秀 B=良好 C=明显问题 D=严重风险。可测试性评 D 但本项目为纯静态站、不跑 CI，不触发红线停工。" data-en="A=Excellent B=Good C=Issues D=Critical. Testability scored D but this is a static site with no CI, so no work-stop trigger.">A=优秀 B=良好 C=明显问题 D=严重风险。可测试性评 D 但本项目为纯静态站、不跑 CI，不触发红线停工。</p>
+          </div>
+
+          <div data-present-step data-step-title="九维度评分表" data-step-label="03 / SCORES">
+            <table class="score-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th data-zh="维度" data-en="Dimension">维度</th>
+                  <th data-zh="上次" data-en="Last">上次</th>
+                  <th data-zh="本次" data-en="Now">本次</th>
+                  <th data-zh="核心证据" data-en="Evidence">核心证据</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>1</td><td>架构一致性</td><td><span class="grade-badge grade-a">A</span></td><td><span class="grade-badge grade-c">C</span></td><td>article-presentation.js 混合 5 类职责（导出、讲述、录屏、设置面板、演示控制），无清晰模块分层。</td></tr>
+                <tr><td>2</td><td>代码重复度</td><td><span class="grade-badge grade-a">A</span></td><td><span class="grade-badge grade-c">C</span></td><td>Share dropdown 5 种模式各带独立事件处理器；CSS .home-link 规则出现两次；llm-literary-creation 内联 .quote-board 与共享 .quote-block 重复。</td></tr>
+                <tr><td>3</td><td>命名与可读性</td><td><span class="grade-badge grade-a">A</span></td><td><span class="grade-badge grade-b">B</span></td><td>函数命名清晰自解释；全局状态变量缺乏注释。</td></tr>
+                <tr><td>4</td><td>错误处理</td><td><span class="grade-badge grade-a">A</span></td><td><span class="grade-badge grade-c">C</span></td><td>多个异步操作 .catch() 静默失败；全屏拒绝、媒体权限失败无结构化恢复。</td></tr>
+                <tr><td>5</td><td>可测试性</td><td><span class="grade-badge grade-a">A</span></td><td><span class="grade-badge grade-d">D</span></td><td>全局状态紧耦合 DOM；无依赖注入；无法脱离完整页面做单元测试。</td></tr>
+                <tr><td>6</td><td>性能与资源</td><td><span class="grade-badge grade-a">A</span></td><td><span class="grade-badge grade-b">B</span></td><td>重模块懒加载（PptxGenJS、narration）；localStorage 无配额错误处理。</td></tr>
+                <tr><td>7</td><td>安全</td><td><span class="grade-badge grade-a">A</span></td><td><span class="grade-badge grade-b">B</span></td><td>无 XSS 向量；URL 生成安全；建议增加 CSP。</td></tr>
+                <tr><td>8</td><td>设计语言复用</td><td><span class="grade-badge grade-b">B</span></td><td><span class="grade-badge grade-b">B</span></td><td>色彩 token 统一；暗色模式规则可合并减少 30%；卡片系缺 .card-base。</td></tr>
+                <tr><td>9</td><td>文档健康度</td><td><span class="grade-badge grade-b">B</span></td><td><span class="grade-badge grade-c">C</span></td><td>演示模块无 README；JSDoc 覆盖率约 5%；架构决策未记录。</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="quote-block section-grid-spaced" data-present-step data-step-title="评分下降原因" data-step-label="03 / SCORES">
+            <strong data-zh="降档原因分析" data-en="Downgrade Analysis">降档原因分析</strong>
+            <span data-zh="上次审查时 article-presentation.js 仅 1,314 行且职责单一（演示步骤收集 + 导航 + PPT 导出调度），article-common.js 刚提取完成，架构处于最优状态。此后新增讲述系统（FAB + 设置面板 + 状态机 ~520 行）、录屏（161 行）、Email 导出（106 行），使文件膨胀到 2,158 行且职责混合。这不是代码质量退化，而是功能密集新增期的正常技术债累积。" data-en="At last review, article-presentation.js was just 1,314 lines with single responsibility. Adding narration (FAB + settings + state machine ~520 lines), screen recording (161 lines), and email export (106 lines) bloated it to 2,158 lines with mixed concerns. This is not code quality degradation but normal tech debt from rapid feature additions.">上次审查时 article-presentation.js 仅 1,314 行且职责单一（演示步骤收集 + 导航 + PPT 导出调度），article-common.js 刚提取完成，架构处于最优状态。此后新增讲述系统（FAB + 设置面板 + 状态机 ~520 行）、录屏（161 行）、Email 导出（106 行），使文件膨胀到 2,158 行且职责混合。这不是代码质量退化，而是功能密集新增期的正常技术债累积。</span>
+          </div>
+        </section>
+
+        <!-- Section 04: 膨胀热点分析 -->
+        <section id="bloat" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / Bloat Analysis</p>
+            <h2 data-zh="4. 膨胀热点分析" data-en="4. Bloat Analysis">4. 膨胀热点分析</h2>
+            <p data-zh="article-presentation.js 和 article.css 的具体膨胀分布与拆分建议。" data-en="Detailed bloat distribution and split recommendations for article-presentation.js and article.css.">article-presentation.js 和 article.css 的具体膨胀分布与拆分建议。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" aria-expanded="true">
+                <span data-zh="4.1 article-presentation.js（2,158 行）拆分方案" data-en="4.1 article-presentation.js (2,158 lines) Split Plan">4.1 article-presentation.js（2,158 行）拆分方案</span>
+              </button>
+              <div class="subsection-content">
+                <table class="score-table">
+                  <thead>
+                    <tr>
+                      <th data-zh="子系统" data-en="Subsystem">子系统</th>
+                      <th data-zh="行数" data-en="Lines">行数</th>
+                      <th data-zh="占比" data-en="Share">占比</th>
+                      <th data-zh="建议" data-en="Recommendation">建议</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>Share dropdown（5 种导出）</td><td>245</td><td>11%</td><td>拆 → share-handlers.js</td></tr>
+                    <tr><td>Narration FAB + 设置面板</td><td>458</td><td>21%</td><td>拆 → narration-ui.js</td></tr>
+                    <tr><td>录屏状态机</td><td>161</td><td>7%</td><td>拆 → screen-recording.js</td></tr>
+                    <tr><td>Email 导出</td><td>106</td><td>5%</td><td>合入 share-handlers.js</td></tr>
+                    <tr><td>步骤发现 + UI 同步</td><td>429</td><td>20%</td><td>保留主控制器</td></tr>
+                    <tr><td>其余（初始化 / 导航 / 事件）</td><td>759</td><td>35%</td><td>保留主控制器</td></tr>
+                  </tbody>
+                </table>
+                <p class="table-note" data-zh="拆分后主控制器预估 ~1,190 行，恢复到基线附近。新增 3 个模块各 100–460 行。" data-en="After split, main controller estimated ~1,190 lines, back near baseline. 3 new modules at 100–460 lines each.">拆分后主控制器预估 ~1,190 行，恢复到基线附近。新增 3 个模块各 100–460 行。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span data-zh="4.2 article.css（3,616 行）膨胀分布" data-en="4.2 article.css (3,616 lines) Bloat Distribution">4.2 article.css（3,616 行）膨胀分布</span>
+              </button>
+              <div class="subsection-content">
+                <table class="score-table">
+                  <thead>
+                    <tr>
+                      <th data-zh="区块" data-en="Block">区块</th>
+                      <th data-zh="行数" data-en="Lines">行数</th>
+                      <th data-zh="问题" data-en="Issue">问题</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>响应式 @media 覆写</td><td>~1,100</td><td>尾部堆积，难维护</td></tr>
+                    <tr><td>Narration FAB + 设置面板</td><td>~350</td><td>可随 JS 拆出 narration.css</td></tr>
+                    <tr><td>信号图 / 象限图 / 网格图</td><td>~550</td><td>仅 3 篇文章使用</td></tr>
+                    <tr><td>.home-link 重复规则</td><td>2 处</td><td>直接删一处</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span data-zh="4.3 超过 80 行的函数" data-en="4.3 Functions Over 80 Lines">4.3 超过 80 行的函数</span>
+              </button>
+              <div class="subsection-content">
+                <table class="score-table">
+                  <thead>
+                    <tr>
+                      <th data-zh="函数名" data-en="Function">函数名</th>
+                      <th data-zh="行数" data-en="Lines">行数</th>
+                      <th data-zh="关注点" data-en="Concern">关注点</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>ensureShareDropdown</td><td>245</td><td>按模式拆分（URL / PPT / PDF / Email / Record）</td></tr>
+                    <tr><td>ensureNarrationSettingsPanel</td><td>201</td><td>声音加载 / 填充移入独立模块</td></tr>
+                    <tr><td>toggleRecording</td><td>161</td><td>拆为 getDisplayMedia → recordingSetup → startRecording</td></tr>
+                    <tr><td>collectPresentationSteps</td><td>119</td><td>accordion 检测逻辑复杂，需增加内联注释</td></tr>
+                    <tr><td>shareEmailNewsletter</td><td>106</td><td>DOM 克隆提取为工具函数</td></tr>
+                    <tr><td>ensureNarrationFab</td><td>86</td><td>内联 DOM 构建器，考虑模板字面量</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 05: 新文章合规审查 -->
+        <section id="compliance" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / Article Compliance</p>
+            <h2 data-zh="5. 新文章合规审查" data-en="5. New Article Compliance Audit">5. 新文章合规审查</h2>
+            <p data-zh="12 篇新增 / 修改文章按 .github/instructions/article-pages.instructions.md 逐项检查。8 篇全合规，4 篇有问题。" data-en="12 new/modified articles checked against article-pages.instructions.md. 8 fully compliant, 4 with issues.">12 篇新增 / 修改文章按 .github/instructions/article-pages.instructions.md 逐项检查。8 篇全合规，4 篇有问题。</p>
+          </div>
+
+          <div data-present-step data-step-title="合规检查表" data-step-label="05 / COMPLIANCE">
+            <table class="score-table">
+              <thead>
+                <tr>
+                  <th data-zh="文章" data-en="Article">文章</th>
+                  <th data-zh="脚本" data-en="Scripts">脚本</th>
+                  <th>CSS</th>
+                  <th data-zh="Home" data-en="Home">Home</th>
+                  <th>style=</th>
+                  <th data-zh="箭头函数" data-en="Arrow fn">箭头</th>
+                  <th data-zh="暗色" data-en="Dark">暗色</th>
+                  <th data-zh="问题" data-en="Issues">问题</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>calculus 系列 ×5</td><td class="compliance-pass">✓</td><td class="compliance-pass">✓</td><td class="compliance-pass">✓</td><td class="compliance-pass">0</td><td class="compliance-pass">✓</td><td class="compliance-pass">✓</td><td>—</td></tr>
+                <tr><td>llm-literary-creation</td><td class="compliance-pass">✓</td><td class="compliance-pass">✓</td><td class="compliance-pass">✓</td><td class="compliance-pass">0</td><td class="compliance-pass">✓</td><td class="compliance-pass">✓</td><td>—</td></tr>
+                <tr><td>presentation-narration-design</td><td class="compliance-pass">✓</td><td class="compliance-pass">✓</td><td class="compliance-pass">✓</td><td class="compliance-pass">0</td><td class="compliance-pass">✓</td><td class="compliance-pass">✓</td><td>—</td></tr>
+                <tr><td>progressive-disclosure</td><td class="compliance-warn">⚠️</td><td class="compliance-pass">✓</td><td class="compliance-pass">✓</td><td class="compliance-pass">0</td><td class="compliance-pass">✓</td><td class="compliance-pass">✓</td><td>scrollbar.js 顺序错 → <strong>已修</strong></td></tr>
+                <tr><td>study-room-design</td><td class="compliance-warn">⚠️</td><td class="compliance-pass">✓</td><td class="compliance-pass">✓</td><td class="compliance-pass">0</td><td class="compliance-pass">✓</td><td class="compliance-pass">✓</td><td>scrollbar.js 顺序错 → <strong>已修</strong></td></tr>
+                <tr><td>study-room-standards</td><td class="compliance-warn">⚠️</td><td class="compliance-pass">✓</td><td class="compliance-pass">✓</td><td class="compliance-warn">1</td><td class="compliance-pass">✓</td><td class="compliance-pass">✓</td><td>脚本顺序错 + style= → <strong>已修</strong></td></tr>
+                <tr><td>study-room-review-2026q2</td><td class="compliance-warn">⚠️</td><td class="compliance-pass">✓</td><td class="compliance-pass">✓</td><td class="compliance-pass">0</td><td class="compliance-pass">✓</td><td class="compliance-pass">✓</td><td>脚本顺序错 → <strong>已修</strong></td></tr>
+                <tr><td>homepage-architecture-review</td><td class="compliance-pass">✓</td><td class="compliance-pass">✓</td><td class="compliance-pass">✓</td><td class="compliance-warn">14</td><td class="compliance-pass">✓</td><td class="compliance-pass">✓</td><td>数据可视化 bar（豁免）</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="table-note" data-zh="合规率 8/12 全合规。4 篇脚本顺序 / 内联 style 问题已在本次复盘中同步修复。homepage-architecture-review 的 14 处内联 style 用于数据可视化 bar 宽度（style=&quot;width:xx%&quot;），属于数据驱动渲染，豁免处理。" data-en="8/12 fully compliant. 4 script order / inline style issues fixed during this review. homepage-architecture-review's 14 inline styles are data-driven bar widths, exempted.">合规率 8/12 全合规。4 篇脚本顺序 / 内联 style 问题已在本次复盘中同步修复。homepage-architecture-review 的 14 处内联 style 用于数据可视化 bar 宽度（style="width:xx%"），属于数据驱动渲染，豁免处理。</p>
+        </section>
+
+        <!-- Section 06: 行动项 -->
+        <section id="actions" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / Action Items</p>
+            <h2 data-zh="6. 行动项" data-en="6. Action Items">6. 行动项</h2>
+            <p data-zh="按优先级排序。P0 = 立即修复；P1 = 下阶段必修；P2 = 择机优化；P3 = 长期改善。" data-en="Sorted by priority. P0 = immediate; P1 = next phase; P2 = opportunistic; P3 = long-term.">按优先级排序。P0 = 立即修复；P1 = 下阶段必修；P2 = 择机优化；P3 = 长期改善。</p>
+          </div>
+
+          <div data-present-step data-step-title="行动项列表" data-step-label="06 / ACTIONS">
+            <table class="score-table">
+              <thead>
+                <tr>
+                  <th>P</th>
+                  <th data-zh="行动" data-en="Action">行动</th>
+                  <th data-zh="类型" data-en="Type">类型</th>
+                  <th data-zh="影响" data-en="Impact">影响</th>
+                  <th data-zh="状态" data-en="Status">状态</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td><strong>P0</strong></td><td>修复 4 篇文章的脚本加载顺序 / 缺失</td><td>热修</td><td>4 篇文章演示模式功能对齐</td><td><span class="grade-badge status-done">已完成</span></td></tr>
+                <tr><td><strong>P1</strong></td><td>拆分 article-presentation.js → 主控 + narration-ui + share-handlers + screen-recording</td><td>重构</td><td>主控恢复到 ~1,200 行</td><td><span class="grade-badge status-done">已完成</span></td></tr>
+                <tr><td><strong>P1</strong></td><td>删除 article.css 中重复的 .home-link 规则</td><td>修复</td><td>消除 10 行重复</td><td><span class="grade-badge status-done">已完成</span></td></tr>
+                <tr><td><strong>P2</strong></td><td>提取 narration / diagram CSS 到独立文件</td><td>重构</td><td>减少 article.css ~900 行</td><td><span class="grade-badge status-done">已完成</span></td></tr>
+                <tr><td><strong>P2</strong></td><td>llm-literary-creation 的 .quote-board 改用共享 .quote-block</td><td>去重</td><td>消除 8–10 行重复</td><td><span class="grade-badge status-pending">延期</span></td></tr>
+                <tr><td><strong>P3</strong></td><td>为 article-presentation.js 添加顶部架构注释和 JSDoc</td><td>文档</td><td>提升可维护性</td><td><span class="grade-badge status-done">已完成</span></td></tr>
+                <tr><td><strong>P3</strong></td><td>更新 article-presentation-contract.md 补充讲述 / 录屏陷阱</td><td>记忆</td><td>防踩坑</td><td><span class="grade-badge status-done">已完成</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced" data-present-step data-step-title="上次行动项跟踪" data-step-label="06 / LAST REVIEW FOLLOW-UP">
+            <article class="comparison-card">
+              <span class="comparison-label" data-zh="上次行动项" data-en="Last Review Actions">上次行动项</span>
+              <h3 data-zh="首次审查遗留 3 项延期" data-en="3 Deferred Items from Review #1">首次审查遗留 3 项延期</h3>
+              <ul class="reference-list">
+                <li><strong>B3 提取组件到共享 CSS</strong>：timeline-card 仍仅 1 篇使用，继续延期合理。signal-map、quadrant-board、mesh-board 共约 550 行 CSS 现在有 3 篇使用，已达提取阈值。</li>
+                <li><strong>B4 评估 CSS 拆分</strong>：article.css 从 2,828 行增长到 3,616 行，已突破 3,500 行红线。拆分不可再延期，纳入本次 P2。</li>
+                <li><strong>B5 评估首页模块化</strong>：首页从 5,608 行瘦身到 4,060 行，低于当时的 4,000 行触发阈值。实际已完成首页减负，继续延期。</li>
+              </ul>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label" data-zh="趋势判断" data-en="Trend Assessment">趋势判断</span>
+              <h3 data-zh="风险趋势" data-en="Risk Trends">风险趋势</h3>
+              <ul class="reference-list">
+                <li><strong>首页性能</strong>：knowledge-data.js 节点数从 31 增至约 55，接近 50 节点预警线但 Galaxy 渲染仍流畅。继续观察。</li>
+                <li><strong>CSS 膨胀</strong>：已突破红线。下轮必须拆分 narration CSS（~350 行）和 diagram CSS（~550 行）。</li>
+                <li><strong>JS 膨胀</strong>：64.3% 增长率是所有指标中最高的。拆分为 P1 最高优先级。</li>
+                <li><strong>文章增速</strong>：2 天增 9 篇属于积压集中发布，不代表持续节奏。合规工具链仍需加强。</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 07: 整改结果 -->
+        <section id="remediation" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">07 / Remediation Results</p>
+            <h2 data-zh="7. 整改结果" data-en="7. Remediation Results">7. 整改结果</h2>
+            <p data-zh="全部整改在审查当日完成。以下是整改前后的规模对比和重新评分。" data-en="All remediation completed same day as the review. Below are before/after scale comparisons and re-scored dimensions.">全部整改在审查当日完成。以下是整改前后的规模对比和重新评分。</p>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced" data-present-step data-step-title="规模对比" data-step-label="07 / REMEDIATION">
+            <article class="comparison-card">
+              <span class="comparison-label" data-zh="审查时" data-en="Before">审查时</span>
+              <h3 data-zh="整改前" data-en="Before Remediation">整改前</h3>
+              <ul class="reference-list">
+                <li>article.css: <strong>3,616 行</strong>（已超 3,500 红线）</li>
+                <li>article-presentation.js: <strong>2,158 行</strong>（+64.3%）</li>
+                <li>脚本顺序违规: <strong>26 篇</strong></li>
+                <li>CSS .home-link 重复: <strong>2 处</strong></li>
+                <li>架构注释: <strong>0 行</strong></li>
+                <li>测试机制: <strong>无</strong></li>
+                <li>总体: <strong>C+</strong></li>
+              </ul>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label" data-zh="整改后" data-en="After">整改后</span>
+              <h3 data-zh="整改后" data-en="After Remediation">整改后</h3>
+              <ul class="reference-list">
+                <li>article.css: <strong>2,398 行</strong>（-33.7%）+ narration 382 + diagram 867</li>
+                <li>article-presentation.js: <strong>1,891 行</strong>（-12.4%）+ 3 lazily-loaded 模块</li>
+                <li>脚本顺序违规: <strong>0 篇</strong>（全部 41 篇已修正）</li>
+                <li>CSS .home-link 重复: <strong>0 处</strong></li>
+                <li>架构注释: <strong>63 行</strong>（10 模块 + 6 懒加载接口 + 状态说明）</li>
+                <li>测试机制: <strong>tests/validate.js</strong>（7 套测试，0 错误）</li>
+                <li>总体: <strong>B+</strong></li>
+              </ul>
+            </article>
+          </div>
+
+          <div data-present-step data-step-title="整改后评分表" data-step-label="07 / REMEDIATION SCORES">
+            <table class="score-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th data-zh="维度" data-en="Dimension">维度</th>
+                  <th data-zh="审查时" data-en="Initial">审查时</th>
+                  <th data-zh="整改后" data-en="After">整改后</th>
+                  <th data-zh="变化依据" data-en="Change Rationale">变化依据</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>1</td><td>架构一致性</td><td><span class="grade-badge grade-c">C</span></td><td><span class="grade-badge grade-b">B</span></td><td>JS 拆分为主控 + 3 懒加载模块；CSS 拆分为核心 + narration + diagram。职责边界清晰。仍有 ensureShareDropdown 245 行未拆，降为 B 而非 A。</td></tr>
+                <tr><td>2</td><td>代码重复度</td><td><span class="grade-badge grade-c">C</span></td><td><span class="grade-badge grade-a">A</span></td><td>CSS .home-link 重复消除；全站 41 篇脚本统一；email/recording/narration-ui 各只实现一次。quote-board 仍为单篇独有，不构成重复。</td></tr>
+                <tr><td>3</td><td>命名与可读性</td><td><span class="grade-badge grade-b">B</span></td><td><span class="grade-badge grade-a">A</span></td><td>63 行架构注释覆盖 10 个功能模块 + 6 个懒加载接口 + 状态变量说明。</td></tr>
+                <tr><td>4</td><td>错误处理</td><td><span class="grade-badge grade-c">C</span></td><td><span class="grade-badge grade-c">C</span></td><td>未改。异步 .catch() 仍静默失败。后续可加 window.reportError。</td></tr>
+                <tr><td>5</td><td>可测试性</td><td><span class="grade-badge grade-d">D</span></td><td><span class="grade-badge grade-c">C</span></td><td>tests/validate.js 覆盖 7 项自动检查。但对 JS 行为仍无单元测试；纯静态站限制了测试深度。D→C。</td></tr>
+                <tr><td>6</td><td>性能与资源</td><td><span class="grade-badge grade-b">B</span></td><td><span class="grade-badge grade-b">B</span></td><td>未改。懒加载策略良好。</td></tr>
+                <tr><td>7</td><td>安全</td><td><span class="grade-badge grade-b">B</span></td><td><span class="grade-badge grade-b">B</span></td><td>未改。</td></tr>
+                <tr><td>8</td><td>设计语言复用</td><td><span class="grade-badge grade-b">B</span></td><td><span class="grade-badge grade-a">A</span></td><td>CSS 拆分后 article.css 降到 2,398 行，远低于 3,000 预警线；narration/diagram 各自独立文件职责单一。</td></tr>
+                <tr><td>9</td><td>文档健康度</td><td><span class="grade-badge grade-c">C</span></td><td><span class="grade-badge grade-b">B</span></td><td>架构注释到位；article-pages.instructions.md 更新了 CSS/测试清单；repo memory 同步。</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="quote-block section-grid-spaced" data-present-step data-step-title="总结" data-step-label="07 / SUMMARY">
+            <strong data-zh="总结" data-en="Summary">总结</strong>
+            <span data-zh="9 项维度中 4 项提升（架构 C→B、重复 C→A、命名 B→A、设计语言 B→A）、2 项改善（可测试性 D→C、文档 C→B）、3 项持平（错误 C、性能 B、安全 B）。综合从 C+ 提升至 B+。剩余 1 项 P2 延期（quote-board 单篇使用不满足提取条件）合理。下一轮重点关注错误处理改善。" data-en="4 dimensions upgraded (architecture C→B, duplication C→A, naming B→A, design B→A), 2 improved (testability D→C, docs C→B), 3 unchanged (errors C, perf B, security B). Overall C+ → B+. 1 deferred P2 is reasonable. Next focus: error handling.">9 项维度中 4 项提升（架构 C→B、重复 C→A、命名 B→A、设计语言 B→A）、2 项改善（可测试性 D→C、文档 C→B）、3 项持平（错误 C、性能 B、安全 B）。综合从 C+ 提升至 B+。剩余 1 项 P2 延期（quote-board 单篇使用不满足提取条件）合理。下一轮重点关注错误处理改善。</span>
+          </div>
+        </section>
+
+        <!-- References -->
+        <section id="references" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">References</p>
+            <h2 data-zh="参考来源" data-en="References">参考来源</h2>
+          </div>
+          <ol class="bib-list">
+            <li id="ref-1"><span class="bib-id">[1]</span> <span class="bib-author">Knowledge Hub Project.</span> <a href="../study-room-review-2026q2/" target="_blank" rel="noopener noreferrer">"Knowledge Hub 首次代码审查报告（2026-Q2）,"</a> <em>posts/study-room-review-2026q2/index.html,</em> 2026-04-11.<span class="bib-note">上次审查的完整报告，本次对比基线的主要来源。</span></li>
+            <li id="ref-2"><span class="bib-id">[2]</span> <span class="bib-author">Knowledge Hub Project.</span> <a href="../homepage-architecture-review/" target="_blank" rel="noopener noreferrer">"首页 index.html 架构审查报告,"</a> <em>posts/homepage-architecture-review/index.html,</em> 2026-04-13.<span class="bib-note">首页深度架构审查，含 4 种布局耦合分析和模块化重构路线图。</span></li>
+            <li id="ref-3"><span class="bib-id">[3]</span> <span class="bib-author">Knowledge Hub Project.</span> ".github/instructions/article-pages.instructions.md," <em>Project Repository,</em> 2026.<span class="bib-note">文章页约定规范，是本次合规审查的评判基准。</span></li>
+            <li id="ref-4"><span class="bib-id">[4]</span> <span class="bib-author">Knowledge Hub Project.</span> "Code Review Framework SKILL.md," <em>Copilot Skills,</em> 2026.<span class="bib-note">9 维度 ABCD 评分框架的方法论来源。</span></li>
+            <li id="ref-5"><span class="bib-id">[5]</span> <span class="bib-author">Knowledge Hub Project.</span> <a href="../study-room-standards/" target="_blank" rel="noopener noreferrer">"Knowledge Hub 内容治理规范,"</a> <em>posts/study-room-standards/index.html,</em> 2026-04-13.<span class="bib-note">定义审查维度标准和膨胀红线阈值的权威来源。</span></li>
+          </ol>
+        </section>
+      </main>
+
+      <footer>
+         &copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

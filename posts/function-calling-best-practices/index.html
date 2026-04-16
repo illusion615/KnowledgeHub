@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Function Calling 工程实践指南：最佳实践、模型差异与避坑手册</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(1.8rem, 4.5vw, 3.2rem);
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+      max-width: 22ch;
+    }
+
+    .hero-metrics {
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    }
+
+    .diff-table-wrap {
+      margin-top: 16px;
+      overflow-x: auto;
+      border-radius: 18px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+    }
+
+    .diff-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.84rem;
+    }
+
+    .diff-table th,
+    .diff-table td {
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+    }
+
+    .diff-table th {
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-weight: 700;
+      font-size: 0.74rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: rgba(15, 23, 42, 0.03);
+      position: sticky;
+      top: 0;
+      white-space: nowrap;
+    }
+
+    .diff-table td {
+      color: var(--ink);
+    }
+
+    .diff-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .code-block {
+      margin-top: 16px;
+      padding: 20px;
+      border-radius: 16px;
+      background: rgba(15, 23, 42, 0.04);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      font-family: "Space Grotesk", monospace;
+      font-size: 0.78rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: var(--ink);
+    }
+
+    .practice-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .practice-card {
+      padding: 22px;
+      border-radius: 22px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+    }
+
+    .practice-card h4 {
+      margin: 0 0 8px;
+      font-size: 1.05rem;
+      line-height: 1.35;
+    }
+
+    .practice-card p,
+    .practice-card li {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.72;
+    }
+
+    .practice-card ul {
+      margin: 8px 0 0;
+      padding-left: 18px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 10px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .badge-do {
+      background: rgba(16, 185, 129, 0.12);
+      color: #065f46;
+    }
+
+    .badge-dont {
+      background: rgba(239, 68, 68, 0.12);
+      color: #991b1b;
+    }
+
+    .badge-warn {
+      background: rgba(234, 179, 8, 0.15);
+      color: #b45309;
+    }
+
+    .badge-info {
+      background: rgba(59, 130, 246, 0.12);
+      color: #1e40af;
+    }
+
+    .badge-vendor {
+      background: rgba(100, 116, 139, 0.12);
+      color: #475569;
+    }
+
+    .checklist-grid {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .checklist-item {
+      display: grid;
+      grid-template-columns: 48px 1fr;
+      gap: 16px;
+      padding: 18px;
+      border-radius: 22px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+      align-items: start;
+    }
+
+    .checklist-number {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-weight: 700;
+      font-size: 1.1rem;
+      background: rgba(15, 23, 42, 0.06);
+      color: var(--accent);
+    }
+
+    .checklist-body h4 {
+      margin: 0 0 6px;
+      font-size: 1rem;
+      line-height: 1.35;
+    }
+
+    .checklist-body p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.72;
+    }
+
+    [data-theme="dark"] .practice-card,
+    [data-theme="dark"] .diff-table-wrap,
+    [data-theme="dark"] .checklist-item {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.18);
+    }
+
+    [data-theme="dark"] .code-block {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    [data-theme="dark"] .diff-table th {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    [data-theme="dark"] .diff-table th,
+    [data-theme="dark"] .diff-table td {
+      border-bottom-color: rgba(255, 255, 255, 0.06);
+    }
+
+    [data-theme="dark"] .badge-do {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+    }
+
+    [data-theme="dark"] .badge-dont {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+    }
+
+    [data-theme="dark"] .badge-warn {
+      background: rgba(234, 179, 8, 0.2);
+      color: #fbbf24;
+    }
+
+    [data-theme="dark"] .badge-info {
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+    }
+
+    [data-theme="dark"] .badge-vendor {
+      background: rgba(148, 163, 184, 0.15);
+      color: #94a3b8;
+    }
+
+    [data-theme="dark"] .checklist-number {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    @media (max-width: 640px) {
+      .practice-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .checklist-item {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero" data-present-step data-step-title="文章总览">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            模型
+          </div>
+          <div class="topbar-actions">
+            <nav class="nav-links" aria-label="页面章节导航">
+              <a href="#schema-design">函数设计</a>
+              <a href="#protocol-diff">协议差异</a>
+              <a href="#calling-modes">调用模式</a>
+              <a href="#error-handling">错误处理</a>
+              <a href="#advanced">高级特性</a>
+              <a href="#production">生产化</a>
+              <a href="#references">参考</a>
+            </nav>
+          </div>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Engineering Best Practices</span>
+            <h1>Function Calling 工程实践指南：最佳实践、模型差异与避坑手册</h1>
+            <p>
+              Function calling 从"能调通"到"生产可靠"之间存在大量工程细节。本文系统梳理 OpenAI、Anthropic、Google 三大 vendor 的 function calling API 差异，总结函数 schema 设计、错误处理、调用模式配置、token 优化等工程最佳实践，并提供可直接落地的生产化检查清单。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#schema-design">从函数设计开始</a>
+              <a class="button button-secondary" href="#production">生产化清单</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">核心原则</span>
+            <h2>好的函数设计 &gt; 好的模型选择。工程纪律决定 FC 系统的可靠性上限。</h2>
+            <ul class="layer-list section-grid-spaced">
+              <li><span class="layer-number">1</span>函数名称和描述的质量直接影响模型调用准确率 — 通过"实习生测试"验证。</li>
+              <li><span class="layer-number">2</span>始终启用 strict mode（OpenAI / Anthropic / Gemini VALIDATED）确保 schema 一致性。</li>
+              <li><span class="layer-number">3</span>三大 vendor 的 tool_choice、parallel calling、结果回传格式存在显著差异 — 不可假设可移植。</li>
+              <li><span class="layer-number">4</span>生产系统必须处理：函数执行失败回传、hallucination 调用防护、token 预算控制。</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">覆盖 Vendor</div>
+            <strong>3 + 开源</strong>
+            <span>OpenAI · Anthropic · Google · vLLM/Ollama</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">最佳实践条目</div>
+            <strong>28 条</strong>
+            <span>Schema 设计 · 错误处理 · 调用模式 · 生产化</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">活跃工具上限</div>
+            <strong>≤ 20 个</strong>
+            <span>OpenAI / Google 建议的单次请求工具数上限</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">关键配置</div>
+            <strong>strict: true</strong>
+            <span>三大 vendor 均支持，消除 schema 偏差</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- Section 1: Schema Design -->
+        <section id="schema-design" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / Schema Design</p>
+            <h2>函数 Schema 设计：决定调用准确率的第一因素</h2>
+            <p>
+              模型依赖函数声明（名称、描述、参数 schema）来判断何时调用、调用哪个、传什么参数。Schema 质量直接决定调用成功率 — 在实践中，改进 schema 描述带来的准确率提升往往大于换用更强的模型。
+            </p>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>命名与描述规范</span>
+              </button>
+              <div class="subsection-content">
+                <div class="practice-grid">
+                  <article class="practice-card">
+                    <span class="badge badge-do">DO</span>
+                    <h4>使用描述性函数名</h4>
+                    <ul>
+                      <li>用下划线或 camelCase 分隔单词：<code>get_weather_forecast</code>、<code>scheduleAppointment</code></li>
+                      <li>函数名应清楚表达动作：<code>search_orders</code> 而非 <code>query</code></li>
+                      <li>避免空格、点号、短横线 — 部分 vendor 不支持</li>
+                    </ul>
+                  </article>
+                  <article class="practice-card">
+                    <span class="badge badge-do">DO</span>
+                    <h4>写详尽的 description</h4>
+                    <ul>
+                      <li>描述函数的用途、适用场景、返回值含义</li>
+                      <li>包含调用时机：何时应该用、何时不应该用</li>
+                      <li>添加输入格式示例：<code>"城市名，如 'San Francisco, CA'"</code></li>
+                      <li>说明边界条件和异常情况的处理方式</li>
+                    </ul>
+                  </article>
+                  <article class="practice-card">
+                    <span class="badge badge-dont">DON'T</span>
+                    <h4>常见命名错误</h4>
+                    <ul>
+                      <li>过于泛化的函数名：<code>do_stuff</code>、<code>process</code>、<code>handle</code></li>
+                      <li>无描述或描述过短：<code>"Get data"</code>（缺少数据类型、来源）</li>
+                      <li>使用缩写或内部术语：<code>calc_roi_ytd</code>（模型无法理解 ytd）</li>
+                    </ul>
+                  </article>
+                  <article class="practice-card">
+                    <span class="badge badge-info">实习生测试</span>
+                    <h4>"实习生测试"验证法</h4>
+                    <p>OpenAI 推荐的经验法则：把函数名、描述、参数定义交给一个不了解上下文的实习生，如果 TA 能正确使用这个函数 — 说明描述足够好。如果 TA 会问问题 — 把答案加进描述里。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>参数约束与类型设计</span>
+              </button>
+              <div class="subsection-content">
+                <div class="practice-grid">
+                  <article class="practice-card">
+                    <span class="badge badge-do">DO</span>
+                    <h4>使用强类型约束</h4>
+                    <ul>
+                      <li>用 <code>enum</code> 限制有限选项：<code>"enum": ["celsius", "fahrenheit"]</code></li>
+                      <li>用精确 type：<code>integer</code> 而非 <code>string</code> 来表示数量</li>
+                      <li>用 <code>required</code> 数组标记所有必填字段</li>
+                      <li>用对象嵌套替代扁平化参数（<code>address.city</code> 而非 <code>city</code>）</li>
+                    </ul>
+                  </article>
+                  <article class="practice-card">
+                    <span class="badge badge-do">DO</span>
+                    <h4>消除无效状态</h4>
+                    <ul>
+                      <li>避免 <code>toggle_light(on: bool, off: bool)</code> — 同时传 true 是无效状态</li>
+                      <li>正确做法：使用 enum <code>"action": {"type": "string", "enum": ["on", "off"]}</code></li>
+                      <li>用 <code>additionalProperties: false</code> 防止模型创造未定义字段</li>
+                    </ul>
+                  </article>
+                  <article class="practice-card">
+                    <span class="badge badge-do">DO</span>
+                    <h4>始终启用 strict mode</h4>
+                    <ul>
+                      <li>OpenAI：<code>"strict": true</code> — 基于 Structured Outputs 引擎</li>
+                      <li>Anthropic：<code>"strict": true</code> — 保证输出严格匹配 schema</li>
+                      <li>Google：<code>mode: "VALIDATED"</code> — Gemini 3 默认模式</li>
+                      <li>要求所有 properties 标记为 required，可选字段用 <code>"type": ["string", "null"]</code></li>
+                    </ul>
+                  </article>
+                  <article class="practice-card">
+                    <span class="badge badge-warn">注意</span>
+                    <h4>strict mode 的限制</h4>
+                    <ul>
+                      <li>不支持全部 JSON Schema 特性（如 <code>anyOf</code>、<code>$ref</code> 等有限制）</li>
+                      <li>首次请求时需额外处理延迟（schema 编译和缓存）</li>
+                      <li>fine-tuned 模型 + 多并行调用时，OpenAI 可能禁用 strict mode</li>
+                      <li>开源模型通常不原生支持 strict — 需应用侧后处理校验</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>减少模型负担的设计模式</span>
+              </button>
+              <div class="subsection-content">
+                <div class="practice-grid">
+                  <article class="practice-card">
+                    <span class="badge badge-do">DO</span>
+                    <h4>不让模型填已知参数</h4>
+                    <p>如果你已经从上下文中获得了 <code>order_id</code>，不要在函数参数中要求模型提取它。设计无参数的 <code>submit_refund()</code>，在应用侧注入 <code>order_id</code>。理由：减少模型出错的机会，减少 token 消耗。</p>
+                  </article>
+                  <article class="practice-card">
+                    <span class="badge badge-do">DO</span>
+                    <h4>合并顺序调用的函数</h4>
+                    <p>如果 <code>query_location()</code> 之后总是要调 <code>mark_location()</code>，直接合并为一个函数。模型的链式调用准确率随步骤增加而下降 — 3 步链式调用的端到端成功率约为单步的 70-80%。</p>
+                  </article>
+                  <article class="practice-card">
+                    <span class="badge badge-do">DO</span>
+                    <h4>控制活跃工具数量</h4>
+                    <ul>
+                      <li>OpenAI 建议：单次请求不超过 20 个工具</li>
+                      <li>Google 建议：活跃集控制在 10-20 个</li>
+                      <li>工具过多会增加错误选择概率和 token 成本</li>
+                      <li>使用 tool search / namespace 动态加载不常用工具</li>
+                    </ul>
+                  </article>
+                  <article class="practice-card">
+                    <span class="badge badge-info">NAMESPACE</span>
+                    <h4>使用命名空间组织工具</h4>
+                    <p>OpenAI Responses API 支持 namespace，将相关工具按领域分组（如 <code>crm</code>、<code>billing</code>、<code>shipping</code>）。模型只需先选中 namespace，再从其中选具体工具，降低决策复杂度。Google/Anthropic 尚无原生 namespace 支持。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 2: Protocol Differences -->
+        <section id="protocol-diff" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Protocol Differences</p>
+            <h2>三大 Vendor 的 FC 协议差异：不可假设可移植</h2>
+            <p>
+              虽然 OpenAI 的 function calling 格式已成为事实标准，但各 vendor 在 API 设计细节上存在显著差异。从一个 vendor 迁移到另一个时，以下差异是最常见的事故源。
+            </p>
+          </div>
+
+          <div class="diff-table-wrap section-grid-spaced" data-present-step data-step-title="Vendor 差异对照表">
+            <table class="diff-table">
+              <thead>
+                <tr>
+                  <th>维度</th>
+                  <th>OpenAI</th>
+                  <th>Anthropic</th>
+                  <th>Google Gemini</th>
+                  <th>开源 (vLLM/Ollama)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>函数声明位置</strong></td>
+                  <td><code>tools</code> 参数</td>
+                  <td><code>tools</code> 参数</td>
+                  <td><code>tools[].function_declarations</code></td>
+                  <td>OpenAI 兼容 <code>tools</code></td>
+                </tr>
+                <tr>
+                  <td><strong>Schema 格式</strong></td>
+                  <td>JSON Schema</td>
+                  <td>JSON Schema</td>
+                  <td>OpenAPI Schema 子集</td>
+                  <td>JSON Schema（通过框架）</td>
+                </tr>
+                <tr>
+                  <td><strong>调用信号</strong></td>
+                  <td><code>function_call</code> output item</td>
+                  <td><code>stop_reason: "tool_use"</code> + <code>tool_use</code> block</td>
+                  <td><code>function_call</code> Part</td>
+                  <td>同 OpenAI 格式</td>
+                </tr>
+                <tr>
+                  <td><strong>调用 ID</strong></td>
+                  <td><code>call_id</code></td>
+                  <td><code>id</code> in tool_use block</td>
+                  <td><code>id</code>（Gemini 3 起必返回）</td>
+                  <td><code>call_id</code>（如果框架支持）</td>
+                </tr>
+                <tr>
+                  <td><strong>结果回传</strong></td>
+                  <td><code>function_call_output</code> + <code>call_id</code></td>
+                  <td><code>tool_result</code> + <code>tool_use_id</code></td>
+                  <td><code>function_response</code> + <code>id</code></td>
+                  <td>同 OpenAI 格式</td>
+                </tr>
+                <tr>
+                  <td><strong>Strict mode</strong></td>
+                  <td><code>strict: true</code></td>
+                  <td><code>strict: true</code></td>
+                  <td><code>mode: "VALIDATED"</code>（默认）</td>
+                  <td>通常不支持</td>
+                </tr>
+                <tr>
+                  <td><strong>Tool choice 选项</strong></td>
+                  <td>auto / required / none / specific</td>
+                  <td>auto / any / tool / none</td>
+                  <td>AUTO / ANY / NONE / VALIDATED</td>
+                  <td>auto / required / none</td>
+                </tr>
+                <tr>
+                  <td><strong>并行调用控制</strong></td>
+                  <td><code>parallel_tool_calls: false</code></td>
+                  <td>由模型自主决定</td>
+                  <td>由模型自主决定</td>
+                  <td>取决于推理框架</td>
+                </tr>
+                <tr>
+                  <td><strong>链式调用</strong></td>
+                  <td>客户端编排</td>
+                  <td>客户端编排</td>
+                  <td>原生 Compositional FC</td>
+                  <td>客户端编排</td>
+                </tr>
+                <tr>
+                  <td><strong>MCP 集成</strong></td>
+                  <td>通过 Responses API 桥接</td>
+                  <td>原生 MCP connector</td>
+                  <td>SDK 内置 MCP 支持</td>
+                  <td>通过 LangChain 等框架</td>
+                </tr>
+                <tr>
+                  <td><strong>Thinking 签名</strong></td>
+                  <td>reasoning items 需回传</td>
+                  <td>无需特殊处理</td>
+                  <td>thought_signature 必须回传</td>
+                  <td>通常无此要求</td>
+                </tr>
+                <tr>
+                  <td><strong>服务端工具</strong></td>
+                  <td>web_search、file_search 等</td>
+                  <td>web_search、code_execution、web_fetch</td>
+                  <td>google_search、code_execution</td>
+                  <td>无原生服务端工具</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>OpenAI 特有注意事项</span>
+              </button>
+              <div class="subsection-content">
+                <div class="practice-grid">
+                  <article class="practice-card">
+                    <span class="badge badge-vendor">OPENAI</span>
+                    <h4>Responses API vs Chat Completions</h4>
+                    <ul>
+                      <li>Responses API 默认自动规范化为 strict mode</li>
+                      <li>Chat Completions 默认非 strict — 行为差异可能导致迁移事故</li>
+                      <li>推理模型（GPT-5、o4-mini）返回的 <code>reasoning</code> items 必须在下一次请求中原样回传</li>
+                      <li><code>gpt-4.1-nano</code> 特定版本存在并行调用重复问题 — 建议禁用 <code>parallel_tool_calls</code></li>
+                    </ul>
+                  </article>
+                  <article class="practice-card">
+                    <span class="badge badge-vendor">OPENAI</span>
+                    <h4>Tool Search（GPT-5.4+）</h4>
+                    <ul>
+                      <li>设置 <code>defer_loading: true</code> 让工具延迟加载</li>
+                      <li>模型先搜索相关工具，加载后再调用</li>
+                      <li>适合工具数量 &gt; 20 的场景</li>
+                      <li>仅 GPT-5.4 及更新模型支持</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Anthropic 特有注意事项</span>
+              </button>
+              <div class="subsection-content">
+                <div class="practice-grid">
+                  <article class="practice-card">
+                    <span class="badge badge-vendor">ANTHROPIC</span>
+                    <h4>Client Tools vs Server Tools</h4>
+                    <ul>
+                      <li>Client tools：你的代码执行，Claude 返回 <code>stop_reason: "tool_use"</code></li>
+                      <li>Server tools：Anthropic 侧执行（web_search、code_execution），结果直接返回</li>
+                      <li>两者可在同一请求中混用</li>
+                      <li>Server tools 有额外计费（如每次搜索收费）</li>
+                    </ul>
+                  </article>
+                  <article class="practice-card">
+                    <span class="badge badge-vendor">ANTHROPIC</span>
+                    <h4>工具 token 开销</h4>
+                    <ul>
+                      <li>启用工具时自动注入系统提示，消耗 313-346 token（取决于 tool_choice 模式）</li>
+                      <li>Claude Opus 4.5 / Sonnet 4.5：auto/none 模式 346 token，any/tool 模式 313 token</li>
+                      <li>这些是固定开销 — 无论定义多少函数都会产生</li>
+                      <li>Claude Sonnet 3 最轻量：auto/none 仅 159 token</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Google Gemini 特有注意事项</span>
+              </button>
+              <div class="subsection-content">
+                <div class="practice-grid">
+                  <article class="practice-card">
+                    <span class="badge badge-vendor">GEMINI</span>
+                    <h4>Thought Signature 必须回传</h4>
+                    <ul>
+                      <li>Gemini 3 系列的 function call 响应包含 <code>thought_signature</code></li>
+                      <li>手动管理会话历史时，必须将 signature 原样回传</li>
+                      <li>不可合并、拆分或丢弃含 signature 的 Part</li>
+                      <li>使用官方 SDK 时自动处理 — 仅 REST API 手动构造需关注</li>
+                    </ul>
+                  </article>
+                  <article class="practice-card">
+                    <span class="badge badge-vendor">GEMINI</span>
+                    <h4>Gemini 3 温度参数警告</h4>
+                    <ul>
+                      <li>Gemini 3 建议 temperature 保持默认 1.0</li>
+                      <li>低于 1.0 可能导致循环或性能退化（复杂推理/数学任务）</li>
+                      <li>这与 OpenAI / Anthropic 的建议相反 — 后者推荐低 temperature</li>
+                      <li>传统建议（temperature 0 = 确定性）在 Gemini 3 上不适用</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>开源模型注意事项</span>
+              </button>
+              <div class="subsection-content">
+                <div class="practice-grid">
+                  <article class="practice-card">
+                    <span class="badge badge-vendor">开源</span>
+                    <h4>推理框架差异</h4>
+                    <ul>
+                      <li>vLLM：支持 <code>--tool-call-parser</code> 参数选择解析器（hermes/llama/qwen 等）</li>
+                      <li>Ollama：通过 OpenAI 兼容 API 提供 FC，但解析可靠性低于闭源</li>
+                      <li>llama.cpp：需要 GBNF grammar 约束 JSON 输出格式</li>
+                      <li>不同框架对同一模型的 FC 表现可能有 5-10% 差异</li>
+                    </ul>
+                  </article>
+                  <article class="practice-card">
+                    <span class="badge badge-warn">关键差异</span>
+                    <h4>schema 校验缺失</h4>
+                    <ul>
+                      <li>开源模型通常没有 strict mode — 输出可能不完全符合 schema</li>
+                      <li>必须在应用侧添加 JSON schema 校验库（如 jsonschema/ajv）</li>
+                      <li>常见问题：缺少 required 字段、类型不匹配、额外字段</li>
+                      <li>建议：解析失败时将错误信息回传模型并要求重试</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 3: Calling Modes -->
+        <section id="calling-modes" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / Calling Modes</p>
+            <h2>调用模式配置：tool_choice、并行调用与链式调用</h2>
+            <p>
+              调用模式决定模型在什么条件下触发函数调用。配置不当会导致过度调用（wasteful）、漏调用（broken flow）或格式错误。
+            </p>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>tool_choice 模式详解</span>
+              </button>
+              <div class="subsection-content">
+                <div class="diff-table-wrap">
+                  <table class="diff-table">
+                    <thead>
+                      <tr>
+                        <th>模式</th>
+                        <th>行为</th>
+                        <th>适用场景</th>
+                        <th>各 vendor 语法</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><strong>Auto</strong></td>
+                        <td>模型自主决定是否调用 0/1/多个函数</td>
+                        <td>通用对话 + 工具混合场景</td>
+                        <td>OpenAI: <code>"auto"</code> / Anthropic: <code>"auto"</code> / Gemini: <code>"AUTO"</code></td>
+                      </tr>
+                      <tr>
+                        <td><strong>Required / Any</strong></td>
+                        <td>强制至少调用一个函数</td>
+                        <td>确定需要工具调用的流程</td>
+                        <td>OpenAI: <code>"required"</code> / Anthropic: <code>"any"</code> / Gemini: <code>"ANY"</code></td>
+                      </tr>
+                      <tr>
+                        <td><strong>Specific</strong></td>
+                        <td>强制调用指定的函数</td>
+                        <td>流程中特定步骤</td>
+                        <td>OpenAI: <code>{"type":"function","name":"xxx"}</code> / Anthropic: <code>{"type":"tool","name":"xxx"}</code></td>
+                      </tr>
+                      <tr>
+                        <td><strong>None</strong></td>
+                        <td>禁止函数调用</td>
+                        <td>临时禁用、纯对话回合</td>
+                        <td>共通：<code>"none"</code> / <code>"NONE"</code></td>
+                      </tr>
+                      <tr>
+                        <td><strong>Allowed (OpenAI)</strong></td>
+                        <td>限制可调用的工具子集</td>
+                        <td>配合 prompt caching 降成本</td>
+                        <td>仅 OpenAI: <code>{"type":"allowed_tools","tools":[...]}</code></td>
+                      </tr>
+                      <tr>
+                        <td><strong>Validated (Gemini)</strong></td>
+                        <td>自动强制 schema 合规</td>
+                        <td>与其他内置工具混用时默认</td>
+                        <td>仅 Gemini: <code>"VALIDATED"</code></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>并行调用（Parallel Function Calling）</span>
+              </button>
+              <div class="subsection-content">
+                <div class="practice-grid">
+                  <article class="practice-card">
+                    <span class="badge badge-info">行为</span>
+                    <h4>一次响应多个调用</h4>
+                    <p>模型在单次响应中输出多个独立的函数调用。例如同时调用 <code>get_weather("Paris")</code> 和 <code>get_weather("Tokyo")</code>。各 vendor 差异：</p>
+                    <ul>
+                      <li><strong>OpenAI</strong>：默认启用，可通过 <code>parallel_tool_calls: false</code> 禁用</li>
+                      <li><strong>Anthropic</strong>：模型自主决定，无显式控制参数</li>
+                      <li><strong>Gemini</strong>：模型自主决定，通过 <code>tool_config</code> 间接控制</li>
+                    </ul>
+                  </article>
+                  <article class="practice-card">
+                    <span class="badge badge-warn">陷阱</span>
+                    <h4>并行调用的典型问题</h4>
+                    <ul>
+                      <li>依赖关系处理：模型可能错误地并行调用有依赖的函数（A 的输出需作为 B 的输入）</li>
+                      <li>重复调用：<code>gpt-4.1-nano</code> 可能对同一工具产生多个重复调用</li>
+                      <li>结果匹配：必须使用 <code>call_id</code> 将执行结果映射回对应的调用</li>
+                      <li>OpenAI 注意：使用 built-in tools 时不支持并行调用</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>链式调用（Compositional FC）</span>
+              </button>
+              <div class="subsection-content">
+                <div class="practice-grid">
+                  <article class="practice-card">
+                    <span class="badge badge-info">模式</span>
+                    <h4>函数 A 的输出 → 函数 B 的输入</h4>
+                    <p>链式调用是 Agent 多步推理的基础。例如：先调 <code>get_current_location()</code> 获取位置，再调 <code>get_weather(location)</code> 获取天气。</p>
+                    <ul>
+                      <li><strong>Gemini</strong>：原生支持 Compositional FC — 模型自动规划执行顺序</li>
+                      <li><strong>OpenAI / Anthropic</strong>：需客户端编排 agentic loop — 执行函数 A → 结果回传 → 模型决定调用函数 B</li>
+                    </ul>
+                  </article>
+                  <article class="practice-card">
+                    <span class="badge badge-do">DO</span>
+                    <h4>客户端编排的最佳实践</h4>
+                    <ul>
+                      <li>实现循环：发送请求 → 检查 stop_reason/finish_reason → 执行函数 → 回传结果 → 重复</li>
+                      <li>设置最大循环次数（如 10 次）防止无限执行</li>
+                      <li>记录每步的 input/output 用于调试和可观测性</li>
+                      <li>对每次函数执行设置超时，防止单步阻塞整个链</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 4: Error Handling -->
+        <section id="error-handling" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / Error Handling</p>
+            <h2>错误处理与防护：从失败中优雅恢复</h2>
+            <p>
+              生产系统中函数执行会失败、模型会 hallucinate 不存在的函数、参数可能不合规。错误处理策略直接决定系统的可靠性。
+            </p>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>函数执行失败的处理</span>
+              </button>
+              <div class="subsection-content">
+                <div class="practice-grid">
+                  <article class="practice-card">
+                    <span class="badge badge-do">DO</span>
+                    <h4>返回结构化错误信息</h4>
+                    <ul>
+                      <li>函数执行失败时，向模型返回清晰的错误信息（如 <code>"error: city not found"</code>）</li>
+                      <li>不要返回原始的 stack trace — 模型无法理解，且会浪费 token</li>
+                      <li>包含可操作信息：<code>"error: invalid date format, expected YYYY-MM-DD"</code></li>
+                      <li>无返回值的函数（如 <code>send_email</code>）：返回 <code>"success"</code> 或 <code>"failed: reason"</code></li>
+                    </ul>
+                  </article>
+                  <article class="practice-card">
+                    <span class="badge badge-do">DO</span>
+                    <h4>让模型从错误中恢复</h4>
+                    <p>将结构化错误回传给模型后，它通常能：</p>
+                    <ul>
+                      <li>修正参数后重试（如修正日期格式）</li>
+                      <li>选择替代函数（如搜索 API 失败后使用缓存数据）</li>
+                      <li>向用户请求更多信息（"请确认城市名称"）</li>
+                      <li>优雅地告知用户失败原因</li>
+                    </ul>
+                  </article>
+                  <article class="practice-card">
+                    <span class="badge badge-dont">DON'T</span>
+                    <h4>错误处理的反模式</h4>
+                    <ul>
+                      <li>静默忽略失败 — 模型不知道函数没执行，会基于错误假设继续</li>
+                      <li>返回空字符串 — 模型无法区分"没有结果"和"执行失败"</li>
+                      <li>不设超时 — 外部 API 挂死会阻塞整个对话</li>
+                      <li>不限重试次数 — 可能导致无限循环和 token 爆炸</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Hallucination 防护</span>
+              </button>
+              <div class="subsection-content">
+                <div class="practice-grid">
+                  <article class="practice-card">
+                    <span class="badge badge-warn">问题</span>
+                    <h4>幻觉调用的三种形态</h4>
+                    <ul>
+                      <li><strong>幻觉函数名</strong>：调用未定义的函数（如 <code>send_sms</code> 不在 tools 列表中）</li>
+                      <li><strong>幻觉参数</strong>：传入 schema 中没有的字段</li>
+                      <li><strong>不必要的调用</strong>：用户没有要求工具操作时，模型主动调用（BFCL Hallucination 维度测试的场景）</li>
+                    </ul>
+                  </article>
+                  <article class="practice-card">
+                    <span class="badge badge-do">DO</span>
+                    <h4>防护措施</h4>
+                    <ul>
+                      <li>启用 strict mode — 从源头消除参数 schema 偏差</li>
+                      <li>应用侧白名单校验：只执行 tools 列表中声明的函数</li>
+                      <li>对高风险操作（下单、转账、删除）添加用户确认步骤</li>
+                      <li>使用 <code>tool_choice: "none"</code> 在纯对话回合中禁用调用</li>
+                      <li>检查 <code>finishReason</code>（Gemini）/ <code>stop_reason</code>（Anthropic）判断模型是否确实请求了工具调用</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>参数校验与重试策略</span>
+              </button>
+              <div class="subsection-content">
+                <div class="practice-grid">
+                  <article class="practice-card">
+                    <span class="badge badge-do">DO</span>
+                    <h4>分层校验</h4>
+                    <ul>
+                      <li><strong>第一层 — Schema 校验</strong>：JSON Schema 验证（strict mode 或应用侧 jsonschema 库）</li>
+                      <li><strong>第二层 — 业务校验</strong>：参数值的业务合法性（日期范围、ID 存在性、权限检查）</li>
+                      <li><strong>第三层 — 执行时校验</strong>：函数内部的异常捕获和安全回退</li>
+                    </ul>
+                  </article>
+                  <article class="practice-card">
+                    <span class="badge badge-do">DO</span>
+                    <h4>智能重试策略</h4>
+                    <ul>
+                      <li>参数格式错误：将错误描述回传模型，让它修正后重试（最多 2 次）</li>
+                      <li>外部 API 超时：指数退避重试，3 次后返回降级结果</li>
+                      <li>速率限制：429 错误时暂停 + 重试，向模型报告延迟</li>
+                      <li>设置总重试预算（如最多 5 次函数调用/轮），超出后终止并告知用户</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 5: Advanced Features -->
+        <section id="advanced" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / Advanced Features</p>
+            <h2>高级特性：Streaming、MCP、多模态 Function Response</h2>
+            <p>
+              这些特性在基础 FC 之上提供更丰富的能力，但各 vendor 的支持程度和实现方式差异显著。
+            </p>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Streaming Function Calls</span>
+              </button>
+              <div class="subsection-content">
+                <div class="practice-grid">
+                  <article class="practice-card">
+                    <span class="badge badge-info">原理</span>
+                    <h4>流式函数调用的处理流程</h4>
+                    <ul>
+                      <li>模型以增量 delta 方式流式输出函数名和参数 JSON</li>
+                      <li>客户端需要累积 delta 直到收到 <code>done</code> 事件</li>
+                      <li>OpenAI 事件流：<code>response.output_item.added</code> → <code>response.function_call_arguments.delta</code> → <code>response.function_call_arguments.done</code></li>
+                      <li>可用于：显示"正在调用 get_weather..."进度指示</li>
+                    </ul>
+                  </article>
+                  <article class="practice-card">
+                    <span class="badge badge-warn">注意</span>
+                    <h4>Streaming 的陷阱</h4>
+                    <ul>
+                      <li>不要在 delta 阶段解析 JSON — 中间状态是不完整的 JSON 片段</li>
+                      <li>并行调用时，delta 可能交错到达 — 使用 <code>output_index</code> 区分</li>
+                      <li>网络中断时需要重建完整参数 — 建议缓存所有 delta</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>MCP 集成模式</span>
+              </button>
+              <div class="subsection-content">
+                <div class="practice-grid">
+                  <article class="practice-card">
+                    <span class="badge badge-vendor">ANTHROPIC</span>
+                    <h4>原生 MCP Connector</h4>
+                    <p>Anthropic 提供 MCP connector 直接对接 MCP server。Claude 可发现和调用 MCP 工具，无需客户端桥接。适合已有 MCP 生态的场景。</p>
+                  </article>
+                  <article class="practice-card">
+                    <span class="badge badge-vendor">GEMINI</span>
+                    <h4>SDK 内置 MCP 支持</h4>
+                    <p>Google GenAI SDK（Python / JS）内置 MCP 客户端支持。将 MCP <code>ClientSession</code> 直接传入 <code>tools</code> 参数即可自动发现和调用 MCP 工具。当前限制：仅支持 tools，不支持 resources 和 prompts。</p>
+                  </article>
+                  <article class="practice-card">
+                    <span class="badge badge-vendor">OPENAI</span>
+                    <h4>通过 Responses API 桥接</h4>
+                    <p>OpenAI 通过 Responses API 和 third-party bridge 支持 MCP。非原生集成 — 需要额外的中间层将 MCP 工具声明转换为 OpenAI function 格式。</p>
+                  </article>
+                  <article class="practice-card">
+                    <span class="badge badge-vendor">开源</span>
+                    <h4>框架层 MCP 集成</h4>
+                    <p>开源模型通过 LangChain、OpenAI SDK 兼容层等框架接入 MCP。性能取决于框架的协议翻译质量和模型自身的 FC 能力。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>多模态 Function Response</span>
+              </button>
+              <div class="subsection-content">
+                <div class="practice-grid">
+                  <article class="practice-card">
+                    <span class="badge badge-vendor">GEMINI 独占</span>
+                    <h4>函数返回值可包含图片和文档</h4>
+                    <ul>
+                      <li>Gemini 3 系列支持在 <code>function_response</code> 中嵌入多模态内容</li>
+                      <li>支持格式：<code>image/png</code>, <code>image/jpeg</code>, <code>image/webp</code>, <code>application/pdf</code>, <code>text/plain</code></li>
+                      <li>通过 <code>inlineData</code> + <code>displayName</code> 嵌入，可在 response 中用 <code>{"$ref": "displayName"}</code> 引用</li>
+                      <li>适用场景：图像分析 Agent、文档处理流水线、多模态 RAG</li>
+                    </ul>
+                  </article>
+                  <article class="practice-card">
+                    <span class="badge badge-info">对比</span>
+                    <h4>其他 vendor 的替代方案</h4>
+                    <ul>
+                      <li><strong>OpenAI</strong>：<code>function_call_output</code> 支持字符串或图片/文件对象数组</li>
+                      <li><strong>Anthropic</strong>：<code>tool_result</code> 支持文本和图片 content block</li>
+                      <li>OpenAI 和 Anthropic 的多模态 function response 功能更有限 — 不支持 PDF 等文档格式</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Custom Tools 与 Grammar 约束（OpenAI）</span>
+              </button>
+              <div class="subsection-content">
+                <div class="practice-grid">
+                  <article class="practice-card">
+                    <span class="badge badge-vendor">OPENAI GPT-5+</span>
+                    <h4>自定义工具 — 自由文本输入</h4>
+                    <p>OpenAI Custom Tools 允许模型传递任意字符串（而非 JSON）作为工具输入。适合代码执行、自然语言指令等场景。可配合 Context-Free Grammar（Lark 或 Regex 语法）约束输出格式，实现比 JSON Schema 更灵活的结构化控制。</p>
+                  </article>
+                  <article class="practice-card">
+                    <span class="badge badge-warn">注意</span>
+                    <h4>Grammar 使用的限制</h4>
+                    <ul>
+                      <li>Grammar 过于复杂时 API 可能拒绝请求</li>
+                      <li>不支持 lookaround、lazy modifier</li>
+                      <li>使用 Rust regex 语法（非 Python re）</li>
+                      <li>模型可能产生语法正确但语义荒谬的输出 — 需提示 + 描述引导</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 6: Production Checklist -->
+        <section id="production" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / Production Checklist</p>
+            <h2>生产化检查清单：从 Demo 到可靠上线</h2>
+            <p>
+              以下是将 function calling 系统推向生产的关键检查项。每一项来自真实项目中的经验教训。
+            </p>
+          </div>
+
+          <div class="checklist-grid section-grid-spaced" data-present-step data-step-title="生产化核心清单">
+            <article class="checklist-item">
+              <span class="checklist-number">1</span>
+              <div class="checklist-body">
+                <h4>Token 预算控制</h4>
+                <p>函数声明作为 input token 计费 — 20 个函数的 schema 可能消耗 2,000-5,000 token。策略：精简 description、减少非必要参数、使用 tool search 延迟加载。OpenAI prompt caching（命中时 75% 折扣）可通过 <code>allowed_tools</code> 保持 tools 参数不变来最大化缓存利用。</p>
+              </div>
+            </article>
+            <article class="checklist-item">
+              <span class="checklist-number">2</span>
+              <div class="checklist-body">
+                <h4>超时与断路器</h4>
+                <p>每次函数执行设置超时（建议 5-30 秒取决于 API 特性）。连续 3 次同类失败触发断路器 — 停止该函数的调用并向模型报告"服务暂不可用"。对 agentic loop 设置总超时（如 120 秒）和最大步数（如 10 步）。</p>
+              </div>
+            </article>
+            <article class="checklist-item">
+              <span class="checklist-number">3</span>
+              <div class="checklist-body">
+                <h4>安全防护</h4>
+                <p>函数调用是 LLM 与外部系统的接口 — 等同于 API endpoint 的安全要求。必须：(1) 白名单校验函数名；(2) 参数消毒防注入（SQL injection / command injection 通过参数传入的风险）；(3) 最小权限原则 — 函数只暴露必要操作；(4) 敏感操作需用户确认。</p>
+              </div>
+            </article>
+            <article class="checklist-item">
+              <span class="checklist-number">4</span>
+              <div class="checklist-body">
+                <h4>可观测性与日志</h4>
+                <p>记录每次 FC 交互的完整链路：请求 tools 列表 → 模型返回的 function_call → 执行结果 → 回传的 function_call_output → 最终响应。关键指标：FC 准确率、执行成功率、平均链长度、每次对话的 FC 调用次数、token 消耗。</p>
+              </div>
+            </article>
+            <article class="checklist-item">
+              <span class="checklist-number">5</span>
+              <div class="checklist-body">
+                <h4>测试策略</h4>
+                <p>FC 系统需要三层测试：(1) <strong>单元测试</strong> — 验证应用侧的参数解析、函数路由、错误处理逻辑；(2) <strong>集成测试</strong> — 使用固定 prompt + 固定 tools 验证模型的调用决策；(3) <strong>评估测试</strong> — 基于 BFCL 或自定义评测集评估端到端准确率。对关键工作流维护 golden test cases。</p>
+              </div>
+            </article>
+            <article class="checklist-item">
+              <span class="checklist-number">6</span>
+              <div class="checklist-body">
+                <h4>Fallback 与降级</h4>
+                <p>FC 不可用时的降级策略：(1) 模型级 fallback — 主模型 FC 失败切换到备选模型；(2) 模式级 fallback — FC mode 失败退回 Prompt mode；(3) 功能级降级 — 关闭自动执行，改为向用户展示"建议操作"。生产系统不存在 100% 可靠的 FC — 必须有优雅降级路径。</p>
+              </div>
+            </article>
+            <article class="checklist-item">
+              <span class="checklist-number">7</span>
+              <div class="checklist-body">
+                <h4>Prompt Engineering for FC</h4>
+                <p>系统提示（system prompt / instructions）对 FC 行为的影响被低估。最佳实践：(1) 在 system prompt 中声明角色（"你是一个天气助手"）；(2) 明确指定何时使用何种工具；(3) 对推理模型（如 o3）避免在 system prompt 中放 few-shot examples — 可能降低性能；(4) 使用 Gemini 时参考 Google 的 <a href="https://ai.google.dev/gemini-api/docs/prompting-strategies#agentic-si-template" target="_blank" rel="noopener noreferrer">agentic system instruction 模板</a>。</p>
+              </div>
+            </article>
+            <article class="checklist-item">
+              <span class="checklist-number">8</span>
+              <div class="checklist-body">
+                <h4>成本优化策略</h4>
+                <p>FC 系统的主要成本来源：函数声明 token + 多轮调用的 input token 累积。优化措施：(1) 使用 prompt caching（OpenAI 75% / Anthropic 90% 折扣）；(2) 精简函数 description — 删除冗余说明但保留关键信息；(3) 小模型做简单 FC（GPT-4.1-nano $0.10/M 或 Haiku 4.5）；(4) 使用 context caching（Gemini）降低长对话成本。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 7: References -->
+        <section id="references" class="section" data-reveal data-present-step data-step-title="参考文献">
+          <div class="section-head">
+            <p class="section-kicker">07 / References</p>
+            <h2>参考文献</h2>
+          </div>
+
+          <ol class="bib-list section-grid-spaced">
+            <li>
+              <span class="bib-id">[1]</span>
+              <span class="bib-author">OpenAI, 2026.</span>
+              <em>Function Calling Guide.</em>
+              <a href="https://developers.openai.com/api/docs/guides/function-calling" target="_blank" rel="noopener noreferrer">developers.openai.com/guides/function-calling</a>
+              <span class="bib-note">OpenAI 官方 FC 指南：Responses API + tools 参数、strict mode、parallel calling、streaming、Custom Tools + Grammar 约束。</span>
+            </li>
+            <li>
+              <span class="bib-id">[2]</span>
+              <span class="bib-author">Anthropic, 2026.</span>
+              <em>Tool Use with Claude — Overview.</em>
+              <a href="https://platform.claude.com/docs/en/docs/build-with-claude/tool-use/overview" target="_blank" rel="noopener noreferrer">platform.claude.com/docs/tool-use</a>
+              <span class="bib-note">Claude 工具调用架构：client tools / server tools 分类，strict mode，MCP connector 原生支持，token 开销详情。</span>
+            </li>
+            <li>
+              <span class="bib-id">[3]</span>
+              <span class="bib-author">Google, 2026.</span>
+              <em>Function Calling with the Gemini API.</em>
+              <a href="https://ai.google.dev/gemini-api/docs/function-calling" target="_blank" rel="noopener noreferrer">ai.google.dev/function-calling</a>
+              <span class="bib-note">Gemini FC 协议：VALIDATED/AUTO/ANY/NONE 模式，compositional FC，multimodal function response，thought signature 处理，MCP 集成，SDK 自动函数调用。</span>
+            </li>
+            <li>
+              <span class="bib-id">[4]</span>
+              <span class="bib-author">Patil et al., 2025.</span>
+              <em>The Berkeley Function Calling Leaderboard (BFCL): From Tool Use to Agentic Evaluation.</em>
+              ICML 2025.
+              <a href="https://gorilla.cs.berkeley.edu/leaderboard.html" target="_blank" rel="noopener noreferrer">gorilla.cs.berkeley.edu/leaderboard</a>
+              <span class="bib-note">BFCL V4 评测基准：5,088 条用例，覆盖 Agentic / Multi-Turn / Hallucination 维度，109 个模型对比数据。</span>
+            </li>
+            <li>
+              <span class="bib-id">[5]</span>
+              <span class="bib-author">OpenAI, 2025.</span>
+              <em>Introducing GPT-4.1 in the API.</em>
+              <a href="https://openai.com/index/gpt-4-1/" target="_blank" rel="noopener noreferrer">openai.com/index/gpt-4-1</a>
+              <span class="bib-note">GPT-4.1 FC 特性：strict mode、prompt caching、1M 上下文。ComplexFuncBench 65.5%，tau-bench retail 68.0%。</span>
+            </li>
+            <li>
+              <span class="bib-id">[6]</span>
+              <span class="bib-author">OpenAI, 2026.</span>
+              <em>Tool Search Guide.</em>
+              <a href="https://developers.openai.com/api/docs/guides/tools-tool-search" target="_blank" rel="noopener noreferrer">developers.openai.com/guides/tools-tool-search</a>
+              <span class="bib-note">GPT-5.4+ Tool Search 特性：defer_loading、namespace、动态工具发现机制。</span>
+            </li>
+          </ol>
+        </section>
+      </main>
+
+      <footer class="page-footer">
+        <p>&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。</p>
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

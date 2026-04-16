@@ -249,7 +249,26 @@ var knowledgeTree = [
     url: 'posts/function-calling-landscape/index.html',
     color: '#0ea5e9',
     phase: 0.8, speed: 0.88,
-    relations: ['hermes-open-model', 'enterprise-agent-arch', 'agentic-skill-exec']
+    relations: ['hermes-open-model', 'enterprise-agent-arch', 'agentic-skill-exec', 'fc-best-practices']
+  },
+  {
+    id: 'fc-best-practices',
+    parentId: 'ai-research-model',
+    type: 'article',
+    title: {
+      zh: 'Function Calling 工程实践指南：最佳实践、模型差异与避坑手册',
+      en: 'Function Calling Engineering Guide: Best Practices, Model Differences & Pitfalls'
+    },
+    summary: {
+      zh: '系统梳理 OpenAI/Anthropic/Google 三大 vendor 的 FC 协议差异，总结 schema 设计、错误处理、调用模式等 28 条工程最佳实践。',
+      en: 'Covers FC protocol differences across OpenAI/Anthropic/Google, with 28 engineering best practices on schema design, error handling, and calling modes.'
+    },
+    tags: ['Function Calling', 'Best Practices', 'AI Engineering', 'Tool Use'],
+    date: '2026-04-16',
+    url: 'posts/function-calling-best-practices/index.html',
+    color: '#0ea5e9',
+    phase: 1.2, speed: 0.85,
+    relations: ['fc-landscape', 'enterprise-agent-arch', 'agentic-skill-exec']
   },
   {
     id: 'llm-literary-creation',
@@ -492,6 +511,25 @@ var knowledgeTree = [
     phase: 1.6, speed: 0.85,
     relations: ['copilot-studio-constraints', 'copilot-studio-memory']
   },
+  {
+    id: 'copilot-studio-vs-agent-sdk',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Copilot Studio 与 Agents SDK：产品定位、协作关系与场景选型',
+      en: 'Copilot Studio vs Agents SDK: Positioning, Relationship & Scenario Selection'
+    },
+    summary: {
+      zh: '基于官方文档对比 Copilot Studio（低代码平台）与 M365 Agents SDK（Pro-code 框架）的职责边界、协作模式和六个场景选型依据。',
+      en: 'Compares Copilot Studio (low-code platform) with M365 Agents SDK (pro-code framework) on scope, collaboration patterns, and 6 scenario-based selection criteria.'
+    },
+    tags: ['Copilot Studio', 'Agent SDK', 'Architecture Decision', 'Foundry'],
+    date: '2026-04-16',
+    url: 'posts/copilot-studio-vs-agent-sdk/index.html',
+    color: '#7c3aed',
+    phase: 4.8, speed: 0.80,
+    relations: ['copilot-studio-overview', 'copilot-studio-constraints', 'enterprise-agent-arch']
+  },
 
   // ════════════════════════════════════════
   // 文章 — AI 工程实践（项目设计文档）
@@ -536,6 +574,18 @@ var knowledgeTree = [
   },
 
   // ════════════════════════════════════════
+  // 二级分组 — Knowledge Hub 审查报告
+  // ════════════════════════════════════════
+  {
+    id: 'knowledge-hub-reviews',
+    parentId: 'knowledge-hub',
+    type: 'topic',
+    label: { zh: '审查报告', en: 'Review Reports' },
+    color: '#0d8f8c',
+    phase: 5.0, speed: 0.82
+  },
+
+  // ════════════════════════════════════════
   // 文章 — Knowledge Hub（治理与审查）
   // ════════════════════════════════════════
   {
@@ -559,7 +609,7 @@ var knowledgeTree = [
   },
   {
     id: 'study-room-review-2026q2',
-    parentId: 'knowledge-hub',
+    parentId: 'knowledge-hub-reviews',
     type: 'article',
     title: {
       zh: 'Knowledge Hub 首次代码审查报告（2026-Q2）',
@@ -597,7 +647,7 @@ var knowledgeTree = [
   },
   {
     id: 'homepage-architecture-review',
-    parentId: 'knowledge-hub',
+    parentId: 'knowledge-hub-reviews',
     type: 'article',
     title: {
       zh: '首页 index.html 架构审查报告',
@@ -613,6 +663,25 @@ var knowledgeTree = [
     color: '#0d8f8c',
     phase: 3.8, speed: 0.78,
     relations: ['study-room-review-2026q2', 'study-room-design', 'study-room-standards']
+  },
+  {
+    id: 'architecture-review-2026-0415',
+    parentId: 'knowledge-hub-reviews',
+    type: 'article',
+    title: {
+      zh: 'Knowledge Hub 周期架构复盘（2026-04-15）',
+      en: 'Knowledge Hub Periodic Architecture Review (2026-04-15)'
+    },
+    summary: {
+      zh: '第二次 9 维度审查：40 篇文章、演示脚本 +64.3% 膨胀、CSS 突破红线，综合 C+，含拆分方案与 7 项行动计划。',
+      en: 'Second 9-dimension review: 40 articles, presentation script +64.3% bloat, CSS past red line, overall C+, with split plan and 7 action items.'
+    },
+    tags: ['Architecture Review', 'Code Review', 'Knowledge Hub'],
+    date: '2026-04-15',
+    url: 'posts/architecture-review-2026-0415/index.html',
+    color: '#0d8f8c',
+    phase: 1.5, speed: 0.80,
+    relations: ['study-room-review-2026q2', 'homepage-architecture-review', 'study-room-standards']
   },
 
   // ════════════════════════════════════════
@@ -981,28 +1050,5 @@ var knowledgeTree = [
     color: '#14b8a6',
     phase: 2.8, speed: 0.82,
     relations: ['study-room-design', 'knowledge-graph-org', 'study-room-standards']
-  },
-
-  // ════════════════════════════════════════
-  // 文章 — Dataverse Security Role 完全指南
-  // ════════════════════════════════════════
-  {
-    id: 'dataverse-security-roles',
-    parentId: 'power-apps',
-    type: 'article',
-    title: {
-      zh: 'Dataverse Security Role 完全指南',
-      en: 'Dataverse Security Role Complete Guide'
-    },
-    summary: {
-      zh: '为初学者梳理 Dataverse 安全角色核心概念、8 种表权限、5 个访问级别、15+ 预定义角色及场景速查。',
-      en: 'Covers Dataverse security role fundamentals: 8 table privileges, 5 access levels, 15+ predefined roles, and scenario quick-reference.'
-    },
-    tags: ['Dataverse', 'Security Role', 'Power Platform', 'RBAC'],
-    date: '2026-04-15',
-    url: 'posts/dataverse-security-roles/index.html',
-    color: '#742fa5',
-    phase: 4.8, speed: 0.84,
-    relations: ['powerapps-vibe-coding', 'low-code-ai-era']
   }
 ];

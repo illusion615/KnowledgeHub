@@ -46,9 +46,14 @@
 - CSS custom properties for theming (`:root` + `[data-theme="dark"]`)
 - Shared article styles live in `assets/article.css` — article-specific overrides stay inline
 - Shared article initialization (scroll-reveal, accordion, localStorage sync) via `assets/article-common.js`
+- Presentation mode orchestration via `assets/article-presentation.js`; email share, screen recording, narration UI are lazy-loaded modules (`article-email-share.js`, `article-screen-recording.js`, `article-narration-ui.js`) — do NOT add them to article HTML
 - `DOMContentLoaded` wrapper for all scripts
 - Declare all `var` at top of scope to avoid hoisting issues
 - Use `forEach` with function expressions (not arrow functions) for IE compat
+
+## Testing
+- Run `node tests/validate.js` before every commit — exit code 0 required
+- Test suite covers: knowledge-data.js integrity, script order, inline style violations, arrow function bans, asset syntax, CSS known issues, article structural checks
 
 ## Forbidden Patterns
 - Do NOT use JavaScript frameworks or bundlers

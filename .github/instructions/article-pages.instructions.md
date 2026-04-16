@@ -10,10 +10,14 @@ applyTo: "posts/**/*.html"
 
 1. `<link rel="stylesheet" href="../../assets/article.css" />`
 2. `<link rel="stylesheet" href="../../assets/scrollbar.css" />`
-3. 仅文章特有的覆盖样式放在 inline `<style>` 中
+3. `<link rel="stylesheet" href="../../assets/article-narration.css" />`
+4. `<link rel="stylesheet" href="../../assets/article-diagram.css" />`
+5. 仅文章特有的覆盖样式放在 inline `<style>` 中
 
 - Include all dark mode CSS variants for **shared components** in `assets/article.css` — NEVER in inline `<style>`
 - Dark mode rules for **article-specific** components (e.g., custom tag colors) go in inline `<style>`
+- Narration UI styles (FAB capsule, settings panel, subtitle) in `assets/article-narration.css`
+- Diagram styles (signal-map, mesh-board, quadrant-board) in `assets/article-diagram.css`
 
 ### JS（`</body>` 前，按此顺序）
 
@@ -33,9 +37,10 @@ applyTo: "posts/**/*.html"
 
 ### 新建文章后的检查清单
 
-1. 用 `grep -L 'article-assistant' posts/*/index.html` 检查是否有遗漏脚本
-2. 在浏览器中确认：阅读模式右下角出现 chat FAB（需本地 LLM 设置）
-3. 进入演示模式 → hover capsule → 确认 settings / record / chat / narrator 四个按钮均可见
+1. 运行 `node tests/validate.js` — 必须 exit 0
+2. 用 `grep -L 'article-assistant' posts/*/index.html` 检查是否有遗漏脚本
+3. 在浏览器中确认：阅读模式右下角出现 chat FAB（需本地 LLM 设置）
+4. 进入演示模式 → hover capsule → 确认 settings / record / chat / narrator 四个按钮均可见
 
 ## Forbidden JS in Inline Scripts
 

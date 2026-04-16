@@ -716,7 +716,7 @@ function renderInfographicViewModule(ctx) {
     var lvl = arcLevels[depth];
     if (lvl) {
       var items = getItemsForLevel(depth);
-      var nudge = delta * 0.06;
+      var nudge = -delta * 0.06;
       lvl.targetAngle = angleForLevel(depth, idx, items.length) + nudge;
       startAnim();
       setTimeout(function () {
