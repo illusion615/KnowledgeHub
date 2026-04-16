@@ -299,7 +299,7 @@ function renderInfographicViewModule(ctx) {
 
   function drawArcRing(arcIdx) {
     var r = arcOuterR(arcIdx);
-    var span = (arcIdx === 0) ? Math.PI * 0.85 : Math.PI * 0.7;
+    var span = Math.PI * 0.85;
     var startA = -span / 2, endA = span / 2;
     var x1 = cx + r * Math.cos(startA), y1 = cy + r * Math.sin(startA);
     var x2 = cx + r * Math.cos(endA),   y2 = cy + r * Math.sin(endA);
