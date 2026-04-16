@@ -304,12 +304,28 @@ function renderInfographicViewModule(ctx) {
     var x1 = cx + r * Math.cos(startA), y1 = cy + r * Math.sin(startA);
     var x2 = cx + r * Math.cos(endA),   y2 = cy + r * Math.sin(endA);
     var la = span > Math.PI ? 1 : 0;
+    var d = 'M ' + x1 + ' ' + y1 + ' A ' + r + ' ' + r + ' 0 ' + la + ' 1 ' + x2 + ' ' + y2;
+    var isFocused = arcState.focusArc === arcIdx;
+
+    // Base ring
+    var scheme = ctx.colorSchemes.find(function (s) { return s.id === ctx.currentScheme; }) || ctx.colorSchemes[0];
+    var schemeDots = scheme.dots || ['#ff7a00', '#0d8f8c', '#e0b04b', '#e8eaef'];
     var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    path.setAttribute('d', 'M ' + x1 + ' ' + y1 + ' A ' + r + ' ' + r + ' 0 ' + la + ' 1 ' + x2 + ' ' + y2);
+    path.setAttribute('d', d);
     var cls = 'arc-ring arc-ring-' + arcIdx;
-    if (arcState.focusArc === arcIdx) cls += ' is-focused';
+    if (isFocused) cls += ' is-focused';
     path.setAttribute('class', cls);
+    path.setAttribute('stroke', schemeDots[arcIdx % schemeDots.length]);
     svgEl.appendChild(path);
+
+    // Glow overlay (flowing light)
+    var glow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    glow.setAttribute('d', d);
+    var glowCls = 'arc-ring-glow arc-ring-glow-' + arcIdx;
+    if (isFocused) glowCls += ' is-focused';
+    glow.setAttribute('class', glowCls);
+    glow.setAttribute('stroke', schemeDots[arcIdx % schemeDots.length]);
+    svgEl.appendChild(glow);
   }
 
   function drawArcSpokes(arcIdx, nodeAngles, nodeColors, selectedIdx, items) {
