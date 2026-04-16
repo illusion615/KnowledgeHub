@@ -2241,9 +2241,28 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (isBlockedTarget(event.target)) return;
 
-    if (event.key === 'ArrowRight' || event.key === 'PageDown' || event.key === ' ') {
+    if (event.key === 'ArrowRight' || event.key === 'PageDown') {
       event.preventDefault();
       goToNextStep();
+      return;
+    }
+
+    if (event.key === ' ') {
+      event.preventDefault();
+      // Space: pause/resume narration if active, otherwise advance slide
+      if (narrationState === 'playing') {
+        if (narrationController) narrationController.pause();
+        narrationState = 'paused';
+        root.classList.remove('is-narrating');
+        updateAutoPlayButton();
+      } else if (narrationState === 'paused') {
+        if (narrationController) narrationController.resume();
+        narrationState = 'playing';
+        root.classList.add('is-narrating');
+        updateAutoPlayButton();
+      } else {
+        goToNextStep();
+      }
       return;
     }
 
