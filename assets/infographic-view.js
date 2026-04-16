@@ -318,13 +318,28 @@ function renderInfographicViewModule(ctx) {
     path.setAttribute('stroke', schemeDots[arcIdx % schemeDots.length]);
     svgEl.appendChild(path);
 
-    // Glow overlay (flowing light)
+    // Glow overlay (flowing light with soft gradient dash)
+    var defs = svgEl.querySelector('defs');
+    if (!defs) {
+      defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      svgEl.insertBefore(defs, svgEl.firstChild);
+    }
+    var glowColor = schemeDots[arcIdx % schemeDots.length];
+    var glowGradId = 'arc-glow-grad-' + arcIdx;
+    // Create a repeating pattern: fade-in → bright → fade-out → transparent
+    var arcLen = r * span;
+    var segLen = 150; // px per glow blob
+    var repeatCount = Math.max(2, Math.ceil(arcLen / segLen));
+    var dashOn = segLen * 0.4;
+    var dashOff = segLen * 0.6;
+
     var glow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     glow.setAttribute('d', d);
     var glowCls = 'arc-ring-glow arc-ring-glow-' + arcIdx;
     if (isFocused) glowCls += ' is-focused';
     glow.setAttribute('class', glowCls);
-    glow.setAttribute('stroke', schemeDots[arcIdx % schemeDots.length]);
+    glow.setAttribute('stroke', glowColor);
+    glow.setAttribute('stroke-dasharray', dashOn + ' ' + dashOff);
     svgEl.appendChild(glow);
   }
 
