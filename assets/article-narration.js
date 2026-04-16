@@ -42,19 +42,44 @@
     if (stepElement.hasAttribute('data-present-overview')) {
       var sHead = stepElement.querySelector('.section-head');
       if (sHead) {
-        var descP = sHead.querySelector('p');
+        var kicker = sHead.querySelector('.section-kicker');
+        if (kicker) body += (kicker.textContent || '').trim() + '\n';
+        var headH2 = sHead.querySelector('h2');
+        if (headH2) body += (headH2.textContent || '').trim() + '\n';
+        var descP = sHead.querySelector('p:not(.section-kicker)');
         if (descP) body += (descP.textContent || '').trim() + '\n';
       }
-      // Collect all accordion subsection titles
+      // Collect all accordion subsection titles + key content
       var accordionItems = stepElement.querySelectorAll('[data-accordion]');
       accordionItems.forEach(function (item) {
         var toggle = item.querySelector('.subsection-toggle span');
         if (toggle) body += '- ' + (toggle.textContent || '').trim() + '\n';
-        // Also grab first paragraph of content as preview
         var content = item.querySelector('.subsection-content');
         if (content) {
-          var firstP = content.querySelector('p');
-          if (firstP) body += '  ' + (firstP.textContent || '').trim() + '\n';
+          // Grab all paragraphs (not just first)
+          var paras = content.querySelectorAll('p');
+          paras.forEach(function (p) {
+            var t = (p.textContent || '').trim();
+            if (t && t.length > 10) body += '  ' + t + '\n';
+          });
+          // Grab insight callout content
+          var callouts = content.querySelectorAll('.insight-callout');
+          callouts.forEach(function (c) {
+            var ch = c.querySelector('h4');
+            var cp = c.querySelector('p');
+            if (ch) body += '  [' + (ch.textContent || '').trim() + '] ';
+            if (cp) body += (cp.textContent || '').trim() + '\n';
+          });
+          // Grab scenario card titles
+          var cards = content.querySelectorAll('.scenario-card h4');
+          cards.forEach(function (h) {
+            body += '  · ' + (h.textContent || '').trim() + '\n';
+          });
+          // Grab step-flow item titles
+          var stepItems = content.querySelectorAll('.step-item h4');
+          stepItems.forEach(function (h) {
+            body += '  · ' + (h.textContent || '').trim() + '\n';
+          });
         }
       });
       // Also grab non-accordion content (insight-grid, flow-list, etc.)
@@ -69,18 +94,20 @@
       return { title: title, label: label, body: body };
     }
 
-    // Normal extraction — walk visible DOM elements
+    // Normal extraction — walk DOM elements (ignore CSS visibility since
+    // non-active steps are display:none during lookahead, but we still need their text)
     var walker = document.createTreeWalker(
       stepElement,
       NodeFilter.SHOW_ELEMENT,
       {
         acceptNode: function (node) {
-          // Skip hidden elements
+          // Skip aria-hidden elements (presentation chrome, not content)
           if (node.getAttribute('aria-hidden') === 'true') return NodeFilter.FILTER_REJECT;
+          // Skip toggled-off subsection content in normal reading mode
           if (node.classList.contains('subsection-content') &&
               node.getAttribute('aria-hidden') === 'true') return NodeFilter.FILTER_REJECT;
-          var style = window.getComputedStyle(node);
-          if (style.display === 'none' || style.visibility === 'hidden') return NodeFilter.FILTER_REJECT;
+          // Skip presentation-only elements
+          if (node.classList.contains('present-inline-head')) return NodeFilter.FILTER_REJECT;
           return NodeFilter.FILTER_ACCEPT;
         }
       }
@@ -126,12 +153,18 @@
     var settings = getLlmSettings();
     if (!settings) return Promise.reject(new Error('No LLM settings'));
 
+    // Get article title for context so LLM knows the topic
+    var articleTitle = document.title || '';
+    var heroH1 = document.querySelector('.hero h1');
+    if (heroH1) articleTitle = (heroH1.textContent || '').trim();
+
     var systemPrompt = SYSTEM_PROMPTS[lang] || SYSTEM_PROMPTS.zh;
     var positionHint = '';
     if (slideIndex === 0) positionHint = '\n\n[指令：这是演示的第一页，请以"大家好，欢迎来到 illusion615 Knowledge Hub 的知识分享"开头，然后简要介绍本次演示的主题]';
     else if (slideIndex === totalSlides - 1) positionHint = '\n\n[指令：这是演示的最后一页，请在讲解完内容后，以"感谢收看，更多内容请访问 illusion615 Knowledge Hub"结尾]';
 
-    var userPrompt = '幻灯片 ' + (slideIndex + 1) + '/' + totalSlides +
+    var userPrompt = '本次演示的文章主题: ' + articleTitle +
+      '\n\n幻灯片 ' + (slideIndex + 1) + '/' + totalSlides +
       '\n标签: ' + (slideInfo.label || '(无)') +
       '\n标题: ' + (slideInfo.title || '(无)') +
       '\n内容:\n' + (slideInfo.body || '(空)') + positionHint;
@@ -141,7 +174,8 @@
       if (slideIndex === 0) positionHint = '\n\n[Instruction: This is the FIRST slide. Start with "Hi everyone, welcome to illusion615 Knowledge Hub." Then briefly introduce the topic.]';
       else if (slideIndex === totalSlides - 1) positionHint = '\n\n[Instruction: This is the LAST slide. After narrating the content, close with "Thanks for watching. Visit illusion615 Knowledge Hub for more."]';
 
-      userPrompt = 'Slide ' + (slideIndex + 1) + '/' + totalSlides +
+      userPrompt = 'Article topic: ' + articleTitle +
+        '\n\nSlide ' + (slideIndex + 1) + '/' + totalSlides +
         '\nLabel: ' + (slideInfo.label || '(none)') +
         '\nTitle: ' + (slideInfo.title || '(none)') +
         '\nContent:\n' + (slideInfo.body || '(empty)') + positionHint;
@@ -232,161 +266,6 @@
     }
     if (current) chunks.push(current);
     return chunks.length ? chunks : [text];
-  }
-
-  /* ══════════════════════════════════════════════════════
-     VibeVoice TTS via local API (OpenAI-compatible)
-     Returns audio as WAV, played via AudioContext for
-     recording compatibility.
-     ══════════════════════════════════════════════════════ */
-  var vibeAudioCtx = null;
-  var vibeMediaDest = null;
-
-  function getVibeAudioContext() {
-    if (!vibeAudioCtx) {
-      vibeAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    return vibeAudioCtx;
-  }
-
-  /** Get VibeVoice MediaStream destination for recording. */
-  function getVibeMediaStreamDest() {
-    if (!vibeMediaDest) {
-      vibeMediaDest = getVibeAudioContext().createMediaStreamDestination();
-    }
-    return vibeMediaDest;
-  }
-
-  function getVibeVoiceSettings() {
-    var settings = {};
-    try { settings = JSON.parse(localStorage.getItem('narration-settings')) || {}; } catch (e) {}
-    var articleSlug = window.location.pathname.replace(/\/$/, '').split('/').pop() || '';
-    if (articleSlug) {
-      try {
-        var article = JSON.parse(localStorage.getItem('narration-settings:' + articleSlug)) || {};
-        Object.keys(article).forEach(function (k) { if (article[k] !== undefined && article[k] !== '') settings[k] = article[k]; });
-      } catch (e) {}
-    }
-    return {
-      endpoint: settings.vibeEndpoint || 'http://127.0.0.1:8191/v1',
-      voice: settings.vibeVoice || 'en-Emma_woman',
-      rate: settings.rate || 0.92
-    };
-  }
-
-  /**
-   * Speak text using VibeVoice API via AudioContext.
-   * Processes text chunk by chunk for subtitle sync.
-   */
-  function speakVibeVoice(text, lang, callbacks, speechSettings) {
-    var chunks = splitIntoChunks(text);
-    var chunkIndex = 0;
-    var cancelled = false;
-    var paused = false;
-    var currentSource = null;
-    var pauseTime = 0;
-    var startOffset = 0;
-    var currentBuffer = null;
-
-    var cb = callbacks || {};
-    var vs = getVibeVoiceSettings();
-    var ctx = getVibeAudioContext();
-    var dest = getVibeMediaStreamDest();
-
-    function playChunk() {
-      if (cancelled || chunkIndex >= chunks.length) {
-        if (!cancelled && cb.onEnd) cb.onEnd();
-        return;
-      }
-
-      if (cb.onChunkStart) cb.onChunkStart(chunks[chunkIndex]);
-
-      var fetchBody = {
-        model: 'VibeVoice-Realtime-0.5B-4bit',
-        input: chunks[chunkIndex],
-        voice: vs.voice,
-        speed: speechSettings && speechSettings.rate ? speechSettings.rate : (vs.rate || 1.0)
-      };
-
-      fetch(vs.endpoint + '/audio/speech', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer dummy'
-        },
-        body: JSON.stringify(fetchBody)
-      })
-      .then(function (res) {
-        if (!res.ok) throw new Error('VibeVoice HTTP ' + res.status);
-        return res.arrayBuffer();
-      })
-      .then(function (arrayBuf) {
-        if (cancelled) return;
-        return ctx.decodeAudioData(arrayBuf);
-      })
-      .then(function (audioBuf) {
-        if (cancelled || !audioBuf) return;
-        currentBuffer = audioBuf;
-        startOffset = 0;
-
-        var source = ctx.createBufferSource();
-        source.buffer = audioBuf;
-        // Connect to both speakers and recording destination
-        source.connect(ctx.destination);
-        source.connect(dest);
-        currentSource = source;
-
-        source.onended = function () {
-          currentSource = null;
-          currentBuffer = null;
-          chunkIndex++;
-          if (!cancelled && !paused) {
-            playChunk();
-          }
-        };
-
-        source.start(0);
-      })
-      .catch(function (err) {
-        if (cancelled) return;
-        console.error('VibeVoice chunk error:', err);
-        // Fall through to next chunk
-        chunkIndex++;
-        if (!cancelled && !paused) {
-          playChunk();
-        }
-        if (cb.onError) cb.onError(err);
-      });
-    }
-
-    playChunk();
-
-    return {
-      pause: function () {
-        paused = true;
-        if (currentSource) {
-          try { currentSource.stop(); } catch (e) {}
-          currentSource = null;
-        }
-      },
-      resume: function () {
-        paused = false;
-        // Cannot resume AudioBufferSourceNode — skip to next chunk
-        if (chunkIndex < chunks.length && !currentSource) {
-          playChunk();
-        }
-      },
-      cancel: function () {
-        cancelled = true;
-        if (currentSource) {
-          try { currentSource.stop(); } catch (e) {}
-          currentSource = null;
-        }
-      },
-      getMediaStream: function () {
-        return dest.stream;
-      }
-    };
   }
 
   /**
@@ -609,7 +488,7 @@
 
       var lang = getEffectiveLang();
       var ss = getSpeechSettings();
-      var speakCallbacks = {
+      currentSpeaker = speak(text, lang, {
         onChunkStart: function (chunkText) {
           onSubtitle(chunkText);
         },
@@ -627,14 +506,7 @@
             advanceOrStop(index);
           }
         }
-      };
-
-      // Use VibeVoice for English, Web Speech API for others
-      if (lang === 'en' && ss.ttsProvider === 'vibevoice') {
-        currentSpeaker = speakVibeVoice(text, lang, speakCallbacks, ss);
-      } else {
-        currentSpeaker = speak(text, lang, speakCallbacks, ss);
-      }
+      }, ss);
     }
 
     function advanceOrStop(index) {
@@ -744,9 +616,6 @@
   window.StudyRoomNarration = {
     createController: createController,
     isAvailable: isAvailable,
-    getVoiceList: getVoiceList,
-    getVibeAudioStream: function () {
-      return getVibeMediaStreamDest().stream;
-    }
+    getVoiceList: getVoiceList
   };
 })();

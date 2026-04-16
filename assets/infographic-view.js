@@ -576,9 +576,19 @@ function renderInfographicViewModule(ctx) {
             div.appendChild(sumEl);
           }
         } else {
-          // Topic: just title, centered
+          // Topic: title + child count badge
           div.classList.add('is-topic');
-          div.textContent = nodeLabel(itemData);
+          var topicName = document.createElement('span');
+          topicName.className = 'spoke-topic-name';
+          topicName.textContent = nodeLabel(itemData);
+          div.appendChild(topicName);
+          var childCount = getChildren(itemData.id).length;
+          if (childCount > 0) {
+            var badge = document.createElement('span');
+            badge.className = 'spoke-count';
+            badge.textContent = childCount;
+            div.appendChild(badge);
+          }
         }
         fo.appendChild(div);
         svgEl.appendChild(fo);

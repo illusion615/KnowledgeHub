@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>微软 MAI-Image-2 模型家族：自研文生图的效率与商业落地</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(2rem, 4.8vw, 3.4rem);
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+      max-width: 22ch;
+    }
+
+    .hero-metrics {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    @media (max-width: 720px) {
+      .hero-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    .api-block {
+      padding: 18px 20px;
+      border-radius: 14px;
+      background: rgba(23, 36, 48, 0.04);
+      border: 1px solid var(--line);
+      font-family: "Space Grotesk", "Noto Sans SC", monospace;
+      font-size: 0.88rem;
+      line-height: 1.75;
+      color: var(--ink);
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin-top: 10px;
+    }
+
+    .variant-card {
+      padding: 20px;
+      border-radius: var(--radius-lg);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      -webkit-backdrop-filter: blur(14px);
+      backdrop-filter: blur(14px);
+      margin-bottom: 14px;
+    }
+
+    .variant-card h4 {
+      margin: 0 0 6px;
+      font-size: 1rem;
+    }
+
+    .variant-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.75;
+    }
+
+    .variant-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .variant-tag-full { background: rgba(124, 58, 237, 0.12); color: rgba(100, 40, 200, 0.9); }
+    .variant-tag-efficient { background: rgba(16, 163, 127, 0.12); color: rgba(12, 130, 100, 0.9); }
+
+    .simple-table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .param-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+      margin-top: 12px;
+    }
+
+    .param-table th,
+    .param-table td {
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .param-table th {
+      font-weight: 700;
+      font-size: 0.82rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .param-table code {
+      font-size: 0.84rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(23, 36, 48, 0.06);
+    }
+
+    [data-theme="dark"] .api-block {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    [data-theme="dark"] .param-table code {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .variant-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-top: 14px;
+    }
+
+    .variant-grid-sm {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+
+    .variant-grid-md {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+    }
+
+    .compact-list {
+      margin: 0;
+      padding-left: 18px;
+      font-size: 0.9rem;
+      line-height: 1.8;
+    }
+
+    .note-text {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .context-text {
+      margin-top: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero" data-present-step data-step-title="文章总览">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            模型
+          </div>
+          <div class="topbar-actions">
+            <nav class="nav-links" aria-label="页面章节导航">
+              <a href="#positioning">模型定位</a>
+              <a href="#architecture">架构与能力</a>
+              <a href="#deployment">API 与部署</a>
+              <a href="#comparison">竞品对比</a>
+              <a href="#scenarios">适用场景</a>
+              <a href="#references">参考</a>
+            </nav>
+          </div>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Microsoft MAI-Image-2 Family</span>
+            <h1>微软 MAI-Image-2 模型家族：自研文生图的效率与商业落地</h1>
+            <p>
+              MAI-Image-2 是微软自研的文生图生成模型家族，包含两个变体：MAI-Image-2（完整版）和 MAI-Image-2e（高效版）<a href="#ref-1">[1]</a>。该模型采用 Diffusion-based 渐进式生成架构，支持最长 32,000 token 的自然语言提示词输入，输出分辨率最高达 1,048,576 总像素（等效 1024×1024）<a href="#ref-2">[2]</a>。MAI-Image-2e 在保持相同画质的前提下，推理速度比 MAI-Image-2 快 22%，计算效率提升至 4 倍，面向大规模商业图片生成场景<a href="#ref-1">[1]</a>。截至 2026 年 4 月，该模型已通过 Azure Foundry 在 6 个全球区域提供 Global Standard 部署<a href="#ref-2">[2]</a>。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#architecture">查看架构对比</a>
+              <a class="button button-secondary" href="#deployment">查看部署指南</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">核心价值</span>
+            <h2>微软首个企业级自研文生图模型</h2>
+            <ul class="layer-list section-grid-spaced">
+              <li><span class="layer-number">1</span>Diffusion-based 渐进生成：文本→高质量 PNG 图像</li>
+              <li><span class="layer-number">2</span>双变体策略：质量优先（MAI-Image-2）vs 效率优先（MAI-Image-2e）</li>
+              <li><span class="layer-number">3</span>32K token 长提示词：支持精细描述复杂场景</li>
+              <li><span class="layer-number">4</span>Azure 原生集成：Foundry API + Entra ID + RBAC</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">效率提升</div>
+            <strong>4×</strong>
+            <span>MAI-Image-2e vs MAI-Image-2</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">速度提升</div>
+            <strong>22%</strong>
+            <span>推理延迟降低</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">提示词长度</div>
+            <strong>32K</strong>
+            <span>token 上下文窗口</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">部署区域</div>
+            <strong>6 个</strong>
+            <span>Global Standard 区域</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- ═══ 01 / 模型定位 ═══ -->
+        <section id="positioning" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / 模型定位</p>
+            <h2>为什么微软需要自研文生图模型</h2>
+            <p>MAI-Image-2 系列是微软首个以"MAI"品牌发布的自研文生图模型，标志着微软从依赖合作伙伴模型（如 DALL·E）转向自主可控的图像生成能力。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>战略背景：第一方图像生成能力</span>
+              </button>
+              <div class="subsection-content">
+                <p>微软此前的图像生成能力依赖 OpenAI 的 DALL·E 系列和 GPT Image 模型。MAI-Image-2 的发布意味着微软在文生图领域建立了独立于 OpenAI 的自研路径。在 Azure Foundry 的模型目录中，MAI-Image-2 / MAI-Image-2e 与 GPT Image-1 / GPT Image-1.5、FLUX.2、Stable Diffusion 3.5 Large 并列为可选的图像生成模型<a href="#ref-3">[3]</a>。</p>
+                <p>从命名体系看，"MAI"（Microsoft AI）品牌统一了微软自研模型的标识——与 Phi 系列语言模型平行，MAI-Image 系列定位为图像生成垂直领域的微软第一方解决方案。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>目标用户：商业内容生产者</span>
+              </button>
+              <div class="subsection-content">
+                <p>微软官方文档明确将 MAI-Image-2 定位为"product imagery, marketing visuals, brand assets, and commercial creative workflows"的工具<a href="#ref-2">[2]</a>。这一定位与主流竞品形成差异化：</p>
+                <ul class="flow-list">
+                  <li><strong>产品图片生成</strong>——电商场景下的批量产品展示图</li>
+                  <li><strong>营销视觉素材</strong>——社交媒体广告、Banner、推广图</li>
+                  <li><strong>品牌资产创作</strong>——风格一致的品牌视觉元素</li>
+                  <li><strong>商业创意工作流</strong>——概念可视化和设计迭代</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>双版本策略：质量 vs 效率的取舍</span>
+              </button>
+              <div class="subsection-content">
+                <p>MAI-Image-2 家族采用"完整版 + 高效版"的双模型发布策略，用户可根据场景在质量和成本之间选择：</p>
+                <div class="variant-grid">
+                  <div class="variant-card">
+                    <span class="variant-tag variant-tag-full">MAI-Image-2</span>
+                    <h4>完整版——质量优先</h4>
+                    <p>追求最高画质和视觉保真度的场景。适合品牌主视觉、高分辨率概念图等低频高质量需求。版本号：2026-02-20。</p>
+                  </div>
+                  <div class="variant-card">
+                    <span class="variant-tag variant-tag-efficient">MAI-Image-2e</span>
+                    <h4>高效版——规模优先</h4>
+                    <p>在保持同等画质下，推理快 22%、效率高 4 倍。适合产品图批量生成、A/B 测试素材、营销内容流水线等高频高吞吐场景。版本号：2026-04-09。</p>
+                  </div>
+                </div>
+                <p class="note-text">微软官方描述 MAI-Image-2e 为"the smartest choice for developers building at scale"<a href="#ref-1">[1]</a>。具体效率提升数据未披露测量条件（硬件规格、Batch Size、分辨率配置），这是需要注意的信息缺口。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══ 02 / 架构与能力 ═══ -->
+        <section id="architecture" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / 架构与能力</p>
+            <h2>Diffusion-based 渐进式生成</h2>
+            <p>MAI-Image-2 使用扩散模型架构，从噪声逐步精炼到高质量图像。以下梳理公开可知的技术规格。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>生成机制：扩散模型基础</span>
+              </button>
+              <div class="subsection-content">
+                <p>微软官方描述为"diffusion-based generative approach to progressively refine images"<a href="#ref-1">[1]</a>。这表明 MAI-Image-2 属于扩散模型家族（Diffusion Models），其生成过程包括：</p>
+                <ol class="flow-list">
+                  <li><strong>前向过程（训练时）</strong>：向真实图像逐步添加高斯噪声，直到变为纯噪声</li>
+                  <li><strong>反向过程（推理时）</strong>：从随机噪声出发，通过学到的去噪网络逐步恢复清晰图像</li>
+                  <li><strong>条件引导</strong>：文本提示通过编码器嵌入后指导每一步去噪方向</li>
+                </ol>
+                <p class="note-text">截至 2026 年 4 月，微软尚未公开 MAI-Image-2 的具体架构细节（如是否采用 DiT / U-Net、参数量、文本编码器类型）。Hugging Face 模型页面为 gated access 状态。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>输入输出规格</span>
+              </button>
+              <div class="subsection-content">
+                <div class="simple-table-wrap">
+                  <table class="param-table">
+                    <thead>
+                      <tr>
+                        <th>参数</th>
+                        <th>MAI-Image-2</th>
+                        <th>MAI-Image-2e</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>模型版本</td>
+                        <td>2026-02-20</td>
+                        <td>2026-04-09</td>
+                      </tr>
+                      <tr>
+                        <td>输入</td>
+                        <td colspan="2">文本（最长 32,000 tokens）</td>
+                      </tr>
+                      <tr>
+                        <td>输出</td>
+                        <td colspan="2">单张 PNG 图像</td>
+                      </tr>
+                      <tr>
+                        <td>最小分辨率</td>
+                        <td colspan="2">768 × 768 像素</td>
+                      </tr>
+                      <tr>
+                        <td>最大总像素</td>
+                        <td colspan="2">1,048,576（等效 1024×1024）</td>
+                      </tr>
+                      <tr>
+                        <td>灵活比例</td>
+                        <td colspan="2">任一维度可超过 1024，只要 width × height ≤ 1,048,576（如 768×1365）</td>
+                      </tr>
+                      <tr>
+                        <td>语言</td>
+                        <td colspan="2">英语</td>
+                      </tr>
+                      <tr>
+                        <td>推理速度</td>
+                        <td>基准</td>
+                        <td>快 22%</td>
+                      </tr>
+                      <tr>
+                        <td>计算效率</td>
+                        <td>基准</td>
+                        <td>4 倍</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p class="context-text">32,000 token 的上下文窗口在文生图模型中属于较长范围。作为对比，FLUX.2-flex 和 FLUX.2-pro 支持 32,000 token，FLUX.1-Kontext-pro 为 5,000 token，Stable Diffusion 3.5 Large 为 1,000 token<a href="#ref-3">[3]</a>。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>已知能力边界</span>
+              </button>
+              <div class="subsection-content">
+                <p>根据已公开的官方文档，以下是 MAI-Image-2 当前的能力边界<a href="#ref-1">[1]</a><a href="#ref-2">[2]</a>：</p>
+                <div class="variant-grid-sm">
+                  <div class="variant-card">
+                    <h4>已确认支持</h4>
+                    <ul class="compact-list">
+                      <li>文本到图像生成</li>
+                      <li>自然语言提示词输入</li>
+                      <li>自定义宽高比（像素总量约束内）</li>
+                      <li>API Key / Entra ID 认证</li>
+                    </ul>
+                  </div>
+                  <div class="variant-card">
+                    <h4>未公开 / 不支持</h4>
+                    <ul class="compact-list">
+                      <li>图像编辑 / 图生图</li>
+                      <li>多参考图输入</li>
+                      <li>负面提示词</li>
+                      <li>Seed / 推理步数控制</li>
+                      <li>非英语语言</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══ 03 / API 与部署 ═══ -->
+        <section id="deployment" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / API 与部署</p>
+            <h2>Azure Foundry 部署与调用</h2>
+            <p>MAI-Image-2 通过 Azure Foundry 的 Global Standard 部署类型提供服务，使用微软自有 API 端点。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>部署流程</span>
+              </button>
+              <div class="subsection-content">
+                <p>MAI-Image-2 / MAI-Image-2e 可通过 Azure Foundry Portal 或 Azure CLI 部署<a href="#ref-1">[1]</a>：</p>
+                <ol class="flow-list">
+                  <li><strong>前置条件</strong>：Azure 订阅 + Microsoft Foundry 项目 + Cognitive Services Contributor 角色</li>
+                  <li><strong>Portal 部署</strong>：在 Foundry Portal 的模型目录中选择 MAI-Image-2 或 MAI-Image-2e，创建部署</li>
+                  <li><strong>CLI 部署</strong>：使用 <code>az cognitiveservices account deployment create</code> 命令</li>
+                </ol>
+                <div class="api-block">az cognitiveservices account deployment create \
+  --name &lt;ACCOUNT_NAME&gt; \
+  --resource-group &lt;RESOURCE_GROUP&gt; \
+  --deployment-name &lt;DEPLOYMENT_NAME&gt; \
+  --model-name MAI-Image-2e \
+  --model-format Microsoft \
+  --model-version 2026-04-09 \
+  --sku-name GlobalStandard \
+  --sku-capacity 1</div>
+                <p class="context-text"><strong>可用区域（Global Standard）</strong>：West Central US、East US、West US、West Europe、Sweden Central、South India<a href="#ref-2">[2]</a>。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>API 端点与调用方式</span>
+              </button>
+              <div class="subsection-content">
+                <p>MAI-Image-2 使用独立的 MAI API 端点（非标准 OpenAI 兼容端点）<a href="#ref-1">[1]</a>：</p>
+                <div class="api-block">POST https://&lt;resource-name&gt;.services.ai.azure.com/mai/v1/images/generations</div>
+                <p class="context-text">请求参数：</p>
+                <div class="simple-table-wrap">
+                  <table class="param-table">
+                    <thead>
+                      <tr>
+                        <th>参数</th>
+                        <th>类型</th>
+                        <th>说明</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><code>model</code></td>
+                        <td>string</td>
+                        <td>部署名称</td>
+                      </tr>
+                      <tr>
+                        <td><code>prompt</code></td>
+                        <td>string</td>
+                        <td>文本提示词（最长 32,000 tokens）</td>
+                      </tr>
+                      <tr>
+                        <td><code>width</code></td>
+                        <td>integer</td>
+                        <td>输出宽度（≥ 768px）</td>
+                      </tr>
+                      <tr>
+                        <td><code>height</code></td>
+                        <td>integer</td>
+                        <td>输出高度（≥ 768px，width × height ≤ 1,048,576）</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p class="context-text">认证方式：API Key（通过 <code>api-key</code> 请求头）或 Microsoft Entra ID Bearer Token（scope: <code>https://cognitiveservices.azure.com/.default</code>）<a href="#ref-1">[1]</a>。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>配额与限流</span>
+              </button>
+              <div class="subsection-content">
+                <p>MAI 模型的速率限制按 RPM（Requests Per Minute）计量<a href="#ref-1">[1]</a>：</p>
+                <div class="simple-table-wrap">
+                  <table class="param-table">
+                    <thead>
+                      <tr>
+                        <th>容量单位</th>
+                        <th>MAI-Image-2 RPM</th>
+                        <th>MAI-Image-2e RPM</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr><td>1</td><td>18</td><td>9</td></tr>
+                      <tr><td>2</td><td>30</td><td>15</td></tr>
+                      <tr><td>3</td><td>60</td><td>30</td></tr>
+                      <tr><td>4</td><td>90</td><td>45</td></tr>
+                      <tr><td>5</td><td>120</td><td>60</td></tr>
+                      <tr><td>6</td><td>180</td><td>90</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p class="note-text">注意：MAI-Image-2e 的 RPM 限制约为 MAI-Image-2 的一半。由于 MAI-Image-2e 每次请求的计算成本更低（效率 4 倍），这一配额比例意味着在相同容量单位下，两者的实际计算资源消耗可能接近。具体定价信息未在公开文档中找到。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══ 04 / 竞品对比 ═══ -->
+        <section id="comparison" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / 竞品对比</p>
+            <h2>Azure Foundry 中的文生图模型选型</h2>
+            <p>Azure Foundry 同时提供多个文生图模型。以下基于公开文档对比关键差异。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>Azure Foundry 文生图模型对比矩阵</span>
+              </button>
+              <div class="subsection-content">
+                <div class="simple-table-wrap">
+                  <table class="param-table">
+                    <thead>
+                      <tr>
+                        <th>模型</th>
+                        <th>提供商</th>
+                        <th>提示词长度</th>
+                        <th>图生图</th>
+                        <th>多参考图</th>
+                        <th>API 兼容性</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><strong>MAI-Image-2e</strong></td>
+                        <td>Microsoft</td>
+                        <td>32K tokens</td>
+                        <td>否</td>
+                        <td>否</td>
+                        <td>MAI API</td>
+                      </tr>
+                      <tr>
+                        <td><strong>MAI-Image-2</strong></td>
+                        <td>Microsoft</td>
+                        <td>32K tokens</td>
+                        <td>否</td>
+                        <td>否</td>
+                        <td>MAI API</td>
+                      </tr>
+                      <tr>
+                        <td><strong>GPT Image-1.5</strong></td>
+                        <td>OpenAI</td>
+                        <td>4K tokens</td>
+                        <td>是</td>
+                        <td>否</td>
+                        <td>OpenAI API</td>
+                      </tr>
+                      <tr>
+                        <td><strong>FLUX.2-flex</strong></td>
+                        <td>Black Forest Labs</td>
+                        <td>32K tokens</td>
+                        <td>是</td>
+                        <td>10 张</td>
+                        <td>BFL API</td>
+                      </tr>
+                      <tr>
+                        <td><strong>FLUX.1-Kontext-pro</strong></td>
+                        <td>Black Forest Labs</td>
+                        <td>5K tokens</td>
+                        <td>是</td>
+                        <td>1 张</td>
+                        <td>BFL / OpenAI API</td>
+                      </tr>
+                      <tr>
+                        <td><strong>SD 3.5 Large</strong></td>
+                        <td>Stability AI</td>
+                        <td>1K tokens</td>
+                        <td>是</td>
+                        <td>1 张</td>
+                        <td>Stability API</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p class="note-text">数据来源：Azure Foundry Models 官方文档<a href="#ref-3">[3]</a><a href="#ref-4">[4]</a>。GPT Image-1 / GPT Image-1.5 需要 Limited Access 申请。画质比较需要在相同提示词下实测，此处仅对比 API 规格。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>MAI-Image-2 的差异化优势与不足</span>
+              </button>
+              <div class="subsection-content">
+                <div class="variant-grid-md">
+                  <div class="variant-card">
+                    <h4>差异化优势</h4>
+                    <ul class="compact-list">
+                      <li><strong>Azure 原生第一方</strong>：SLA 覆盖、Azure RBAC 权限管理、Entra ID 认证，无需第三方 Marketplace 订阅</li>
+                      <li><strong>长提示词</strong>：32K tokens 与 FLUX.2 并列最长，远超 GPT Image（4K）和 SD（1K）</li>
+                      <li><strong>双变体弹性</strong>：同一 API 接口切换质量/效率版本</li>
+                      <li><strong>计算效率</strong>：MAI-Image-2e 的 4 倍效率降低了批量生成的单图成本</li>
+                    </ul>
+                  </div>
+                  <div class="variant-card">
+                    <h4>当前不足</h4>
+                    <ul class="compact-list">
+                      <li><strong>纯文本到图像</strong>：不支持图像编辑、图生图、多参考图输入——FLUX.2 和 GPT Image 均已支持</li>
+                      <li><strong>仅英语</strong>：不支持中文等其他语言的提示词输入</li>
+                      <li><strong>控制参数有限</strong>：不暴露 seed、推理步数、guidance scale 等进阶参数</li>
+                      <li><strong>区域有限</strong>：6 个区域，少于 FLUX.2 的全区域覆盖</li>
+                      <li><strong>Preview 状态</strong>：尚未 GA，SLA 和稳定性保障尚待完善</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══ 05 / 适用场景 ═══ -->
+        <section id="scenarios" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / 适用场景</p>
+            <h2>商业落地路径</h2>
+            <p>基于 MAI-Image-2 的能力边界和定位，以下是推荐和不推荐的使用场景。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>推荐场景</span>
+              </button>
+              <div class="subsection-content">
+                <ol class="flow-list">
+                  <li><strong>电商产品图批量生成（MAI-Image-2e）</strong>——利用 4 倍效率优势，在同一配额内生成更多的产品展示图。32K token 长提示支持精确描述产品细节、背景场景和品牌要素</li>
+                  <li><strong>营销素材 A/B 测试（MAI-Image-2e）</strong>——快速生成多个创意变体，支持数据驱动的素材优化</li>
+                  <li><strong>品牌主视觉设计（MAI-Image-2）</strong>——使用完整版获得最高画质输出，适用于品牌关键视觉、主视觉海报等低频高质量需求</li>
+                  <li><strong>Azure 生态集成应用</strong>——已有 Azure 基础设施的企业客户，可利用 Entra ID 认证和 RBAC 权限管理实现安全合规的图像生成工作流</li>
+                </ol>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>不推荐场景</span>
+              </button>
+              <div class="subsection-content">
+                <ul class="flow-list">
+                  <li><strong>图像编辑 / 局部修改</strong>——MAI-Image-2 不支持 inpainting、outpainting 和图生图。需使用 FLUX.1-Kontext-pro 或 GPT Image-1</li>
+                  <li><strong>风格参考 / 角色一致性</strong>——不支持参考图输入。FLUX.2-flex 支持最多 10 张参考图</li>
+                  <li><strong>非英语提示词</strong>——仅支持英语输入。中文场景需先翻译为英文</li>
+                  <li><strong>需要精细控制的高级用户</strong>——不暴露 seed、步数等参数。SD 3.5 Large 或 FLUX 提供更多控制维度</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>MAI-Image-2e vs MAI-Image-2：如何选择</span>
+              </button>
+              <div class="subsection-content">
+                <div class="simple-table-wrap">
+                  <table class="param-table">
+                    <thead>
+                      <tr>
+                        <th>决策因素</th>
+                        <th>选择 MAI-Image-2</th>
+                        <th>选择 MAI-Image-2e</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>图片数量</td>
+                        <td>低频（每日几十张）</td>
+                        <td>高频（每日数百至数千张）</td>
+                      </tr>
+                      <tr>
+                        <td>质量要求</td>
+                        <td>追求极致画质</td>
+                        <td>画质足够好即可</td>
+                      </tr>
+                      <tr>
+                        <td>成本敏感度</td>
+                        <td>不敏感</td>
+                        <td>优先控制成本</td>
+                      </tr>
+                      <tr>
+                        <td>延迟要求</td>
+                        <td>可接受较长等待</td>
+                        <td>需要快速响应</td>
+                      </tr>
+                      <tr>
+                        <td>典型场景</td>
+                        <td>品牌主视觉、概念设计</td>
+                        <td>产品图批量生成、营销素材</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p class="note-text">微软官方表示两者"画质相同"<a href="#ref-1">[1]</a>，但未提供 GenEval / DPG-Bench 等标准 Benchmark 的对比数据。建议在目标场景下实测对比后做决策。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══ References ═══ -->
+        <section id="references" class="section" data-reveal data-present-step data-step-title="参考来源">
+          <div class="section-head">
+            <p class="section-kicker">References</p>
+            <h2>参考来源</h2>
+          </div>
+          <ol class="bib-list">
+            <li id="ref-1"><span class="bib-id">[1]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/azure/foundry/foundry-models/how-to/use-foundry-models-mai" target="_blank" rel="noopener noreferrer">"Deploy and use MAI models in Microsoft Foundry (preview),"</a> <em>Microsoft Learn,</em> 2026-04-14.<span class="bib-note">MAI-Image-2 / MAI-Image-2e 的部署流程、API 端点、输入输出规格、配额限制、认证方式。MAI-Image-2e 核心数据来源："up to 22% faster and four times more efficient than MAI-Image-2"。</span></li>
+            <li id="ref-2"><span class="bib-id">[2]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/azure/foundry/foundry-models/concepts/models-sold-directly-by-azure?pivots=azure-direct-others" target="_blank" rel="noopener noreferrer">"Foundry Models sold directly by Azure — Other model collections,"</a> <em>Microsoft Learn,</em> 2026-03-14.<span class="bib-note">MAI-Image-2 / MAI-Image-2e 的能力摘要（32K tokens, PNG 输出, 768×768 ~ 1024×1024, 6 区域 Global Standard）、定位描述（product imagery, marketing visuals, brand assets）。</span></li>
+            <li id="ref-3"><span class="bib-id">[3]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/azure/foundry/foundry-models/concepts/models-sold-directly-by-azure?pivots=azure-direct-others" target="_blank" rel="noopener noreferrer">"Foundry Models sold directly by Azure — Black Forest Labs / Stability AI sections,"</a> <em>Microsoft Learn,</em> 2026-03-14.<span class="bib-note">FLUX.2-flex（32K tokens, 10 参考图）、FLUX.1-Kontext-pro（5K tokens, 1 参考图）、FLUX-1.1-pro（5K tokens）、SD 3.5 Large（1K tokens, 1 参考图）的能力规格。</span></li>
+            <li id="ref-4"><span class="bib-id">[4]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/azure/foundry/foundry-models/concepts/models-sold-directly-by-azure?pivots=azure-openai" target="_blank" rel="noopener noreferrer">"Foundry Models sold directly by Azure — Azure OpenAI models,"</a> <em>Microsoft Learn,</em> 2026-03-14.<span class="bib-note">GPT Image-1 / GPT Image-1-mini / GPT Image-1.5 的可用性和容量信息（4K tokens, Limited Access）。</span></li>
+          </ol>
+        </section>
+      </main>
+
+      <footer>
+         &copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

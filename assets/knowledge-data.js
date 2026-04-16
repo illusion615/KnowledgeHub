@@ -1108,5 +1108,28 @@ var knowledgeTree = [
     color: '#14b8a6',
     phase: 2.8, speed: 0.82,
     relations: ['study-room-design', 'knowledge-graph-org', 'study-room-standards']
+  },
+
+  // ════════════════════════════════════════
+  // 文章 — MAI-Image-2 模型研究
+  // ════════════════════════════════════════
+  {
+    id: 'mai-image-2-efficient',
+    parentId: 'ai-research-model',
+    type: 'article',
+    title: {
+      zh: '微软 MAI-Image-2 模型家族：自研文生图的效率与商业落地',
+      en: 'Microsoft MAI-Image-2 Family: Efficient Self-Developed Text-to-Image for Commercial Use'
+    },
+    summary: {
+      zh: '解析微软首个自研文生图模型 MAI-Image-2 / MAI-Image-2e 的架构、API 规格、竞品对比与适用场景。MAI-Image-2e 快 22%、效率 4 倍。',
+      en: 'Microsoft\'s first self-developed text-to-image models MAI-Image-2/2e: diffusion architecture, API specs, and use cases. 2e is 22% faster, 4x more efficient.'
+    },
+    tags: ['Text-to-Image', 'MAI-Image-2', 'Azure Foundry', 'Diffusion Model'],
+    date: '2026-04-16',
+    url: 'posts/mai-image-2-efficient/index.html',
+    color: '#0ea5e9',
+    phase: 5.8, speed: 0.86,
+    relations: ['text-to-image-prompting']
   }
 ];
