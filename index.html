@@ -308,6 +308,55 @@
     }
     .conn-line.is-visible { opacity: 0.8; }
 
+    /* ---- galaxy view nav ---- */
+    .galaxy-nav {
+      position: fixed;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 12;
+      width: 44px; height: 44px;
+      border: none;
+      border-radius: 50%;
+      background: var(--ctrl-bg);
+      color: var(--ink);
+      cursor: pointer;
+      font-size: 1.2rem;
+      display: none;
+      place-items: center;
+      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(20px);
+      transition: background 0.2s, transform 0.2s, opacity 0.3s;
+      opacity: 0.8;
+    }
+    .galaxy-nav:hover { background: var(--ctrl-hover); opacity: 1; transform: translateY(-50%) scale(1.08); }
+    .galaxy-nav.is-visible { display: grid; }
+    .galaxy-nav-prev { left: 16px; }
+    .galaxy-nav-next { right: 16px; }
+    .galaxy-back {
+      position: fixed;
+      top: 64px; left: 50%;
+      transform: translateX(-50%);
+      z-index: 12;
+      padding: 6px 18px;
+      border: 1px solid var(--card-border);
+      border-radius: 999px;
+      background: var(--ctrl-bg);
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-family: "Space Grotesk", sans-serif;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      gap: 6px;
+      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(20px);
+      transition: background 0.2s, color 0.2s;
+    }
+    .galaxy-back:hover { background: var(--ctrl-hover); color: var(--ink); }
+    .galaxy-back.is-visible { display: inline-flex; }
+    .is-galaxy-hidden { opacity: 0 !important; pointer-events: none !important; }
+    .is-galaxy-hidden-ring { opacity: 0 !important; }
+
     /* ---- planet ---- */
     .planet {
       position: absolute;
@@ -441,7 +490,7 @@
     .planet-label {
       position: absolute;
       left: 50%; top: calc(100% + 10px);
-      transform: translateX(-50%);
+      transform: translateX(-50%) scale(var(--inv-scale, 1));
       white-space: nowrap;
       font-family: "Space Grotesk", sans-serif;
       font-size: 0.72rem; font-weight: 500;
@@ -500,7 +549,7 @@
     .node-label {
       position: absolute;
       left: 50%; top: calc(100% + 10px);
-      transform: translateX(-50%);
+      transform: translateX(-50%) scale(var(--inv-scale, 1));
       white-space: nowrap;
       font-size: 0.72rem; font-weight: 500;
       color: var(--muted);
@@ -1646,6 +1695,9 @@
       <svg class="graph-svg" id="svg"></svg>
     </div>
     <aside class="planet-panel" id="planet-panel" aria-live="polite"></aside>
+    <button class="galaxy-nav galaxy-nav-prev" id="galaxy-prev" aria-label="Previous galaxy">‹</button>
+    <button class="galaxy-nav galaxy-nav-next" id="galaxy-next" aria-label="Next galaxy">›</button>
+    <button class="galaxy-back" id="galaxy-back"><span>←</span> <span data-zh="返回宇宙" data-en="Universe"></span></button>
   </div>
   <div class="card" id="card"></div>
 
@@ -1954,6 +2006,46 @@
   <script src="assets/pan-zoom.js"></script>
   <script src="assets/infographic-view.js"></script>
   <script>
+  // ============ SHARED MATH UTILITIES (global — used by PanZoomController) ============
+  function clampNumber(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  function getTouchCenter(touches) {
+    var touchA = touches[0];
+    var touchB = touches[1] || touchA;
+    return {
+      x: (touchA.clientX + touchB.clientX) / 2,
+      y: (touchA.clientY + touchB.clientY) / 2
+    };
+  }
+
+  function getTouchDistance(touches) {
+    var dx;
+    var dy;
+    if (!touches || touches.length < 2) return 0;
+    dx = touches[1].clientX - touches[0].clientX;
+    dy = touches[1].clientY - touches[0].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  function zoomCameraAt(camera, focusX, focusY, nextScale, minScale, maxScale) {
+    var clampedScale = clampNumber(nextScale, minScale, maxScale);
+    var factor = clampedScale / camera.scale;
+    camera.x = focusX - (focusX - camera.x) * factor;
+    camera.y = focusY - (focusY - camera.y) * factor;
+    camera.scale = clampedScale;
+    return clampedScale;
+  }
+
+  function anchorCameraToTouch(camera, focusX, focusY, worldX, worldY, nextScale, minScale, maxScale) {
+    var clampedScale = clampNumber(nextScale, minScale, maxScale);
+    camera.scale = clampedScale;
+    camera.x = focusX - worldX * clampedScale;
+    camera.y = focusY - worldY * clampedScale;
+    return clampedScale;
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
 
     // ============ TREE UTILITIES ============
@@ -1963,6 +2055,13 @@
 
     function getChildren(parentId) {
       return knowledgeTree.filter(function (n) { return n.parentId === parentId; });
+    }
+
+    // Like getChildren but excludes hidden nodes (and their descendants)
+    function getVisibleChildren(parentId) {
+      return getChildren(parentId).filter(function (n) {
+        return showHidden || !isNodeHidden(n);
+      });
     }
 
     function getDepth(node) {
@@ -1976,17 +2075,17 @@
     }
 
     function getTopics(parentId) {
-      return getChildren(parentId).filter(function (n) { return n.type === 'topic'; });
+      return getVisibleChildren(parentId).filter(function (n) { return n.type === 'topic'; });
     }
 
     function getArticles(parentId) {
-      return getChildren(parentId).filter(function (n) { return n.type === 'article'; });
+      return getVisibleChildren(parentId).filter(function (n) { return n.type === 'article'; });
     }
 
     // Recursively collect all articles under a node (any depth)
     function getAllArticles(nodeId) {
       var result = [];
-      getChildren(nodeId).forEach(function (c) {
+      getVisibleChildren(nodeId).forEach(function (c) {
         if (c.type === 'article') result.push(c);
         else result = result.concat(getAllArticles(c.id));
       });
@@ -2041,6 +2140,24 @@
     });
     allGroups.sort(function (a, b) { return getDepth(a) - getDepth(b); });
 
+    // Pre-compute childOrbitIndex: each child gets a unique index among siblings
+    function assignChildOrbitIndices() {
+      var parentChildMap = {};
+      knowledgeTree.forEach(function (n) {
+        if (!n.parentId) return;
+        if (!parentChildMap[n.parentId]) parentChildMap[n.parentId] = [];
+        parentChildMap[n.parentId].push(n);
+      });
+      Object.keys(parentChildMap).forEach(function (pid) {
+        var children = parentChildMap[pid];
+        children.forEach(function (c, i) {
+          c.childOrbitIndex = i;
+          c.siblingCount = children.length;
+        });
+      });
+    }
+    assignChildOrbitIndices();
+
     function rebuildDerivedArrays() {
       planets.length = 0;
       groups.length = 0;
@@ -2060,24 +2177,75 @@
     }
     rebuildDerivedArrays();
 
-    // Hub-level orbits (for planets around center)
-    var HUB_ORBITS = [
-      { rx: 0.22, ry: 0.30, tilt: -8 },
-      { rx: 0.34, ry: 0.40, tilt: 12 },
-      { rx: 0.44, ry: 0.48, tilt: -5 },
-      { rx: 0.52, ry: 0.54, tilt: 6 }
-    ];
+    // Hub-level orbits — dynamically computed per planet based on subtree size
+    var HUB_ORBIT_INNER = 0.22;   // innermost orbit rx (fraction of base) before normalization
+    var HUB_ORBIT_GAP   = 0.06;   // minimum gap between adjacent orbits
+    var HUB_ORBIT_GROW  = 0.02;   // extra radius per sqrt(descendant articles)
+    var HUB_ORBIT_MAX_FILL = 0.42; // outermost orbit rx must not exceed this (leaves padding)
+    var HUB_ORBIT_ASPECT = 0.82;  // ry/rx ellipse aspect ratio
+    var HUB_ORBIT_TILTS = [-8, 12, -5, 6, -10, 8];
+    var HUB_ORBITS = []; // populated by buildHubOrbits()
+
+    function buildHubOrbits() {
+      // Count total descendant articles for each root planet
+      var sorted = allPlanets.slice().sort(function (a, b) {
+        return (a.orbitIndex || 0) - (b.orbitIndex || 0);
+      });
+      // First pass: compute raw radii
+      var rawRadii = [];
+      var cursor = HUB_ORBIT_INNER;
+      sorted.forEach(function (pl) {
+        var descCount = getAllArticles(pl.id).length;
+        rawRadii.push(cursor);
+        cursor += HUB_ORBIT_GAP + Math.sqrt(descCount) * HUB_ORBIT_GROW;
+      });
+      // Normalize so outermost orbit fits within HUB_ORBIT_MAX_FILL
+      var maxRaw = rawRadii[rawRadii.length - 1] || HUB_ORBIT_INNER;
+      var scale = maxRaw > HUB_ORBIT_MAX_FILL ? HUB_ORBIT_MAX_FILL / maxRaw : 1;
+      HUB_ORBITS = [];
+      sorted.forEach(function (pl, i) {
+        var rx = rawRadii[i] * scale;
+        var ry = rx * HUB_ORBIT_ASPECT;
+        var tilt = HUB_ORBIT_TILTS[i % HUB_ORBIT_TILTS.length];
+        HUB_ORBITS.push({ rx: rx, ry: ry, tilt: tilt });
+      });
+    }
 
     // Dynamic orbit config by depth (depth 1 = children of root, depth 2 = grandchildren, etc.)
-    var ORBIT_BASE_RADIUS = 0.10;   // depth-1 orbit radius as fraction of min(W,H)
-    var ORBIT_DECAY = 0.55;         // each deeper level shrinks by this factor
-    var ORBIT_MIN_RADIUS = 0.018;   // minimum orbit radius
+    var ORBIT_BASE_RADIUS = 0.16;   // depth-1 orbit radius as fraction of min(W,H)
+    var ORBIT_DECAY = 0.58;         // each deeper level shrinks by this factor
+    var ORBIT_MIN_RADIUS = 0.04;    // minimum orbit radius
+    var ORBIT_MAX_RADIUS = 0.28;    // cap per-orbit radius fraction
+    var ORBIT_SPREAD = 0.85;        // fraction of base radius used for spreading siblings
     var ORBIT_TILTS = [15, -10, 8, -6, 12];
     var ORBIT_SPEEDS = [0.00015, 0.00018, 0.00022, 0.00025, 0.00028];
 
     function getOrbitRadiusForDepth(depth) {
       var r = ORBIT_BASE_RADIUS * Math.pow(ORBIT_DECAY, depth - 1);
       return Math.max(ORBIT_MIN_RADIUS, r);
+    }
+    // Outer bound of orbits at this depth (used for orbit rings and extent calc)
+    function getOrbitRadiusOuter(parentId, depth) {
+      var depthR = getOrbitRadiusForDepth(depth);
+      var n = getVisibleChildren(parentId).length;
+      if (n <= 1) return depthR;
+      return Math.min(depthR * (1 + ORBIT_SPREAD * 0.5), ORBIT_MAX_RADIUS);
+    }
+    // Per-child orbit radius: each sibling gets its own orbit lane
+    function getChildOrbitRadius(node) {
+      var depth = getDepth(node);
+      var depthR = getOrbitRadiusForDepth(depth);
+      var n = node.siblingCount || 1;
+      var idx = node.childOrbitIndex || 0;
+      if (n <= 1) return depthR;
+      // Spread siblings from innerR to outerR with edge padding
+      var halfSpread = depthR * ORBIT_SPREAD * 0.5;
+      var innerR = Math.max(ORBIT_MIN_RADIUS, depthR - halfSpread);
+      var outerR = Math.min(depthR + halfSpread, ORBIT_MAX_RADIUS);
+      // Keep 15% padding from edges so n=2 doesn't hug extremes
+      var padding = 0.15;
+      var t = padding + (1 - 2 * padding) * idx / (n - 1);
+      return innerR + (outerR - innerR) * t;
     }
     function getOrbitTilt(depth) {
       return ORBIT_TILTS[(depth - 1) % ORBIT_TILTS.length];
@@ -2105,6 +2273,8 @@
     var activePostId = null;
     var hoverPostId = null;
     var selectedPlanetId = null;
+    var galaxyViewId = null; // null = universe view, planetId = galaxy focus
+    var galaxyAnimating = false; // true during zoom transition
     var selectedTags = [];
     var orbitEls = [];
     var satOrbitEls = [];
@@ -2125,6 +2295,9 @@
     var graphEl = document.getElementById('graph');
     var graphStageEl = document.getElementById('graph-stage');
     var planetPanelEl = document.getElementById('planet-panel');
+    var galaxyPrevEl = document.getElementById('galaxy-prev');
+    var galaxyNextEl = document.getElementById('galaxy-next');
+    var galaxyBackEl = document.getElementById('galaxy-back');
     var cardEl = document.getElementById('card');
     var cardsViewEl = document.getElementById('layout-cards-view');
     var infographicViewEl = document.getElementById('infographic-view');
@@ -2136,6 +2309,7 @@
     createHubOrbits();
     createPlanets();
     createNodes();
+    applyUniverseVisibility();
     // Apply initial hidden filter to Galaxy DOM
     if (!showHidden) {
       knowledgeTree.forEach(function (n) {
@@ -2165,51 +2339,37 @@
     cardEl.addEventListener('mouseenter', beginHoverPause);
     cardEl.addEventListener('mouseleave', endHoverPause);
 
-    // ============ SHARED MATH UTILITIES ============
-    function clampNumber(value, min, max) {
-      return Math.max(min, Math.min(max, value));
-    }
+    // Galaxy navigation buttons
+    galaxyPrevEl.addEventListener('click', function (e) {
+      e.stopPropagation();
+      navigateGalaxy(-1);
+    });
+    galaxyNextEl.addEventListener('click', function (e) {
+      e.stopPropagation();
+      navigateGalaxy(1);
+    });
+    galaxyBackEl.addEventListener('click', function (e) {
+      e.stopPropagation();
+      exitGalaxy();
+    });
 
-    function getTouchCenter(touches) {
-      var touchA = touches[0];
-      var touchB = touches[1] || touchA;
-      return {
-        x: (touchA.clientX + touchB.clientX) / 2,
-        y: (touchA.clientY + touchB.clientY) / 2
-      };
-    }
-
-    function getTouchDistance(touches) {
-      var dx;
-      var dy;
-      if (!touches || touches.length < 2) return 0;
-      dx = touches[1].clientX - touches[0].clientX;
-      dy = touches[1].clientY - touches[0].clientY;
-      return Math.sqrt(dx * dx + dy * dy);
-    }
-
-    function zoomCameraAt(camera, focusX, focusY, nextScale, minScale, maxScale) {
-      var clampedScale = clampNumber(nextScale, minScale, maxScale);
-      var factor = clampedScale / camera.scale;
-      camera.x = focusX - (focusX - camera.x) * factor;
-      camera.y = focusY - (focusY - camera.y) * factor;
-      camera.scale = clampedScale;
-      return clampedScale;
-    }
-
-    function anchorCameraToTouch(camera, focusX, focusY, worldX, worldY, nextScale, minScale, maxScale) {
-      var clampedScale = clampNumber(nextScale, minScale, maxScale);
-      camera.scale = clampedScale;
-      camera.x = focusX - worldX * clampedScale;
-      camera.y = focusY - worldY * clampedScale;
-      return clampedScale;
-    }
+    // Galaxy keyboard navigation
+    document.addEventListener('keydown', function (e) {
+      if (currentLayout !== 'galaxy') return;
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (galaxyViewId) {
+        if (e.key === 'ArrowLeft') { e.preventDefault(); navigateGalaxy(-1); }
+        else if (e.key === 'ArrowRight') { e.preventDefault(); navigateGalaxy(1); }
+        else if (e.key === 'Escape') { e.preventDefault(); exitGalaxy(); }
+      }
+    });
 
     // ============ GALAXY PAN-ZOOM (via PanZoomController) ============
     graphPanZoom = PanZoomController(graphEl, cam, {
       scaleMin: SCALE_MIN,
       scaleMax: SCALE_MAX,
       shouldBlockPan: function (target) {
+        if (galaxyViewId) return true;
         return target.closest('.node') || target.closest('.planet') ||
           target.closest('.card') || target.closest('.planet-panel') ||
           target.closest('.tag-chip') || target.closest('.ctrl-btn');
@@ -2217,7 +2377,7 @@
       shouldBlockPinch: function (target) {
         return target.closest('.card') || target.closest('.planet-panel');
       },
-      layoutGuard: function () { return currentLayout === 'galaxy'; }
+      layoutGuard: function () { return currentLayout === 'galaxy' && !galaxyAnimating; }
     });
 
     // ============ THEME / LANG / FONT ============
@@ -2432,6 +2592,7 @@
 
     // ============ HUB ORBITS (SVG) ============
     function createHubOrbits() {
+      buildHubOrbits();
       HUB_ORBITS.forEach(function () {
         var el = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
         el.setAttribute('class', 'orbit-ring');
@@ -2542,8 +2703,14 @@
           e.stopPropagation();
           onPlanetClick(pl.id);
         });
-        el.addEventListener('mouseenter', beginHoverPause);
-        el.addEventListener('mouseleave', endHoverPause);
+        el.addEventListener('mouseenter', function () {
+          beginHoverPause();
+          showGalaxyArticles(pl.id);
+        });
+        el.addEventListener('mouseleave', function () {
+          endHoverPause();
+          hideGalaxyArticles(pl.id);
+        });
 
         graphStageEl.appendChild(el);
         pl.el = el;
@@ -2559,7 +2726,16 @@
         var count = descCounts[g.id] || 0;
         var ratio = count / globalMax;
 
-        // Orbit ring for group's children
+        // Per-child orbit ring (this group's own lane around its parent)
+        var childRing = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+        childRing.setAttribute('class', 'orbit-ring');
+        childRing.setAttribute('stroke-width', '0.5');
+        childRing.style.stroke = g.color;
+        childRing.style.opacity = '0.12';
+        svg.appendChild(childRing);
+        g.childRingEl = childRing;
+
+        // Orbit ring for group's children (outermost extent)
         var gRing = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
         gRing.setAttribute('class', 'orbit-ring');
         gRing.setAttribute('stroke-width', Math.max(0.3, 0.8 - depth * 0.15).toFixed(1));
@@ -2601,12 +2777,22 @@
         el.appendChild(label);
         g.labelEl = label;
 
-        el.addEventListener('mouseenter', beginHoverPause);
-        el.addEventListener('mouseleave', endHoverPause);
+        el.addEventListener('mouseenter', function () {
+          beginHoverPause();
+          showGalaxyArticles(g.id);
+        });
+        el.addEventListener('mouseleave', function () {
+          endHoverPause();
+          hideGalaxyArticles(g.id);
+        });
         (function (gId) {
           el.addEventListener('click', function (e) {
             e.stopPropagation();
-            onPlanetClick(gId);
+            if (galaxyViewId) {
+              onGroupClick(gId);
+            } else {
+              onPlanetClick(gId);
+            }
           });
         })(g.id);
 
@@ -2622,6 +2808,15 @@
         p.angle = p.phase;
         p.paused = false;
         p.x = 0; p.y = 0;
+
+        // Per-child orbit ring (faint, shows individual lane)
+        var childRing = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+        childRing.setAttribute('class', 'orbit-ring');
+        childRing.setAttribute('stroke-width', '0.4');
+        childRing.style.stroke = p.color;
+        childRing.style.opacity = '0.08';
+        svg.appendChild(childRing);
+        p.childRingEl = childRing;
 
         var el = document.createElement('div');
         el.className = 'node';
@@ -2670,7 +2865,7 @@
       if (!parent) return { x: 0, y: 0 };
       var depth = getDepth(g);
       var base = Math.min(window.innerWidth, window.innerHeight);
-      var r = base * getOrbitRadiusForDepth(depth);
+      var r = base * getChildOrbitRadius(g);
       var tilt = getOrbitTilt(depth);
       var tiltRad = tilt * Math.PI / 180;
       var ux = r * Math.cos(g.angle);
@@ -2684,15 +2879,18 @@
     function calcNodePos(post) {
       // Find the direct parent (group or planet)
       var parent = null;
+      var parentId = null;
       if (post.groupId && groupMap[post.groupId]) {
         parent = groupMap[post.groupId];
+        parentId = post.groupId;
       } else if (post.planetId && planetMap[post.planetId]) {
         parent = planetMap[post.planetId];
+        parentId = post.planetId;
       }
       if (!parent) return { x: 0, y: 0 };
       var depth = getDepth(post);
       var base = Math.min(window.innerWidth, window.innerHeight);
-      var r = base * getOrbitRadiusForDepth(depth);
+      var r = base * getChildOrbitRadius(post);
       var tilt = getOrbitTilt(depth);
       var tiltRad = tilt * Math.PI / 180;
       var ux = r * Math.cos(post.angle);
@@ -2703,12 +2901,279 @@
       };
     }
 
+    // ============ GALAXY VIEW ============
+    // In universe view: all planets orbit center, children are hidden.
+    // In galaxy view: selected planet sits at center, its children orbit around it.
+
+    var GALAXY_ZOOM_PADDING = 0.90;   // fraction of half-screen to fill
+    var GALAXY_ZOOM_MIN = 1.8;        // minimum zoom level for galaxy view
+    var GALAXY_ZOOM_MAX = 4.0;        // maximum zoom level for galaxy view
+    var GALAXY_ANIM_DURATION = 600;    // ms for zoom transition
+    var galaxyAnimStart = 0;
+    var galaxyAnimFrom = { x: 0, y: 0, scale: 1 };
+    var galaxyAnimTo = { x: 0, y: 0, scale: 1 };
+
+    // Compute the total orbit extent from a planet to its deepest descendants
+    function getMaxOrbitExtent(plId) {
+      var maxR = 0;
+      // Recursively find the maximum cumulative radius to any leaf
+      function walk(nodeId, cumR) {
+        var children = getVisibleChildren(nodeId);
+        if (children.length === 0) {
+          if (cumR > maxR) maxR = cumR;
+          return;
+        }
+        var childDepth = getDepth(children[0]);
+        var r = getOrbitRadiusOuter(nodeId, childDepth);
+        children.forEach(function (c) {
+          walk(c.id, cumR + r);
+        });
+      }
+      walk(plId, 0);
+      return maxR;
+    }
+
+    function calcGalaxyZoomScale(pl) {
+      var W = window.innerWidth, H = window.innerHeight;
+      var base = Math.min(W, H);
+      var extent = getMaxOrbitExtent(pl.id);
+      var extentPx = extent * base;
+      if (extentPx < 60) extentPx = 60;
+      var halfScreen = Math.min(W, H) / 2;
+      var zoom = (halfScreen * GALAXY_ZOOM_PADDING) / extentPx;
+      return Math.max(GALAXY_ZOOM_MIN, Math.min(GALAXY_ZOOM_MAX, zoom));
+    }
+
+    function applyUniverseVisibility() {
+      // In universe view: hide all children (groups + posts), show hub orbit rings
+      groups.forEach(function (g) {
+        g.el.classList.add('is-galaxy-hidden');
+        g.satRingEl.classList.add('is-galaxy-hidden-ring');
+        if (g.childRingEl) g.childRingEl.classList.add('is-galaxy-hidden-ring');
+      });
+      posts.forEach(function (p) {
+        p.el.classList.add('is-galaxy-hidden');
+        if (p.childRingEl) p.childRingEl.classList.add('is-galaxy-hidden-ring');
+      });
+      orbitEls.forEach(function (el) {
+        el.classList.remove('is-galaxy-hidden-ring');
+      });
+      planets.forEach(function (pl) {
+        pl.el.classList.remove('is-galaxy-hidden');
+        pl.el.classList.remove('is-bg');
+        pl.satRingEl.classList.add('is-galaxy-hidden-ring');
+      });
+    }
+
+    function applyGalaxyVisibility(plId) {
+      // Show only the selected planet's descendants
+      var descIds = {};
+      var queue = [plId];
+      while (queue.length) {
+        var cur = queue.shift();
+        descIds[cur] = true;
+        getVisibleChildren(cur).forEach(function (c) {
+          queue.push(c.id);
+        });
+      }
+
+      // Hide hub orbit rings
+      orbitEls.forEach(function (el) {
+        el.classList.add('is-galaxy-hidden-ring');
+      });
+
+      // Dim other planets, show focused planet
+      planets.forEach(function (pl) {
+        if (pl.id === plId) {
+          pl.el.classList.remove('is-galaxy-hidden');
+          pl.el.classList.remove('is-bg');
+          pl.satRingEl.classList.remove('is-galaxy-hidden-ring');
+        } else {
+          pl.el.classList.add('is-galaxy-hidden');
+          pl.satRingEl.classList.add('is-galaxy-hidden-ring');
+        }
+      });
+
+      // Show/hide groups
+      groups.forEach(function (g) {
+        if (descIds[g.id]) {
+          g.el.classList.remove('is-galaxy-hidden');
+          g.satRingEl.classList.remove('is-galaxy-hidden-ring');
+          if (g.childRingEl) g.childRingEl.classList.remove('is-galaxy-hidden-ring');
+        } else {
+          g.el.classList.add('is-galaxy-hidden');
+          g.satRingEl.classList.add('is-galaxy-hidden-ring');
+          if (g.childRingEl) g.childRingEl.classList.add('is-galaxy-hidden-ring');
+        }
+      });
+
+      // Show/hide posts — hidden by default in galaxy view, revealed on parent hover
+      posts.forEach(function (p) {
+        if (descIds[p.id]) {
+          // Hide articles but keep their orbit rings faintly visible
+          p.el.classList.add('is-galaxy-hidden');
+          if (p.childRingEl) p.childRingEl.classList.remove('is-galaxy-hidden-ring');
+        } else {
+          p.el.classList.add('is-galaxy-hidden');
+          if (p.childRingEl) p.childRingEl.classList.add('is-galaxy-hidden-ring');
+        }
+      });
+    }
+
+    // Track which topic is being hovered in galaxy view
+    var galaxyHoverTopicId = null;
+
+    function showGalaxyArticles(topicId) {
+      if (!galaxyViewId) return;
+      galaxyHoverTopicId = topicId;
+      // Show only direct article children of this topic
+      var directArticles = getVisibleChildren(topicId).filter(function (c) { return c.type === 'article'; });
+      directArticles.forEach(function (a) {
+        var p = postMap[a.id];
+        if (p && p.el) p.el.classList.remove('is-galaxy-hidden');
+      });
+    }
+
+    function hideGalaxyArticles(topicId) {
+      if (!galaxyViewId) return;
+      if (galaxyHoverTopicId !== topicId) return;
+      galaxyHoverTopicId = null;
+      var directArticles = getVisibleChildren(topicId).filter(function (c) { return c.type === 'article'; });
+      directArticles.forEach(function (a) {
+        var p = postMap[a.id];
+        if (p && p.el) p.el.classList.add('is-galaxy-hidden');
+      });
+    }
+
+    function calcGalaxyTarget(pl) {
+      var W = window.innerWidth, H = window.innerHeight;
+      var zoomScale = calcGalaxyZoomScale(pl);
+      return {
+        x: W / 2 - pl.x * zoomScale,
+        y: H / 2 - pl.y * zoomScale,
+        scale: zoomScale
+      };
+    }
+
+    function enterGalaxy(plId) {
+      if (galaxyAnimating) return;
+      var pl = planetMap[plId];
+      if (!pl) return;
+
+      closeCard();
+      closePlanetPanel();
+      galaxyViewId = plId;
+      selectedPlanetId = plId;
+
+      applyGalaxyVisibility(plId);
+      showGalaxyNav();
+
+      // Animate camera from current position to centered on planet
+      galaxyAnimFrom = { x: cam.x, y: cam.y, scale: cam.scale };
+      galaxyAnimTo = calcGalaxyTarget(pl);
+      galaxyAnimStart = performance.now();
+      galaxyAnimating = true;
+    }
+
+    function exitGalaxy() {
+      if (galaxyAnimating) return;
+      closeCard();
+      closePlanetPanel();
+
+      galaxyViewId = null;
+      galaxyHoverTopicId = null;
+      selectedPlanetId = null;
+      hideGalaxyNav();
+
+      // Animate back to universe view
+      galaxyAnimFrom = { x: cam.x, y: cam.y, scale: cam.scale };
+      galaxyAnimTo = { x: 0, y: 0, scale: 1 };
+      galaxyAnimStart = performance.now();
+      galaxyAnimating = true;
+
+      // Visibility restored after animation completes (in animate loop)
+    }
+
+    function navigateGalaxy(direction) {
+      if (galaxyAnimating || !galaxyViewId) return;
+      var idx = -1;
+      planets.forEach(function (pl, i) { if (pl.id === galaxyViewId) idx = i; });
+      if (idx < 0) return;
+      var nextIdx = (idx + direction + planets.length) % planets.length;
+      var nextPl = planets[nextIdx];
+
+      closeCard();
+      closePlanetPanel();
+      galaxyViewId = nextPl.id;
+      selectedPlanetId = nextPl.id;
+
+      applyGalaxyVisibility(nextPl.id);
+
+      galaxyAnimFrom = { x: cam.x, y: cam.y, scale: cam.scale };
+      galaxyAnimTo = calcGalaxyTarget(nextPl);
+      galaxyAnimStart = performance.now();
+      galaxyAnimating = true;
+    }
+
+    function showGalaxyNav() {
+      galaxyPrevEl.classList.add('is-visible');
+      galaxyNextEl.classList.add('is-visible');
+      galaxyBackEl.classList.add('is-visible');
+    }
+
+    function hideGalaxyNav() {
+      galaxyPrevEl.classList.remove('is-visible');
+      galaxyNextEl.classList.remove('is-visible');
+      galaxyBackEl.classList.remove('is-visible');
+    }
+
+    function easeInOutCubic(t) {
+      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    }
+
+    function tickGalaxyAnim(time) {
+      if (!galaxyAnimating) return;
+      var elapsed = time - galaxyAnimStart;
+      var t = Math.min(elapsed / GALAXY_ANIM_DURATION, 1);
+      var e = easeInOutCubic(t);
+      cam.x = galaxyAnimFrom.x + (galaxyAnimTo.x - galaxyAnimFrom.x) * e;
+      cam.y = galaxyAnimFrom.y + (galaxyAnimTo.y - galaxyAnimFrom.y) * e;
+      cam.scale = galaxyAnimFrom.scale + (galaxyAnimTo.scale - galaxyAnimFrom.scale) * e;
+      if (t >= 1) {
+        galaxyAnimating = false;
+        // If returned to universe, restore visibility
+        if (!galaxyViewId) {
+          applyUniverseVisibility();
+        }
+      }
+    }
+
+    // Keep galaxy camera centered on focused planet (it moves in orbit)
+    function syncGalaxyCamera() {
+      if (!galaxyViewId || galaxyAnimating) return;
+      var pl = planetMap[galaxyViewId];
+      if (!pl) return;
+      var W = window.innerWidth, H = window.innerHeight;
+      cam.x = W / 2 - pl.x * cam.scale;
+      cam.y = H / 2 - pl.y * cam.scale;
+    }
+
+    // Initialize universe visibility
+    // (called from INIT section after createPlanets/createNodes)
+
     // ============ ANIMATION ============
     function animate(time) {
       var dt = prevTime ? (time - prevTime) : 16;
       prevTime = time;
       var base = Math.min(window.innerWidth, window.innerHeight);
+
+      // Galaxy zoom animation tick
+      tickGalaxyAnim(time);
+      // Keep camera centered on focused planet in galaxy view
+      syncGalaxyCamera();
+
       graphStageEl.style.transform = 'translate(' + cam.x + 'px,' + cam.y + 'px) scale(' + cam.scale + ')';
+      graphStageEl.style.setProperty('--inv-scale', (1 / cam.scale));
 
       // Move planets
       planets.forEach(function (pl) {
@@ -2720,9 +3185,9 @@
         pl.el.style.left = pos.x + 'px';
         pl.el.style.top = pos.y + 'px';
 
-        // Update satellite orbit ring using depth-based radius
+        // Update satellite orbit ring using outer extent radius
         var childDepth = 1; // children of root are depth 1
-        var r = base * getOrbitRadiusForDepth(childDepth);
+        var r = base * getOrbitRadiusOuter(pl.id, childDepth);
         var tilt = getOrbitTilt(childDepth);
         pl.satRingEl.setAttribute('cx', pos.x);
         pl.satRingEl.setAttribute('cy', pos.y);
@@ -2743,9 +3208,21 @@
         g.el.style.left = pos.x + 'px';
         g.el.style.top = pos.y + 'px';
 
-        // Update this group's child orbit ring
+        // Update per-child orbit ring (this group's own lane around its parent)
+        var parent = planetMap[g.parentId] || groupMap[g.parentId];
+        if (parent && g.childRingEl) {
+          var cr = base * getChildOrbitRadius(g);
+          var cTilt = getOrbitTilt(depth);
+          g.childRingEl.setAttribute('cx', parent.x);
+          g.childRingEl.setAttribute('cy', parent.y);
+          g.childRingEl.setAttribute('rx', cr);
+          g.childRingEl.setAttribute('ry', cr * 0.6);
+          g.childRingEl.setAttribute('transform', 'rotate(' + cTilt + ' ' + parent.x + ' ' + parent.y + ')');
+        }
+
+        // Update this group's child orbit ring (outer extent)
         var childDepth = depth + 1;
-        var gr = base * getOrbitRadiusForDepth(childDepth);
+        var gr = base * getOrbitRadiusOuter(g.id, childDepth);
         var gTilt = getOrbitTilt(childDepth);
         g.satRingEl.setAttribute('cx', pos.x);
         g.satRingEl.setAttribute('cy', pos.y);
@@ -2765,6 +3242,18 @@
         p.x = pos.x; p.y = pos.y;
         p.el.style.left = pos.x + 'px';
         p.el.style.top = pos.y + 'px';
+
+        // Update per-child orbit ring
+        var parent = (p.groupId && groupMap[p.groupId]) || (p.planetId && planetMap[p.planetId]);
+        if (parent && p.childRingEl) {
+          var cr = base * getChildOrbitRadius(p);
+          var cTilt = getOrbitTilt(depth);
+          p.childRingEl.setAttribute('cx', parent.x);
+          p.childRingEl.setAttribute('cy', parent.y);
+          p.childRingEl.setAttribute('rx', cr);
+          p.childRingEl.setAttribute('ry', cr * 0.6);
+          p.childRingEl.setAttribute('transform', 'rotate(' + cTilt + ' ' + parent.x + ' ' + parent.y + ')');
+        }
       });
 
       updateConnections();
@@ -2783,13 +3272,30 @@
     // ============ PLANET CLICK ============
     function onPlanetClick(plId) {
       closeCard();
-      if (selectedPlanetId === plId) {
-        clearPlanetSelection();
+      if (galaxyViewId === plId) {
+        // Already in this galaxy — show planet panel
+        if (selectedPlanetId === plId) {
+          closePlanetPanel();
+          return;
+        }
+        selectedPlanetId = plId;
+        showPlanetPanel(plId);
         return;
       }
-      selectedPlanetId = plId;
-      applyPlanetFilter();
-      showPlanetPanel(plId);
+      // Enter galaxy view for this planet
+      enterGalaxy(plId);
+    }
+
+    // Clicking a group (sub-topic) in galaxy view shows its panel
+    function onGroupClick(gId) {
+      closeCard();
+      if (selectedPlanetId === gId) {
+        closePlanetPanel();
+        selectedPlanetId = galaxyViewId;
+        return;
+      }
+      selectedPlanetId = gId;
+      showPlanetPanel(gId);
     }
 
     function clearPlanetSelection() {
@@ -2807,7 +3313,7 @@
         var queue = [selectedPlanetId];
         while (queue.length) {
           var cur = queue.shift();
-          getChildren(cur).forEach(function (c) {
+          getVisibleChildren(cur).forEach(function (c) {
             if (c.type === 'topic') { selDescIds[c.id] = true; queue.push(c.id); }
           });
         }
@@ -2884,11 +3390,13 @@
     function onGraphClick(e) {
       if (graphPanZoom && graphPanZoom.wasDragged()) return;
       if (graphPanZoom && graphPanZoom.isClickSuppressed()) return;
-      if (e.target.closest('.node') || e.target.closest('.card') || e.target.closest('.planet') || e.target.closest('.planet-panel')) return;
+      if (e.target.closest('.node') || e.target.closest('.card') || e.target.closest('.planet') || e.target.closest('.planet-panel') || e.target.closest('.galaxy-nav') || e.target.closest('.galaxy-back')) return;
       closeCard();
-      // Also deselect planet
-      if (selectedPlanetId) {
-        clearPlanetSelection();
+      closePlanetPanel();
+      // In galaxy view, clicking background exits to universe
+      if (galaxyViewId) {
+        exitGalaxy();
+        return;
       }
     }
 
@@ -3741,6 +4249,8 @@
 
     function applyHiddenFilter() {
       rebuildDerivedArrays();
+      buildHubOrbits();
+      layoutOrbits();
 
       // Galaxy: toggle visibility of all DOM elements based on hidden state
       knowledgeTree.forEach(function (n) {
@@ -3785,6 +4295,13 @@
       // Clean up galaxy state
       closeCard();
       closePlanetPanel();
+      if (galaxyViewId) {
+        galaxyViewId = null;
+        galaxyAnimating = false;
+        hideGalaxyNav();
+        cam.x = 0; cam.y = 0; cam.scale = 1;
+        applyUniverseVisibility();
+      }
       if (selectedPlanetId) clearPlanetSelection();
       // Re-apply search to new layout
       if (searchQuery) applySearch(searchQuery);
@@ -3852,7 +4369,7 @@
       var ART_R = 16;
 
       function buildNodes(parentId, depth, parentNode) {
-        var children = getChildren(parentId);
+        var children = getVisibleChildren(parentId);
         var topics = [], articles = [];
         children.forEach(function (c) {
           if (c.type === 'topic') topics.push(c);
@@ -4133,7 +4650,7 @@
         searchQuery: searchQuery,
         matchesSearch: matchesSearch,
         arcSortMode: arcSortMode,
-        getChildren: getChildren,
+        getChildren: getVisibleChildren,
         getAllArticles: getAllArticles,
         navigateToArticle: navigateToArticle,
         currentLayout: currentLayout,

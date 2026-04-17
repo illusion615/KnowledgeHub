@@ -230,9 +230,373 @@ document.addEventListener('DOMContentLoaded', function () {
     toggle.type = 'button';
     toggle.setAttribute('data-presentation-toggle', '');
     toggle.innerHTML = '<svg class="present-toggle-icon" viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M9.5 10l2.5-2.5L14.5 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-    topbarActions.appendChild(toggle);
+
+    // Wrap toggle in a launch-wrapper for hover dropdown
+    var launchWrapper = document.createElement('div');
+    launchWrapper.className = 'present-launch-wrapper';
+    launchWrapper.appendChild(toggle);
+    topbarActions.appendChild(launchWrapper);
 
     return toggle;
+  };
+
+  /* ── Pre-launch settings panel (hover dropdown) ── */
+  var launchPanelBuilt = false;
+
+  var buildLaunchPanel = function () {
+    if (launchPanelBuilt) return;
+    launchPanelBuilt = true;
+
+    var wrapper = topbar.querySelector('.present-launch-wrapper');
+    if (!wrapper) return;
+
+    var lang = getLang();
+    var panel = document.createElement('div');
+    panel.className = 'present-launch-panel';
+
+    // Load saved settings
+    var savedSettings = {};
+    try { savedSettings = JSON.parse(localStorage.getItem('narration-settings')) || {}; } catch (e) {}
+    var autoNarrate = localStorage.getItem('narration-autostart') === 'true';
+    var autoRecord = localStorage.getItem('narration-autorecord') === 'true';
+
+    // Build panel HTML
+    var zhMode = lang === 'zh';
+    panel.innerHTML = [
+      '<div class="launch-hero">',
+      '  <button type="button" class="launch-play-btn" aria-label="' + (zhMode ? '开始演示' : 'Start Presentation') + '">',
+      '    <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M10 8l5 3-5 3V8z" fill="currentColor"/></svg>',
+      '  </button>',
+      '  <span class="launch-hero-label">' + (zhMode ? '开始演示' : 'Start Presentation') + '</span>',
+      '</div>',
+      '<div class="launch-divider-line"></div>',
+      '<div class="launch-row">',
+      '  <span class="launch-row-label">' + (zhMode ? '语言' : 'Language') + '</span>',
+      '  <select class="launch-select" data-launch="lang">',
+      '    <option value="auto">' + (zhMode ? '跟随页面' : 'Follow page') + '</option>',
+      '    <option value="zh">中文</option>',
+      '    <option value="en">English</option>',
+      '  </select>',
+      '</div>',
+      '<div class="launch-row">',
+      '  <span class="launch-row-label">' + (zhMode ? '自动语音讲解' : 'Auto narration') + '</span>',
+      '  <button type="button" class="launch-switch" data-launch="autoNarrate" aria-label="' + (zhMode ? '自动语音讲解' : 'Auto narration') + '"></button>',
+      '</div>',
+      '<div class="launch-row">',
+      '  <span class="launch-row-label">' + (zhMode ? '自动录制' : 'Auto record') + '</span>',
+      '  <button type="button" class="launch-switch" data-launch="autoRecord" aria-label="' + (zhMode ? '自动录制' : 'Auto record') + '"></button>',
+      '</div>',
+      '<div class="launch-voice-settings">',
+      '  <div class="launch-divider"></div>',
+      '  <div class="launch-row">',
+      '    <span>' + (zhMode ? '引擎' : 'Engine') + '</span>',
+      '    <select class="launch-select" data-launch="ttsProvider">',
+      '      <option value="browser">' + (zhMode ? '浏览器内置' : 'Browser') + '</option>',
+      '      <option value="vibevoice">VibeVoice (EN)</option>',
+      '    </select>',
+      '  </div>',
+      '  <div class="launch-row">',
+      '    <span>' + (zhMode ? '音色' : 'Voice') + '</span>',
+      '    <select class="launch-voice-select" data-launch="voiceName">',
+      '      <option value="">' + (zhMode ? '自动' : 'Auto') + '</option>',
+      '    </select>',
+      '    <button type="button" class="launch-voice-test" aria-label="' + (zhMode ? '试听' : 'Preview') + '">' +
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>' +
+          '</button>',
+      '  </div>',
+      '  <div class="launch-row">',
+      '    <span>' + (zhMode ? '语速' : 'Speed') + '</span>',
+      '    <input type="range" class="launch-range" data-launch="rate" min="0.5" max="1.5" step="0.1" value="0.92" />',
+      '    <span class="launch-rate-val">0.92</span>',
+      '  </div>',
+      '</div>'
+    ].join('\n');
+
+    wrapper.appendChild(panel);
+
+    // DOM references
+    var langSelect = panel.querySelector('[data-launch="lang"]');
+    var autoNarrateBtn = panel.querySelector('[data-launch="autoNarrate"]');
+    var autoRecordBtn = panel.querySelector('[data-launch="autoRecord"]');
+    var voiceSection = panel.querySelector('.launch-voice-settings');
+    var ttsSelect = panel.querySelector('[data-launch="ttsProvider"]');
+    var voiceSelect = panel.querySelector('[data-launch="voiceName"]');
+    var voiceTestBtn = panel.querySelector('.launch-voice-test');
+    var rateInput = panel.querySelector('[data-launch="rate"]');
+    var rateVal = panel.querySelector('.launch-rate-val');
+
+    // VibeVoice preset voices
+    var vibeVoices = [
+      { value: 'en-Emma_woman', label: 'Emma (Woman)' },
+      { value: 'en-Grace_woman', label: 'Grace (Woman)' },
+      { value: 'en-Carter_man', label: 'Carter (Man)' },
+      { value: 'en-Davis_man', label: 'Davis (Man)' },
+      { value: 'en-Frank_man', label: 'Frank (Man)' },
+      { value: 'en-Mike_man', label: 'Mike (Man)' }
+    ];
+
+    // Apply saved values
+    if (savedSettings.lang) langSelect.value = savedSettings.lang;
+    if (savedSettings.ttsProvider) ttsSelect.value = savedSettings.ttsProvider;
+    if (savedSettings.rate) { rateInput.value = savedSettings.rate; rateVal.textContent = parseFloat(savedSettings.rate).toFixed(2); }
+    if (autoNarrate) autoNarrateBtn.classList.add('is-on');
+    if (autoRecord) autoRecordBtn.classList.add('is-on');
+
+    // Track last known browser/vibe voice selections separately
+    var lastBrowserVoice = savedSettings.voiceName || '';
+    var lastVibeVoice = savedSettings.vibeVoice || 'en-Emma_woman';
+
+    // Sync voice section visibility
+    var syncVoiceExpanded = function () {
+      var needsVoice = autoNarrateBtn.classList.contains('is-on') || autoRecordBtn.classList.contains('is-on');
+      if (needsVoice) {
+        voiceSection.classList.add('is-expanded');
+      } else {
+        voiceSection.classList.remove('is-expanded');
+      }
+    };
+    syncVoiceExpanded();
+
+    // Populate browser voices into voiceSelect
+    var populateBrowserVoices = function () {
+      if (!window.speechSynthesis) return;
+      var allVoices = window.speechSynthesis.getVoices();
+      if (!allVoices || !allVoices.length) return;
+
+      var filterLang = langSelect.value;
+      if (filterLang === 'auto') filterLang = getLang();
+      var langPrefix = (filterLang === 'zh') ? 'zh' : 'en';
+
+      while (voiceSelect.options.length > 1) {
+        voiceSelect.removeChild(voiceSelect.lastChild);
+      }
+      voiceSelect.options[0].textContent = zhMode ? '自动' : 'Auto';
+
+      var dialectMap = {
+        'zh-CN': '普通话', 'zh-TW': '台湾', 'zh-HK': '粤语',
+        'en-US': 'US', 'en-GB': 'UK', 'en-AU': 'AU', 'en-IN': 'IN'
+      };
+
+      allVoices.forEach(function (v) {
+        if (v.lang.indexOf(langPrefix) !== 0) return;
+        var opt = document.createElement('option');
+        opt.value = v.name;
+        var coreName = v.name.replace(/\s*\(.*\)\s*$/, '');
+        var dialectLabel = dialectMap[v.lang] || v.lang;
+        opt.textContent = coreName + ' · ' + dialectLabel;
+        voiceSelect.appendChild(opt);
+      });
+
+      if (lastBrowserVoice) voiceSelect.value = lastBrowserVoice;
+    };
+
+    // Populate VibeVoice presets into voiceSelect
+    var populateVibeVoices = function () {
+      while (voiceSelect.options.length) {
+        voiceSelect.removeChild(voiceSelect.lastChild);
+      }
+
+      vibeVoices.forEach(function (v) {
+        var opt = document.createElement('option');
+        opt.value = v.value;
+        opt.textContent = v.label;
+        voiceSelect.appendChild(opt);
+      });
+
+      voiceSelect.value = lastVibeVoice;
+    };
+
+    // Sync voice list based on current TTS provider
+    var syncVoiceList = function () {
+      var isVibe = ttsSelect.value === 'vibevoice';
+      if (isVibe) {
+        populateVibeVoices();
+      } else {
+        populateBrowserVoices();
+      }
+    };
+
+    // Save all settings
+    var articleSlug = window.location.pathname.replace(/\/$/, '').split('/').pop() || '';
+    var articleKey = articleSlug ? ('narration-settings:' + articleSlug) : '';
+
+    var saveLaunchSettings = function () {
+      var isVibe = ttsSelect.value === 'vibevoice';
+      // Update tracked selections
+      if (isVibe) {
+        lastVibeVoice = voiceSelect.value;
+      } else {
+        lastBrowserVoice = voiceSelect.value;
+      }
+
+      var s = {
+        lang: langSelect.value === 'auto' ? '' : langSelect.value,
+        rate: parseFloat(rateInput.value),
+        voiceName: isVibe ? lastBrowserVoice : voiceSelect.value,
+        vibeVoice: isVibe ? voiceSelect.value : lastVibeVoice,
+        ttsProvider: ttsSelect.value
+      };
+      localStorage.setItem('narration-settings', JSON.stringify(s));
+      // Also write per-article key so narration controller picks it up
+      if (articleKey) {
+        localStorage.setItem(articleKey, JSON.stringify(s));
+      }
+      localStorage.setItem('narration-autostart', autoNarrateBtn.classList.contains('is-on') ? 'true' : 'false');
+      localStorage.setItem('narration-autorecord', autoRecordBtn.classList.contains('is-on') ? 'true' : 'false');
+
+      // Sync existing narration settings panel from storage
+      var existingPanel = document.querySelector('.narration-settings-panel');
+      if (existingPanel && existingPanel._refreshFromStorage) {
+        existingPanel._refreshFromStorage();
+      }
+    };
+
+    // Toggle switches
+    autoNarrateBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      autoNarrateBtn.classList.toggle('is-on');
+      syncVoiceExpanded();
+      saveLaunchSettings();
+    });
+
+    autoRecordBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      autoRecordBtn.classList.toggle('is-on');
+      syncVoiceExpanded();
+      saveLaunchSettings();
+    });
+
+    langSelect.addEventListener('change', function () {
+      // Switch article display language
+      var selectedLang = langSelect.value === 'auto' ? getLang() : langSelect.value;
+      localStorage.setItem('lang', selectedLang);
+      root.setAttribute('lang', selectedLang === 'zh' ? 'zh-CN' : 'en');
+      document.querySelectorAll('[data-zh][data-en]').forEach(function (el) {
+        var val = el.getAttribute('data-' + selectedLang);
+        if (val !== null) el.innerHTML = val;
+      });
+      // Re-populate voices for new language (only relevant for browser voices)
+      if (ttsSelect.value !== 'vibevoice') {
+        lastBrowserVoice = '';
+        syncVoiceList();
+      }
+      saveLaunchSettings();
+    });
+
+    ttsSelect.addEventListener('change', function () {
+      syncVoiceList();
+      saveLaunchSettings();
+    });
+
+    rateInput.addEventListener('input', function () {
+      rateVal.textContent = parseFloat(rateInput.value).toFixed(2);
+      saveLaunchSettings();
+    });
+
+    voiceSelect.addEventListener('change', function () {
+      saveLaunchSettings();
+    });
+
+    // Initial voice list population
+    syncVoiceList();
+    if (window.speechSynthesis) {
+      window.speechSynthesis.addEventListener('voiceschanged', function () {
+        if (ttsSelect.value !== 'vibevoice') {
+          populateBrowserVoices();
+        }
+      });
+    }
+
+    // Voice test button — handles both browser and VibeVoice
+    voiceTestBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      var isVibe = ttsSelect.value === 'vibevoice';
+
+      if (isVibe) {
+        // VibeVoice preview via API
+        var vibeSettings = {
+          endpoint: 'http://127.0.0.1:8191/v1',
+          voice: voiceSelect.value || 'en-Emma_woman'
+        };
+        var testText = 'This is a voice preview. You can hear how the selected voice sounds.';
+        voiceTestBtn.classList.add('is-testing');
+
+        fetch(vibeSettings.endpoint + '/audio/speech', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer dummy' },
+          body: JSON.stringify({
+            model: 'VibeVoice-Realtime-0.5B-4bit',
+            input: testText,
+            voice: vibeSettings.voice,
+            speed: parseFloat(rateInput.value) || 1.0
+          })
+        })
+        .then(function (res) {
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          return res.arrayBuffer();
+        })
+        .then(function (buf) {
+          var ctx = new (window.AudioContext || window.webkitAudioContext)();
+          return ctx.decodeAudioData(buf).then(function (audioBuf) {
+            var src = ctx.createBufferSource();
+            src.buffer = audioBuf;
+            src.connect(ctx.destination);
+            src.onended = function () { voiceTestBtn.classList.remove('is-testing'); };
+            src.start(0);
+          });
+        })
+        .catch(function (err) {
+          voiceTestBtn.classList.remove('is-testing');
+          console.error('VibeVoice preview error:', err);
+          window.alert(getLang() === 'zh' ? 'VibeVoice 试听失败，请确认服务已启动' : 'VibeVoice preview failed. Ensure the service is running.');
+        });
+        return;
+      }
+
+      // Browser TTS preview
+      if (!window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+
+      var filterLang = langSelect.value;
+      if (filterLang === 'auto') filterLang = getLang();
+      var browserTestText = (filterLang === 'zh')
+        ? '这是一段语音测试，你可以听到当前选择的语音效果。'
+        : 'This is a voice preview. You can hear how the selected voice sounds.';
+
+      var utt = new SpeechSynthesisUtterance(browserTestText);
+      utt.lang = (filterLang === 'zh') ? 'zh-CN' : 'en-US';
+      utt.rate = parseFloat(rateInput.value) || 0.92;
+
+      if (voiceSelect.value) {
+        var allV = window.speechSynthesis.getVoices();
+        var match = allV.filter(function (v) { return v.name === voiceSelect.value; });
+        if (match.length) utt.voice = match[0];
+      }
+
+      voiceTestBtn.classList.add('is-testing');
+      utt.onend = function () { voiceTestBtn.classList.remove('is-testing'); };
+      utt.onerror = function () { voiceTestBtn.classList.remove('is-testing'); };
+      window.speechSynthesis.speak(utt);
+    });
+
+    // Prevent panel clicks from triggering presentation start
+    panel.addEventListener('click', function (e) {
+      e.stopPropagation();
+    });
+
+    // Launch play button — starts presentation from inside the panel
+    var launchPlayBtn = panel.querySelector('.launch-play-btn');
+    if (launchPlayBtn) {
+      launchPlayBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        // Trigger the same flow as the original toggle click
+        presentationToggle.click();
+      });
+    }
   };
 
   var ensureShareDropdown = function () {
@@ -896,6 +1260,28 @@ document.addEventListener('DOMContentLoaded', function () {
         panel.classList.remove('is-open');
       }
     });
+
+    // Refresh all panel fields from localStorage (called before entering presentation)
+    panel._refreshFromStorage = function () {
+      var fresh = {};
+      try { fresh = JSON.parse(localStorage.getItem(globalKey)) || {}; } catch (e) {}
+      if (articleKey) {
+        try {
+          var articleFresh = JSON.parse(localStorage.getItem(articleKey));
+          if (articleFresh) {
+            Object.keys(articleFresh).forEach(function (k) { if (articleFresh[k] !== undefined && articleFresh[k] !== '') fresh[k] = articleFresh[k]; });
+          }
+        } catch (e) {}
+      }
+
+      if (fresh.lang) { langSelect.value = fresh.lang; } else { langSelect.value = 'auto'; }
+      if (fresh.rate) { rateInput.value = fresh.rate; rateValue.textContent = parseFloat(fresh.rate).toFixed(2); }
+      if (fresh.ttsProvider) { ttsProviderSelect.value = fresh.ttsProvider; } else { ttsProviderSelect.value = 'browser'; }
+      if (fresh.vibeVoice) { vibeVoiceSelect.value = fresh.vibeVoice; }
+      syncVibeRowVisibility();
+      populateVoices();
+      if (fresh.voiceName) { voiceSelect.value = fresh.voiceName; }
+    };
 
     return panel;
   };
@@ -1929,6 +2315,13 @@ document.addEventListener('DOMContentLoaded', function () {
   var enterPresentation = function () {
     state.enabled = true;
     root.classList.add('is-presentation-mode');
+
+    // Sync narration settings panel from localStorage (launch panel writes there)
+    var settingsPanel = document.querySelector('.narration-settings-panel');
+    if (settingsPanel && settingsPanel._refreshFromStorage) {
+      settingsPanel._refreshFromStorage();
+    }
+
     // Take over the FAB for narration
     ensureNarrationFab();
     if (presentationAutoPlay && hasNarrationSupport()) {
@@ -2176,6 +2569,7 @@ document.addEventListener('DOMContentLoaded', function () {
   ensureTopbarLayout();
   topbarActions = ensureTopbarActions();
   presentationToggle = ensureToggle();
+  buildLaunchPanel();
   shareWrapper = ensureShareDropdown();
   presentationFloating = ensureFloating();
   presentationExit = presentationFloating.querySelector('[data-present-exit]');
@@ -2211,6 +2605,11 @@ document.addEventListener('DOMContentLoaded', function () {
     // Auto-start narration with countdown if enabled
     if (hasNarrationSupport() && localStorage.getItem('narration-autostart') === 'true') {
       startAutoNarration();
+    }
+
+    // Auto-start recording if enabled
+    if (localStorage.getItem('narration-autorecord') === 'true' && !isRecording()) {
+      toggleRecording();
     }
   });
 

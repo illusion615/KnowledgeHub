@@ -13,6 +13,7 @@
 //   5. CSS/JS file syntax (basic parse check)
 //   6. No duplicate CSS selectors for known issues
 //   7. Summary zh/en length limits
+//   8. No unescaped " in data-zh/data-en attributes
 
 var fs = require('fs');
 var path = require('path');
@@ -432,6 +433,43 @@ function testArticleStructure() {
   }
 }
 
+// ── Test 8: data-zh/data-en quote safety ──
+
+function testDataAttrQuoteSafety() {
+  console.log('\n\x1b[36m[8] data-zh/data-en quote safety\x1b[0m');
+  var articles = findArticles();
+  var passCount = 0;
+
+  articles.forEach(function (article) {
+    var html = readFile(article.path);
+    var lines = html.split('\n');
+    var violations = [];
+
+    lines.forEach(function (line, idx) {
+      var lineNum = idx + 1;
+
+      // If a data-zh/data-en attribute is closed by a quote and immediately followed
+      // by a non-whitespace/non-tag-delimiter char, it usually means an unescaped
+      // ASCII quote appeared inside the attribute value.
+      if (/data-(zh|en)="[^"]*"[^\s>\/]\S*/.test(line)) {
+        violations.push(lineNum);
+      }
+    });
+
+    if (violations.length > 0) {
+      error(article.path, 'Unescaped " inside data-zh/data-en attribute at line(s): ' + violations.slice(0, 8).join(', '));
+    } else {
+      passCount++;
+    }
+  });
+
+  if (passCount === articles.length) {
+    pass('All ' + articles.length + ' articles pass quote safety check');
+  } else {
+    pass(passCount + '/' + articles.length + ' articles OK');
+  }
+}
+
 // ── Run all tests ──
 
 console.log('\n\x1b[1m══════════════════════════════════════════\x1b[0m');
@@ -445,6 +483,7 @@ testArrowFunctions();
 testAssetSyntax();
 testCSSIssues();
 testArticleStructure();
+testDataAttrQuoteSafety();
 
 console.log('\n\x1b[1m══════════════════════════════════════════\x1b[0m');
 if (totalErrors > 0) {

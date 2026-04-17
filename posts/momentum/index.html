@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>动量：碰撞中的守恒与变化</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1{font-size:clamp(1.6rem,4.2vw,2.8rem);line-height:1.1;letter-spacing:-0.03em;max-width:20ch}
+    .math-block{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 24px;margin:16px 0;border-radius:16px;background:rgba(15,23,42,.03);border:1px solid rgba(15,23,42,.06);font-size:1.3rem;font-weight:700;color:var(--ink);gap:8px}
+    [data-theme="dark"] .math-block{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.08)}
+    .scenario-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:16px}
+    .scenario-card{padding:22px;border-radius:22px;border:1px solid var(--card-border);background:var(--card-bg);box-shadow:var(--card-shadow)}
+    .scenario-card h4{margin:0 0 8px;font-size:1.05rem;line-height:1.35}
+    .scenario-card p{color:var(--muted);font-size:.92rem;line-height:1.72;margin:0}
+    .scenario-icon{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;margin-bottom:12px;border-radius:14px;font-size:1.3rem;background:rgba(2,132,199,.12)}
+    .compare-wrap{margin-top:16px;overflow-x:auto;border-radius:18px;border:1px solid var(--card-border);background:var(--card-bg);box-shadow:var(--card-shadow)}
+    .compare-table{width:100%;border-collapse:collapse;font-size:.84rem}
+    .compare-table th,.compare-table td{padding:11px 14px;text-align:left;border-bottom:1px solid rgba(15,23,42,.06);vertical-align:top}
+    .compare-table th{font-family:"Space Grotesk","Noto Sans SC",sans-serif;font-size:.74rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:rgba(15,23,42,.03);white-space:nowrap}
+    .compare-table tr:last-child td{border-bottom:none}
+    [data-theme="dark"] .compare-table th{background:rgba(255,255,255,.04)}
+    [data-theme="dark"] .compare-table td{border-color:rgba(255,255,255,.06)}
+    .insight-callout{padding:20px 24px;border-radius:18px;background:linear-gradient(135deg,rgba(2,132,199,.08),rgba(99,102,241,.08));border:1px solid rgba(2,132,199,.15);margin:16px 0}
+    .insight-callout h4{margin:0 0 8px;font-size:.95rem;color:#0284c7}
+    [data-theme="dark"] .insight-callout h4{color:#38bdf8}
+    .insight-callout p{margin:0;font-size:.9rem;line-height:1.72;color:var(--ink)}
+    .step-flow{display:grid;gap:12px;margin-top:16px}
+    .step-item{display:grid;grid-template-columns:48px 1fr;gap:16px;padding:18px;border-radius:18px;border:1px solid var(--card-border);background:var(--card-bg);box-shadow:var(--card-shadow)}
+    .step-num{display:flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:50%;background:rgba(2,132,199,.12);color:#0284c7;font-family:"Space Grotesk",sans-serif;font-size:1.1rem;font-weight:700}
+    .step-item h4{margin:0 0 6px;font-size:.95rem}
+    .step-item p{margin:0;font-size:.88rem;line-height:1.72;color:var(--muted)}
+    .quiz-callout{padding:20px 24px;border-radius:18px;background:linear-gradient(135deg,rgba(34,197,94,.08),rgba(2,132,199,.08));border:1px solid rgba(34,197,94,.15);margin:16px 0}
+    .quiz-callout h4{margin:0 0 8px;font-size:.95rem;color:#16a34a}
+    [data-theme="dark"] .quiz-callout h4{color:#4ade80}
+    .quiz-callout p{margin:0 0 6px;font-size:.9rem;line-height:1.72;color:var(--ink)}
+    .sim-container{margin:20px 0;border-radius:18px;border:1px solid var(--card-border);background:var(--card-bg);box-shadow:var(--card-shadow);overflow:hidden}
+    .sim-container canvas{display:block;width:100%;height:auto}
+    .sim-controls{display:flex;gap:10px;padding:12px 18px;flex-wrap:wrap;align-items:center;border-top:1px solid rgba(15,23,42,.06)}
+    [data-theme="dark"] .sim-controls{border-color:rgba(255,255,255,.08)}
+    .sim-controls label{font-size:.82rem;color:var(--muted)}
+    .sim-controls input[type="range"]{width:100px}
+    .sim-controls button{padding:6px 16px;border-radius:10px;border:1px solid var(--card-border);background:var(--card-bg);color:var(--ink);font-size:.82rem;cursor:pointer}
+    .sim-controls button:hover{background:rgba(2,132,199,.08)}
+    .sim-stats{margin-left:auto;font-size:.82rem;color:var(--muted)}
+    .derivation-box{padding:18px 22px;margin:14px 0;border-radius:16px;background:rgba(99,102,241,.05);border-left:4px solid #6366f1}
+    [data-theme="dark"] .derivation-box{background:rgba(99,102,241,.08)}
+    .derivation-box h5{margin:0 0 8px;font-size:.88rem;color:#6366f1;letter-spacing:.04em}
+    .derivation-box p{margin:0 0 8px;font-size:.88rem;line-height:1.72;color:var(--ink)}
+    .derivation-box p:last-child{margin-bottom:0}
+    .series-nav{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:16px}
+    .series-nav-card{padding:16px 20px;border-radius:16px;border:1px solid var(--card-border);background:var(--card-bg);color:var(--ink);text-decoration:none;transition:transform .2s,box-shadow .2s}
+    .series-nav-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.1)}
+    .series-nav-card .series-num{font-family:"Space Grotesk",sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+    .series-nav-card h4{margin:4px 0 0;font-size:.9rem}
+    .series-nav-current{border-color:#0284c7;background:rgba(2,132,199,.06)}
+    details.answer-fold{margin-top:8px}
+    details.answer-fold summary{cursor:pointer;font-size:.85rem;font-weight:600;color:#6366f1;padding:6px 0;list-style:none;display:flex;align-items:center;gap:6px}
+    details.answer-fold summary::before{content:'&#x25B6;';font-size:.7rem;transition:transform .2s}
+    details.answer-fold[open] summary::before{transform:rotate(90deg)}
+    details.answer-fold summary::-webkit-details-marker{display:none}
+    details.answer-fold .answer-body{padding:12px 18px;margin-top:6px;border-radius:14px;background:rgba(99,102,241,.04);border:1px solid rgba(99,102,241,.1);font-size:.88rem;line-height:1.72;color:var(--ink)}
+    [data-theme="dark"] details.answer-fold .answer-body{background:rgba(99,102,241,.08);border-color:rgba(99,102,241,.15)}
+    .series-complete-callout{padding:20px 24px;margin-top:20px;border-radius:18px;background:linear-gradient(135deg,rgba(34,197,94,.08),rgba(2,132,199,.08));border:1px solid rgba(34,197,94,.18);text-align:center}
+    .series-complete-callout h4{margin:0 0 6px;font-size:1rem;color:#16a34a}
+    [data-theme="dark"] .series-complete-callout h4{color:#4ade80}
+    .series-complete-callout p{margin:0;font-size:.9rem;line-height:1.72;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true"><span class="orb orb-a"></span><span class="orb orb-b"></span><span class="orb orb-c"></span></div>
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="&#x2190;" data-en="&#x2190;" aria-label="返回首页">&#x2190;</a>
+          <div class="brand"><span class="brand-mark"></span><span data-zh="力学" data-en="Mechanics">力学</span></div>
+          <div class="topbar-actions"><nav class="nav-links" aria-label="页面章节导航">
+            <a href="#momentum-impulse" data-zh="动量" data-en="Momentum">动量</a>
+            <a href="#conservation" data-zh="守恒" data-en="Conservation">守恒</a>
+            <a href="#collision-types" data-zh="碰撞" data-en="Collision">碰撞</a>
+            <a href="#practice" data-zh="练习" data-en="Practice">练习</a>
+            <a href="#roadmap" data-zh="导航" data-en="Nav">导航</a>
+          </nav></div>
+        </div>
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow" data-zh="力学 &#183; 第 8 篇 / 共 8 篇" data-en="Mechanics &#183; Part 8 of 8">力学 &#183; 第 8 篇 / 共 8 篇</span>
+            <h1 data-zh="动量：碰撞中的守恒与变化" data-en="Momentum: Conservation &amp; Change in Collisions">动量：碰撞中的守恒与变化</h1>
+            <p data-zh="力学的最后一块拼图。掌握动量、冲量与动量守恒定律，理解碰撞的物理本质。" data-en="The final piece of mechanics. Master momentum, impulse, and conservation of momentum to understand the physics of collisions.">力学的最后一块拼图。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#momentum-impulse" data-zh="开始学习" data-en="Start Learning">开始学习</a>
+              <a class="button button-secondary" href="#practice" data-zh="直接练习" data-en="Go to Practice">直接练习</a>
+            </div>
+          </div>
+          <aside class="hero-panel load-in">
+            <span class="panel-label" data-zh="本章目标" data-en="Chapter Goals">本章目标</span>
+            <h2 data-zh="从动量到碰撞守恒" data-en="From Momentum to Collision Conservation">从动量到碰撞守恒</h2>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span><span data-zh="掌握动量 p=mv 与冲量 I=Ft" data-en="Master p=mv and I=Ft">掌握动量 p=mv 与冲量 I=Ft</span></li>
+              <li><span class="layer-number">2</span><span data-zh="推导动量定理 Ft=&#916;p" data-en="Derive impulse-momentum theorem Ft=&#916;p">推导动量定理 Ft=&#916;p</span></li>
+              <li><span class="layer-number">3</span><span data-zh="理解动量守恒定律及条件" data-en="Understand conservation of momentum">理解动量守恒定律及条件</span></li>
+              <li><span class="layer-number">4</span><span data-zh="区分弹性、非弹性、完全非弹性碰撞" data-en="Distinguish collision types">区分三种碰撞类型</span></li>
+            </ul>
+          </aside>
+        </div>
+        <div class="hero-metrics load-in">
+          <div class="metric"><div class="metric-label" data-zh="核心公式" data-en="Core Formula">核心公式</div><strong>p = mv</strong><span data-zh="动量定义" data-en="Definition of Momentum">动量定义</span></div>
+          <div class="metric"><div class="metric-label" data-zh="关键定理" data-en="Key Theorem">关键定理</div><strong>Ft = &#916;p</strong><span data-zh="动量定理" data-en="Impulse-Momentum">动量定理</span></div>
+          <div class="metric"><div class="metric-label" data-zh="交互实验" data-en="Interactive Lab">交互实验</div><strong>1</strong><span data-zh="碰撞模拟器" data-en="Collision Simulator">碰撞模拟器</span></div>
+          <div class="metric"><div class="metric-label" data-zh="难度" data-en="Difficulty">难度</div><strong>&#9733;&#9733;&#9733;&#9733;&#9734;</strong><span data-zh="需功与能基础" data-en="Requires Work &amp; Energy">需功与能基础</span></div>
+        </div>
+      </header>
+
+      <main>
+        <!-- 01 / 动量与冲量 -->
+        <section id="momentum-impulse" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="01 / 动量与冲量" data-en="01 / Momentum &amp; Impulse">01 / 动量与冲量</p>
+            <h2 data-zh="运动状态的量化描述" data-en="Quantifying the State of Motion">运动状态的量化描述</h2>
+            <p data-zh="动量衡量物体「运动的猛烈程度」，冲量衡量力的时间积累效果。二者通过动量定理精确关联。" data-en="Momentum measures how 'vigorously' an object moves; impulse measures force accumulated over time. They are linked by the impulse-momentum theorem.">p = mv，矢量。</p>
+          </div>
+          <div class="math-block load-in" data-latex="p = mv \qquad I = Ft"></div>
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="动量是矢量" data-en="Momentum Is a Vector">动量是矢量</span></button>
+              <div class="subsection-content">
+                <div class="scenario-grid">
+                  <div class="scenario-card"><div class="scenario-icon">&#x1F69A;</div><h4 data-zh="质量效应" data-en="Mass Effect">质量效应</h4><p data-zh="质量越大，动量越大。重卡即使低速行驶，动量也远超高速自行车。" data-en="Greater mass means greater momentum. A heavy truck at low speed has much more momentum than a fast bicycle.">质量越大，动量越大。</p></div>
+                  <div class="scenario-card"><div class="scenario-icon">&#x26A1;</div><h4 data-zh="速度效应" data-en="Velocity Effect">速度效应</h4><p data-zh="速度越大，动量越大。子弹质量小但速度极高，动量不可小觑。动量方向与速度方向一致。" data-en="Greater velocity means greater momentum. A bullet is light but extremely fast, giving it significant momentum. Direction matches velocity.">速度越大，动量越大。</p></div>
+                </div>
+                <div class="insight-callout">
+                  <h4 data-zh="&#x1F4A1; 动量 vs 动能" data-en="&#x1F4A1; Momentum vs Kinetic Energy">&#x1F4A1; 动量 vs 动能</h4>
+                  <p data-zh="动量 p=mv 是矢量（有方向），动能 Ek=&#189;mv&#178; 是标量（只有大小）。两个物体可以动量之和为零（等大反向），但动能之和不为零。" data-en="Momentum p=mv is a vector; kinetic energy Ek=&#189;mv&#178; is a scalar. Two objects can have zero total momentum (equal and opposite) but nonzero total kinetic energy.">p 是矢量，Ek 是标量。</p>
+                </div>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="从 F=ma 推导动量定理" data-en="Deriving Impulse-Momentum from F=ma">从 F=ma 推导动量定理</span></button>
+              <div class="subsection-content">
+                <div class="derivation-box">
+                  <h5 data-zh="&#x1F4D0; 推导 Ft = &#916;p" data-en="&#x1F4D0; Derivation of Ft = &#916;p">&#x1F4D0; 推导 Ft = &#916;p</h5>
+                  <p data-zh="由牛顿第二定律 F = ma，而 a = &#916;v/&#916;t，代入得：" data-en="From Newton's second law F = ma, and a = &#916;v/&#916;t, substitute:">F = ma，a = &#916;v/&#916;t。</p>
+                  <div class="math-block" data-latex="F = m\frac{\Delta v}{\Delta t} \implies F\Delta t = m\Delta v = \Delta(mv) = \Delta p"></div>
+                  <p data-zh="即 Ft = &#916;p = mv' &#8722; mv。力对时间的积累（冲量）等于动量的变化量。方向：&#916;p 与合力 F 同向。" data-en="So Ft = &#916;p = mv' &#8722; mv. Impulse (force &#215; time) equals the change in momentum. Direction: &#916;p is in the same direction as net force F.">Ft = &#916;p = mv' - mv。</p>
+                </div>
+                <div class="scenario-grid">
+                  <div class="scenario-card"><div class="scenario-icon">&#x1F94A;</div><h4 data-zh="缓冲原理" data-en="Cushion Principle">缓冲原理</h4><p data-zh="&#916;p 相同时，增大作用时间 t 可减小力 F。气囊、缓冲垫、跳高海绵垫都是延长碰撞时间以减小冲击力。" data-en="For same &#916;p, increasing time t reduces force F. Airbags, cushion pads, and crash mats all extend collision time to reduce impact force.">延长碰撞时间，减小冲击力。</p></div>
+                  <div class="scenario-card"><div class="scenario-icon">&#x1F3D3;</div><h4 data-zh="增力原理" data-en="Force Enhancement">增力原理</h4><p data-zh="要产生大 &#916;p，缩短接触时间可增大力。武术中的「寸劲」就是在极短时间内产生巨大冲击力。" data-en="To produce large &#916;p, shortening contact time increases force. Martial arts 'inch punch' generates huge impact in minimal time.">缩短接触时间，增大冲击力。</p></div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 02 / 动量守恒定律 -->
+        <section id="conservation" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="02 / 动量守恒定律" data-en="02 / Conservation of Momentum">02 / 动量守恒定律</p>
+            <h2 data-zh="系统总动量不变的条件" data-en="Conditions for Constant Total Momentum">系统总动量不变的条件</h2>
+            <p data-zh="当系统不受外力或所受合外力为零时，系统总动量守恒——这是自然界最基本的守恒定律之一。" data-en="When a system has no external forces or zero net external force, total momentum is conserved — one of nature's most fundamental conservation laws.">合外力为零时，总动量守恒。</p>
+          </div>
+          <div class="math-block load-in" data-latex="m_1 v_1 + m_2 v_2 = m_1 v_1' + m_2 v_2'"></div>
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="守恒条件" data-en="Conservation Conditions">守恒条件</span></button>
+              <div class="subsection-content">
+                <div class="step-flow">
+                  <div class="step-item"><div class="step-num">1</div><div><h4 data-zh="系统不受外力" data-en="No External Forces">系统不受外力</h4><p data-zh="理想情况：系统完全孤立，不受任何外力作用。此时系统总动量严格守恒。" data-en="Ideal case: system is completely isolated with no external forces. Total momentum is strictly conserved.">最严格的守恒条件。</p></div></div>
+                  <div class="step-item"><div class="step-num">2</div><div><h4 data-zh="合外力为零" data-en="Net External Force = 0">合外力为零</h4><p data-zh="虽然有外力，但各外力矢量和为零。例如水平光滑面上的碰撞，重力与支持力抵消。" data-en="External forces exist but their vector sum is zero. E.g., collision on a frictionless surface where gravity and normal force cancel.">外力相互抵消。</p></div></div>
+                  <div class="step-item"><div class="step-num">3</div><div><h4 data-zh="内力远大于外力" data-en="Internal Forces &#187; External">内力远大于外力</h4><p data-zh="实际碰撞中碰撞力远大于摩擦力等外力，可近似认为动量守恒。这是最常用的应用条件。" data-en="In real collisions, impact forces far exceed friction. Momentum is approximately conserved. This is the most commonly used condition.">碰撞力 &#187; 摩擦力。</p></div></div>
+                </div>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="碰撞模拟器" data-en="Collision Simulator">碰撞模拟器</span></button>
+              <div class="subsection-content">
+                <div class="sim-container">
+                  <canvas id="collisionCanvas" width="700" height="200"></canvas>
+                  <div class="sim-controls">
+                    <label data-zh="m&#x2081;" data-en="m&#x2081;">m&#x2081;</label><input type="range" id="simM1" min="1" max="10" value="3" step="1" />
+                    <label data-zh="v&#x2081;" data-en="v&#x2081;">v&#x2081;</label><input type="range" id="simV1" min="-5" max="5" value="3" step="1" />
+                    <label data-zh="m&#x2082;" data-en="m&#x2082;">m&#x2082;</label><input type="range" id="simM2" min="1" max="10" value="5" step="1" />
+                    <label data-zh="v&#x2082;" data-en="v&#x2082;">v&#x2082;</label><input type="range" id="simV2" min="-5" max="5" value="-2" step="1" />
+                    <button id="simReset" data-zh="&#x25B6; &#x5F39;&#x6027;&#x78B0;&#x649E;" data-en="&#x25B6; Elastic">&#x25B6; 弹性碰撞</button>
+                    <button id="simInelastic" data-zh="&#x25B6; &#x5B8C;&#x5168;&#x975E;&#x5F39;&#x6027;" data-en="&#x25B6; Inelastic">&#x25B6; 完全非弹性</button>
+                  </div>
+                  <div class="sim-controls">
+                    <span class="sim-stats" id="simInfo" data-zh="&#x8C03;&#x6574;&#x53C2;&#x6570;&#x540E;&#x70B9;&#x51FB;&#x5F00;&#x59CB;" data-en="Adjust params and click start">调整参数后点击开始</span>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 03 / 碰撞类型 -->
+        <section id="collision-types" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="03 / 碰撞类型" data-en="03 / Collision Types">03 / 碰撞类型</p>
+            <h2 data-zh="弹性、非弹性与完全非弹性" data-en="Elastic, Inelastic &amp; Perfectly Inelastic">弹性、非弹性与完全非弹性</h2>
+            <p data-zh="碰撞按动能是否守恒分为三类。动量在所有碰撞中守恒，但动能只在弹性碰撞中守恒。" data-en="Collisions are classified by whether kinetic energy is conserved. Momentum is conserved in all collisions, but KE only in elastic ones.">动量都守恒，动能不一定。</p>
+          </div>
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="三类碰撞对比" data-en="Comparison of Three Collision Types">三类碰撞对比</span></button>
+              <div class="subsection-content">
+                <div class="compare-wrap">
+                  <table class="compare-table">
+                    <thead><tr><th data-zh="类型" data-en="Type">类型</th><th data-zh="动量" data-en="Momentum">动量</th><th data-zh="动能" data-en="KE">动能</th><th data-zh="碰后运动" data-en="Post-collision">碰后运动</th><th data-zh="示例" data-en="Example">示例</th></tr></thead>
+                    <tbody>
+                      <tr><td data-zh="弹性碰撞" data-en="Elastic">弹性碰撞</td><td data-zh="守恒" data-en="Conserved">守恒</td><td data-zh="守恒" data-en="Conserved">守恒</td><td data-zh="分开运动" data-en="Separate">分开</td><td data-zh="台球、分子碰撞" data-en="Billiards, molecular">台球</td></tr>
+                      <tr><td data-zh="非弹性碰撞" data-en="Inelastic">非弹性碰撞</td><td data-zh="守恒" data-en="Conserved">守恒</td><td data-zh="减少" data-en="Decreases">减少</td><td data-zh="分开运动" data-en="Separate">分开</td><td data-zh="汽车追尾" data-en="Car crash">汽车追尾</td></tr>
+                      <tr><td data-zh="完全非弹性" data-en="Perfectly inelastic">完全非弹性</td><td data-zh="守恒" data-en="Conserved">守恒</td><td data-zh="损失最多" data-en="Max loss">损失最多</td><td data-zh="粘合一起" data-en="Stick together">粘合</td><td data-zh="子弹打入木块" data-en="Bullet into block">子弹入木块</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="弹性碰撞公式" data-en="Elastic Collision Formulas">弹性碰撞公式</span></button>
+              <div class="subsection-content">
+                <div class="derivation-box">
+                  <h5 data-zh="&#x1F4D0; 一维弹性碰撞" data-en="&#x1F4D0; 1D Elastic Collision">&#x1F4D0; 一维弹性碰撞</h5>
+                  <p data-zh="联立动量守恒和动能守恒，解出碰后速度：" data-en="Solving momentum and KE conservation simultaneously:">联立两个守恒方程：</p>
+                  <div class="math-block" data-latex="v_1' = \frac{m_1 - m_2}{m_1 + m_2}v_1 + \frac{2m_2}{m_1 + m_2}v_2"></div>
+                  <div class="math-block" data-latex="v_2' = \frac{2m_1}{m_1 + m_2}v_1 + \frac{m_2 - m_1}{m_1 + m_2}v_2"></div>
+                  <p data-zh="特殊情况：等质量弹性碰撞（v&#x2082;=0 时），碰后 v&#x2081;'=0，v&#x2082;'=v&#x2081;，即速度完全「交换」。这就是牛顿摆的原理。" data-en="Special case: equal mass elastic collision (v&#x2082;=0), after collision v&#x2081;'=0, v&#x2082;'=v&#x2081; — velocities fully 'swap'. This is Newton's cradle.">等质量碰撞：速度交换。</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 04 / 增强练习 -->
+        <section id="practice" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="04 / 增强练习" data-en="04 / Enhanced Exercises">04 / 增强练习</p>
+            <h2 data-zh="从基础到挑战：8 道精选题" data-en="From Basic to Challenge: 8 Selected Problems">从基础到挑战：8 道精选题</h2>
+            <p data-zh="分层训练，逐步提升。" data-en="Layered training for progressive improvement.">分层训练，逐步提升。</p>
+          </div>
+          <div class="subsection-accordion load-in">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="基础题（3 题）" data-en="Basic (3)">基础题（3 题）</span></button>
+              <div class="subsection-content">
+                <div class="quiz-callout">
+                  <h4 data-zh="题 1：求动量" data-en="Q1: Find Momentum">题 1：求动量</h4>
+                  <p data-zh="质量 0.5 kg 的球以 10 m/s 的速度向右运动，求其动量大小和方向。" data-en="A 0.5 kg ball moves right at 10 m/s. Find its momentum magnitude and direction.">质量 0.5 kg 的球以 10 m/s 向右运动。</p>
+                  <details class="answer-fold"><summary data-zh="查看解析" data-en="Show Solution">查看解析</summary><div class="answer-body" data-zh="p = mv = 0.5 &#215; 10 = 5 kg&#183;m/s，方向向右。" data-en="p = mv = 0.5 &#215; 10 = 5 kg&#183;m/s, to the right.">p = mv = 0.5 &#215; 10 = 5 kg&#183;m/s，方向向右。</div></details>
+                </div>
+                <div class="quiz-callout">
+                  <h4 data-zh="题 2：求冲量" data-en="Q2: Find Impulse">题 2：求冲量</h4>
+                  <p data-zh="一个力 F = 20 N 作用在物体上持续 0.5 s，求冲量。" data-en="A force F = 20 N acts on an object for 0.5 s. Find the impulse.">F = 20 N 作用 0.5 s。</p>
+                  <details class="answer-fold"><summary data-zh="查看解析" data-en="Show Solution">查看解析</summary><div class="answer-body" data-zh="I = Ft = 20 &#215; 0.5 = 10 N&#183;s，方向与力的方向相同。" data-en="I = Ft = 20 &#215; 0.5 = 10 N&#183;s, in the direction of the force.">I = Ft = 20 &#215; 0.5 = 10 N&#183;s，方向与力同。</div></details>
+                </div>
+                <div class="quiz-callout">
+                  <h4 data-zh="题 3：动量定理求力" data-en="Q3: Impulse-Momentum for Force">题 3：动量定理求力</h4>
+                  <p data-zh="质量 0.15 kg 的棒球以 30 m/s 被击出（假设初始静止），接触时间 0.01 s，求击球力。" data-en="A 0.15 kg baseball is hit from rest to 30 m/s, contact time 0.01 s. Find the hitting force.">棒球被击出，接触 0.01 s。</p>
+                  <details class="answer-fold"><summary data-zh="查看解析" data-en="Show Solution">查看解析</summary><div class="answer-body" data-zh="&#916;p = mv' - mv = 0.15 &#215; 30 - 0 = 4.5 kg&#183;m/s。F = &#916;p/&#916;t = 4.5/0.01 = 450 N。" data-en="&#916;p = mv' - mv = 0.15 &#215; 30 - 0 = 4.5 kg&#183;m/s. F = &#916;p/&#916;t = 4.5/0.01 = 450 N.">&#916;p = 4.5 kg&#183;m/s，F = 450 N。</div></details>
+                </div>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="进阶题（3 题）" data-en="Advanced (3)">进阶题（3 题）</span></button>
+              <div class="subsection-content">
+                <div class="quiz-callout">
+                  <h4 data-zh="题 4：动量守恒求速度" data-en="Q4: Conservation for Velocity">题 4：动量守恒求速度</h4>
+                  <p data-zh="质量 2 kg 的小车静止在光滑水平面上，一颗 0.01 kg 的子弹以 400 m/s 射入小车并嵌入其中，求小车（含子弹）的速度。" data-en="A 2 kg cart is at rest on a frictionless surface. A 0.01 kg bullet at 400 m/s embeds in it. Find the velocity of cart+bullet.">子弹射入静止小车。</p>
+                  <details class="answer-fold"><summary data-zh="查看解析" data-en="Show Solution">查看解析</summary><div class="answer-body" data-zh="完全非弹性碰撞。m&#x2081;v&#x2081; = (m&#x2081;+m&#x2082;)v'，0.01&#215;400 = (0.01+2)&#215;v'，v' = 4/2.01 &#8776; 1.99 m/s。" data-en="Perfectly inelastic. m&#x2081;v&#x2081; = (m&#x2081;+m&#x2082;)v', 0.01&#215;400 = (0.01+2)&#215;v', v' = 4/2.01 &#8776; 1.99 m/s.">v' = 4/2.01 &#8776; 1.99 m/s。</div></details>
+                </div>
+                <div class="quiz-callout">
+                  <h4 data-zh="题 5：反冲运动" data-en="Q5: Recoil">题 5：反冲运动</h4>
+                  <p data-zh="质量 50 kg 的人站在光滑冰面上，将质量 0.5 kg 的球以 20 m/s 水平抛出。求人的反冲速度。" data-en="A 50 kg person on frictionless ice throws a 0.5 kg ball at 20 m/s horizontally. Find the recoil velocity.">冰面上抛球。</p>
+                  <details class="answer-fold"><summary data-zh="查看解析" data-en="Show Solution">查看解析</summary><div class="answer-body" data-zh="系统初动量为零。0 = 0.5&#215;20 + 50&#215;v&#x4EBA;，v&#x4EBA; = -10/50 = -0.2 m/s。人向反方向以 0.2 m/s 运动。" data-en="Initial system momentum is zero. 0 = 0.5&#215;20 + 50&#215;v, v = -0.2 m/s. Person moves at 0.2 m/s in the opposite direction.">v = -0.2 m/s，人向反方向运动。</div></details>
+                </div>
+                <div class="quiz-callout">
+                  <h4 data-zh="题 6：弹性碰撞" data-en="Q6: Elastic Collision">题 6：弹性碰撞</h4>
+                  <p data-zh="质量 2 kg 的球 A 以 4 m/s 向右运动，与静止的质量 2 kg 的球 B 发生弹性碰撞。求碰后两球速度。" data-en="Ball A (2 kg, 4 m/s right) hits stationary ball B (2 kg) in an elastic collision. Find post-collision velocities.">等质量弹性碰撞。</p>
+                  <details class="answer-fold"><summary data-zh="查看解析" data-en="Show Solution">查看解析</summary><div class="answer-body" data-zh="等质量弹性碰撞，速度交换。A 碰后 v&#x2081;' = 0，B 碰后 v&#x2082;' = 4 m/s 向右。" data-en="Equal mass elastic collision: velocities swap. A: v&#x2081;' = 0, B: v&#x2082;' = 4 m/s right.">v&#x2081;' = 0，v&#x2082;' = 4 m/s。</div></details>
+                </div>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="挑战题（2 题）" data-en="Challenge (2)">挑战题（2 题）</span></button>
+              <div class="subsection-content">
+                <div class="quiz-callout">
+                  <h4 data-zh="题 7：二维碰撞分量法" data-en="Q7: 2D Collision Components">题 7：二维碰撞分量法</h4>
+                  <p data-zh="质量 m 的球以速度 v 水平射出，与悬挂的质量 3m 的沙袋发生完全非弹性碰撞。求碰后整体摆起的最大高度。(g = 10 m/s&#178;)" data-en="A ball of mass m at velocity v hits a hanging sandbag of mass 3m (perfectly inelastic). Find the max swing height. (g = 10 m/s&#178;)">球射入悬挂沙袋。</p>
+                  <details class="answer-fold"><summary data-zh="查看解析" data-en="Show Solution">查看解析</summary><div class="answer-body" data-zh="碰撞阶段动量守恒：mv = (m+3m)v'，v' = v/4。摆起阶段机械能守恒：&#189;(4m)v'&#178; = (4m)gh，h = v'&#178;/(2g) = v&#178;/(32g)。" data-en="Collision: mv = 4m&#183;v', v' = v/4. Swing: &#189;(4m)v'&#178; = (4m)gh, h = v&#178;/(32g).">h = v&#178;/(32g)。</div></details>
+                </div>
+                <div class="quiz-callout">
+                  <h4 data-zh="题 8：爆炸模型" data-en="Q8: Explosion Model">题 8：爆炸模型</h4>
+                  <p data-zh="质量 10 kg 的炮弹以 100 m/s 水平飞行，在空中炸成两块。前半部分质量 4 kg 以 250 m/s 继续沿原方向飞行。求后半部分的速度。" data-en="A 10 kg shell at 100 m/s splits in mid-air. Front piece (4 kg) continues at 250 m/s. Find the rear piece velocity.">炮弹空中爆炸。</p>
+                  <details class="answer-fold"><summary data-zh="查看解析" data-en="Show Solution">查看解析</summary><div class="answer-body" data-zh="动量守恒：10&#215;100 = 4&#215;250 + 6&#215;v&#x2082;，1000 = 1000 + 6v&#x2082;，v&#x2082; = 0。后半部分瞬间速度为零！" data-en="Conservation: 10&#215;100 = 4&#215;250 + 6&#215;v&#x2082;, 1000 = 1000 + 6v&#x2082;, v&#x2082; = 0. Rear piece has zero velocity momentarily!">v&#x2082; = 0，后半部分瞬间静止！</div></details>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 05 / 系列导航 -->
+        <section id="roadmap" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="05 / 系列导航" data-en="05 / Series Navigation">05 / 系列导航</p>
+            <h2 data-zh="力学系列全览" data-en="Mechanics Series Overview">力学系列全览</h2>
+          </div>
+          <div class="series-nav load-in">
+            <a class="series-nav-card" href="../describing-motion/"><div class="series-num">Part 1</div><h4 data-zh="运动的描述" data-en="Describing Motion">运动的描述</h4></a>
+            <a class="series-nav-card" href="../uniform-acceleration/"><div class="series-num">Part 2</div><h4 data-zh="匀变速直线运动" data-en="Uniform Acceleration">匀变速直线运动</h4></a>
+            <a class="series-nav-card" href="../forces-equilibrium/"><div class="series-num">Part 3</div><h4 data-zh="力与平衡" data-en="Forces &amp; Equilibrium">力与平衡</h4></a>
+            <a class="series-nav-card" href="../newtons-laws/"><div class="series-num">Part 4</div><h4 data-zh="牛顿运动定律" data-en="Newton's Laws">牛顿运动定律</h4></a>
+            <a class="series-nav-card" href="../circular-motion/"><div class="series-num">Part 5</div><h4 data-zh="圆周运动" data-en="Circular Motion">圆周运动</h4></a>
+            <a class="series-nav-card" href="../gravitation/"><div class="series-num">Part 6</div><h4 data-zh="万有引力" data-en="Gravitation">万有引力</h4></a>
+            <a class="series-nav-card" href="../work-energy/"><div class="series-num">Part 7</div><h4 data-zh="功与能" data-en="Work &amp; Energy">功与能</h4></a>
+            <a class="series-nav-card series-nav-current" href="#"><div class="series-num">Part 8</div><h4 data-zh="动量（当前）" data-en="Momentum (Current)">动量（当前）</h4></a>
+          </div>
+          <div class="series-complete-callout load-in">
+            <h4 data-zh="&#x1F389; 力学系列已完结！" data-en="&#x1F389; Mechanics Series Complete!">&#x1F389; 力学系列已完结！</h4>
+            <p data-zh="恭喜你完成了力学全部 8 篇学习！从运动的描述到动量守恒，你已经构建了完整的经典力学知识体系。接下来可以挑战热学或电磁学系列。" data-en="Congratulations on completing all 8 chapters of Mechanics! From describing motion to conservation of momentum, you have built a complete classical mechanics foundation. Next: try Thermodynamics or Electromagnetism.">恭喜完成力学全部 8 篇！接下来挑战热学或电磁学。</p>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <p data-zh="&amp;copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。" data-en="&amp;copy; 2026 illusion615's Knowledge Hub | Interactive HTML page.">&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。</p>
+      </footer>
+    </div>
+  </div>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var canvas = document.getElementById('collisionCanvas');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    var W = canvas.width, H = canvas.height;
+    var ball1, ball2, running = false, animId = null;
+
+    function getParams() {
+      return {
+        m1: parseInt(document.getElementById('simM1').value, 10),
+        v1: parseInt(document.getElementById('simV1').value, 10),
+        m2: parseInt(document.getElementById('simM2').value, 10),
+        v2: parseInt(document.getElementById('simV2').value, 10)
+      };
+    }
+
+    function radius(m) { return 12 + m * 3; }
+
+    function initBalls(p) {
+      ball1 = { x: W * 0.25, y: H / 2, r: radius(p.m1), vx: p.v1 * 18, m: p.m1, color: '#0284c7' };
+      ball2 = { x: W * 0.75, y: H / 2, r: radius(p.m2), vx: p.v2 * 18, m: p.m2, color: '#6366f1' };
+    }
+
+    function drawBall(b, label) {
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+      ctx.fillStyle = b.color;
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 11px Space Grotesk, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, b.x, b.y);
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      ctx.strokeStyle = 'rgba(0,0,0,.08)';
+      ctx.beginPath(); ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2); ctx.stroke();
+      drawBall(ball1, 'm1');
+      drawBall(ball2, 'm2');
+    }
+
+    function elasticCollide() {
+      var m1 = ball1.m, m2 = ball2.m, u1 = ball1.vx, u2 = ball2.vx;
+      ball1.vx = ((m1 - m2) * u1 + 2 * m2 * u2) / (m1 + m2);
+      ball2.vx = ((m2 - m1) * u2 + 2 * m1 * u1) / (m1 + m2);
+    }
+
+    function inelasticCollide() {
+      var m1 = ball1.m, m2 = ball2.m;
+      var vf = (m1 * ball1.vx + m2 * ball2.vx) / (m1 + m2);
+      ball1.vx = vf;
+      ball2.vx = vf;
+    }
+
+    function step() {
+      ball1.x += ball1.vx * 0.016;
+      ball2.x += ball2.vx * 0.016;
+      var dist = Math.abs(ball1.x - ball2.x);
+      if (dist <= ball1.r + ball2.r && !ball1.collided) {
+        ball1.collided = true;
+        if (ball1.mode === 'elastic') { elasticCollide(); }
+        else { inelasticCollide(); }
+      }
+      if (ball1.x < ball1.r || ball1.x > W - ball1.r) ball1.vx *= -0.8;
+      if (ball2.x < ball2.r || ball2.x > W - ball2.r) ball2.vx *= -0.8;
+      draw();
+      var pTotal = (ball1.m * ball1.vx + ball2.m * ball2.vx) / 18;
+      var info = document.getElementById('simInfo');
+      if (info) info.textContent = 'p\u2081=' + (ball1.m * ball1.vx / 18).toFixed(1) + '  p\u2082=' + (ball2.m * ball2.vx / 18).toFixed(1) + '  \u2211p=' + pTotal.toFixed(1);
+      animId = requestAnimationFrame(step);
+    }
+
+    function startSim(mode) {
+      if (animId) cancelAnimationFrame(animId);
+      var p = getParams();
+      initBalls(p);
+      ball1.mode = mode;
+      ball1.collided = false;
+      running = true;
+      step();
+    }
+
+    document.getElementById('simReset').addEventListener('click', function () { startSim('elastic'); });
+    document.getElementById('simInelastic').addEventListener('click', function () { startSim('inelastic'); });
+
+    initBalls(getParams());
+    draw();
+  });
+  </script>
+  <script src="../../assets/article-math.js"></script>
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>动量：碰撞中的守恒与变化</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(1.6rem, 4.2vw, 2.8rem);
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      max-width: 20ch;
+    }
+    .math-block {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 24px;
+      margin: 16px 0;
+      border-radius: 16px;
+      background: rgba(15, 23, 42, 0.03);
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: var(--ink);
+    }
+    [data-theme="dark"] .math-block {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+    .scenario-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+    .scenario-card {
+      padding: 22px;
+      border-radius: 22px;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      box-shadow: var(--card-shadow);
+    }
+    .scenario-card h4 { margin: 0 0 8px; font-size: 1.05rem; line-height: 1.35; }
+    .scenario-card p { color: var(--muted); font-size: 0.92rem; line-height: 1.72; margin: 0; }
+    .scenario-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 42px;
+      height: 42px;
+      margin-bottom: 12px;
+      border-radius: 14px;
+      font-size: 1.3rem;
+      background: rgba(14, 165, 233, 0.12);
+    }
+    .compare-wrap {
+      margin-top: 16px;
+      overflow-x: auto;
+      border-radius: 18px;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      box-shadow: var(--card-shadow);
+    }
+    .compare-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    .compare-table th, .compare-table td {
+      padding: 11px 14px;
+      text-align: left;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+      vertical-align: top;
+    }
+    .compare-table th {
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.74rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: rgba(15, 23, 42, 0.03);
+      white-space: nowrap;
+    }
+    .compare-table tr:last-child td { border-bottom: none; }
+    [data-theme="dark"] .compare-table th { background: rgba(255,255,255,0.04); }
+    [data-theme="dark"] .compare-table td { border-color: rgba(255,255,255,0.06); }
+    .insight-callout {
+      padding: 20px 24px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(14,165,233,0.08), rgba(99,102,241,0.08));
+      border: 1px solid rgba(14,165,233,0.15);
+      margin: 16px 0;
+    }
+    .insight-callout h4 { margin: 0 0 8px; font-size: 0.95rem; color: #0284c7; }
+    [data-theme="dark"] .insight-callout h4 { color: #38bdf8; }
+    .insight-callout p { margin: 0; font-size: 0.9rem; line-height: 1.72; color: var(--ink); }
+    .step-flow { display: grid; gap: 12px; margin-top: 16px; }
+    .step-item {
+      display: grid;
+      grid-template-columns: 48px 1fr;
+      gap: 16px;
+      padding: 18px;
+      border-radius: 18px;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      box-shadow: var(--card-shadow);
+    }
+    .step-num {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: rgba(14, 165, 233, 0.12);
+      color: #0284c7;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+    .step-item h4 { margin: 0 0 6px; font-size: 0.95rem; }
+    .step-item p { margin: 0; font-size: 0.88rem; line-height: 1.72; color: var(--muted); }
+    .quiz-callout {
+      padding: 20px 24px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(34,197,94,0.08), rgba(14,165,233,0.08));
+      border: 1px solid rgba(34,197,94,0.15);
+      margin: 16px 0;
+    }
+    .quiz-callout h4 { margin: 0 0 8px; font-size: 0.95rem; color: #16a34a; }
+    [data-theme="dark"] .quiz-callout h4 { color: #4ade80; }
+    .quiz-callout p { margin: 0 0 6px; font-size: 0.9rem; line-height: 1.72; color: var(--ink); }
+    .quiz-callout .quiz-answer { font-size: 0.85rem; color: var(--muted); border-top: 1px dashed rgba(15,23,42,0.1); padding-top: 10px; margin-top: 10px; }
+    [data-theme="dark"] .quiz-callout .quiz-answer { border-color: rgba(255,255,255,0.1); }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            <span data-zh="力学" data-en="Mechanics">力学</span>
+          </div>
+          <div class="topbar-actions">
+            <nav class="nav-links" aria-label="页面章节导航">
+              <a href="#momentum-impulse" data-zh="动量" data-en="Momentum">动量</a>
+              <a href="#conservation-law" data-zh="守恒" data-en="Conservation">守恒</a>
+              <a href="#collision-types" data-zh="碰撞" data-en="Collisions">碰撞</a>
+              <a href="#exercises" data-zh="练习" data-en="Exercises">练习</a>
+            </nav>
+          </div>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow" data-zh="物理 · 力学" data-en="Physics · Mechanics">物理 · 力学</span>
+            <h1 data-zh="动量：碰撞中的守恒与变化" data-en="Momentum: Conservation in Collisions">动量：碰撞中的守恒与变化</h1>
+            <p data-zh="台球击打、汽车追尾、烟花爆炸——碰撞和分裂是自然界中最戏剧化的物理过程。动量守恒定律是分析这类问题的终极武器。" data-en="Billiard shots, car collisions, fireworks explosions — collisions and separations are nature's most dramatic physical processes. Conservation of momentum is the ultimate tool for analyzing them.">台球击打、汽车追尾、烟花爆炸——碰撞和分裂是自然界中最戏剧化的物理过程。动量守恒定律是分析这类问题的终极武器。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#momentum-impulse" data-zh="开始学习" data-en="Start Learning">开始学习</a>
+              <a class="button button-secondary" href="#exercises" data-zh="做练习" data-en="Practice">做练习</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label" data-zh="你将掌握" data-en="You Will Master">你将掌握</span>
+            <h2 data-zh="用动量解码碰撞世界" data-en="Decode the World of Collisions with Momentum">用动量解码碰撞世界</h2>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span><span data-zh="理解动量与冲量的关系" data-en="Understand momentum-impulse relationship">理解动量与冲量的关系</span></li>
+              <li><span class="layer-number">2</span><span data-zh="掌握动量守恒定律的应用条件" data-en="Master conditions for momentum conservation">掌握动量守恒定律的应用条件</span></li>
+              <li><span class="layer-number">3</span><span data-zh="区分三种碰撞类型" data-en="Distinguish three types of collisions">区分三种碰撞类型</span></li>
+              <li><span class="layer-number">4</span><span data-zh="解决碰撞与分裂的综合问题" data-en="Solve collision and separation problems">解决碰撞与分裂的综合问题</span></li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label" data-zh="核心定律" data-en="Core Law">核心定律</div>
+            <strong>1</strong>
+            <span data-zh="动量守恒定律" data-en="Conservation of Momentum">动量守恒定律</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="碰撞类型" data-en="Collision Types">碰撞类型</div>
+            <strong>3</strong>
+            <span data-zh="弹性/非弹性/完全非弹性" data-en="Elastic / Inelastic / Perfectly Inelastic">弹性/非弹性/完全非弹性</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="练习题" data-en="Exercises">练习题</div>
+            <strong>8</strong>
+            <span data-zh="基础+进阶+挑战" data-en="Basic + Advanced + Challenge">基础+进阶+挑战</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="难度" data-en="Difficulty">难度</div>
+            <strong>★★★☆☆</strong>
+            <span data-zh="中等难度" data-en="Moderate">中等难度</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- Section 01 -->
+        <section id="momentum-impulse" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="01 / 动量与冲量" data-en="01 / Momentum &amp; Impulse">01 / 动量与冲量</p>
+            <h2 data-zh="衡量运动效果的新视角" data-en="A New Perspective on Measuring Motion">衡量运动效果的新视角</h2>
+            <p data-zh="一辆重卡和一辆自行车同速行驶，撞击效果天差地别。动能描述了能量，而动量描述了运动的冲击效果。" data-en="A heavy truck and a bicycle at the same speed have vastly different impact effects. KE describes energy, while momentum describes the impact of motion.">一辆重卡和一辆自行车同速行驶，撞击效果天差地别。动能描述了能量，而动量描述了运动的冲击效果。</p>
+          </div>
+
+          <div class="subsection-accordion load-in">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span data-zh="动量：p = mv" data-en="Momentum: p = mv">动量：p = mv</span>
+              </button>
+              <div class="subsection-content">
+                <div class="math-block">p = mv</div>
+                <div class="step-flow">
+                  <div class="step-item">
+                    <div class="step-num">p</div>
+                    <div>
+                      <h4 data-zh="动量（Momentum）" data-en="Momentum">动量（Momentum）</h4>
+                      <p data-zh="动量是矢量，方向与速度方向相同。单位：kg·m/s。一辆 1000 kg 的汽车以 20 m/s 行驶，动量为 20,000 kg·m/s。一颗 0.01 kg 的子弹以 800 m/s 飞行，动量为 8 kg·m/s——质量小但速度大。" data-en="Momentum is a vector, same direction as velocity. Unit: kg·m/s. A 1000 kg car at 20 m/s has momentum 20,000 kg·m/s. A 0.01 kg bullet at 800 m/s has momentum 8 kg·m/s — small mass but high speed.">动量是矢量，方向与速度方向相同。单位：kg·m/s。一辆 1000 kg 的汽车以 20 m/s 行驶，动量为 20,000 kg·m/s。一颗 0.01 kg 的子弹以 800 m/s 飞行，动量为 8 kg·m/s——质量小但速度大。</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="insight-callout">
+                  <h4 data-zh="动量 vs 动能" data-en="Momentum vs Kinetic Energy">动量 vs 动能</h4>
+                  <p data-zh="动量 p = mv 是矢量（有方向），动能 E_k = ½mv² 是标量（无方向）。两者都描述运动状态，但维度不同：动量关注运动的冲击效果，动能关注运动的做功能力。" data-en="Momentum p = mv is a vector (has direction), KE E_k = ½mv² is scalar (no direction). Both describe motion state but in different dimensions: momentum concerns impact, KE concerns work capacity.">动量 p = mv 是矢量（有方向），动能 E_k = ½mv² 是标量（无方向）。两者都描述运动状态，但维度不同：动量关注运动的冲击效果，动能关注运动的做功能力。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span data-zh="冲量与动量定理" data-en="Impulse &amp; Impulse-Momentum Theorem">冲量与动量定理</span>
+              </button>
+              <div class="subsection-content">
+                <div class="math-block">I = Ft = Δp = mv₂ − mv₁</div>
+                <div class="step-flow">
+                  <div class="step-item">
+                    <div class="step-num">I</div>
+                    <div>
+                      <h4 data-zh="冲量（Impulse）" data-en="Impulse">冲量（Impulse）</h4>
+                      <p data-zh="力在一段时间内的累积效果。冲量 = 力 × 时间，单位 N·s = kg·m/s。冲量等于动量的变化量——这就是动量定理。" data-en="The accumulated effect of force over time. Impulse = force × time, unit N·s = kg·m/s. Impulse equals the change in momentum — this is the impulse-momentum theorem.">力在一段时间内的累积效果。冲量 = 力 × 时间，单位 N·s = kg·m/s。冲量等于动量的变化量——这就是动量定理。</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="scenario-grid">
+                  <div class="scenario-card">
+                    <div class="scenario-icon">🥊</div>
+                    <h4 data-zh="拳击手套的秘密" data-en="Secret of Boxing Gloves">拳击手套的秘密</h4>
+                    <p data-zh="拳击手套通过延长接触时间 t，在给予相同冲量（Δp 不变）的情况下减小打击力 F。缓冲原理：Ft = Δp，t 增大则 F 减小。" data-en="Boxing gloves extend contact time t. Given the same impulse (Δp unchanged), the impact force F is reduced. Cushion principle: Ft = Δp, larger t means smaller F.">拳击手套通过延长接触时间 t，在给予相同冲量（Δp 不变）的情况下减小打击力 F。缓冲原理：Ft = Δp，t 增大则 F 减小。</p>
+                  </div>
+                  <div class="scenario-card">
+                    <div class="scenario-icon">🚗</div>
+                    <h4 data-zh="安全气囊" data-en="Airbags">安全气囊</h4>
+                    <p data-zh="碰撞时人的动量变化量是固定的（从 mv 到 0）。安全气囊延长了减速时间 t，从而减小了作用在人身上的力 F。安全带也是同样原理。" data-en="In a crash, the change in momentum is fixed (from mv to 0). Airbags extend the deceleration time t, reducing the force F on the person. Seatbelts work on the same principle.">碰撞时人的动量变化量是固定的（从 mv 到 0）。安全气囊延长了减速时间 t，从而减小了作用在人身上的力 F。安全带也是同样原理。</p>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 02 -->
+        <section id="conservation-law" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="02 / 动量守恒定律" data-en="02 / Conservation of Momentum">02 / 动量守恒定律</p>
+            <h2 data-zh="系统动量总和保持不变" data-en="Total System Momentum Stays Constant">系统动量总和保持不变</h2>
+            <p data-zh="自然界中最深刻的守恒定律之一：如果系统不受外力或外力之和为零，系统总动量守恒。" data-en="One of nature's most profound conservation laws: if a system has no external forces (or they sum to zero), total momentum is conserved.">自然界中最深刻的守恒定律之一：如果系统不受外力或外力之和为零，系统总动量守恒。</p>
+          </div>
+
+          <div class="subsection-accordion load-in">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span data-zh="守恒条件与公式" data-en="Conservation Conditions &amp; Formula">守恒条件与公式</span>
+              </button>
+              <div class="subsection-content">
+                <div class="math-block">m₁v₁ + m₂v₂ = m₁v₁' + m₂v₂'</div>
+                <div class="insight-callout">
+                  <h4 data-zh="适用条件" data-en="Applicable Conditions">适用条件</h4>
+                  <p data-zh="（1）系统不受外力，或外力合力为零；（2）内力远大于外力（如碰撞瞬间，碰撞力远大于摩擦力）；（3）在某一方向上合外力为零，则该方向动量守恒。" data-en="(1) No external forces, or net external force = 0; (2) Internal forces far exceed external forces (e.g., collision forces &gt;&gt; friction during impact); (3) If net force in one direction = 0, momentum is conserved in that direction.">(1) 系统不受外力，或外力合力为零；(2) 内力远大于外力（如碰撞瞬间，碰撞力远大于摩擦力）；(3) 在某一方向上合外力为零，则该方向动量守恒。</p>
+                </div>
+                <div class="scenario-grid">
+                  <div class="scenario-card">
+                    <div class="scenario-icon">🔫</div>
+                    <h4 data-zh="枪的后坐力" data-en="Gun Recoil">枪的后坐力</h4>
+                    <p data-zh="开枪前系统静止（总动量为 0）。子弹向前飞出获得正动量，枪向后退获得负动量，两者之和仍为零。质量越大的枪，后坐速度越小。" data-en="Before firing, the system is at rest (total momentum = 0). The bullet gains forward momentum, the gun gains backward momentum, sum remains zero. Heavier guns have less recoil.">开枪前系统静止（总动量为 0）。子弹向前飞出获得正动量，枪向后退获得负动量，两者之和仍为零。质量越大的枪，后坐速度越小。</p>
+                  </div>
+                  <div class="scenario-card">
+                    <div class="scenario-icon">🚀</div>
+                    <h4 data-zh="火箭推进" data-en="Rocket Propulsion">火箭推进</h4>
+                    <p data-zh="火箭向后喷出高速气体，气体获得向后的动量，火箭获得向前的动量。这就是为什么火箭能在真空中加速——不需要推墙或踩地面。" data-en="Rockets eject high-speed gas backward. The gas gains backward momentum, the rocket gains forward momentum. That's why rockets work in vacuum — no need to push against anything.">火箭向后喷出高速气体，气体获得向后的动量，火箭获得向前的动量。这就是为什么火箭能在真空中加速——不需要推墙或踩地面。</p>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 03 -->
+        <section id="collision-types" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="03 / 碰撞类型" data-en="03 / Types of Collisions">03 / 碰撞类型</p>
+            <h2 data-zh="弹性碰撞、非弹性碰撞与完全非弹性碰撞" data-en="Elastic, Inelastic &amp; Perfectly Inelastic Collisions">弹性碰撞、非弹性碰撞与完全非弹性碰撞</h2>
+            <p data-zh="所有碰撞都守恒动量，但动能是否守恒取决于碰撞类型。这是区分三种碰撞的关键。" data-en="All collisions conserve momentum, but whether KE is conserved depends on the collision type. This is the key distinction.">所有碰撞都守恒动量，但动能是否守恒取决于碰撞类型。这是区分三种碰撞的关键。</p>
+          </div>
+
+          <div class="subsection-accordion load-in">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span data-zh="三种碰撞对比" data-en="Comparison of Three Collision Types">三种碰撞对比</span>
+              </button>
+              <div class="subsection-content">
+                <div class="compare-wrap">
+                  <table class="compare-table">
+                    <thead><tr><th data-zh="碰撞类型" data-en="Type">碰撞类型</th><th data-zh="动量" data-en="Momentum">动量</th><th data-zh="动能" data-en="KE">动能</th><th data-zh="碰后状态" data-en="After Collision">碰后状态</th><th data-zh="示例" data-en="Example">示例</th></tr></thead>
+                    <tbody>
+                      <tr><td data-zh="弹性碰撞" data-en="Elastic">弹性碰撞</td><td data-zh="守恒" data-en="Conserved">守恒</td><td data-zh="守恒" data-en="Conserved">守恒</td><td data-zh="分离" data-en="Separate">分离</td><td data-zh="台球碰撞（近似）" data-en="Billiard balls (approx.)">台球碰撞（近似）</td></tr>
+                      <tr><td data-zh="非弹性碰撞" data-en="Inelastic">非弹性碰撞</td><td data-zh="守恒" data-en="Conserved">守恒</td><td data-zh="减少" data-en="Decreases">减少</td><td data-zh="分离" data-en="Separate">分离</td><td data-zh="汽车碰撞后变形" data-en="Car crash with deformation">汽车碰撞后变形</td></tr>
+                      <tr><td data-zh="完全非弹性" data-en="Perfectly Inelastic">完全非弹性</td><td data-zh="守恒" data-en="Conserved">守恒</td><td data-zh="损失最大" data-en="Max loss">损失最大</td><td data-zh="粘合" data-en="Stick together">粘合</td><td data-zh="子弹嵌入木块" data-en="Bullet embedding in wood">子弹嵌入木块</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span data-zh="恢复系数与碰撞分类" data-en="Coefficient of Restitution">恢复系数与碰撞分类</span>
+              </button>
+              <div class="subsection-content">
+                <div class="math-block">e = (v₂' − v₁') / (v₁ − v₂)</div>
+                <div class="step-flow">
+                  <div class="step-item">
+                    <div class="step-num">1</div>
+                    <div>
+                      <h4 data-zh="e = 1：弹性碰撞" data-en="e = 1: Elastic Collision">e = 1：弹性碰撞</h4>
+                      <p data-zh="碰后分离速度等于碰前接近速度。动能完全恢复，不损失。理想中的硬球碰撞。" data-en="Separation speed equals approach speed. KE fully recovered, no loss. Ideal hard sphere collision.">碰后分离速度等于碰前接近速度。动能完全恢复，不损失。理想中的硬球碰撞。</p>
+                    </div>
+                  </div>
+                  <div class="step-item">
+                    <div class="step-num">2</div>
+                    <div>
+                      <h4 data-zh="0 &lt; e &lt; 1：非弹性碰撞" data-en="0 &lt; e &lt; 1: Inelastic Collision">0 &lt; e &lt; 1：非弹性碰撞</h4>
+                      <p data-zh="碰后分离速度小于碰前接近速度。一部分动能转化为内能、声能等。日常碰撞大多属于此类。" data-en="Separation speed is less than approach speed. Some KE converts to thermal, sound energy. Most real collisions are this type.">碰后分离速度小于碰前接近速度。部分动能转化为内能、声能等。日常碰撞大多属于此类。</p>
+                    </div>
+                  </div>
+                  <div class="step-item">
+                    <div class="step-num">3</div>
+                    <div>
+                      <h4 data-zh="e = 0：完全非弹性碰撞" data-en="e = 0: Perfectly Inelastic Collision">e = 0：完全非弹性碰撞</h4>
+                      <p data-zh="碰后两物体粘在一起，以相同速度运动。动能损失最大，但动量仍然守恒。" data-en="After collision, objects stick together, moving at the same velocity. Maximum KE loss, but momentum is still conserved.">碰后两物体粘在一起，以相同速度运动。动能损失最大，但动量仍然守恒。</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="insight-callout">
+                  <h4 data-zh="特殊情况：等质量弹性正碰" data-en="Special Case: Equal Mass Elastic Head-On">特殊情况：等质量弹性正碰</h4>
+                  <p data-zh="两个质量相同的球发生弹性正碰时，它们会交换速度。运动球停下，静止球以原来的速度飞出。台球中常见这种现象。" data-en="When two equal-mass balls collide elastically head-on, they exchange velocities. The moving ball stops, and the stationary ball moves off at the original speed. Commonly seen in billiards.">两个质量相同的球发生弹性正碰时，它们会交换速度。运动球停下，静止球以原来的速度飞出。台球中常见这种现象。</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 04: Exercises -->
+        <section id="exercises" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="04 / 增强练习" data-en="04 / Enhanced Exercises">04 / 增强练习</p>
+            <h2 data-zh="从基础到挑战：8 道精选题" data-en="From Basic to Challenge: 8 Selected Problems">从基础到挑战：8 道精选题</h2>
+            <p data-zh="分层训练，逐步提升。注意方向的正负号——动量是矢量！" data-en="Layered training for progressive improvement. Watch the signs — momentum is a vector!">分层训练，逐步提升。注意方向的正负号——动量是矢量！</p>
+          </div>
+
+          <div class="subsection-accordion load-in">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span data-zh="基础题（3 题）" data-en="Basic Problems (3)">基础题（3 题）</span>
+              </button>
+              <div class="subsection-content">
+                <div class="quiz-callout">
+                  <h4 data-zh="题 1：求动量" data-en="Q1: Find Momentum">题 1：求动量</h4>
+                  <p data-zh="一个质量 0.5 kg 的足球以 10 m/s 的速度飞向球门，求其动量大小。" data-en="A 0.5 kg football flies toward the goal at 10 m/s. Find its momentum.">一个质量 0.5 kg 的足球以 10 m/s 的速度飞向球门，求其动量大小。</p>
+                  <div class="quiz-answer" data-zh="p = mv = 0.5 × 10 = 5 kg·m/s，方向与速度方向相同（朝向球门）。" data-en="p = mv = 0.5 × 10 = 5 kg·m/s, direction same as velocity (toward goal).">p = mv = 0.5 × 10 = 5 kg·m/s，方向与速度方向相同（朝向球门）。</div>
+                </div>
+                <div class="quiz-callout">
+                  <h4 data-zh="题 2：求冲量" data-en="Q2: Find Impulse">题 2：求冲量</h4>
+                  <p data-zh="一个球被 50 N 的力击打了 0.02 s，求该力的冲量。" data-en="A ball is hit with 50 N for 0.02 s. Find the impulse.">一个球被 50 N 的力击打了 0.02 s，求该力的冲量。</p>
+                  <div class="quiz-answer" data-zh="I = Ft = 50 × 0.02 = 1 N·s = 1 kg·m/s。" data-en="I = Ft = 50 × 0.02 = 1 N·s = 1 kg·m/s.">I = Ft = 50 × 0.02 = 1 N·s = 1 kg·m/s。</div>
+                </div>
+                <div class="quiz-callout">
+                  <h4 data-zh="题 3：完全非弹性碰撞" data-en="Q3: Perfectly Inelastic Collision">题 3：完全非弹性碰撞</h4>
+                  <p data-zh="质量 2 kg 的 A 球以 6 m/s 向右运动与静止的 3 kg B 球发生完全非弹性碰撞，求碰后共同速度。" data-en="A 2 kg ball A moves right at 6 m/s and hits a stationary 3 kg ball B in a perfectly inelastic collision. Find the final velocity.">质量 2 kg 的 A 球以 6 m/s 向右运动与静止的 3 kg B 球发生完全非弹性碰撞，求碰后共同速度。</p>
+                  <div class="quiz-answer" data-zh="动量守恒：m₁v₁ = (m₁ + m₂)v' → 2 × 6 = (2 + 3) × v' → v' = 12/5 = 2.4 m/s，方向向右。" data-en="Conservation: m₁v₁ = (m₁ + m₂)v' → 2 × 6 = 5 × v' → v' = 2.4 m/s, rightward.">动量守恒：2 × 6 = (2 + 3) × v' → v' = 12/5 = 2.4 m/s，方向向右。</div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span data-zh="进阶题（3 题）" data-en="Advanced Problems (3)">进阶题（3 题）</span>
+              </button>
+              <div class="subsection-content">
+                <div class="quiz-callout">
+                  <h4 data-zh="题 4：反弹球的动量变化" data-en="Q4: Momentum Change of a Bouncing Ball">题 4：反弹球的动量变化</h4>
+                  <p data-zh="一个 0.2 kg 的橡皮球以 5 m/s 向右撞墙，以 4 m/s 向左反弹。求动量变化量和墙对球的冲量。" data-en="A 0.2 kg rubber ball hits a wall at 5 m/s (rightward), rebounds at 4 m/s (leftward). Find the momentum change and impulse from the wall.">一个 0.2 kg 的橡皮球以 5 m/s 向右撞墙，以 4 m/s 向左反弹。求动量变化量和墙对球的冲量。</p>
+                  <div class="quiz-answer" data-zh="取向右为正。p₁ = 0.2 × 5 = 1 kg·m/s，p₂ = 0.2 × (−4) = −0.8 kg·m/s。Δp = p₂ − p₁ = −0.8 − 1 = −1.8 kg·m/s（向左）。墙对球的冲量 = Δp = 1.8 kg·m/s，方向向左。" data-en="Taking right as positive. p₁ = 1, p₂ = −0.8. Δp = −0.8 − 1 = −1.8 kg·m/s (leftward). Impulse from wall = 1.8 kg·m/s, leftward.">取向右为正。Δp = (−0.8) − 1 = −1.8 kg·m/s（向左）。墙对球的冲量 = 1.8 kg·m/s，方向向左。</div>
+                </div>
+                <div class="quiz-callout">
+                  <h4 data-zh="题 5：枪的后坐" data-en="Q5: Gun Recoil">题 5：枪的后坐</h4>
+                  <p data-zh="质量 4 kg 的枪发射 0.02 kg 的子弹，子弹出膛速度 600 m/s。求枪的后坐速度。" data-en="A 4 kg gun fires a 0.02 kg bullet at 600 m/s. Find the recoil velocity of the gun.">质量 4 kg 的枪发射 0.02 kg 的子弹，子弹出膛速度 600 m/s。求枪的后坐速度。</p>
+                  <div class="quiz-answer" data-zh="初始动量为 0。0 = m_枪 × v_枪 + m_弹 × v_弹 → 0 = 4 × v_枪 + 0.02 × 600 → v_枪 = −12/4 = −3 m/s。枪以 3 m/s 后退。" data-en="Initial momentum = 0. 0 = 4v_gun + 0.02 × 600 → v_gun = −3 m/s. Gun recoils at 3 m/s.">初始动量 = 0 → 4v_枪 + 0.02 × 600 = 0 → v_枪 = −3 m/s。枪以 3 m/s 后退。</div>
+                </div>
+                <div class="quiz-callout">
+                  <h4 data-zh="题 6：碰撞中的动能损失" data-en="Q6: KE Loss in Collision">题 6：碰撞中的动能损失</h4>
+                  <p data-zh="题 3 中的碰撞损失了多少动能？" data-en="How much KE is lost in the collision from Problem 3?">题 3 中的碰撞损失了多少动能？</p>
+                  <div class="quiz-answer" data-zh="碰前 E_k = ½ × 2 × 6² = 36 J。碰后 E_k' = ½ × 5 × 2.4² = 14.4 J。损失 = 36 − 14.4 = 21.6 J，转化为内能（变形、发热）。损失比例 = 21.6/36 = 60%。" data-en="Before: E_k = ½ × 2 × 36 = 36 J. After: E_k' = ½ × 5 × 5.76 = 14.4 J. Loss = 21.6 J (60%), converted to thermal energy.">碰前 36 J，碰后 14.4 J，损失 21.6 J（60%），转化为变形和热能。</div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span data-zh="挑战题（2 题）" data-en="Challenge Problems (2)">挑战题（2 题）</span>
+              </button>
+              <div class="subsection-content">
+                <div class="quiz-callout">
+                  <h4 data-zh="题 7：弹性碰撞求末速度" data-en="Q7: Elastic Collision Final Velocities">题 7：弹性碰撞求末速度</h4>
+                  <p data-zh="质量 1 kg 的 A 球以 4 m/s 向右与静止的 3 kg B 球发生弹性正碰，求碰后 A、B 的速度。" data-en="A 1 kg ball A at 4 m/s hits a stationary 3 kg ball B in an elastic head-on collision. Find both final velocities.">质量 1 kg 的 A 球以 4 m/s 向右与静止的 3 kg B 球发生弹性正碰，求碰后 A、B 的速度。</p>
+                  <div class="quiz-answer" data-zh="弹性碰撞公式：v₁' = (m₁−m₂)v₁/(m₁+m₂) = (1−3)×4/(1+3) = −2 m/s（向左反弹）。v₂' = 2m₁v₁/(m₁+m₂) = 2×1×4/4 = 2 m/s（向右）。验证动量守恒：1×4 = 1×(−2) + 3×2 = 4 ✓。验证动能守恒：½×1×16 = ½×1×4 + ½×3×4 = 8 ✓。" data-en="Elastic formulas: v₁' = (m₁−m₂)v₁/(m₁+m₂) = −2 m/s (rebounds left). v₂' = 2m₁v₁/(m₁+m₂) = 2 m/s (rightward). Momentum check: 4 = −2 + 6 = 4 ✓. KE check: 8 = 2 + 6 = 8 ✓.">v₁' = (1−3)×4/(1+3) = −2 m/s（A 向左反弹）。v₂' = 2×1×4/4 = 2 m/s（B 向右）。动量和动能均守恒。</div>
+                </div>
+                <div class="quiz-callout">
+                  <h4 data-zh="题 8：爆炸分裂" data-en="Q8: Explosive Separation">题 8：爆炸分裂</h4>
+                  <p data-zh="质量 10 kg 的烟花弹竖直上升到最高点（速度为零）时爆炸成两块，一块质量 4 kg 以 15 m/s 水平向右飞出，求另一块的速度。" data-en="A 10 kg firework shell reaches its peak (v = 0) and explodes into two pieces. One piece (4 kg) flies right at 15 m/s. Find the velocity of the other piece.">质量 10 kg 的烟花弹竖直上升到最高点（速度为零）时爆炸成两块，一块质量 4 kg 以 15 m/s 水平向右飞出，求另一块的速度。</p>
+                  <div class="quiz-answer" data-zh="最高点水平动量为 0。爆炸后水平方向动量守恒：0 = 4 × 15 + 6 × v₂ → v₂ = −60/6 = −10 m/s。另一块以 10 m/s 水平向左飞出。" data-en="Horizontal momentum at peak = 0. After explosion: 0 = 4 × 15 + 6 × v₂ → v₂ = −10 m/s. The other piece flies left at 10 m/s.">爆炸后水平动量守恒：0 = 4 × 15 + 6 × v₂ → v₂ = −10 m/s。另一块以 10 m/s 水平向左飞出。</div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <p data-zh="&amp;copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。" data-en="&amp;copy; 2026 illusion615's Knowledge Hub | Interactive HTML page.">&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。</p>
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-math.js"></script>
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>圆周运动：从旋转木马到卫星轨道</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1{font-size:clamp(1.6rem,4.2vw,2.8rem);line-height:1.1;letter-spacing:-0.03em;max-width:20ch}
+    .math-block{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 24px;margin:16px 0;border-radius:16px;background:rgba(15,23,42,.03);border:1px solid rgba(15,23,42,.06);font-size:1.3rem;font-weight:700;color:var(--ink);gap:8px}
+    [data-theme="dark"] .math-block{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.08)}
+    .scenario-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:16px}
+    .scenario-card{padding:22px;border-radius:22px;border:1px solid var(--card-border);background:var(--card-bg);box-shadow:var(--card-shadow)}
+    .scenario-card h4{margin:0 0 8px;font-size:1.05rem;line-height:1.35}
+    .scenario-card p{color:var(--muted);font-size:.92rem;line-height:1.72;margin:0}
+    .scenario-icon{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;margin-bottom:12px;border-radius:14px;font-size:1.3rem;background:rgba(2,132,199,.12)}
+    .compare-wrap{margin-top:16px;overflow-x:auto;border-radius:18px;border:1px solid var(--card-border);background:var(--card-bg);box-shadow:var(--card-shadow)}
+    .compare-table{width:100%;border-collapse:collapse;font-size:.84rem}
+    .compare-table th,.compare-table td{padding:11px 14px;text-align:left;border-bottom:1px solid rgba(15,23,42,.06);vertical-align:top}
+    .compare-table th{font-family:"Space Grotesk","Noto Sans SC",sans-serif;font-size:.74rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:rgba(15,23,42,.03);white-space:nowrap}
+    .compare-table tr:last-child td{border-bottom:none}
+    [data-theme="dark"] .compare-table th{background:rgba(255,255,255,.04)}
+    [data-theme="dark"] .compare-table td{border-color:rgba(255,255,255,.06)}
+    .insight-callout{padding:20px 24px;border-radius:18px;background:linear-gradient(135deg,rgba(2,132,199,.08),rgba(99,102,241,.08));border:1px solid rgba(2,132,199,.15);margin:16px 0}
+    .insight-callout h4{margin:0 0 8px;font-size:.95rem;color:#0284c7}
+    [data-theme="dark"] .insight-callout h4{color:#38bdf8}
+    .insight-callout p{margin:0;font-size:.9rem;line-height:1.72;color:var(--ink)}
+    .step-flow{display:grid;gap:12px;margin-top:16px}
+    .step-item{display:grid;grid-template-columns:48px 1fr;gap:16px;padding:18px;border-radius:18px;border:1px solid var(--card-border);background:var(--card-bg);box-shadow:var(--card-shadow)}
+    .step-num{display:flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:50%;background:rgba(2,132,199,.12);color:#0284c7;font-family:"Space Grotesk",sans-serif;font-size:1.1rem;font-weight:700}
+    .step-item h4{margin:0 0 6px;font-size:.95rem}
+    .step-item p{margin:0;font-size:.88rem;line-height:1.72;color:var(--muted)}
+    .quiz-callout{padding:20px 24px;border-radius:18px;background:linear-gradient(135deg,rgba(34,197,94,.08),rgba(2,132,199,.08));border:1px solid rgba(34,197,94,.15);margin:16px 0}
+    .quiz-callout h4{margin:0 0 8px;font-size:.95rem;color:#16a34a}
+    [data-theme="dark"] .quiz-callout h4{color:#4ade80}
+    .quiz-callout p{margin:0 0 6px;font-size:.9rem;line-height:1.72;color:var(--ink)}
+    .sim-container{margin:20px 0;border-radius:18px;border:1px solid var(--card-border);background:var(--card-bg);box-shadow:var(--card-shadow);overflow:hidden}
+    .sim-container canvas{display:block;width:100%;height:auto}
+    .sim-controls{display:flex;gap:10px;padding:12px 18px;flex-wrap:wrap;align-items:center;border-top:1px solid rgba(15,23,42,.06)}
+    [data-theme="dark"] .sim-controls{border-color:rgba(255,255,255,.08)}
+    .sim-controls label{font-size:.82rem;color:var(--muted)}
+    .sim-controls input[type="range"]{width:120px}
+    .sim-controls button{padding:6px 16px;border-radius:10px;border:1px solid var(--card-border);background:var(--card-bg);color:var(--ink);font-size:.82rem;cursor:pointer}
+    .sim-controls button:hover{background:rgba(2,132,199,.08)}
+    .derivation-box{padding:18px 22px;margin:14px 0;border-radius:16px;background:rgba(99,102,241,.05);border-left:4px solid #6366f1}
+    [data-theme="dark"] .derivation-box{background:rgba(99,102,241,.08)}
+    .derivation-box h5{margin:0 0 8px;font-size:.88rem;color:#6366f1;letter-spacing:.04em}
+    .derivation-box p{margin:0 0 8px;font-size:.88rem;line-height:1.72;color:var(--ink)}
+    .derivation-box p:last-child{margin-bottom:0}
+    .series-nav{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:16px}
+    .series-nav-card{padding:16px 20px;border-radius:16px;border:1px solid var(--card-border);background:var(--card-bg);color:var(--ink);text-decoration:none;transition:transform .2s,box-shadow .2s}
+    .series-nav-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.1)}
+    .series-nav-card .series-num{font-family:"Space Grotesk",sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+    .series-nav-card h4{margin:4px 0 0;font-size:.9rem}
+    .series-nav-current{border-color:#0284c7;background:rgba(2,132,199,.06)}
+    .sim-stats{margin-left:auto;font-size:.82rem;color:var(--muted)}
+    .sim-label-gap{margin-left:12px}
+    .series-preview{margin-top:20px}
+    details.answer-fold{margin-top:8px}
+    details.answer-fold summary{cursor:pointer;font-size:.85rem;font-weight:600;color:#6366f1;padding:6px 0;list-style:none;display:flex;align-items:center;gap:6px}
+    details.answer-fold summary::before{content:'&#x25B6;';font-size:.7rem;transition:transform .2s}
+    details.answer-fold[open] summary::before{transform:rotate(90deg)}
+    details.answer-fold summary::-webkit-details-marker{display:none}
+    details.answer-fold .answer-body{padding:12px 18px;margin-top:6px;border-radius:14px;background:rgba(99,102,241,.04);border:1px solid rgba(99,102,241,.1);font-size:.88rem;line-height:1.72;color:var(--ink)}
+    [data-theme="dark"] details.answer-fold .answer-body{background:rgba(99,102,241,.08);border-color:rgba(99,102,241,.15)}
+    .force-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:16px}
+    .force-card{padding:22px;border-radius:22px;border:1px solid var(--card-border);background:var(--card-bg);box-shadow:var(--card-shadow)}
+    .force-card h4{margin:0 0 8px;font-size:1.05rem;line-height:1.35}
+    .force-card p{color:var(--muted);font-size:.92rem;line-height:1.72;margin:0}
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true"><span class="orb orb-a"></span><span class="orb orb-b"></span><span class="orb orb-c"></span></div>
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="&#x2190;" data-en="&#x2190;" aria-label="返回首页">&#x2190;</a>
+          <div class="brand"><span class="brand-mark"></span><span data-zh="力学" data-en="Mechanics">力学</span></div>
+          <div class="topbar-actions"><nav class="nav-links" aria-label="页面章节导航">
+            <a href="#life" data-zh="生活" data-en="Life">生活</a>
+            <a href="#quantities" data-zh="四量" data-en="Quantities">四量</a>
+            <a href="#centripetal-force" data-zh="向心力" data-en="Force">向心力</a>
+            <a href="#centripetal-accel" data-zh="加速度" data-en="Accel">加速度</a>
+            <a href="#practice" data-zh="练习" data-en="Practice">练习</a>
+            <a href="#roadmap" data-zh="路线" data-en="Roadmap">路线</a>
+          </nav></div>
+        </div>
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow" data-zh="力学 &#183; 第 5 篇 / 共 8 篇" data-en="Mechanics &#183; Part 5 of 8">力学 &#183; 第 5 篇 / 共 8 篇</span>
+            <h1 data-zh="圆周运动：从旋转木马到卫星轨道" data-en="Circular Motion: From Carousels to Satellite Orbits">圆周运动：从旋转木马到卫星轨道</h1>
+            <p data-zh="当物体沿曲线运动，速度方向时刻变化。掌握周期、频率、线速度、角速度四大核心量及向心力公式。" data-en="When objects move along curves, velocity direction constantly changes. Master period, frequency, linear velocity, angular velocity, and centripetal force.">速度方向时刻变化，向心力持续指向圆心。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#life" data-zh="开始学习" data-en="Start Learning">开始学习</a>
+              <a class="button button-secondary" href="#practice" data-zh="直接练习" data-en="Go to Practice">直接练习</a>
+            </div>
+          </div>
+          <aside class="hero-panel load-in">
+            <span class="panel-label" data-zh="本章目标" data-en="Chapter Goals">本章目标</span>
+            <h2 data-zh="从匀速圆周到变速圆周" data-en="From Uniform to Non-Uniform Circular Motion">从匀速圆周到变速圆周</h2>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span><span data-zh="掌握 T、f、v、&#969; 四量关系" data-en="Master T, f, v, &#969; relationships">掌握 T、f、v、&#969; 四量关系</span></li>
+              <li><span class="layer-number">2</span><span data-zh="理解 v = &#969;r 的推导" data-en="Understand v = &#969;r derivation">理解 v = &#969;r 的推导</span></li>
+              <li><span class="layer-number">3</span><span data-zh="掌握向心力与向心加速度公式" data-en="Master centripetal force and acceleration formulas">掌握向心力与向心加速度公式</span></li>
+              <li><span class="layer-number">4</span><span data-zh="辨析向心力的来源与离心力误区" data-en="Identify centripetal force sources and centrifugal misconception">辨析向心力来源与离心力误区</span></li>
+            </ul>
+          </aside>
+        </div>
+        <div class="hero-metrics load-in">
+          <div class="metric"><div class="metric-label" data-zh="核心量" data-en="Core Quantities">核心量</div><strong>4</strong><span data-zh="T / f / v / &#969;" data-en="T / f / v / &#969;">T / f / v / &#969;</span></div>
+          <div class="metric"><div class="metric-label" data-zh="关键公式" data-en="Key Formula">关键公式</div><strong>F=mv&#178;/r</strong><span data-zh="向心力公式" data-en="Centripetal force">向心力公式</span></div>
+          <div class="metric"><div class="metric-label" data-zh="交互实验" data-en="Interactive Lab">交互实验</div><strong>1</strong><span data-zh="圆周运动模拟器" data-en="Circular Motion Sim">圆周运动模拟器</span></div>
+          <div class="metric"><div class="metric-label" data-zh="难度" data-en="Difficulty">难度</div><strong>&#9733;&#9733;&#9733;&#9734;&#9734;</strong><span data-zh="需牛顿定律基础" data-en="Requires Newton's Laws">需牛顿定律基础</span></div>
+        </div>
+      </header>
+
+      <main>
+        <!-- 01 / 生活中的圆周运动 -->
+        <section id="life" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="01 / 生活中的圆周运动" data-en="01 / Circular Motion in Life">01 / 生活中的圆周运动</p>
+            <h2 data-zh="旋转无处不在" data-en="Rotation Is Everywhere">旋转无处不在</h2>
+            <p data-zh="从游乐场到太空，圆周运动是自然界最基本的运动形式之一。" data-en="From playgrounds to outer space, circular motion is one of nature's most fundamental motion patterns.">从游乐场到太空，圆周运动无处不在。</p>
+          </div>
+          <div class="scenario-grid load-in">
+            <div class="scenario-card"><div class="scenario-icon">&#x1F3A0;</div><h4 data-zh="旋转木马" data-en="Carousel">旋转木马</h4><p data-zh="外圈马匹线速度大于内圈，但角速度相同。外圈离心感更强——这正是因为 v = &#969;r，r 越大 v 越大。" data-en="Outer horses have higher linear velocity but same angular velocity. Greater centrifugal feeling because v = &#969;r.">外圈 v 更大，离心感更强。</p></div>
+            <div class="scenario-card"><div class="scenario-icon">&#x1F697;</div><h4 data-zh="汽车过弯" data-en="Car Turning">汽车过弯</h4><p data-zh="轮胎与地面的静摩擦力提供向心力。弯道半径越小、车速越快，所需向心力越大，超过最大静摩擦力就会侧滑。" data-en="Static friction provides centripetal force. Smaller radius or higher speed demands more force — exceeding max friction causes skidding.">摩擦力提供向心力，超限则侧滑。</p></div>
+            <div class="scenario-card"><div class="scenario-icon">&#x1F30D;</div><h4 data-zh="地球公转" data-en="Earth Orbit">地球公转</h4><p data-zh="地球绕太阳做近似匀速圆周运动，万有引力提供向心力。轨道半径约 1.5&#215;10&#x2078; km，周期约 365.25 天。" data-en="Earth orbits the Sun in near-uniform circular motion. Gravity provides centripetal force. R &#x2248; 1.5&#215;10&#x2078; km, T &#x2248; 365.25 days.">引力提供向心力，T &#x2248; 365 天。</p></div>
+            <div class="scenario-card"><div class="scenario-icon">&#x1F300;</div><h4 data-zh="洗衣机甩干" data-en="Washing Machine Spin">洗衣机甩干</h4><p data-zh="高速旋转时，衣物随桶壁做圆周运动。水滴因惯性沿切线方向飞出小孔——这不是「离心力甩出」，而是缺少向心力的结果。" data-en="Water drops fly out tangentially due to inertia — not centrifugal force, but lack of centripetal force.">水沿切线飞出，非离心力所致。</p></div>
+          </div>
+
+          <!-- 圆周运动模拟器 -->
+          <div class="sim-container load-in">
+            <canvas id="sim-circular" width="800" height="360"></canvas>
+            <div class="sim-controls">
+              <label data-zh="半径 r" data-en="Radius r">半径 r</label>
+              <input type="range" id="sim-r" min="40" max="140" value="90" />
+              <span id="sim-r-val">90 px</span>
+              <span class="sim-label-gap"></span>
+              <label data-zh="角速度 &#969;" data-en="Angular velocity &#969;">角速度 &#969;</label>
+              <input type="range" id="sim-omega" min="1" max="10" step="0.5" value="3" />
+              <span id="sim-omega-val">3.0 rad/s</span>
+              <span class="sim-stats" id="sim-info"></span>
+            </div>
+          </div>
+        </section>
+
+        <!-- 02 / 四个核心量 -->
+        <section id="quantities" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="02 / 四个核心量" data-en="02 / Four Core Quantities">02 / 四个核心量</p>
+            <h2 data-zh="T、f、v、&#969; 的关系网" data-en="The T, f, v, &#969; Relationship Web">T、f、v、&#969; 的关系网</h2>
+            <p data-zh="匀速圆周运动由四个互相关联的物理量完整描述。" data-en="Uniform circular motion is fully described by four interrelated quantities.">四个量相互关联，掌握关系网是解题的钥匙。</p>
+          </div>
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="周期 T 与频率 f" data-en="Period T and Frequency f">周期 T 与频率 f</span></button>
+              <div class="subsection-content">
+                <div class="math-block" data-latex="T = \frac{1}{f} \qquad f = \frac{1}{T}"></div>
+                <p data-zh="周期 T：完成一圈所需时间，单位 s。频率 f：单位时间内完成的圈数，单位 Hz。两者互为倒数。" data-en="Period T: time for one revolution (s). Frequency f: revolutions per unit time (Hz). They are reciprocals.">T 与 f 互为倒数，描述旋转快慢。</p>
+                <div class="insight-callout">
+                  <h4 data-zh="&#x1F4A1; 转速 n" data-en="&#x1F4A1; Rotational Speed n">&#x1F4A1; 转速 n</h4>
+                  <p data-zh="工程中常用转速 n（单位 r/min 或 rpm）。换算：f = n/60。例如洗衣机 1200 rpm 即 f = 20 Hz、T = 0.05 s。" data-en="Engineering uses rpm. Conversion: f = n/60. E.g., 1200 rpm = 20 Hz, T = 0.05 s.">工程用 rpm，f = n/60。</p>
+                </div>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="线速度 v 与角速度 &#969;" data-en="Linear Velocity v and Angular Velocity &#969;">线速度 v 与角速度 &#969;</span></button>
+              <div class="subsection-content">
+                <div class="math-block" data-latex="v = \frac{2\pi r}{T} = 2\pi r f"></div>
+                <div class="math-block" data-latex="\omega = \frac{2\pi}{T} = 2\pi f"></div>
+                <p data-zh="线速度 v：质点在圆周上的瞬时速率，方向沿切线。角速度 &#969;：单位时间转过的角度（rad/s），描述转动快慢与半径无关。" data-en="Linear velocity v: instantaneous speed along tangent. Angular velocity &#969;: angle swept per unit time (rad/s), independent of radius.">v 沿切线，&#969; 与半径无关。</p>
+                <div class="derivation-box">
+                  <h5 data-zh="&#x1F4D0; 推导 v = &#969;r" data-en="&#x1F4D0; Derivation: v = &#969;r">&#x1F4D0; 推导 v = &#969;r</h5>
+                  <p data-zh="一圈弧长 = 2&#960;r，所用时间 = T。" data-en="Arc length per revolution = 2&#960;r, time = T.">弧长 = 2&#960;r，时间 = T</p>
+                  <div class="math-block" data-latex="v = \frac{2\pi r}{T} = \frac{2\pi}{T} \cdot r = \omega r"></div>
+                  <p data-zh="同一转盘上，&#969; 相同，r 越大的点 v 越大——旋转木马外圈更快的原因。" data-en="On the same turntable, &#969; is the same. Larger r means larger v — why outer carousel horses are faster.">同转盘 &#969; 相同，外圈 v 更大。</p>
+                </div>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="四量关系对照表" data-en="Quantity Relationship Table">四量关系对照表</span></button>
+              <div class="subsection-content">
+                <div class="compare-wrap">
+                  <table class="compare-table">
+                    <thead><tr>
+                      <th data-zh="物理量" data-en="Quantity">物理量</th>
+                      <th data-zh="符号" data-en="Symbol">符号</th>
+                      <th data-zh="单位" data-en="Unit">单位</th>
+                      <th data-zh="关键公式" data-en="Key Formula">关键公式</th>
+                      <th data-zh="物理意义" data-en="Physical Meaning">物理意义</th>
+                    </tr></thead>
+                    <tbody>
+                      <tr><td data-zh="周期" data-en="Period">周期</td><td>T</td><td>s</td><td>T = 1/f = 2&#960;/&#969;</td><td data-zh="转一圈的时间" data-en="Time per revolution">转一圈的时间</td></tr>
+                      <tr><td data-zh="频率" data-en="Frequency">频率</td><td>f</td><td>Hz</td><td>f = 1/T = &#969;/(2&#960;)</td><td data-zh="每秒转几圈" data-en="Revolutions per second">每秒转几圈</td></tr>
+                      <tr><td data-zh="线速度" data-en="Linear velocity">线速度</td><td>v</td><td>m/s</td><td>v = 2&#960;r/T = &#969;r</td><td data-zh="切线方向速率" data-en="Speed along tangent">切线方向速率</td></tr>
+                      <tr><td data-zh="角速度" data-en="Angular velocity">角速度</td><td>&#969;</td><td>rad/s</td><td>&#969; = 2&#960;/T = v/r</td><td data-zh="单位时间转角" data-en="Angle per unit time">单位时间转角</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="insight-callout">
+                  <h4 data-zh="&#x1F4A1; 传动关系速记" data-en="&#x1F4A1; Transmission Quick Rules">&#x1F4A1; 传动关系速记</h4>
+                  <p data-zh="同轴转动：&#969; 相同，v &#8733; r。皮带/齿轮传动：v 相同，&#969; &#8733; 1/r。这两条是分析齿轮组、皮带轮的关键。" data-en="Same axis: &#969; identical, v &#8733; r. Belt/gear drive: v identical, &#969; &#8733; 1/r. Key to analyzing gear trains.">同轴 &#969; 同；皮带/齿轮 v 同。</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 03 / 向心力 -->
+        <section id="centripetal-force" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="03 / 向心力" data-en="03 / Centripetal Force">03 / 向心力</p>
+            <h2 data-zh="指向圆心的合力" data-en="The Net Force Toward the Center">指向圆心的合力</h2>
+            <p data-zh="向心力不是一种新力，而是使物体做圆周运动所需的合力的径向分量。" data-en="Centripetal force is not a new force — it's the radial component of the net force needed for circular motion.">向心力不是新力，而是合力的效果。</p>
+          </div>
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="向心力公式" data-en="Centripetal Force Formula">向心力公式</span></button>
+              <div class="subsection-content">
+                <div class="math-block" data-latex="F_c = m\frac{v^2}{r} = m\omega^2 r = m\frac{4\pi^2}{T^2}r"></div>
+                <div class="derivation-box">
+                  <h5 data-zh="&#x1F4D0; 为什么公式中有 v&#178;" data-en="&#x1F4D0; Why v&#178; Appears in the Formula">&#x1F4D0; 为什么公式中有 v&#178;</h5>
+                  <p data-zh="由 v = &#969;r 代入 F = m&#969;&#178;r 得 F = m(v/r)&#178;r = mv&#178;/r。两种形式等价，选哪个取决于已知量。速度增倍，所需向心力变为 4 倍——这就是高速过弯极其危险的原因。" data-en="Substitute v = &#969;r into F = m&#969;&#178;r to get F = mv&#178;/r. Double the speed quadruples the required force — that's why high-speed turns are dangerous.">v = &#969;r 代入即得。速度翻倍，向心力变 4 倍。</p>
+                </div>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="谁提供向心力？" data-en="What Provides Centripetal Force?">谁提供向心力？</span></button>
+              <div class="subsection-content">
+                <div class="force-grid">
+                  <div class="force-card"><h4 data-zh="&#x1F517; 绳的拉力" data-en="&#x1F517; Tension">&#x1F517; 绳的拉力</h4><p data-zh="水平面上用绳甩球：绳的拉力指向圆心，全部充当向心力。竖直面甩球时拉力和重力的合力提供向心力。" data-en="Swinging a ball on a string: tension points toward center. In vertical circle, tension + gravity combine.">甩球时绳拉力指向圆心。</p></div>
+                  <div class="force-card"><h4 data-zh="&#x1F6E4; 摩擦力" data-en="&#x1F6E4; Friction">&#x1F6E4; 摩擦力</h4><p data-zh="汽车在平坦弯道上转弯：静摩擦力指向圆心提供向心力。路面湿滑时最大静摩擦力减小，安全车速降低。" data-en="Car on flat curve: static friction points toward center. Wet roads reduce max friction, lowering safe speed.">弯道静摩擦力提供向心力。</p></div>
+                  <div class="force-card"><h4 data-zh="&#x1F30D; 万有引力" data-en="&#x1F30D; Gravity">&#x1F30D; 万有引力</h4><p data-zh="天体运动中万有引力提供向心力。卫星绕地球、行星绕太阳，引力恰好等于所需向心力。" data-en="In orbital motion, gravitational force provides centripetal force. Gravity equals the required centripetal force.">天体轨道中引力充当向心力。</p></div>
+                  <div class="force-card"><h4 data-zh="&#x26A1; 电磁力" data-en="&#x26A1; EM Force">&#x26A1; 电磁力</h4><p data-zh="带电粒子在匀强磁场中做匀速圆周运动，洛伦兹力提供向心力：qvB = mv&#178;/r。" data-en="Charged particle in uniform magnetic field: Lorentz force provides centripetal force, qvB = mv&#178;/r.">洛伦兹力 qvB 充当向心力。</p></div>
+                </div>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="离心力是误解" data-en="Centrifugal Force Misconception">离心力是误解</span></button>
+              <div class="subsection-content">
+                <div class="insight-callout">
+                  <h4 data-zh="&#x26A0; 离心力不是真实力" data-en="&#x26A0; Centrifugal Force Is Not Real">&#x26A0; 离心力不是真实力</h4>
+                  <p data-zh="在惯性参考系中不存在离心力。你在转弯汽车里感到被「甩向外侧」，实际上是你的身体因惯性想保持直线运动，而车在向内转弯。是你缺少足够的向心力，而非有力把你推向外面。" data-en="Centrifugal force does not exist in inertial frames. You feel pushed outward in a turning car because your body tends to continue straight (inertia), while the car turns inward. You lack sufficient centripetal force — nothing pushes you outward.">惯性系中无离心力，是惯性的表现。</p>
+                </div>
+                <p data-zh="只有在旋转参考系（非惯性系）中分析问题时，才需要引入离心力作为「惯性力」——但中学阶段一律在惯性系中分析。" data-en="Centrifugal force is introduced as a fictitious force only in rotating (non-inertial) frames. In high school physics, always analyze in inertial frames.">中学阶段一律在惯性系中分析。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 04 / 向心加速度 -->
+        <section id="centripetal-accel" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="04 / 向心加速度" data-en="04 / Centripetal Acceleration">04 / 向心加速度</p>
+            <h2 data-zh="匀速 &#8800; 零加速度" data-en="Constant Speed &#8800; Zero Acceleration">匀速 &#8800; 零加速度</h2>
+            <p data-zh="速度是矢量，方向变化就意味着有加速度。" data-en="Velocity is a vector — direction change means acceleration exists.">方向变化 = 加速度存在。</p>
+          </div>
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="为什么匀速圆周有加速度" data-en="Why Uniform Circular Motion Has Acceleration">为什么匀速圆周有加速度</span></button>
+              <div class="subsection-content">
+                <p data-zh="「匀速圆周运动」的匀速指速率不变，不是速度不变。速度方向每时每刻都在变化（沿切线），所以存在加速度。这个加速度的方向始终指向圆心，称为向心加速度。" data-en="Uniform means constant speed, not constant velocity. Velocity direction changes every instant (along tangent), so acceleration exists. This acceleration always points toward the center.">匀速 = 速率不变，方向在变。</p>
+                <div class="math-block" data-latex="a_c = \frac{v^2}{r} = \omega^2 r = \frac{4\pi^2}{T^2}r"></div>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="公式关系网络" data-en="Formula Relationship Network">公式关系网络</span></button>
+              <div class="subsection-content">
+                <div class="compare-wrap">
+                  <table class="compare-table">
+                    <thead><tr>
+                      <th data-zh="表达式" data-en="Expression">表达式</th>
+                      <th data-zh="适用场景" data-en="Best Use Case">适用场景</th>
+                      <th data-zh="r 变化时" data-en="When r Changes">r 变化时</th>
+                    </tr></thead>
+                    <tbody>
+                      <tr><td data-latex="a = v^2/r">a = v&#178;/r</td><td data-zh="已知 v 和 r" data-en="Known v and r">已知 v 和 r</td><td data-zh="v 定，r &#8593; &#8594; a &#8595;" data-en="v fixed, r&#8593; &#8594; a&#8595;">v 定，r&#8593; &#8594; a&#8595;</td></tr>
+                      <tr><td data-latex="a = \omega^2 r">a = &#969;&#178;r</td><td data-zh="已知 &#969; 和 r（同轴转动）" data-en="Known &#969; and r (same axis)">已知 &#969; 和 r</td><td data-zh="&#969; 定，r &#8593; &#8594; a &#8593;" data-en="&#969; fixed, r&#8593; &#8594; a&#8593;">&#969; 定，r&#8593; &#8594; a&#8593;</td></tr>
+                      <tr><td data-latex="a = v\omega">a = v&#969;</td><td data-zh="v 和 &#969; 均已知" data-en="Both v and &#969; known">v 和 &#969; 均已知</td><td data-zh="&#8212;" data-en="&#8212;">&#8212;</td></tr>
+                      <tr><td data-latex="a = 4\pi^2 r / T^2">a = 4&#960;&#178;r/T&#178;</td><td data-zh="已知 T 和 r（天体运动）" data-en="Known T and r (orbital motion)">已知 T 和 r</td><td data-zh="T 定，r &#8593; &#8594; a &#8593;" data-en="T fixed, r&#8593; &#8594; a&#8593;">T 定，r&#8593; &#8594; a&#8593;</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="insight-callout">
+                  <h4 data-zh="&#x1F4A1; 选公式的诀窍" data-en="&#x1F4A1; Choosing the Right Formula">&#x1F4A1; 选公式的诀窍</h4>
+                  <p data-zh="做题时确定哪个量相同（同轴 &#8594; &#969; 同，皮带 &#8594; v 同，同周期 &#8594; T 同），再选含该量的公式。变量关系随选择的不变量完全不同。" data-en="Identify which quantity is constant (same axis &#8594; &#969;, belt &#8594; v, same period &#8594; T), then pick the formula containing it.">确定不变量，再选公式。</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 05 / 增强练习 -->
+        <section id="practice" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="05 / 增强练习" data-en="05 / Enhanced Practice">05 / 增强练习</p>
+            <h2 data-zh="从基础到挑战" data-en="From Basics to Challenge">从基础到挑战</h2>
+            <p data-zh="3 道基础 + 3 道进阶 + 2 道挑战，巩固圆周运动核心概念。" data-en="3 basic + 3 advanced + 2 challenge problems to solidify core concepts.">8 道题覆盖全章核心考点。</p>
+          </div>
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="基础题（3 道）" data-en="Basic (3)">基础题（3 道）</span></button>
+              <div class="subsection-content">
+                <div class="quiz-callout"><h4>Q1</h4><p data-zh="自行车车轮半径 0.35 m，骑行速度 7 m/s。求车轮转动的角速度和周期。" data-en="Bicycle wheel radius 0.35 m, riding speed 7 m/s. Find &#969; and T.">车轮 r=0.35 m，v=7 m/s，求 &#969; 和 T。</p></div>
+                <details class="answer-fold"><summary data-zh="&#x1F4D6; Q1 答案" data-en="&#x1F4D6; Q1 Answer">&#x1F4D6; Q1 答案</summary><div class="answer-body"><div class="math-block" data-latex="\omega = \frac{v}{r} = \frac{7}{0.35} = 20 \text{ rad/s}"></div><div class="math-block" data-latex="T = \frac{2\pi}{\omega} = \frac{2\pi}{20} \approx 0.31 \text{ s}"></div></div></details>
+
+                <div class="quiz-callout"><h4>Q2</h4><p data-zh="电风扇叶片转速 900 rpm。求频率 f 和角速度 &#969;。" data-en="Fan blade at 900 rpm. Find f and &#969;.">转速 900 rpm，求 f 和 &#969;。</p></div>
+                <details class="answer-fold"><summary data-zh="&#x1F4D6; Q2 答案" data-en="&#x1F4D6; Q2 Answer">&#x1F4D6; Q2 答案</summary><div class="answer-body"><div class="math-block" data-latex="f = \frac{900}{60} = 15 \text{ Hz}"></div><div class="math-block" data-latex="\omega = 2\pi f = 2\pi \times 15 = 30\pi \approx 94.2 \text{ rad/s}"></div></div></details>
+
+                <div class="quiz-callout"><h4>Q3</h4><p data-zh="质量 2 kg 的物体在半径 0.5 m 的水平面上做匀速圆周运动，线速度 4 m/s。求向心力大小。" data-en="2 kg object in uniform circular motion, r = 0.5 m, v = 4 m/s. Find centripetal force.">m=2 kg，r=0.5 m，v=4 m/s，求向心力。</p></div>
+                <details class="answer-fold"><summary data-zh="&#x1F4D6; Q3 答案" data-en="&#x1F4D6; Q3 Answer">&#x1F4D6; Q3 答案</summary><div class="answer-body"><div class="math-block" data-latex="F = \frac{mv^2}{r} = \frac{2 \times 16}{0.5} = 64 \text{ N}"></div></div></details>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="进阶题（3 道）" data-en="Advanced (3)">进阶题（3 道）</span></button>
+              <div class="subsection-content">
+                <div class="quiz-callout"><h4>Q4</h4><p data-zh="同一转盘上 A 点距圆心 0.2 m，B 点距圆心 0.5 m。转盘匀速转动。求 v&#7424;/v&#7428; 和 a&#7424;/a&#7428;。" data-en="Turntable: A at r=0.2 m, B at r=0.5 m, same &#969;. Find v&#7424;/v&#7428; and a&#7424;/a&#7428;.">同转盘 A 距心 0.2 m，B 距心 0.5 m。</p></div>
+                <details class="answer-fold"><summary data-zh="&#x1F4D6; Q4 答案" data-en="&#x1F4D6; Q4 Answer">&#x1F4D6; Q4 答案</summary><div class="answer-body"><p data-zh="同轴 &#8594; &#969; 相同。v = &#969;r &#8594; v&#7424;/v&#7428; = r&#7424;/r&#7428; = 0.2/0.5 = 2/5。a = &#969;&#178;r &#8594; a&#7424;/a&#7428; = 2/5。" data-en="Same axis &#8594; same &#969;. v = &#969;r &#8594; ratio = 2/5. a = &#969;&#178;r &#8594; ratio = 2/5.">&#969; 同，v 之比 = a 之比 = r 之比 = 2:5。</p></div></details>
+
+                <div class="quiz-callout"><h4>Q5</h4><p data-zh="国际空间站在距地面约 400 km 的轨道上运行，周期约 92 min。地球半径 6371 km。求空间站的线速度和向心加速度。" data-en="ISS orbits at ~400 km altitude, T &#8776; 92 min. Earth radius 6371 km. Find v and a.">ISS 轨道高 400 km，T=92 min，求 v 和 a。</p></div>
+                <details class="answer-fold"><summary data-zh="&#x1F4D6; Q5 答案" data-en="&#x1F4D6; Q5 Answer">&#x1F4D6; Q5 答案</summary><div class="answer-body"><p data-zh="r = 6371 + 400 = 6771 km = 6.771&#215;10&#x2076; m，T = 92&#215;60 = 5520 s。" data-en="r = 6771 km = 6.771&#215;10&#x2076; m, T = 5520 s.">r = 6.771&#215;10&#x2076; m，T = 5520 s</p><div class="math-block" data-latex="v = \frac{2\pi r}{T} = \frac{2\pi \times 6.771 \times 10^6}{5520} \approx 7700 \text{ m/s}"></div><div class="math-block" data-latex="a = \frac{v^2}{r} = \frac{7700^2}{6.771 \times 10^6} \approx 8.76 \text{ m/s}^2"></div></div></details>
+
+                <div class="quiz-callout"><h4>Q6</h4><p data-zh="汽车在半径 50 m 的水平弯道上行驶，路面与轮胎间最大静摩擦系数 &#956; = 0.4。求不打滑的最大车速。（g=10 m/s&#178;）" data-en="Car on flat curve, r=50 m, &#956;=0.4. Find max speed without skidding. (g=10)">r=50 m，&#956;=0.4，求最大安全车速。</p></div>
+                <details class="answer-fold"><summary data-zh="&#x1F4D6; Q6 答案" data-en="&#x1F4D6; Q6 Answer">&#x1F4D6; Q6 答案</summary><div class="answer-body"><p data-zh="最大静摩擦力提供向心力：&#956;mg = mv&#178;/r，m 消去。" data-en="Max friction provides centripetal force: &#956;mg = mv&#178;/r, m cancels.">&#956;mg = mv&#178;/r</p><div class="math-block" data-latex="v_{max} = \sqrt{\mu g r} = \sqrt{0.4 \times 10 \times 50} = \sqrt{200} \approx 14.1 \text{ m/s}"></div><p data-zh="约 14.1 m/s &#8776; 50.8 km/h。超过此速度静摩擦力不足，汽车将向外侧滑。" data-en="&#8776; 14.1 m/s &#8776; 50.8 km/h. Beyond this speed, friction is insufficient and the car skids outward.">约 50.8 km/h，超速则侧滑。</p></div></details>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="挑战题（2 道）" data-en="Challenge (2)">挑战题（2 道）</span></button>
+              <div class="subsection-content">
+                <div class="quiz-callout"><h4>Q7</h4><p data-zh="两个皮带轮 A（r=0.1 m）和 B（r=0.3 m）通过皮带传动（不打滑）。A 轮转速 600 rpm。求 B 轮的角速度和边缘线速度。" data-en="Pulley A (r=0.1 m) and B (r=0.3 m) connected by belt (no slipping). A at 600 rpm. Find B's &#969; and v.">皮带传动 A(0.1m) B(0.3m)，A 转 600 rpm。</p></div>
+                <details class="answer-fold"><summary data-zh="&#x1F4D6; Q7 答案" data-en="&#x1F4D6; Q7 Answer">&#x1F4D6; Q7 答案</summary><div class="answer-body"><p data-zh="皮带 &#8594; 边缘线速度相同：v&#7424; = v&#7428;。" data-en="Belt &#8594; same linear velocity at edge: v&#7424; = v&#7428;.">皮带传动 v 相同</p><div class="math-block" data-latex="\omega_A = 2\pi \times \frac{600}{60} = 20\pi \text{ rad/s}"></div><div class="math-block" data-latex="v = \omega_A r_A = 20\pi \times 0.1 = 2\pi \text{ m/s} \approx 6.28 \text{ m/s}"></div><div class="math-block" data-latex="\omega_B = \frac{v}{r_B} = \frac{2\pi}{0.3} = \frac{20\pi}{3} \approx 20.9 \text{ rad/s}"></div><p data-zh="B 轮 &#969; 是 A 轮的 1/3，线速度相同。大轮转得慢是皮带传动的基本规律。" data-en="B's &#969; is 1/3 of A's. Same v. Larger wheel spins slower — fundamental belt drive rule.">大轮 &#969; 小，v 相同。</p></div></details>
+
+                <div class="quiz-callout"><h4>Q8</h4><p data-zh="长度 L=1 m 的绳系一个质量 m=0.5 kg 的小球，在竖直平面内做圆周运动。若最高点速度恰好满足临界条件（绳刚好不松弛），求该速度和最高点绳的拉力。（g=10 m/s&#178;）" data-en="String L=1 m, ball m=0.5 kg in vertical circle. At top, string barely taut (critical speed). Find v and tension. (g=10)">竖直面圆周，L=1 m，m=0.5 kg，最高点临界。</p></div>
+                <details class="answer-fold"><summary data-zh="&#x1F4D6; Q8 答案" data-en="&#x1F4D6; Q8 Answer">&#x1F4D6; Q8 答案</summary><div class="answer-body"><p data-zh="最高点临界条件：绳拉力 T = 0，重力全部提供向心力。" data-en="Critical condition at top: T = 0, gravity alone provides centripetal force.">T = 0，mg = mv&#178;/r</p><div class="math-block" data-latex="mg = \frac{mv^2}{r} \Rightarrow v = \sqrt{gr} = \sqrt{10 \times 1} = \sqrt{10} \approx 3.16 \text{ m/s}"></div><p data-zh="拉力 T = 0 N。此为最高点最小速度，低于此值绳松弛，球脱离圆周轨道。" data-en="Tension T = 0 N. This is the minimum speed at the top. Below this, the string goes slack.">T = 0 N，此为最高点最小速度。</p></div></details>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 06 / 系列导航 -->
+        <section id="roadmap" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="06 / 学习路线图" data-en="06 / Learning Roadmap">06 / 学习路线图</p>
+            <h2 data-zh="力学系列导航" data-en="Mechanics Series Navigation">力学系列导航</h2>
+            <p data-zh="这是力学系列第 5 篇。你已掌握匀速圆周运动的核心公式与向心力分析。" data-en="Part 5 of Mechanics. You've mastered uniform circular motion formulas and centripetal force analysis.">这是力学系列第 5 篇。</p>
+          </div>
+          <div class="series-nav load-in">
+            <a class="series-nav-card" href="../describing-motion/"><div class="series-num" data-zh="第 1 篇" data-en="Part 1">第 1 篇</div><h4 data-zh="运动的描述" data-en="Describing Motion">运动的描述</h4></a>
+            <a class="series-nav-card" href="../uniform-acceleration/"><div class="series-num" data-zh="第 2 篇" data-en="Part 2">第 2 篇</div><h4 data-zh="匀变速直线运动" data-en="Uniform Acceleration">匀变速直线运动</h4></a>
+            <a class="series-nav-card" href="../forces-equilibrium/"><div class="series-num" data-zh="第 3 篇" data-en="Part 3">第 3 篇</div><h4 data-zh="力与平衡" data-en="Forces &amp; Equilibrium">力与平衡</h4></a>
+            <a class="series-nav-card" href="../newtons-laws/"><div class="series-num" data-zh="第 4 篇" data-en="Part 4">第 4 篇</div><h4 data-zh="牛顿运动定律" data-en="Newton&#39;s Laws">牛顿运动定律</h4></a>
+            <div class="series-nav-card series-nav-current"><div class="series-num" data-zh="第 5 篇 &#183; 当前" data-en="Part 5 &#183; Current">第 5 篇 &#183; 当前</div><h4 data-zh="圆周运动" data-en="Circular Motion">圆周运动</h4></div>
+            <a class="series-nav-card" href="../gravitation/"><div class="series-num" data-zh="第 6 篇" data-en="Part 6">第 6 篇</div><h4 data-zh="万有引力与航天" data-en="Gravitation">万有引力与航天</h4></a>
+            <a class="series-nav-card" href="../work-energy/"><div class="series-num" data-zh="第 7 篇" data-en="Part 7">第 7 篇</div><h4 data-zh="功与能" data-en="Work &amp; Energy">功与能</h4></a>
+            <a class="series-nav-card" href="../momentum/"><div class="series-num" data-zh="第 8 篇" data-en="Part 8">第 8 篇</div><h4 data-zh="动量" data-en="Momentum">动量</h4></a>
+          </div>
+          <div class="insight-callout load-in series-preview">
+            <h4 data-zh="下一篇预告" data-en="Next Article Preview">下一篇预告</h4>
+            <p data-zh="第 6 篇将聚焦<strong>万有引力与航天</strong>——从开普勒三定律到人造卫星的轨道速度，理解引力如何提供向心力并决定天体运动规律。" data-en="Part 6: <strong>Gravitation</strong> — from Kepler's three laws to satellite orbital velocity. Understand how gravity provides centripetal force and governs celestial motion.">第 6 篇聚焦<strong>万有引力</strong>与天体运动。</p>
+          </div>
+        </section>
+      </main>
+      <footer><p data-zh="&amp;copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。" data-en="&amp;copy; 2026 illusion615's Knowledge Hub | Interactive HTML page.">&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。</p></footer>
+    </div>
+  </div>
+
+  <!-- 圆周运动模拟器 -->
+  <script>
+    (function () {
+      var canvas = document.getElementById('sim-circular');
+      var ctx = canvas.getContext('2d');
+      var rSlider = document.getElementById('sim-r');
+      var omegaSlider = document.getElementById('sim-omega');
+      var rValSpan = document.getElementById('sim-r-val');
+      var omegaValSpan = document.getElementById('sim-omega-val');
+      var infoSpan = document.getElementById('sim-info');
+      var angle = 0;
+      var lastTime = 0;
+      var animId = null;
+
+      function draw(timestamp) {
+        if (!lastTime) lastTime = timestamp;
+        var dt = (timestamp - lastTime) / 1000;
+        lastTime = timestamp;
+
+        var w = 800, h = 360;
+        canvas.width = w;
+        canvas.height = h;
+        ctx.clearRect(0, 0, w, h);
+
+        var r = parseFloat(rSlider.value);
+        var omega = parseFloat(omegaSlider.value);
+        var v = omega * r;
+        var T = (2 * Math.PI) / omega;
+        var Fc = omega * omega * r;
+        var cx = 220, cy = h / 2;
+
+        angle += omega * dt;
+        if (angle > 2 * Math.PI) angle -= 2 * Math.PI;
+
+        var bx = cx + r * Math.cos(angle);
+        var by = cy + r * Math.sin(angle);
+
+        var inkCol = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || '#0f172a';
+        var mutedCol = getComputedStyle(document.documentElement).getPropertyValue('--muted').trim() || '#64748b';
+
+        /* orbit circle */
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, 2 * Math.PI);
+        ctx.strokeStyle = mutedCol;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        /* center dot */
+        ctx.beginPath();
+        ctx.arc(cx, cy, 3, 0, 2 * Math.PI);
+        ctx.fillStyle = mutedCol;
+        ctx.fill();
+
+        /* radius line */
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(bx, by);
+        ctx.strokeStyle = mutedCol;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        /* ball */
+        ctx.beginPath();
+        ctx.arc(bx, by, 10, 0, 2 * Math.PI);
+        ctx.fillStyle = '#0284c7';
+        ctx.fill();
+
+        /* velocity arrow (tangent) */
+        var vScale = 0.4;
+        var tx = -Math.sin(angle) * v * vScale;
+        var ty = Math.cos(angle) * v * vScale;
+        ctx.beginPath();
+        ctx.moveTo(bx, by);
+        ctx.lineTo(bx + tx, by + ty);
+        ctx.strokeStyle = '#16a34a';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+        /* arrowhead */
+        var vLen = Math.sqrt(tx * tx + ty * ty);
+        if (vLen > 5) {
+          var ux = tx / vLen, uy = ty / vLen;
+          ctx.beginPath();
+          ctx.moveTo(bx + tx, by + ty);
+          ctx.lineTo(bx + tx - 8 * ux + 4 * uy, by + ty - 8 * uy - 4 * ux);
+          ctx.lineTo(bx + tx - 8 * ux - 4 * uy, by + ty - 8 * uy + 4 * ux);
+          ctx.fillStyle = '#16a34a';
+          ctx.fill();
+        }
+
+        /* centripetal force arrow (toward center) */
+        var fScale = 0.15;
+        var fx = (cx - bx);
+        var fy = (cy - by);
+        var fMag = Math.sqrt(fx * fx + fy * fy);
+        if (fMag > 0) {
+          var fnx = fx / fMag, fny = fy / fMag;
+          var fLen = Fc * fScale;
+          ctx.beginPath();
+          ctx.moveTo(bx, by);
+          ctx.lineTo(bx + fnx * fLen, by + fny * fLen);
+          ctx.strokeStyle = '#e11d48';
+          ctx.lineWidth = 2.5;
+          ctx.stroke();
+          if (fLen > 5) {
+            ctx.beginPath();
+            ctx.moveTo(bx + fnx * fLen, by + fny * fLen);
+            ctx.lineTo(bx + fnx * fLen - 8 * fnx + 4 * fny, by + fny * fLen - 8 * fny - 4 * fnx);
+            ctx.lineTo(bx + fnx * fLen - 8 * fnx - 4 * fny, by + fny * fLen - 8 * fny + 4 * fnx);
+            ctx.fillStyle = '#e11d48';
+            ctx.fill();
+          }
+        }
+
+        /* legend */
+        ctx.font = '13px Space Grotesk, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#16a34a';
+        ctx.fillText('v (tangent)', 440, 30);
+        ctx.fillStyle = '#e11d48';
+        ctx.fillText('F\u2091 (centripetal)', 440, 50);
+
+        /* info panel */
+        ctx.fillStyle = inkCol;
+        ctx.font = '14px Noto Sans SC, sans-serif';
+        ctx.fillText('r = ' + r.toFixed(0) + ' px', 440, 90);
+        ctx.fillText('\u03C9 = ' + omega.toFixed(1) + ' rad/s', 440, 115);
+        ctx.fillText('v = \u03C9r = ' + v.toFixed(1) + ' px/s', 440, 140);
+        ctx.fillText('T = 2\u03C0/\u03C9 = ' + T.toFixed(2) + ' s', 440, 165);
+        ctx.fillText('a\u2091 = \u03C9\u00B2r = ' + (omega * omega * r).toFixed(1) + ' px/s\u00B2', 440, 190);
+
+        /* update sliders */
+        rValSpan.textContent = r.toFixed(0) + ' px';
+        omegaValSpan.textContent = omega.toFixed(1) + ' rad/s';
+        infoSpan.textContent = 'v=' + v.toFixed(1) + '  T=' + T.toFixed(2) + 's';
+
+        animId = requestAnimationFrame(draw);
+      }
+
+      rSlider.addEventListener('input', function () { /* update in next frame */ });
+      omegaSlider.addEventListener('input', function () { /* update in next frame */ });
+
+      animId = requestAnimationFrame(draw);
+    })();
+  </script>
+
+  <script src="../../assets/article-math.js"></script>
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

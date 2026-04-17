@@ -469,6 +469,25 @@ var knowledgeTree = [
     phase: 2.4, speed: 0.82,
     relations: ['low-code-ai-era']
   },
+  {
+    id: 'power-platform-pricing-quote-tool',
+    parentId: 'power-apps',
+    type: 'article',
+    title: {
+      zh: 'Power Platform 报价体系与互动估算器：从需求到产品配置',
+      en: 'Power Platform Pricing System & Interactive Estimator: From Requirements to Product Configuration'
+    },
+    summary: {
+      zh: '梳理 Power Apps、Automate、Pages、Copilot Studio 与 Power BI 的计费规则，并提供可交互报价器生成月度预算与配置建议。',
+      en: 'Maps licensing rules across Apps, Automate, Pages, Copilot Studio, and Power BI, with an interactive estimator for monthly budget and SKU recommendations.'
+    },
+    tags: ['Power Platform', 'Pricing', 'Licensing', 'Estimator'],
+    date: '2026-04-17',
+    url: 'posts/power-platform-pricing-quote-tool/index.html',
+    color: '#7e22ce',
+    phase: 5.6, speed: 0.84,
+    relations: ['powerapps-vibe-coding', 'low-code-ai-era', 'copilot-studio-overview']
+  },
 
   // ════════════════════════════════════════
   // 文章 — Copilot Studio（挂在二级分组下）
@@ -746,8 +765,7 @@ var knowledgeTree = [
     type: 'topic',
     label: { zh: '教育', en: 'Education' },
     color: '#e11d48',
-    orbitIndex: 3, phase: 3.8, speed: 0.48,
-    hidden: true
+    orbitIndex: 3, phase: 3.8, speed: 0.48
   },
   {
     id: 'edu-fundamentals',
@@ -866,6 +884,312 @@ var knowledgeTree = [
   },
 
   {
+    id: 'edu-physics',
+    parentId: 'edu-fundamentals',
+    type: 'topic',
+    label: { zh: '中学物理增强练习', en: 'Physics Enhanced Practice' },
+    color: '#0ea5e9',
+    phase: 2.2, speed: 0.88
+  },
+
+  // ── 二级分组 — 力学 ──
+  {
+    id: 'physics-mechanics',
+    parentId: 'edu-physics',
+    type: 'topic',
+    label: { zh: '力学', en: 'Mechanics' },
+    color: '#0284c7',
+    phase: 0.0, speed: 0.90
+  },
+  {
+    id: 'describing-motion',
+    parentId: 'physics-mechanics',
+    type: 'article',
+    title: { zh: '运动的描述：位移、速度与加速度', en: 'Describing Motion: Displacement, Velocity & Acceleration' },
+    summary: { zh: '从跑步计时到汽车仪表盘，建立位移、速度、加速度三大运动学量的直觉，掌握矢量与标量的区别。', en: 'Builds intuition for displacement, velocity, and acceleration through everyday motion scenarios.' },
+    tags: ['Physics', 'Kinematics', 'Velocity', 'Acceleration'],
+    date: '2026-04-17',
+    url: 'posts/describing-motion/index.html',
+    color: '#0284c7',
+    phase: 0.2, speed: 0.92,
+    relations: ['uniform-acceleration']
+  },
+  {
+    id: 'uniform-acceleration',
+    parentId: 'physics-mechanics',
+    type: 'article',
+    title: { zh: '匀变速直线运动：公式与自由落体', en: 'Uniform Acceleration & Free Fall' },
+    summary: { zh: '推导匀变速运动三大公式，用自由落体和刹车问题演示应用，配合v-t图像分析。', en: 'Derives the three kinematic equations, applies them to free fall and braking problems with v-t graph analysis.' },
+    tags: ['Physics', 'Kinematics', 'Free Fall', 'v-t Graph'],
+    date: '2026-04-17',
+    url: 'posts/uniform-acceleration/index.html',
+    color: '#0284c7',
+    phase: 0.6, speed: 0.90,
+    relations: ['describing-motion', 'forces-equilibrium']
+  },
+  {
+    id: 'forces-equilibrium',
+    parentId: 'physics-mechanics',
+    type: 'article',
+    title: { zh: '力与平衡：重力、弹力、摩擦力', en: 'Forces & Equilibrium: Gravity, Elasticity, Friction' },
+    summary: { zh: '系统梳理三种常见力的产生条件和计算方法，掌握受力分析与力的合成分解技巧。', en: 'Systematically covers gravity, elastic force, and friction with force analysis and vector decomposition.' },
+    tags: ['Physics', 'Forces', 'Equilibrium', 'Friction'],
+    date: '2026-04-17',
+    url: 'posts/forces-equilibrium/index.html',
+    color: '#0284c7',
+    phase: 1.0, speed: 0.88,
+    relations: ['uniform-acceleration', 'newtons-laws']
+  },
+  {
+    id: 'newtons-laws',
+    parentId: 'physics-mechanics',
+    type: 'article',
+    title: { zh: '牛顿运动定律：从惯性到 F=ma', en: "Newton's Laws: From Inertia to F=ma" },
+    summary: { zh: '从太空失重到电梯超重，用实例拆解牛顿三大定律，训练整体法与隔离法解题。', en: "Explores Newton's three laws through weightlessness and elevator problems, training system and isolation methods." },
+    tags: ['Physics', 'Newton', 'F=ma', 'Inertia'],
+    date: '2026-04-17',
+    url: 'posts/newtons-laws/index.html',
+    color: '#0284c7',
+    phase: 1.4, speed: 0.86,
+    relations: ['forces-equilibrium', 'circular-motion']
+  },
+  {
+    id: 'circular-motion',
+    parentId: 'physics-mechanics',
+    type: 'article',
+    title: { zh: '圆周运动：从旋转木马到卫星轨道', en: 'Circular Motion: From Carousels to Satellite Orbits' },
+    summary: { zh: '讲解线速度、角速度、向心力和向心加速度，用转弯、卫星、离心机等场景强化理解与计算。', en: 'Covers linear/angular speed, centripetal force and acceleration through turning, satellites, and centrifuge scenarios.' },
+    tags: ['Physics', 'Circular Motion', 'Centripetal Force', 'Mechanics'],
+    date: '2026-04-16',
+    url: 'posts/circular-motion/index.html',
+    color: '#0284c7',
+    phase: 1.8, speed: 0.90,
+    relations: ['newtons-laws', 'gravitation']
+  },
+  {
+    id: 'gravitation',
+    parentId: 'physics-mechanics',
+    type: 'article',
+    title: { zh: '万有引力与航天：从苹果到卫星', en: 'Universal Gravitation & Spaceflight' },
+    summary: { zh: '从牛顿苹果到三大宇宙速度，掌握万有引力定律、天体运动和卫星变轨的核心计算。', en: 'From Newton\'s apple to cosmic velocities, mastering gravitational law, celestial motion and orbital maneuvers.' },
+    tags: ['Physics', 'Gravitation', 'Satellite', 'Cosmic Velocity'],
+    date: '2026-04-17',
+    url: 'posts/gravitation/index.html',
+    color: '#0284c7',
+    phase: 2.2, speed: 0.88,
+    relations: ['circular-motion', 'work-energy']
+  },
+  {
+    id: 'work-energy',
+    parentId: 'physics-mechanics',
+    type: 'article',
+    title: { zh: '功与能：动能定理与机械能守恒', en: 'Work & Energy: Kinetic Energy Theorem & Conservation' },
+    summary: { zh: '用过山车和弹弓场景建立功、动能、势能概念，掌握动能定理和机械能守恒定律的解题套路。', en: 'Builds work-energy concepts through roller coasters and slingshots, mastering kinetic energy theorem and conservation.' },
+    tags: ['Physics', 'Work', 'Energy', 'Conservation'],
+    date: '2026-04-17',
+    url: 'posts/work-energy/index.html',
+    color: '#0284c7',
+    phase: 2.6, speed: 0.86,
+    relations: ['gravitation', 'momentum']
+  },
+  {
+    id: 'momentum',
+    parentId: 'physics-mechanics',
+    type: 'article',
+    title: { zh: '动量：碰撞中的守恒与变化', en: 'Momentum: Conservation in Collisions' },
+    summary: { zh: '从台球碰撞到火箭推进，掌握动量定理和动量守恒定律，区分弹性与非弹性碰撞。', en: 'From billiard collisions to rocket propulsion, mastering impulse-momentum theorem and conservation law.' },
+    tags: ['Physics', 'Momentum', 'Collision', 'Conservation'],
+    date: '2026-04-17',
+    url: 'posts/momentum/index.html',
+    color: '#0284c7',
+    phase: 3.0, speed: 0.84,
+    relations: ['work-energy']
+  },
+
+  // ── 二级分组 — 热学 ──
+  {
+    id: 'physics-thermodynamics',
+    parentId: 'edu-physics',
+    type: 'topic',
+    label: { zh: '热学', en: 'Thermodynamics' },
+    color: '#ea580c',
+    phase: 1.2, speed: 0.88
+  },
+  {
+    id: 'molecular-kinetic-theory',
+    parentId: 'physics-thermodynamics',
+    type: 'article',
+    title: { zh: '分子动理论与内能', en: 'Molecular Kinetic Theory & Internal Energy' },
+    summary: { zh: '从扩散现象到布朗运动，理解分子运动规律与内能概念，掌握温度的微观本质。', en: 'From diffusion to Brownian motion, understanding molecular dynamics, internal energy, and temperature at microscale.' },
+    tags: ['Physics', 'Molecular', 'Internal Energy', 'Temperature'],
+    date: '2026-04-17',
+    url: 'posts/molecular-kinetic-theory/index.html',
+    color: '#ea580c',
+    phase: 0.3, speed: 0.90,
+    relations: ['thermodynamics-laws']
+  },
+  {
+    id: 'thermodynamics-laws',
+    parentId: 'physics-thermodynamics',
+    type: 'article',
+    title: { zh: '热力学定律：从蒸汽机到熵', en: 'Laws of Thermodynamics: From Steam Engines to Entropy' },
+    summary: { zh: '用发动机和冰箱场景讲解热力学第一、第二定律，理解能量转化的方向性与效率极限。', en: 'Explains first and second laws through engines and refrigerators, understanding energy conversion directionality.' },
+    tags: ['Physics', 'Thermodynamics', 'Entropy', 'Heat Engine'],
+    date: '2026-04-17',
+    url: 'posts/thermodynamics-laws/index.html',
+    color: '#ea580c',
+    phase: 1.5, speed: 0.88,
+    relations: ['molecular-kinetic-theory']
+  },
+
+  // ── 二级分组 — 电磁学 ──
+  {
+    id: 'physics-electromagnetism',
+    parentId: 'edu-physics',
+    type: 'topic',
+    label: { zh: '电磁学', en: 'Electromagnetism' },
+    color: '#7c3aed',
+    phase: 2.4, speed: 0.86
+  },
+  {
+    id: 'electrostatics',
+    parentId: 'physics-electromagnetism',
+    type: 'article',
+    title: { zh: '静电场：从库仑定律到电势能', en: 'Electrostatics: From Coulomb\'s Law to Electric Potential Energy' },
+    summary: { zh: '用气球摩擦和闪电引入静电概念，掌握库仑定律、电场强度、电势差和电势能的计算。', en: 'Introduces electrostatics through balloon friction and lightning, mastering Coulomb\'s law and electric potential.' },
+    tags: ['Physics', 'Electrostatics', 'Coulomb', 'Electric Field'],
+    date: '2026-04-17',
+    url: 'posts/electrostatics/index.html',
+    color: '#7c3aed',
+    phase: 0.3, speed: 0.90,
+    relations: ['dc-circuits']
+  },
+  {
+    id: 'dc-circuits',
+    parentId: 'physics-electromagnetism',
+    type: 'article',
+    title: { zh: '恒定电流：欧姆定律与电路分析', en: 'DC Circuits: Ohm\'s Law & Circuit Analysis' },
+    summary: { zh: '从手电筒到复杂电路，掌握欧姆定律、串并联、电功率和内外电路的分析方法。', en: 'From flashlights to complex circuits, mastering Ohm\'s law, series/parallel, power, and internal resistance analysis.' },
+    tags: ['Physics', 'Circuits', 'Ohm', 'Resistance'],
+    date: '2026-04-17',
+    url: 'posts/dc-circuits/index.html',
+    color: '#7c3aed',
+    phase: 1.0, speed: 0.88,
+    relations: ['electrostatics', 'magnetic-fields']
+  },
+  {
+    id: 'magnetic-fields',
+    parentId: 'physics-electromagnetism',
+    type: 'article',
+    title: { zh: '磁场：安培力与洛伦兹力', en: 'Magnetic Fields: Ampere Force & Lorentz Force' },
+    summary: { zh: '从指南针到电动机，理解磁场的产生与性质，掌握安培力和洛伦兹力的方向判断与计算。', en: 'From compass to motors, understanding magnetic fields, mastering Ampere and Lorentz force direction and calculation.' },
+    tags: ['Physics', 'Magnetic Field', 'Ampere', 'Lorentz Force'],
+    date: '2026-04-17',
+    url: 'posts/magnetic-fields/index.html',
+    color: '#7c3aed',
+    phase: 1.7, speed: 0.86,
+    relations: ['dc-circuits', 'electromagnetic-induction']
+  },
+  {
+    id: 'electromagnetic-induction',
+    parentId: 'physics-electromagnetism',
+    type: 'article',
+    title: { zh: '电磁感应：法拉第定律与楞次定律', en: 'Electromagnetic Induction: Faraday\'s & Lenz\'s Laws' },
+    summary: { zh: '用发电机和无线充电场景讲解电磁感应，掌握感应电动势的计算和楞次定律的方向判断。', en: 'Explains electromagnetic induction through generators and wireless charging, mastering EMF calculation and Lenz\'s law.' },
+    tags: ['Physics', 'Induction', 'Faraday', 'Lenz'],
+    date: '2026-04-17',
+    url: 'posts/electromagnetic-induction/index.html',
+    color: '#7c3aed',
+    phase: 2.4, speed: 0.84,
+    relations: ['magnetic-fields', 'ac-em-waves']
+  },
+  {
+    id: 'ac-em-waves',
+    parentId: 'physics-electromagnetism',
+    type: 'article',
+    title: { zh: '交变电流与电磁波', en: 'Alternating Current & Electromagnetic Waves' },
+    summary: { zh: '从家用电器到手机信号，理解交流电的产生与变压器原理，认识电磁波谱与通信应用。', en: 'From home appliances to phone signals, understanding AC generation, transformers, EM spectrum and communications.' },
+    tags: ['Physics', 'AC', 'Transformer', 'EM Waves'],
+    date: '2026-04-17',
+    url: 'posts/ac-em-waves/index.html',
+    color: '#7c3aed',
+    phase: 3.1, speed: 0.82,
+    relations: ['electromagnetic-induction']
+  },
+
+  // ── 二级分组 — 光学 ──
+  {
+    id: 'physics-optics',
+    parentId: 'edu-physics',
+    type: 'topic',
+    label: { zh: '光学', en: 'Optics' },
+    color: '#0d9488',
+    phase: 3.6, speed: 0.84
+  },
+  {
+    id: 'geometric-optics',
+    parentId: 'physics-optics',
+    type: 'article',
+    title: { zh: '几何光学：反射、折射与全反射', en: 'Geometric Optics: Reflection, Refraction & Total Internal Reflection' },
+    summary: { zh: '从镜子到光纤，掌握反射定律、折射定律（斯涅尔定律）和全反射的条件与应用。', en: 'From mirrors to fiber optics, mastering reflection, Snell\'s law of refraction, and total internal reflection.' },
+    tags: ['Physics', 'Optics', 'Reflection', 'Refraction'],
+    date: '2026-04-17',
+    url: 'posts/geometric-optics/index.html',
+    color: '#0d9488',
+    phase: 0.4, speed: 0.90,
+    relations: ['wave-optics']
+  },
+  {
+    id: 'wave-optics',
+    parentId: 'physics-optics',
+    type: 'article',
+    title: { zh: '波动光学：干涉、衍射与偏振', en: 'Wave Optics: Interference, Diffraction & Polarization' },
+    summary: { zh: '从肥皂泡彩虹到偏光太阳镜，理解光的波动性，掌握双缝干涉和薄膜干涉的条纹分析。', en: 'From soap bubbles to polarized sunglasses, understanding wave nature of light with double-slit and thin-film analysis.' },
+    tags: ['Physics', 'Wave Optics', 'Interference', 'Diffraction'],
+    date: '2026-04-17',
+    url: 'posts/wave-optics/index.html',
+    color: '#0d9488',
+    phase: 1.8, speed: 0.88,
+    relations: ['geometric-optics']
+  },
+
+  // ── 二级分组 — 近代物理 ──
+  {
+    id: 'physics-modern',
+    parentId: 'edu-physics',
+    type: 'topic',
+    label: { zh: '近代物理', en: 'Modern Physics' },
+    color: '#be185d',
+    phase: 4.8, speed: 0.82
+  },
+  {
+    id: 'quantum-intro',
+    parentId: 'physics-modern',
+    type: 'article',
+    title: { zh: '量子世界初探：光电效应与波粒二象性', en: 'Quantum Intro: Photoelectric Effect & Wave-Particle Duality' },
+    summary: { zh: '从紫外线验钞到光电门，理解光电效应实验与爱因斯坦光子说，认识德布罗意波。', en: 'From UV counterfeit detection to photoelectric gates, understanding the photoelectric effect and de Broglie waves.' },
+    tags: ['Physics', 'Quantum', 'Photoelectric', 'Wave-Particle'],
+    date: '2026-04-17',
+    url: 'posts/quantum-intro/index.html',
+    color: '#be185d',
+    phase: 0.5, speed: 0.88,
+    relations: ['atomic-nuclear']
+  },
+  {
+    id: 'atomic-nuclear',
+    parentId: 'physics-modern',
+    type: 'article',
+    title: { zh: '原子与原子核：核反应与放射性衰变', en: 'Atoms & Nuclei: Nuclear Reactions & Radioactive Decay' },
+    summary: { zh: '从卢瑟福散射到核电站，掌握原子结构模型、核反应方程和放射性衰变的半衰期计算。', en: 'From Rutherford scattering to nuclear power, mastering atomic models, nuclear equations and half-life calculations.' },
+    tags: ['Physics', 'Nuclear', 'Radioactivity', 'Half-life'],
+    date: '2026-04-17',
+    url: 'posts/atomic-nuclear/index.html',
+    color: '#be185d',
+    phase: 1.8, speed: 0.86,
+    relations: ['quantum-intro']
+  },
+
+  {
     id: 'edu-linear-algebra',
     parentId: 'edu-fundamentals',
     type: 'topic',
@@ -887,7 +1211,8 @@ var knowledgeTree = [
     type: 'topic',
     label: { zh: '学科教育', en: 'Subject Education' },
     color: '#dc2626',
-    phase: 1.8, speed: 0.85
+    phase: 1.8, speed: 0.85,
+    hidden: true
   },
   {
     id: 'shanghai-zhongkao',

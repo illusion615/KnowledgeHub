@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>分子动理论与内能</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1{font-size:clamp(1.6rem,4.2vw,2.8rem);line-height:1.1;letter-spacing:-0.03em;max-width:20ch}
+    .math-block{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 24px;margin:16px 0;border-radius:16px;background:rgba(15,23,42,.03);border:1px solid rgba(15,23,42,.06);font-size:1.3rem;font-weight:700;color:var(--ink);gap:8px}
+    [data-theme="dark"] .math-block{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.08)}
+    .scenario-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:16px}
+    .scenario-card{padding:22px;border-radius:22px;border:1px solid var(--card-border);background:var(--card-bg);box-shadow:var(--card-shadow)}
+    .scenario-card h4{margin:0 0 8px;font-size:1.05rem;line-height:1.35}
+    .scenario-card p{color:var(--muted);font-size:.92rem;line-height:1.72;margin:0}
+    .scenario-icon{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;margin-bottom:12px;border-radius:14px;font-size:1.3rem;background:rgba(234,88,12,.12)}
+    .compare-wrap{margin-top:16px;overflow-x:auto;border-radius:18px;border:1px solid var(--card-border);background:var(--card-bg);box-shadow:var(--card-shadow)}
+    .compare-table{width:100%;border-collapse:collapse;font-size:.84rem}
+    .compare-table th,.compare-table td{padding:11px 14px;text-align:left;border-bottom:1px solid rgba(15,23,42,.06);vertical-align:top}
+    .compare-table th{font-family:"Space Grotesk","Noto Sans SC",sans-serif;font-size:.74rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:rgba(15,23,42,.03);white-space:nowrap}
+    .compare-table tr:last-child td{border-bottom:none}
+    [data-theme="dark"] .compare-table th{background:rgba(255,255,255,.04)}
+    [data-theme="dark"] .compare-table td{border-color:rgba(255,255,255,.06)}
+    .insight-callout{padding:20px 24px;border-radius:18px;background:linear-gradient(135deg,rgba(234,88,12,.08),rgba(251,146,60,.08));border:1px solid rgba(234,88,12,.15);margin:16px 0}
+    .insight-callout h4{margin:0 0 8px;font-size:.95rem;color:#ea580c}
+    [data-theme="dark"] .insight-callout h4{color:#fb923c}
+    .insight-callout p{margin:0;font-size:.9rem;line-height:1.72;color:var(--ink)}
+    .step-flow{display:grid;gap:12px;margin-top:16px}
+    .step-item{display:grid;grid-template-columns:48px 1fr;gap:16px;padding:18px;border-radius:18px;border:1px solid var(--card-border);background:var(--card-bg);box-shadow:var(--card-shadow)}
+    .step-num{display:flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:50%;background:rgba(234,88,12,.12);color:#ea580c;font-family:"Space Grotesk",sans-serif;font-size:1.1rem;font-weight:700}
+    .step-item h4{margin:0 0 6px;font-size:.95rem}
+    .step-item p{margin:0;font-size:.88rem;line-height:1.72;color:var(--muted)}
+    .quiz-callout{padding:20px 24px;border-radius:18px;background:linear-gradient(135deg,rgba(34,197,94,.08),rgba(234,88,12,.08));border:1px solid rgba(34,197,94,.15);margin:16px 0}
+    .quiz-callout h4{margin:0 0 8px;font-size:.95rem;color:#16a34a}
+    [data-theme="dark"] .quiz-callout h4{color:#4ade80}
+    .quiz-callout p{margin:0 0 6px;font-size:.9rem;line-height:1.72;color:var(--ink)}
+    .sim-container{margin:20px 0;border-radius:18px;border:1px solid var(--card-border);background:var(--card-bg);box-shadow:var(--card-shadow);overflow:hidden}
+    .sim-container canvas{display:block;width:100%;height:auto}
+    .sim-controls{display:flex;gap:10px;padding:12px 18px;flex-wrap:wrap;align-items:center;border-top:1px solid rgba(15,23,42,.06)}
+    [data-theme="dark"] .sim-controls{border-color:rgba(255,255,255,.08)}
+    .sim-controls label{font-size:.82rem;color:var(--muted)}
+    .sim-controls input[type="range"]{width:120px}
+    .sim-controls button{padding:6px 16px;border-radius:10px;border:1px solid var(--card-border);background:var(--card-bg);color:var(--ink);font-size:.82rem;cursor:pointer}
+    .sim-controls button:hover{background:rgba(234,88,12,.08)}
+    .sim-stats{margin-left:auto;font-size:.82rem;color:var(--muted)}
+    .derivation-box{padding:18px 22px;margin:14px 0;border-radius:16px;background:rgba(99,102,241,.05);border-left:4px solid #6366f1}
+    [data-theme="dark"] .derivation-box{background:rgba(99,102,241,.08)}
+    .derivation-box h5{margin:0 0 8px;font-size:.88rem;color:#6366f1;letter-spacing:.04em}
+    .derivation-box p{margin:0 0 8px;font-size:.88rem;line-height:1.72;color:var(--ink)}
+    .derivation-box p:last-child{margin-bottom:0}
+    .series-nav{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:16px}
+    .series-nav-card{padding:16px 20px;border-radius:16px;border:1px solid var(--card-border);background:var(--card-bg);color:var(--ink);text-decoration:none;transition:transform .2s,box-shadow .2s}
+    .series-nav-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.1)}
+    .series-nav-card .series-num{font-family:"Space Grotesk",sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+    .series-nav-card h4{margin:4px 0 0;font-size:.9rem}
+    .series-nav-current{border-color:#ea580c;background:rgba(234,88,12,.06)}
+    details.answer-fold{margin-top:8px}
+    details.answer-fold summary{cursor:pointer;font-size:.85rem;font-weight:600;color:#6366f1;padding:6px 0;list-style:none;display:flex;align-items:center;gap:6px}
+    details.answer-fold summary::before{content:'&#x25B6;';font-size:.7rem;transition:transform .2s}
+    details.answer-fold[open] summary::before{transform:rotate(90deg)}
+    details.answer-fold summary::-webkit-details-marker{display:none}
+    details.answer-fold .answer-body{padding:12px 18px;margin-top:6px;border-radius:14px;background:rgba(99,102,241,.04);border:1px solid rgba(99,102,241,.1);font-size:.88rem;line-height:1.72;color:var(--ink)}
+    [data-theme="dark"] details.answer-fold .answer-body{background:rgba(99,102,241,.08);border-color:rgba(99,102,241,.15)}
+    .series-preview{margin-top:20px;padding:20px 24px;border-radius:18px;background:linear-gradient(135deg,rgba(234,88,12,.06),rgba(251,146,60,.06));border:1px solid rgba(234,88,12,.12)}
+    .series-preview h4{margin:0 0 6px;font-size:.95rem;color:#ea580c}
+    [data-theme="dark"] .series-preview h4{color:#fb923c}
+    .series-preview p{margin:0;font-size:.9rem;line-height:1.72;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true"><span class="orb orb-a"></span><span class="orb orb-b"></span><span class="orb orb-c"></span></div>
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="&#x2190;" data-en="&#x2190;" aria-label="返回首页">&#x2190;</a>
+          <div class="brand"><span class="brand-mark"></span><span data-zh="热学" data-en="Thermodynamics">热学</span></div>
+          <div class="topbar-actions"><nav class="nav-links" aria-label="页面章节导航">
+            <a href="#molecular-world" data-zh="分子" data-en="Molecules">分子</a>
+            <a href="#brownian" data-zh="运动" data-en="Motion">运动</a>
+            <a href="#intermolecular" data-zh="作用力" data-en="Forces">作用力</a>
+            <a href="#internal-energy" data-zh="内能" data-en="Internal E">内能</a>
+            <a href="#practice" data-zh="练习" data-en="Practice">练习</a>
+          </nav></div>
+        </div>
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow" data-zh="热学 &#183; 第 1 篇 / 共 2 篇" data-en="Thermodynamics &#183; Part 1 of 2">热学 &#183; 第 1 篇 / 共 2 篇</span>
+            <h1 data-zh="分子动理论与内能" data-en="Molecular Kinetic Theory &amp; Internal Energy">分子动理论与内能</h1>
+            <p data-zh="从宏观热现象深入微观分子世界。理解分子运动、分子间作用力和内能的本质。" data-en="From macroscopic thermal phenomena to the microscopic molecular world. Understand molecular motion, intermolecular forces, and the nature of internal energy.">走进微观分子世界。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#molecular-world" data-zh="开始学习" data-en="Start Learning">开始学习</a>
+              <a class="button button-secondary" href="#practice" data-zh="直接练习" data-en="Go to Practice">直接练习</a>
+            </div>
+          </div>
+          <aside class="hero-panel load-in">
+            <span class="panel-label" data-zh="本章目标" data-en="Chapter Goals">本章目标</span>
+            <h2 data-zh="从微观到宏观" data-en="From Micro to Macro">从微观到宏观</h2>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span><span data-zh="了解分子大小与阿伏加德罗常数" data-en="Molecular size &amp; Avogadro's number">分子大小与阿伏加德罗常数</span></li>
+              <li><span class="layer-number">2</span><span data-zh="理解扩散和布朗运动的微观本质" data-en="Microscopic nature of diffusion &amp; Brownian motion">扩散与布朗运动的微观本质</span></li>
+              <li><span class="layer-number">3</span><span data-zh="掌握分子间引力与斥力的关系" data-en="Intermolecular attraction &amp; repulsion">分子间引力与斥力</span></li>
+              <li><span class="layer-number">4</span><span data-zh="理解内能的构成与改变方式" data-en="Internal energy composition &amp; change">内能的构成与改变方式</span></li>
+            </ul>
+          </aside>
+        </div>
+        <div class="hero-metrics load-in">
+          <div class="metric"><div class="metric-label" data-zh="分子直径" data-en="Molecular Diameter">分子直径</div><strong>~10&#x207B;&#xB9;&#x2070; m</strong><span data-zh="约一亿分之一厘米" data-en="About 0.1 nanometer">约一亿分之一厘米</span></div>
+          <div class="metric"><div class="metric-label" data-zh="阿伏加德罗常数" data-en="Avogadro's Number">阿伏加德罗常数</div><strong>6.02&#215;10&#178;&#179;</strong><span data-zh="1 mol 的粒子数" data-en="Particles per mole">1 mol 粒子数</span></div>
+          <div class="metric"><div class="metric-label" data-zh="交互实验" data-en="Interactive Lab">交互实验</div><strong>1</strong><span data-zh="布朗运动模拟" data-en="Brownian Motion Sim">布朗运动模拟</span></div>
+          <div class="metric"><div class="metric-label" data-zh="难度" data-en="Difficulty">难度</div><strong>&#9733;&#9733;&#9733;&#9734;&#9734;</strong><span data-zh="概念为主" data-en="Concept-focused">概念为主</span></div>
+        </div>
+      </header>
+
+      <main>
+        <!-- 01 / 分子世界 -->
+        <section id="molecular-world" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="01 / 分子世界" data-en="01 / The Molecular World">01 / 分子世界</p>
+            <h2 data-zh="看不见的微观构成" data-en="The Invisible Microscopic Constitution">看不见的微观构成</h2>
+            <p data-zh="物质由大量分子组成。分子极小（~10&#x207B;&#xB9;&#x2070; m），数量极大（阿伏加德罗常数 N&#x2090; &#8776; 6.02&#215;10&#178;&#179;）。" data-en="Matter consists of a huge number of molecules. Molecules are tiny (~10&#x207B;&#xB9;&#x2070; m) and numerous (Avogadro's number N&#x2090; &#8776; 6.02&#215;10&#178;&#179;).">分子极小，数量极大。</p>
+          </div>
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="分子大小的测量" data-en="Measuring Molecular Size">分子大小的测量</span></button>
+              <div class="subsection-content">
+                <div class="derivation-box">
+                  <h5 data-zh="&#x1F4D0; 油膜法估算分子直径" data-en="&#x1F4D0; Oil Film Method">&#x1F4D0; 油膜法估算分子直径</h5>
+                  <p data-zh="将一滴油酸滴在水面上，测量油膜面积 S 和油滴体积 V。假设油膜展开为单分子层：" data-en="Drop oleic acid on water, measure film area S and droplet volume V. Assume film is one molecule thick:">油膜展开为单分子层。</p>
+                  <div class="math-block" data-latex="d = \frac{V}{S}"></div>
+                  <p data-zh="典型结果：d &#8776; 10&#x207B;&#xB9;&#x2070; m，即约 0.1 nm。这证明分子确实极其微小。" data-en="Typical result: d &#8776; 10&#x207B;&#xB9;&#x2070; m, about 0.1 nm. This confirms molecules are extraordinarily small.">d &#8776; 10&#x207B;&#xB9;&#x2070; m。</p>
+                </div>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="阿伏加德罗常数" data-en="Avogadro's Number">阿伏加德罗常数</span></button>
+              <div class="subsection-content">
+                <div class="math-block load-in" data-latex="N_A = 6.022 \times 10^{23} \text{ mol}^{-1}"></div>
+                <div class="insight-callout">
+                  <h4 data-zh="&#x1F4A1; 直觉感受" data-en="&#x1F4A1; Intuition">&#x1F4A1; 这个数有多大？</h4>
+                  <p data-zh="如果每秒数一个分子，6.02&#215;10&#178;&#179; 个分子需要约 1.9&#215;10&#xB9;&#x2076; 年——远超宇宙年龄（138 亿年）。一杯水（约 18 g）中含有 6.02&#215;10&#178;&#179; 个水分子。" data-en="Counting one molecule per second, 6.02&#215;10&#178;&#179; molecules would take ~1.9&#215;10&#xB9;&#x2076; years — far exceeding the age of the universe (13.8 billion years). A cup of water (~18 g) contains 6.02&#215;10&#178;&#179; water molecules.">远超宇宙年龄。一杯水含 6&#215;10&#178;&#179; 个分子。</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 02 / 分子运动证据 -->
+        <section id="brownian" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="02 / 分子运动证据" data-en="02 / Evidence of Molecular Motion">02 / 分子运动证据</p>
+            <h2 data-zh="扩散与布朗运动" data-en="Diffusion &amp; Brownian Motion">扩散与布朗运动</h2>
+            <p data-zh="分子永不停息地做无规则运动。扩散现象和布朗运动是最直接的证据。" data-en="Molecules are in constant, irregular motion. Diffusion and Brownian motion are the most direct evidence.">分子永不停息运动。</p>
+          </div>
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="扩散现象" data-en="Diffusion">扩散现象</span></button>
+              <div class="subsection-content">
+                <div class="scenario-grid">
+                  <div class="scenario-card"><div class="scenario-icon">&#x1F490;</div><h4 data-zh="气体扩散" data-en="Gas Diffusion">气体扩散</h4><p data-zh="打开香水瓶，整个房间很快闻到香味。气体分子运动速度最快，扩散最迅速。" data-en="Open a perfume bottle and the whole room smells it quickly. Gas molecules move fastest, diffusing most rapidly.">香水在空气中扩散。</p></div>
+                  <div class="scenario-card"><div class="scenario-icon">&#x1F3A8;</div><h4 data-zh="液体扩散" data-en="Liquid Diffusion">液体扩散</h4><p data-zh="将墨水滴入清水，逐渐变为均匀的淡色。液体分子间距较小，扩散比气体慢。" data-en="Drop ink into water; it gradually becomes uniformly colored. Liquid molecules are closer, so diffusion is slower than gas.">墨水在水中扩散。</p></div>
+                  <div class="scenario-card"><div class="scenario-icon">&#x2699;&#xFE0F;</div><h4 data-zh="固体扩散" data-en="Solid Diffusion">固体扩散</h4><p data-zh="铅板和金板紧贴放置几年后，接触面互相渗入约 1 mm。固体分子间距最小，扩散极慢。" data-en="Lead and gold plates pressed together for years show ~1 mm mutual penetration. Solid molecules are closest, diffusion is extremely slow.">金铅互渗，需要数年。</p></div>
+                </div>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="布朗运动模拟器" data-en="Brownian Motion Simulator">布朗运动模拟器</span></button>
+              <div class="subsection-content">
+                <p data-zh="悬浮微粒受到周围分子从各个方向的不平衡撞击，发生无规则运动。温度越高，分子运动越剧烈，布朗运动越明显。" data-en="Suspended particles receive unbalanced impacts from surrounding molecules in all directions, causing irregular motion. Higher temperature means more vigorous molecular motion and more pronounced Brownian motion.">微粒受分子撞击做无规则运动。</p>
+                <div class="sim-container">
+                  <canvas id="brownianCanvas" width="500" height="300"></canvas>
+                  <div class="sim-controls">
+                    <label data-zh="温度" data-en="Temperature">温度</label>
+                    <input type="range" id="tempSlider" min="1" max="10" value="5" step="1" />
+                    <span class="sim-stats" id="tempLabel" data-zh="T = 5" data-en="T = 5">T = 5</span>
+                  </div>
+                </div>
+                <div class="insight-callout">
+                  <h4 data-zh="&#x1F4A1; 布朗运动 &#x2260; 分子运动" data-en="&#x1F4A1; Brownian Motion &#x2260; Molecular Motion">&#x1F4A1; 布朗运动 &#x2260; 分子运动</h4>
+                  <p data-zh="布朗运动是悬浮微粒（花粉、碳粒）的运动，不是分子本身的运动。它间接反映了液体（气体）分子的无规则运动。微粒越小、温度越高，布朗运动越明显。" data-en="Brownian motion is the movement of suspended particles (pollen, carbon), not molecules themselves. It indirectly reflects the irregular motion of liquid (gas) molecules. Smaller particles and higher temperature make it more pronounced.">是微粒运动，反映分子运动。</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 03 / 分子间作用力 -->
+        <section id="intermolecular" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="03 / 分子间作用力" data-en="03 / Intermolecular Forces">03 / 分子间作用力</p>
+            <h2 data-zh="引力与斥力的微妙平衡" data-en="The Subtle Balance of Attraction &amp; Repulsion">引力与斥力的微妙平衡</h2>
+            <p data-zh="分子间同时存在引力和斥力。两者都随距离增大而减小，但斥力减小得更快。" data-en="Intermolecular attraction and repulsion coexist. Both decrease with distance, but repulsion decreases faster.">引力与斥力同时存在。</p>
+          </div>
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="F-r 关系图" data-en="F-r Diagram">F-r 关系图</span></button>
+              <div class="subsection-content">
+                <div class="step-flow">
+                  <div class="step-item"><div class="step-num">r&#x2080;</div><div><h4 data-zh="平衡距离 r&#x2080; &#8776; 10&#x207B;&#xB9;&#x2070; m" data-en="Equilibrium r&#x2080; &#8776; 10&#x207B;&#xB9;&#x2070; m">平衡距离 r&#x2080;</h4><p data-zh="引力 = 斥力，合力为零。分子间距约 10&#x207B;&#xB9;&#x2070; m 时达到平衡。" data-en="Attraction = repulsion, net force is zero. Achieved at ~10&#x207B;&#xB9;&#x2070; m.">引力 = 斥力，合力为零。</p></div></div>
+                  <div class="step-item"><div class="step-num">&lt;</div><div><h4 data-zh="r &lt; r&#x2080;：斥力为主" data-en="r &lt; r&#x2080;: Repulsion Dominates">r &lt; r&#x2080;：斥力为主</h4><p data-zh="分子过于靠近时，斥力急剧增大并超过引力。表现为固体和液体难以被压缩。" data-en="When molecules are too close, repulsion increases sharply. This is why solids and liquids are hard to compress.">固体液体难以压缩。</p></div></div>
+                  <div class="step-item"><div class="step-num">&gt;</div><div><h4 data-zh="r &gt; r&#x2080;：引力为主" data-en="r &gt; r&#x2080;: Attraction Dominates">r &gt; r&#x2080;：引力为主</h4><p data-zh="分子略微远离平衡位置时，引力超过斥力。表现为液体有表面张力，固体有弹性。" data-en="When molecules move slightly beyond equilibrium, attraction exceeds repulsion. This produces surface tension and solid elasticity.">表面张力和弹性的来源。</p></div></div>
+                  <div class="step-item"><div class="step-num">&#x221E;</div><div><h4 data-zh="r &gt; 10r&#x2080;：力可忽略" data-en="r &gt; 10r&#x2080;: Force Negligible">r &gt; 10r&#x2080;：力可忽略</h4><p data-zh="分子间距超过 10&#x207B;&#x2079; m（约 10 倍分子直径）时，分子力几乎为零。气体分子间距大，分子力可忽略。" data-en="Beyond ~10&#x207B;&#x2079; m (~10 diameters), molecular forces are negligible. Gas molecules are far apart, so intermolecular forces are negligible.">气体分子力可忽略。</p></div></div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 04 / 内能 -->
+        <section id="internal-energy" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="04 / 内能" data-en="04 / Internal Energy">04 / 内能</p>
+            <h2 data-zh="分子动能与分子势能的总和" data-en="Sum of Molecular KE &amp; PE">分子动能与分子势能的总和</h2>
+            <p data-zh="物体内所有分子的动能和分子间势能的总和叫做内能。温度是分子平均动能的标志。" data-en="Internal energy is the total of all molecular kinetic and potential energies. Temperature indicates average molecular KE.">内能 = 所有分子 Ek + Ep。</p>
+          </div>
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="内能的构成" data-en="Composition of Internal Energy">内能的构成</span></button>
+              <div class="subsection-content">
+                <div class="scenario-grid">
+                  <div class="scenario-card"><div class="scenario-icon">&#x1F3C3;</div><h4 data-zh="分子动能" data-en="Molecular KE">分子动能</h4><p data-zh="分子做无规则运动而具有的动能。温度越高，分子平均动能越大。温度是分子平均动能的标志。注意：是「平均」动能，单个分子的速度有快有慢。" data-en="KE from irregular molecular motion. Higher temperature = greater average molecular KE. Temperature indicates AVERAGE molecular KE — individual molecules vary.">温度是分子平均动能的标志。</p></div>
+                  <div class="scenario-card"><div class="scenario-icon">&#x1F517;</div><h4 data-zh="分子势能" data-en="Molecular PE">分子势能</h4><p data-zh="分子间存在引力和斥力，因此具有分子势能。分子势能与分子间距有关，即与物体的体积有关。" data-en="Intermolecular forces create molecular PE. Molecular PE depends on molecular spacing, i.e., on the object's volume.">与分子间距（体积）有关。</p></div>
+                </div>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="改变内能的两种方式" data-en="Two Ways to Change Internal Energy">改变内能的两种方式</span></button>
+              <div class="subsection-content">
+                <div class="compare-wrap">
+                  <table class="compare-table">
+                    <thead><tr><th data-zh="方式" data-en="Method">方式</th><th data-zh="本质" data-en="Nature">本质</th><th data-zh="示例" data-en="Example">示例</th></tr></thead>
+                    <tbody>
+                      <tr><td data-zh="做功" data-en="Work">做功</td><td data-zh="能量转化（其他形式 &#8596; 内能）" data-en="Energy conversion (other forms &#8596; internal)">能量转化</td><td data-zh="摩擦生热、压缩气体" data-en="Friction heating, gas compression">摩擦生热</td></tr>
+                      <tr><td data-zh="热传递" data-en="Heat Transfer">热传递</td><td data-zh="能量转移（内能从高温到低温）" data-en="Energy transfer (internal energy from hot to cold)">能量转移</td><td data-zh="开水变凉、暖手" data-en="Hot water cooling, warming hands">开水变凉</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="insight-callout">
+                  <h4 data-zh="&#x1F4A1; 做功与热传递等效" data-en="&#x1F4A1; Work &amp; Heat Transfer Are Equivalent">&#x1F4A1; 做功与热传递等效</h4>
+                  <p data-zh="做功和热传递在改变内能上是等效的。两种方式都能使物体内能增大或减小，效果相同，区别只在于能量交换的机制不同。" data-en="Work and heat transfer are equivalent in changing internal energy. Both can increase or decrease internal energy; they differ only in the mechanism of energy exchange.">两种方式效果相同，机制不同。</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 05 / 增强练习 -->
+        <section id="practice" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="05 / 增强练习" data-en="05 / Enhanced Exercises">05 / 增强练习</p>
+            <h2 data-zh="从基础到进阶：6 道精选题" data-en="From Basic to Advanced: 6 Selected Problems">从基础到进阶：6 道精选题</h2>
+          </div>
+          <div class="subsection-accordion load-in">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="基础题（3 题）" data-en="Basic (3)">基础题（3 题）</span></button>
+              <div class="subsection-content">
+                <div class="quiz-callout">
+                  <h4 data-zh="题 1：油膜法" data-en="Q1: Oil Film Method">题 1：油膜法</h4>
+                  <p data-zh="将体积 V = 1&#215;10&#x207B;&#x2076; mL 的油酸滴在水面上，形成面积 S = 1&#215;10&#x207B;&#x2074; m&#178; 的油膜。估算油酸分子的直径。" data-en="Oil droplet V = 1&#215;10&#x207B;&#x2076; mL forms area S = 1&#215;10&#x207B;&#x2074; m&#178;. Estimate the molecular diameter.">V = 10&#x207B;&#x2076; mL，S = 10&#x207B;&#x2074; m&#178;。</p>
+                  <details class="answer-fold"><summary data-zh="查看解析" data-en="Show Solution">查看解析</summary><div class="answer-body" data-zh="V = 1&#215;10&#x207B;&#x2076; mL = 1&#215;10&#x207B;&#x2079; cm&#179; = 1&#215;10&#x207B;&#xB9;&#x2075; m&#179;。d = V/S = 10&#x207B;&#xB9;&#x2075;/10&#x207B;&#x2074; = 10&#x207B;&#xB9;&#xB9; m = 0.1 nm。符合分子直径的数量级。" data-en="V = 10&#x207B;&#xB9;&#x2075; m&#179;. d = V/S = 10&#x207B;&#xB9;&#x2075;/10&#x207B;&#x2074; = 10&#x207B;&#xB9;&#xB9; m = 0.1 nm.">d = 10&#x207B;&#xB9;&#xB9; m &#8776; 0.1 nm。</div></details>
+                </div>
+                <div class="quiz-callout">
+                  <h4 data-zh="题 2：扩散判断" data-en="Q2: Diffusion Judgment">题 2：扩散判断</h4>
+                  <p data-zh="下列哪个不属于扩散现象？A. 花香四溢 B. 墨水散开 C. 灰尘飞扬 D. 腌菜入味" data-en="Which is NOT diffusion? A. Flower fragrance B. Ink spreading C. Dust flying D. Pickling vegetables">哪个不是扩散？</p>
+                  <details class="answer-fold"><summary data-zh="查看解析" data-en="Show Solution">查看解析</summary><div class="answer-body" data-zh="答案：C。灰尘飞扬是宏观物体的机械运动，不是分子运动。扩散是分子的自发运动，ABD 都是扩散。" data-en="Answer: C. Dust flying is macroscopic mechanical motion, not molecular motion. Diffusion is spontaneous molecular motion; A, B, D are all diffusion.">C。灰尘是宏观运动，不是扩散。</div></details>
+                </div>
+                <div class="quiz-callout">
+                  <h4 data-zh="题 3：温度与内能" data-en="Q3: Temperature &amp; Internal Energy">题 3：温度与内能</h4>
+                  <p data-zh="「温度升高，内能一定增大」这句话对吗？" data-en="Is 'Higher temperature always means greater internal energy' correct?">温度升高 &#8594; 内能一定增大？</p>
+                  <details class="answer-fold"><summary data-zh="查看解析" data-en="Show Solution">查看解析</summary><div class="answer-body" data-zh="对于同一物体，温度升高时分子平均动能增大，内能确实增大。但不能比较不同物体：一杯 100&#xB0;C 的水内能可能小于一桶 50&#xB0;C 的水。内能还与质量、物质种类、体积（分子势能）有关。" data-en="For the same object, yes — higher temperature means greater average molecular KE and greater internal energy. But you cannot compare different objects: a cup of 100&#xB0;C water may have less internal energy than a barrel of 50&#xB0;C water.">同一物体对，不同物体不一定。</div></details>
+                </div>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="进阶题（3 题）" data-en="Advanced (3)">进阶题（3 题）</span></button>
+              <div class="subsection-content">
+                <div class="quiz-callout">
+                  <h4 data-zh="题 4：布朗运动分析" data-en="Q4: Brownian Motion Analysis">题 4：布朗运动分析</h4>
+                  <p data-zh="在显微镜下观察悬浮微粒的布朗运动，以下说法正确的是？A. 微粒越大运动越明显 B. 温度越高运动越明显 C. 运动轨迹是分子的运动轨迹 D. 静止液体中不会发生布朗运动" data-en="Under a microscope, which statement about Brownian motion is correct? A. Larger particles move more B. Higher temp means more movement C. Trajectory shows molecular paths D. No Brownian motion in still liquid">哪个说法正确？</p>
+                  <details class="answer-fold"><summary data-zh="查看解析" data-en="Show Solution">查看解析</summary><div class="answer-body" data-zh="答案：B。A 错，微粒越小运动越明显；C 错，轨迹是微粒（不是分子）的运动；D 错，液体宏观静止但分子仍在运动。" data-en="Answer: B. A is wrong (smaller particles move more); C is wrong (trajectory is particle, not molecule); D is wrong (liquid is macroscopically still but molecules move).">B 正确。微粒越小越明显，温度越高越明显。</div></details>
+                </div>
+                <div class="quiz-callout">
+                  <h4 data-zh="题 5：分子力综合" data-en="Q5: Molecular Forces Combined">题 5：分子力综合</h4>
+                  <p data-zh="两分子从远处靠近至 r = r&#x2080; 的过程中，分子力做正功还是负功？分子势能如何变化？" data-en="As two molecules approach from far away to r = r&#x2080;, does the molecular force do positive or negative work? How does molecular PE change?">从远处靠近到 r&#x2080;。</p>
+                  <details class="answer-fold"><summary data-zh="查看解析" data-en="Show Solution">查看解析</summary><div class="answer-body" data-zh="r &gt; r&#x2080; 时引力为主，分子力方向指向对方（与运动方向同向），做正功。分子力做正功时分子势能减小。到 r&#x2080; 时分子势能最小（不是零）。" data-en="For r &gt; r&#x2080;, attraction dominates; force direction matches motion, doing positive work. Positive work by molecular force decreases molecular PE. At r&#x2080;, PE is at minimum (not zero).">引力做正功，分子势能减小到最低。</div></details>
+                </div>
+                <div class="quiz-callout">
+                  <h4 data-zh="题 6：内能变化方式" data-en="Q6: Ways to Change Internal Energy">题 6：内能变化方式</h4>
+                  <p data-zh="冬天搓手取暖和用热水袋取暖，哪个是做功改变内能，哪个是热传递改变内能？两种方式的本质区别是什么？" data-en="Rubbing hands vs. using a hot water bottle for warmth — which is work, which is heat transfer? What's the essential difference?">搓手 vs 热水袋。</p>
+                  <details class="answer-fold"><summary data-zh="查看解析" data-en="Show Solution">查看解析</summary><div class="answer-body" data-zh="搓手是做功（摩擦力做功，机械能 &#8594; 内能），热水袋是热传递（内能从高温物体转移到低温物体）。本质区别：做功是能量形式的转化，热传递是同一形式能量的转移。" data-en="Rubbing = work (friction converts mechanical energy to internal energy). Hot water bottle = heat transfer (internal energy transfers from hot to cold). Difference: work converts energy forms; heat transfer moves the same form.">搓手 = 做功，热水袋 = 热传递。</div></details>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 06 / 系列导航 -->
+        <section id="roadmap" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="06 / 系列导航" data-en="06 / Series Navigation">06 / 系列导航</p>
+            <h2 data-zh="热学系列" data-en="Thermodynamics Series">热学系列</h2>
+          </div>
+          <div class="series-nav load-in">
+            <a class="series-nav-card series-nav-current" href="#"><div class="series-num">Part 1</div><h4 data-zh="分子动理论与内能（当前）" data-en="Molecular Kinetic Theory (Current)">分子动理论与内能（当前）</h4></a>
+            <a class="series-nav-card" href="../thermodynamics-laws/"><div class="series-num">Part 2</div><h4 data-zh="热力学定律" data-en="Laws of Thermodynamics">热力学定律</h4></a>
+          </div>
+          <div class="series-preview load-in">
+            <h4 data-zh="&#x1F449; 下一篇预告：热力学定律" data-en="&#x1F449; Next: Laws of Thermodynamics">&#x1F449; 下一篇预告：热力学定律</h4>
+            <p data-zh="从热力学第一定律到第二定律，从蒸汽机效率到熵的概念。理解能量守恒在热学中的应用和热过程的方向性。" data-en="From the first law to the second law of thermodynamics, from steam engine efficiency to the concept of entropy. Understand energy conservation in thermal processes and the directionality of heat.">能量守恒在热学中的应用，热过程的方向性。</p>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <p data-zh="&amp;copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。" data-en="&amp;copy; 2026 illusion615's Knowledge Hub | Interactive HTML page.">&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。</p>
+      </footer>
+    </div>
+  </div>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var canvas = document.getElementById('brownianCanvas');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    var W = canvas.width, H = canvas.height;
+    var particles = [];
+    var NUM = 60;
+    var bigParticle = { x: W / 2, y: H / 2, r: 10, vx: 0, vy: 0 };
+
+    function getTempFactor() { return parseInt(document.getElementById('tempSlider').value, 10); }
+
+    for (var i = 0; i < NUM; i++) {
+      particles.push({ x: Math.random() * W, y: Math.random() * H, r: 2, vx: 0, vy: 0 });
+    }
+
+    function randomVel(factor) { return (Math.random() - 0.5) * factor * 30; }
+
+    function update() {
+      var t = getTempFactor();
+      var label = document.getElementById('tempLabel');
+      if (label) label.textContent = 'T = ' + t;
+
+      bigParticle.vx *= 0.92;
+      bigParticle.vy *= 0.92;
+
+      for (var i = 0; i < particles.length; i++) {
+        var p = particles[i];
+        p.vx = randomVel(t);
+        p.vy = randomVel(t);
+        p.x += p.vx * 0.016;
+        p.y += p.vy * 0.016;
+        if (p.x < 0) p.x = W;
+        if (p.x > W) p.x = 0;
+        if (p.y < 0) p.y = H;
+        if (p.y > H) p.y = 0;
+
+        var dx = bigParticle.x - p.x;
+        var dy = bigParticle.y - p.y;
+        var dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < bigParticle.r + p.r) {
+          bigParticle.vx += (dx / dist) * t * 0.5;
+          bigParticle.vy += (dy / dist) * t * 0.5;
+        }
+      }
+
+      bigParticle.x += bigParticle.vx * 0.016;
+      bigParticle.y += bigParticle.vy * 0.016;
+      if (bigParticle.x < bigParticle.r) { bigParticle.x = bigParticle.r; bigParticle.vx *= -0.5; }
+      if (bigParticle.x > W - bigParticle.r) { bigParticle.x = W - bigParticle.r; bigParticle.vx *= -0.5; }
+      if (bigParticle.y < bigParticle.r) { bigParticle.y = bigParticle.r; bigParticle.vy *= -0.5; }
+      if (bigParticle.y > H - bigParticle.r) { bigParticle.y = H - bigParticle.r; bigParticle.vy *= -0.5; }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = 'rgba(234,88,12,.15)';
+      for (var i = 0; i < particles.length; i++) {
+        ctx.beginPath();
+        ctx.arc(particles[i].x, particles[i].y, particles[i].r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.beginPath();
+      ctx.arc(bigParticle.x, bigParticle.y, bigParticle.r, 0, Math.PI * 2);
+      ctx.fillStyle = '#ea580c';
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('P', bigParticle.x, bigParticle.y);
+    }
+
+    function loop() {
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+    loop();
+  });
+  </script>
+  <script src="../../assets/article-math.js"></script>
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>分子动理论与内能</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(1.6rem, 4.2vw, 2.8rem);
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      max-width: 20ch;
+    }
+    :root { --accent: #ea580c; }
+    .math-block {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 24px;
+      margin: 16px 0;
+      border-radius: 16px;
+      background: rgba(15, 23, 42, 0.03);
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: var(--ink);
+    }
+    [data-theme="dark"] .math-block {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+    .scenario-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+    .scenario-card {
+      padding: 22px;
+      border-radius: 22px;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      box-shadow: var(--card-shadow);
+    }
+    .scenario-card h4 { margin: 0 0 8px; font-size: 1.05rem; line-height: 1.35; }
+    .scenario-card p { color: var(--muted); font-size: 0.92rem; line-height: 1.72; margin: 0; }
+    .scenario-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 42px;
+      height: 42px;
+      margin-bottom: 12px;
+      border-radius: 14px;
+      font-size: 1.3rem;
+      background: rgba(234, 88, 12, 0.12);
+    }
+    .compare-wrap {
+      margin-top: 16px;
+      overflow-x: auto;
+      border-radius: 18px;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      box-shadow: var(--card-shadow);
+    }
+    .compare-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    .compare-table th, .compare-table td {
+      padding: 11px 14px;
+      text-align: left;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+      vertical-align: top;
+    }
+    .compare-table th {
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.74rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: rgba(15, 23, 42, 0.03);
+      white-space: nowrap;
+    }
+    .compare-table tr:last-child td { border-bottom: none; }
+    [data-theme="dark"] .compare-table th { background: rgba(255,255,255,0.04); }
+    [data-theme="dark"] .compare-table td { border-color: rgba(255,255,255,0.06); }
+    .insight-callout {
+      padding: 20px 24px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(234,88,12,0.08), rgba(251,146,60,0.08));
+      border: 1px solid rgba(234,88,12,0.15);
+      margin: 16px 0;
+    }
+    .insight-callout h4 { margin: 0 0 8px; font-size: 0.95rem; color: #ea580c; }
+    [data-theme="dark"] .insight-callout h4 { color: #fb923c; }
+    .insight-callout p { margin: 0; font-size: 0.9rem; line-height: 1.72; color: var(--ink); }
+    .step-flow { display: grid; gap: 12px; margin-top: 16px; }
+    .step-item {
+      display: grid;
+      grid-template-columns: 48px 1fr;
+      gap: 16px;
+      padding: 18px;
+      border-radius: 18px;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      box-shadow: var(--card-shadow);
+    }
+    .step-num {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: rgba(234, 88, 12, 0.12);
+      color: #ea580c;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+    .step-item h4 { margin: 0 0 6px; font-size: 0.95rem; }
+    .step-item p { margin: 0; font-size: 0.88rem; line-height: 1.72; color: var(--muted); }
+    .quiz-callout {
+      padding: 20px 24px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(34,197,94,0.08), rgba(234,88,12,0.08));
+      border: 1px solid rgba(34,197,94,0.15);
+      margin: 16px 0;
+    }
+    .quiz-callout h4 { margin: 0 0 8px; font-size: 0.95rem; color: #16a34a; }
+    [data-theme="dark"] .quiz-callout h4 { color: #4ade80; }
+    .quiz-callout p { margin: 0 0 6px; font-size: 0.9rem; line-height: 1.72; color: var(--ink); }
+    .quiz-callout .quiz-answer { font-size: 0.85rem; color: var(--muted); border-top: 1px dashed rgba(15,23,42,0.1); padding-top: 10px; margin-top: 10px; }
+    [data-theme="dark"] .quiz-callout .quiz-answer { border-color: rgba(255,255,255,0.1); }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            <span data-zh="热学" data-en="Thermodynamics">热学</span>
+          </div>
+          <div class="topbar-actions">
+            <nav class="nav-links" aria-label="页面章节导航">
+              <a href="#molecular-world" data-zh="分子世界" data-en="Molecules">分子世界</a>
+              <a href="#intermolecular" data-zh="分子力" data-en="Forces">分子力</a>
+              <a href="#internal-energy" data-zh="内能" data-en="Internal E">内能</a>
+              <a href="#exercises" data-zh="练习" data-en="Exercises">练习</a>
+            </nav>
+          </div>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow" data-zh="物理 · 热学" data-en="Physics · Thermodynamics">物理 · 热学</span>
+            <h1 data-zh="分子动理论与内能" data-en="Molecular Kinetic Theory &amp; Internal Energy">分子动理论与内能</h1>
+            <p data-zh="一滴墨水在水中慢慢散开，冬天搓手会变热——这些日常现象背后，是无数肉眼看不见的分子在永不停歇地运动。分子动理论揭示了物质微观世界的基本规律。" data-en="A drop of ink slowly spreading in water, hands warming up when rubbed — behind these daily phenomena, countless invisible molecules are in perpetual motion. Molecular kinetic theory reveals the fundamental rules of the microscopic world.">一滴墨水在水中慢慢散开，冬天搓手会变热——这些日常现象背后，是无数肉眼看不见的分子在永不停歇地运动。分子动理论揭示了物质微观世界的基本规律。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#molecular-world" data-zh="开始探索" data-en="Start Exploring">开始探索</a>
+              <a class="button button-secondary" href="#exercises" data-zh="做练习" data-en="Practice">做练习</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label" data-zh="你将了解" data-en="You Will Learn">你将了解</span>
+            <h2 data-zh="走进分子的微观世界" data-en="Enter the Microscopic World of Molecules">走进分子的微观世界</h2>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span><span data-zh="认识分子的大小与数量" data-en="Understand molecular size and quantity">认识分子的大小与数量</span></li>
+              <li><span class="layer-number">2</span><span data-zh="理解分子间引力与斥力的平衡" data-en="Understand balance of attraction and repulsion">理解分子间引力与斥力的平衡</span></li>
+              <li><span class="layer-number">3</span><span data-zh="掌握内能的概念与改变方式" data-en="Master internal energy and how to change it">掌握内能的概念与改变方式</span></li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label" data-zh="核心概念" data-en="Core Concepts">核心概念</div>
+            <strong>5</strong>
+            <span data-zh="分子运动、扩散、力、内能、温度" data-en="Motion, Diffusion, Force, Internal E, Temp">分子运动、扩散、力、内能、温度</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="关键实验" data-en="Key Experiments">关键实验</div>
+            <strong>3</strong>
+            <span data-zh="扩散、布朗运动、压缩气体" data-en="Diffusion, Brownian, Gas Compression">扩散、布朗运动、压缩气体</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="练习题" data-en="Exercises">练习题</div>
+            <strong>6</strong>
+            <span data-zh="基础+进阶" data-en="Basic + Advanced">基础+进阶</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="难度" data-en="Difficulty">难度</div>
+            <strong>★★☆☆☆</strong>
+            <span data-zh="入门级" data-en="Introductory">入门级</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- Section 01 -->
+        <section id="molecular-world" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="01 / 分子世界" data-en="01 / The Molecular World">01 / 分子世界</p>
+            <h2 data-zh="微观粒子的大小、数量与运动" data-en="Size, Quantity &amp; Motion of Microscopic Particles">微观粒子的大小、数量与运动</h2>
+            <p data-zh="分子非常小、数量极多、永不停歇地运动。这三个基本事实构成了分子动理论的基石。" data-en="Molecules are very small, extremely numerous, and in perpetual motion. These three facts form the foundation of molecular kinetic theory.">分子非常小、数量极多、永不停歇地运动。这三个基本事实构成了分子动理论的基石。</p>
+          </div>
+
+          <div class="subsection-accordion load-in">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span data-zh="分子的大小与阿伏加德罗常数" data-en="Molecular Size &amp; Avogadro's Number">分子的大小与阿伏加德罗常数</span>
+              </button>
+              <div class="subsection-content">
+                <div class="step-flow">
+                  <div class="step-item">
+                    <div class="step-num">🔬</div>
+                    <div>
+                      <h4 data-zh="分子有多小？" data-en="How Small Are Molecules?">分子有多小？</h4>
+                      <p data-zh="一般分子直径约 10⁻¹⁰ m（0.1 纳米）。如果把一个乒乓球放大到地球大小，球上的一个分子大约只有乒乓球那么大。" data-en="Typical molecular diameter is ~10⁻¹⁰ m (0.1 nm). If a ping-pong ball were enlarged to the size of Earth, a molecule on it would be about the size of the original ping-pong ball.">一般分子直径约 10⁻¹⁰ m（0.1 纳米）。如果把一个乒乓球放大到地球大小，球上的一个分子大约只有乒乓球那么大。</p>
+                    </div>
+                  </div>
+                  <div class="step-item">
+                    <div class="step-num">N<sub>A</sub></div>
+                    <div>
+                      <h4 data-zh="阿伏加德罗常数" data-en="Avogadro's Number">阿伏加德罗常数</h4>
+                      <p data-zh="1 摩尔任何物质包含 N_A ≈ 6.022 × 10²³ 个分子。18 g 的水（约一汤匙）中含有 6 × 10²³ 个水分子。如果每秒数 10 亿个，需要数 190 亿年。" data-en="1 mole of any substance contains N_A ≈ 6.022 × 10²³ molecules. 18 g of water (~1 tablespoon) has 6 × 10²³ water molecules. Counting 1 billion per second would take 19 billion years.">1 摩尔物质含有 N_A ≈ 6.022 × 10²³ 个分子。18 g 的水中含有 6 × 10²³ 个水分子。</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="math-block">N<sub>A</sub> ≈ 6.022 × 10²³ mol⁻¹</div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span data-zh="扩散现象与布朗运动" data-en="Diffusion &amp; Brownian Motion">扩散现象与布朗运动</span>
+              </button>
+              <div class="subsection-content">
+                <div class="scenario-grid">
+                  <div class="scenario-card">
+                    <div class="scenario-icon">🎨</div>
+                    <h4 data-zh="扩散现象" data-en="Diffusion">扩散现象</h4>
+                    <p data-zh="一滴墨水滴入清水中，无需搅拌即可慢慢均匀散开。这是因为水分子和墨水分子都在做无规则运动，相互碰撞导致混合。温度越高，扩散越快。" data-en="A drop of ink in clear water spreads evenly without stirring. Water and ink molecules undergo random motion, colliding and mixing. Higher temperature means faster diffusion.">一滴墨水滴入清水中，无需搅拌即可慢慢均匀散开。水分子和墨水分子做无规则运动，相互碰撞导致混合。温度越高，扩散越快。</p>
+                  </div>
+                  <div class="scenario-card">
+                    <div class="scenario-icon">🔍</div>
+                    <h4 data-zh="布朗运动" data-en="Brownian Motion">布朗运动</h4>
+                    <p data-zh="1827 年植物学家布朗在显微镜下观察到花粉颗粒在水中做无规则运动。这不是花粉自己运动，而是无数水分子从各个方向不均匀撞击花粉造成的。颗粒越小、温度越高，布朗运动越明显。" data-en="In 1827, botanist Brown observed pollen grains making random movements in water under a microscope. This isn't the pollen moving on its own, but countless water molecules striking unevenly from all sides. Smaller particles and higher temperatures make Brownian motion more pronounced.">1827 年布朗在显微镜下观察到花粉颗粒在水中做无规则运动。这是水分子不均匀撞击花粉造成的。颗粒越小、温度越高，现象越明显。</p>
+                  </div>
+                </div>
+                <div class="insight-callout">
+                  <h4 data-zh="区分：分子运动 vs 布朗运动" data-en="Distinction: Molecular vs Brownian Motion">区分：分子运动 vs 布朗运动</h4>
+                  <p data-zh="布朗运动是悬浮颗粒的运动，不是分子的运动。但它间接证明了液体分子在做无规则运动。我们看不到单个分子的运动，但能看到分子运动的宏观证据。" data-en="Brownian motion is the movement of suspended particles, not molecules themselves. But it indirectly proves liquid molecules are in random motion. We can't see individual molecules, but we can see macroscopic evidence of their motion.">布朗运动是悬浮颗粒的运动，不是分子的运动。但它间接证明了液体分子在做无规则运动。</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 02 -->
+        <section id="intermolecular" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="02 / 分子间作用力" data-en="02 / Intermolecular Forces">02 / 分子间作用力</p>
+            <h2 data-zh="引力与斥力的精妙平衡" data-en="The Delicate Balance of Attraction &amp; Repulsion">引力与斥力的精妙平衡</h2>
+            <p data-zh="分子间同时存在引力和斥力。两种力的大小关系随距离变化，决定了物质呈现固态、液态还是气态。" data-en="Both attraction and repulsion exist between molecules simultaneously. Their relative magnitudes change with distance, determining whether matter is solid, liquid, or gas.">分子间同时存在引力和斥力。两种力的大小关系随距离变化，决定了物质呈现固态、液态还是气态。</p>
+          </div>
+
+          <div class="subsection-accordion load-in">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span data-zh="引力、斥力与平衡距离" data-en="Attraction, Repulsion &amp; Equilibrium Distance">引力、斥力与平衡距离</span>
+              </button>
+              <div class="subsection-content">
+                <div class="step-flow">
+                  <div class="step-item">
+                    <div class="step-num">→←</div>
+                    <div>
+                      <h4 data-zh="斥力与引力同时存在" data-en="Repulsion &amp; Attraction Coexist">斥力与引力同时存在</h4>
+                      <p data-zh="分子间既有引力也有斥力，它们同时作用，但随距离变化不同。斥力随距离增大而急剧减小（下降极快），引力也随距离增大而减小，但比斥力慢。" data-en="Molecules exert both attractive and repulsive forces simultaneously, but they change differently with distance. Repulsion drops off much faster than attraction as distance increases.">分子间既有引力也有斥力，同时作用但随距离变化不同。斥力随距离增大急剧减小，引力也减小但比斥力慢。</p>
+                    </div>
+                  </div>
+                  <div class="step-item">
+                    <div class="step-num">r₀</div>
+                    <div>
+                      <h4 data-zh="平衡距离 r₀ ≈ 10⁻¹⁰ m" data-en="Equilibrium Distance r₀ ≈ 10⁻¹⁰ m">平衡距离 r₀ ≈ 10⁻¹⁰ m</h4>
+                      <p data-zh="当 r = r₀ 时，引力 = 斥力，合力为零。r &lt; r₀ 时，斥力 &gt; 引力，合力表现为斥力（固体难以压缩）。r &gt; r₀ 时，引力 &gt; 斥力，合力表现为引力（液体有表面张力）。" data-en="At r = r₀, attraction = repulsion, net force = 0. When r &lt; r₀, repulsion dominates (solids are hard to compress). When r &gt; r₀, attraction dominates (liquids have surface tension).">r = r₀ 时合力为零。r &lt; r₀ 时斥力为主。r &gt; r₀ 时引力为主。r &gt; 10r₀ 时分子力趋近于零。</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="compare-wrap">
+                  <table class="compare-table">
+                    <thead><tr><th data-zh="距离" data-en="Distance">距离</th><th data-zh="合力表现" data-en="Net Force">合力表现</th><th data-zh="物质状态" data-en="State">物质状态</th><th data-zh="生活例子" data-en="Example">生活例子</th></tr></thead>
+                    <tbody>
+                      <tr><td>r &lt; r₀</td><td data-zh="斥力为主" data-en="Repulsion dominates">斥力为主</td><td data-zh="固体特征" data-en="Solid behavior">固体特征</td><td data-zh="固体不易压缩" data-en="Solids are hard to compress">固体不易压缩</td></tr>
+                      <tr><td>r = r₀</td><td data-zh="平衡（F = 0）" data-en="Equilibrium (F = 0)">平衡（F = 0）</td><td data-zh="稳定位置" data-en="Stable position">稳定位置</td><td data-zh="分子自然间距" data-en="Natural molecular spacing">分子自然间距</td></tr>
+                      <tr><td>r₀ &lt; r &lt; 10r₀</td><td data-zh="引力为主" data-en="Attraction dominates">引力为主</td><td data-zh="液体特征" data-en="Liquid behavior">液体特征</td><td data-zh="水滴呈球形" data-en="Water drops form spheres">水滴呈球形</td></tr>
+                      <tr><td>r &gt; 10r₀</td><td data-zh="≈ 0" data-en="≈ 0">≈ 0</td><td data-zh="气体特征" data-en="Gas behavior">气体特征</td><td data-zh="气体自由扩散" data-en="Gas diffuses freely">气体自由扩散</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 03 -->
+        <section id="internal-energy" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="03 / 内能" data-en="03 / Internal Energy">03 / 内能</p>
+            <h2 data-zh="分子运动与相互作用的能量总和" data-en="Total Energy of Molecular Motion &amp; Interaction">分子运动与相互作用的能量总和</h2>
+            <p data-zh="物体内部所有分子的动能和势能之和，就是物体的内能。温度、质量和物态都影响内能的大小。" data-en="The sum of kinetic and potential energies of all molecules inside an object is its internal energy. Temperature, mass, and state of matter all affect internal energy.">物体内部所有分子的动能和势能之和，就是物体的内能。温度、质量和物态都影响内能的大小。</p>
+          </div>
+
+          <div class="subsection-accordion load-in">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span data-zh="内能 = 分子动能 + 分子势能" data-en="Internal Energy = Molecular KE + Molecular PE">内能 = 分子动能 + 分子势能</span>
+              </button>
+              <div class="subsection-content">
+                <div class="scenario-grid">
+                  <div class="scenario-card">
+                    <div class="scenario-icon">🏃</div>
+                    <h4 data-zh="分子动能" data-en="Molecular KE">分子动能</h4>
+                    <p data-zh="分子无规则运动的动能。温度是分子平均动能的标志——温度越高，分子运动越剧烈，平均动能越大。0°C 的水和 0°C 的冰，分子平均动能相同。" data-en="KE of random molecular motion. Temperature is a measure of average molecular KE — higher temperature means more vigorous motion and greater average KE. Water and ice at 0°C have the same average molecular KE.">分子无规则运动的动能。温度是分子平均动能的标志——温度越高，分子运动越剧烈，平均动能越大。</p>
+                  </div>
+                  <div class="scenario-card">
+                    <div class="scenario-icon">🧲</div>
+                    <h4 data-zh="分子势能" data-en="Molecular PE">分子势能</h4>
+                    <p data-zh="分子间引力和斥力产生的势能，取决于分子间的距离。物态变化时（如熔化、汽化），温度不变但内能增加——增加的就是分子势能。" data-en="PE arising from intermolecular forces, depends on molecular spacing. During phase changes (melting, vaporization), temperature stays constant but internal energy increases — the increase is molecular PE.">分子间引力和斥力产生的势能。物态变化时温度不变但内能增加，增加的就是分子势能。</p>
+                  </div>
+                </div>
+                <div class="insight-callout">
+                  <h4 data-zh="温度 vs 内能" data-en="Temperature vs Internal Energy">温度 vs 内能</h4>
+                  <p data-zh="温度相同的物体，分子平均动能相同，但内能可能不同（因为质量、物态不同）。100°C 的一杯水和一壶水温度相同，但一壶水的内能远大于一杯水——因为分子总数多得多。" data-en="Objects at the same temperature have the same average molecular KE, but may have different internal energies (due to different mass or phase). A pot and a cup of 100°C water have the same temperature, but the pot has far more internal energy — many more molecules.">温度相同但质量不同的物体，内能不同。100°C 的一壶水比一杯水内能大得多。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span data-zh="改变内能的两种方式" data-en="Two Ways to Change Internal Energy">改变内能的两种方式</span>
+              </button>
+              <div class="subsection-content">
+                <div class="compare-wrap">
+                  <table class="compare-table">
+                    <thead><tr><th data-zh="方式" data-en="Method">方式</th><th data-zh="本质" data-en="Essence">本质</th><th data-zh="示例" data-en="Example">示例</th><th data-zh="能量转化" data-en="Energy Flow">能量转化</th></tr></thead>
+                    <tbody>
+                      <tr><td data-zh="做功" data-en="Doing Work">做功</td><td data-zh="能量转化" data-en="Energy conversion">能量转化</td><td data-zh="搓手取暖、压缩气体升温" data-en="Rubbing hands, gas compression">搓手取暖、压缩气体升温</td><td data-zh="机械能 → 内能" data-en="Mechanical E → Internal E">机械能 → 内能</td></tr>
+                      <tr><td data-zh="热传递" data-en="Heat Transfer">热传递</td><td data-zh="能量转移" data-en="Energy transfer">能量转移</td><td data-zh="开水冷却、暖气取暖" data-en="Hot water cooling, radiator heating">开水冷却、暖气取暖</td><td data-zh="内能从高温到低温" data-en="Internal E: high → low temp">内能从高温到低温</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="insight-callout">
+                  <h4 data-zh="做功与热传递等效" data-en="Work &amp; Heat Transfer Are Equivalent">做功与热传递等效</h4>
+                  <p data-zh="做功和热传递在改变内能上是等效的。用火加热一壶水（热传递）和用搅拌器搅拌水升温（做功），最终效果相同。这是焦耳实验的重要结论。" data-en="Work and heat transfer are equivalent in changing internal energy. Heating water with fire (heat transfer) or stirring it (work) both achieve the same result. This was Joule's important experimental conclusion.">做功和热传递在改变内能上是等效的。焦耳实验证明了这一重要结论。</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 04: Exercises -->
+        <section id="exercises" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="04 / 增强练习" data-en="04 / Enhanced Exercises">04 / 增强练习</p>
+            <h2 data-zh="从基础到进阶：6 道精选题" data-en="From Basic to Advanced: 6 Selected Problems">从基础到进阶：6 道精选题</h2>
+            <p data-zh="分子动理论侧重概念理解和现象解释，练习以判断和分析为主。" data-en="Molecular kinetic theory focuses on conceptual understanding. Exercises emphasize judgment and analysis.">分子动理论侧重概念理解和现象解释，练习以判断和分析为主。</p>
+          </div>
+
+          <div class="subsection-accordion load-in">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span data-zh="基础题（3 题）" data-en="Basic Problems (3)">基础题（3 题）</span>
+              </button>
+              <div class="subsection-content">
+                <div class="quiz-callout">
+                  <h4 data-zh="题 1：扩散现象" data-en="Q1: Diffusion">题 1：扩散现象</h4>
+                  <p data-zh="在热水和冷水中同时滴入一滴墨水，哪杯水中墨水扩散更快？为什么？" data-en="Ink is dropped into hot water and cold water simultaneously. In which does it spread faster? Why?">在热水和冷水中同时滴入一滴墨水，哪杯水中墨水扩散更快？为什么？</p>
+                  <div class="quiz-answer" data-zh="热水中扩散更快。温度越高，分子运动越剧烈（平均动能越大），分子间碰撞越频繁，扩散速度越快。" data-en="Faster in hot water. Higher temperature means more vigorous molecular motion (greater average KE), more frequent collisions, and faster diffusion.">热水中扩散更快。温度越高，分子运动越剧烈，扩散速度越快。</div>
+                </div>
+                <div class="quiz-callout">
+                  <h4 data-zh="题 2：布朗运动判断" data-en="Q2: Brownian Motion Judgment">题 2：布朗运动判断</h4>
+                  <p data-zh="以下关于布朗运动的说法，哪些正确？ A. 布朗运动是液体分子的运动  B. 颗粒越小布朗运动越明显  C. 温度越高布朗运动越剧烈  D. 布朗运动说明分子在做无规则运动" data-en="Which statements about Brownian motion are correct? A. Brownian motion is the motion of liquid molecules  B. Smaller particles show more obvious Brownian motion  C. Higher temperature makes it more vigorous  D. It proves molecules move randomly">以下关于布朗运动的说法，哪些正确？</p>
+                  <div class="quiz-answer" data-zh="B、C、D 正确。A 错误——布朗运动是悬浮颗粒的运动，不是分子的运动。但它间接反映了分子的无规则运动。" data-en="B, C, D are correct. A is wrong — Brownian motion is the motion of suspended particles, not molecules. But it indirectly reflects random molecular motion.">B、C、D 正确。A 错误——布朗运动是悬浮颗粒的运动，不是分子本身的运动。</div>
+                </div>
+                <div class="quiz-callout">
+                  <h4 data-zh="题 3：温度与内能" data-en="Q3: Temperature &amp; Internal Energy">题 3：温度与内能</h4>
+                  <p data-zh="一杯 50°C 的水和一桶 50°C 的水，温度和内能哪个相同？哪个不同？" data-en="A cup and a bucket of 50°C water — which is the same and which is different: temperature or internal energy?">一杯 50°C 的水和一桶 50°C 的水，温度和内能哪个相同？哪个不同？</p>
+                  <div class="quiz-answer" data-zh="温度相同（都是 50°C，分子平均动能相同），但内能不同（一桶水分子总数远多于一杯水，内能大得多）。" data-en="Temperature is the same (both 50°C, same average molecular KE), but internal energy differs (the bucket has far more molecules, much greater internal energy).">温度相同，内能不同。一桶水的分子总数多，内能大得多。</div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span data-zh="进阶题（3 题）" data-en="Advanced Problems (3)">进阶题（3 题）</span>
+              </button>
+              <div class="subsection-content">
+                <div class="quiz-callout">
+                  <h4 data-zh="题 4：分子力分析" data-en="Q4: Molecular Force Analysis">题 4：分子力分析</h4>
+                  <p data-zh="将一根铅棒截成两段，把断面磨平后紧压在一起，悬挂重物也不分开。试用分子力的知识解释。" data-en="A lead rod is cut in two, the surfaces polished flat, and pressed together — they hold even with weight hanging. Explain using molecular forces.">将一根铅棒截成两段，把断面磨平后紧压在一起，悬挂重物也不分开。试解释。</p>
+                  <div class="quiz-answer" data-zh="两段铅的断面磨平后，接触面处分子间距达到了可以产生分子引力的范围（r &lt; 10r₀）。此时分子间引力使两段铅粘合在一起。日常物体断面不能粘合，是因为表面粗糙，实际接触面积极小，分子间距太大。" data-en="After polishing, molecules at the contact surface reach distances where intermolecular attraction operates (r &lt; 10r₀). Normal broken surfaces can't bond because they're rough, with very small actual contact area and molecules too far apart.">磨平的断面使分子间距达到引力有效范围，分子引力使两段铅粘合。普通断面太粗糙，实际接触面积极小。</div>
+                </div>
+                <div class="quiz-callout">
+                  <h4 data-zh="题 5：物态变化与内能" data-en="Q5: Phase Change &amp; Internal Energy">题 5：物态变化与内能</h4>
+                  <p data-zh="0°C 的冰变成 0°C 的水，温度没变，内能是否变化？为什么？" data-en="0°C ice changes to 0°C water. Temperature unchanged. Does internal energy change? Why?">0°C 的冰变成 0°C 的水，温度没变，内能是否变化？为什么？</p>
+                  <div class="quiz-answer" data-zh="内能增加了。虽然温度没变（分子平均动能不变），但冰融化时需要吸收热量，这些热量用于打破固体的分子排列，增大分子间距，即增加了分子势能。所以内能 = 分子动能 + 分子势能中，势能部分增大了。" data-en="Internal energy increases. Though temperature is unchanged (average molecular KE is the same), melting requires absorbing heat to break the solid molecular arrangement and increase molecular spacing — increasing molecular PE. So the PE component of internal energy increases.">内能增加了。温度不变说明分子平均动能不变，但熔化吸热增大了分子势能。</div>
+                </div>
+                <div class="quiz-callout">
+                  <h4 data-zh="题 6：内能改变方式" data-en="Q6: Ways to Change Internal Energy">题 6：内能改变方式</h4>
+                  <p data-zh="分别举出两个通过做功和热传递改变内能的例子，并说明能量转化或转移的方向。" data-en="Give two examples each of changing internal energy through work and heat transfer, and describe the energy flow direction.">分别举出通过做功和热传递改变内能的例子。</p>
+                  <div class="quiz-answer" data-zh="做功：(1) 搓手取暖——机械能 → 内能，手变热；(2) 自行车刹车——动能 → 内能，刹车片发热。热传递：(1) 暖气取暖——内能从高温暖气片转移到低温空气；(2) 冰袋降温——内能从高温身体转移到低温冰袋。" data-en="Work: (1) Rubbing hands — mechanical → internal energy; (2) Bicycle brakes — KE → internal energy. Heat transfer: (1) Radiator heating — internal energy from hot radiator to cold air; (2) Ice pack cooling — internal energy from warm body to cold ice.">做功：搓手（机械能→内能）、刹车（动能→内能）。热传递：暖气取暖（高温→低温）、冰袋降温（高温→低温）。</div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <p data-zh="&amp;copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。" data-en="&amp;copy; 2026 illusion615's Knowledge Hub | Interactive HTML page.">&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。</p>
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-math.js"></script>
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

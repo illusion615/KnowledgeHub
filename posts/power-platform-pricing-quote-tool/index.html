@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Power Platform 报价体系与互动估算器：从需求到产品配置</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .quote-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+      gap: 18px;
+      margin-top: 18px;
+    }
+    .quote-panel {
+      border-radius: 18px;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      box-shadow: var(--card-shadow);
+      padding: 18px;
+    }
+    .quote-panel h3 {
+      margin: 0 0 12px;
+      font-size: 1.08rem;
+      letter-spacing: 0.01em;
+    }
+    .input-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .field label {
+      font-size: 0.8rem;
+      opacity: 0.78;
+      letter-spacing: 0.02em;
+    }
+    .field input,
+    .field select {
+      border-radius: 10px;
+      border: 1px solid rgba(15, 23, 42, 0.14);
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--text-main);
+      font-size: 0.92rem;
+      padding: 8px 10px;
+      font-family: inherit;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    [data-theme="dark"] .field input,
+    [data-theme="dark"] .field select {
+      border-color: rgba(255, 255, 255, 0.2);
+      background: rgba(15, 23, 42, 0.75);
+      color: #f8fafc;
+    }
+    .quote-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .price-heading {
+      margin-top: 16px;
+    }
+    .result-kpi {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .kpi {
+      border-radius: 12px;
+      border: 1px solid var(--card-border);
+      background: rgba(255, 255, 255, 0.55);
+      padding: 10px;
+    }
+    [data-theme="dark"] .kpi {
+      background: rgba(15, 23, 42, 0.45);
+    }
+    .kpi strong {
+      display: block;
+      font-size: 1.12rem;
+      margin-top: 4px;
+    }
+    .cost-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 0.88rem;
+    }
+    .cost-table th,
+    .cost-table td {
+      padding: 8px;
+      border-bottom: 1px solid var(--card-border);
+      text-align: left;
+      vertical-align: top;
+    }
+    .cost-table th:last-child,
+    .cost-table td:last-child {
+      text-align: right;
+      white-space: nowrap;
+    }
+    .recommend-box {
+      margin-top: 12px;
+      border-radius: 12px;
+      border: 1px dashed rgba(8, 145, 178, 0.55);
+      padding: 12px;
+      background: rgba(8, 145, 178, 0.08);
+    }
+    [data-theme="dark"] .recommend-box {
+      background: rgba(8, 145, 178, 0.16);
+    }
+    .recommend-box ul {
+      margin: 8px 0 0;
+      padding-left: 20px;
+    }
+    .note-strip {
+      margin-top: 12px;
+      font-size: 0.82rem;
+      opacity: 0.8;
+      line-height: 1.65;
+    }
+    .scenario-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 10px;
+      margin-top: 10px;
+      background: rgba(255, 255, 255, 0.56);
+    }
+    [data-theme="dark"] .scenario-row {
+      background: rgba(15, 23, 42, 0.45);
+    }
+    .scenario-row strong {
+      font-size: 1.02rem;
+    }
+    .tiny {
+      font-size: 0.79rem;
+      opacity: 0.75;
+    }
+    .scenario-template-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .scenario-tpl {
+      padding: 16px;
+      border-radius: 16px;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      box-shadow: var(--card-shadow);
+      cursor: pointer;
+      transition: transform 0.15s, border-color 0.15s;
+    }
+    .scenario-tpl:hover {
+      transform: translateY(-2px);
+      border-color: rgba(126, 34, 206, 0.4);
+    }
+    .scenario-tpl.is-active {
+      border-color: #7e22ce;
+      background: rgba(126, 34, 206, 0.06);
+    }
+    .scenario-tpl h4 {
+      margin: 0 0 6px;
+      font-size: 0.95rem;
+    }
+    .scenario-tpl p {
+      margin: 0;
+      font-size: 0.82rem;
+      opacity: 0.78;
+      line-height: 1.6;
+    }
+    .ai-rate-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      margin-top: 12px;
+    }
+    .ai-rate-table th,
+    .ai-rate-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--card-border);
+      text-align: left;
+      vertical-align: top;
+    }
+    .ai-rate-table th {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: rgba(15, 23, 42, 0.03);
+      white-space: nowrap;
+    }
+    [data-theme="dark"] .ai-rate-table th {
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .ai-rate-table tr:last-child td {
+      border-bottom: none;
+    }
+    .ai-assist-hint {
+      margin-top: 14px;
+      padding: 14px 18px;
+      border-radius: 14px;
+      border: 1px solid rgba(126, 34, 206, 0.2);
+      background: rgba(126, 34, 206, 0.05);
+      font-size: 0.85rem;
+      line-height: 1.65;
+    }
+    [data-theme="dark"] .ai-assist-hint {
+      background: rgba(126, 34, 206, 0.12);
+    }
+    .ai-assist-hint strong {
+      color: #7e22ce;
+    }
+    [data-theme="dark"] .ai-assist-hint strong {
+      color: #c084fc;
+    }
+    .section-divider {
+      margin: 8px 0;
+      border: none;
+      border-top: 1px dashed var(--card-border);
+    }
+    @media (max-width: 980px) {
+      .quote-layout {
+        grid-template-columns: 1fr;
+      }
+      .input-grid {
+        grid-template-columns: 1fr;
+      }
+      .result-kpi {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            Power Apps
+          </div>
+          <div class="topbar-actions">
+            <nav class="nav-links" aria-label="页面章节导航">
+              <a href="#framework">报价框架</a>
+              <a href="#rules">计费规则</a>
+              <a href="#ai-rates">AI 费率</a>
+              <a href="#ai-scenarios">场景翻译</a>
+              <a href="#calculator">报价器</a>
+              <a href="#playbook">配置策略</a>
+            </nav>
+          </div>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Power Platform Pricing System</span>
+            <h1>Power Platform 报价体系与互动估算器</h1>
+            <p>
+              这是一篇可直接用于售前和项目立项的报价文章：先拆解 Power Apps、Power Automate、Power Pages、Copilot Studio 与 Power BI 的计费单位，再用一个可调参数的互动报价器，把需求结构化为可执行的产品配置。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#calculator">开始估算</a>
+              <a class="button button-secondary" href="#rules">先看规则</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">适用范围</span>
+            <h2>从需求访谈到初版 SKU 组合</h2>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span>内部业务应用（Power Apps）</li>
+              <li><span class="layer-number">2</span>流程自动化与 RPA（Power Automate）</li>
+              <li><span class="layer-number">3</span>外部门户访问（Power Pages）</li>
+              <li><span class="layer-number">4</span>智能问答与代理（Copilot Studio）</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">覆盖产品</div>
+            <strong>5</strong>
+            <span>Apps / Automate / Pages / Copilot Studio / Power BI</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">核心计费单位</div>
+            <strong>用户 + 容量 + 消息</strong>
+            <span>把所有报价拆成可解释的消耗单元</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">输出</div>
+            <strong>月度区间 + 推荐组合</strong>
+            <span>用于预算评审和采购沟通</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <section id="framework" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / Pricing Framework</p>
+            <h2>先把报价对象拆成 3 类消耗</h2>
+            <p>
+              Power Platform 报价最容易出错的地方，不是数字本身，而是把不同计费对象混在一起。实践中建议统一拆分为：用户授权、容量包、使用量计费。
+            </p>
+          </div>
+
+          <div class="comparison-grid">
+            <article class="comparison-card">
+              <span class="comparison-label">用户授权</span>
+              <h3>谁在用</h3>
+              <p>例如 Power Apps Premium、Power Automate Premium、Power BI Pro。适合已知固定人群、长期使用的场景。</p>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label">容量包</span>
+              <h3>需要多少吞吐</h3>
+              <p>例如 Power Pages 的 Authenticated / Anonymous 容量包，Power Automate Process 按 bot 计费。适合大流量、共享型服务。</p>
+            </article>
+            <article class="comparison-card">
+              <span class="comparison-label">使用量计费</span>
+              <h3>用了多少算多少</h3>
+              <p>例如 Copilot Studio 的消息或 Copilot Credits、Power Apps 的 Pay-as-you-go。适合需求不确定或先试点再放大。</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="rules" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Licensing Rules</p>
+            <h2>产品级报价规则速览（用于建模）</h2>
+            <p>
+              下列规则提炼自官方 licensing FAQ 与产品文档。实际采购以你的地区、协议类型和当期目录价为准。
+            </p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" aria-expanded="true">
+                <span>2.1 Power Apps：按人或按场景</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">主规则</div>
+                  <p>Power Apps Premium 适合多应用、持续使用的人群。Per app 适合单场景起步，按用户与应用组合计价。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">参考价（USD）</div>
+                  <p>Premium：$20/用户/月；大批量新增用户可能有阶梯价（文档示例提到 2,000+ 新增用户可到 $12）。Per app：$5/用户/应用/月。</p>
+                </div>
+                <div class="action-box">
+                  <div class="event-field-label">建模建议</div>
+                  <p>同一批用户平均使用应用数 ≥2 时，优先评估 Premium；平均 <2 且范围明确时，per app 往往更稳妥。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">
+                <span>2.2 Power Automate：用户自动化 + 机器人自动化</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">主规则</div>
+                  <p>有人值守与云流自动化通常按 Premium 用户授权；无人值守 RPA、共享流程按 Process（bot）扩展。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">参考价（USD）</div>
+                  <p>Premium：$15/用户/月；Process：$150/bot/月；Hosted RPA add-on：$215/bot/月。</p>
+                </div>
+                <div class="action-box">
+                  <div class="event-field-label">建模建议</div>
+                  <p>把“人触发”与“机触发”流程分开估算，避免把高频无人值守负载塞进按人授权导致预算偏差。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">
+                <span>2.3 Power Pages：按认证用户与匿名访问分层</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">主规则</div>
+                  <p>Authenticated 与 Anonymous 分开买容量包。Authenticated 按 100 用户/包，Anonymous 按 500 用户/包。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">参考价（USD）</div>
+                  <p>Authenticated：Tier1 $200/包，Tier2 $75/包（100 包起），Tier3 $50/包（1,000 包起）。Anonymous：Tier1 $75/包，Tier2 $37.5/包（20 包起），Tier3 $25/包（200 包起）。</p>
+                </div>
+                <div class="action-box">
+                  <div class="event-field-label">建模建议</div>
+                  <p>必须比较跨 tier 的总成本，不要只看单包单价。高 tier 通常有最低采购门槛，低流量时可能更贵。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">
+                <span>2.4 Copilot Studio 与 Power BI：按消息与协作边界</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">Copilot Studio 规则</div>
+                  <p>Tenant 级预付容量包含每月 25,000 消息；常规消息按 1、生成式回答按 2 计。2025 年后官方统一口径为 Copilot Credits，但计量思想保持一致。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">Power BI 规则</div>
+                  <p>在共享容量中，协作发布通常要求 Pro/PPU；在 Premium 容量可放宽消费端授权。价格请以 Power BI pricing 页面实时值为准。</p>
+                </div>
+                <div class="action-box">
+                  <div class="event-field-label">建模建议</div>
+                  <p>Copilot 先按消息量估预算，再做对话设计优化；Power BI 先确认是否需要“广泛分发”再决定按人还是容量。</p>
+                </div>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">
+                <span>2.5 Dataverse 存储：按租户池化计费</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">主规则</div>
+                  <p>Dataverse 存储分 Database、File、Log 三类，各用户许可按人数累加到租户池。超出部分按 GB 购买 add-on。默认环境额外赠送 3 GB Database + 3 GB File + 1 GB Log。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">参考价（USD）</div>
+                  <p>Database：$40/GB/月；File：$2/GB/月；Log：$10/GB/月。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">每用户附带容量</div>
+                  <p>Power Apps Premium：+250 MB DB / +2 GB File；Per App：+50 MB DB / +400 MB File。Power Automate Premium：+250 MB DB / +2 GB File。Copilot Studio 租户级：5 GB DB / 20 GB File / 2 GB Log。</p>
+                </div>
+                <div class="action-box">
+                  <div class="event-field-label">建模建议</div>
+                  <p>先估算许可附带总容量（用户数 × 每用户容量 + 默认赠送），再与实际业务数据量对比，差额部分才需要购买 add-on。File 容量通常是附件驱动的，Database 容量由记录行数驱动。</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+          <div class="section-head">
+            <p class="section-kicker">03 / AI Capability Rates</p>
+            <h2>AI Builder 与 Copilot Credits 费率速查</h2>
+            <p>
+              AI 场景的计费单元是 Copilot Credits（统一货币）或 AI Builder Credits。下表帮助你把「每月处理多少页发票」翻译成 Credits 消耗。
+            </p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" aria-expanded="true">
+                <span>3.1 AI Builder 能力费率表</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">计费逻辑</div>
+                  <p>AI Builder 功能在 Power Apps / Automate 中运行时先消耗 AI Builder Credits；耗尽后自动切换到 Copilot Credits。在 Copilot Studio Agent 中直接消耗 Copilot Credits。</p>
+                </div>
+                <table class="ai-rate-table">
+                  <thead><tr><th>能力</th><th>计量单位</th><th>Copilot Credits</th><th>AI Builder Credits</th></tr></thead>
+                  <tbody>
+                    <tr><td>发票 / 收据 / 身份证识别</td><td>1 页</td><td>8</td><td>32</td></tr>
+                    <tr><td>自定义文档处理</td><td>1 页</td><td>8</td><td>100</td></tr>
+                    <tr><td>文字识别 OCR</td><td>1 页</td><td>0.1</td><td>3</td></tr>
+                    <tr><td>图像描述 / 合同处理</td><td>1 图</td><td>8</td><td>32</td></tr>
+                    <tr><td>目标检测</td><td>1 图</td><td>8</td><td>8</td></tr>
+                    <tr><td>Prompt（基础模型）</td><td>1k tokens</td><td>0.1</td><td>1.22</td></tr>
+                    <tr><td>Prompt（标准模型）</td><td>1k tokens</td><td>1.5</td><td>242</td></tr>
+                    <tr><td>Prompt（高级推理模型）</td><td>1k tokens</td><td>10</td><td>1,822</td></tr>
+                    <tr><td>情感 / 关键词 / 语言检测</td><td>1k 字符</td><td>0.1</td><td>2</td></tr>
+                    <tr><td>实体提取 / 分类</td><td>1k 字符</td><td>1.5</td><td>20</td></tr>
+                    <tr><td>名片 / 预测</td><td>-</td><td colspan="2">免费</td></tr>
+                  </tbody>
+                </table>
+                <div class="action-box">
+                  <div class="event-field-label">换算提示</div>
+                  <p>Pay-as-you-go 场景下 1 Copilot Credit = $0.01。预付包按年购 Tier1 约 $500/月 = 1M AI Builder Credits。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">
+                <span>3.2 Copilot Studio Agent 费率表</span>
+              </button>
+              <div class="subsection-content">
+                <table class="ai-rate-table">
+                  <thead><tr><th>动作类型</th><th>Copilot Credits</th></tr></thead>
+                  <tbody>
+                    <tr><td>经典回答（手动编排）</td><td>1</td></tr>
+                    <tr><td>生成式回答（RAG / GenAI）</td><td>2</td></tr>
+                    <tr><td>Agent Action（触发/推理/跳转）</td><td>5</td></tr>
+                    <tr><td>Tenant Graph Grounding</td><td>10</td></tr>
+                    <tr><td>Agent Flow Actions（每 100 次）</td><td>13</td></tr>
+                    <tr><td>AI Tools — 文本/生成式（基础）每 10 次</td><td>1</td></tr>
+                    <tr><td>AI Tools — 文本/生成式（标准）每 10 次</td><td>15</td></tr>
+                    <tr><td>AI Tools — 文本/生成式（高级推理）每 10 次</td><td>100</td></tr>
+                    <tr><td>内容处理工具（每页）</td><td>8</td></tr>
+                  </tbody>
+                </table>
+                <div class="action-box">
+                  <div class="event-field-label">组合计费示例</div>
+                  <p>客服 Agent 每次对话平均 4 次经典回答 + 2 次生成式回答 = (4&#215;1)+(2&#215;2) = 8 Credits/次。900 客户/天 = 7,200 Credits/天 &#215; 30 天 = 216,000 Credits/月。</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="ai-scenarios" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / Business Scenario Translator</p>
+            <h2>业务场景 → AI 产品配置：用业务语言估算</h2>
+            <p>
+              选择一个业务场景模板，填入你的业务量（如每月订单数、每份文档页数），系统自动将其转换为 Copilot Credits 需求并合并到总报价中。
+            </p>
+          </div>
+
+          <div class="scenario-template-grid" id="scenarioTemplates">
+            <div class="scenario-tpl" data-scenario="invoice">
+              <h4>&#x1F4C4; 发票 / 收据识别</h4>
+              <p>每月处理多少张发票或收据？每张多少页？系统按 8 Credits/页计算。</p>
+            </div>
+            <div class="scenario-tpl" data-scenario="docprocess">
+              <h4>&#x1F4DD; 自定义文档处理</h4>
+              <p>订单表单、合同、申请单等自定义模板识别。按 8 Credits/页（自定义模型）。</p>
+            </div>
+            <div class="scenario-tpl" data-scenario="ocr">
+              <h4>&#x1F50D; 文字识别 OCR</h4>
+              <p>批量扫描纸质文档提取文字。按 0.1 Credits/页（极低成本）。</p>
+            </div>
+            <div class="scenario-tpl" data-scenario="agent">
+              <h4>&#x1F916; 智能客服 Agent</h4>
+              <p>客户问答机器人，混合经典回答和生成式回答。按对话次数和每次回答模式估算。</p>
+            </div>
+            <div class="scenario-tpl" data-scenario="prompt">
+              <h4>&#x2728; AI Prompt 调用</h4>
+              <p>流程中调用 GPT Prompt（摘要、分类、翻译等）。按调用次数和平均 token 数估算。</p>
+            </div>
+            <div class="scenario-tpl" data-scenario="custom">
+              <h4>&#x1F527; 自定义组合</h4>
+              <p>直接输入预估的 Copilot Credits 总消耗量。</p>
+            </div>
+          </div>
+
+          <div class="quote-panel" id="aiScenarioPanel">
+            <h3 id="aiScenarioTitle">选择上方场景模板开始配置</h3>
+            <div class="input-grid" id="aiScenarioInputs"></div>
+            <div id="aiScenarioResult"></div>
+          </div>
+
+          <div class="ai-assist-hint">
+            <strong>&#x1F4AC; 不确定如何配置？</strong> 点击页面右下角的 AI 助手按钮，用自然语言描述你的业务场景，例如：「我们每月收到 2000 份采购订单，每份 3 页，需要自动识别并录入系统」。AI 助手会帮你把业务需求翻译成产品参数填入报价器。
+          </div>
+        </section>
+
+        <section id="calculator" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / Interactive Estimator</p>
+            <h2>综合报价器：基础授权 + AI 场景一站估算</h2>
+            <p>
+              上方 AI 场景估算的 Credits 会自动汇入下方总报价。你也可以直接修改任何参数。
+            </p>
+          </div>
+
+          <div class="quote-layout">
+            <div class="quote-panel">
+              <h3>需求参数</h3>
+              <div class="input-grid">
+                <div class="field">
+                  <label for="internalUsers">内部业务用户数</label>
+                  <input id="internalUsers" type="number" min="0" value="120" />
+                </div>
+                <div class="field">
+                  <label for="appsPerUser">人均使用应用数</label>
+                  <input id="appsPerUser" type="number" min="1" value="2" />
+                </div>
+                <div class="field">
+                  <label for="automationUsers">流程自动化用户数</label>
+                  <input id="automationUsers" type="number" min="0" value="80" />
+                </div>
+                <div class="field">
+                  <label for="unattendedBots">无人值守 Bot 数</label>
+                  <input id="unattendedBots" type="number" min="0" value="2" />
+                </div>
+                <div class="field">
+                  <label for="authUsers">Power Pages 认证用户/月</label>
+                  <input id="authUsers" type="number" min="0" value="1800" />
+                </div>
+                <div class="field">
+                  <label for="anonUsers">Power Pages 匿名用户/月</label>
+                  <input id="anonUsers" type="number" min="0" value="5000" />
+                </div>
+                <div class="field">
+                  <label for="copilotRegular">Copilot 常规消息/月</label>
+                  <input id="copilotRegular" type="number" min="0" value="12000" />
+                </div>
+                <div class="field">
+                  <label for="copilotGenerative">Copilot 生成式消息/月</label>
+                  <input id="copilotGenerative" type="number" min="0" value="9000" />
+                </div>
+                <div class="field">
+                  <label for="biProUsers">Power BI Pro 用户数</label>
+                  <input id="biProUsers" type="number" min="0" value="40" />
+                </div>
+                <div class="field">
+                  <label for="biPpuUsers">Power BI PPU 用户数</label>
+                  <input id="biPpuUsers" type="number" min="0" value="8" />
+                </div>
+              </div>
+
+              <h3 class="price-heading">Dataverse 存储（超额 GB）</h3>
+              <div class="input-grid">
+                <div class="field">
+                  <label for="dvDbExtra">额外 Database (GB)</label>
+                  <input id="dvDbExtra" type="number" min="0" value="0" />
+                </div>
+                <div class="field">
+                  <label for="dvFileExtra">额外 File (GB)</label>
+                  <input id="dvFileExtra" type="number" min="0" value="0" />
+                </div>
+                <div class="field">
+                  <label for="dvLogExtra">额外 Log (GB)</label>
+                  <input id="dvLogExtra" type="number" min="0" value="0" />
+                </div>
+              </div>
+
+              <h3 class="price-heading">单价参数（USD / 月）</h3>
+              <div class="input-grid">
+                <div class="field"><label for="pAppsPremium">Power Apps Premium / 用户</label><input id="pAppsPremium" type="number" min="0" step="0.01" value="20" /></div>
+                <div class="field"><label for="pAppsPerApp">Power Apps Per App / 用户/应用</label><input id="pAppsPerApp" type="number" min="0" step="0.01" value="5" /></div>
+                <div class="field"><label for="pAutoPremium">Power Automate Premium / 用户</label><input id="pAutoPremium" type="number" min="0" step="0.01" value="15" /></div>
+                <div class="field"><label for="pAutoProcess">Power Automate Process / bot</label><input id="pAutoProcess" type="number" min="0" step="0.01" value="150" /></div>
+                <div class="field"><label for="pPagesAuthT1">Power Pages Auth T1 / 包</label><input id="pPagesAuthT1" type="number" min="0" step="0.01" value="200" /></div>
+                <div class="field"><label for="pPagesAnonT1">Power Pages Anon T1 / 包</label><input id="pPagesAnonT1" type="number" min="0" step="0.01" value="75" /></div>
+                <div class="field"><label for="pCopilotPack">Copilot 预付包 / 25k</label><input id="pCopilotPack" type="number" min="0" step="0.01" value="200" /></div>
+                <div class="field"><label for="pBiPro">Power BI Pro / 用户</label><input id="pBiPro" type="number" min="0" step="0.01" value="10" /></div>
+                <div class="field"><label for="pBiPpu">Power BI PPU / 用户</label><input id="pBiPpu" type="number" min="0" step="0.01" value="20" /></div>
+                <div class="field"><label for="pDvDb">Dataverse DB / GB</label><input id="pDvDb" type="number" min="0" step="0.01" value="40" /></div>
+                <div class="field"><label for="pDvFile">Dataverse File / GB</label><input id="pDvFile" type="number" min="0" step="0.01" value="2" /></div>
+                <div class="field"><label for="pDvLog">Dataverse Log / GB</label><input id="pDvLog" type="number" min="0" step="0.01" value="10" /></div>
+              </div>
+
+              <div class="quote-actions">
+                <button class="button button-primary" id="calcButton" type="button">计算报价</button>
+                <button class="button button-secondary" id="resetButton" type="button">重置示例</button>
+              </div>
+            </div>
+
+            <div class="quote-panel">
+              <h3>估算结果</h3>
+              <div class="result-kpi">
+                <div class="kpi">
+                  <div class="tiny">策略 A：按人授权优先</div>
+                  <strong id="scenarioAValue">$0</strong>
+                </div>
+                <div class="kpi">
+                  <div class="tiny">策略 B：按场景授权优先</div>
+                  <strong id="scenarioBValue">$0</strong>
+                </div>
+              </div>
+
+              <div class="scenario-row">
+                <div>
+                  <strong id="recommendedName">推荐：策略 A</strong>
+                  <p class="tiny" id="recommendedReason">等待计算结果</p>
+                </div>
+                <div><strong id="recommendedValue">$0</strong></div>
+              </div>
+
+              <table class="cost-table" aria-label="报价拆分明细">
+                <thead>
+                  <tr>
+                    <th>模块</th>
+                    <th>计算方式</th>
+                    <th>月成本</th>
+                  </tr>
+                </thead>
+                <tbody id="breakdownBody"></tbody>
+              </table>
+
+              <div class="recommend-box">
+                <strong>产品配置建议</strong>
+                <ul id="recommendList"></ul>
+              </div>
+
+              <p class="note-strip">
+                说明：Copilot 估算按「常规消息 = 1，生成式消息 = 2」换算。AI 场景的 Credits 来自上方「业务场景翻译」模块，自动汇入。Power BI 单价默认值用于演示，请按最新官方 pricing 页或企业协议价覆盖。1 Copilot Credit = $0.01（pay-as-you-go）。
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section id="playbook" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / Configuration Playbook</p>
+            <h2>从试点到规模化的配置路径</h2>
+            <p>
+              报价不是一次性动作，建议按阶段滚动：先用最小可行组合验证业务价值，再沿着使用量增长曲线替换授权模型。
+            </p>
+          </div>
+
+          <ol class="flow-list">
+            <li>
+              <span class="flow-step">1</span>
+              <div class="flow-copy">
+                <strong>试点期（1-2 个场景）</strong>
+                <p>优先 per app + 少量 Premium 用户 + Pages Tier1，关注真实活跃用户和自动化触发次数。</p>
+              </div>
+            </li>
+            <li>
+              <span class="flow-step">2</span>
+              <div class="flow-copy">
+                <strong>放大期（跨部门推广）</strong>
+                <p>把高复用人群切到 per user；无人值守流程独立购买 Process；门户按月峰值重算容量包。</p>
+              </div>
+            </li>
+            <li>
+              <span class="flow-step">3</span>
+              <div class="flow-copy">
+                <strong>治理期（预算与性能联动）</strong>
+                <p>把 Copilot 消息预算、Power Platform Requests、Dataverse 容量拉进同一看板，用阈值预警驱动采购节奏。</p>
+              </div>
+            </li>
+          </ol>
+        </section>
+
+        <section id="references" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">07 / References</p>
+            <h2>参考与价格校验锚点</h2>
+            <p>以下链接用于规则追溯和后续价格更新。建议每月校验一次，遇到大促或协议更新需即时刷新参数。</p>
+          </div>
+
+          <ul class="bib-list">
+            <li>
+              <span class="bib-id">[R1]</span>
+              <span class="bib-author">Microsoft Learn</span>
+              <span class="bib-note">Power Platform licensing FAQs（Power Apps / Power Automate / Power Pages / Copilot Studio）<a href="https://learn.microsoft.com/power-platform/admin/powerapps-flow-licensing-faq" target="_blank" rel="noopener noreferrer">https://learn.microsoft.com/power-platform/admin/powerapps-flow-licensing-faq</a></span>
+            </li>
+            <li>
+              <span class="bib-id">[R2]</span>
+              <span class="bib-author">Microsoft Learn</span>
+              <span class="bib-note">Types of Power Automate licenses<a href="https://learn.microsoft.com/power-platform/admin/power-automate-licensing/types" target="_blank" rel="noopener noreferrer">https://learn.microsoft.com/power-platform/admin/power-automate-licensing/types</a></span>
+            </li>
+            <li>
+              <span class="bib-id">[R3]</span>
+              <span class="bib-author">Microsoft Learn</span>
+              <span class="bib-note">Copilot Studio licensing / billing / quotas<a href="https://learn.microsoft.com/microsoft-copilot-studio/billing-licensing" target="_blank" rel="noopener noreferrer">https://learn.microsoft.com/microsoft-copilot-studio/billing-licensing</a></span>
+            </li>
+            <li>
+              <span class="bib-id">[R4]</span>
+              <span class="bib-author">Microsoft Learn</span>
+              <span class="bib-note">Power BI license capability references（价格以 official pricing page 实时值为准）<a href="https://learn.microsoft.com/power-bi/fundamentals/service-features-license-type" target="_blank" rel="noopener noreferrer">https://learn.microsoft.com/power-bi/fundamentals/service-features-license-type</a></span>
+            </li>
+            <li>
+              <span class="bib-id">[R5]</span>
+              <span class="bib-author">Microsoft Pricing</span>
+              <span class="bib-note">Power BI Pricing<a href="https://www.microsoft.com/power-platform/products/power-bi/pricing" target="_blank" rel="noopener noreferrer">https://www.microsoft.com/power-platform/products/power-bi/pricing</a></span>
+            </li>
+            <li>
+              <span class="bib-id">[R6]</span>
+              <span class="bib-author">Microsoft Learn</span>
+              <span class="bib-note">AI Builder Capability Rate Table<a href="https://learn.microsoft.com/ai-builder/administer-licensing#aibuildercapabilityrate-table" target="_blank" rel="noopener noreferrer">https://learn.microsoft.com/ai-builder/administer-licensing</a></span>
+            </li>
+            <li>
+              <span class="bib-id">[R7]</span>
+              <span class="bib-author">Microsoft Learn</span>
+              <span class="bib-note">Copilot Studio Billing Rates and Management<a href="https://learn.microsoft.com/microsoft-copilot-studio/requirements-messages-management" target="_blank" rel="noopener noreferrer">https://learn.microsoft.com/microsoft-copilot-studio/requirements-messages-management</a></span>
+            </li>
+          </ul>
+        </section>
+      </main>
+
+      <footer>
+        <p>&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。</p>
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var DEFAULTS;
+      var ids;
+      var i;
+      var calcButton;
+      var resetButton;
+
+      // ============ AI SCENARIO TRANSLATOR ============
+      var aiCreditsFromScenario = 0;
+      var activeScenario = null;
+      var SCENARIO_CONFIGS = {
+        invoice: {
+          title: '发票 / 收据识别配置',
+          fields: [
+            { id: 'aiInvCount', label: '每月发票/收据数量', value: 500 },
+            { id: 'aiInvPages', label: '每份平均页数', value: 2 }
+          ],
+          calc: function (vals) {
+            var pages = vals[0] * vals[1];
+            var credits = pages * 8;
+            return { credits: credits, desc: pages + ' 页 &#215; 8 Credits/页 = ' + credits.toLocaleString('en-US') + ' Copilot Credits/月' };
+          }
+        },
+        docprocess: {
+          title: '自定义文档处理配置',
+          fields: [
+            { id: 'aiDocCount', label: '每月文档数量', value: 300 },
+            { id: 'aiDocPages', label: '每份平均页数', value: 3 }
+          ],
+          calc: function (vals) {
+            var pages = vals[0] * vals[1];
+            var credits = pages * 8;
+            return { credits: credits, desc: pages + ' 页 &#215; 8 Credits/页 = ' + credits.toLocaleString('en-US') + ' Copilot Credits/月' };
+          }
+        },
+        ocr: {
+          title: '文字识别 OCR 配置',
+          fields: [
+            { id: 'aiOcrPages', label: '每月扫描页数', value: 10000 }
+          ],
+          calc: function (vals) {
+            var credits = Math.ceil(vals[0] * 0.1);
+            return { credits: credits, desc: vals[0].toLocaleString('en-US') + ' 页 &#215; 0.1 Credits/页 = ' + credits.toLocaleString('en-US') + ' Copilot Credits/月' };
+          }
+        },
+        agent: {
+          title: '智能客服 Agent 配置',
+          fields: [
+            { id: 'aiAgentDaily', label: '每日对话次数', value: 200 },
+            { id: 'aiAgentClassic', label: '每次经典回答数', value: 3 },
+            { id: 'aiAgentGen', label: '每次生成式回答数', value: 2 },
+            { id: 'aiAgentActions', label: '每次 Agent Action 数', value: 1 }
+          ],
+          calc: function (vals) {
+            var perConv = vals[1] * 1 + vals[2] * 2 + vals[3] * 5;
+            var daily = vals[0] * perConv;
+            var monthly = daily * 30;
+            return { credits: monthly, desc: vals[0] + ' 对话/天 &#215; ' + perConv + ' Credits/对话 &#215; 30 天 = ' + monthly.toLocaleString('en-US') + ' Credits/月' };
+          }
+        },
+        prompt: {
+          title: 'AI Prompt 调用配置',
+          fields: [
+            { id: 'aiPromptCalls', label: '每月调用次数', value: 5000 },
+            { id: 'aiPromptTokens', label: '平均 tokens/次（千）', value: 1 },
+            { id: 'aiPromptTier', label: '模型等级 (1=基础 2=标准 3=高级)', value: 1 }
+          ],
+          calc: function (vals) {
+            var rates = [0.1, 1.5, 10];
+            var tier = Math.max(1, Math.min(3, Math.round(vals[2]))) - 1;
+            var credits = Math.ceil(vals[0] * vals[1] * rates[tier]);
+            var tierNames = ['基础', '标准', '高级推理'];
+            return { credits: credits, desc: vals[0].toLocaleString('en-US') + ' 次 &#215; ' + vals[1] + 'k tokens &#215; ' + rates[tier] + ' Credits/1k（' + tierNames[tier] + '）= ' + credits.toLocaleString('en-US') + ' Credits/月' };
+          }
+        },
+        custom: {
+          title: '自定义 Credits 输入',
+          fields: [
+            { id: 'aiCustomCredits', label: '每月 Copilot Credits 总量', value: 50000 }
+          ],
+          calc: function (vals) {
+            return { credits: vals[0], desc: '直接输入 ' + vals[0].toLocaleString('en-US') + ' Copilot Credits/月' };
+          }
+        }
+      };
+
+      function renderScenarioPanel(key) {
+        var cfg = SCENARIO_CONFIGS[key];
+        if (!cfg) return;
+        activeScenario = key;
+        var titleEl = document.getElementById('aiScenarioTitle');
+        var inputsEl = document.getElementById('aiScenarioInputs');
+        var resultEl = document.getElementById('aiScenarioResult');
+        titleEl.textContent = cfg.title;
+        var html = '';
+        cfg.fields.forEach(function (f) {
+          html += '<div class="field"><label for="' + f.id + '">' + f.label + '</label><input id="' + f.id + '" type="number" min="0" value="' + f.value + '" /></div>';
+        });
+        inputsEl.innerHTML = html;
+        // bind change
+        cfg.fields.forEach(function (f) {
+          document.getElementById(f.id).addEventListener('input', function () { calcScenario(); });
+        });
+        calcScenario();
+        // highlight active template
+        document.querySelectorAll('.scenario-tpl').forEach(function (el) {
+          el.classList.toggle('is-active', el.getAttribute('data-scenario') === key);
+        });
+      }
+
+      function calcScenario() {
+        if (!activeScenario) return;
+        var cfg = SCENARIO_CONFIGS[activeScenario];
+        var vals = cfg.fields.map(function (f) { return parseFloat(document.getElementById(f.id).value) || 0; });
+        var result = cfg.calc(vals);
+        aiCreditsFromScenario = result.credits;
+        var resultEl = document.getElementById('aiScenarioResult');
+        resultEl.innerHTML = '<div class="scenario-row"><div><strong>AI 场景 Credits 需求</strong><p class="tiny">' + result.desc + '</p></div><div><strong>' + result.credits.toLocaleString('en-US') + '</strong></div></div>';
+        // auto-recalculate main quote
+        if (typeof calculate === 'function') calculate();
+      }
+
+      document.querySelectorAll('.scenario-tpl').forEach(function (el) {
+        el.addEventListener('click', function () {
+          renderScenarioPanel(el.getAttribute('data-scenario'));
+        });
+      });
+
+      function byId(id) {
+        return document.getElementById(id);
+      }
+
+      function toNumber(id) {
+        var el;
+        var v;
+        el = byId(id);
+        v = parseFloat(el && el.value);
+        if (isNaN(v) || v < 0) {
+          return 0;
+        }
+        return v;
+      }
+
+      function usd(num) {
+        return '$' + num.toLocaleString('en-US', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0
+        });
+      }
+
+      function ceilDiv(value, unit) {
+        if (value <= 0) {
+          return 0;
+        }
+        return Math.ceil(value / unit);
+      }
+
+      function bestPackCost(requiredPacks, t1Price, t2Price, t3Price, t2Min, t3Min) {
+        var options;
+        var pick;
+        options = [];
+        options.push({ tier: 'T1', packs: requiredPacks, cost: requiredPacks * t1Price });
+        options.push({ tier: 'T2', packs: Math.max(requiredPacks, t2Min), cost: Math.max(requiredPacks, t2Min) * t2Price });
+        options.push({ tier: 'T3', packs: Math.max(requiredPacks, t3Min), cost: Math.max(requiredPacks, t3Min) * t3Price });
+        pick = options[0];
+        options.forEach(function (opt) {
+          if (opt.cost < pick.cost) {
+            pick = opt;
+          }
+        });
+        return pick;
+      }
+
+      function renderBreakdown(rows) {
+        var body;
+        var html;
+        body = byId('breakdownBody');
+        html = '';
+        rows.forEach(function (row) {
+          html += '<tr>' +
+            '<td>' + row.name + '</td>' +
+            '<td>' + row.formula + '</td>' +
+            '<td>' + usd(row.cost) + '</td>' +
+            '</tr>';
+        });
+        body.innerHTML = html;
+      }
+
+      function renderRecommendations(lines) {
+        var list;
+        var html;
+        list = byId('recommendList');
+        html = '';
+        lines.forEach(function (line) {
+          html += '<li>' + line + '</li>';
+        });
+        list.innerHTML = html;
+      }
+
+      function calculate() {
+        var internalUsers;
+        var appsPerUser;
+        var automationUsers;
+        var unattendedBots;
+        var authUsers;
+        var anonUsers;
+        var copilotRegular;
+        var copilotGenerative;
+        var biProUsers;
+        var biPpuUsers;
+
+        var pAppsPremium;
+        var pAppsPerApp;
+        var pAutoPremium;
+        var pAutoProcess;
+        var pPagesAuthT1;
+        var pPagesAnonT1;
+        var pCopilotPack;
+        var pBiPro;
+        var pBiPpu;
+
+        var authPacks;
+        var anonPacks;
+        var authChoice;
+        var anonChoice;
+        var copilotUnits;
+        var copilotPacks;
+
+        var scenarioA;
+        var scenarioB;
+        var best;
+        var rows;
+        var recs;
+
+        internalUsers = toNumber('internalUsers');
+        appsPerUser = Math.max(1, toNumber('appsPerUser'));
+        automationUsers = toNumber('automationUsers');
+        unattendedBots = toNumber('unattendedBots');
+        authUsers = toNumber('authUsers');
+        anonUsers = toNumber('anonUsers');
+        copilotRegular = toNumber('copilotRegular');
+        copilotGenerative = toNumber('copilotGenerative');
+        biProUsers = toNumber('biProUsers');
+        biPpuUsers = toNumber('biPpuUsers');
+
+        pAppsPremium = toNumber('pAppsPremium');
+        pAppsPerApp = toNumber('pAppsPerApp');
+        pAutoPremium = toNumber('pAutoPremium');
+        pAutoProcess = toNumber('pAutoProcess');
+        pPagesAuthT1 = toNumber('pPagesAuthT1');
+        pPagesAnonT1 = toNumber('pPagesAnonT1');
+        pCopilotPack = toNumber('pCopilotPack');
+        pBiPro = toNumber('pBiPro');
+        pBiPpu = toNumber('pBiPpu');
+
+        var dvDbExtra = toNumber('dvDbExtra');
+        var dvFileExtra = toNumber('dvFileExtra');
+        var dvLogExtra = toNumber('dvLogExtra');
+        var pDvDb = toNumber('pDvDb');
+        var pDvFile = toNumber('pDvFile');
+        var pDvLog = toNumber('pDvLog');
+        var dvCost = (dvDbExtra * pDvDb) + (dvFileExtra * pDvFile) + (dvLogExtra * pDvLog);
+
+        // Compute included entitlements for display
+        var inclDbMB = 3000; // default env 3 GB
+        var inclFileMB = 3000; // default env 3 GB
+        inclDbMB += internalUsers * 250; // Apps Premium
+        inclFileMB += internalUsers * 2048;
+        inclDbMB += automationUsers * 250; // Automate Premium
+        inclFileMB += automationUsers * 2048;
+        inclDbMB += 5120; // Copilot Studio tenant
+        inclFileMB += 20480;
+        var inclDbGB = (inclDbMB / 1024).toFixed(1);
+        var inclFileGB = (inclFileMB / 1024).toFixed(1);
+
+        authPacks = ceilDiv(authUsers, 100);
+        anonPacks = ceilDiv(anonUsers, 500);
+
+        authChoice = bestPackCost(authPacks, pPagesAuthT1, 75, 50, 100, 1000);
+        anonChoice = bestPackCost(anonPacks, pPagesAnonT1, 37.5, 25, 20, 200);
+
+        copilotUnits = copilotRegular + (copilotGenerative * 2) + aiCreditsFromScenario;
+        copilotPacks = ceilDiv(copilotUnits, 25000);
+
+        scenarioA = (internalUsers * pAppsPremium) +
+          (automationUsers * pAutoPremium) +
+          (unattendedBots * pAutoProcess) +
+          authChoice.cost +
+          anonChoice.cost +
+          (copilotPacks * pCopilotPack) +
+          (biProUsers * pBiPro) +
+          (biPpuUsers * pBiPpu) +
+          dvCost;
+
+        scenarioB = (internalUsers * appsPerUser * pAppsPerApp) +
+          (automationUsers * pAutoPremium) +
+          (unattendedBots * pAutoProcess) +
+          authChoice.cost +
+          anonChoice.cost +
+          (copilotPacks * pCopilotPack) +
+          (biProUsers * pBiPro) +
+          (biPpuUsers * pBiPpu) +
+          dvCost;
+
+        best = scenarioA <= scenarioB ? {
+          name: '策略 A（按人授权优先）',
+          value: scenarioA,
+          reason: '应用复用度较高时，Power Apps Premium 通常比 per app 更稳定。'
+        } : {
+          name: '策略 B（按场景授权优先）',
+          value: scenarioB,
+          reason: '应用范围相对收敛时，按场景授权可以降低初期投入。'
+        };
+
+        rows = [
+          {
+            name: 'Power Apps',
+            formula: 'A: ' + internalUsers + ' × Premium / B: ' + internalUsers + ' × ' + appsPerUser + ' × Per App',
+            cost: best.name.indexOf('A') >= 0 ? (internalUsers * pAppsPremium) : (internalUsers * appsPerUser * pAppsPerApp)
+          },
+          {
+            name: 'Power Automate',
+            formula: automationUsers + ' × Premium + ' + unattendedBots + ' × Process',
+            cost: (automationUsers * pAutoPremium) + (unattendedBots * pAutoProcess)
+          },
+          {
+            name: 'Power Pages Auth',
+            formula: authPacks + ' 包，最优 ' + authChoice.tier + '（按门槛比较）',
+            cost: authChoice.cost
+          },
+          {
+            name: 'Power Pages Anon',
+            formula: anonPacks + ' 包，最优 ' + anonChoice.tier + '（按门槛比较）',
+            cost: anonChoice.cost
+          },
+          {
+            name: 'Copilot / AI',
+            formula: '基础对话 ' + (copilotRegular + copilotGenerative * 2) + ' + AI 场景 ' + aiCreditsFromScenario.toLocaleString('en-US') + ' = ' + copilotUnits.toLocaleString('en-US') + ' Credits (' + copilotPacks + ' 包)',
+            cost: copilotPacks * pCopilotPack
+          },
+          {
+            name: 'Power BI',
+            formula: biProUsers + ' × Pro + ' + biPpuUsers + ' × PPU',
+            cost: (biProUsers * pBiPro) + (biPpuUsers * pBiPpu)
+          },
+          {
+            name: 'Dataverse 存储',
+            formula: dvDbExtra + ' GB DB + ' + dvFileExtra + ' GB File + ' + dvLogExtra + ' GB Log（附带约 ' + inclDbGB + ' GB DB / ' + inclFileGB + ' GB File）',
+            cost: dvCost
+          }
+        ];
+
+        recs = [];
+        recs.push('Power Apps：' + (best.name.indexOf('A') >= 0 ? '建议以 Premium 为主' : '建议以 Per App 起步') + '，并在 2-3 个月后复核活跃用户与应用覆盖。');
+        recs.push('Power Pages：Authenticated 选择 ' + authChoice.tier + '，Anonymous 选择 ' + anonChoice.tier + '。');
+        recs.push('Copilot / AI：总需求约 ' + copilotUnits.toLocaleString('en-US') + ' Credits（含 AI 场景 ' + aiCreditsFromScenario.toLocaleString('en-US') + '），建议预留 10%-20% 峰值缓冲。');
+        if (unattendedBots > 0) {
+          recs.push('流程治理：存在无人值守自动化，需单列 Process/RPA 预算并校验第三方软件无人值守授权。');
+        }
+        if (biPpuUsers > 0) {
+          recs.push('分析协作：PPU 用户需在授权边界内共享，跨团队大范围分发时考虑 Premium capacity 路径。');
+        }
+        if (dvCost > 0) {
+          recs.push('Dataverse 存储：许可附带容量约 ' + inclDbGB + ' GB Database / ' + inclFileGB + ' GB File，超出部分需额外购买 add-on（DB $' + pDvDb + '/GB、File $' + pDvFile + '/GB、Log $' + pDvLog + '/GB）。');
+        } else if (dvDbExtra === 0 && dvFileExtra === 0 && dvLogExtra === 0) {
+          recs.push('Dataverse 存储：当前许可附带约 ' + inclDbGB + ' GB Database / ' + inclFileGB + ' GB File。如数据量超出，需在额外存储区域填入差额 GB。');
+        }
+
+        byId('scenarioAValue').textContent = usd(scenarioA);
+        byId('scenarioBValue').textContent = usd(scenarioB);
+        byId('recommendedName').textContent = '推荐：' + best.name;
+        byId('recommendedReason').textContent = best.reason;
+        byId('recommendedValue').textContent = usd(best.value);
+
+        renderBreakdown(rows);
+        renderRecommendations(recs);
+      }
+
+      DEFAULTS = {
+        internalUsers: 120,
+        appsPerUser: 2,
+        automationUsers: 80,
+        unattendedBots: 2,
+        authUsers: 1800,
+        anonUsers: 5000,
+        copilotRegular: 12000,
+        copilotGenerative: 9000,
+        biProUsers: 40,
+        biPpuUsers: 8,
+        pAppsPremium: 20,
+        pAppsPerApp: 5,
+        pAutoPremium: 15,
+        pAutoProcess: 150,
+        pPagesAuthT1: 200,
+        pPagesAnonT1: 75,
+        pCopilotPack: 200,
+        pBiPro: 10,
+        pBiPpu: 20,
+        dvDbExtra: 0,
+        dvFileExtra: 0,
+        dvLogExtra: 0,
+        pDvDb: 40,
+        pDvFile: 2,
+        pDvLog: 10
+      };
+
+      ids = Object.keys(DEFAULTS);
+      calcButton = byId('calcButton');
+      resetButton = byId('resetButton');
+
+      calcButton.addEventListener('click', calculate);
+      resetButton.addEventListener('click', function () {
+        ids.forEach(function (id) {
+          var el;
+          el = byId(id);
+          if (el) {
+            el.value = DEFAULTS[id];
+          }
+        });
+        calculate();
+      });
+
+      for (i = 0; i < ids.length; i += 1) {
+        byId(ids[i]).addEventListener('change', calculate);
+      }
+
+      calculate();
+    });
+  </script>
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

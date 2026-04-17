@@ -266,4 +266,5 @@ Content text is extracted and sent to LLM for narration script generation, then 
 - Reference list uses `.bib-list` class with `.bib-id`, `.bib-author`, `.bib-note` structure
 - External links with `target="_blank"` must include `rel="noopener noreferrer"`
 - No inline `style=""` attributes on HTML elements — use classes or inline `<style>` block
-- **`data-zh` / `data-en` 属性值中禁止使用 ASCII 直引号 `"`（0x22）**——会被 HTML 解析器当作属性结束符导致内容截断。中文引号必须使用弯引号 `""`（U+201C / U+201D），英文引号使用 `'`（单引号）或 `&quot;`
+- **`data-zh` / `data-en` 属性值中禁止出现未转义的 ASCII 双引号 `"`（0x22）**，否则会被 HTML 解析器当作属性结束符，导致 `data-en` 文本泄漏到页面。
+- 属性值里如果需要引号，统一写 `&quot;...&quot;`（推荐）或改写为不带引号的自然语句；不要依赖自动替换成弯引号。
