@@ -351,7 +351,169 @@
   }
 
   /* ══════════════════════════════════════════════════════
-     NarrationController
+     Local TTS — OpenAI-compatible server (mlx-audio)
+     ══════════════════════════════════════════════════════ */
+
+  /**
+   * Speak text via a local OpenAI-compatible TTS server (e.g. mlx-audio).
+   * Returns an object with pause/resume/cancel methods (same interface as speak()).
+   *
+   * Requires:
+   *  - mlx-audio server:  mlx_audio.server --port 8000
+   *  - CORS proxy:        node scripts/moss-tts-cors-proxy.js
+   *
+   * API: POST /v1/audio/speech  { model, input, voice }  → audio/wav blob
+   */
+  /**
+   * Fetch TTS audio without playing (for prefetch / lookahead).
+   * Returns a Promise<ArrayBuffer>.
+   */
+  function fetchLocalTTSAudio(text, lang, speechSettings) {
+    var ss = speechSettings || {};
+    // Reuse the same oMLX endpoint and API key as LLM
+    var llm = getLlmSettings();
+    var endpoint = llm ? llm.endpoint.replace(/\/+$/, '') : 'http://localhost:8000';
+    var apikey = llm ? llm.apikey : '';
+    var model = ss.mossTtsModel || 'Qwen3-TTS-12Hz-0.6B-CustomVoice-8bit';
+    var voice = (ss.mossTtsVoice || (lang === 'zh' ? 'vivian' : 'ryan')).toLowerCase();
+    var headers = { 'Content-Type': 'application/json' };
+    if (apikey) headers['Authorization'] = 'Bearer ' + apikey;
+    return fetch(endpoint + '/audio/speech', {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify({ model: model, input: text, voice: voice })
+    }).then(function (res) {
+      if (!res.ok) throw new Error('Local TTS HTTP ' + res.status);
+      return res.arrayBuffer();
+    });
+  }
+
+  /* ── Shared AudioContext for recording capture ── */
+  var recordingCtx = null;
+  var recordingDest = null;
+
+  function getRecordingStream() {
+    if (!recordingCtx) {
+      var Ctor = window.AudioContext || window.webkitAudioContext;
+      if (!Ctor) return null;
+      recordingCtx = new Ctor();
+      recordingDest = recordingCtx.createMediaStreamDestination();
+    }
+    if (recordingCtx.state === 'suspended') recordingCtx.resume();
+    return recordingDest.stream;
+  }
+
+  function speakViaLocalTTS(text, lang, callbacks, speechSettings, prefetchedBuffer) {
+    var cb = callbacks || {};
+    var ss = speechSettings || {};
+    var cancelled = false;
+    var paused = false;
+    var audioCtx = null;
+    var sourceNode = null;
+
+    // Fire subtitle immediately with the full text
+    if (cb.onChunkStart) cb.onChunkStart(text);
+
+    var audioPromise = prefetchedBuffer
+      ? Promise.resolve(prefetchedBuffer)
+      : fetchLocalTTSAudio(text, lang, ss);
+
+    audioPromise
+    .then(function (buffer) {
+      if (cancelled) return;
+
+      var AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextCtor) throw new Error('Web Audio API not available');
+      audioCtx = new AudioContextCtor();
+      // Copy the buffer before decoding — decodeAudioData detaches the original
+      var copy = buffer.slice(0);
+      return audioCtx.decodeAudioData(copy);
+    })
+    .then(function (audioBuffer) {
+      if (cancelled || !audioBuffer) return;
+
+      sourceNode = audioCtx.createBufferSource();
+      sourceNode.buffer = audioBuffer;
+      if (ss.rate && ss.rate !== 0.92) {
+        sourceNode.playbackRate.value = ss.rate / 0.92;
+      }
+      sourceNode.connect(audioCtx.destination);
+
+      // Also route to recording capture stream if active
+      if (recordingCtx && recordingDest) {
+        try {
+          var recSource = recordingCtx.createBufferSource();
+          recSource.buffer = audioBuffer;
+          if (ss.rate && ss.rate !== 0.92) {
+            recSource.playbackRate.value = ss.rate / 0.92;
+          }
+          recSource.connect(recordingDest);
+          recSource.start(0);
+        } catch (e) {}
+      }
+
+      sourceNode.onended = function () {
+        sourceNode = null;
+        if (!cancelled) {
+          if (cb.onEnd) cb.onEnd();
+        }
+        if (audioCtx) {
+          try { audioCtx.close(); } catch (e) {}
+          audioCtx = null;
+        }
+      };
+
+      sourceNode.start(0);
+    })
+    .catch(function (err) {
+      if (cancelled) return;
+      if (cb.onError) cb.onError(err);
+    });
+
+    return {
+      pause: function () {
+        paused = true;
+        if (audioCtx && audioCtx.state === 'running') {
+          audioCtx.suspend();
+        }
+      },
+      resume: function () {
+        paused = false;
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+      },
+      cancel: function () {
+        cancelled = true;
+        if (sourceNode) {
+          sourceNode.onended = null; // prevent stale callback
+          try { sourceNode.stop(); } catch (e) {}
+          sourceNode = null;
+        }
+        if (audioCtx) {
+          try { audioCtx.close(); } catch (e) {}
+          audioCtx = null;
+        }
+      }
+    };
+  }
+
+  /* ══════════════════════════════════════════════════════
+     NarrationController — queue-based architecture
+     ══════════════════════════════════════════════════════
+
+     slides[]:  Array indexed by slide number.
+                Each entry: { text: string|null, audio: ArrayBuffer|null }
+     pointer:   Current slide index being played.
+
+     On enter slide N:
+       - If slides[N].audio exists → play immediately
+       - Else if slides[N].text exists → synthesize audio, then play
+       - Else → generate text via LLM, synthesize audio, then play
+       - While playing, background-fill N+1, N+2, … (sequential pipeline)
+
+     Navigation (left/right) just moves the pointer.
+     Exit clears the queue.
      ══════════════════════════════════════════════════════ */
   function createController(options) {
     var opts = options || {};
@@ -359,13 +521,20 @@
     var onStateChange = opts.onStateChange || function () {};
     var onSubtitle = opts.onSubtitle || function () {};
     var onError = opts.onError || function () {};
+    var onFillProgress = opts.onFillProgress || function () {};
 
-    var controllerState = 'idle'; // idle | generating | playing | paused
-    var narrativeCache = {};      // slideIndex → narrative string
+    var state = 'idle';
+    var queueId = null;  // article identifier — queue is valid only for this article
+    var slides = [];     // queue: [{ text: null, audio: null }, ...]
     var presentSteps = null;
-    var currentIndex = -1;
     var totalSlides = 0;
+    var pointer = -1;
+    var gen = 0;         // generation counter — incremented on every navigate to invalidate stale callbacks
+    var currentSpeaker = null;
+    var speakTimer = null;
+    var fillAbort = null; // AbortController for background fill
     var getLang = function () { return 'zh'; };
+
     var getEffectiveLang = function () {
       var ss = getSpeechSettings();
       if (ss.lang && ss.lang !== 'auto') return ss.lang;
@@ -374,233 +543,275 @@
     var getSpeechSettings = function () {
       var global = {};
       var article = {};
-      var articleSlug = window.location.pathname.replace(/\/$/, '').split('/').pop() || '';
+      var slug = window.location.pathname.replace(/\/$/, '').split('/').pop() || '';
       try { global = JSON.parse(localStorage.getItem('narration-settings')) || {}; } catch (e) {}
-      if (articleSlug) {
-        try { article = JSON.parse(localStorage.getItem('narration-settings:' + articleSlug)) || {}; } catch (e) {}
-      }
-      // Article overrides global
-      var merged = {};
-      Object.keys(global).forEach(function (k) { merged[k] = global[k]; });
-      Object.keys(article).forEach(function (k) { if (article[k] !== undefined && article[k] !== '') merged[k] = article[k]; });
-      return merged;
+      if (slug) { try { var a = JSON.parse(localStorage.getItem('narration-settings:' + slug)); if (a) { Object.keys(a).forEach(function (k) { if (a[k] !== undefined && a[k] !== '') global[k] = a[k]; }); } } catch (e) {} }
+      return global;
     };
-    var currentSpeaker = null;
-    var currentAbort = null;
-    var skipTimer = null;
-    var lookaheadAbort = null;
+    var isLocalTTS = function () { return getSpeechSettings().ttsEngine === 'moss-tts-nano'; };
 
-    function setState(newState) {
-      controllerState = newState;
-      onStateChange(newState);
-    }
+    function setState(s) { state = s; onStateChange(s); }
 
-    function cancelAll() {
-      if (currentSpeaker) {
-        currentSpeaker.cancel();
-        currentSpeaker = null;
-      }
-      if (currentAbort) {
-        currentAbort.abort();
-        currentAbort = null;
-      }
-      if (lookaheadAbort) {
-        lookaheadAbort.abort();
-        lookaheadAbort = null;
-      }
-      if (skipTimer) {
-        clearTimeout(skipTimer);
-        skipTimer = null;
-      }
+    /* ── Stop playback (does not clear queue) ── */
+    function stopPlayback() {
+      gen++;  // invalidate all stale callbacks FIRST
+      if (currentSpeaker) { currentSpeaker.cancel(); currentSpeaker = null; }
+      if (speakTimer) { clearTimeout(speakTimer); speakTimer = null; }
       window.speechSynthesis && window.speechSynthesis.cancel();
     }
 
-    /** Pre-generate narrative for the next slide (non-blocking). */
-    function lookahead(index) {
-      if (index < 0 || index >= totalSlides) return;
-      if (narrativeCache[index] !== undefined) return; // already cached
-
-      var step = presentSteps[index];
-      if (!step) return;
-
-      var slideInfo = extractSlideText(step);
-      var lang = getEffectiveLang();
-
-      lookaheadAbort = new AbortController();
-      generateNarrative(slideInfo, index, totalSlides, lang, lookaheadAbort.signal)
-        .then(function (text) {
-          narrativeCache[index] = text || '';
-        })
-        .catch(function () {
-          // Lookahead failure is non-critical
-        });
+    function stopFill() {
+      if (fillAbort) { fillAbort.abort(); fillAbort = null; }
     }
 
-    /** Play narration for a specific slide index. */
-    function playSlide(index) {
-      if (controllerState === 'idle') return;
+    function getArticleId() {
+      return window.location.pathname.replace(/\/$/, '').split('/').pop() || 'unknown';
+    }
 
-      currentIndex = index;
-      var step = presentSteps[index];
-      if (!step) {
-        setState('idle');
+    function initQueue(steps) {
+      var id = getArticleId();
+      if (queueId === id && slides.length === steps.length) return; // reuse
+      queueId = id;
+      slides = [];
+      for (var i = 0; i < steps.length; i++) slides.push({ text: null, audio: null });
+    }
+
+    function clearQueue() {
+      queueId = null;
+      slides = [];
+    }
+
+    /* ── Queue helpers ── */
+
+    /** Generate text for slide at `idx` if not yet available. Returns Promise<string>. */
+    function ensureText(idx, abortSignal) {
+      if (slides[idx] && slides[idx].text !== null) return Promise.resolve(slides[idx].text);
+      var step = presentSteps[idx];
+      if (!step) return Promise.resolve('');
+      var info = extractSlideText(step);
+      var lang = getEffectiveLang();
+      return generateNarrative(info, idx, totalSlides, lang, abortSignal).then(function (t) {
+        slides[idx].text = t || '';
+        return slides[idx].text;
+      });
+    }
+
+    /** Synthesize audio for slide at `idx` if using local TTS and not yet available. Returns Promise. */
+    function ensureAudio(idx, abortSignal) {
+      if (!isLocalTTS()) return Promise.resolve();
+      if (slides[idx] && slides[idx].audio) return Promise.resolve();
+      var text = slides[idx] ? slides[idx].text : null;
+      if (!text) return Promise.resolve();
+      var ss = getSpeechSettings();
+      var lang = getEffectiveLang();
+      return fetchLocalTTSAudio(text, lang, ss).then(function (buf) {
+        slides[idx].audio = buf;
+      }).catch(function () {});
+    }
+
+    /* ── Background fill pipeline ── */
+
+    /** Count how many slides are fully ready (text + audio if local TTS). */
+    function countFilled() {
+      var local = isLocalTTS();
+      var n = 0;
+      for (var i = 0; i < slides.length; i++) {
+        if (slides[i].text !== null && (!local || slides[i].audio)) n++;
+      }
+      return n;
+    }
+
+    function reportProgress() {
+      onFillProgress(countFilled(), totalSlides, pointer);
+    }
+
+    /** Fill slides from `startIdx` onward sequentially. Non-blocking, abortable. */
+    function startFill(startIdx) {
+      stopFill();
+      fillAbort = new AbortController();
+      var signal = fillAbort.signal;
+
+      function fillNext(idx) {
+        if (signal.aborted) return;
+        if (idx >= totalSlides) { reportProgress(); return; }
+        ensureText(idx, signal).then(function () {
+          if (signal.aborted) return;
+          return ensureAudio(idx, signal);
+        }).then(function () {
+          if (signal.aborted) return;
+          reportProgress();
+          fillNext(idx + 1);
+        }).catch(function () {});
+      }
+      fillNext(startIdx);
+    }
+
+    /* ── Play current pointer ── */
+
+    function playPointer() {
+      var idx = pointer;
+      var myGen = gen;
+      reportProgress();
+
+      if (state === 'idle') return;
+      if (idx < 0 || idx >= totalSlides) { setState('idle'); return; }
+
+      var entry = slides[idx];
+
+      // Case 1: audio ready → play
+      if (isLocalTTS() && entry.audio) {
+        beginSpeak(idx, myGen);
         return;
       }
-
-      // Check cache first
-      if (narrativeCache[index] !== undefined) {
-        startSpeaking(narrativeCache[index], index);
+      // Case 2: text ready but no audio → synthesize then play
+      if (entry.text !== null) {
+        if (isLocalTTS()) {
+          setState('generating');
+          var ss = getSpeechSettings();
+          fetchLocalTTSAudio(entry.text, getEffectiveLang(), ss).then(function (buf) {
+            if (myGen !== gen) return;
+            entry.audio = buf;
+            beginSpeak(idx, myGen);
+          }).catch(function () {
+            if (myGen !== gen) return;
+            beginSpeak(idx, myGen); // play without prefetched audio
+          });
+        } else {
+          beginSpeak(idx, myGen);
+        }
         return;
       }
-
-      // Generate narrative
+      // Case 3: nothing → generate text, synthesize, play
       setState('generating');
-      currentAbort = new AbortController();
-      var slideInfo = extractSlideText(step);
-      var lang = getEffectiveLang();
-
-      generateNarrative(slideInfo, index, totalSlides, lang, currentAbort.signal)
-        .then(function (text) {
-          if (controllerState === 'idle') return; // stopped during generation
-          narrativeCache[index] = text || '';
-          startSpeaking(narrativeCache[index], index);
-        })
-        .catch(function (err) {
-          if (controllerState === 'idle') return;
-          if (err.name === 'AbortError') return;
-          onError(err);
-          // Skip this slide after 3s
-          setState('playing');
-          skipTimer = setTimeout(function () {
-            skipTimer = null;
-            if (controllerState !== 'idle') {
-              advanceOrStop(index);
-            }
-          }, 3000);
-        });
+      ensureText(idx, null).then(function () {
+        if (myGen !== gen) return;
+        if (isLocalTTS() && entry.text) {
+          return ensureAudio(idx, null);
+        }
+      }).then(function () {
+        if (myGen !== gen) return;
+        beginSpeak(idx, myGen);
+      }).catch(function (err) {
+        if (myGen !== gen) return;
+        if (err && err.name === 'AbortError') return;
+        onError(err);
+        setState('playing');
+        // Skip after 3s
+        speakTimer = setTimeout(function () {
+          speakTimer = null;
+          if (myGen !== gen) return;
+          advance(idx, myGen);
+        }, 3000);
+      });
     }
 
-    function startSpeaking(text, index) {
-      if (controllerState === 'idle') return;
+    function beginSpeak(idx, myGen) {
+      if (myGen !== gen) return;
+      if (state === 'idle') return;
 
-      if (!text) {
-        // Empty narrative → advance immediately
-        advanceOrStop(index);
-        return;
-      }
+      var text = slides[idx].text || '';
+      if (!text) { advance(idx, myGen); return; }
 
       setState('playing');
 
-      // Start lookahead for next slide
-      lookahead(index + 1);
+      // Start background fill from idx+1 onward
+      startFill(idx + 1);
 
-      var lang = getEffectiveLang();
-      var ss = getSpeechSettings();
-      currentSpeaker = speak(text, lang, {
-        onChunkStart: function (chunkText) {
-          onSubtitle(chunkText);
-        },
-        onEnd: function () {
-          currentSpeaker = null;
-          if (controllerState === 'playing') {
-            onSubtitle('');
-            advanceOrStop(index);
+      // 1s pause for rhythm, then speak
+      speakTimer = setTimeout(function () {
+        speakTimer = null;
+        if (myGen !== gen || state !== 'playing') return;
+
+        onSubtitle(text);
+        var lang = getEffectiveLang();
+        var ss = getSpeechSettings();
+        var cbs = {
+          onChunkStart: function (t) { onSubtitle(t); },
+          onEnd: function () {
+            currentSpeaker = null;
+            if (myGen !== gen) return;
+            if (state === 'playing') { onSubtitle(''); advance(idx, myGen); }
+          },
+          onError: function () {
+            currentSpeaker = null;
+            if (myGen !== gen) return;
+            if (state !== 'idle') { onSubtitle(''); advance(idx, myGen); }
           }
-        },
-        onError: function () {
-          currentSpeaker = null;
-          if (controllerState !== 'idle') {
-            onSubtitle('');
-            advanceOrStop(index);
-          }
+        };
+
+        if (isLocalTTS()) {
+          currentSpeaker = speakViaLocalTTS(text, lang, cbs, ss, slides[idx].audio || null);
+        } else {
+          currentSpeaker = speak(text, lang, cbs, ss);
         }
-      }, ss);
+      }, 1000);
     }
 
-    function advanceOrStop(index) {
-      if (index >= totalSlides - 1) {
-        // Last slide done
-        setState('idle');
-        onSubtitle('');
-        onSlideComplete('done');
-        return;
-      }
-      onSlideComplete('next');
+    function advance(idx, myGen) {
+      if (myGen !== gen) return;
+      if (idx !== pointer) return; // stale callback from a different slide
+      if (idx >= totalSlides - 1) { setState('idle'); onSubtitle(''); onSlideComplete('done'); return; }
+      pointer = idx + 1;
+      onSlideComplete('next', pointer);
+      playPointer();
     }
 
     /* ── Public API ── */
     return {
+      /** Start narration from a given slide. */
       start: function (steps, index, langFn) {
-        cancelAll();
-        presentSteps = steps;
-        totalSlides = steps.length;
-        currentIndex = index;
+        stopPlayback(); stopFill();
+        presentSteps = steps; totalSlides = steps.length;
         if (langFn) getLang = langFn;
+        initQueue(steps);
+        pointer = index;
         setState('generating');
-        playSlide(index);
+        playPointer();
       },
 
-      /** Pre-generate narrative for a slide without starting speech. Returns Promise. */
-      pregenerate: function (steps, index, langFn) {
-        presentSteps = steps;
-        totalSlides = steps.length;
+      /** Pre-generate content for a slide before starting. Returns Promise. */
+      pregenerate: function (steps, index, langFn, onProgress) {
+        presentSteps = steps; totalSlides = steps.length;
         if (langFn) getLang = langFn;
-        if (narrativeCache[index] !== undefined) return Promise.resolve(narrativeCache[index]);
-        var step = steps[index];
-        if (!step) return Promise.resolve('');
-        var slideInfo = extractSlideText(step);
-        var lang = getEffectiveLang();
-        return generateNarrative(slideInfo, index, totalSlides, lang, null).then(function (text) {
-          narrativeCache[index] = text || '';
-          return narrativeCache[index];
+        initQueue(steps);
+        var notify = onProgress || function () {};
+
+        return ensureText(index, null).then(function (text) {
+          notify('script-done');
+          if (isLocalTTS() && text) {
+            return ensureAudio(index, null).then(function () {
+              notify('audio-done');
+              return text;
+            });
+          }
+          return text;
         }).catch(function () {
-          narrativeCache[index] = '';
+          notify('script-done');
+          if (isLocalTTS()) notify('audio-done');
           return '';
         });
       },
 
-      pause: function () {
-        if (controllerState === 'playing' && currentSpeaker) {
-          currentSpeaker.pause();
-          setState('paused');
-        }
-      },
-
-      resume: function () {
-        if (controllerState === 'paused' && currentSpeaker) {
-          currentSpeaker.resume();
-          setState('playing');
-        }
-      },
-
-      stop: function () {
-        cancelAll();
-        onSubtitle('');
-        setState('idle');
-      },
-
+      /** Navigate to a specific slide (user-driven, e.g. arrow keys). */
       syncToSlide: function (index) {
-        if (controllerState === 'idle') return;
-        cancelAll();
-        currentIndex = index;
+        if (state === 'idle') return;
+        stopPlayback(); // increments gen, cancels speaker + timers
+        // Do NOT stopFill — background fill continues to be useful
+        pointer = index;
         setState('generating');
-        playSlide(index);
+        playPointer();
       },
 
-      isActive: function () {
-        return controllerState !== 'idle';
+      pause: function () {
+        if (state === 'playing' && currentSpeaker) { currentSpeaker.pause(); setState('paused'); }
       },
-
-      getState: function () {
-        return controllerState;
+      resume: function () {
+        if (state === 'paused' && currentSpeaker) { currentSpeaker.resume(); setState('playing'); }
       },
-
-      destroy: function () {
-        cancelAll();
-        narrativeCache = {};
-        presentSteps = null;
-        controllerState = 'idle';
-      }
+      stop: function () { stopPlayback(); stopFill(); clearQueue(); onSubtitle(''); setState('idle'); },
+      isActive: function () { return state !== 'idle'; },
+      getState: function () { return state; },
+      destroy: function () { stopPlayback(); stopFill(); clearQueue(); presentSteps = null; setState('idle'); }
     };
   }
 
@@ -608,9 +819,16 @@
      Static utility: check if narration is possible
      ══════════════════════════════════════════════════════ */
   function isAvailable() {
-    return !!(window.speechSynthesis &&
-              window.SpeechSynthesisUtterance &&
-              getLlmSettings());
+    var hasLlm = !!getLlmSettings();
+    if (!hasLlm) return false;
+    // Available if browser TTS exists OR MOSS-TTS-Nano is configured
+    var hasBrowserTTS = !!(window.speechSynthesis && window.SpeechSynthesisUtterance);
+    var hasMossTTS = false;
+    try {
+      var ns = JSON.parse(localStorage.getItem('narration-settings'));
+      if (ns && ns.ttsEngine === 'moss-tts-nano' && ns.mossTtsEndpoint) hasMossTTS = true;
+    } catch (e) {}
+    return hasBrowserTTS || hasMossTTS;
   }
 
   function getVoiceList() {
@@ -624,6 +842,7 @@
   window.StudyRoomNarration = {
     createController: createController,
     isAvailable: isAvailable,
-    getVoiceList: getVoiceList
+    getVoiceList: getVoiceList,
+    getTtsAudioStream: getRecordingStream
   };
 })();

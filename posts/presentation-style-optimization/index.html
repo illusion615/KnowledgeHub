@@ -1,0 +1,1444 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>演示模式内容与式样优化设计</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(1.8rem, 4.4vw, 3rem);
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+      max-width: 22ch;
+    }
+
+    .hero-metrics {
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+
+    /* ── Gap analysis cards ── */
+    .gap-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .gap-card {
+      padding: 22px;
+      border-radius: 22px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+    }
+
+    .gap-card h4 { margin: 0 0 8px; font-size: 1.05rem; line-height: 1.35; }
+    .gap-card p, .gap-card li { color: var(--muted); font-size: 0.92rem; line-height: 1.72; }
+    .gap-card ul { margin: 8px 0 0; padding-left: 18px; }
+
+    .gap-severity {
+      display: inline-flex; align-items: center; justify-content: center;
+      margin-bottom: 10px; padding: 6px 12px; border-radius: 999px;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .gap-severity-high { background: rgba(239, 68, 68, 0.12); color: #dc2626; }
+    .gap-severity-medium { background: rgba(234, 179, 8, 0.15); color: #b45309; }
+
+    /* ── Benchmark comparison table ── */
+    .compare-table-wrap {
+      margin-top: 16px; overflow-x: auto; border-radius: 18px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.78);
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+    }
+    .compare-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    .compare-table th, .compare-table td { padding: 11px 14px; text-align: left; border-bottom: 1px solid rgba(15, 23, 42, 0.06); vertical-align: top; }
+    .compare-table th { font-family: "Space Grotesk", "Noto Sans SC", sans-serif; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: rgba(15, 23, 42, 0.03); white-space: nowrap; }
+    .compare-table tr:last-child td { border-bottom: none; }
+
+    /* ── Phase timeline ── */
+    .phase-timeline {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .phase-step {
+      display: grid;
+      grid-template-columns: 48px 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+    .phase-number {
+      width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
+      border-radius: 16px; font-family: "Space Grotesk", sans-serif;
+      font-size: 1.1rem; font-weight: 700; color: #fff;
+      background: var(--accent, var(--teal));
+      flex-shrink: 0;
+    }
+    .phase-body h4 { margin: 0 0 4px; font-size: 1rem; }
+    .phase-body p { color: var(--muted); font-size: 0.92rem; line-height: 1.72; margin: 0; }
+
+    /* ── Spec table ── */
+    .spec-table-wrap {
+      margin-top: 16px; overflow-x: auto; border-radius: 18px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.78);
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+    }
+    .spec-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    .spec-table th, .spec-table td { padding: 11px 14px; text-align: left; border-bottom: 1px solid rgba(15, 23, 42, 0.06); vertical-align: top; }
+    .spec-table th { font-family: "Space Grotesk", "Noto Sans SC", sans-serif; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: rgba(15, 23, 42, 0.03); white-space: nowrap; }
+    .spec-table tr:last-child td { border-bottom: none; }
+    .spec-table code { font-size: 0.82rem; padding: 2px 6px; border-radius: 4px; background: rgba(15, 23, 42, 0.05); }
+
+    /* ── Dark mode overrides ── */
+    [data-theme="dark"] .gap-card,
+    [data-theme="dark"] .compare-table-wrap,
+    [data-theme="dark"] .spec-table-wrap {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+    [data-theme="dark"] .compare-table th,
+    [data-theme="dark"] .spec-table th {
+      background: rgba(255, 255, 255, 0.04);
+      color: rgba(255, 255, 255, 0.5);
+    }
+    [data-theme="dark"] .compare-table td,
+    [data-theme="dark"] .spec-table td {
+      border-bottom-color: rgba(255, 255, 255, 0.06);
+    }
+    [data-theme="dark"] .gap-severity-high { background: rgba(239, 68, 68, 0.18); color: #f87171; }
+    [data-theme="dark"] .gap-severity-medium { background: rgba(234, 179, 8, 0.18); color: #fbbf24; }
+    [data-theme="dark"] .spec-table code { background: rgba(255, 255, 255, 0.08); }
+
+    /* ── Mode comparison cards ── */
+    .mode-compare-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 18px;
+      margin-top: 18px;
+    }
+    .mode-compare-card {
+      padding: 24px;
+      border-radius: 22px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+    }
+    .mode-compare-card h4 { margin: 0 0 10px; font-size: 1.08rem; line-height: 1.35; }
+    .mode-compare-card p, .mode-compare-card li { color: var(--muted); font-size: 0.92rem; line-height: 1.72; }
+    .mode-compare-card ul { margin: 8px 0 0; padding-left: 18px; }
+    .mode-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      margin-bottom: 12px; padding: 6px 14px; border-radius: 999px;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .mode-badge-read { background: rgba(14, 165, 233, 0.12); color: #0369a1; }
+    .mode-badge-narrate { background: rgba(124, 58, 237, 0.12); color: #5b21b6; }
+    [data-theme="dark"] .mode-compare-card {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+    [data-theme="dark"] .mode-badge-read { background: rgba(14, 165, 233, 0.18); color: #38bdf8; }
+    [data-theme="dark"] .mode-badge-narrate { background: rgba(124, 58, 237, 0.18); color: #a78bfa; }
+
+    /* ── Checklist table ── */
+    .checklist-wrap {
+      margin-top: 16px; overflow-x: auto; border-radius: 18px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.78);
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+    }
+    .checklist-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    .checklist-table th, .checklist-table td { padding: 10px 14px; text-align: left; border-bottom: 1px solid rgba(15, 23, 42, 0.06); vertical-align: top; }
+    .checklist-table th { font-family: "Space Grotesk", "Noto Sans SC", sans-serif; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: rgba(15, 23, 42, 0.03); white-space: nowrap; }
+    .checklist-table tr:last-child td { border-bottom: none; }
+    .checklist-table .ck-box { width: 16px; text-align: center; color: var(--muted); }
+    .phase-tag {
+      display: inline-block; padding: 2px 8px; border-radius: 6px;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 0.7rem; font-weight: 700; letter-spacing: 0.04em;
+    }
+    .phase-tag-1 { background: rgba(14, 165, 233, 0.12); color: #0369a1; }
+    .phase-tag-2 { background: rgba(124, 58, 237, 0.12); color: #5b21b6; }
+    .phase-tag-3 { background: rgba(234, 179, 8, 0.15); color: #b45309; }
+    [data-theme="dark"] .checklist-wrap {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+    [data-theme="dark"] .checklist-table th {
+      background: rgba(255, 255, 255, 0.04);
+      color: rgba(255, 255, 255, 0.5);
+    }
+    [data-theme="dark"] .checklist-table td { border-bottom-color: rgba(255, 255, 255, 0.06); }
+    [data-theme="dark"] .phase-tag-1 { background: rgba(14, 165, 233, 0.18); color: #38bdf8; }
+    [data-theme="dark"] .phase-tag-2 { background: rgba(124, 58, 237, 0.18); color: #a78bfa; }
+    [data-theme="dark"] .phase-tag-3 { background: rgba(234, 179, 8, 0.18); color: #fbbf24; }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            Knowledge Hub
+          </div>
+          <div class="topbar-actions">
+            <nav class="nav-links" aria-label="页面章节导航">
+              <a href="#gap-analysis">现状分析</a>
+              <a href="#benchmark">行业基准</a>
+              <a href="#solution">解决方案</a>
+              <a href="#implementation">实施规格</a>
+              <a href="#tracking">实施跟踪</a>
+              <a href="#verification">验证</a>
+            </nav>
+          </div>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Design Document</span>
+            <h1>演示模式内容与式样优化设计</h1>
+            <p>针对演示排版可读性、讲解模式认知负荷和移动端录制适配三个维度，基于行业最佳实践提出系统性优化方案。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#solution">查看解决方案</a>
+              <a class="button button-secondary" href="#gap-analysis">现状分析</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">核心框架</span>
+            <h2>两种演示类型 × 三层渐进优化</h2>
+            <ul class="layer-list">
+              <li><span class="layer-number">A</span>阅读演示：内容以合理结构渐进呈现，观众自主阅读幻灯片</li>
+              <li><span class="layer-number">B</span>讲解演示：内容降为视觉锚点，仅保留关键信息辅助语音叙事</li>
+              <li><span class="layer-number">→</span>三层实施：排版放大 → 聚焦模式 → 竖屏视口</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">正文字号提升</div>
+            <strong>+56%</strong>
+            <span>15.4px → 19–24px</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">认知负荷减少</div>
+            <strong>~40%</strong>
+            <span>聚焦模式淡化次要内容</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">移动端可读性</div>
+            <strong>9:16</strong>
+            <span>竖屏视口 + 字号 ×1.3</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">影响文件</div>
+            <strong>6</strong>
+            <span>CSS + JS + HTML 共享资产</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- Section 1: Gap Analysis                     -->
+        <!-- ═══════════════════════════════════════════ -->
+        <section id="gap-analysis" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / Gap Analysis</p>
+            <h2>现状分析：三个维度的系统性差距</h2>
+            <p>演示模式在排版可读性、讲解认知分配和录制输出适配三个维度存在结构性缺陷。以下对每个维度进行量化诊断。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>排版可读性：正文字号未针对演示场景覆盖</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">问题本质</div>
+                  <p>演示模式直接继承文章阅读基线 <code>0.96rem</code>（15.36px），1080p 投影仪上 3 米外几乎不可读。</p>
+                </div>
+                <div class="comparison-grid cols-2">
+                  <div class="comparison-card">
+                    <h4>当前值</h4>
+                    <ul>
+                      <li>正文：<strong>15.36px</strong></li>
+                      <li>字幕：<strong>13.76px</strong></li>
+                      <li>移动端断点：<strong>无</strong></li>
+                    </ul>
+                  </div>
+                  <div class="comparison-card">
+                    <h4>行业基准</h4>
+                    <ul>
+                      <li>Reveal.js 默认：<strong>40px</strong></li>
+                      <li>Google Slides：<strong>~28px</strong></li>
+                      <li>字幕最低标准：<strong>18px</strong></li>
+                    </ul>
+                  </div>
+                </div>
+                <div class="action-box">
+                  <div class="event-field-label">CSS 根因</div>
+                  <p><code>.is-presentation-mode</code> 仅覆盖标题和概览描述字号，未覆盖 <code>.subsection-content p/li</code>、<code>.event-field</code> 正文容器。移动端无专属媒体查询。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>讲解模式认知负荷：文字墙与语音叙事争夺注意力</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">认知科学基础</div>
+                  <p>Mayer 多媒体学习理论：视觉与听觉同时传递冗余详细信息时，学习效果<strong>反而下降</strong>（冗余效应）。</p>
+                </div>
+                <div class="comparison-grid cols-2">
+                  <div class="comparison-card">
+                    <h4>当前行为</h4>
+                    <ul>
+                      <li>幻灯片全量显示正文、表格、字段</li>
+                      <li>仅叠加 13.76px 字幕条</li>
+                      <li>导航箭头隐藏</li>
+                    </ul>
+                  </div>
+                  <div class="comparison-card">
+                    <h4>后果</h4>
+                    <ul>
+                      <li>200–300 字正文墙 + 语音讲解</li>
+                      <li>阅读/倾听频繁切换注意力</li>
+                      <li>分裂注意力效应 → 学习效率下降</li>
+                    </ul>
+                  </div>
+                </div>
+                <div class="action-box">
+                  <div class="event-field-label">注意力分配</div>
+                  <p>语音讲解场景中认知带宽约 <strong>70% 听觉 / 30% 视觉</strong>。幻灯片应提供视觉锚点而非完整文本。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>录制输出适配：横屏录制在移动端不可用</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">录制机制</div>
+                  <p><code>getDisplayMedia()</code> 捕获全屏 → VP9/VP8 WebM，宽高比固定 16:9 或 16:10。</p>
+                </div>
+                <div class="comparison-grid cols-2">
+                  <div class="comparison-card">
+                    <h4>横屏在手机上的效果</h4>
+                    <ul>
+                      <li>视频窗口仅占屏幕高度 <strong>~28%</strong></li>
+                      <li>15px 正文 → 等效 <strong>4–5px</strong></li>
+                      <li>38px 标题 → 等效 <strong>~10px</strong></li>
+                    </ul>
+                  </div>
+                  <div class="comparison-card">
+                    <h4>竖屏平台的做法</h4>
+                    <ul>
+                      <li>抖音/TikTok/Shorts：<strong>9:16</strong></li>
+                      <li>字号：<strong>18–24pt</strong>（移动端 24–32px）</li>
+                      <li>单列布局 + 大号代码字体</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- Section 2: Industry Benchmark               -->
+        <!-- ═══════════════════════════════════════════ -->
+        <section id="benchmark" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Industry Benchmark</p>
+            <h2>行业基准：五款产品的演示设计策略</h2>
+            <p>从演示排版、讲者/观众视角分离、录制输出三个维度对标行业成熟产品，提取可复用的设计原则。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Reveal.js：虚拟画布与自动缩放</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">核心机制</div>
+                  <p>固定 960×700 虚拟画布 + CSS <code>transform: scale()</code> 等比缩放到任意屏幕。</p>
+                </div>
+                <div class="comparison-grid cols-2">
+                  <div class="comparison-card">
+                    <h4>r-fit-text</h4>
+                    <p>自动计算文字最大尺寸，保证填满可用空间但不溢出。适用于标题和关键数字。</p>
+                  </div>
+                  <div class="comparison-card">
+                    <h4>可借鉴点</h4>
+                    <p>虚拟视口将演示设计与屏幕分辨率解耦。我们用 CSS 自定义属性实现类似解耦。</p>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Google Slides：讲者视图的双通道分离</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">核心机制</div>
+                  <p>Presenter View 将讲者笔记与观众画面<strong>物理分离</strong>——两个通道的信息密度完全不同。</p>
+                </div>
+                <div class="comparison-grid cols-2">
+                  <div class="comparison-card">
+                    <h4>讲者屏幕</h4>
+                    <ul>
+                      <li>当前幻灯片缩略图</li>
+                      <li>完整 Speaker Notes</li>
+                      <li>计时器</li>
+                    </ul>
+                  </div>
+                  <div class="comparison-card">
+                    <h4>观众屏幕</h4>
+                    <ul>
+                      <li>仅幻灯片视觉内容</li>
+                      <li>无笔记、无计时</li>
+                      <li>低信息密度</li>
+                    </ul>
+                  </div>
+                </div>
+                <div class="action-box">
+                  <div class="event-field-label">可借鉴点</div>
+                  <p>单屏场景下用"聚焦模式"实现认知分离——淡化文字，保留视觉锚点。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Pitch：内容密度与视觉层次规则</span>
+              </button>
+              <div class="subsection-content">
+                <div class="comparison-grid cols-2">
+                  <div class="comparison-card">
+                    <h4>Rule of 3</h4>
+                    <p>每张幻灯片聚焦 <strong>3 个核心要点</strong>，每行 ≤ 12 词，保证扫描效率。</p>
+                  </div>
+                  <div class="comparison-card">
+                    <h4>在实际介质中测试</h4>
+                    <p>最终观看设备是手机 → 设计时就在<strong>手机尺寸</strong>上验证可读性。</p>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Apple Keynote：录制讲解与演讲者显示器</span>
+              </button>
+              <div class="subsection-content">
+                <div class="comparison-grid cols-2">
+                  <div class="comparison-card">
+                    <h4>录制讲解</h4>
+                    <p>逐页录制旁白 → 回放时语音与幻灯片<strong>自动同步</strong>。录制是一等公民功能。</p>
+                  </div>
+                  <div class="comparison-card">
+                    <h4>AI 生成笔记</h4>
+                    <p>Keynote 15.2 支持 AI 自动生成演讲者笔记——与我们 LLM 讲解脚本生成理念一致。</p>
+                  </div>
+                </div>
+                <div class="action-box">
+                  <div class="event-field-label">可借鉴点</div>
+                  <p>录制输出是独立消费场景，排版应针对最终设备（手机竖屏）优化。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>TED 演讲：幻灯片作为视觉锚点</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">设计哲学</div>
+                  <p>TED 幻灯片通常只含<strong>一个核心要素</strong>：一张全屏图片、一个大号数字、或一句关键引述。</p>
+                </div>
+                <div class="action-box">
+                  <div class="event-field-label">核心原则</div>
+                  <p>语音讲解时，幻灯片角色从<strong>"信息载体"→"注意力锚点"</strong>。信息密度越低，观众越能专注语音叙事。不是删除内容，而是通过视觉降权重新分配注意力。</p>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <div class="compare-table-wrap" style="margin-top: 24px;">
+            <table class="compare-table">
+              <thead>
+                <tr>
+                  <th>产品</th>
+                  <th>排版策略</th>
+                  <th>讲者/观众分离</th>
+                  <th>录制适配</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Reveal.js</strong></td>
+                  <td>960×700 虚拟画布 + 等比缩放</td>
+                  <td>Speaker Notes 视图</td>
+                  <td>无内建录制</td>
+                </tr>
+                <tr>
+                  <td><strong>Google Slides</strong></td>
+                  <td>固定画布 + 字号绝对值</td>
+                  <td>Presenter View 物理分屏</td>
+                  <td>依赖外部工具</td>
+                </tr>
+                <tr>
+                  <td><strong>Pitch</strong></td>
+                  <td>Rule of 3 + ≤12 词/行</td>
+                  <td>Speaker Notes 面板</td>
+                  <td>Video 导出（固定比例）</td>
+                </tr>
+                <tr>
+                  <td><strong>Apple Keynote</strong></td>
+                  <td>主题字号模板 + 演讲者显示器</td>
+                  <td>物理分屏 + 窗口化回放</td>
+                  <td>录制讲解 + 导出 MOV</td>
+                </tr>
+                <tr>
+                  <td><strong>TED 风格</strong></td>
+                  <td>全屏单要素 + 超大字号</td>
+                  <td>讲者即叙事通道</td>
+                  <td>专业摄像（切画面）</td>
+                </tr>
+                <tr>
+                  <td><strong>Knowledge Hub（当前）</strong></td>
+                  <td>继承文章字号 15px</td>
+                  <td>无分离（全量显示）</td>
+                  <td>getDisplayMedia 截屏</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- Section 3: Solution Design                  -->
+        <!-- ═══════════════════════════════════════════ -->
+        <section id="solution" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / Solution Design</p>
+            <h2>解决方案：两种演示类型 × 三层渐进式优化</h2>
+            <p>演示模式并非单一场景——观众自主阅读幻灯片与讲者语音讲解是两种本质不同的信息传递方式，需要不同的内容密度和视觉策略。三层优化分别服务共享基线、讲解专属体验和录制输出。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>两种演示类型的定义与差异</span>
+              </button>
+              <div class="subsection-content">
+                <div class="mode-compare-grid">
+                  <div class="mode-compare-card">
+                    <span class="mode-badge mode-badge-read">TYPE A</span>
+                    <h4>阅读演示模式</h4>
+                    <p>观众独立阅读幻灯片内容，无语音讲解。幻灯片是唯一信息通道——内容必须以合理的结构和顺序完整呈现，支持观众自主理解。</p>
+                    <ul>
+                      <li><strong>信息通道</strong>：仅视觉（幻灯片即全部）</li>
+                      <li><strong>内容密度</strong>：中高——保留完整正文、字段和表格</li>
+                      <li><strong>核心诉求</strong>：可读性 + 结构清晰度 + 渐进呈现顺序</li>
+                      <li><strong>典型场景</strong>：会后分享、异步阅读、邮件发送的 PPTX</li>
+                    </ul>
+                  </div>
+                  <div class="mode-compare-card">
+                    <span class="mode-badge mode-badge-narrate">TYPE B</span>
+                    <h4>讲解演示模式</h4>
+                    <p>讲者通过语音（TTS 或现场）传递完整叙事，幻灯片降为辅助支持——仅保留关键信息作为视觉锚点，帮助观众在听觉叙事中保持方位感。</p>
+                    <ul>
+                      <li><strong>信息通道</strong>：听觉（主） + 视觉（辅）</li>
+                      <li><strong>内容密度</strong>：低——标题、关键数字、图表、首段</li>
+                      <li><strong>核心诉求</strong>：视觉锚定 + 认知带宽释放 + 字幕可读</li>
+                      <li><strong>典型场景</strong>：现场演讲、自动讲解播放、录制分享视频</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div class="compare-table-wrap" style="margin-top: 18px;">
+                  <table class="compare-table">
+                    <thead>
+                      <tr>
+                        <th>维度</th>
+                        <th>阅读演示 (Type A)</th>
+                        <th>讲解演示 (Type B)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><strong>正文可见度</strong></td>
+                        <td>100%——全量显示，行高加大</td>
+                        <td>15%——淡化 + 模糊，仅锚点保留</td>
+                      </tr>
+                      <tr>
+                        <td><strong>标题/图片</strong></td>
+                        <td>正常显示，字号放大</td>
+                        <td>100% 可见，作为视觉锚点</td>
+                      </tr>
+                      <tr>
+                        <td><strong>字幕</strong></td>
+                        <td>不显示（无语音）</td>
+                        <td>放大字号 + 加宽底栏</td>
+                      </tr>
+                      <tr>
+                        <td><strong>导航</strong></td>
+                        <td>箭头可见，手动翻页</td>
+                        <td>箭头隐藏，自动翻页</td>
+                      </tr>
+                      <tr>
+                        <td><strong>观众注意力分配</strong></td>
+                        <td>100% 视觉阅读</td>
+                        <td>~70% 听觉 / ~30% 视觉扫描</td>
+                      </tr>
+                      <tr>
+                        <td><strong>触发条件</strong></td>
+                        <td>进入演示模式（默认）</td>
+                        <td>开启讲解 → 自动激活聚焦模式</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Phase 1：演示排版放大（共享基线，Type A + B 共用）</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">设计目标</div>
+                  <p>正文 15px → <strong>19–24px</strong>，覆盖投影、外接屏和移动端三场景。两种演示类型共享此基线。</p>
+                </div>
+                <div class="comparison-grid cols-2">
+                  <div class="comparison-card">
+                    <h4>Type A 阅读演示</h4>
+                    <ul>
+                      <li>正文字号直接提升可读性</li>
+                      <li>行高 → <strong>1.75</strong></li>
+                      <li>字段标签同步放大</li>
+                      <li>概览卡片标题放大</li>
+                    </ul>
+                  </div>
+                  <div class="comparison-card">
+                    <h4>Type B 讲解演示</h4>
+                    <ul>
+                      <li>锚点元素仍需放大基线</li>
+                      <li>字幕 0.86rem → <strong>clamp(1rem, 1.3vw, 1.25rem)</strong></li>
+                      <li>字幕 max-width 70% → <strong>80%</strong></li>
+                      <li>字幕 padding 加宽</li>
+                    </ul>
+                  </div>
+                </div>
+                <div class="action-box">
+                  <div class="event-field-label">移动端</div>
+                  <p><code>@media (max-width: 768px)</code>：正文 1.15rem，概览单列，deck bar 缩放。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Phase 2：讲解聚焦模式（Type B 专属）</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">设计目标</div>
+                  <p>讲解开始 → 幻灯片从<strong>"信息载体"自动转为"视觉锚点"</strong>。同一内容在 Type A/B 下呈现不同密度。</p>
+                </div>
+                <div class="comparison-grid cols-2">
+                  <div class="comparison-card">
+                    <h4>淡化（非锚点）</h4>
+                    <ul>
+                      <li><code>opacity: 0.15</code></li>
+                      <li><code>filter: blur(1px)</code></li>
+                      <li>过渡 0.3s</li>
+                      <li>结构仍可感知</li>
+                    </ul>
+                  </div>
+                  <div class="comparison-card">
+                    <h4>保留（锚点元素）</h4>
+                    <ul>
+                      <li>h2–h4 标题</li>
+                      <li>img 图片</li>
+                      <li>首段 &lt;p&gt; + strong</li>
+                      <li>.insight-callout / .metric-card</li>
+                    </ul>
+                  </div>
+                </div>
+                <div class="action-box">
+                  <div class="event-field-label">切换流</div>
+                  <p>play → 聚焦（Type B）｜pause → 恢复（Type A）｜stop → 退出｜设置面板可关闭聚焦</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Phase 3：移动端录制视口（Type B 增强）</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">设计目标</div>
+                  <p>横屏视频在手机上字号缩小 <strong>~4 倍</strong>不可读 → 提供 9:16 竖屏和 1:1 正方形录制视口。</p>
+                </div>
+                <div class="comparison-grid cols-2">
+                  <div class="comparison-card">
+                    <h4>CSS 虚拟视口</h4>
+                    <ul>
+                      <li>9:16 宽度 = <code>min(56.25vh, 100vw)</code></li>
+                      <li>字号 × <strong>1.3</strong></li>
+                      <li>概览单列</li>
+                      <li>字幕 max-width 90%</li>
+                    </ul>
+                  </div>
+                  <div class="comparison-card">
+                    <h4>录制比例选项</h4>
+                    <ul>
+                      <li>横屏 16:9（默认）</li>
+                      <li>竖屏 9:16（手机）</li>
+                      <li>正方 1:1（社交媒体）</li>
+                      <li>localStorage 持久化</li>
+                    </ul>
+                  </div>
+                </div>
+                <div class="action-box">
+                  <div class="event-field-label">联动</div>
+                  <p>竖屏录制默认启用聚焦模式 → 窄列中淡化非核心内容收益更高。</p>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <div class="phase-timeline" style="margin-top: 24px;">
+            <div class="phase-step">
+              <div class="phase-number">1</div>
+              <div class="phase-body">
+                <h4>演示排版放大（共享基线）</h4>
+                <p>Type A + B 共用。仅修改 article.css + article-narration.css，零 JS 改动，向后兼容所有文章。</p>
+              </div>
+            </div>
+            <div class="phase-step">
+              <div class="phase-number">2</div>
+              <div class="phase-body">
+                <h4>讲解聚焦模式（Type B 专属）</h4>
+                <p>依赖 Phase 1 基线。讲解 play/pause 自动切换 Type A ↔ B。修改 article.css + article-presentation.js + article-narration-ui.js。</p>
+              </div>
+            </div>
+            <div class="phase-step">
+              <div class="phase-number">3</div>
+              <div class="phase-body">
+                <h4>移动端录制视口（Type B 增强）</h4>
+                <p>与 Phase 2 并行。竖屏 + 聚焦模式联动。修改 article.css + article-screen-recording.js + article-narration-ui.js。</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- Section 4: Implementation Specs             -->
+        <!-- ═══════════════════════════════════════════ -->
+        <section id="implementation" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / Implementation Specs</p>
+            <h2>实施规格：CSS 属性与 JS 接口定义</h2>
+            <p>精确到 CSS 属性值和 JS 函数签名的实施规格，确保实现可直接对照验证。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>CSS 自定义属性清单</span>
+              </button>
+              <div class="subsection-content">
+                <div class="spec-table-wrap">
+                  <table class="spec-table">
+                    <thead>
+                      <tr>
+                        <th>属性名</th>
+                        <th>值</th>
+                        <th>作用域</th>
+                        <th>说明</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><code>--present-body-font</code></td>
+                        <td><code>clamp(1.2rem, 1.5vw, 1.5rem)</code></td>
+                        <td><code>.is-presentation-mode .site</code></td>
+                        <td>正文字号：19.2–24px</td>
+                      </tr>
+                      <tr>
+                        <td><code>--present-subtitle-font</code></td>
+                        <td><code>clamp(1rem, 1.3vw, 1.25rem)</code></td>
+                        <td><code>.narration-subtitle</code></td>
+                        <td>字幕字号：16–20px</td>
+                      </tr>
+                      <tr>
+                        <td><code>--present-portrait-scale</code></td>
+                        <td><code>1.3</code></td>
+                        <td><code>.is-portrait-recording</code></td>
+                        <td>竖屏录制字号放大乘数</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>CSS 选择器覆盖规则</span>
+              </button>
+              <div class="subsection-content">
+                <div class="spec-table-wrap">
+                  <table class="spec-table">
+                    <thead>
+                      <tr>
+                        <th>选择器</th>
+                        <th>属性</th>
+                        <th>Phase</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><code>.is-presentation-mode .subsection-content p, .is-presentation-mode .subsection-content li</code></td>
+                        <td><code>font-size: var(--present-body-font); line-height: 1.75</code></td>
+                        <td>1</td>
+                      </tr>
+                      <tr>
+                        <td><code>.is-presentation-mode .event-field p</code></td>
+                        <td><code>font-size: var(--present-body-font)</code></td>
+                        <td>1</td>
+                      </tr>
+                      <tr>
+                        <td><code>.is-focus-mode .subsection-content > *:not(.focus-keep)</code></td>
+                        <td><code>opacity: 0.15; filter: blur(1px); transition: 0.3s</code></td>
+                        <td>2</td>
+                      </tr>
+                      <tr>
+                        <td><code>.is-portrait-recording [data-present-step].is-active</code></td>
+                        <td><code>width: min(56.25vh, 100vw)</code></td>
+                        <td>3</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>JS 接口定义</span>
+              </button>
+              <div class="subsection-content">
+                <div class="spec-table-wrap">
+                  <table class="spec-table">
+                    <thead>
+                      <tr>
+                        <th>函数 / 事件</th>
+                        <th>位置</th>
+                        <th>说明</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><code>tagFocusElements(slideEl)</code></td>
+                        <td>article-presentation.js</td>
+                        <td>遍历当前幻灯片 DOM，给锚点元素添加 <code>.focus-keep</code> 类</td>
+                      </tr>
+                      <tr>
+                        <td><code>onNarrationPlay</code> 回调</td>
+                        <td>article-presentation.js</td>
+                        <td>添加 <code>.is-focus-mode</code> + 调用 <code>tagFocusElements</code></td>
+                      </tr>
+                      <tr>
+                        <td><code>onNarrationPause/Stop</code> 回调</td>
+                        <td>article-presentation.js</td>
+                        <td>移除 <code>.is-focus-mode</code></td>
+                      </tr>
+                      <tr>
+                        <td>录制比例选项变更</td>
+                        <td>article-narration-ui.js</td>
+                        <td>保存到 <code>localStorage('present-record-ratio')</code></td>
+                      </tr>
+                      <tr>
+                        <td>录制开始前</td>
+                        <td>article-screen-recording.js</td>
+                        <td>读取 ratio → 添加 <code>.is-portrait-recording</code> / <code>.is-square-recording</code></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>影响文件清单</span>
+              </button>
+              <div class="subsection-content">
+                <div class="spec-table-wrap">
+                  <table class="spec-table">
+                    <thead>
+                      <tr>
+                        <th>文件</th>
+                        <th>Phase</th>
+                        <th>改动类型</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><code>assets/article.css</code></td>
+                        <td>1, 2, 3</td>
+                        <td>新增演示字号变量、聚焦模式样式、竖屏视口约束、移动端断点</td>
+                      </tr>
+                      <tr>
+                        <td><code>assets/article-presentation.js</code></td>
+                        <td>2</td>
+                        <td>新增 <code>tagFocusElements()</code>、聚焦模式状态管理、讲解回调集成</td>
+                      </tr>
+                      <tr>
+                        <td><code>assets/article-narration-ui.js</code></td>
+                        <td>2, 3</td>
+                        <td>新增聚焦模式开关、录制比例选项组</td>
+                      </tr>
+                      <tr>
+                        <td><code>assets/article-screen-recording.js</code></td>
+                        <td>3</td>
+                        <td>录制前读取比例选项、添加/移除视口约束类</td>
+                      </tr>
+                      <tr>
+                        <td><code>assets/article-narration.css</code></td>
+                        <td>1</td>
+                        <td>字幕响应式字号调整</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- Section 5: Implementation Tracking          -->
+        <!-- ═══════════════════════════════════════════ -->
+        <section id="tracking" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / Implementation Tracking</p>
+            <h2>实施阶段表与检查清单</h2>
+            <p>按 Phase 拆分为可独立交付的工作单元，每个任务附带验收条件和完成状态标记，用于跟踪改善实施过程。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Phase 1 检查清单：演示排版放大</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">交付范围</div>
+                  <p>仅 CSS 改动，零 JS 依赖。Type A / Type B 共享基线。完成后所有现有文章自动受益——演示模式正文从 15px 提升至 19–24px。</p>
+                </div>
+                <div class="checklist-wrap">
+                  <table class="checklist-table">
+                    <thead>
+                      <tr>
+                        <th class="ck-box">&check;</th>
+                        <th>任务</th>
+                        <th>验收条件</th>
+                        <th>文件</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td class="ck-box">&#9745;</td>
+                        <td>新增 <code>--present-body-font</code> CSS 变量</td>
+                        <td>变量声明在 <code>.is-presentation-mode .site</code> 下，值为 <code>clamp(1.2rem, 1.5vw, 1.5rem)</code></td>
+                        <td>article.css</td>
+                      </tr>
+                      <tr>
+                        <td class="ck-box">&#9745;</td>
+                        <td>正文容器应用演示字号</td>
+                        <td><code>.subsection-content p/li</code>、<code>.event-field p</code> 计算字号 ≥ 19px @ 1440px 视口</td>
+                        <td>article.css</td>
+                      </tr>
+                      <tr>
+                        <td class="ck-box">&#9745;</td>
+                        <td>行高提升</td>
+                        <td>演示模式正文 line-height = 1.75</td>
+                        <td>article.css</td>
+                      </tr>
+                      <tr>
+                        <td class="ck-box">&#9745;</td>
+                        <td>字幕字号放大</td>
+                        <td><code>.narration-subtitle</code> 计算字号 ≥ 16px，max-width = 80%</td>
+                        <td>article-narration.css</td>
+                      </tr>
+                      <tr>
+                        <td class="ck-box">&#9745;</td>
+                        <td>移动端断点</td>
+                        <td>375px 视口：正文 ≥ 18px，概览网格单列，deck bar 无溢出</td>
+                        <td>article.css</td>
+                      </tr>
+                      <tr>
+                        <td class="ck-box">&#9745;</td>
+                        <td>阅读模式回归</td>
+                        <td>非演示模式下所有文章渲染无变化；<code>node tests/validate.js</code> exit 0</td>
+                        <td>—</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Phase 2 检查清单：讲解聚焦模式</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">交付范围</div>
+                  <p>Type B 专属功能。依赖 Phase 1 字号基线。涉及 CSS + JS 改动。讲解 play/pause 自动切换 Type A ↔ B。</p>
+                </div>
+                <div class="checklist-wrap">
+                  <table class="checklist-table">
+                    <thead>
+                      <tr>
+                        <th class="ck-box">&check;</th>
+                        <th>任务</th>
+                        <th>验收条件</th>
+                        <th>文件</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td class="ck-box">&#9745;</td>
+                        <td><code>.is-focus-mode</code> CSS 规则</td>
+                        <td>非 <code>.focus-keep</code> 元素 opacity=0.15 + blur(1px)，transition 0.3s</td>
+                        <td>article.css</td>
+                      </tr>
+                      <tr>
+                        <td class="ck-box">&#9745;</td>
+                        <td><code>tagFocusElements(slideEl)</code> 函数</td>
+                        <td>标记 h2–h4、img、首段 p、strong、blockquote、.insight-callout、.metric-card 为 <code>.focus-keep</code></td>
+                        <td>article-presentation.js</td>
+                      </tr>
+                      <tr>
+                        <td class="ck-box">&#9745;</td>
+                        <td>讲解回调集成</td>
+                        <td>play → 添加 .is-focus-mode + tagFocusElements；pause/stop → 移除 .is-focus-mode</td>
+                        <td>article-presentation.js</td>
+                      </tr>
+                      <tr>
+                        <td class="ck-box">&#9745;</td>
+                        <td>翻页重标记</td>
+                        <td>切页时重新调用 tagFocusElements，不同页面保留不同锚点</td>
+                        <td>article-presentation.js</td>
+                      </tr>
+                      <tr>
+                        <td class="ck-box">&#9745;</td>
+                        <td>设置面板开关</td>
+                        <td>聚焦模式 checkbox，默认 ON，localStorage 持久化</td>
+                        <td>article-narration-ui.js</td>
+                      </tr>
+                      <tr>
+                        <td class="ck-box">&#9745;</td>
+                        <td>Type A ↔ B 切换视觉测试</td>
+                        <td>play → 0.3s 淡入聚焦；pause → 0.3s 恢复全量；toggle OFF → play 时不淡化</td>
+                        <td>—</td>
+                      </tr>
+                      <tr>
+                        <td class="ck-box">&#9745;</td>
+                        <td>暗色主题兼容</td>
+                        <td>聚焦模式在 dark theme 下锚点元素对比度充足</td>
+                        <td>article.css</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Phase 3 检查清单：移动端录制视口</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">交付范围</div>
+                  <p>Type B 增强功能。与 Phase 2 可并行开发。竖屏视口 + 聚焦模式联动，录制输出优化。</p>
+                </div>
+                <div class="checklist-wrap">
+                  <table class="checklist-table">
+                    <thead>
+                      <tr>
+                        <th class="ck-box">&check;</th>
+                        <th>任务</th>
+                        <th>验收条件</th>
+                        <th>文件</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td class="ck-box">&#9745;</td>
+                        <td>录制比例选项 UI</td>
+                        <td>设置面板显示 16:9 / 9:16 / 1:1 三个选项，localStorage 持久化</td>
+                        <td>article-narration-ui.js</td>
+                      </tr>
+                      <tr>
+                        <td class="ck-box">&#9745;</td>
+                        <td><code>.is-portrait-recording</code> CSS</td>
+                        <td>活跃幻灯片宽度 = min(56.25vh, 100vw)，居中对齐</td>
+                        <td>article.css</td>
+                      </tr>
+                      <tr>
+                        <td class="ck-box">&#9745;</td>
+                        <td>竖屏字号放大</td>
+                        <td>正文字号 = 标准演示字号 × 1.3（约 25–31px）</td>
+                        <td>article.css</td>
+                      </tr>
+                      <tr>
+                        <td class="ck-box">&#9745;</td>
+                        <td>竖屏布局适配</td>
+                        <td>概览网格单列化；字幕 max-width = 90%；deck bar 精简</td>
+                        <td>article.css</td>
+                      </tr>
+                      <tr>
+                        <td class="ck-box">&#9745;</td>
+                        <td>录制前视口约束</td>
+                        <td>录制开始 → 读取选项 → 添加 .is-portrait-recording；录制结束 → 移除</td>
+                        <td>article-screen-recording.js</td>
+                      </tr>
+                      <tr>
+                        <td class="ck-box">&#9745;</td>
+                        <td>聚焦模式联动</td>
+                        <td>竖屏录制默认启用聚焦模式</td>
+                        <td>article-screen-recording.js</td>
+                      </tr>
+                      <tr>
+                        <td class="ck-box">&#9745;</td>
+                        <td>录制输出手机验证</td>
+                        <td>在手机上播放录制 WebM，竖屏区域内正文清晰可读</td>
+                        <td>—</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Phase 4 检查清单：实施后视觉优化</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">交付范围</div>
+                  <p>Phase 1–3 部署后基于实际演示体验发现的视觉优化项。覆盖内容结构、布局间距、字号层次和 UI 细节。</p>
+                </div>
+                <div class="checklist-wrap">
+                  <table class="checklist-table">
+                    <thead>
+                      <tr>
+                        <th class="ck-box">&check;</th>
+                        <th>任务</th>
+                        <th>改动</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td class="ck-box">&#9745;</td>
+                        <td>内容结构化：event-field 长段落 → comparison-grid + action-box + 列表</td>
+                        <td>文章 HTML（Sec 01–03）</td>
+                      </tr>
+                      <tr>
+                        <td class="ck-box">&#9745;</td>
+                        <td>内容区边界：<code>--present-side-gap: 80px</code>，不超出左右箭头 + 24px 间距</td>
+                        <td>article.css</td>
+                      </tr>
+                      <tr>
+                        <td class="ck-box">&#9745;</td>
+                        <td>字幕定位：<code>left: 80px; right: 160px</code>，不遮挡 logo 和页码+FAB</td>
+                        <td>article.css</td>
+                      </tr>
+                      <tr>
+                        <td class="ck-box">&#9745;</td>
+                        <td>event-field-label 放大：<code>clamp(1.3rem, 1.7vw, 1.6rem)</code> + teal 高亮</td>
+                        <td>article.css</td>
+                      </tr>
+                      <tr>
+                        <td class="ck-box">&#9745;</td>
+                        <td>表格字号放大：compare-table/spec-table → <code>var(--present-body-font)</code></td>
+                        <td>article.css</td>
+                      </tr>
+                      <tr>
+                        <td class="ck-box">&#9745;</td>
+                        <td>概览卡片标题放大：<code>clamp(1.1rem, 1.4vw, 1.35rem)</code></td>
+                        <td>article.css</td>
+                      </tr>
+                      <tr>
+                        <td class="ck-box">&#9745;</td>
+                        <td>comparison-grid/insight-grid 间距：演示模式 <code>margin: 16px 0</code></td>
+                        <td>article.css</td>
+                      </tr>
+                      <tr>
+                        <td class="ck-box">&#9745;</td>
+                        <td>网格响应式：竖屏录制 + 移动端 ≤768px → <code>grid-template-columns: 1fr</code></td>
+                        <td>article.css</td>
+                      </tr>
+                      <tr>
+                        <td class="ck-box">&#9745;</td>
+                        <td>竖屏内容边距：<code>padding: clamp(16px, 3vw, 32px)</code></td>
+                        <td>article.css</td>
+                      </tr>
+                      <tr>
+                        <td class="ck-box">&#9745;</td>
+                        <td>导航箭头精简：移除背景/圆形/毛玻璃，仅保留箭头，位置 12px</td>
+                        <td>article.css</td>
+                      </tr>
+                      <tr>
+                        <td class="ck-box">&#9745;</td>
+                        <td>进度条宽度：<code>align-self: stretch</code> 匹配页码宽度</td>
+                        <td>article.css</td>
+                      </tr>
+                      <tr>
+                        <td class="ck-box">&#9745;</td>
+                        <td>语音选择器：Natural/Premium 音色标注 ★ 标记</td>
+                        <td>article-narration-ui.js, index.html</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>实施阶段总览表</span>
+              </button>
+              <div class="subsection-content">
+                <div class="compare-table-wrap">
+                  <table class="compare-table">
+                    <thead>
+                      <tr>
+                        <th>Phase</th>
+                        <th>名称</th>
+                        <th>服务类型</th>
+                        <th>依赖</th>
+                        <th>改动文件</th>
+                        <th>任务数</th>
+                        <th>状态</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><span class="phase-tag phase-tag-1">P1</span></td>
+                        <td>演示排版放大</td>
+                        <td>Type A + B 共享</td>
+                        <td>无</td>
+                        <td>article.css, article-narration.css</td>
+                        <td>6</td>
+                        <td>已完成</td>
+                      </tr>
+                      <tr>
+                        <td><span class="phase-tag phase-tag-2">P2</span></td>
+                        <td>讲解聚焦模式</td>
+                        <td>Type B 专属</td>
+                        <td>P1</td>
+                        <td>article.css, article-presentation.js, article-narration-ui.js</td>
+                        <td>7</td>
+                        <td>已完成</td>
+                      </tr>
+                      <tr>
+                        <td><span class="phase-tag phase-tag-3">P3</span></td>
+                        <td>移动端录制视口</td>
+                        <td>Type B 增强</td>
+                        <td>P1（P2 可并行）</td>
+                        <td>article.css, article-screen-recording.js, article-narration-ui.js</td>
+                        <td>7</td>
+                        <td>已完成</td>
+                      </tr>
+                      <tr>
+                        <td><span class="phase-tag phase-tag-1">P4</span></td>
+                        <td>实施后视觉优化</td>
+                        <td>Type A + B 共享</td>
+                        <td>P1–P3</td>
+                        <td>article.css, article-narration-ui.js, index.html, 文章 HTML</td>
+                        <td>12</td>
+                        <td>已完成</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- Section 6: Verification                     -->
+        <!-- ═══════════════════════════════════════════ -->
+        <section id="verification" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / Verification</p>
+            <h2>验证清单与设计决策</h2>
+            <p>每个 Phase 的验收条件和关键设计决策的理由记录。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Phase 1 验收条件</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">字号验证</div>
+                  <p>在 1440px 视口进入演示模式，使用 DevTools 检查 <code>.subsection-content p</code> 计算字号 ≥ 19px。在 375px 视口（iPhone SE）检查正文字号 ≥ 18px、概览网格为单列布局。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">字幕验证</div>
+                  <p>触发讲解模式，确认 <code>.narration-subtitle</code> 计算字号 ≥ 16px，max-width 为 80%。在暗色主题下验证字幕背景毛玻璃效果和文字对比度。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">回归测试</div>
+                  <p>运行 <code>node tests/validate.js</code>，exit code = 0。在阅读模式下确认文章渲染无变化（演示字号变量仅在 <code>.is-presentation-mode</code> 作用域内生效）。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Phase 2 验收条件</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">聚焦模式触发</div>
+                  <p>进入演示模式 → 开启讲解 → 确认非锚点内容在 0.3s 内淡化至 15% 不透明度。暂停讲解 → 确认所有内容在 0.3s 内恢复至 100%。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">锚点元素保留</div>
+                  <p>聚焦模式下检查以下元素保持 100% 可见：标题（h2–h4）、图片（img）、<code>.insight-callout</code>、<code>strong</code>、第一个 <code>&lt;p&gt;</code>、<code>.metric-card</code>。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">设置开关</div>
+                  <p>在设置面板关闭聚焦模式 → 讲解播放时所有内容保持 100% 可见。刷新页面 → 确认设置从 <code>localStorage</code> 正确恢复。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Phase 3 验收条件</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">竖屏视口</div>
+                  <p>选择 9:16 比例 → 开始录制 → 确认幻灯片内容约束在屏幕中央的窄列区域内，宽度约为视口高度的 56.25%。两侧为暗色背景。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">字号放大</div>
+                  <p>竖屏模式下正文字号应为标准演示字号的 1.3 倍（约 25–31px）。概览网格为单列布局。字幕宽度扩大至 90%。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">录制输出</div>
+                  <p>录制完成后在手机上播放 WebM 文件，确认竖屏区域内的正文文字清晰可读。暗色侧边条在深色主题下视觉自然。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>关键设计决策记录</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">聚焦模式默认 ON</div>
+                  <p>讲解播放时默认开启聚焦模式，用户可手动关闭。理由：符合 TED/Keynote 的演讲哲学——幻灯片辅助讲者而非替代讲者。默认 ON 意味着首次体验即为最优体验，不需要用户发现并开启这个功能。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">结构化保留而非关键词提取</div>
+                  <p>聚焦模式保留结构元素（标题 + 图片 + 卡片 + 首段）而非用 LLM 提取单一关键词。理由：结构化方法无 LLM 依赖、行为一致可预测、保持空间布局上下文。"部分可见"优于"完全隐藏"——观众需要感知到信息结构的存在。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">CSS 约束而非 Canvas 裁剪</div>
+                  <p>竖屏录制通过 CSS 约束幻灯片宽度，而非用 <code>&lt;canvas&gt;</code> 后处理裁剪视频。理由：CSS 方案复用现有 DOM 结构，无需额外的渲染管线；v1 接受两侧暗色条——canvas 裁剪引入 frameRate 同步和 GPU 内存风险，复杂度与收益不成比例。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">逐页重算焦点元素</div>
+                  <p>每次切换幻灯片时重新调用 <code>tagFocusElements(slideEl)</code>，而非全局一刀切标记。理由：不同幻灯片的 DOM 结构差异大——有些幻灯片只有表格，有些是字段列表，有些是图文混排。全局标记无法适应这种异构性。</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- References                                  -->
+        <!-- ═══════════════════════════════════════════ -->
+        <section id="references" class="section" data-reveal data-present-step data-step-title="参考来源">
+          <div class="section-head">
+            <p class="section-kicker">References</p>
+            <h2>参考来源</h2>
+          </div>
+          <ol class="bib-list">
+            <li id="ref-1"><span class="bib-id">[1]</span> <span class="bib-author">Richard E. Mayer.</span> <em>Multimedia Learning,</em> 2nd ed., Cambridge University Press, 2009.<span class="bib-note">多媒体学习的认知理论，包含冗余原则、分裂注意力效应和信号化原则等 12 条设计原则。</span></li>
+            <li id="ref-2"><span class="bib-id">[2]</span> <span class="bib-author">John Sweller.</span> "Cognitive Load During Problem Solving: Effects on Learning," <em>Cognitive Science,</em> 12(2): 257–285, 1988.<span class="bib-note">认知负荷理论的创始论文，区分了内在负荷、外在负荷和相关负荷三类。</span></li>
+            <li id="ref-3"><span class="bib-id">[3]</span> <span class="bib-author">Reveal.js.</span> <a href="https://revealjs.com/presentation-size/" target="_blank" rel="noopener noreferrer">"Presentation Size,"</a> <em>revealjs.com,</em> 2026.<span class="bib-note">Reveal.js 的虚拟画布缩放机制文档，含 960×700 默认尺寸和 minScale/maxScale 配置。</span></li>
+            <li id="ref-4"><span class="bib-id">[4]</span> <span class="bib-author">Reveal.js.</span> <a href="https://revealjs.com/layout/" target="_blank" rel="noopener noreferrer">"Layout,"</a> <em>revealjs.com,</em> 2026.<span class="bib-note">r-fit-text、r-stretch、r-stack 等布局工具类的使用文档。</span></li>
+            <li id="ref-5"><span class="bib-id">[5]</span> <span class="bib-author">Tee Tran (Pitch).</span> <a href="https://pitch.com/blog/presentation-design-tips" target="_blank" rel="noopener noreferrer">"4 tips to design better presentations,"</a> <em>Pitch Blog,</em> 2021.<span class="bib-note">可读性、Rule of 3、视觉一致性和上下文测试四条演示设计原则。</span></li>
+            <li id="ref-6"><span class="bib-id">[6]</span> <span class="bib-author">Apple.</span> <a href="https://support.apple.com/guide/keynote/present-on-a-display-connected-to-your-mac-tan22b172a2d/mac" target="_blank" rel="noopener noreferrer">"Keynote User Guide: Present on a display connected to your Mac,"</a> <em>Apple Support,</em> 2026.<span class="bib-note">Keynote 的演讲者显示器、窗口化回放和录制讲解功能文档。</span></li>
+            <li id="ref-7"><span class="bib-id">[7]</span> <span class="bib-author">Google.</span> <a href="https://support.google.com/docs/answer/1696787" target="_blank" rel="noopener noreferrer">"Present slides,"</a> <em>Google Docs Editors Help,</em> 2026.<span class="bib-note">Google Slides 的 Presenter View、Speaker Notes 和多显示器演示文档。</span></li>
+          </ol>
+        </section>
+      </main>
+
+      <footer>
+         &copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

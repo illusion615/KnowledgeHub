@@ -100,6 +100,29 @@
           '</button>',
         '</div>',
         '<label class="narration-setting-row">',
+        '  <span>' + (getLang() === 'zh' ? 'TTS 引擎' : 'TTS Engine') + '</span>',
+        '  <select class="narration-select" data-narration-setting="ttsEngine">',
+        '    <option value="browser">' + (getLang() === 'zh' ? '浏览器语音' : 'Browser Speech') + '</option>',
+        '    <option value="moss-tts-nano">Qwen3-TTS (MLX)</option>',
+        '  </select>',
+        '</label>',
+        '<div class="narration-moss-settings" style="display:none;">',
+        '  <label class="narration-setting-row">',
+        '    <span>' + (getLang() === 'zh' ? '音色' : 'Voice') + '</span>',
+        '    <select class="narration-select" data-narration-setting="mossTtsVoice">',
+        '      <option value="vivian">vivian (' + (getLang() === 'zh' ? '活泼女声' : 'Female ZH') + ')</option>',
+        '      <option value="serena">serena (' + (getLang() === 'zh' ? '温柔女声' : 'Female ZH') + ')</option>',
+        '      <option value="uncle_fu">uncle_fu (' + (getLang() === 'zh' ? '成熟男声' : 'Male ZH') + ')</option>',
+        '      <option value="dylan">dylan (' + (getLang() === 'zh' ? '京腔男声' : 'Male Beijing') + ')</option>',
+        '      <option value="ryan">ryan (' + (getLang() === 'zh' ? '英文男声' : 'Male EN') + ')</option>',
+        '      <option value="aiden">aiden (' + (getLang() === 'zh' ? '美式男声' : 'Male US') + ')</option>',
+        '      <option value="ono_anna">ono_anna (' + (getLang() === 'zh' ? '日语女声' : 'Female JA') + ')</option>',
+        '      <option value="sohee">sohee (' + (getLang() === 'zh' ? '韩语女声' : 'Female KO') + ')</option>',
+        '      <option value="eric">eric (' + (getLang() === 'zh' ? '英文男声' : 'Male EN') + ')</option>',
+        '    </select>',
+        '  </label>',
+        '</div>',
+        '<label class="narration-setting-row">',
         '  <span>' + (getLang() === 'zh' ? '语言' : 'Language') + '</span>',
         '  <select class="narration-select" data-narration-setting="lang">',
         '    <option value="auto">' + (getLang() === 'zh' ? '跟随页面' : 'Follow page') + '</option>',
@@ -120,7 +143,20 @@
         '  <button class="narration-voice-test" type="button" aria-label="' + (getLang() === 'zh' ? '试听' : 'Preview') + '" title="' + (getLang() === 'zh' ? '试听' : 'Preview') + '">' +
             '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>' +
           '</button>',
-        '</div>'
+        '</div>',
+        '<div class="narration-setting-divider"></div>',
+        '<label class="narration-setting-row narration-toggle-row">',
+        '  <span>' + (getLang() === 'zh' ? '讲解聚焦模式' : 'Focus Mode') + '</span>',
+        '  <input type="checkbox" class="narration-checkbox" data-narration-setting="focusMode" ' + (localStorage.getItem('present-focus-mode') !== 'false' ? 'checked' : '') + ' />',
+        '</label>',
+        '<label class="narration-setting-row">',
+        '  <span>' + (getLang() === 'zh' ? '录制比例' : 'Record Ratio') + '</span>',
+        '  <select class="narration-select" data-narration-setting="recordRatio">',
+        '    <option value="16:9">' + (getLang() === 'zh' ? '横屏 16:9' : 'Landscape 16:9') + '</option>',
+        '    <option value="9:16">' + (getLang() === 'zh' ? '竖屏 9:16（手机）' : 'Portrait 9:16') + '</option>',
+        '    <option value="1:1">' + (getLang() === 'zh' ? '正方 1:1（社交媒体）' : 'Square 1:1') + '</option>',
+        '  </select>',
+        '</label>'
       ].join('\n');
 
       document.body.appendChild(panel);
@@ -147,9 +183,23 @@
       var rateValue = panel.querySelector('.narration-rate-value');
       var voiceSelect = panel.querySelector('[data-narration-setting="voiceName"]');
       var voiceTestBtn = panel.querySelector('.narration-voice-test');
+      var engineSelect = panel.querySelector('[data-narration-setting="ttsEngine"]');
+      var mossSettingsDiv = panel.querySelector('.narration-moss-settings');
+      var mossDemoIdInput = panel.querySelector('[data-narration-setting="mossTtsVoice"]');
+      var voiceRow = panel.querySelector('.narration-voice-row');
 
+      if (saved.ttsEngine) engineSelect.value = saved.ttsEngine;
+      if (saved.mossTtsVoice) mossDemoIdInput.value = saved.mossTtsVoice;
       if (saved.lang) langSelect.value = saved.lang;
       if (saved.rate) { rateInput.value = saved.rate; rateValue.textContent = saved.rate; }
+
+      // Toggle MOSS vs browser settings visibility
+      var updateEngineVisibility = function () {
+        var isMoss = engineSelect.value === 'moss-tts-nano';
+        mossSettingsDiv.style.display = isMoss ? '' : 'none';
+        voiceRow.style.display = isMoss ? 'none' : '';
+      };
+      updateEngineVisibility();
 
       // Populate voices from browser Speech API
       var populateVoices = function () {
@@ -176,8 +226,9 @@
           var opt = document.createElement('option');
           opt.value = v.name;
           var dialectLabel = dialectMap[v.lang] || v.lang;
+          var isNatural = v.name.indexOf('Natural') !== -1 || v.name.indexOf('Premium') !== -1;
           var coreName = v.name.replace(/\s*\(.*\)\s*$/, '');
-          opt.textContent = coreName + ' · ' + dialectLabel;
+          opt.textContent = coreName + ' · ' + dialectLabel + (isNatural ? ' ★' : '');
           opt.title = v.name + ' (' + v.lang + ')';
           voiceSelect.appendChild(opt);
         });
@@ -199,6 +250,8 @@
 
       var saveSettings = function () {
         var s = {
+          ttsEngine: engineSelect.value,
+          mossTtsVoice: mossDemoIdInput.value,
           lang: langSelect.value === 'auto' ? '' : langSelect.value,
           rate: parseFloat(rateInput.value),
           voiceName: voiceSelect.value
@@ -215,6 +268,33 @@
         saveSettings();
       });
       voiceSelect.addEventListener('change', saveSettings);
+
+      engineSelect.addEventListener('change', function () {
+        updateEngineVisibility();
+        saveSettings();
+      });
+      mossDemoIdInput.addEventListener('change', saveSettings);
+
+      // Phase 2: Focus mode toggle
+      var focusCheckbox = panel.querySelector('[data-narration-setting="focusMode"]');
+      if (focusCheckbox) {
+        focusCheckbox.addEventListener('change', function () {
+          localStorage.setItem('present-focus-mode', focusCheckbox.checked ? 'true' : 'false');
+          // Notify presentation.js via custom event
+          document.dispatchEvent(new CustomEvent('focusModeChanged', { detail: { enabled: focusCheckbox.checked } }));
+        });
+      }
+
+      // Phase 3: Record ratio selector
+      var recordRatioSelect = panel.querySelector('[data-narration-setting="recordRatio"]');
+      if (recordRatioSelect) {
+        var savedRatio = localStorage.getItem('present-record-ratio') || '16:9';
+        recordRatioSelect.value = savedRatio;
+        recordRatioSelect.addEventListener('change', function () {
+          localStorage.setItem('present-record-ratio', recordRatioSelect.value);
+          document.dispatchEvent(new CustomEvent('recordRatioChanged', { detail: { ratio: recordRatioSelect.value } }));
+        });
+      }
 
       // Voice test/preview
       voiceTestBtn.addEventListener('click', function (e) {

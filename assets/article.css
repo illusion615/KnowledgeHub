@@ -524,6 +524,9 @@ a {
 .present-nav {
   color: var(--ink);
   font: inherit;
+}
+
+.present-exit {
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
 }
@@ -735,12 +738,12 @@ a {
 .present-nav {
   position: absolute;
   top: 50%;
-  width: 64px;
-  height: 64px;
+  width: 44px;
+  height: 44px;
   box-sizing: border-box;
-  border: 1px solid transparent;
-  border-radius: 50%;
-  background: transparent;
+  border: none;
+  border-radius: 0;
+  background: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -749,7 +752,7 @@ a {
   opacity: 0.48;
   box-shadow: none;
   transform: translateY(-50%);
-  transition: opacity 0.22s ease, background 0.22s ease, color 0.22s ease, border-color 0.22s ease;
+  transition: opacity 0.22s ease, color 0.22s ease;
 }
 
 .present-nav-icon {
@@ -766,8 +769,8 @@ a {
 
 .present-nav:hover,
 .present-nav:focus-visible {
-  background: transparent;
-  border: 1px solid transparent;
+  background: none;
+  border: none;
   color: var(--ink);
   opacity: 1;
 }
@@ -780,11 +783,11 @@ a {
 }
 
 .present-nav-prev {
-  left: 24px;
+  left: 12px;
 }
 
 .present-nav-next {
-  right: 24px;
+  right: 12px;
 }
 
 .present-deck {
@@ -887,6 +890,37 @@ a {
 .present-status-title,
 .present-status-tip {
   display: none;
+}
+
+/* Narration prefetch progress bar */
+.present-prefetch-bar {
+  position: relative;
+  align-self: stretch;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  margin-top: 6px;
+  overflow: visible;
+}
+
+.present-prefetch-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.25);
+  width: 0;
+  transition: width 0.4s ease;
+}
+
+.present-prefetch-pointer {
+  position: absolute;
+  top: -2px;
+  left: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.7);
+  transform: translateX(-50%);
+  transition: left 0.3s ease;
 }
 
 /* ── Narration auto-play controls ── */
@@ -1332,6 +1366,79 @@ a {
   transform: scale(1.2);
 }
 
+/* Prep progress steps */
+.prep-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 260px;
+  max-width: 380px;
+}
+
+.prep-step {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: rgba(255, 255, 255, 0.55);
+  transition: color 0.3s ease;
+}
+
+.prep-step-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 0.85rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  transition: background 0.3s ease, color 0.3s ease, transform 0.3s ease;
+}
+
+.prep-step-pending {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.prep-step-active {
+  background: rgba(99, 102, 241, 0.8);
+  color: #fff;
+  transform: scale(1.1);
+  animation: prep-pulse 1.2s ease-in-out infinite;
+}
+
+.prep-step-done {
+  background: rgba(34, 197, 94, 0.8);
+  color: #fff;
+}
+
+.prep-step-label {
+  font-size: 1.1rem;
+  font-weight: 600;
+  font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+  flex: 1;
+}
+
+.prep-step-status {
+  font-size: 0.82rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.prep-status-active {
+  color: rgba(165, 180, 252, 0.9);
+}
+
+.prep-status-done {
+  color: rgba(134, 239, 172, 0.9);
+}
+
+@keyframes prep-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(99, 102, 241, 0); }
+}
+
 .present-brand-logo {
   position: fixed;
   left: 28px;
@@ -1499,10 +1606,12 @@ a {
 }
 
 .is-presentation-mode .site {
-  --present-side-gap: clamp(20px, 2.8vw, 44px);
+  --present-side-gap: 80px;
   --present-safe-top: clamp(84px, 9.5vh, 124px);
   --present-safe-bottom: clamp(78px, 9vh, 112px);
   --present-body-max-width: 1480px;
+  --present-body-font: clamp(1.2rem, 1.5vw, 1.5rem);
+  --present-body-line-height: 1.75;
   width: 100%;
   max-width: none;
   min-height: 100vh;
@@ -1672,6 +1781,7 @@ a {
   padding: 28px 24px;
   pointer-events: none;
   text-align: center;
+  font-size: clamp(1.1rem, 1.4vw, 1.35rem);
 }
 .is-presentation-mode .section[data-present-overview].is-active .subsection-toggle::after {
   display: none;
@@ -1783,6 +1893,141 @@ a {
 .is-presentation-mode .present-step-block,
 .is-presentation-mode .tab-shell {
   break-inside: avoid;
+}
+
+/* ── Phase 1: Presentation typography scale-up (Type A + B shared baseline) ── */
+.is-presentation-mode .comparison-grid,
+.is-presentation-mode .insight-grid {
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+.is-presentation-mode .subsection-content p,
+.is-presentation-mode .subsection-content li {
+  font-size: var(--present-body-font);
+  line-height: var(--present-body-line-height);
+}
+
+.is-presentation-mode .event-field p {
+  font-size: var(--present-body-font);
+  line-height: var(--present-body-line-height);
+}
+
+.is-presentation-mode .event-field-label {
+  font-size: clamp(1.3rem, 1.7vw, 1.6rem);
+  color: var(--teal);
+  font-weight: 700;
+}
+
+.is-presentation-mode .insight-text,
+.is-presentation-mode .comparison-card p,
+.is-presentation-mode .flow-list p {
+  font-size: var(--present-body-font);
+  line-height: var(--present-body-line-height);
+}
+
+.is-presentation-mode .bib-list li {
+  font-size: var(--present-body-font);
+}
+
+.is-presentation-mode .compare-table,
+.is-presentation-mode .spec-table,
+.is-presentation-mode .checklist-table {
+  font-size: var(--present-body-font);
+}
+
+.is-presentation-mode .compare-table th,
+.is-presentation-mode .spec-table th,
+.is-presentation-mode .checklist-table th {
+  font-size: clamp(0.82rem, 1vw, 0.92rem);
+}
+
+.is-presentation-mode .narration-subtitle {
+  font-size: clamp(1rem, 1.3vw, 1.25rem);
+  /* Stay clear of brand-logo (left) and FAB+counter (right) */
+  left: 80px;
+  right: 160px;
+  width: auto;
+  max-width: none;
+  transform: none;
+  padding: 12px 28px;
+  line-height: 1.7;
+  box-sizing: border-box;
+}
+
+/* ── Phase 2: Focus mode — Type B narration (anchors stay, rest dims) ── */
+.is-focus-mode .subsection-content > *,
+.is-focus-mode .event-field {
+  opacity: 0.15;
+  filter: blur(1px);
+  transition: opacity 0.3s ease, filter 0.3s ease;
+}
+
+.is-focus-mode .subsection-content > .focus-keep,
+.is-focus-mode .event-field.focus-keep,
+.is-focus-mode .subsection-content > h2,
+.is-focus-mode .subsection-content > h3,
+.is-focus-mode .subsection-content > h4,
+.is-focus-mode .subsection-content > img,
+.is-focus-mode .subsection-content > blockquote,
+.is-focus-mode .subsection-content > .insight-callout,
+.is-focus-mode .subsection-content > .insight-grid,
+.is-focus-mode .subsection-content > .comparison-grid,
+.is-focus-mode .subsection-content > .metric-card {
+  opacity: 1;
+  filter: none;
+}
+
+/* Event-field anchor: first event-field always visible as lead context */
+.is-focus-mode .event-field:first-child {
+  opacity: 1;
+  filter: none;
+}
+
+/* Ensure transition when focus mode is removed */
+.is-presentation-mode .subsection-content > *,
+.is-presentation-mode .event-field {
+  transition: opacity 0.3s ease, filter 0.3s ease;
+}
+
+/* ── Phase 3: Portrait recording viewport (Type B mobile optimized) ── */
+.is-portrait-recording [data-present-step].is-active {
+  width: min(56.25vh, 100vw);
+  margin: 0 auto;
+  padding-left: clamp(16px, 3vw, 32px);
+  padding-right: clamp(16px, 3vw, 32px);
+}
+
+.is-portrait-recording .subsection-content p,
+.is-portrait-recording .subsection-content li,
+.is-portrait-recording .event-field p {
+  font-size: calc(var(--present-body-font) * 1.3);
+}
+
+.is-portrait-recording .narration-subtitle {
+  width: 88%;
+  max-width: 88%;
+}
+
+.is-portrait-recording .section[data-present-overview].is-active .subsection-accordion {
+  grid-template-columns: 1fr;
+}
+
+.is-portrait-recording .comparison-grid,
+.is-portrait-recording .insight-grid,
+.is-portrait-recording .pattern-grid {
+  grid-template-columns: 1fr;
+}
+
+.is-square-recording [data-present-step].is-active {
+  width: min(100vh, 100vw);
+  margin: 0 auto;
+}
+
+.is-square-recording .subsection-content p,
+.is-square-recording .subsection-content li,
+.is-square-recording .event-field p {
+  font-size: calc(var(--present-body-font) * 1.15);
 }
 
 @keyframes presentFade {
@@ -2516,7 +2761,8 @@ main {
 
 .bib-list li {
   position: relative;
-  padding: 10px 0 10px 2px;
+  padding: 10px 0 10px 22px;
+  text-indent: -22px;
   border-bottom: 1px solid var(--line);
   color: var(--muted);
   font-size: 0.9rem;
@@ -2561,6 +2807,7 @@ main {
   font-size: 0.84rem;
   color: var(--muted);
   opacity: 0.8;
+  text-indent: 0;
 }
 
 .section-grid-spaced {
@@ -3590,6 +3837,42 @@ footer {
 /* Make article images look clickable */
 .site img {
   cursor: zoom-in;
+}
+
+/* ── Presentation mode mobile breakpoint ── */
+@media (max-width: 768px) {
+  .is-presentation-mode .site {
+    --present-body-font: 1.15rem;
+    --present-side-gap: 16px;
+  }
+
+  .is-presentation-mode [data-present-step].is-active {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .is-presentation-mode .section[data-present-overview].is-active .subsection-accordion {
+    grid-template-columns: 1fr;
+  }
+
+  .is-presentation-mode .comparison-grid,
+  .is-presentation-mode .insight-grid,
+  .is-presentation-mode .pattern-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .is-presentation-mode .present-deck-title {
+    font-size: clamp(1.2rem, 5vw, 1.6rem);
+  }
+
+  .is-presentation-mode .narration-subtitle {
+    left: 16px;
+    right: 16px;
+    width: auto;
+    max-width: none;
+    transform: none;
+    padding: 10px 16px;
+  }
 }
 
 /* ── Print styles for PDF export ── */

@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Z-Image-Turbo 提示词撰写技巧：从基础公式到高级策略</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(2rem, 4.8vw, 3.4rem);
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+      max-width: 22ch;
+    }
+
+    .hero-metrics {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    @media (max-width: 720px) {
+      .hero-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    .prompt-block {
+      padding: 18px 20px;
+      border-radius: 14px;
+      background: rgba(23, 36, 48, 0.04);
+      border: 1px solid var(--line);
+      font-family: "Space Grotesk", "Noto Sans SC", monospace;
+      font-size: 0.88rem;
+      line-height: 1.75;
+      color: var(--ink);
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin-top: 10px;
+    }
+
+    .prompt-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      background: rgba(234, 100, 40, 0.12);
+      color: rgba(200, 80, 20, 0.9);
+    }
+
+    .prompt-example {
+      padding: 20px;
+      border-radius: var(--radius-lg);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      -webkit-backdrop-filter: blur(14px);
+      backdrop-filter: blur(14px);
+      margin-bottom: 14px;
+    }
+
+    .prompt-example h4 {
+      margin: 0 0 6px;
+      font-size: 1rem;
+    }
+
+    .prompt-example p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.75;
+    }
+
+    .formula-box {
+      padding: 22px 24px;
+      border-radius: var(--radius-lg);
+      background: linear-gradient(135deg, rgba(234, 100, 40, 0.06), rgba(255, 165, 0, 0.04));
+      border: 1px solid rgba(234, 100, 40, 0.18);
+      margin: 16px 0;
+      font-size: 1.06rem;
+      font-weight: 600;
+      line-height: 1.8;
+      color: var(--ink);
+    }
+
+    .formula-box code {
+      font-size: 0.9rem;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: rgba(234, 100, 40, 0.1);
+      color: rgba(200, 70, 10, 1);
+      font-family: "Space Grotesk", monospace;
+    }
+
+    .tip-card {
+      padding: 16px 20px;
+      border-radius: var(--radius-lg);
+      background: rgba(16, 163, 127, 0.06);
+      border: 1px solid rgba(16, 163, 127, 0.18);
+      margin: 12px 0;
+    }
+
+    .tip-card strong {
+      color: rgba(12, 130, 100, 0.9);
+    }
+
+    .warn-card {
+      padding: 16px 20px;
+      border-radius: var(--radius-lg);
+      background: rgba(239, 68, 68, 0.06);
+      border: 1px solid rgba(239, 68, 68, 0.18);
+      margin: 12px 0;
+    }
+
+    .warn-card strong {
+      color: rgba(200, 50, 50, 0.9);
+    }
+
+    .param-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+      margin-top: 12px;
+    }
+
+    .param-table th, .param-table td {
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .param-table th {
+      font-weight: 700;
+      font-size: 0.84rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+    }
+
+    .param-table code {
+      font-size: 0.84rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(23, 36, 48, 0.06);
+    }
+
+    [data-theme="dark"] .prompt-block {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    [data-theme="dark"] .prompt-example {
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    [data-theme="dark"] .formula-box {
+      background: linear-gradient(135deg, rgba(234, 100, 40, 0.1), rgba(255, 165, 0, 0.06));
+      border-color: rgba(234, 100, 40, 0.25);
+    }
+
+    [data-theme="dark"] .formula-box code {
+      background: rgba(234, 100, 40, 0.15);
+      color: rgba(255, 160, 80, 1);
+    }
+
+    [data-theme="dark"] .param-table code {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    [data-theme="dark"] .prompt-label {
+      background: rgba(234, 100, 40, 0.18);
+      color: rgba(255, 160, 80, 0.9);
+    }
+
+    [data-theme="dark"] .tip-card {
+      background: rgba(16, 163, 127, 0.1);
+      border-color: rgba(16, 163, 127, 0.25);
+    }
+
+    [data-theme="dark"] .warn-card {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.25);
+    }
+
+    .capability-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-top: 12px;
+    }
+
+    .style-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .table-scroll {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .mt-12 { margin-top: 12px; }
+    .mt-14 { margin-top: 14px; }
+    .mt-16 { margin-top: 16px; }
+    .mb-4 { margin-bottom: 4px; }
+    .mb-8 { margin-bottom: 8px; }
+    .formula-sm { font-size: 0.95rem; }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            AI Research &amp; Model
+          </div>
+          <div class="topbar-actions">
+            <nav class="nav-links" aria-label="页面章节导航">
+              <a href="#model-overview">模型概览</a>
+              <a href="#prompt-formula">提示词公式</a>
+              <a href="#five-dimensions">五维词典</a>
+              <a href="#advanced-techniques">进阶策略</a>
+              <a href="#prompt-adherence">遵从性实操</a>
+              <a href="#api-params">API 参数</a>
+              <a href="#anti-patterns">常见误区</a>
+            </nav>
+          </div>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Prompt Engineering for Z-Image</span>
+            <h1>Z-Image-Turbo 提示词撰写技巧</h1>
+            <p>通义 Z-Image-Turbo 是阿里巴巴通义 MAI 团队开源的 60 亿参数文生图模型，仅 8 步推理即可生成摄影级真实感图像。本文梳理官方文档、技术博客与社区实践，提炼可复用的提示词撰写策略。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#prompt-formula">提示词公式</a>
+              <a class="button button-secondary" href="#advanced-techniques">进阶策略</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">核心能力</span>
+            <h2>8 步推理 · 中英文渲染 · 开源 SOTA</h2>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span>6B 参数 S3-DiT 架构，16GB 显存可运行</li>
+              <li><span class="layer-number">2</span>Prompt Enhancer 注入推理链与世界知识</li>
+              <li><span class="layer-number">3</span>Artificial Analysis 排行榜开源模型第 1</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">模型参数</div>
+            <strong>6B</strong>
+            <span>Single-Stream DiT</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">推理步数</div>
+            <strong>8 步</strong>
+            <span>蒸馏加速 (DMD)</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">显存占用</div>
+            <strong>16 GB</strong>
+            <span>消费级显卡可用</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">开源排名</div>
+            <strong>#1</strong>
+            <span>Artificial Analysis</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+
+        <!-- ═══ Section 01: 模型概览 ═══ -->
+        <section id="model-overview" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / Model Overview</p>
+            <h2>模型概览与核心特性</h2>
+            <p>理解 Z-Image-Turbo 的架构和能力边界，是写好提示词的前提。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>架构与推理机制</span>
+              </button>
+              <div class="subsection-content">
+                <p>Z-Image-Turbo 采用 <strong>S3-DiT（Scalable Single-Stream Diffusion Transformer）</strong>架构，将文本嵌入、视觉语义 token 与图像 VAE token 拼接为单一序列，最大化参数利用率。</p>
+                <p>核心加速来自 <strong>Decoupled-DMD</strong> 蒸馏算法，将 CFG Augmentation（驱动器）和 Distribution Matching（正则器）解耦优化，最终实现仅 8 步推理即达到 50 步模型的品质。后续 <strong>DMDR</strong> 进一步融合强化学习，提升语义对齐与高频细节。</p>
+                <p>对提示词写作的直接影响：模型已内置较强的语义理解能力，提示词无需像 SD/SDXL 那样依赖精细的权重标签堆叠，而应侧重<strong>自然语言描述 + 结构化分层</strong>。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>三大核心能力</span>
+              </button>
+              <div class="subsection-content">
+                <div class="insight-grid" class="capability-grid">
+                  <div class="prompt-example">
+                    <h4>📸 摄影级真实感</h4>
+                    <p>精细控制细节、光影和纹理，兼顾高保真与构图美学。适合商业摄影、产品图、人像写真。</p>
+                  </div>
+                  <div class="prompt-example">
+                    <h4>✍️ 中英文渲染</h4>
+                    <p>开源模型文字渲染 SOTA，支持多行布局、段落级文本、小字号场景，海报设计表现突出。</p>
+                  </div>
+                  <div class="prompt-example">
+                    <h4>🧠 世界知识理解</h4>
+                    <p>准确生成著名地标、文化元素。Prompt Enhancer (PE) 通过推理链注入逻辑与常识，可处理鸡兔同笼、古诗可视化等复杂语义任务。</p>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>与同类模型的定位差异</span>
+              </button>
+              <div class="subsection-content">
+                <div class="table-scroll">
+                  <table class="param-table">
+                    <thead>
+                      <tr>
+                        <th>维度</th>
+                        <th>Z-Image-Turbo</th>
+                        <th>FLUX.1-dev</th>
+                        <th>GPT Image-1</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>参数量</td>
+                        <td>6B</td>
+                        <td>12B</td>
+                        <td>未公开</td>
+                      </tr>
+                      <tr>
+                        <td>推理步数</td>
+                        <td>8</td>
+                        <td>20-50</td>
+                        <td>不适用</td>
+                      </tr>
+                      <tr>
+                        <td>中文文字渲染</td>
+                        <td>开源 SOTA</td>
+                        <td>弱</td>
+                        <td>良</td>
+                      </tr>
+                      <tr>
+                        <td>开源</td>
+                        <td>Apache 2.0</td>
+                        <td>非商业</td>
+                        <td>闭源</td>
+                      </tr>
+                      <tr>
+                        <td>提示词风格</td>
+                        <td>自然语言 + 摄影术语</td>
+                        <td>自然语言</td>
+                        <td>自然语言（自动改写）</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══ Section 02: 提示词公式 ═══ -->
+        <section id="prompt-formula" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Prompt Formula</p>
+            <h2>提示词公式</h2>
+            <p>根据阿里云百炼官方文档，提示词描述越完整、精确和丰富，生成图像品质越高。以下两层公式适用于 Z-Image-Turbo。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>基础公式：主体 + 场景 + 风格</span>
+              </button>
+              <div class="subsection-content">
+                <div class="formula-box">
+                  <code>prompt</code> = <code>主体</code> + <code>场景</code> + <code>风格</code>
+                </div>
+                <ul>
+                  <li><strong>主体</strong>：图片的主要表现对象 — 人、动物、植物、物品或想象之物</li>
+                  <li><strong>场景</strong>：主体所处环境 — 室内/室外、季节、天气、光线、真实或虚构空间</li>
+                  <li><strong>风格</strong>：艺术风格 — 写实、3D 卡通、水彩、水墨、折纸等</li>
+                </ul>
+
+                <div class="prompt-example" class="mt-16">
+                  <h4>示例：人像摄影</h4>
+                  <div class="prompt-label">Z-IMAGE-TURBO</div>
+                  <div class="prompt-block">25 岁中国女孩，圆脸，看着镜头，优雅的民族服装，商业摄影，室外，电影级光照，半身特写，精致的淡妆，锐利的边缘。</div>
+                </div>
+
+                <div class="tip-card">
+                  <strong>适用场景：</strong>初次使用 AI 创作、灵感探索阶段。简单自由的提示词反而能生成更具想象力的图像。
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>进阶公式：六要素分层描述</span>
+              </button>
+              <div class="subsection-content">
+                <div class="formula-box">
+                  <code>prompt</code> = <code>主体描述</code> + <code>场景描述</code> + <code>风格定义</code> + <code>镜头语言</code> + <code>氛围词</code> + <code>细节修饰</code>
+                </div>
+                <ul>
+                  <li><strong>主体描述</strong>：包含特征、动作、表情 — "穿着红色外套的 10 岁中国小女孩"</li>
+                  <li><strong>场景描述</strong>：环境细节用形容词或短句列举 — "晨雾中的竹林小径"</li>
+                  <li><strong>风格定义</strong>：明确艺术风格/表现手法 — "吉卜力工作室风格水彩"</li>
+                  <li><strong>镜头语言</strong>：景别 + 视角 + 镜头类型 — "微距特写，俯视视角"</li>
+                  <li><strong>氛围词</strong>：情绪/感受 — "温馨、怀旧、梦幻"</li>
+                  <li><strong>细节修饰</strong>：材质/质量增强 — "8K，超高清，精致的纹理"</li>
+                </ul>
+
+                <div class="prompt-example" class="mt-16">
+                  <h4>示例：羊毛毡 3D 角色</h4>
+                  <div class="prompt-label">Z-IMAGE-TURBO</div>
+                  <div class="prompt-block">由羊毛毡制成的大熊猫，头戴大檐帽，穿着蓝色警服马甲，扎着腰带，携带警械装备，戴着蓝色手套，穿着皮鞋，大步奔跑姿态，毛毡效果，周围是动物王国城市街道商户，高级滤镜，路灯，动物王国，奇妙童趣，憨态可掬，夜晚，明亮，自然，可爱，4K，毛毡材质，摄影镜头，居中构图，毛茸茸。</div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══ Section 03: 五维提示词词典 ═══ -->
+        <section id="five-dimensions" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / Five Dimensions</p>
+            <h2>五维提示词词典</h2>
+            <p>通过五个维度的关键词组合，精确控制生成图像的构图、视觉效果与创意方向。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>景别（Shot Scale）</span>
+              </button>
+              <div class="subsection-content">
+                <p>景别决定了被摄体在画面中的范围大小，直接影响画面的信息量和情感表达。</p>
+                <div class="table-scroll">
+                  <table class="param-table">
+                    <thead><tr><th>景别</th><th>关键词</th><th>效果</th></tr></thead>
+                    <tbody>
+                      <tr><td>特写</td><td>特写镜头、close-up</td><td>聚焦面部或物体细节，情感表达强烈</td></tr>
+                      <tr><td>近景</td><td>近景镜头、半身特写</td><td>展示上半身或物体主体，兼顾细节与环境</td></tr>
+                      <tr><td>中景</td><td>中景镜头、中广角镜头</td><td>展示全身或更大范围，适合叙事</td></tr>
+                      <tr><td>远景</td><td>远景镜头、wide shot</td><td>展示环境全貌，人物较小，强调空间感</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>视角（Camera Angle）</span>
+              </button>
+              <div class="subsection-content">
+                <div class="table-scroll">
+                  <table class="param-table">
+                    <thead><tr><th>视角</th><th>关键词</th><th>效果</th></tr></thead>
+                    <tbody>
+                      <tr><td>平视</td><td>平视视角、eye-level</td><td>最自然的视角，适合日常场景</td></tr>
+                      <tr><td>俯视</td><td>俯视视角、top-down、鸟瞰</td><td>展示全局布局，强调空间关系</td></tr>
+                      <tr><td>仰视</td><td>仰视视角、low-angle</td><td>强调高大、威严感</td></tr>
+                      <tr><td>航拍</td><td>航拍视角、aerial view</td><td>极端俯视，适合地景、建筑群</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>镜头类型（Lens Type）</span>
+              </button>
+              <div class="subsection-content">
+                <div class="table-scroll">
+                  <table class="param-table">
+                    <thead><tr><th>镜头</th><th>关键词</th><th>效果</th></tr></thead>
+                    <tbody>
+                      <tr><td>微距</td><td>微距镜头、macro</td><td>极致细节放大，适合食物、珠宝、昆虫</td></tr>
+                      <tr><td>超广角</td><td>超广角镜头、ultra-wide</td><td>广阔视野，适合风景、建筑</td></tr>
+                      <tr><td>长焦</td><td>长焦镜头、telephoto</td><td>背景虚化突出主体，适合野生动物、人像</td></tr>
+                      <tr><td>鱼眼</td><td>鱼眼镜头、fisheye</td><td>极度变形的趣味视角</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>风格（Style）</span>
+              </button>
+              <div class="subsection-content">
+                <p>Z-Image-Turbo 支持丰富的艺术风格关键词，以下为经实测效果良好的风格类别：</p>
+                <div class="insight-grid" class="style-grid">
+                  <div class="prompt-example"><h4>写实</h4><p>超写实、photorealistic、商业摄影</p></div>
+                  <div class="prompt-example"><h4>3D 卡通</h4><p>3D 卡通风格、C4D 渲染、Pixar 风</p></div>
+                  <div class="prompt-example"><h4>水彩</h4><p>浅水彩、吉卜力工作室、梦幻</p></div>
+                  <div class="prompt-example"><h4>水墨</h4><p>水墨画、留白、吴冠中风格</p></div>
+                  <div class="prompt-example"><h4>废土风</h4><p>废土风格、post-apocalyptic</p></div>
+                  <div class="prompt-example"><h4>超现实</h4><p>超现实风格、surreal、电影灯光</p></div>
+                  <div class="prompt-example"><h4>折纸</h4><p>折纸、origami、牛皮纸材质</p></div>
+                  <div class="prompt-example"><h4>工笔</h4><p>工笔画、精致、传统中国画</p></div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>光线（Lighting）</span>
+              </button>
+              <div class="subsection-content">
+                <div class="table-scroll">
+                  <table class="param-table">
+                    <thead><tr><th>光线</th><th>关键词</th><th>氛围</th></tr></thead>
+                    <tbody>
+                      <tr><td>自然光</td><td>太阳光、晨光、golden hour</td><td>温暖、真实、自然</td></tr>
+                      <tr><td>逆光</td><td>逆光、backlight、轮廓光</td><td>梦幻、剪影、光环效果</td></tr>
+                      <tr><td>霓虹灯</td><td>霓虹灯、neon lights</td><td>都市夜景、赛博朋克</td></tr>
+                      <tr><td>氛围光</td><td>氛围光、ambient lighting</td><td>柔和、温馨、浪漫</td></tr>
+                      <tr><td>丁达尔效应</td><td>丁达尔效应、god rays</td><td>森林、教堂光束、神圣感</td></tr>
+                      <tr><td>电影级光照</td><td>cinematic lighting</td><td>戏剧性、层次丰富</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══ Section 04: 进阶策略 ═══ -->
+        <section id="advanced-techniques" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / Advanced Techniques</p>
+            <h2>进阶提示词策略</h2>
+            <p>从官方技术博客和社区实践中提炼的高阶技巧。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Prompt Enhancer：让模型替你思考</span>
+              </button>
+              <div class="subsection-content">
+                <p>Z-Image-Turbo 在阿里云百炼 API 中提供 <code>prompt_extend</code> 参数（默认开启），它会使用大语言模型将简短提示词扩写为结构化的详细描述。</p>
+                <div class="tip-card">
+                  <strong>开启 prompt_extend 时：</strong>模型会返回优化后的提示词及推理过程。适合创意探索阶段 — 输入简短想法，让 PE 补全细节。
+                </div>
+                <div class="warn-card">
+                  <strong>关闭 prompt_extend 时：</strong>适合对画面细节要求精确可控的场景。此时需要自行提供完整的进阶公式描述。
+                </div>
+
+                <div class="prompt-example" class="mt-16">
+                  <h4>PE 推理示例：古诗可视化</h4>
+                  <p class="mb-8">输入：</p>
+                  <div class="prompt-block">帮我给《登科后》配图，最出名的两句</div>
+                  <p class="mt-12 mb-4">PE 会自动推理出"春风得意马蹄疾，一日看尽长安花"，并生成包含策马长安、花团锦簇的详细场景描述。</p>
+                </div>
+
+                <div class="prompt-example">
+                  <h4>PE 推理示例：逻辑题可视化</h4>
+                  <p class="mb-8">输入：</p>
+                  <div class="prompt-block">鸡兔同笼，共有 35 个头和 94 只脚，求鸡和兔各有多少只</div>
+                  <p class="mt-12 mb-4">PE 先解方程得出 23 只鸡、12 只兔，再生成相应数量动物的画面。这是 Z-Image 区别于传统扩散模型的独特能力。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>胶片模拟与摄影风格词</span>
+              </button>
+              <div class="subsection-content">
+                <p>Z-Image-Turbo 对摄影术语的理解远超一般扩散模型。从官方示例可以看到，模型支持精细的胶片模拟参数。</p>
+
+                <div class="prompt-example">
+                  <h4>官方示例：胶片人像</h4>
+                  <div class="prompt-label">Z-IMAGE-TURBO</div>
+                  <div class="prompt-block">film grain, analog film texture, soft film lighting, Kodak Portra 400 style, cinematic grainy texture, photorealistic details, subtle noise, (film grain:1.2)。采用近景特写镜头拍摄的东亚年轻女性，呈现户外雪地场景...</div>
+                </div>
+
+                <p class="mt-12"><strong>关键观察：</strong>该模型支持类 SD 的权重语法 <code>(关键词:权重)</code>，如 <code>(film grain:1.2)</code>。虽然不如 SD 对权重的依赖程度高，但在需要强调特定视觉元素时仍然有效。</p>
+
+                <p>高效的摄影风格关键词组合：</p>
+                <ul>
+                  <li><strong>胶片感</strong>：film grain, analog film texture, Kodak Portra 400/Fuji Superia</li>
+                  <li><strong>电影感</strong>：cinematic lighting, anamorphic lens, shallow depth of field</li>
+                  <li><strong>商业摄影</strong>：studio lighting, product photography, clean background</li>
+                  <li><strong>纪实风</strong>：documentary style, candid, natural light, 35mm</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>中英文混合提示词策略</span>
+              </button>
+              <div class="subsection-content">
+                <p>Z-Image-Turbo 原生支持中英文双语输入，这是其相比 FLUX、SD 等模型的显著优势。社区实测发现以下混合策略效果最佳：</p>
+                <ol>
+                  <li><strong>场景与主体用中文</strong>：中文描述更精确地传达中国文化语境 — "青灰瓦顶、朱红色外墙的中式商铺"</li>
+                  <li><strong>风格与技术参数用英文</strong>：摄影/艺术术语英文更精确 — "cinematic lighting, 8K, Kodak Portra 400"</li>
+                  <li><strong>文字渲染内容用目标语言</strong>：如需渲染中文字，直接在提示词中写中文引号包裹的文字内容</li>
+                </ol>
+
+                <div class="prompt-example" class="mt-16">
+                  <h4>示例：中英混合海报</h4>
+                  <div class="prompt-label">Z-IMAGE-TURBO</div>
+                  <div class="prompt-block">冬日北京的都市街景，青灰瓦顶、朱红色外墙的两间相邻中式商铺比肩而立，檐下悬挂印有剪纸马的暖光灯笼，在阴天漫射光中投下柔和光晕。左侧为书法店：靛蓝色老旧的牌匾上以遒劲行书刻着"文字渲染"。cinematic lighting, photorealistic, 8K, fine details.</div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>文字渲染的专项技巧</span>
+              </button>
+              <div class="subsection-content">
+                <p>文字渲染是 Z-Image-Turbo 的标志性能力。以下技巧可提高渲染成功率：</p>
+                <ol>
+                  <li><strong>用引号包裹目标文字</strong>：明确用引号标注需渲染的文字 — 牌匾上刻着"文字渲染"</li>
+                  <li><strong>指定载体</strong>：说明文字出现在什么载体上 — 牌匾、海报、T恤、霓虹灯牌</li>
+                  <li><strong>指定字体风格</strong>：行书、楷体、手写体、衬线体</li>
+                  <li><strong>控制文字数量</strong>：单次渲染建议不超过 10-15 个中文字符，过长的文本拆分为多行或多区域</li>
+                  <li><strong>开启 prompt_extend</strong>：PE 可自动补全文字排版细节，推荐在文字渲染场景开启</li>
+                </ol>
+
+                <div class="prompt-example" class="mt-16">
+                  <h4>示例：对联渲染</h4>
+                  <div class="prompt-label">Z-IMAGE-TURBO</div>
+                  <div class="prompt-block">一副典雅庄重的对联悬挂于厅堂之中，房间是安静古典的中式布置，桌子上放着青花瓷，对联上左书"义本生知人机同道善思新"，右书"通云赋智乾坤启数高志远"，横批"智启千问"，字体飘逸，在中间挂着一幅中国风的画作，内容是岳阳楼。</div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══ Section 05: 遵从性行动指南 ═══ -->
+        <section id="prompt-adherence" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / Prompt Adherence</p>
+            <h2>提示词遵从性：从评测数据到行动清单</h2>
+            <p>Z-Image 论文 (arXiv:2511.22699) 公布了 7 项基准评测数据。以下将每项数据转化为具体可落地的提示词写法。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>模型遵从性评测概览</span>
+              </button>
+              <div class="subsection-content">
+                <p>Z-Image 团队在 RLHF 阶段将"指令遵从"分解为 5 个可标注维度：<strong>(i) 核心主体实体、(ii) 属性规格、(iii) 动作/交互、(iv) 空间/构图约束、(v) 风格/渲染条件</strong>。人工标注员逐维点选不满足项，计算满足比率作为奖励信号。</p>
+                <p>这 5 个维度直接对应你写提示词时应覆盖的 5 个检查点。</p>
+                <div class="table-scroll">
+                  <table class="param-table">
+                    <thead>
+                      <tr>
+                        <th>评测基准</th>
+                        <th>测量维度</th>
+                        <th>Z-Image-Turbo</th>
+                        <th>对比参考</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>GenEval</td>
+                        <td>物体数量 / 颜色 / 位置 / 属性</td>
+                        <td>Overall 0.82</td>
+                        <td>GPT Image-1: 0.84</td>
+                      </tr>
+                      <tr>
+                        <td>DPG-Bench</td>
+                        <td>密集提示词遵从</td>
+                        <td>Overall 85.92</td>
+                        <td>Qwen-Image: 88.32</td>
+                      </tr>
+                      <tr>
+                        <td>TIIF</td>
+                        <td>指令遵从（基础/高级/设计师）</td>
+                        <td>排名第 5</td>
+                        <td>GPT Image-1: 排名第 1</td>
+                      </tr>
+                      <tr>
+                        <td>OneIG-EN</td>
+                        <td>Text 维度</td>
+                        <td><strong>0.994</strong></td>
+                        <td>GPT Image-1: 0.857</td>
+                      </tr>
+                      <tr>
+                        <td>GenEval</td>
+                        <td>Position（空间关系）</td>
+                        <td>0.65</td>
+                        <td>GPT Image-1: 0.75</td>
+                      </tr>
+                      <tr>
+                        <td>AI Arena (Elo)</td>
+                        <td>人类偏好（含 prompt alignment）</td>
+                        <td>全球第 4 / 开源第 1</td>
+                        <td>Imagen 4: 第 1</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="tip-card mt-12">
+                  <strong>关键发现：</strong>文字渲染（0.994）和属性描述（91.59）是绝对强项；空间位置关系（0.65）是相对短板。下面的行动清单就是围绕"扬长补短"展开。
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>行动 1：五维检查法——写完提示词后逐条核对</span>
+              </button>
+              <div class="subsection-content">
+                <p>基于 RLHF 奖励模型的 5 维拆解，每次写完提示词后用以下清单逐条核对：</p>
+                <div class="table-scroll">
+                  <table class="param-table">
+                    <thead>
+                      <tr>
+                        <th>维度</th>
+                        <th>需要写什么</th>
+                        <th>示例</th>
+                        <th>缺失后果</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>1. 核心主体</td>
+                        <td>明确的主体名词 + 数量</td>
+                        <td>"一只橘猫""两个小女孩"</td>
+                        <td>主体缺失或数量错误</td>
+                      </tr>
+                      <tr>
+                        <td>2. 属性规格</td>
+                        <td>颜色、材质、服装、年龄</td>
+                        <td>"穿着红色棉麻连衣裙的 25 岁女性"</td>
+                        <td>颜色/服装随机</td>
+                      </tr>
+                      <tr>
+                        <td>3. 动作/交互</td>
+                        <td>主体的动作 + 主体间关系</td>
+                        <td>"猫蹲在女孩肩膀上"</td>
+                        <td>姿态默认站立</td>
+                      </tr>
+                      <tr>
+                        <td>4. 空间/构图</td>
+                        <td>前后左右上下的位置关系</td>
+                        <td>"女孩在画面左侧，背景右侧是一棵樱花树"</td>
+                        <td>布局随机（模型短板）</td>
+                      </tr>
+                      <tr>
+                        <td>5. 风格/渲染</td>
+                        <td>艺术风格 + 光线 + 镜头</td>
+                        <td>"日系胶片风，逆光，85mm 长焦"</td>
+                        <td>默认写实风格</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="prompt-example mt-16">
+                  <h4>实操演示：五维一步到位</h4>
+                  <div class="prompt-label">Z-IMAGE-TURBO · PE OFF</div>
+                  <div class="prompt-block">【主体】一只橘色虎斑猫蹲在【动作】一位 25 岁亚洲女性的左肩上，女性【属性】穿着白色亚麻衬衫、戴圆形金属眼镜，【空间】站在画面中央偏左，背景右侧是一棵盛开的粉色樱花树，前景散落着花瓣。【风格】Fuji Superia 400 胶片风格，逆光，golden hour，85mm 长焦浅景深，暖色调。</div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>行动 2：空间关系弱项的补偿策略</span>
+              </button>
+              <div class="subsection-content">
+                <p>GenEval Position 维度得分 0.65 是模型的已知短板。以下 3 种策略可显著提升空间遵从率：</p>
+                <ol>
+                  <li>
+                    <strong>用"画面坐标"替代模糊方位词</strong>
+                    <p>避免 → "猫在女孩旁边"<br>
+                    改为 → "猫在画面左侧 1/3 处，女孩在右侧 2/3 处"</p>
+                  </li>
+                  <li>
+                    <strong>使用摄影构图术语</strong>
+                    <p>模型对专业构图词的遵从度高于日常描述：<br>
+                    <code>三分法构图</code> / <code>居中对称构图</code> / <code>对角线构图</code> / <code>框架式构图</code></p>
+                  </li>
+                  <li>
+                    <strong>开启 prompt_extend 处理空间任务</strong>
+                    <p>PE 推理链会将模糊的空间意图扩展为精确的场景布局描述，在空间关系任务上比手写效果更稳定。</p>
+                  </li>
+                </ol>
+                <div class="prompt-example mt-16">
+                  <h4>对比：空间关系弱描述 vs 强描述</h4>
+                  <div class="prompt-label">弱（可能失败）</div>
+                  <div class="prompt-block">一只猫和一条狗在公园里</div>
+                  <div class="prompt-label mt-12">强（遵从率高）</div>
+                  <div class="prompt-block">三分法构图，画面左侧 1/3 处是一只橘猫正面端坐于草地上，右侧 2/3 处是一只金毛犬侧身奔跑，中景是公园长椅和散步的行人，背景是模糊的梧桐树林，自然光，平视视角。</div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>行动 3：文字渲染——将 0.994 的优势最大化</span>
+              </button>
+              <div class="subsection-content">
+                <p>OneIG Text 维度 0.994 是所有评测模型中最高分。以下是从论文和官方示例中提炼的渲染成功率最高的写法模式：</p>
+                <div class="formula-box">
+                  文字渲染模板 = <code>"载体"</code> + <code>上/中/下位置</code> + <code>字体风格</code> + <code>"引号包裹的渲染内容"</code>
+                </div>
+                <div class="prompt-example mt-16">
+                  <h4>模式 A：载体 + 位置 + 内容（最高遵从率）</h4>
+                  <div class="prompt-label">Z-IMAGE-TURBO</div>
+                  <div class="prompt-block">一块靛蓝色老旧的牌匾，上面以遒劲行书刻着"文字渲染"</div>
+                </div>
+                <div class="prompt-example mt-12">
+                  <h4>模式 B：海报中多区域文字（论文 Appendix A.2 模式）</h4>
+                  <div class="prompt-label">Z-IMAGE-TURBO</div>
+                  <div class="prompt-block">竖版海报设计，深蓝色背景。顶部是大号黄色字体主标题"夢中天堂"，主标题下方是较小的白色无衬线字体"HEAVEN OF DREAM"。底部用较小字体列出日期"2025.11.11"和地点"阿里巴巴云谷园区"。</div>
+                </div>
+                <div class="warn-card mt-12">
+                  <strong>经验法则：</strong>单次渲染 ≤ 15 个中文字 / 30 个英文字母时准确率最高。超长文本应拆分为多个位置区域（"顶部标题""底部署名"）分别描述。
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>行动 4：PE 开/关的决策树</span>
+              </button>
+              <div class="subsection-content">
+                <p>prompt_extend 不是"默认全开"这么简单。论文揭示 PE 的推理链在不同场景下效果差异大：</p>
+                <div class="table-scroll">
+                  <table class="param-table">
+                    <thead>
+                      <tr>
+                        <th>场景</th>
+                        <th>PE 建议</th>
+                        <th>原因</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>简短创意描述（&lt; 30 字）</td>
+                        <td><strong>开启</strong></td>
+                        <td>PE 注入推理链补全场景细节和世界知识</td>
+                      </tr>
+                      <tr>
+                        <td>需要推理的语义（古诗、数学题、坐标）</td>
+                        <td><strong>开启</strong></td>
+                        <td>PE 先解题再生成，模型本身无此推理能力</td>
+                      </tr>
+                      <tr>
+                        <td>精确空间构图 + 多物体位置</td>
+                        <td><strong>开启</strong></td>
+                        <td>PE 扩展空间描述可补偿模型的 Position 弱项</td>
+                      </tr>
+                      <tr>
+                        <td>已写好 100+ 字详细描述</td>
+                        <td><strong>关闭</strong></td>
+                        <td>PE 可能改写你精心设计的构图意图</td>
+                      </tr>
+                      <tr>
+                        <td>精确文字渲染（已按渲染模板写好）</td>
+                        <td><strong>关闭</strong></td>
+                        <td>PE 改写可能丢失引号内精确文字</td>
+                      </tr>
+                      <tr>
+                        <td>要求精确复现特定胶片/相机参数</td>
+                        <td><strong>关闭</strong></td>
+                        <td>PE 会添加它认为"更好"的描述覆盖你的参数</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>行动 5：属性绑定的锚定写法</span>
+              </button>
+              <div class="subsection-content">
+                <p>GenEval Attribute Binding 得分 0.68，意味着多物体 + 多属性时容易出现"属性漂移"（如红衣服跑到错误角色上）。解法：</p>
+                <ol>
+                  <li>
+                    <strong>紧密绑定法：属性紧贴主体名词</strong>
+                    <p>避免 → "一个女孩和一个男孩，穿着红色和蓝色的衣服"<br>
+                    改为 → "穿着红色连衣裙的女孩""穿着蓝色西装的男孩"</p>
+                  </li>
+                  <li>
+                    <strong>编号锚定法：为多主体编号</strong>
+                    <p>"人物 1：穿白色衬衫的亚洲女性，站在左侧。人物 2：穿黑色夹克的欧洲男性，坐在右侧。"</p>
+                  </li>
+                  <li>
+                    <strong>减少同类物体数量</strong>
+                    <p>需要 3 个以上同类物体（如 3 只不同颜色的猫），建议拆成多次生成 + 后期合成。模型在 2 个同类物体以内的属性绑定表现更稳定。</p>
+                  </li>
+                </ol>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══ Section 06: API 参数 ═══ -->
+        <section id="api-params" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / API Parameters</p>
+            <h2>API 参数与调用配置</h2>
+            <p>影响生成效果的关键 API 参数速查。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>核心参数速查</span>
+              </button>
+              <div class="subsection-content">
+                <div class="table-scroll">
+                  <table class="param-table">
+                    <thead>
+                      <tr>
+                        <th>参数</th>
+                        <th>说明</th>
+                        <th>推荐值</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><code>model</code></td>
+                        <td>模型名称，固定值</td>
+                        <td><code>z-image-turbo</code></td>
+                      </tr>
+                      <tr>
+                        <td><code>prompt</code></td>
+                        <td>正向提示词，中英文均支持</td>
+                        <td>遵循进阶公式</td>
+                      </tr>
+                      <tr>
+                        <td><code>prompt_extend</code></td>
+                        <td>LLM 智能改写，开启后增加延迟但提升语义理解</td>
+                        <td>创意探索: <code>true</code>；精确控制: <code>false</code></td>
+                      </tr>
+                      <tr>
+                        <td><code>size</code></td>
+                        <td>输出分辨率 (宽*高)，总像素在 512*512 ~ 2048*2048 之间</td>
+                        <td><code>1024*1536</code> (默认)</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <p class="mt-16"><strong>推荐分辨率列表（总像素约 1024*1024）</strong>：</p>
+                <ul>
+                  <li>1:1 → <code>1024*1024</code></li>
+                  <li>2:3 → <code>832*1248</code></li>
+                  <li>3:2 → <code>1248*832</code></li>
+                  <li>9:16 → <code>720*1280</code></li>
+                  <li>16:9 → <code>1280*720</code></li>
+                </ul>
+
+                <p class="mt-12"><strong>推荐分辨率列表（总像素约 1536*1536）</strong>：</p>
+                <ul>
+                  <li>16:9 → <code>2688*1536</code></li>
+                  <li>9:16 → <code>1536*2688</code></li>
+                  <li>1:1 → <code>2048*2048</code></li>
+                </ul>
+
+                <div class="tip-card" class="mt-14">
+                  <strong>性能提示：</strong>推荐分辨率在 1024*1024 至 1536*1536 之间的出图效果最佳。超出此范围仍可生成图像但品质可能下降。
+                </div>
+
+                <div class="warn-card mt-14">
+                  <strong>注意：</strong>Z-Image-Turbo <strong>不支持</strong> <code>negative_prompt</code> 参数。这与千问-文生图（Qwen-Image）和万相系列不同。如需排除特定元素，应在正向提示词中使用否定描述（如"无水印、无人物"），或依赖 prompt_extend 自动优化。
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══ Section 06: 常见误区 ═══ -->
+        <section id="anti-patterns" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">07 / Anti-Patterns</p>
+            <h2>常见误区与解决方案</h2>
+            <p>社区高频踩坑点与对应修正策略。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>过度堆叠标签</span>
+              </button>
+              <div class="subsection-content">
+                <p><strong>误区</strong>：将 SD/SDXL 的 tag 堆叠习惯直接搬到 Z-Image-Turbo — "masterpiece, best quality, ultra detailed, 8K, HDR, highres..."</p>
+                <p><strong>原因</strong>：Z-Image-Turbo 基于强大的语言模型理解提示词，标签堆叠不仅冗余，还可能分散模型对核心语义的注意力。</p>
+                <p><strong>修正</strong>：用自然语言完整描述场景，保留必要的品质修饰词（如 8K、超高清），去除通用模板词。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>忽略空间层次</span>
+              </button>
+              <div class="subsection-content">
+                <p><strong>误区</strong>：只描述主体，不提供场景上下文与空间关系。</p>
+                <p><strong>修正</strong>：按前景 → 中景 → 背景分层描述。例如："前景是一杯冒着热气的拿铁，中景是靠窗阅读的年轻女性，背景是雨后的城市街道，窗户上有雨滴。"</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>文字渲染失败</span>
+              </button>
+              <div class="subsection-content">
+                <p><strong>误区</strong>：文字内容写在描述中间，没有引号包裹，且单次渲染过多文字。</p>
+                <p><strong>修正</strong>：(1) 用引号明确标注渲染文字；(2) 指定文字所在的载体/位置；(3) 单次渲染控制在 10-15 字以内；(4) 开启 prompt_extend 让 PE 自动补全排版细节。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>prompt_extend 使用不当</span>
+              </button>
+              <div class="subsection-content">
+                <p><strong>误区 1</strong>：已经写了非常详细的提示词，还开着 prompt_extend — PE 的改写可能偏离你精心设计的构图意图。</p>
+                <p><strong>误区 2</strong>：提示词极其简短（如"画只猫"），却关闭了 prompt_extend — 模型缺乏足够信息生成高质量图像。</p>
+                <p><strong>原则</strong>：提示词越简短，越应开启 PE；提示词越详细且有精确构图要求，越应关闭 PE。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══ References ═══ -->
+        <section id="references" class="section" data-reveal data-present-step data-step-title="参考来源">
+          <div class="section-head">
+            <p class="section-kicker">References</p>
+            <h2>参考来源</h2>
+          </div>
+          <ol class="bib-list">
+            <li id="ref-1"><span class="bib-id">[1]</span> <span class="bib-author">Z-Image Team, Tongyi MAI, Alibaba Group.</span> <a href="https://arxiv.org/abs/2511.22699" target="_blank" rel="noopener noreferrer">"Z-Image: An Efficient Image Generation Foundation Model with Single-Stream Diffusion Transformer,"</a> <em>arXiv:2511.22699,</em> 2025.<span class="bib-note">Z-Image 技术报告，S3-DiT 架构与 Decoupled-DMD 蒸馏算法。</span></li>
+            <li id="ref-2"><span class="bib-id">[2]</span> <span class="bib-author">Tongyi MAI.</span> <a href="https://tongyi-mai.github.io/Z-Image-blog/" target="_blank" rel="noopener noreferrer">"Z-Image Official Blog,"</a> 2025.<span class="bib-note">模型核心能力展示：摄影级真实感、双语文字渲染、世界知识理解、PE 推理链。</span></li>
+            <li id="ref-3"><span class="bib-id">[3]</span> <span class="bib-author">阿里云.</span> <a href="https://help.aliyun.com/zh/model-studio/z-image-api-reference" target="_blank" rel="noopener noreferrer">"Z-Image API 参考，"</a> <em>阿里云百炼文档,</em> 2026-02.<span class="bib-note">z-image-turbo API 规格：分辨率范围、prompt_extend 参数、同步调用接口。</span></li>
+            <li id="ref-4"><span class="bib-id">[4]</span> <span class="bib-author">阿里云.</span> <a href="https://help.aliyun.com/zh/model-studio/text-to-image-prompt" target="_blank" rel="noopener noreferrer">"文生图 Prompt 指南，"</a> <em>阿里云百炼文档,</em> 2026-02.<span class="bib-note">提示词公式（基础/进阶）、五维提示词词典（景别、视角、镜头、风格、光线）。</span></li>
+            <li id="ref-5"><span class="bib-id">[5]</span> <span class="bib-author">Tongyi MAI.</span> <a href="https://github.com/Tongyi-MAI/Z-Image" target="_blank" rel="noopener noreferrer">"Z-Image GitHub Repository,"</a> 2025-2026.<span class="bib-note">开源代码、模型权重（HuggingFace/ModelScope）、社区生态（ComfyUI、DiffSynth、vllm-omni 等）。</span></li>
+            <li id="ref-6"><span class="bib-id">[6]</span> <span class="bib-author">阿里云.</span> <a href="https://help.aliyun.com/zh/model-studio/qwen-image-api" target="_blank" rel="noopener noreferrer">"千问-文生图 API 参考，"</a> <em>阿里云百炼文档,</em> 2026-03.<span class="bib-note">Qwen-Image 模型家族对比（qwen-image-2.0-pro/2.0/max/plus），negative_prompt 与 prompt_extend 用法。</span></li>
+          </ol>
+        </section>
+      </main>
+
+      <footer>
+         &copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

@@ -574,7 +574,7 @@ var knowledgeTree = [
   // ════════════════════════════════════════
   {
     id: 'study-room-design',
-    parentId: 'knowledge-hub',
+    parentId: 'knowledge-hub-design-docs',
     type: 'article',
     title: {
       zh: 'Knowledge Hub 设计文档：交互式知识图谱的架构与实现',
@@ -593,7 +593,7 @@ var knowledgeTree = [
   },
   {
     id: 'presentation-narration-design',
-    parentId: 'knowledge-hub',
+    parentId: 'knowledge-hub-design-docs',
     type: 'article',
     title: {
       zh: '演示模式自动讲解：LLM Narrative 生成与语音合成设计',
@@ -608,11 +608,30 @@ var knowledgeTree = [
     url: 'posts/presentation-narration-design/index.html',
     color: '#7c3aed',
     phase: 4.5, speed: 0.7,
-    relations: ['study-room-design']
+    relations: ['study-room-design', 'presentation-style-optimization']
+  },
+  {
+    id: 'presentation-style-optimization',
+    parentId: 'knowledge-hub-design-docs',
+    type: 'article',
+    title: {
+      zh: '演示模式内容与式样优化设计',
+      en: 'Presentation Mode Content & Style Optimization Design'
+    },
+    summary: {
+      zh: '针对排版可读性、讲解认知负荷和移动端录制三个维度，基于五款产品基准分析提出三层渐进式优化方案。',
+      en: 'Three-phase optimization for presentation typography, narration focus mode, and mobile recording viewport, benchmarked against five industry products.'
+    },
+    tags: ['Design Document', 'Presentation', 'UX', 'Mobile'],
+    date: '2026-04-20',
+    url: 'posts/presentation-style-optimization/index.html',
+    color: '#7c3aed',
+    phase: 5.2, speed: 0.72,
+    relations: ['presentation-narration-design', 'study-room-design']
   },
   {
     id: 'markdown-rendering-pipeline',
-    parentId: 'knowledge-hub',
+    parentId: 'knowledge-hub-design-docs',
     type: 'article',
     title: {
       zh: 'Markdown 渲染管线：内容与展现解耦',
@@ -641,13 +660,21 @@ var knowledgeTree = [
     color: '#0d8f8c',
     phase: 5.0, speed: 0.82
   },
+  {
+    id: 'knowledge-hub-design-docs',
+    parentId: 'knowledge-hub',
+    type: 'topic',
+    label: { zh: '设计文档', en: 'Design Docs' },
+    color: '#0fb5ae',
+    phase: 4.2, speed: 0.8
+  },
 
   // ════════════════════════════════════════
   // 文章 — Knowledge Hub（治理与审查）
   // ════════════════════════════════════════
   {
     id: 'study-room-standards',
-    parentId: 'knowledge-hub',
+    parentId: 'knowledge-hub-design-docs',
     type: 'article',
     title: {
       zh: 'Knowledge Hub 内容治理规范：研究、撰写、布局与审核',
@@ -739,6 +766,25 @@ var knowledgeTree = [
     color: '#0d8f8c',
     phase: 3.8, speed: 0.78,
     relations: ['study-room-review-2026q2', 'study-room-design', 'study-room-standards']
+  },
+  {
+    id: 'article-design-system',
+    parentId: 'knowledge-hub-design-docs',
+    type: 'article',
+    title: {
+      zh: '文章设计系统：视觉规范与组件样式文档',
+      en: 'Article Design System: Visual Specification & Component Style Guide'
+    },
+    summary: {
+      zh: '完整记录文章页面视觉规范——色彩令牌、字体系统、间距圆角、阴影层级、核心组件样式与响应式断点。',
+      en: 'Full article page visual spec: color tokens, typography, spacing/radius, shadow tiers, core component styles, and responsive breakpoints.'
+    },
+    tags: ['Design System', 'CSS', 'Visual Specification'],
+    date: '2026-04-20',
+    url: 'posts/article-design-system/index.html',
+    color: '#ff7a00',
+    phase: 5.2, speed: 0.72,
+    relations: ['study-room-design', 'study-room-standards']
   },
 
   // ════════════════════════════════════════
@@ -1324,6 +1370,26 @@ var knowledgeTree = [
     relations: ['ai-radar-2026w15', 'enterprise-agent-arch']
   },
 
+  {
+    id: 'ai-radar-2026w17',
+    parentId: 'ai-radar',
+    type: 'article',
+    title: {
+      zh: 'AI 时事雷达 2026W17：桌面超级应用之争、Opus 4.7 与编码 Agent 估值狂潮',
+      en: 'AI Radar 2026W17: Desktop Super App Wars, Opus 4.7 & Coding Agent Valuation Surge'
+    },
+    summary: {
+      zh: '覆盖 2026 年 4 月第四周 15 件 AI 大事：Codex 桌面超级应用升级、Opus 4.7 夺回榜首、Cursor $50B 估值、Tokenmaxxing 生产力警告。',
+      en: '15 AI events from late April 2026: Codex desktop super app, Opus 4.7 reclaims top spot, Cursor $50B valuation, Tokenmaxxing productivity warning.'
+    },
+    tags: ['AI Radar', 'Weekly', 'Industry Analysis'],
+    date: '2026-04-20',
+    url: 'posts/ai-radar-2026w17/index.html',
+    color: '#0d8f8c',
+    phase: 5.5, speed: 0.85,
+    relations: ['ai-radar-2026w16', 'enterprise-agent-arch']
+  },
+
   // ════════════════════════════════════════
   // 文章 — LLM 百科全书
   // ════════════════════════════════════════
@@ -1455,6 +1521,29 @@ var knowledgeTree = [
     url: 'posts/mai-image-2-efficient/index.html',
     color: '#0ea5e9',
     phase: 5.8, speed: 0.86,
-    relations: ['text-to-image-prompting']
+    relations: ['text-to-image-prompting', 'z-image-turbo-prompting']
+  },
+
+  // ════════════════════════════════════════
+  // 文章 — Z-Image-Turbo 提示词技巧
+  // ════════════════════════════════════════
+  {
+    id: 'z-image-turbo-prompting',
+    parentId: 'ai-research-model',
+    type: 'article',
+    title: {
+      zh: 'Z-Image-Turbo 提示词撰写技巧：从基础公式到高级策略',
+      en: 'Z-Image-Turbo Prompt Tips: From Basic Formulas to Advanced Strategies'
+    },
+    summary: {
+      zh: '梳理通义 Z-Image-Turbo 的提示词公式、五维词典、PE 推理链与文字渲染专项技巧，6B 参数 8 步推理开源 SOTA。',
+      en: 'Z-Image-Turbo prompt guide: formulas, 5-dimension dictionary, PE reasoning chain, text rendering tips. 6B params, 8-step open-source SOTA.'
+    },
+    tags: ['Prompt Engineering', 'Text-to-Image', 'Z-Image', 'Alibaba'],
+    date: '2026-04-19',
+    url: 'posts/z-image-turbo-prompting/index.html',
+    color: '#ea6428',
+    phase: 4.2, speed: 0.88,
+    relations: ['text-to-image-prompting', 'mai-image-2-efficient']
   }
 ];

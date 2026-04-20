@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var presentationCounter;
   var presentationTitle;
   var presentationTip;
+  var prefetchBar;
   var stepScrollTimer = 0;
   var pptxgenLoader = null;
   var pptxExportLoader = null;
@@ -41,8 +42,25 @@ document.addEventListener('DOMContentLoaded', function () {
   var mediaRecorder = null;
   var recordedChunks = [];
   var recordingStream = null;
+  var focusModeEnabled = localStorage.getItem('present-focus-mode') !== 'false'; // default ON
+  var recordAspectRatio = localStorage.getItem('present-record-ratio') || '16:9';
 
   if (!site || !topbar || !hero || !main) return;
+
+  // Phase 2: Listen for focus mode toggle from narration-ui settings panel
+  document.addEventListener('focusModeChanged', function (e) {
+    focusModeEnabled = e.detail.enabled;
+    if (!focusModeEnabled) {
+      exitFocusMode();
+    } else if (narrationState === 'playing') {
+      enterFocusMode();
+    }
+  });
+
+  // Phase 3: Listen for record ratio change from narration-ui settings panel
+  document.addEventListener('recordRatioChanged', function (e) {
+    recordAspectRatio = e.detail.ratio;
+  });
 
   var labels = {
     zh: {
@@ -258,7 +276,6 @@ document.addEventListener('DOMContentLoaded', function () {
     var savedSettings = {};
     try { savedSettings = JSON.parse(localStorage.getItem('narration-settings')) || {}; } catch (e) {}
     var autoNarrate = localStorage.getItem('narration-autostart') === 'true';
-    var autoRecord = localStorage.getItem('narration-autorecord') === 'true';
 
     // Build panel HTML
     var zhMode = lang === 'zh';
@@ -282,10 +299,6 @@ document.addEventListener('DOMContentLoaded', function () {
       '  <span class="launch-row-label">' + (zhMode ? '自动语音讲解' : 'Auto narration') + '</span>',
       '  <button type="button" class="launch-switch" data-launch="autoNarrate" aria-label="' + (zhMode ? '自动语音讲解' : 'Auto narration') + '"></button>',
       '</div>',
-      '<div class="launch-row">',
-      '  <span class="launch-row-label">' + (zhMode ? '自动录制' : 'Auto record') + '</span>',
-      '  <button type="button" class="launch-switch" data-launch="autoRecord" aria-label="' + (zhMode ? '自动录制' : 'Auto record') + '"></button>',
-      '</div>',
       '<div class="launch-voice-settings">',
       '  <div class="launch-divider"></div>',
       '  <div class="launch-row">',
@@ -293,6 +306,18 @@ document.addEventListener('DOMContentLoaded', function () {
       '    <select class="launch-select" data-launch="ttsProvider">',
       '      <option value="browser">' + (zhMode ? '浏览器内置' : 'Browser') + '</option>',
       '      <option value="vibevoice">VibeVoice (EN)</option>',
+      '      <option value="moss-tts-nano">Qwen3-TTS (MLX)</option>',
+      '    </select>',
+      '  </div>',
+      '  <div class="launch-row launch-moss-row" style="display:none;">',
+      '    <span>' + (zhMode ? '音色' : 'Voice') + '</span>',
+      '    <select class="launch-select" data-launch="mossTtsVoice">',
+      '      <option value="vivian">vivian (' + (zhMode ? '活泼女声' : 'Female ZH') + ')</option>',
+      '      <option value="serena">serena (' + (zhMode ? '温柔女声' : 'Female ZH') + ')</option>',
+      '      <option value="uncle_fu">uncle_fu (' + (zhMode ? '成熟男声' : 'Male ZH') + ')</option>',
+      '      <option value="dylan">dylan (' + (zhMode ? '京腔男声' : 'Male Beijing') + ')</option>',
+      '      <option value="ryan">ryan (' + (zhMode ? '英文男声' : 'Male EN') + ')</option>',
+      '      <option value="aiden">aiden (' + (zhMode ? '美式男声' : 'Male US') + ')</option>',
       '    </select>',
       '  </div>',
       '  <div class="launch-row">',
@@ -317,13 +342,14 @@ document.addEventListener('DOMContentLoaded', function () {
     // DOM references
     var langSelect = panel.querySelector('[data-launch="lang"]');
     var autoNarrateBtn = panel.querySelector('[data-launch="autoNarrate"]');
-    var autoRecordBtn = panel.querySelector('[data-launch="autoRecord"]');
     var voiceSection = panel.querySelector('.launch-voice-settings');
     var ttsSelect = panel.querySelector('[data-launch="ttsProvider"]');
     var voiceSelect = panel.querySelector('[data-launch="voiceName"]');
     var voiceTestBtn = panel.querySelector('.launch-voice-test');
     var rateInput = panel.querySelector('[data-launch="rate"]');
     var rateVal = panel.querySelector('.launch-rate-val');
+    var mossRows = panel.querySelectorAll('.launch-moss-row');
+    var mossTtsVoiceSelect = panel.querySelector('[data-launch="mossTtsVoice"]');
 
     // VibeVoice preset voices
     var vibeVoices = [
@@ -339,8 +365,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (savedSettings.lang) langSelect.value = savedSettings.lang;
     if (savedSettings.ttsProvider) ttsSelect.value = savedSettings.ttsProvider;
     if (savedSettings.rate) { rateInput.value = savedSettings.rate; rateVal.textContent = parseFloat(savedSettings.rate).toFixed(2); }
+    if (savedSettings.mossTtsVoice) mossTtsVoiceSelect.value = savedSettings.mossTtsVoice;
     if (autoNarrate) autoNarrateBtn.classList.add('is-on');
-    if (autoRecord) autoRecordBtn.classList.add('is-on');
 
     // Track last known browser/vibe voice selections separately
     var lastBrowserVoice = savedSettings.voiceName || '';
@@ -348,7 +374,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Sync voice section visibility
     var syncVoiceExpanded = function () {
-      var needsVoice = autoNarrateBtn.classList.contains('is-on') || autoRecordBtn.classList.contains('is-on');
+      var needsVoice = autoNarrateBtn.classList.contains('is-on');
       if (needsVoice) {
         voiceSection.classList.add('is-expanded');
       } else {
@@ -408,13 +434,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Sync voice list based on current TTS provider
     var syncVoiceList = function () {
-      var isVibe = ttsSelect.value === 'vibevoice';
+      var provider = ttsSelect.value;
+      var isMoss = provider === 'moss-tts-nano';
+      var isVibe = provider === 'vibevoice';
+      // Show/hide MOSS rows
+      mossRows.forEach(function (row) { row.style.display = isMoss ? '' : 'none'; });
+      // Show/hide voice select row (hide for MOSS since it uses demo ID)
+      var voiceRow = voiceSelect.closest('.launch-row');
+      if (voiceRow) voiceRow.style.display = isMoss ? 'none' : '';
       if (isVibe) {
         populateVibeVoices();
       } else {
         populateBrowserVoices();
       }
     };
+    syncVoiceList();
 
     // Save all settings
     var articleSlug = window.location.pathname.replace(/\/$/, '').split('/').pop() || '';
@@ -422,10 +456,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var saveLaunchSettings = function () {
       var isVibe = ttsSelect.value === 'vibevoice';
+      var isMoss = ttsSelect.value === 'moss-tts-nano';
       // Update tracked selections
       if (isVibe) {
         lastVibeVoice = voiceSelect.value;
-      } else {
+      } else if (!isMoss) {
         lastBrowserVoice = voiceSelect.value;
       }
 
@@ -434,7 +469,9 @@ document.addEventListener('DOMContentLoaded', function () {
         rate: parseFloat(rateInput.value),
         voiceName: isVibe ? lastBrowserVoice : voiceSelect.value,
         vibeVoice: isVibe ? voiceSelect.value : lastVibeVoice,
-        ttsProvider: ttsSelect.value
+        ttsProvider: ttsSelect.value,
+        ttsEngine: isMoss ? 'moss-tts-nano' : '',
+        mossTtsVoice: mossTtsVoiceSelect.value
       };
       localStorage.setItem('narration-settings', JSON.stringify(s));
       // Also write per-article key so narration controller picks it up
@@ -442,7 +479,6 @@ document.addEventListener('DOMContentLoaded', function () {
         localStorage.setItem(articleKey, JSON.stringify(s));
       }
       localStorage.setItem('narration-autostart', autoNarrateBtn.classList.contains('is-on') ? 'true' : 'false');
-      localStorage.setItem('narration-autorecord', autoRecordBtn.classList.contains('is-on') ? 'true' : 'false');
 
       // Sync existing narration settings panel from storage
       var existingPanel = document.querySelector('.narration-settings-panel');
@@ -456,14 +492,6 @@ document.addEventListener('DOMContentLoaded', function () {
       e.preventDefault();
       e.stopPropagation();
       autoNarrateBtn.classList.toggle('is-on');
-      syncVoiceExpanded();
-      saveLaunchSettings();
-    });
-
-    autoRecordBtn.addEventListener('click', function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      autoRecordBtn.classList.toggle('is-on');
       syncVoiceExpanded();
       saveLaunchSettings();
     });
@@ -489,6 +517,8 @@ document.addEventListener('DOMContentLoaded', function () {
       syncVoiceList();
       saveLaunchSettings();
     });
+
+    mossTtsVoiceSelect.addEventListener('change', saveLaunchSettings);
 
     rateInput.addEventListener('input', function () {
       rateVal.textContent = parseFloat(rateInput.value).toFixed(2);
@@ -871,6 +901,13 @@ document.addEventListener('DOMContentLoaded', function () {
     presentationTip.className = 'present-status-tip';
     status.appendChild(presentationTip);
 
+    // Narration prefetch progress bar
+    prefetchBar = document.createElement('div');
+    prefetchBar.className = 'present-prefetch-bar';
+    prefetchBar.innerHTML = '<div class="present-prefetch-fill"></div><div class="present-prefetch-pointer"></div>';
+    prefetchBar.style.display = 'none';
+    status.appendChild(prefetchBar);
+
     floating.appendChild(status);
 
     // Bottom-left brand logo
@@ -1026,8 +1063,28 @@ document.addEventListener('DOMContentLoaded', function () {
       '  <select class="narration-select" data-narration-setting="ttsProvider">',
       '    <option value="browser">' + (getLang() === 'zh' ? '浏览器内置' : 'Browser') + '</option>',
       '    <option value="vibevoice">VibeVoice (EN)</option>',
+      '    <option value="moss-tts-nano">Qwen3-TTS (MLX)</option>',
       '  </select>',
       '</label>',
+      '<div class="narration-moss-settings" style="display:none;">',
+      '  <label class="narration-setting-row">',
+      '    <span>' + (getLang() === 'zh' ? '音色' : 'Voice') + '</span>',
+      '    <select class="narration-select" data-narration-setting="mossTtsVoice">',
+      '      <option value="vivian">vivian (' + (getLang() === 'zh' ? '活泼女声' : 'Female ZH') + ')</option>',
+      '      <option value="serena">serena (' + (getLang() === 'zh' ? '温柔女声' : 'Female ZH') + ')</option>',
+      '      <option value="uncle_fu">uncle_fu (' + (getLang() === 'zh' ? '成熟男声' : 'Male ZH') + ')</option>',
+      '      <option value="dylan">dylan (' + (getLang() === 'zh' ? '京腔男声' : 'Male Beijing') + ')</option>',
+      '      <option value="ryan">ryan (' + (getLang() === 'zh' ? '英文男声' : 'Male EN') + ')</option>',
+      '      <option value="aiden">aiden (' + (getLang() === 'zh' ? '美式男声' : 'Male US') + ')</option>',
+      '      <option value="ono_anna">ono_anna (' + (getLang() === 'zh' ? '日语女声' : 'Female JA') + ')</option>',
+      '      <option value="sohee">sohee (' + (getLang() === 'zh' ? '韩语女声' : 'Female KO') + ')</option>',
+      '      <option value="eric">eric (' + (getLang() === 'zh' ? '英文男声' : 'Male EN') + ')</option>',
+      '    </select>',
+      '    <button class="narration-voice-test narration-moss-voice-test" type="button" aria-label="' + (getLang() === 'zh' ? '试听' : 'Preview') + '" title="' + (getLang() === 'zh' ? '试听' : 'Preview') + '">' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>' +
+        '</button>',
+      '  </label>',
+      '</div>',
       '<div class="narration-setting-row narration-voice-row narration-vibe-row">',
       '  <span>' + (getLang() === 'zh' ? 'AI语音' : 'AI Voice') + '</span>',
       '  <select class="narration-select" data-narration-setting="vibeVoice">',
@@ -1072,19 +1129,26 @@ document.addEventListener('DOMContentLoaded', function () {
     var ttsProviderSelect = panel.querySelector('[data-narration-setting="ttsProvider"]');
     var vibeVoiceSelect = panel.querySelector('[data-narration-setting="vibeVoice"]');
     var vibeRow = panel.querySelector('.narration-vibe-row');
+    var mossSettingsDiv = panel.querySelector('.narration-moss-settings');
+    var mossDemoIdInput = panel.querySelector('[data-narration-setting="mossTtsVoice"]');
+    var mossVoiceTestBtn = panel.querySelector('.narration-moss-voice-test');
+    var browserVoiceRow = panel.querySelector('.narration-voice-row:not(.narration-vibe-row)');
 
     if (saved.lang) langSelect.value = saved.lang;
     if (saved.rate) { rateInput.value = saved.rate; rateValue.textContent = saved.rate; }
     if (saved.ttsProvider) ttsProviderSelect.value = saved.ttsProvider;
     if (saved.vibeVoice) vibeVoiceSelect.value = saved.vibeVoice;
+    if (saved.mossTtsVoice) mossDemoIdInput.value = saved.mossTtsVoice;
 
-    // Show/hide VibeVoice row based on provider selection
-    var syncVibeRowVisibility = function () {
-      var isVibe = ttsProviderSelect.value === 'vibevoice';
-      vibeRow.style.display = isVibe ? '' : 'none';
+    // Show/hide provider-specific rows based on TTS provider selection
+    var syncProviderVisibility = function () {
+      var provider = ttsProviderSelect.value;
+      browserVoiceRow.style.display = provider === 'browser' ? '' : 'none';
+      vibeRow.style.display = provider === 'vibevoice' ? '' : 'none';
+      mossSettingsDiv.style.display = provider === 'moss-tts-nano' ? '' : 'none';
     };
-    syncVibeRowVisibility();
-    ttsProviderSelect.addEventListener('change', syncVibeRowVisibility);
+    syncProviderVisibility();
+    ttsProviderSelect.addEventListener('change', syncProviderVisibility);
 
     // Populate voices directly from browser Speech API
     var voicesPopulated = false;
@@ -1154,11 +1218,11 @@ document.addEventListener('DOMContentLoaded', function () {
         rate: parseFloat(rateInput.value),
         voiceName: voiceSelect.value,
         ttsProvider: ttsProviderSelect.value,
+        ttsEngine: ttsProviderSelect.value === 'moss-tts-nano' ? 'moss-tts-nano' : '',
+        mossTtsVoice: mossDemoIdInput.value,
         vibeVoice: vibeVoiceSelect.value
       };
-      // Save as global default
       localStorage.setItem(globalKey, JSON.stringify(s));
-      // Also save per-article override
       if (articleKey) {
         localStorage.setItem(articleKey, JSON.stringify(s));
       }
@@ -1167,6 +1231,7 @@ document.addEventListener('DOMContentLoaded', function () {
     langSelect.addEventListener('change', saveSettings);
     ttsProviderSelect.addEventListener('change', saveSettings);
     vibeVoiceSelect.addEventListener('change', saveSettings);
+    mossDemoIdInput.addEventListener('change', saveSettings);
     rateInput.addEventListener('input', function () {
       rateValue.textContent = parseFloat(rateInput.value).toFixed(2);
       saveSettings();
@@ -1250,6 +1315,52 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
 
+    // Qwen3-TTS voice preview (reuses LLM endpoint)
+    if (mossVoiceTestBtn) {
+      mossVoiceTestBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var llm = null;
+        try { llm = JSON.parse(localStorage.getItem('llm-settings')); } catch (ex) {}
+        if (!llm || !llm.endpoint) return;
+        var ep = llm.endpoint.replace(/\/+$/, '');
+        var voice = (mossDemoIdInput.value || 'vivian').toLowerCase();
+        var testText = (getLang() === 'zh' || langSelect.value === 'zh')
+          ? '你好，这是一段语音试听。'
+          : 'Hello, this is a voice preview.';
+        var headers = { 'Content-Type': 'application/json' };
+        if (llm.apikey) headers['Authorization'] = 'Bearer ' + llm.apikey;
+        mossVoiceTestBtn.classList.add('is-testing');
+        fetch(ep + '/audio/speech', {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify({
+            model: 'Qwen3-TTS-12Hz-0.6B-CustomVoice-8bit',
+            input: testText,
+            voice: voice
+          })
+        })
+        .then(function (res) {
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          return res.arrayBuffer();
+        })
+        .then(function (buf) {
+          var ctx = new (window.AudioContext || window.webkitAudioContext)();
+          return ctx.decodeAudioData(buf).then(function (audioBuf) {
+            var src = ctx.createBufferSource();
+            src.buffer = audioBuf;
+            src.connect(ctx.destination);
+            src.onended = function () { mossVoiceTestBtn.classList.remove('is-testing'); };
+            src.start(0);
+          });
+        })
+        .catch(function (err) {
+          mossVoiceTestBtn.classList.remove('is-testing');
+          console.error('Qwen3-TTS preview error:', err);
+        });
+      });
+    }
+
     panel.querySelector('.narration-settings-close').addEventListener('click', function () {
       panel.classList.remove('is-open');
     });
@@ -1278,7 +1389,8 @@ document.addEventListener('DOMContentLoaded', function () {
       if (fresh.rate) { rateInput.value = fresh.rate; rateValue.textContent = parseFloat(fresh.rate).toFixed(2); }
       if (fresh.ttsProvider) { ttsProviderSelect.value = fresh.ttsProvider; } else { ttsProviderSelect.value = 'browser'; }
       if (fresh.vibeVoice) { vibeVoiceSelect.value = fresh.vibeVoice; }
-      syncVibeRowVisibility();
+      if (fresh.mossTtsVoice) { mossDemoIdInput.value = fresh.mossTtsVoice; }
+      syncProviderVisibility();
       populateVoices();
       if (fresh.voiceName) { voiceSelect.value = fresh.voiceName; }
     };
@@ -1954,6 +2066,40 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   };
 
+  // ── Phase 2: Focus mode — tag anchor elements per slide ──
+  var tagFocusElements = function (slideEl) {
+    if (!slideEl) return;
+    // Clear previous focus-keep tags across ALL steps
+    var prevKept = root.querySelectorAll('.focus-keep');
+    prevKept.forEach(function (el) { el.classList.remove('focus-keep'); });
+
+    // Tag anchor elements in current slide
+    var anchors = slideEl.querySelectorAll('h2, h3, h4, img, blockquote, strong, .insight-callout, .insight-grid, .metric-card, .comparison-grid');
+    anchors.forEach(function (el) {
+      // Walk up to find the direct child of subsection-content or the event-field
+      var target = el;
+      while (target.parentElement && !target.parentElement.classList.contains('subsection-content') && !target.parentElement.classList.contains('event-field')) {
+        target = target.parentElement;
+      }
+      target.classList.add('focus-keep');
+    });
+
+    // First event-field is always kept via CSS :first-child, but also tag it
+    var firstField = slideEl.querySelector('.event-field');
+    if (firstField) firstField.classList.add('focus-keep');
+  };
+
+  var enterFocusMode = function () {
+    if (!focusModeEnabled) return;
+    var activeStep = presentSteps[state.index];
+    tagFocusElements(activeStep);
+    site.classList.add('is-focus-mode');
+  };
+
+  var exitFocusMode = function () {
+    site.classList.remove('is-focus-mode');
+  };
+
   var setPresentationStep = function (index) {
     var safeIndex;
     var activeStep;
@@ -2015,6 +2161,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     syncStepOverflowState(activeStep);
+
+    // Phase 2: Re-tag focus anchors when slide changes during narration
+    if (site.classList.contains('is-focus-mode')) {
+      tagFocusElements(activeStep);
+    }
   };
 
   var resolvePresentationStepIndex = function () {
@@ -2092,6 +2243,14 @@ document.addEventListener('DOMContentLoaded', function () {
       narrationSubtitle.classList.remove('is-visible');
       return;
     }
+    // Position subtitle symmetrically: left side clears brand logo, right mirrors
+    var logo = document.querySelector('.present-brand-logo');
+    if (logo) {
+      var logoRect = logo.getBoundingClientRect();
+      var leftDist = logoRect.right + 16; // logo right edge + 16px gap
+      narrationSubtitle.style.left = leftDist + 'px';
+      narrationSubtitle.style.right = leftDist + 'px';
+    }
     narrationSubtitle.textContent = text;
     narrationSubtitle.classList.add('is-visible');
   };
@@ -2131,12 +2290,46 @@ document.addEventListener('DOMContentLoaded', function () {
       audio: true,
       systemAudio: 'include'
     }).then(function (stream) {
-      // Step 2: Show "preparing" overlay
+      // Step 2: Show progress overlay
       var prepOverlay = document.createElement('div');
       prepOverlay.className = 'present-countdown-overlay';
-      prepOverlay.innerHTML = '<span class="present-countdown-num is-animating">' +
-        (getLang() === 'zh' ? '准备中…' : 'Preparing…') + '</span>';
+      var zhM = getLang() === 'zh';
+      var rss = {};
+      try { rss = JSON.parse(localStorage.getItem('narration-settings')) || {}; } catch (e) {}
+      var rIsLocal = rss.ttsEngine === 'moss-tts-nano';
+      var rSteps = [
+        { id: 'script', label: zhM ? '生成讲稿' : 'Generating script' }
+      ];
+      if (rIsLocal) rSteps.push({ id: 'audio', label: zhM ? '合成语音' : 'Synthesizing audio' });
+      var rHtml = '<div class="prep-progress">';
+      rSteps.forEach(function (s, i) {
+        rHtml += '<div class="prep-step" data-step="' + s.id + '">' +
+          '<span class="prep-step-icon prep-step-pending">' + (i + 1) + '</span>' +
+          '<span class="prep-step-label">' + s.label + '</span>' +
+          '<span class="prep-step-status"></span></div>';
+      });
+      rHtml += '</div>';
+      prepOverlay.innerHTML = rHtml;
       document.body.appendChild(prepOverlay);
+
+      var rSetActive = function (id) {
+        var el = prepOverlay.querySelector('[data-step="' + id + '"]');
+        if (!el) return;
+        el.querySelector('.prep-step-icon').className = 'prep-step-icon prep-step-active';
+        var st = el.querySelector('.prep-step-status');
+        st.textContent = zhM ? '进行中…' : 'In progress…';
+        st.className = 'prep-step-status prep-status-active';
+      };
+      var rSetDone = function (id) {
+        var el = prepOverlay.querySelector('[data-step="' + id + '"]');
+        if (!el) return;
+        var icon = el.querySelector('.prep-step-icon');
+        icon.className = 'prep-step-icon prep-step-done'; icon.textContent = '\u2713';
+        var st = el.querySelector('.prep-step-status');
+        st.textContent = zhM ? '完成' : 'Done';
+        st.className = 'prep-step-status prep-status-done';
+      };
+      rSetActive('script');
 
       // Step 3: Enter presentation mode if not already
       if (!state.enabled) {
@@ -2146,28 +2339,44 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // Step 4: Pre-generate first slide narrative
       ensureNarrationController().then(function (ctrl) {
-        return ctrl.pregenerate(presentSteps, 0, getLang);
+        return ctrl.pregenerate(presentSteps, 0, getLang, function (phase) {
+          if (phase === 'script-done') { rSetDone('script'); if (rIsLocal) rSetActive('audio'); }
+          else if (phase === 'audio-done') { rSetDone('audio'); }
+        });
       }).then(function () {
-        // Step 5: Remove prep overlay, show countdown
-        if (prepOverlay.parentNode) prepOverlay.parentNode.removeChild(prepOverlay);
+        rSteps.forEach(function (s) { rSetDone(s.id); });
+        setTimeout(function () {
+          if (prepOverlay.parentNode) prepOverlay.parentNode.removeChild(prepOverlay);
 
-        showCountdown(function () {
+          showCountdown(function () {
           // Step 6: 1s pause, then start recording + narration
           setTimeout(function () {
             // Setup MediaRecorder
             recordingStream = stream;
             recordedChunks = [];
 
-            // Build recording stream — merge video + VibeVoice audio if applicable
+            // Build recording stream — merge video + TTS audio based on engine
             var ss = {};
             try { ss = JSON.parse(localStorage.getItem('narration-settings')) || {}; } catch (e) {}
             var recordStream = stream;
+
+            // VibeVoice — use its own audio stream
             if (ss.ttsProvider === 'vibevoice' && window.StudyRoomNarration) {
               var vibeAudioStream = window.StudyRoomNarration.getVibeAudioStream();
               if (vibeAudioStream) {
                 recordStream = new MediaStream();
                 stream.getVideoTracks().forEach(function (t) { recordStream.addTrack(t); });
                 vibeAudioStream.getAudioTracks().forEach(function (t) { recordStream.addTrack(t); });
+              }
+            }
+
+            // Qwen3-TTS (MLX) — use Web Audio capture stream
+            if (ss.ttsEngine === 'moss-tts-nano' && window.StudyRoomNarration && window.StudyRoomNarration.getTtsAudioStream) {
+              var ttsStream = window.StudyRoomNarration.getTtsAudioStream();
+              if (ttsStream) {
+                recordStream = new MediaStream();
+                stream.getVideoTracks().forEach(function (t) { recordStream.addTrack(t); });
+                ttsStream.getAudioTracks().forEach(function (t) { recordStream.addTrack(t); });
               }
             }
 
@@ -2208,6 +2417,7 @@ document.addEventListener('DOMContentLoaded', function () {
             narrationController.start(presentSteps, 0, getLang);
           }, 1000);
         });
+        }, 300);
       }).catch(function () {
         // Pregen failed — still proceed
         if (prepOverlay.parentNode) prepOverlay.parentNode.removeChild(prepOverlay);
@@ -2343,9 +2553,25 @@ document.addEventListener('DOMContentLoaded', function () {
     return ensureNarration().then(function (narrationModule) {
       if (!narrationController) {
         narrationController = narrationModule.createController({
-          onSlideComplete: function (status) {
-            if (status === 'next') {
-              goToNextStep();
+          onFillProgress: function (filled, total, currentIdx) {
+            if (!prefetchBar) return;
+            if (total <= 0) { prefetchBar.style.display = 'none'; return; }
+            prefetchBar.style.display = '';
+            var pct = Math.round((filled / total) * 100);
+            var pointerPct = Math.round(((currentIdx + 0.5) / total) * 100);
+            prefetchBar.querySelector('.present-prefetch-fill').style.width = pct + '%';
+            prefetchBar.querySelector('.present-prefetch-pointer').style.left = pointerPct + '%';
+            if (filled >= total) {
+              setTimeout(function () { prefetchBar.style.display = 'none'; }, 2000);
+            }
+          },
+          onSlideComplete: function (status, targetIndex) {
+            if (status === 'next' && targetIndex !== undefined) {
+              // Controller already started playing the next slide internally.
+              // Sync UI to controller's pointer — not state.index + 1.
+              if (state.enabled) {
+                setPresentationStep(targetIndex);
+              }
             } else {
               var elapsed = Date.now() - narrationStartTime;
               stopNarration();
@@ -2360,6 +2586,12 @@ document.addEventListener('DOMContentLoaded', function () {
           onStateChange: function (newState) {
             narrationState = newState;
             root.classList.toggle('is-narrating', newState === 'playing' || newState === 'generating');
+            // Phase 2: Focus mode — enter on play, exit on pause/idle
+            if (newState === 'playing') {
+              enterFocusMode();
+            } else if (newState === 'paused' || newState === 'idle') {
+              exitFocusMode();
+            }
             updateAutoPlayButton();
           },
           onSubtitle: function (text) { showSubtitleSentence(text); },
@@ -2382,30 +2614,80 @@ document.addEventListener('DOMContentLoaded', function () {
     var mainArea = presentationAutoPlay ? presentationAutoPlay.querySelector('.narration-capsule-main') : null;
     if (mainArea) mainArea.innerHTML = NARRATION_SVG_GENERATING;
 
-    // Show "preparing" overlay
+    var zhMode = getLang() === 'zh';
+    var ss = {};
+    try { ss = JSON.parse(localStorage.getItem('narration-settings')) || {}; } catch (e) {}
+    var isLocalTTS = ss.ttsEngine === 'moss-tts-nano';
+
+    // Build step definitions
+    var steps = [
+      { id: 'script', label: zhMode ? '生成讲稿' : 'Generating script' }
+    ];
+    if (isLocalTTS) {
+      steps.push({ id: 'audio', label: zhMode ? '合成语音' : 'Synthesizing audio' });
+    }
+
+    // Show progress overlay
     var prepOverlay = document.createElement('div');
     prepOverlay.className = 'present-countdown-overlay';
-    prepOverlay.innerHTML = '<span class="present-countdown-num is-animating">' +
-      (getLang() === 'zh' ? '准备中…' : 'Preparing…') + '</span>';
+    var stepsHtml = '<div class="prep-progress">';
+    steps.forEach(function (s, i) {
+      stepsHtml += '<div class="prep-step" data-step="' + s.id + '">' +
+        '<span class="prep-step-icon prep-step-pending">' + (i + 1) + '</span>' +
+        '<span class="prep-step-label">' + s.label + '</span>' +
+        '<span class="prep-step-status"></span>' +
+        '</div>';
+    });
+    stepsHtml += '</div>';
+    prepOverlay.innerHTML = stepsHtml;
     document.body.appendChild(prepOverlay);
 
-    // Pre-generate first slide narrative
+    var setStepActive = function (id) {
+      var el = prepOverlay.querySelector('[data-step="' + id + '"]');
+      if (!el) return;
+      var icon = el.querySelector('.prep-step-icon');
+      var status = el.querySelector('.prep-step-status');
+      icon.className = 'prep-step-icon prep-step-active';
+      status.textContent = zhMode ? '进行中…' : 'In progress…';
+      status.className = 'prep-step-status prep-status-active';
+    };
+    var setStepDone = function (id) {
+      var el = prepOverlay.querySelector('[data-step="' + id + '"]');
+      if (!el) return;
+      var icon = el.querySelector('.prep-step-icon');
+      var status = el.querySelector('.prep-step-status');
+      icon.className = 'prep-step-icon prep-step-done';
+      icon.textContent = '\u2713';
+      status.textContent = zhMode ? '完成' : 'Done';
+      status.className = 'prep-step-status prep-status-done';
+    };
+
+    setStepActive('script');
+
+    // Pre-generate first slide narrative + audio
     ensureNarrationController().then(function (ctrl) {
-      return ctrl.pregenerate(presentSteps, 0, getLang);
-    }).then(function () {
-      // Pregen done — remove prep overlay, show countdown
-      if (prepOverlay.parentNode) prepOverlay.parentNode.removeChild(prepOverlay);
-      if (mainArea) mainArea.innerHTML = NARRATION_SVG_PLAY;
-
-      showCountdown(function () {
-        narrationStartTime = Date.now();
-        narrationController.start(presentSteps, state.index, getLang);
+      return ctrl.pregenerate(presentSteps, 0, getLang, function (phase) {
+        if (phase === 'script-done') {
+          setStepDone('script');
+          if (isLocalTTS) setStepActive('audio');
+        } else if (phase === 'audio-done') {
+          setStepDone('audio');
+        }
       });
+    }).then(function () {
+      // Ensure all steps show done
+      steps.forEach(function (s) { setStepDone(s.id); });
+      setTimeout(function () {
+        if (prepOverlay.parentNode) prepOverlay.parentNode.removeChild(prepOverlay);
+        if (mainArea) mainArea.innerHTML = NARRATION_SVG_PLAY;
+        showCountdown(function () {
+          narrationStartTime = Date.now();
+          narrationController.start(presentSteps, state.index, getLang);
+        });
+      }, 300);
     }).catch(function () {
-      // Pregen failed — still proceed
       if (prepOverlay.parentNode) prepOverlay.parentNode.removeChild(prepOverlay);
       if (mainArea) mainArea.innerHTML = NARRATION_SVG_PLAY;
-
       showCountdown(function () {
         narrationStartTime = Date.now();
         handleAutoPlayClick();
@@ -2420,6 +2702,7 @@ document.addEventListener('DOMContentLoaded', function () {
     showSubtitleSentence('');
     narrationState = 'idle';
     root.classList.remove('is-narrating');
+    exitFocusMode();
     updateAutoPlayButton();
   };
 
@@ -2605,11 +2888,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // Auto-start narration with countdown if enabled
     if (hasNarrationSupport() && localStorage.getItem('narration-autostart') === 'true') {
       startAutoNarration();
-    }
-
-    // Auto-start recording if enabled
-    if (localStorage.getItem('narration-autorecord') === 'true' && !isRecording()) {
-      toggleRecording();
     }
   });
 

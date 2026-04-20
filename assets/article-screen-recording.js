@@ -42,6 +42,9 @@
         recordingStream = null;
       }
       deps.root.classList.remove('is-recording');
+      // Phase 3: Remove recording viewport constraint classes
+      deps.root.classList.remove('is-portrait-recording');
+      deps.root.classList.remove('is-square-recording');
     };
 
     var toggle = function () {
@@ -76,6 +79,14 @@
           deps.enterPresentation();
         }
         deps.setPresentationStep(0);
+
+        // Phase 3: Apply recording aspect ratio viewport constraint
+        var ratio = localStorage.getItem('present-record-ratio') || '16:9';
+        if (ratio === '9:16') {
+          deps.root.classList.add('is-portrait-recording');
+        } else if (ratio === '1:1') {
+          deps.root.classList.add('is-square-recording');
+        }
 
         var presentSteps = deps.getPresentSteps();
 

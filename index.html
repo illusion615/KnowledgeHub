@@ -1128,6 +1128,50 @@
       color: var(--muted);
       letter-spacing: 0.04em;
     }
+    .layout-cards-group-count {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 0.68rem; font-weight: 700;
+      color: var(--muted);
+      opacity: 0.5;
+      letter-spacing: 0.02em;
+    }
+
+    /* Hierarchy depth styling */
+    .layout-cards-group-root {
+      margin-top: 32px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .layout-cards-group-root:first-child { margin-top: 0; }
+    .layout-cards-group-root .layout-cards-dot { width: 12px; height: 12px; }
+    .layout-cards-group-root .layout-cards-group-label {
+      font-size: 1rem; font-weight: 700;
+      color: var(--ink);
+      letter-spacing: 0.02em;
+    }
+
+    .layout-cards-group-sub {
+      margin-top: 18px;
+      padding-left: 24px;
+    }
+    .layout-cards-group-sub .layout-cards-dot { width: 8px; height: 8px; }
+    .layout-cards-group-sub .layout-cards-group-label {
+      font-size: 0.85rem; font-weight: 600;
+      color: var(--muted);
+    }
+
+    .layout-cards-group-leaf {
+      margin-top: 14px;
+      padding-left: 48px;
+    }
+    .layout-cards-group-leaf .layout-cards-dot { width: 6px; height: 6px; }
+    .layout-cards-group-leaf .layout-cards-group-label {
+      font-size: 0.78rem; font-weight: 500;
+      color: var(--muted);
+      opacity: 0.8;
+    }
+    .layout-cards-group-title[data-depth="3"] { padding-left: 72px; }
+    .layout-cards-group-title[data-depth="4"] { padding-left: 96px; }
 
     .layout-card-item {
       display: flex; flex-direction: column;
@@ -3876,8 +3920,9 @@
           var opt = document.createElement('option');
           opt.value = v.name;
           var dialectLabel = narrDialectMap[v.lang] || v.lang;
+          var isNatural = v.name.indexOf('Natural') !== -1 || v.name.indexOf('Premium') !== -1;
           var coreName = v.name.replace(/\s*\(.*\)\s*$/, '');
-          opt.textContent = coreName + ' · ' + dialectLabel;
+          opt.textContent = coreName + ' · ' + dialectLabel + (isNatural ? ' ★' : '');
           opt.title = v.name + ' (' + v.lang + ')';
           narrVoice.appendChild(opt);
         });
@@ -4196,11 +4241,11 @@
         var show = text.indexOf(ql) !== -1;
         el.style.display = show ? '' : 'none';
         if (show) {
+          // Walk backward to find ALL ancestor group titles
           var prev = el.previousElementSibling;
           while (prev) {
             if (prev.classList.contains('layout-cards-group-title')) {
               visibleGroups[prev.textContent] = true;
-              break;
             }
             prev = prev.previousElementSibling;
           }
@@ -4316,26 +4361,47 @@
     }
 
     function renderCardsView() {
-      var html = '<div class="layout-cards-grid">';
-      planets.forEach(function (pl) {
-        var planetPosts = posts.filter(function (p) { return p.planetId === pl.id; });
-        if (planetPosts.length === 0) return;
-        planetPosts.sort(function (a, b) { return (a.date || '').localeCompare(b.date || ''); });
-        html += '<div class="layout-cards-group-title">' +
-          '<span class="layout-cards-dot" style="background:' + pl.color + '"></span>' +
-          '<span class="layout-cards-group-label">' + pl.label[lang] + '</span>' +
+      // Recursive helper: render a topic node and its children
+      function renderTopicGroup(topic, depth) {
+        var directArticles = getArticles(topic.id);
+        var subTopics = getTopics(topic.id);
+        // Skip empty branches (no articles at any depth)
+        var totalArticles = getAllArticles(topic.id);
+        if (totalArticles.length === 0) return '';
+        var out = '';
+        var depthClass = depth === 0 ? 'layout-cards-group-root'
+                       : depth === 1 ? 'layout-cards-group-sub'
+                       : 'layout-cards-group-leaf';
+        out += '<div class="layout-cards-group-title ' + depthClass + '" data-depth="' + depth + '">' +
+          '<span class="layout-cards-dot" style="background:' + topic.color + '"></span>' +
+          '<span class="layout-cards-group-label">' + (topic.label ? topic.label[lang] : topic.id) + '</span>' +
+          '<span class="layout-cards-group-count">' + totalArticles.length + '</span>' +
         '</div>';
-        planetPosts.forEach(function (p) {
+
+        // Render articles directly under this topic
+        directArticles.sort(function (a, b) { return (a.date || '').localeCompare(b.date || ''); });
+        directArticles.forEach(function (p) {
           var tags = p.tags.map(function (t) {
             return '<span class="card-tag">' + t + '</span>';
           }).join('');
-          html += '<a class="layout-card-item" href="' + p.url + '">' +
+          out += '<a class="layout-card-item" href="' + p.url + '">' +
             '<div class="card-meta"><time>' + p.date + '</time></div>' +
             '<h3>' + p.title[lang] + '</h3>' +
             '<div class="card-tags">' + tags + '</div>' +
             '<p>' + p.summary[lang] + '</p>' +
           '</a>';
         });
+
+        // Recurse into sub-topics
+        subTopics.forEach(function (sub) {
+          out += renderTopicGroup(sub, depth + 1);
+        });
+        return out;
+      }
+
+      var html = '<div class="layout-cards-grid">';
+      planets.forEach(function (pl) {
+        html += renderTopicGroup(pl, 0);
       });
       html += '</div>';
       cardsViewEl.innerHTML = html;
