@@ -44,6 +44,9 @@ document.addEventListener('DOMContentLoaded', function () {
   var recordingStream = null;
   var focusModeEnabled = localStorage.getItem('present-focus-mode') !== 'false'; // default ON
   var recordAspectRatio = localStorage.getItem('present-record-ratio') || '16:9';
+  var mobilePresentEnabled = localStorage.getItem('present-mobile-mode') === 'true';
+  var mobilePresentLoader = null;
+  var mobilePresentController = null;
 
   if (!site || !topbar || !hero || !main) return;
 
@@ -60,6 +63,24 @@ document.addEventListener('DOMContentLoaded', function () {
   // Phase 3: Listen for record ratio change from narration-ui settings panel
   document.addEventListener('recordRatioChanged', function (e) {
     recordAspectRatio = e.detail.ratio;
+  });
+
+  // Phase 4: Listen for mobile present mode toggle
+  document.addEventListener('mobilePresentChanged', function (e) {
+    mobilePresentEnabled = e.detail.enabled;
+    localStorage.setItem('present-mobile-mode', mobilePresentEnabled ? 'true' : 'false');
+    if (state.enabled) {
+      if (mobilePresentEnabled) {
+        root.classList.add('is-mobile-present');
+        ensureMobilePresent();
+      } else {
+        root.classList.remove('is-mobile-present');
+        if (mobilePresentController) {
+          mobilePresentController.destroy();
+          mobilePresentController = null;
+        }
+      }
+    }
   });
 
   var labels = {
@@ -334,6 +355,11 @@ document.addEventListener('DOMContentLoaded', function () {
       '    <input type="range" class="launch-range" data-launch="rate" min="0.5" max="1.5" step="0.1" value="0.92" />',
       '    <span class="launch-rate-val">0.92</span>',
       '  </div>',
+      '</div>',
+      '<div class="launch-divider-line"></div>',
+      '<div class="launch-row">',
+      '  <span class="launch-row-label">' + (zhMode ? '手机优化' : 'Mobile optimized') + '</span>',
+      '  <button type="button" class="launch-switch" data-launch="mobilePresent" aria-label="' + (zhMode ? '手机优化' : 'Mobile optimized') + '"></button>',
       '</div>'
     ].join('\n');
 
@@ -367,6 +393,10 @@ document.addEventListener('DOMContentLoaded', function () {
     if (savedSettings.rate) { rateInput.value = savedSettings.rate; rateVal.textContent = parseFloat(savedSettings.rate).toFixed(2); }
     if (savedSettings.mossTtsVoice) mossTtsVoiceSelect.value = savedSettings.mossTtsVoice;
     if (autoNarrate) autoNarrateBtn.classList.add('is-on');
+
+    // Mobile present toggle
+    var mobilePresentBtn = panel.querySelector('[data-launch="mobilePresent"]');
+    if (mobilePresentEnabled) mobilePresentBtn.classList.add('is-on');
 
     // Track last known browser/vibe voice selections separately
     var lastBrowserVoice = savedSettings.voiceName || '';
@@ -494,6 +524,15 @@ document.addEventListener('DOMContentLoaded', function () {
       autoNarrateBtn.classList.toggle('is-on');
       syncVoiceExpanded();
       saveLaunchSettings();
+    });
+
+    mobilePresentBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      mobilePresentBtn.classList.toggle('is-on');
+      var isOn = mobilePresentBtn.classList.contains('is-on');
+      localStorage.setItem('present-mobile-mode', isOn ? 'true' : 'false');
+      document.dispatchEvent(new CustomEvent('mobilePresentChanged', { detail: { enabled: isOn } }));
     });
 
     langSelect.addEventListener('change', function () {
@@ -1460,6 +1499,48 @@ document.addEventListener('DOMContentLoaded', function () {
       return !!(s && s.provider !== 'none' && s.endpoint && s.model &&
                window.speechSynthesis && window.SpeechSynthesisUtterance);
     } catch (e) { return false; }
+  };
+
+  /** Lazy-load mobile presentation module. */
+  var ensureMobilePresent = function () {
+    if (mobilePresentLoader) {
+      mobilePresentLoader.then(function () {
+        if (!mobilePresentController && window.StudyRoomMobilePresent) {
+          mobilePresentController = window.StudyRoomMobilePresent.init({
+            root: root,
+            getLang: getLang,
+            goToPrev: goToPreviousStep,
+            goToNext: goToNextStep,
+            getState: function () { return { enabled: state.enabled, index: state.index }; },
+            getPresentSteps: function () { return presentSteps; }
+          });
+        }
+      });
+      return mobilePresentLoader;
+    }
+    mobilePresentLoader = new Promise(function (resolve, reject) {
+      if (window.StudyRoomMobilePresent) { resolve(); return; }
+      var s = document.createElement('script');
+      s.src = resolvePresentationAssetUrl('article-mobile-present.js');
+      s.async = true;
+      s.onload = function () {
+        if (window.StudyRoomMobilePresent) { resolve(); return; }
+        reject(new Error('article-mobile-present.js loaded but unavailable.'));
+      };
+      s.onerror = function () { reject(new Error('Failed to load article-mobile-present.js.')); };
+      document.head.appendChild(s);
+    });
+    mobilePresentLoader.then(function () {
+      mobilePresentController = window.StudyRoomMobilePresent.init({
+        root: root,
+        getLang: getLang,
+        goToPrev: goToPreviousStep,
+        goToNext: goToNextStep,
+        getState: function () { return { enabled: state.enabled, index: state.index }; },
+        getPresentSteps: function () { return presentSteps; }
+      });
+    });
+    return mobilePresentLoader;
   };
 
   var ensureNarration = function () {
@@ -2546,6 +2627,13 @@ document.addEventListener('DOMContentLoaded', function () {
     setPresentationStep(0);
     updatePresentationLabels();
     requestBrowserFullscreen();
+
+    // Phase 4: Mobile presentation mode — explicit toggle OR auto-detect by viewport
+    mobilePresentEnabled = localStorage.getItem('present-mobile-mode') === 'true' || window.innerWidth <= 768;
+    if (mobilePresentEnabled) {
+      root.classList.add('is-mobile-present');
+      ensureMobilePresent();
+    }
   };
 
   /** Prepare narration controller (lazy load + create). Returns Promise<controller>. */
@@ -2784,6 +2872,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     state.enabled = false;
     root.classList.remove('is-presentation-mode');
+
+    // Phase 4: Clean up mobile presentation mode
+    root.classList.remove('is-mobile-present');
+    if (mobilePresentController) {
+      mobilePresentController.destroy();
+      mobilePresentController = null;
+    }
+
     restoreAccordionStates();
     setPresentationStep(state.index);
     updatePresentationLabels();

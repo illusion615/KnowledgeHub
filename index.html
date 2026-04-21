@@ -977,15 +977,54 @@
     .overlay-footer a { pointer-events: auto; text-decoration: underline; text-underline-offset: 0.2em; }
 
     @media (max-width: 640px) {
-      .overlay-header { padding: 20px 20px; }
+      /* Header: stack logo+buttons row and search row */
+      .overlay-header {
+        padding: 14px 16px 48px;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .overlay-header .logo { flex: 0 0 auto; }
+      /* Search row (2nd child = first .controls) drops to full-width second row */
+      .overlay-header > :nth-child(2) {
+        order: 3;
+        flex: 0 0 100%;
+      }
+      /* Theme + settings buttons stay in first row, right-aligned */
+      .overlay-header > :nth-child(3) {
+        margin-left: auto;
+      }
+      .search-box {
+        width: 100%;
+        max-width: 100%;
+      }
+      .search-box:focus-within {
+        width: 100%;
+      }
       .logo-main { font-size: 1.1rem; }
+      .logo-owner { font-size: 0.58rem; }
+
+      /* Planet panel full width */
       .planet-panel { width: calc(100vw - 20px); padding: 18px 16px 16px; }
+
+      /* Cards */
       .card { width: 290px; padding: 18px; }
       .card h3 { font-size: 1rem; }
-      .tag-cloud { bottom: 44px; padding: 0 16px; }
+
+      /* Tag cloud: compact chips, hide label */
+      .tag-cloud { bottom: 44px; padding: 0 12px; gap: 6px; }
+      .tag-cloud-label { display: none; }
+      .tag-chip { padding: 4px 10px; font-size: 0.6rem; }
+
+      /* Cards layout */
       .layout-cards-view { padding: 80px 16px 80px; }
+      .layout-cards-grid { grid-template-columns: 1fr; gap: 14px; }
       .layout-card-item { width: 100%; }
+
+      /* Infographic detail panel */
       .arc-detail { width: calc(100vw - 32px); }
+
+      /* Footer */
+      .overlay-footer { font-size: 0.72rem; padding-bottom: 12px; }
     }
 
     /* ---- layout picker (radio buttons in settings) ---- */
@@ -1705,6 +1744,22 @@
       0%, 100% { opacity: 0.5; }
       50% { opacity: 0.2; }
     }
+
+    /* ── Mobile infographic breadcrumb ── */
+    .arc-mobile-breadcrumb {
+      position: absolute;
+      top: 72px; left: 16px; right: 16px;
+      z-index: 5;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      pointer-events: none;
+      opacity: 0.7;
+    }
   </style>
 </head>
 <body>
@@ -2049,6 +2104,7 @@
   <script src="assets/color-schemes.js"></script>
   <script src="assets/pan-zoom.js"></script>
   <script src="assets/infographic-view.js"></script>
+  <script src="assets/infographic-mobile.js"></script>
   <script>
   // ============ SHARED MATH UTILITIES (global — used by PanZoomController) ============
   function clampNumber(value, min, max) {
@@ -4709,6 +4765,35 @@
     }
 
     function renderInfographicView() {
+      // Mobile: use separate module (viewBox-based pan canvas)
+      if (window.innerWidth <= 640 && typeof renderInfographicViewMobile === 'function') {
+        // Cleanup desktop instance if switching
+        if (infographicViewEl._arcCleanup) {
+          infographicViewEl._arcCleanup();
+          infographicViewEl._arcCleanup = null;
+        }
+        renderInfographicViewMobile({
+          container: infographicViewEl,
+          planets: planets,
+          lang: lang,
+          searchQuery: searchQuery,
+          matchesSearch: matchesSearch,
+          arcSortMode: arcSortMode,
+          getChildren: getVisibleChildren,
+          getAllArticles: getAllArticles,
+          navigateToArticle: navigateToArticle,
+          currentLayout: currentLayout,
+          spokeStyle: spokeStyle,
+          colorSchemes: colorSchemes,
+          currentScheme: currentScheme
+        });
+        return;
+      }
+      // Cleanup mobile instance if switching back to desktop
+      if (infographicViewEl._arcMobileCleanup) {
+        infographicViewEl._arcMobileCleanup();
+        infographicViewEl._arcMobileCleanup = null;
+      }
       renderInfographicViewModule({
         container: infographicViewEl,
         planets: planets,

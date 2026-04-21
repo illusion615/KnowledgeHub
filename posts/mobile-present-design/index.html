@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>演示模式手机端优化设计：面向移动消费的内容重构方案</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(2rem, 5vw, 3.6rem);
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      max-width: 18ch;
+    }
+
+    /* ── Phone mockup frame ── */
+    .phone-mockup {
+      position: relative;
+      width: 260px;
+      height: 520px;
+      border: 3px solid var(--card-border);
+      border-radius: 36px;
+      background: var(--card-bg);
+      margin: 24px auto;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    }
+    .phone-mockup-notch {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100px;
+      height: 24px;
+      background: var(--card-border);
+      border-radius: 0 0 16px 16px;
+      z-index: 2;
+    }
+    .phone-mockup-screen {
+      position: absolute;
+      inset: 12px;
+      border-radius: 24px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .phone-mockup-content {
+      flex: 1;
+      padding: 36px 16px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 14px;
+    }
+    .phone-mockup-nav {
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      border-top: 1px solid var(--card-border);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 0.72rem;
+      color: var(--muted);
+      background: rgba(255,255,255,0.6);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+    }
+    [data-theme="dark"] .phone-mockup-nav {
+      background: rgba(30,30,30,0.7);
+    }
+    .phone-mockup-nav-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid var(--card-border);
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--ink);
+      font-size: 0.8rem;
+    }
+    .phone-mockup .pm-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--ink);
+      line-height: 1.3;
+    }
+    .phone-mockup .pm-body {
+      font-size: 0.7rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .phone-mockup .pm-card {
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+    }
+    .phone-mockup .pm-subtitle {
+      padding: 8px 14px;
+      border-radius: 8px;
+      background: rgba(0,0,0,0.72);
+      color: #fff;
+      font-size: 0.68rem;
+      line-height: 1.5;
+      text-align: center;
+    }
+
+    /* ── Comparison side by side ── */
+    .compare-before-after {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      margin: 28px 0;
+      align-items: start;
+    }
+    .compare-col {
+      text-align: center;
+    }
+    .compare-col-label {
+      display: inline-block;
+      padding: 4px 14px;
+      border-radius: 8px;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 14px;
+    }
+    .compare-col-label.before { background: rgba(220,60,60,0.12); color: #dc3c3c; }
+    .compare-col-label.after  { background: rgba(13,143,140,0.14); color: var(--teal); }
+    [data-theme="dark"] .compare-col-label.before { background: rgba(220,60,60,0.18); }
+    [data-theme="dark"] .compare-col-label.after  { background: rgba(13,143,140,0.22); }
+
+    /* ── Module tree ── */
+    .module-tree {
+      margin: 20px 0;
+      padding: 22px 26px;
+      border-radius: 16px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.82rem;
+      line-height: 1.9;
+      color: var(--ink);
+      white-space: pre;
+      overflow-x: auto;
+    }
+    .module-tree .mt-new  { color: var(--teal); font-weight: 700; }
+    .module-tree .mt-mod  { color: var(--accent); font-weight: 700; }
+    .module-tree .mt-ref  { color: var(--muted); }
+    .module-tree .mt-note { color: #7c3aed; font-style: italic; font-family: "Noto Sans SC", sans-serif; font-size: 0.78rem; }
+
+    /* ── Safe area diagram ── */
+    .safe-area-diagram {
+      position: relative;
+      width: 220px;
+      height: 440px;
+      border: 2px solid var(--card-border);
+      border-radius: 32px;
+      margin: 24px auto;
+      background: var(--card-bg);
+    }
+    .safe-area-top {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 10%;
+      background: rgba(220,60,60,0.12);
+      border-radius: 30px 30px 0 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.68rem;
+      color: #dc3c3c;
+      font-weight: 600;
+    }
+    .safe-area-bottom {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 15%;
+      background: rgba(220,60,60,0.12);
+      border-radius: 0 0 30px 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.68rem;
+      color: #dc3c3c;
+      font-weight: 600;
+    }
+    .safe-area-content {
+      position: absolute;
+      top: 10%;
+      bottom: 15%;
+      left: 0;
+      right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.78rem;
+      color: var(--teal);
+      font-weight: 700;
+    }
+
+    /* ── Spec table ── */
+    .spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 0.85rem;
+    }
+    .spec-table th,
+    .spec-table td {
+      padding: 12px 16px;
+      border: 1px solid var(--card-border);
+      text-align: left;
+      vertical-align: top;
+    }
+    .spec-table th {
+      background: rgba(0,0,0,0.03);
+      font-weight: 700;
+      font-size: 0.82rem;
+      white-space: nowrap;
+    }
+    [data-theme="dark"] .spec-table th {
+      background: rgba(255,255,255,0.04);
+    }
+    .spec-table td:first-child {
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    /* ── Event flow (touch gesture) ── */
+    .gesture-flow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 24px 0;
+      align-items: center;
+      justify-content: center;
+    }
+    .gesture-node {
+      padding: 14px 22px;
+      border-radius: 14px;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-align: center;
+      min-width: 100px;
+    }
+    .gesture-node.touch-start { background: rgba(13,143,140,0.1); color: var(--teal); border: 2px solid rgba(13,143,140,0.3); }
+    .gesture-node.touch-move  { background: rgba(255,122,0,0.1); color: var(--accent); border: 2px solid rgba(255,122,0,0.3); }
+    .gesture-node.touch-end   { background: rgba(124,58,237,0.1); color: #7c3aed; border: 2px solid rgba(124,58,237,0.3); }
+    .gesture-node.action      { background: rgba(13,143,140,0.18); color: var(--teal); border: 2px solid rgba(13,143,140,0.5); font-size: 0.92rem; }
+    [data-theme="dark"] .gesture-node.touch-start { background: rgba(13,143,140,0.15); }
+    [data-theme="dark"] .gesture-node.touch-move  { background: rgba(255,122,0,0.15); }
+    [data-theme="dark"] .gesture-node.touch-end   { background: rgba(124,58,237,0.15); }
+    [data-theme="dark"] .gesture-node.action       { background: rgba(13,143,140,0.25); }
+    .gesture-arrow {
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-family: "Space Grotesk", sans-serif;
+      white-space: nowrap;
+    }
+
+    /* ── Phase cards ── */
+    .phase-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+      margin: 24px 0;
+    }
+    .phase-card {
+      padding: 28px 24px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      box-shadow: var(--card-shadow);
+    }
+    .phase-card h4 {
+      margin: 0 0 6px;
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+    .phase-card .phase-tag {
+      display: inline-block;
+      padding: 3px 12px;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 14px;
+    }
+    .phase-tag.v1     { background: rgba(13,143,140,0.14); color: var(--teal); }
+    .phase-tag.v2     { background: rgba(255,122,0,0.12); color: var(--accent); }
+    .phase-tag.future { background: rgba(124,58,237,0.12); color: #7c3aed; }
+    [data-theme="dark"] .phase-tag.v1     { background: rgba(13,143,140,0.22); }
+    [data-theme="dark"] .phase-tag.v2     { background: rgba(255,122,0,0.18); }
+    [data-theme="dark"] .phase-tag.future { background: rgba(124,58,237,0.18); }
+    .phase-card ul {
+      margin: 0;
+      padding: 0 0 0 18px;
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    /* Phone mockup: before scenario arrows */
+    .phone-mockup-content.has-arrows {
+      position: relative;
+    }
+    .pm-side-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.2rem;
+      color: var(--muted);
+    }
+    .pm-side-arrow-left { left: 4px; }
+    .pm-side-arrow-right { right: 4px; }
+    .pm-title-lg { font-size: 1rem; }
+    .pm-body-lg { font-size: 0.82rem; }
+
+    @media (max-width: 640px) {
+      .compare-before-after { grid-template-columns: 1fr; }
+      .gesture-flow { flex-direction: column; }
+      .phone-mockup { width: 200px; height: 400px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            Knowledge Hub
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#problem">问题</a>
+            <a href="#principles">原则</a>
+            <a href="#architecture">架构</a>
+            <a href="#css-layer">CSS 层</a>
+            <a href="#behavior-module">行为模块</a>
+            <a href="#integration">集成</a>
+            <a href="#verification">验证</a>
+            <a href="#decisions">决策</a>
+            <a href="#roadmap">路线</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Design Document</span>
+            <h1>演示模式手机端优化设计</h1>
+            <p>
+              当前演示模式的 9:16 竖屏录制导出视频在手机观看时字体过小、内容模糊。本方案引入独立的"手机模式"模块，从排版、导航、手势和字幕四个维度重构内容呈现，使录制产物在手机屏幕上原生可读。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#architecture">查看架构</a>
+              <a class="button button-secondary" href="#roadmap">实施路线</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">核心理念</span>
+            <h2>桌面录制，手机原生可读</h2>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span>每屏一个焦点：单列布局 + 放大字号 + 安全区避让</li>
+              <li><span class="layer-number">2</span>触控优先：底部导航栏 + 滑动手势替代侧边箭头</li>
+              <li><span class="layer-number">3</span>模块化隔离：新增懒加载 JS + CSS 层，不影响桌面演示</li>
+              <li><span class="layer-number">4</span>录制联动：手机模式 + 9:16 比例 + 导航栏自动隐藏</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label" data-zh="最小字号" data-en="Min Font">最小字号</div>
+            <strong>1.8rem</strong>
+            <span>~28px 手机可读</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="触控目标" data-en="Touch Target">触控目标</div>
+            <strong>&ge;48px</strong>
+            <span>Apple/Material 标准</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="新增文件" data-en="New Files">新增文件</div>
+            <strong>1 JS</strong>
+            <span>article-mobile-present.js</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="改动文件" data-en="Modified Files">改动文件</div>
+            <strong>4 文件</strong>
+            <span>CSS + 3 JS 模块</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- ════════════════════════════════════════ -->
+        <!-- 01 / 问题分析 -->
+        <!-- ════════════════════════════════════════ -->
+        <section id="problem" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / Problem Analysis</p>
+            <h2>问题分析：当前竖屏录制为何不可用</h2>
+            <p>现有 <code>is-portrait-recording</code> 只约束视口宽度为 56.25vh 并将字体放大 1.3 倍——在桌面预览尚可，但导出的 9:16 视频在手机上观看时，有效字号仅 8-10px，完全不可读。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>排版问题</span>
+              </button>
+              <div class="subsection-content">
+                <div class="comparison-grid">
+                  <div class="comparison-card">
+                    <h4>字体过小</h4>
+                    <p>桌面演示模式 body font 为 <code>clamp(1.2rem, 1.5vw, 1.5rem)</code>，竖屏模式乘以 1.3 后约 1.56rem，但录制视口宽度仅 56.25vh（约 400-500px 等效），最终有效字号 8-10px。Apple HIG 建议手机正文不低于 17pt。</p>
+                  </div>
+                  <div class="comparison-card">
+                    <h4>多列布局挤压</h4>
+                    <p>comparison-grid、insight-grid 在桌面演示模式保持多列布局。竖屏宽度下这些网格被强制压缩到每列不足 200px，卡片内文字换行后层叠密集，难以辨识。</p>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>导航问题</span>
+              </button>
+              <div class="subsection-content">
+                <div class="comparison-grid">
+                  <div class="comparison-card">
+                    <h4>侧边箭头不适用</h4>
+                    <p>桌面演示使用 <code>.present-nav-prev</code> / <code>.present-nav-next</code> 44px 按钮固定在视口左右，hover 触发高亮。手机上既遮挡内容又无法用手指精确点击。</p>
+                  </div>
+                  <div class="comparison-card">
+                    <h4>无触控手势</h4>
+                    <p>键盘 &larr; / &rarr; 和 Esc 是桌面操作，手机用户期望的是横向滑动切页。目前没有 <code>touch</code> 事件处理。</p>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>字幕与安全区</span>
+              </button>
+              <div class="subsection-content">
+                <div class="comparison-grid">
+                  <div class="comparison-card">
+                    <h4>字幕位置不合理</h4>
+                    <p>讲解字幕 <code>.narration-subtitle</code> 使用 <code>left: 80px; right: 160px</code> 定位——这是为 16:9 宽屏设计的。在 9:16 竖屏下字幕区域被挤压到极窄。</p>
+                  </div>
+                  <div class="comparison-card">
+                    <h4>无手机安全区避让</h4>
+                    <p>手机屏幕底部 15% 是社交媒体 App 的交互按钮区（点赞、评论、分享），顶部 10% 是状态栏/刘海。当前 CSS 没有为手机端预留这些安全区。</p>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ════════════════════════════════════════ -->
+        <!-- 02 / 设计原则 -->
+        <!-- ════════════════════════════════════════ -->
+        <section id="principles" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Design Principles</p>
+            <h2>设计原则：参考行业最佳实践</h2>
+            <p>基于 Apple Human Interface Guidelines、Material Design 3 和短视频平台内容呈现规范提炼的六条核心原则。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>每屏一个焦点</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <span class="event-field-label">One Focus Per Slide</span>
+                  <p>每个屏幕传达单一信息点，最大化清晰度。Apple HIG 的核心布局原则：<em>"Make essential information easy to find by giving it sufficient space"</em>。在手机竖屏上，信息密度必须比桌面降低 60-70%。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>最小可读字号</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <span class="event-field-label">Minimum 1.8rem Body Font</span>
+                  <p>在 9:16 录制视口（等效宽度约 400px）下，body font 设为 <code>clamp(1.6rem, 4.5vw, 2.2rem)</code>，实际渲染约 28px。这对应 Apple HIG 推荐的 iOS Body Large 字号（17pt × 1.65 缩放因子），确保录制视频在 iPhone 14 Pro（393pt 宽）上全屏播放时的可读性。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>触控目标尺寸</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <span class="event-field-label">&ge;48px Touch Targets</span>
+                  <p>Material Design 3 要求最小触控目标 48dp；Apple HIG 推荐 44pt。手机模式下所有可交互元素（导航按钮、退出按钮）的可点击区域不低于 48px。底部导航栏高度设为 72px，按钮占满 50% 宽度以获得最大触控面积。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>内容安全区</span>
+              </button>
+              <div class="subsection-content">
+                <div class="safe-area-diagram">
+                  <div class="safe-area-top">状态栏 / 刘海 (10%)</div>
+                  <div class="safe-area-content">内容安全区 (75%)</div>
+                  <div class="safe-area-bottom">交互按钮区 (15%)</div>
+                </div>
+                <p>手机短视频的内容安全区约为屏幕中部 75%。顶部 10% 被状态栏/刘海占据，底部 15% 是社交 App 的点赞、评论、分享按钮热区。设计的安全 padding：<code>--present-safe-top: 64px</code>、<code>--present-safe-bottom: 100px</code>。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>强制单列布局</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <span class="event-field-label">Single Column Forced</span>
+                  <p>手机模式下所有 grid 组件（<code>comparison-grid</code>、<code>insight-grid</code>、<code>pattern-grid</code>、<code>subsection-accordion</code>、<code>hero-grid</code>、<code>hero-metrics</code>）强制为 <code>grid-template-columns: 1fr</code>。Material Design 建议 compact 尺寸类使用单列布局。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>渐进简化</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <span class="event-field-label">Progressive Simplification</span>
+                  <p>不只是缩放——需要结构性简化。hero-metrics 从横排变纵排；comparison-grid 从多列变单卡；表格从宽行变 key-value pair 视图。V2 将引入内容密度分析，自动拆分过长 slide 为子步骤。</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ════════════════════════════════════════ -->
+        <!-- 03 / 架构设计 -->
+        <!-- ════════════════════════════════════════ -->
+        <section id="architecture" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / Architecture</p>
+            <h2>模块架构：最小侵入式设计</h2>
+            <p>新增一个 CSS 层 + 一个懒加载 JS 模块，通过 <code>is-mobile-present</code> CSS class 和 <code>CustomEvent</code> 与现有系统集成，不修改任何已有功能的核心逻辑。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>模块边界</span>
+              </button>
+              <div class="subsection-content">
+                <div class="module-tree"><span class="mt-ref">is-mobile-present</span> <span class="mt-note">← CSS class on &lt;html&gt;</span>
+├── <span class="mt-mod">article.css</span> <span class="mt-note">← 纯视觉覆盖（字号、网格、间距、安全区）</span>
+└── <span class="mt-new">article-mobile-present.js</span> <span class="mt-note">← 懒加载行为模块</span>
+    ├── Touch swipe gestures (prev/next)
+    ├── Content density analysis
+    ├── Bottom navigation bar
+    └── Subtitle repositioning</div>
+                <p>CSS 负责纯视觉适配（字号、网格、安全区），JS 负责交互行为（手势、底部导航栏、内容密度检测）。两者通过 <code>is-mobile-present</code> class 解耦，CSS 可以在无 JS 的情况下独立生效。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>集成点</span>
+              </button>
+              <div class="subsection-content">
+                <table class="spec-table">
+                  <thead>
+                    <tr>
+                      <th>文件</th>
+                      <th>改动</th>
+                      <th>模式</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>article-presentation.js</td>
+                      <td>添加 toggle 状态 + lazy-loader + class 管理</td>
+                      <td>同 screen-recording 模式</td>
+                    </tr>
+                    <tr>
+                      <td>article-narration-ui.js</td>
+                      <td>设置面板添加手机优化 checkbox</td>
+                      <td>同 focusMode checkbox</td>
+                    </tr>
+                    <tr>
+                      <td>article-screen-recording.js</td>
+                      <td>录制时自动叠加 is-mobile-present</td>
+                      <td>同 is-portrait-recording</td>
+                    </tr>
+                    <tr>
+                      <td>article.css</td>
+                      <td>新增 .is-mobile-present 规则块</td>
+                      <td>追加在 .is-portrait-recording 后</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>事件通信</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <span class="event-field-label">CustomEvent Pattern</span>
+                  <p>遵循已有的事件通信模式（<code>focusModeChanged</code>、<code>recordRatioChanged</code>），新增 <code>mobilePresentChanged</code> 事件：</p>
+                </div>
+                <div class="insight-grid">
+                  <div class="insight-card">
+                    <span class="insight-label">Event Name</span>
+                    <p class="insight-text"><code>mobilePresentChanged</code></p>
+                  </div>
+                  <div class="insight-card">
+                    <span class="insight-label">Detail</span>
+                    <p class="insight-text"><code>{ enabled: boolean }</code></p>
+                  </div>
+                  <div class="insight-card">
+                    <span class="insight-label">Fired by</span>
+                    <p class="insight-text">Launch panel toggle + narration-ui checkbox</p>
+                  </div>
+                  <div class="insight-card">
+                    <span class="insight-label">Listened by</span>
+                    <p class="insight-text">article-presentation.js (top-level)</p>
+                  </div>
+                </div>
+                <p><strong>localStorage key</strong>：<code>present-mobile-mode</code>，值为 <code>'true'</code> / <code>'false'</code>，默认 <code>'false'</code>。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>文件改动清单</span>
+              </button>
+              <div class="subsection-content">
+                <div class="module-tree"><span class="mt-ref">assets/</span>
+├── <span class="mt-mod">article.css</span>           <span class="mt-note">← +80 行 .is-mobile-present 规则</span>
+├── <span class="mt-mod">article-presentation.js</span> <span class="mt-note">← +40 行 toggle + lazy-loader</span>
+├── <span class="mt-mod">article-narration-ui.js</span> <span class="mt-note">← +15 行 checkbox 联动</span>
+├── <span class="mt-mod">article-screen-recording.js</span> <span class="mt-note">← +8 行 自动叠加</span>
+└── <span class="mt-new">article-mobile-present.js</span> <span class="mt-note">← 新建 ~200 行</span></div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ════════════════════════════════════════ -->
+        <!-- 04 / CSS 移动演示层 -->
+        <!-- ════════════════════════════════════════ -->
+        <section id="css-layer" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / CSS Layer</p>
+            <h2>CSS 移动演示层：视觉适配规范</h2>
+            <p>所有视觉改动集中在 <code>.is-mobile-present</code> 选择器下，追加在 <code>article.css</code> 现有的 <code>.is-portrait-recording</code> 之后。不修改任何已有 CSS 规则。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>CSS 变量覆盖</span>
+              </button>
+              <div class="subsection-content">
+                <table class="spec-table">
+                  <thead>
+                    <tr>
+                      <th>变量</th>
+                      <th>桌面演示值</th>
+                      <th>手机模式值</th>
+                      <th>原因</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>--present-body-font</td>
+                      <td>clamp(1.2rem, 1.5vw, 1.5rem)</td>
+                      <td>clamp(1.6rem, 4.5vw, 2.2rem)</td>
+                      <td>手机录制 28px+ 可读</td>
+                    </tr>
+                    <tr>
+                      <td>--present-body-line-height</td>
+                      <td>1.75</td>
+                      <td>1.85</td>
+                      <td>增加行间距提升可读性</td>
+                    </tr>
+                    <tr>
+                      <td>--present-side-gap</td>
+                      <td>80px</td>
+                      <td>24px</td>
+                      <td>窄屏充分利用宽度</td>
+                    </tr>
+                    <tr>
+                      <td>--present-safe-top</td>
+                      <td>clamp(84px, 9.5vh, 124px)</td>
+                      <td>64px</td>
+                      <td>手机状态栏避让</td>
+                    </tr>
+                    <tr>
+                      <td>--present-safe-bottom</td>
+                      <td>clamp(78px, 9vh, 112px)</td>
+                      <td>100px</td>
+                      <td>社交 App 按钮区避让</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>布局强制规则</span>
+              </button>
+              <div class="subsection-content">
+                <div class="flow-list">
+                  <div class="flow-item">
+                    <span class="flow-number">1</span>
+                    <div class="flow-body">
+                      <strong>所有网格单列化</strong>
+                      <p><code>comparison-grid</code>、<code>insight-grid</code>、<code>pattern-grid</code>、<code>subsection-accordion</code> (overview)、<code>hero-metrics</code>、<code>hero-grid</code> 全部设为 <code>grid-template-columns: 1fr</code>。</p>
+                    </div>
+                  </div>
+                  <div class="flow-item">
+                    <span class="flow-number">2</span>
+                    <div class="flow-body">
+                      <strong>隐藏侧边导航箭头</strong>
+                      <p><code>.is-mobile-present .present-nav { display: none }</code> — 由底部导航栏替代。</p>
+                    </div>
+                  </div>
+                  <div class="flow-item">
+                    <span class="flow-number">3</span>
+                    <div class="flow-body">
+                      <strong>放大 Deck Bar</strong>
+                      <p><code>.present-deck-label</code> 字号从 0.78rem 提升至 0.92rem；<code>.present-deck-title</code> 从 clamp 提升至 <code>clamp(1.4rem, 4vw, 1.8rem)</code>。</p>
+                    </div>
+                  </div>
+                  <div class="flow-item">
+                    <span class="flow-number">4</span>
+                    <div class="flow-body">
+                      <strong>字幕全宽居中</strong>
+                      <p><code>.narration-subtitle</code> 设为 <code>left: 16px; right: 16px; font-size: clamp(1.2rem, 3.5vw, 1.6rem)</code>，放弃桌面的 logo 让位逻辑。</p>
+                    </div>
+                  </div>
+                  <div class="flow-item">
+                    <span class="flow-number">5</span>
+                    <div class="flow-body">
+                      <strong>触控目标放大</strong>
+                      <p><code>.present-exit</code> 尺寸从 40px 提升至 48px，满足 Material Design 最小触控目标。</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>底部导航栏组件</span>
+              </button>
+              <div class="subsection-content">
+                <div class="compare-before-after">
+                  <div class="compare-col">
+                    <span class="compare-col-label before">Before: 侧边箭头</span>
+                    <div class="phone-mockup">
+                      <div class="phone-mockup-notch"></div>
+                      <div class="phone-mockup-screen">
+                        <div class="phone-mockup-content has-arrows">
+                          <div class="pm-side-arrow pm-side-arrow-left">&lsaquo;</div>
+                          <div class="pm-side-arrow pm-side-arrow-right">&rsaquo;</div>
+                          <p class="pm-title">Section Title</p>
+                          <p class="pm-body">Content text that is barely readable at this scale because the font is optimized for desktop...</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="compare-col">
+                    <span class="compare-col-label after">After: 底部导航栏</span>
+                    <div class="phone-mockup">
+                      <div class="phone-mockup-notch"></div>
+                      <div class="phone-mockup-screen">
+                        <div class="phone-mockup-content">
+                          <p class="pm-title pm-title-lg">Section Title</p>
+                          <div class="pm-card">
+                            <p class="pm-body pm-body-lg">Content text readable at mobile scale with large font.</p>
+                          </div>
+                          <div class="pm-subtitle">讲解字幕居中全宽显示</div>
+                        </div>
+                        <div class="phone-mockup-nav">
+                          <span class="phone-mockup-nav-btn">&lsaquo;</span>
+                          <span>3 / 12</span>
+                          <span class="phone-mockup-nav-btn">&rsaquo;</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <table class="spec-table">
+                  <thead>
+                    <tr>
+                      <th>属性</th>
+                      <th>规格</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>高度</td>
+                      <td>72px</td>
+                    </tr>
+                    <tr>
+                      <td>布局</td>
+                      <td>三栏：上一页按钮 | 页码 + 进度 | 下一页按钮</td>
+                    </tr>
+                    <tr>
+                      <td>背景</td>
+                      <td>磨砂玻璃 (<code>backdrop-filter: blur(16px)</code>)</td>
+                    </tr>
+                    <tr>
+                      <td>按钮宽度</td>
+                      <td>各占 30% 视口宽度，居中计数器占 40%</td>
+                    </tr>
+                    <tr>
+                      <td>录制隐藏</td>
+                      <td><code>.is-recording .mobile-nav-bar { display: none }</code></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Dark Mode 适配</span>
+              </button>
+              <div class="subsection-content">
+                <p>手机模式的暗色适配使用已有的 <code>[data-theme="dark"]</code> 层叠。需新增的暗色规则：</p>
+                <div class="flow-list">
+                  <div class="flow-item">
+                    <span class="flow-number">1</span>
+                    <div class="flow-body">
+                      <strong>底部导航栏</strong>
+                      <p>背景从 <code>rgba(255,255,255,0.7)</code> 变为 <code>rgba(30,30,30,0.75)</code>，边框和按钮颜色跟随 <code>--card-border</code> / <code>--ink</code>。</p>
+                    </div>
+                  </div>
+                  <div class="flow-item">
+                    <span class="flow-number">2</span>
+                    <div class="flow-body">
+                      <strong>滚动指示器</strong>
+                      <p>渐变遮罩从白色渐变 → 透明变为深色渐变 → 透明：<code>linear-gradient(transparent, rgba(20,20,25,0.9))</code>。</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ════════════════════════════════════════ -->
+        <!-- 05 / 行为模块 -->
+        <!-- ════════════════════════════════════════ -->
+        <section id="behavior-module" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / Behavior Module</p>
+            <h2>行为模块：article-mobile-present.js</h2>
+            <p>新建懒加载模块，遵循 <code>article-screen-recording.js</code> 的依赖注入模式。暴露 <code>window.StudyRoomMobilePresent = { init, destroy }</code> 接口。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>触控滑动导航</span>
+              </button>
+              <div class="subsection-content">
+                <div class="gesture-flow">
+                  <div class="gesture-node touch-start">touchstart</div>
+                  <span class="gesture-arrow">记录起点 →</span>
+                  <div class="gesture-node touch-move">touchmove</div>
+                  <span class="gesture-arrow">计算 deltaX →</span>
+                  <div class="gesture-node touch-end">touchend</div>
+                  <span class="gesture-arrow">判断方向 →</span>
+                  <div class="gesture-node action">prev / next</div>
+                </div>
+
+                <table class="spec-table">
+                  <thead>
+                    <tr>
+                      <th>参数</th>
+                      <th>值</th>
+                      <th>说明</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>水平阈值</td>
+                      <td>50px</td>
+                      <td>deltaX 超过此值视为有效滑动</td>
+                    </tr>
+                    <tr>
+                      <td>主轴判断</td>
+                      <td>|deltaX| &gt; |deltaY|</td>
+                      <td>水平移动大于垂直时才触发，避免干扰纵向滚动</td>
+                    </tr>
+                    <tr>
+                      <td>方向映射</td>
+                      <td>左滑 → next，右滑 → prev</td>
+                      <td>符合手机内容流的自然手势</td>
+                    </tr>
+                    <tr>
+                      <td>清理</td>
+                      <td>destroy() 移除所有 listener</td>
+                      <td>退出手机模式时完全清理</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>底部导航栏 DOM</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <span class="event-field-label">DOM Structure</span>
+                  <p>底部导航栏由 JS 动态创建并插入 <code>.present-floating</code> 容器。结构：</p>
+                </div>
+                <div class="module-tree"><span class="mt-new">.mobile-nav-bar</span>
+├── <span class="mt-ref">button.mobile-nav-prev</span>  <span class="mt-note">← 上一页</span>
+├── <span class="mt-ref">.mobile-nav-center</span>
+│   ├── <span class="mt-ref">.mobile-nav-counter</span>  <span class="mt-note">← "3 / 12"</span>
+│   └── <span class="mt-ref">.mobile-nav-progress</span> <span class="mt-note">← 进度条</span>
+└── <span class="mt-ref">button.mobile-nav-next</span>  <span class="mt-note">← 下一页</span></div>
+                <p>导航栏通过 <code>MutationObserver</code> 监听 <code>[data-present-counter]</code> 的 <code>textContent</code> 变化来同步页码，无需修改 <code>setPresentationStep()</code> 函数本身。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>内容密度守卫</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <span class="event-field-label">Content Density Guard</span>
+                  <p>手机模式放大字体后，部分 slide 的内容高度可能超过视口。<code>init()</code> 时扫描每个 <code>presentStep</code>：</p>
+                </div>
+                <div class="flow-list">
+                  <div class="flow-item">
+                    <span class="flow-number">1</span>
+                    <div class="flow-body">
+                      <strong>测量</strong>
+                      <p>临时将 step 设为 <code>display: block; height: auto</code> 测量 scrollHeight，与 <code>window.innerHeight</code> 比较。</p>
+                    </div>
+                  </div>
+                  <div class="flow-item">
+                    <span class="flow-number">2</span>
+                    <div class="flow-body">
+                      <strong>标记</strong>
+                      <p>若 scrollHeight &gt; 1.5 &times; innerHeight，在 step 上添加 <code>data-mobile-scrollable</code> 属性。</p>
+                    </div>
+                  </div>
+                  <div class="flow-item">
+                    <span class="flow-number">3</span>
+                    <div class="flow-body">
+                      <strong>指示</strong>
+                      <p>CSS 为 <code>[data-mobile-scrollable]</code> 添加底部渐变遮罩和 <code>overflow-y: auto</code>，提示用户可纵向滚动。</p>
+                    </div>
+                  </div>
+                </div>
+                <p>V2 计划：将超长 step 自动拆分为多个子 step，基于 <code>&lt;p&gt;</code>、<code>.event-field</code>、grid item 等语义边界做切割。V1 使用滚动指示器作为过渡方案。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>依赖注入接口</span>
+              </button>
+              <div class="subsection-content">
+                <table class="spec-table">
+                  <thead>
+                    <tr>
+                      <th>依赖</th>
+                      <th>类型</th>
+                      <th>来源</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>root</td>
+                      <td>HTMLElement</td>
+                      <td>document.documentElement</td>
+                    </tr>
+                    <tr>
+                      <td>getLang</td>
+                      <td>Function</td>
+                      <td>返回 'zh' 或 'en'</td>
+                    </tr>
+                    <tr>
+                      <td>goToPrev</td>
+                      <td>Function</td>
+                      <td>goToPreviousStep()</td>
+                    </tr>
+                    <tr>
+                      <td>goToNext</td>
+                      <td>Function</td>
+                      <td>goToNextStep()</td>
+                    </tr>
+                    <tr>
+                      <td>getState</td>
+                      <td>Function</td>
+                      <td>返回 { enabled, index }</td>
+                    </tr>
+                    <tr>
+                      <td>getPresentSteps</td>
+                      <td>Function</td>
+                      <td>返回 presentSteps 数组</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p>遵循 <code>article-screen-recording.js</code> 的依赖注入模式——模块不直接引用任何外部变量，所有依赖通过 <code>init(deps)</code> 注入。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ════════════════════════════════════════ -->
+        <!-- 06 / 集成方案 -->
+        <!-- ════════════════════════════════════════ -->
+        <section id="integration" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / Integration</p>
+            <h2>集成方案：四个触点的改动</h2>
+            <p>手机模式通过四个精确的集成点接入现有系统，每个点的改动量控制在 8-40 行。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>启动面板 Toggle</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <span class="event-field-label">buildLaunchPanel() 新增行</span>
+                  <p>在 <code>article-presentation.js</code> 的 <code>buildLaunchPanel()</code> 函数中，auto-narrate toggle 之后新增一行：</p>
+                </div>
+                <div class="flow-list">
+                  <div class="flow-item">
+                    <span class="flow-number">1</span>
+                    <div class="flow-body">
+                      <strong>UI</strong>
+                      <p>新增 <code>launch-row</code>，label 为 "手机优化" / "Mobile optimized"，使用与 auto-narrate 相同的 <code>launch-switch</code> 组件。</p>
+                    </div>
+                  </div>
+                  <div class="flow-item">
+                    <span class="flow-number">2</span>
+                    <div class="flow-body">
+                      <strong>持久化</strong>
+                      <p>读写 <code>localStorage('present-mobile-mode')</code>。</p>
+                    </div>
+                  </div>
+                  <div class="flow-item">
+                    <span class="flow-number">3</span>
+                    <div class="flow-body">
+                      <strong>联动</strong>
+                      <p>开启时自动将录制比例建议为 9:16（高亮提示，不强制切换）。</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>演示模式生命周期</span>
+              </button>
+              <div class="subsection-content">
+                <div class="flow-list">
+                  <div class="flow-item">
+                    <span class="flow-number">1</span>
+                    <div class="flow-body">
+                      <strong>enterPresentation()</strong>
+                      <p>读取 <code>present-mobile-mode</code>；若 <code>'true'</code>，添加 <code>is-mobile-present</code> class 到 <code>root</code>，懒加载 <code>article-mobile-present.js</code> 并调用 <code>init(deps)</code>。</p>
+                    </div>
+                  </div>
+                  <div class="flow-item">
+                    <span class="flow-number">2</span>
+                    <div class="flow-body">
+                      <strong>exitPresentation()</strong>
+                      <p>移除 <code>is-mobile-present</code> class；调用 <code>destroy()</code> 清理手势 listener 和底部导航栏 DOM。</p>
+                    </div>
+                  </div>
+                  <div class="flow-item">
+                    <span class="flow-number">3</span>
+                    <div class="flow-body">
+                      <strong>mobilePresentChanged 监听</strong>
+                      <p>在 DOMContentLoaded 顶层监听事件（与 <code>focusModeChanged</code> 平级），动态切换 class 和模块状态。</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>讲解设置面板联动</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <span class="event-field-label">article-narration-ui.js 改动</span>
+                  <p>在 <code>createSettingsPanel()</code> 的"录制比例"行之后，新增"手机优化"checkbox 行：</p>
+                </div>
+                <div class="insight-grid">
+                  <div class="insight-card">
+                    <span class="insight-label">联动规则 A</span>
+                    <p class="insight-text">录制比例切换到 9:16 时，自动勾选手机优化</p>
+                  </div>
+                  <div class="insight-card">
+                    <span class="insight-label">联动规则 B</span>
+                    <p class="insight-text">取消手机优化时不改变录制比例（用户可能想用 9:16 但不要手机字号）</p>
+                  </div>
+                  <div class="insight-card">
+                    <span class="insight-label">事件触发</span>
+                    <p class="insight-text">checkbox 变化时 fire <code>mobilePresentChanged</code> 事件</p>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>录制集成</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <span class="event-field-label">article-screen-recording.js 改动</span>
+                  <p>在 <code>toggle()</code> 的 "Apply recording aspect ratio" 逻辑之后：</p>
+                </div>
+                <div class="flow-list">
+                  <div class="flow-item">
+                    <span class="flow-number">1</span>
+                    <div class="flow-body">
+                      <strong>自动叠加</strong>
+                      <p>若 <code>localStorage('present-mobile-mode') === 'true'</code>，添加 <code>is-mobile-present</code> class（与 <code>is-portrait-recording</code> 叠加使用）。</p>
+                    </div>
+                  </div>
+                  <div class="flow-item">
+                    <span class="flow-number">2</span>
+                    <div class="flow-body">
+                      <strong>清理</strong>
+                      <p><code>stopRecording()</code> 中移除 <code>is-mobile-present</code>（仅当录制时自动添加的）。</p>
+                    </div>
+                  </div>
+                  <div class="flow-item">
+                    <span class="flow-number">3</span>
+                    <div class="flow-body">
+                      <strong>CSS 隐藏</strong>
+                      <p>录制中自动隐藏底部导航栏和退出按钮——纯 CSS 实现，无需 JS：<code>.is-recording .mobile-nav-bar { display: none }</code>。</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ════════════════════════════════════════ -->
+        <!-- 07 / 验证方案 -->
+        <!-- ════════════════════════════════════════ -->
+        <section id="verification" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">07 / Verification</p>
+            <h2>验证方案：8 项验收标准</h2>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>功能验证清单</span>
+              </button>
+              <div class="subsection-content">
+                <table class="spec-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>测试项</th>
+                      <th>预期结果</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>1</td>
+                      <td>validate.js</td>
+                      <td>exit code 0（无箭头函数、脚本顺序正确）</td>
+                    </tr>
+                    <tr>
+                      <td>2</td>
+                      <td>启动面板 Toggle</td>
+                      <td>hover 演示按钮 → "手机优化" toggle 可见</td>
+                    </tr>
+                    <tr>
+                      <td>3</td>
+                      <td>手机模式演示</td>
+                      <td>侧边箭头隐藏、底部导航栏显示、字体放大、网格单列、滑动手势可用</td>
+                    </tr>
+                    <tr>
+                      <td>4</td>
+                      <td>手机模式 + 录制</td>
+                      <td>9:16 视口、导航栏隐藏、字幕大且居中</td>
+                    </tr>
+                    <tr>
+                      <td>5</td>
+                      <td>导出视频手机播放</td>
+                      <td>文字无需缩放即可阅读</td>
+                    </tr>
+                    <tr>
+                      <td>6</td>
+                      <td>关闭手机模式</td>
+                      <td>完全恢复桌面布局，无残留 class</td>
+                    </tr>
+                    <tr>
+                      <td>7</td>
+                      <td>Dark Mode</td>
+                      <td>切换主题 → 手机模式所有组件正确响应暗色</td>
+                    </tr>
+                    <tr>
+                      <td>8</td>
+                      <td>讲解中切换</td>
+                      <td>播放讲解时开关手机模式 → 无崩溃、布局平滑过渡</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ════════════════════════════════════════ -->
+        <!-- 08 / 决策记录 -->
+        <!-- ════════════════════════════════════════ -->
+        <section id="decisions" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">08 / Decisions</p>
+            <h2>关键决策记录</h2>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>显式 Toggle vs. 自动检测</span>
+              </button>
+              <div class="subsection-content">
+                <div class="comparison-grid">
+                  <div class="comparison-card">
+                    <h4>选择：双轨策略（显式 + 自动检测）</h4>
+                    <p>手机模式的启用条件为 <code>localStorage('present-mobile-mode') === 'true' || window.innerWidth &lt;= 768</code>。桌面录制场景通过 toggle 显式开启；真实手机浏览器上进入演示时，视口宽度 &le;768px 自动启用——无需用户手动操作。自动检测不写入 localStorage，不影响桌面端的默认行为。</p>
+                  </div>
+                  <div class="comparison-card">
+                    <h4>覆盖场景</h4>
+                    <p>桌面浏览器全屏（&gt;768px）：需手动开启 toggle 才生效，用于录制给手机观看。手机浏览器（&le;768px）：进入演示时自动启用，触控手势和底部导航栏开箱即用。iPad 等中等屏幕（768px 边界）：由 CSS <code>clamp()</code> 字号公式平滑过渡。</p>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>内容拆分策略</span>
+              </button>
+              <div class="subsection-content">
+                <div class="comparison-grid">
+                  <div class="comparison-card">
+                    <h4>V1：滚动指示器</h4>
+                    <p>对于手机模式下内容超出视口的 slide，添加 <code>data-mobile-scrollable</code> 属性，CSS 显示底部渐变遮罩 + <code>overflow-y: auto</code>。不拆分 slide 结构，保持与桌面相同的 step 数量。</p>
+                  </div>
+                  <div class="comparison-card">
+                    <h4>V2（延期）：自动拆分</h4>
+                    <p>基于语义边界（<code>&lt;p&gt;</code>、<code>.event-field</code>、grid item）自动将长 slide 拆分为子 step。需要修改 <code>collectPresentationSteps()</code> 的核心逻辑，侵入性较高，推迟到收集使用反馈后实施。</p>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>模块加载模式</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <span class="event-field-label">Decision: Lazy-load + Dependency Injection</span>
+                  <p>新模块 <code>article-mobile-present.js</code> 不加入 HTML 的必选脚本列表，而是由 <code>article-presentation.js</code> 在进入手机模式时动态创建 <code>&lt;script&gt;</code> 标签加载。这与 <code>article-screen-recording.js</code>、<code>article-email-share.js</code>、<code>article-narration-ui.js</code> 的模式完全一致——确保不影响页面初始加载性能，且不修改 validate.js 的脚本检查列表。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>独立 vs. 耦合的 localStorage Key</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <span class="event-field-label">Decision: 独立存储 + 建议联动</span>
+                  <p><code>present-mobile-mode</code> 和 <code>present-record-ratio</code> 使用独立的 localStorage key。两者可以独立设置——用户可能想要 9:16 比例但不要手机字号（例如录制桌面竖屏内容），也可能想在 16:9 下使用手机模式（用于预览效果）。UI 提供建议性联动（切到 9:16 时高亮手机 toggle）但不强制绑定。</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ════════════════════════════════════════ -->
+        <!-- 09 / 实施路线 -->
+        <!-- ════════════════════════════════════════ -->
+        <section id="roadmap" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">09 / Roadmap</p>
+            <h2>实施路线</h2>
+          </div>
+
+          <div class="phase-grid">
+            <div class="phase-card">
+              <span class="phase-tag v1">Phase 1 · V1</span>
+              <h4>CSS 移动演示层</h4>
+              <ul>
+                <li>在 article.css 追加 .is-mobile-present 规则块</li>
+                <li>CSS 变量覆盖（字号、行高、间距、安全区）</li>
+                <li>强制单列布局 + 隐藏侧边箭头</li>
+                <li>底部导航栏组件样式</li>
+                <li>Dark mode 适配</li>
+              </ul>
+            </div>
+
+            <div class="phase-card">
+              <span class="phase-tag v1">Phase 2 · V1</span>
+              <h4>启动面板 Toggle + 事件</h4>
+              <ul>
+                <li>buildLaunchPanel() 添加手机优化开关</li>
+                <li>localStorage 持久化</li>
+                <li>mobilePresentChanged CustomEvent</li>
+                <li>录制比例联动建议</li>
+              </ul>
+            </div>
+
+            <div class="phase-card">
+              <span class="phase-tag v1">Phase 3 · V1</span>
+              <h4>演示模式生命周期集成</h4>
+              <ul>
+                <li>enterPresentation() 添加 class + lazy-load</li>
+                <li>exitPresentation() 清理</li>
+                <li>mobilePresentChanged 监听</li>
+                <li>narration-ui 设置面板联动</li>
+              </ul>
+            </div>
+
+            <div class="phase-card">
+              <span class="phase-tag v1">Phase 4 · V1</span>
+              <h4>行为模块实现</h4>
+              <ul>
+                <li>新建 article-mobile-present.js</li>
+                <li>触控滑动导航（touchstart/move/end）</li>
+                <li>底部导航栏 DOM + MutationObserver 同步</li>
+                <li>内容密度守卫 + 滚动指示器</li>
+              </ul>
+            </div>
+
+            <div class="phase-card">
+              <span class="phase-tag v1">Phase 5 · V1</span>
+              <h4>录制集成</h4>
+              <ul>
+                <li>screen-recording.js 自动叠加 is-mobile-present</li>
+                <li>录制中隐藏导航栏（CSS）</li>
+                <li>停止录制时清理</li>
+              </ul>
+            </div>
+
+            <div class="phase-card">
+              <span class="phase-tag v2">Phase 6 · V2</span>
+              <h4>内容自动拆分</h4>
+              <ul>
+                <li>语义边界检测（p、event-field、grid item）</li>
+                <li>密集 slide 自动拆为子 step</li>
+                <li>拆分后的 step 使用过渡动画</li>
+                <li>需改动 collectPresentationSteps()</li>
+              </ul>
+            </div>
+
+            <div class="phase-card">
+              <span class="phase-tag future">Phase 7 · 未来</span>
+              <h4>智能内容简化</h4>
+              <ul>
+                <li>Hero metrics 自动筛选（只显示最重要的 2 项）</li>
+                <li>表格自动转 key-value 卡片视图</li>
+                <li>LLM 驱动的内容精简建议</li>
+                <li>自适应字号（根据 slide 内容量动态调整）</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+      <footer>
+        <p>&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。</p>
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

@@ -306,7 +306,26 @@ var knowledgeTree = [
     url: 'posts/claw-code-analysis/index.html',
     color: '#f97316',
     phase: 2.5, speed: 0.86,
-    relations: ['copilot-harness-eng', 'enterprise-agent-arch', 'agentic-skill-exec']
+    relations: ['copilot-harness-eng', 'enterprise-agent-arch', 'agentic-skill-exec', 'claw-code-user-manual']
+  },
+  {
+    id: 'claw-code-user-manual',
+    parentId: 'ai-research-agent',
+    type: 'article',
+    title: {
+      zh: 'Claw Code 用户手册：从安装到精通的实操指南',
+      en: 'Claw Code User Manual: A Practical Guide from Installation to Mastery'
+    },
+    summary: {
+      zh: '面向用户的实操手册，覆盖环境准备、REPL/单次/JSON 三种模式、40 个内置工具、五级配置层级、三级权限模型、Slash 命令和 MCP/Hooks/多代理进阶用法。',
+      en: 'A hands-on user manual covering prerequisites, REPL/one-shot/JSON modes, 40 built-in tools, five-level config hierarchy, three-tier permissions, slash commands, and advanced MCP/hooks/multi-agent workflows.'
+    },
+    tags: ['Coding Agent', 'User Manual', 'CLI', 'Tutorial'],
+    date: '2026-04-21',
+    url: 'posts/claw-code-user-manual/index.html',
+    color: '#f97316',
+    phase: 2.8, speed: 0.82,
+    relations: ['claw-code-analysis', 'copilot-harness-eng']
   },
 
   // ════════════════════════════════════════
@@ -581,8 +600,8 @@ var knowledgeTree = [
       en: 'Knowledge Hub Design Document: Architecture of an Interactive Knowledge Graph'
     },
     summary: {
-      zh: '完整记录 Knowledge Hub 的设计目标、四层架构、四种首页布局、研究到发布工作流和量化指标。',
-      en: 'Full design document covering goals, four-layer architecture, four homepage layouts, research-to-publish workflow, and quantitative metrics.'
+      zh: '更新版设计文档：覆盖四视图首页、单数据源架构、自动讲解/录屏/邮件分享能力与研究到发布闭环。',
+      en: 'Updated design document on the four-view homepage, single-source data model, narration/recording/email sharing, and the research-to-publish workflow.'
     },
     tags: ['Design Document', 'Architecture', 'Knowledge Graph'],
     date: '2026-04-11',
@@ -627,7 +646,26 @@ var knowledgeTree = [
     url: 'posts/presentation-style-optimization/index.html',
     color: '#7c3aed',
     phase: 5.2, speed: 0.72,
-    relations: ['presentation-narration-design', 'study-room-design']
+    relations: ['presentation-narration-design', 'study-room-design', 'mobile-present-design']
+  },
+  {
+    id: 'mobile-present-design',
+    parentId: 'knowledge-hub-design-docs',
+    type: 'article',
+    title: {
+      zh: '演示模式手机端优化设计：面向移动消费的内容重构方案',
+      en: 'Mobile Presentation Mode: Content Restructuring for Phone-Screen Consumption'
+    },
+    summary: {
+      zh: '为演示模式新增手机模式模块，从排版、导航、手势和字幕四维度重构内容呈现，使录制产物在手机屏幕上原生可读。',
+      en: 'Adds a mobile mode module to presentation with touch gestures, bottom nav bar, enlarged typography, and safe-area layout for phone-native readability.'
+    },
+    tags: ['Design Document', 'Presentation', 'Mobile', 'UX'],
+    date: '2026-04-21',
+    url: 'posts/mobile-present-design/index.html',
+    color: '#7c3aed',
+    phase: 5.8, speed: 0.68,
+    relations: ['presentation-style-optimization', 'presentation-narration-design', 'study-room-design']
   },
   {
     id: 'markdown-rendering-pipeline',

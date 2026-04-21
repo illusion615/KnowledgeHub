@@ -45,6 +45,11 @@
       // Phase 3: Remove recording viewport constraint classes
       deps.root.classList.remove('is-portrait-recording');
       deps.root.classList.remove('is-square-recording');
+      // Phase 4: Remove mobile present if auto-applied during recording
+      if (deps.root._mobileAutoApplied) {
+        deps.root.classList.remove('is-mobile-present');
+        deps.root._mobileAutoApplied = false;
+      }
     };
 
     var toggle = function () {
@@ -86,6 +91,12 @@
           deps.root.classList.add('is-portrait-recording');
         } else if (ratio === '1:1') {
           deps.root.classList.add('is-square-recording');
+        }
+
+        // Phase 4: Auto-apply mobile present mode during recording
+        if (localStorage.getItem('present-mobile-mode') === 'true' && !deps.root.classList.contains('is-mobile-present')) {
+          deps.root.classList.add('is-mobile-present');
+          deps.root._mobileAutoApplied = true;
         }
 
         var presentSteps = deps.getPresentSteps();

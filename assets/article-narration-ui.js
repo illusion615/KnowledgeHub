@@ -156,6 +156,10 @@
         '    <option value="9:16">' + (getLang() === 'zh' ? '竖屏 9:16（手机）' : 'Portrait 9:16') + '</option>',
         '    <option value="1:1">' + (getLang() === 'zh' ? '正方 1:1（社交媒体）' : 'Square 1:1') + '</option>',
         '  </select>',
+        '</label>',
+        '<label class="narration-setting-row narration-toggle-row">',
+        '  <span>' + (getLang() === 'zh' ? '手机优化' : 'Mobile optimized') + '</span>',
+        '  <input type="checkbox" class="narration-checkbox" data-narration-setting="mobilePresent" ' + (localStorage.getItem('present-mobile-mode') === 'true' ? 'checked' : '') + ' />',
         '</label>'
       ].join('\n');
 
@@ -293,6 +297,22 @@
         recordRatioSelect.addEventListener('change', function () {
           localStorage.setItem('present-record-ratio', recordRatioSelect.value);
           document.dispatchEvent(new CustomEvent('recordRatioChanged', { detail: { ratio: recordRatioSelect.value } }));
+          // Auto-check mobile mode when switching to 9:16
+          var mobileCheckbox = panel.querySelector('[data-narration-setting="mobilePresent"]');
+          if (mobileCheckbox && recordRatioSelect.value === '9:16' && !mobileCheckbox.checked) {
+            mobileCheckbox.checked = true;
+            localStorage.setItem('present-mobile-mode', 'true');
+            document.dispatchEvent(new CustomEvent('mobilePresentChanged', { detail: { enabled: true } }));
+          }
+        });
+      }
+
+      // Phase 4: Mobile present mode toggle
+      var mobilePresentCheckbox = panel.querySelector('[data-narration-setting="mobilePresent"]');
+      if (mobilePresentCheckbox) {
+        mobilePresentCheckbox.addEventListener('change', function () {
+          localStorage.setItem('present-mobile-mode', mobilePresentCheckbox.checked ? 'true' : 'false');
+          document.dispatchEvent(new CustomEvent('mobilePresentChanged', { detail: { enabled: mobilePresentCheckbox.checked } }));
         });
       }
 
