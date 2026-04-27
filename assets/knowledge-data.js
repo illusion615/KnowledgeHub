@@ -79,6 +79,14 @@ var knowledgeTree = [
     phase: 2.9, speed: 0.86
   },
   {
+    id: 'claw-code',
+    parentId: 'ai-research-agent',
+    type: 'topic',
+    label: { zh: 'Claw Code', en: 'Claw Code' },
+    color: '#fb923c',
+    phase: 2.5, speed: 0.84
+  },
+  {
     id: 'copilot-studio',
     parentId: 'microsoft-ai',
     type: 'topic',
@@ -192,7 +200,7 @@ var knowledgeTree = [
     url: 'posts/copilot-deep-dive/index.html',
     color: '#14b8a6',
     phase: 3.8, speed: 0.86,
-    relations: ['copilot-harness-eng', 'enterprise-agent-arch', 'claw-code-analysis']
+    relations: ['copilot-harness-eng', 'enterprise-agent-arch', 'claw-code']
   },
   {
     id: 'text-to-image-prompting',
@@ -291,41 +299,136 @@ var knowledgeTree = [
   },
   {
     id: 'claw-code-analysis',
-    parentId: 'ai-research-agent',
+    parentId: 'claw-code',
     type: 'article',
     title: {
-      zh: 'Claw Code 深度解析：自主编码代理的开源 Harness 实现',
-      en: 'Claw Code Deep Dive: Open-Source Harness for Autonomous Coding Agents'
+      zh: 'Claw Code 总览：自主编码代理的开源 Harness',
+      en: 'Claw Code Overview: Open-Source Harness for Autonomous Coding Agents'
     },
     summary: {
-      zh: '分析 claw-code 开源项目的三层协作架构、9 crate Rust 工作区、40 个工具规格和从 CLI 到原生运行时的五阶段路线。',
-      en: 'Analyzes claw-code\'s three-layer architecture, 9-crate Rust workspace, 40 tool specs, and five-phase roadmap from CLI to native runtime.'
+      zh: '总览篇。梳理三层协作架构、Rust 工作区路径、工具规格与五阶段 Roadmap，适合作为入口阅读。',
+      en: 'Series overview. Maps three-layer architecture, Rust workspace layout, tool specs, and five-phase roadmap; suitable as entry reading.'
     },
-    tags: ['Coding Agent', 'Open Source', 'Rust', 'Autonomous Development'],
+    tags: ['Coding Agent', 'Open Source', 'Rust', 'Overview'],
     date: '2026-04-11',
     url: 'posts/claw-code-analysis/index.html',
-    color: '#f97316',
+    color: '#fb923c',
     phase: 2.5, speed: 0.86,
-    relations: ['copilot-harness-eng', 'enterprise-agent-arch', 'agentic-skill-exec', 'claw-code-user-manual']
+    relations: ['claw-code-user-manual', 'claw-code-worker-protocol', 'copilot-harness-eng']
   },
   {
     id: 'claw-code-user-manual',
-    parentId: 'ai-research-agent',
+    parentId: 'claw-code',
     type: 'article',
     title: {
       zh: 'Claw Code 用户手册：从安装到精通的实操指南',
       en: 'Claw Code User Manual: A Practical Guide from Installation to Mastery'
     },
     summary: {
-      zh: '面向用户的实操手册，覆盖环境准备、REPL/单次/JSON 三种模式、40 个内置工具、五级配置层级、三级权限模型、Slash 命令和 MCP/Hooks/多代理进阶用法。',
-      en: 'A hands-on user manual covering prerequisites, REPL/one-shot/JSON modes, 40 built-in tools, five-level config hierarchy, three-tier permissions, slash commands, and advanced MCP/hooks/multi-agent workflows.'
+      zh: '面向用户的实操手册，覆盖环境、三种运行模式、内置工具、配置层级、权限模型、Slash 命令与 MCP/Hooks/多代理进阶用法。',
+      en: 'Hands-on user manual covering env, three run modes, built-in tools, config hierarchy, permissions, slash commands, MCP/hooks/multi-agent workflows.'
     },
     tags: ['Coding Agent', 'User Manual', 'CLI', 'Tutorial'],
     date: '2026-04-21',
     url: 'posts/claw-code-user-manual/index.html',
-    color: '#f97316',
+    color: '#fb923c',
     phase: 2.8, speed: 0.82,
-    relations: ['claw-code-analysis', 'copilot-harness-eng']
+    relations: ['claw-code-analysis', 'claw-code-worker-protocol']
+  },
+  {
+    id: 'claw-code-worker-protocol',
+    parentId: 'claw-code',
+    type: 'article',
+    title: {
+      zh: 'Claw Code 工作器协议：状态机、信任门、Lane 事件与恢复配方',
+      en: 'Claw Code Worker Protocol: State Machine, Trust Gate, Lane Events & Recovery Recipes'
+    },
+    summary: {
+      zh: '拆解 worker_boot 等 8 个 runtime 模块（6 状态、10 事件、16 Lane 事件、11 失败分类、7 恢复配方），逐项对齐 ROADMAP §1–§11。',
+      en: 'Dissects 8 runtime modules around worker_boot (6 states, 10 events, 16 lane events, 11 failure classes, 7 recovery recipes); maps each to ROADMAP §1–§11.'
+    },
+    tags: ['Coding Agent', 'State Machine', 'Rust', 'Event-Native'],
+    date: '2026-04-22',
+    url: 'posts/claw-code-worker-protocol/index.html',
+    color: '#fb923c',
+    phase: 2.6, speed: 0.84,
+    relations: ['claw-code-analysis', 'claw-code-user-manual', 'enterprise-agent-arch']
+  },
+  {
+    id: 'claw-code-runtime-anatomy',
+    parentId: 'claw-code',
+    type: 'article',
+    title: {
+      zh: 'Claw Code 运行时解剖：会话循环、压缩、提示装配与计费',
+      en: 'Claw Code Runtime Anatomy: Turn Loop, Compaction, Prompt Builder & Usage'
+    },
+    summary: {
+      zh: '拆解 conversation/compact/prompt/usage/hooks 共 5,829 行：run_turn 9 步、Sink 7 回调、压缩 4/10K 窗口、四维计费。',
+      en: 'Dissects 5,829 LOC of runtime: 9-step run_turn, 7 sink callbacks, 4/10K compaction window, 4K/12K prompt budget, four-axis billing.'
+    },
+    tags: ['Coding Agent', 'Runtime', 'Rust', 'Token Budget'],
+    date: '2026-04-22',
+    url: 'posts/claw-code-runtime-anatomy/index.html',
+    color: '#fb923c',
+    phase: 2.7, speed: 0.83,
+    relations: ['claw-code-worker-protocol', 'claw-code-analysis', 'claw-code-user-manual']
+  },
+  {
+    id: 'claw-code-mcp-hardening',
+    parentId: 'claw-code',
+    type: 'article',
+    title: {
+      zh: 'Claw Code MCP 硬化：11 阶段生命周期、错误面与降级模式',
+      en: 'Claw Code MCP Hardening: 11-Phase Lifecycle, Error Surface & Degraded Mode'
+    },
+    summary: {
+      zh: '拆解 4,899 行 MCP 模块：11 阶段生命周期、6 字段 ErrorSurface、4 维降级报告、15+ JSON-RPC 强类型与 stdio 通道。',
+      en: '4,899-LOC MCP teardown: 11-phase lifecycle, 6-field ErrorSurface, 4-axis degraded report, 15+ typed JSON-RPC, stdio transport.'
+    },
+    tags: ['Coding Agent', 'MCP', 'Rust', 'Lifecycle'],
+    date: '2026-04-22',
+    url: 'posts/claw-code-mcp-hardening/index.html',
+    color: '#fb923c',
+    phase: 2.8, speed: 0.82,
+    relations: ['claw-code-runtime-anatomy', 'claw-code-worker-protocol', 'claw-code-analysis']
+  },
+  {
+    id: 'claw-code-permission-bash',
+    parentId: 'claw-code',
+    type: 'article',
+    title: {
+      zh: 'Claw Code 权限层：5 种模式、6 阶段授权与 1004 行 bash 校验',
+      en: 'Claw Code Permission Layer: 5 Modes, 6-Stage Auth & 1,004-LOC Bash Validation'
+    },
+    summary: {
+      zh: '拆解 2,954 行权限模块：5 种 PermissionMode、6 阶段授权流水、6 段 bash 子模块、3 种沙箱隔离与 EnforcementResult 三态。',
+      en: '2,954-LOC permission stack: 5 PermissionModes, 6-stage authorize, 6 bash submodules, 3 sandbox modes, tri-state EnforcementResult.'
+    },
+    tags: ['Coding Agent', 'Permissions', 'Bash', 'Sandbox'],
+    date: '2026-04-22',
+    url: 'posts/claw-code-permission-bash/index.html',
+    color: '#fb923c',
+    phase: 2.9, speed: 0.81,
+    relations: ['claw-code-runtime-anatomy', 'claw-code-worker-protocol', 'claw-code-mcp-hardening']
+  },
+  {
+    id: 'claw-code-app-client',
+    parentId: 'claw-code',
+    type: 'article',
+    title: {
+      zh: 'Claw Code App 客户端：UDS daemon、line-protocol 与 SwiftUI 包装层',
+      en: 'Claw Code App Client: UDS Daemon, Line-Protocol & SwiftUI Wrapper'
+    },
+    summary: {
+      zh: '拆解 1,009 行 claw-daemon：3 类 Message、5 个 Request 方法、6 种 Event；映射 7 个 sink 回调到 SwiftUI App 与 BYO 客户端。',
+      en: '1,009-LOC daemon: 3 Message kinds, 5 Request methods, 6 Event types; maps 7 sink callbacks to SwiftUI App and BYO clients.'
+    },
+    tags: ['Coding Agent', 'Daemon', 'IPC', 'SwiftUI'],
+    date: '2026-04-22',
+    url: 'posts/claw-code-app-client/index.html',
+    color: '#fb923c',
+    phase: 3.0, speed: 0.80,
+    relations: ['claw-code-runtime-anatomy', 'claw-code-mcp-hardening', 'claw-code-permission-bash']
   },
 
   // ════════════════════════════════════════
@@ -587,6 +690,44 @@ var knowledgeTree = [
     phase: 4.8, speed: 0.80,
     relations: ['copilot-studio-overview', 'copilot-studio-constraints', 'enterprise-agent-arch']
   },
+  {
+    id: 'copilot-studio-cua',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Copilot Studio CUA：让 Agent 操作网页与桌面应用的能力、边界与成本',
+      en: 'Copilot Studio CUA: GUI Automation Capability, Limits & Cost'
+    },
+    summary: {
+      zh: '梳理 Copilot Studio CUA 的能力、三种运行方式、成功率边界、日志治理与 5 Credits/step 成本，判断何时该用 GUI 自动化。',
+      en: 'Explains Copilot Studio CUA across runtime options, reliability limits, logging, and 5-credits-per-step economics for GUI automation decisions.'
+    },
+    tags: ['Copilot Studio', 'Computer Use', 'GUI Automation', 'Agent Governance'],
+    date: '2026-04-22',
+    url: 'posts/copilot-studio-cua/index.html',
+    color: '#7c3aed',
+    phase: 3.5, speed: 0.83,
+    relations: ['copilot-studio-overview', 'copilot-studio-constraints', 'copilot-studio-vs-agent-sdk']
+  },
+  {
+    id: 'zava-claims-360-solution',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Zava Claims 360：Power Platform + Copilot Studio 解决方案架构',
+      en: 'Zava Claims 360: Power Platform + Copilot Studio Solution Architecture'
+    },
+    summary: {
+      zh: '面向能源企业 Zava 的解决方案：用 Power Platform 现代化理赔系统，Copilot Studio 构建 AI 客服，Managed Environments 保障合规治理。',
+      en: 'Solution architecture for Zava: modernize claims with Power Platform, deploy AI agent via Copilot Studio, enforce governance with Managed Environments.'
+    },
+    tags: ['Copilot Studio', 'Power Platform', 'Solution Architecture', 'Enterprise ALM'],
+    date: '2026-04-22',
+    url: 'posts/zava-claims-360-solution/index.html',
+    color: '#6d28d9',
+    phase: 2.2, speed: 0.84,
+    relations: ['copilot-studio-overview', 'copilot-studio-vs-agent-sdk', 'dataverse-security-roles']
+  },
 
   // ════════════════════════════════════════
   // 文章 — AI 工程实践（项目设计文档）
@@ -823,6 +964,25 @@ var knowledgeTree = [
     color: '#ff7a00',
     phase: 5.2, speed: 0.72,
     relations: ['study-room-design', 'study-room-standards']
+  },
+  {
+    id: 'pptx-export-design',
+    parentId: 'knowledge-hub-design-docs',
+    type: 'article',
+    title: {
+      zh: 'PPT 导出设计：布局网格、字体令牌与标注示例',
+      en: 'PPT Export Design: Layout Grid, Typography Tokens & Annotated Examples'
+    },
+    summary: {
+      zh: 'PptxGenJS 导出管线的完整视觉规范——幻灯片网格、三级字体层级、色彩令牌、五类布局标注示例与导出约定。',
+      en: 'Full visual spec for PptxGenJS export: slide grid, 3-tier typography, color tokens, 5 annotated slide examples, and layout conventions.'
+    },
+    tags: ['PPT Export', 'Design System', 'PptxGenJS', 'Visual Specification'],
+    date: '2026-04-22',
+    url: 'posts/pptx-export-design/index.html',
+    color: '#ff7a00',
+    phase: 0.8, speed: 0.76,
+    relations: ['article-design-system', 'study-room-design']
   },
 
   // ════════════════════════════════════════
@@ -1426,6 +1586,26 @@ var knowledgeTree = [
     color: '#0d8f8c',
     phase: 5.5, speed: 0.85,
     relations: ['ai-radar-2026w16', 'enterprise-agent-arch']
+  },
+
+  {
+    id: 'ai-radar-2026w18',
+    parentId: 'ai-radar',
+    type: 'article',
+    title: {
+      zh: 'AI 时事雷达 2026W18：GPT-5.5 与 DeepSeek V4 同周对决、Anthropic 千亿融资、Agent 算力重塑',
+      en: 'AI Radar 2026W18: GPT-5.5 vs DeepSeek V4, Anthropic\u2019s $40B Round, Agent Compute Reshape'
+    },
+    summary: {
+      zh: '2026/4/20-26 共 15 件 AI 大事：GPT-5.5 上线、DeepSeek V4 开源 1.6T、Google 拟投 Anthropic $40B、Copilot 限流。',
+      en: '15 events from 2026/04/20-26: GPT-5.5 launch, DeepSeek V4 Pro open-source 1.6T, Google\u2019s $40B Anthropic bet, Mythos dual crisis, GitHub Copilot throttle.'
+    },
+    tags: ['AI Radar', 'Weekly', 'Industry Analysis'],
+    date: '2026-04-27',
+    url: 'posts/ai-radar-2026w18/index.html',
+    color: '#0d8f8c',
+    phase: 6.0, speed: 0.85,
+    relations: ['ai-radar-2026w17', 'enterprise-agent-arch']
   },
 
   // ════════════════════════════════════════
