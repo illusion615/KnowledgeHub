@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Function Calling 工程化提效：同一模型下提升调用成功率的系统方法</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(1.8rem, 4.5vw, 3.2rem);
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+      max-width: 24ch;
+    }
+
+    .hero-metrics {
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    }
+
+    .code-compare {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin: 12px 0;
+    }
+    @media (max-width: 700px) {
+      .code-compare { grid-template-columns: 1fr; }
+    }
+    .code-block {
+      padding: 16px;
+      border-radius: 16px;
+      font-size: 0.78rem;
+      line-height: 1.55;
+      font-family: "SF Mono", "Fira Code", monospace;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .code-block-bad {
+      background: rgba(239, 68, 68, 0.06);
+      border: 1px solid rgba(239, 68, 68, 0.15);
+    }
+    .code-block-good {
+      background: rgba(34, 197, 94, 0.06);
+      border: 1px solid rgba(34, 197, 94, 0.15);
+    }
+    .code-block-label {
+      display: block;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-weight: 700;
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .code-block-bad .code-block-label { color: #ef4444; }
+    .code-block-good .code-block-label { color: #22c55e; }
+
+    [data-theme="dark"] .code-block-bad {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.2);
+    }
+    [data-theme="dark"] .code-block-good {
+      background: rgba(34, 197, 94, 0.1);
+      border-color: rgba(34, 197, 94, 0.2);
+    }
+
+    .pattern-label {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      background: #e0e7ff;
+      color: #3730a3;
+    }
+
+    [data-theme="dark"] .pattern-label {
+      background: #312e81;
+      color: #c7d2fe;
+    }
+
+    .case-tag {
+      display: inline-block;
+      padding: 3px 12px;
+      border-radius: 12px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .case-tag-a { background: #dbeafe; color: #1e40af; }
+    .case-tag-b { background: #fef3c7; color: #92400e; }
+    .case-tag-c { background: #dcfce7; color: #166534; }
+
+    [data-theme="dark"] .case-tag-a { background: #1e3a5f; color: #93c5fd; }
+    [data-theme="dark"] .case-tag-b { background: #451a03; color: #fde68a; }
+    [data-theme="dark"] .case-tag-c { background: #14532d; color: #86efac; }
+
+    .anti-pattern {
+      border-left: 3px solid #ef4444;
+      padding: 12px 16px;
+      margin: 10px 0;
+      background: rgba(239, 68, 68, 0.04);
+      border-radius: 0 12px 12px 0;
+      font-size: 0.86rem;
+    }
+    .anti-pattern strong { color: #ef4444; }
+
+    .good-pattern {
+      border-left: 3px solid #22c55e;
+      padding: 12px 16px;
+      margin: 10px 0;
+      background: rgba(34, 197, 94, 0.04);
+      border-radius: 0 12px 12px 0;
+      font-size: 0.86rem;
+    }
+    .good-pattern strong { color: #22c55e; }
+
+    [data-theme="dark"] .anti-pattern { background: rgba(239, 68, 68, 0.08); }
+    [data-theme="dark"] .good-pattern { background: rgba(34, 197, 94, 0.08); }
+
+    .checklist-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px;
+    }
+
+    .check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      background: rgba(255, 255, 255, 0.6);
+      font-size: 0.86rem;
+      line-height: 1.55;
+    }
+
+    .check-item::before {
+      content: "✓";
+      flex-shrink: 0;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #6366f1;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    [data-theme="dark"] .check-item {
+      background: rgba(30, 41, 59, 0.5);
+      border-color: rgba(255, 255, 255, 0.06);
+    }
+
+    .seq-diagram {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      margin: 14px 0;
+      font-size: 0.82rem;
+    }
+    .seq-step {
+      padding: 8px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.7);
+      font-weight: 600;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.78rem;
+    }
+    .seq-arrow {
+      color: var(--muted);
+      font-size: 1.1rem;
+    }
+    .seq-step-user { border-color: #3b82f6; background: rgba(59, 130, 246, 0.08); }
+    .seq-step-model { border-color: #8b5cf6; background: rgba(139, 92, 246, 0.08); }
+    .seq-step-app { border-color: #f59e0b; background: rgba(245, 158, 11, 0.08); }
+    .seq-step-tool { border-color: #10b981; background: rgba(16, 185, 129, 0.08); }
+
+    [data-theme="dark"] .seq-step { background: rgba(30, 41, 59, 0.6); }
+    [data-theme="dark"] .seq-step-user { background: rgba(59, 130, 246, 0.15); }
+    [data-theme="dark"] .seq-step-model { background: rgba(139, 92, 246, 0.15); }
+    [data-theme="dark"] .seq-step-app { background: rgba(245, 158, 11, 0.15); }
+    [data-theme="dark"] .seq-step-tool { background: rgba(16, 185, 129, 0.15); }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            Function Calling &amp; Agentic
+          </div>
+          <div class="topbar-actions">
+            <nav class="nav-links" aria-label="页面章节导航">
+              <a href="#how-fc-works">调用流程</a>
+              <a href="#schema-eng">Schema 工程</a>
+              <a href="#tool-routing">工具路由</a>
+              <a href="#error-recovery">错误恢复</a>
+              <a href="#oss-frameworks">开源框架</a>
+              <a href="#case-study">实战案例</a>
+              <a href="#eval-monitor">评测与监控</a>
+            </nav>
+          </div>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Function Calling 工程化</span>
+            <h1>同一模型下提升 Function Calling 成功率的系统方法</h1>
+            <p>Function Calling 让模型从"只能聊天"升级到"能操作外部系统"。但从 Demo 到生产，准确率才是核心挑战。本文通过具体的代码对比和生产案例，展示在不更换模型的前提下，如何通过工程手段系统性提升调用成功率。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#schema-eng">Schema 工程</a>
+              <a class="button button-secondary" href="#case-study">实战案例</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">核心发现</span>
+            <h2>大多数 FC 失败不是模型不够聪明，而是我们给模型的信息不够好。</h2>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span>描述写清楚：一个好的 description 把调用准确率从 60% 拉到 90%</li>
+              <li><span class="layer-number">2</span>工具数量要克制：超过 20 个工具时准确率显著下降（OpenAI/Google 一致建议）</li>
+              <li><span class="layer-number">3</span>开 Strict Mode（OpenAI/Anthropic）或 VALIDATED 模式（Gemini）：参数格式错误直接降为 0%</li>
+              <li><span class="layer-number">4</span>错误要传回模型：模型能自我纠正，但需要你把错误信息告诉它</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">工具上限建议</div>
+            <strong>10-20</strong>
+            <span>OpenAI、Google、Anthropic 一致建议</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Schema 约束</div>
+            <strong>Strict / VALIDATED</strong>
+            <span>OpenAI·Anthropic / Gemini 各有实现</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">实战案例</div>
+            <strong>3</strong>
+            <span>电商客服 / 天气查询 / 多Agent编排</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">数据源</div>
+            <strong>3 厂商</strong>
+            <span>OpenAI / Anthropic / Google 官方文档</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- ======================================== -->
+        <!-- 01 / FC 调用流程 -->
+        <!-- ======================================== -->
+        <section id="how-fc-works" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / How It Works</p>
+            <h2>一个请求背后发生了什么</h2>
+            <p>在讨论优化之前，先用一个具体例子看清 Function Calling 的完整流程——这会帮我们理解每个环节可能出错的位置。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>案例：用户说"帮我查北京明天的天气"</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">完整调用流程</div>
+                  <div class="seq-diagram">
+                    <span class="seq-step seq-step-user">用户: 查北京明天天气</span>
+                    <span class="seq-arrow">→</span>
+                    <span class="seq-step seq-step-app">应用: 把消息+工具定义发给模型</span>
+                    <span class="seq-arrow">→</span>
+                    <span class="seq-step seq-step-model">模型: 决定调用 get_weather(city=&quot;Beijing&quot;)</span>
+                    <span class="seq-arrow">→</span>
+                    <span class="seq-step seq-step-app">应用: 收到 function_call，执行真实 API</span>
+                    <span class="seq-arrow">→</span>
+                    <span class="seq-step seq-step-tool">天气API: 返回 {temp: 28, condition: &quot;晴&quot;}</span>
+                    <span class="seq-arrow">→</span>
+                    <span class="seq-step seq-step-app">应用: 把结果作为 function_result 发回模型</span>
+                    <span class="seq-arrow">→</span>
+                    <span class="seq-step seq-step-model">模型: &quot;北京明天天气晴，28°C&quot;</span>
+                  </div>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">关键认知：模型不执行函数，你的代码执行</div>
+                  <p>模型的工作是<strong>看懂用户意图 → 选对函数 → 填对参数</strong>。它返回的是一个 JSON 格式的"调用请求"（比如 <code>{"name": "get_weather", "arguments": {"city": "Beijing"}}</code>），你的应用代码负责执行这个请求并获取真实结果。模型从不直接访问你的 API。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">五个可能出错的位置</div>
+                  <p>① 模型选错了函数（有 10 个可选，选了 <code>get_temperature</code> 而不是 <code>get_weather</code>）。② 选对函数但参数错（填了 <code>"北京"</code> 而不是 <code>"Beijing"</code>）。③ 本该调函数但模型直接编了一个回复。④ 不该调函数时模型强行调了一个。⑤ 函数执行失败（API 超时），模型没机会处理错误。这五个问题，都可以通过工程手段系统性解决。</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ======================================== -->
+        <!-- 02 / Schema 工程 -->
+        <!-- ======================================== -->
+        <section id="schema-eng" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Schema Engineering</p>
+            <h2>Schema 工程：用好的"说明书"让模型少犯错</h2>
+            <p>模型靠 Schema（函数定义）来理解每个工具能做什么、参数要什么格式。Schema 写得好不好，直接决定模型选对工具和填对参数的概率。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>代码对比：差的 vs 好的函数定义</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">案例：一个电商退款函数</div>
+                  <p>假设你在做一个客服系统，需要模型帮用户处理退款。下面两种写法，效果天差地别：</p>
+                </div>
+                <div class="code-compare">
+                  <div class="code-block code-block-bad">
+                    <span class="code-block-label">差的写法</span>{
+  "name": "refund",
+  "description": "Process refund",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "id": {"type": "string"},
+      "amt": {"type": "number"},
+      "r": {"type": "string"}
+    }
+  }
+}
+// 问题：
+// 1. name 太模糊——refund 什么？
+// 2. description 没说何时该用
+// 3. 参数名缩写，模型要猜
+// 4. 没有 required 字段
+// 5. "r" 是什么？reason？recipient？</div>
+                  <div class="code-block code-block-good">
+                    <span class="code-block-label">好的写法</span>{
+  "name": "submit_order_refund",
+  "description": "Submit a refund for a
+    customer's order. Use this when a
+    customer requests money back for a
+    completed order. Do NOT use for
+    exchanges or order cancellations.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "order_id": {
+        "type": "string",
+        "description": "The order ID,
+          e.g. 'ORD-2026-00123'"
+      },
+      "refund_reason": {
+        "type": "string",
+        "enum": ["defective",
+          "wrong_item", "not_received",
+          "changed_mind"],
+        "description": "Reason for the
+          refund request"
+      }
+    },
+    "required": ["order_id",
+      "refund_reason"],
+    "additionalProperties": false
+  },
+  "strict": true
+}</div>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">关键差异分析</div>
+                  <p><strong>函数名</strong>从"refund"改为"submit_order_refund"——模型光看名字就知道这是针对订单的退款提交。<strong>描述</strong>不仅说了能做什么，还说了<em>不能</em>做什么（不处理换货和取消）。<strong>参数</strong>用完整英文名，加了 description 和示例格式。<strong>refund_reason</strong> 用 enum 限定了四个有效值——模型不用猜。<strong>strict: true</strong> 确保模型输出 100% 符合 Schema。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>OpenAI 的实习生测试法</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">原则</div>
+                  <p>OpenAI 官方文档给出了一个极其实用的检验标准：<strong>"把你的函数定义交给一个实习生，如果他只看你提供的这些信息就能正确使用这个函数，那你的定义就是好的。如果他会问你问题——把那些问题的答案加到描述里。"</strong> <a href="https://developers.openai.com/api/docs/guides/function-calling" target="_blank" rel="noopener noreferrer">[1]</a></p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">具体操作</div>
+                  <p>拿上面退款函数的差版本去问同事："你知道 <code>r</code> 参数填什么吗？"——他一定会问你。那就把答案写到 description 里。这不是在帮模型偷懒，而是在消除歧义。歧义越少，模型选对工具和参数的概率越高。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Strict Mode：让参数格式错误变为不可能</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">先厘清一个概念：Strict Mode 不是模型能力，是 API 平台的约束机制</div>
+                  <p>Strict Mode <strong>不是模型自身的一个参数</strong>，也不是所有支持 Function Calling 的模型都有的通用标准。它是<strong>特定 API 平台在模型输出解码阶段施加的格式约束</strong>——平台在模型逐 token 生成参数 JSON 的过程中，实时校验每个 token 是否符合你定义的 JSON Schema，不符合的 token 直接被拦截。这意味着约束发生在推理过程中，而非生成后校验。OpenAI 叫它 Strict Mode（<code>strict: true</code>），Anthropic 也支持同名参数（<code>strict: true</code>），但 <strong>Google Gemini API 没有这个参数</strong>——Gemini 用的是 <code>VALIDATED</code> 调用模式来实现类似效果（限制模型只输出符合 Schema 的函数调用或自然语言，但实现机制不同）。开源模型通过 vLLM / Outlines 等推理框架的 Guided Decoding 功能实现类似能力，但需要自己配置，不是开箱即用。<a href="https://developers.openai.com/api/docs/guides/function-calling" target="_blank" rel="noopener noreferrer">[1]</a> <a href="https://ai.google.dev/gemini-api/docs/function-calling" target="_blank" rel="noopener noreferrer">[2]</a></p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">问题场景：没有 Strict Mode 时会怎样</div>
+                  <p>模型可能给 <code>order_id</code> 填一个 <code>123</code>（integer），虽然你 Schema 里写的是 string。或者给一个不在 enum 列表里的值（比如 <code>"other"</code>）。没有平台级约束时，你不得不在应用代码里写大量类型校验和格式修正。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">Strict Mode 做了什么（OpenAI / Anthropic）</div>
+                  <p>开启 <code>strict: true</code> 后，平台利用 Structured Outputs 技术在解码阶段约束输出——<strong>模型在生成 token 时就被限制只能输出符合 Schema 的内容</strong>。结果是参数类型、格式、必填字段 100% 符合定义。你的应用代码可以省掉所有格式校验逻辑，只处理业务层面的错误（比如 order_id 格式对但不存在）。</p>
+                </div>
+                <div class="comparison-grid">
+                  <div class="comparison-card">
+                    <h4>OpenAI Strict Mode</h4>
+                    <ul>
+                      <li>参数 <code>strict: true</code> 加在每个函数定义上</li>
+                      <li>Responses API 默认开启并自动补全约束</li>
+                      <li>要求：所有字段标为 required、加 additionalProperties: false</li>
+                      <li>可选字段用 <code>type: ["string", "null"]</code> 表达</li>
+                    </ul>
+                  </div>
+                  <div class="comparison-card">
+                    <h4>Anthropic Strict Tool Use</h4>
+                    <ul>
+                      <li>参数 <code>strict: true</code> 加在工具定义上</li>
+                      <li>同样基于 Structured Outputs 实现</li>
+                      <li>Schema 约束要求与 OpenAI 类似</li>
+                      <li>不支持 JSON Schema 全部特性（如复杂递归类型）</li>
+                    </ul>
+                  </div>
+                  <div class="comparison-card">
+                    <h4>Google Gemini</h4>
+                    <ul>
+                      <li><strong>没有 strict 参数</strong></li>
+                      <li>使用 <code>VALIDATED</code> 调用模式替代</li>
+                      <li>VALIDATED 确保 Schema 合规但机制不同</li>
+                      <li>默认 ANY 模式下不强制合规</li>
+                    </ul>
+                  </div>
+                  <div class="comparison-card">
+                    <h4>开源模型</h4>
+                    <ul>
+                      <li><strong>模型本身无此能力</strong></li>
+                      <li>需推理框架支持（vLLM Guided Decoding / Outlines）</li>
+                      <li>自行配置 JSON Schema 约束</li>
+                      <li>效果取决于框架实现质量</li>
+                    </ul>
+                  </div>
+                </div>
+                <div class="action-box">
+                  <div class="event-field-label">总结</div>
+                  <p>Strict Mode 是 API 平台的工程能力，不是 LLM 的通用特性。如果你用 OpenAI 或 Anthropic，直接开 <code>strict: true</code> 即可；如果用 Gemini，需改用 <code>VALIDATED</code> 模式；如果用开源模型自部署，需要在推理框架层面配置 Guided Decoding。无论哪种路径，目标一致：<strong>把参数格式校验从应用层挪到推理层，从"生成后修补"变成"生成时就对"</strong>。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>减少模型认知负担的三个技巧</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">技巧 1：已知参数不让模型填</div>
+                  <p>场景：用户在上一步选择了订单 ORD-123，现在要提交退款。<strong>错误做法</strong>是定义 <code>submit_refund(order_id, reason)</code> 让模型去填 order_id。<strong>正确做法</strong>是定义 <code>submit_refund(reason)</code> 只让模型填 reason，order_id 在你的应用代码里直接从上下文取。OpenAI 原话："Don't make the model fill arguments you already know." <a href="https://developers.openai.com/api/docs/guides/function-calling" target="_blank" rel="noopener noreferrer">[1]</a></p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">技巧 2：合并总是连续调用的函数</div>
+                  <p>如果每次用户说"帮我下单"你都需要先调 <code>validate_cart()</code> 再调 <code>place_order()</code>，把它们合并成一个 <code>checkout()</code>。每多一次 function call 就多一次出错机会和 token 消耗。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">技巧 3：用 Schema 结构消除非法状态</div>
+                  <p>把 <code>toggle_light(on: bool, off: bool)</code>（可以同时为 true/false 两个矛盾状态）改为 <code>set_light(state: enum["on","off"])</code>。从 Schema 结构上让非法输入变为不可能，而不是靠应用层校验。</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ======================================== -->
+        <!-- 03 / 工具路由 -->
+        <!-- ======================================== -->
+        <section id="tool-routing" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / Tool Routing</p>
+            <h2>工具路由：当工具超过 20 个怎么办</h2>
+            <p>一个电商客服可能需要查订单、查物流、退款、换货、查会员积分、查优惠券等几十个操作。一次性给模型全部工具定义会怎样？准确率下降、token 暴涨、选错工具的概率升高。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>案例：一个 40 工具的客服系统</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">问题描述</div>
+                  <p>某电商客服系统有 40 个工具：订单查询、物流追踪、退款、换货、优惠券核销、会员积分查询、投诉升级……一次性全部放进 context。结果：每个 API 调用消耗 8000+ input tokens 光是工具定义，模型经常把"查物流"的请求错误地路由到"查订单"——因为两者的描述太相似。</p>
+                </div>
+                <div class="comparison-grid">
+                  <div class="comparison-card">
+                    <h4>方案 A：应用层预过滤</h4>
+                    <p>根据对话上下文在应用层判断当前意图属于哪个领域（订单/物流/售后），只注入该领域的 5-8 个工具。</p>
+                    <ul>
+                      <li>优点：所有厂商都支持，无需额外 API</li>
+                      <li>缺点：需要自己实现意图分类逻辑</li>
+                      <li>适合：中小规模、领域明确的场景</li>
+                    </ul>
+                  </div>
+                  <div class="comparison-card">
+                    <h4>方案 B：Namespace 分组 + tool_choice</h4>
+                    <p>用 OpenAI 的 Namespace 把工具按领域分组（<code>order</code>、<code>logistics</code>、<code>membership</code>），配合 <code>allowed_tools</code> 限制当前可用范围。</p>
+                    <ul>
+                      <li>优点：不修改工具列表也能限制范围，利于 Prompt Caching</li>
+                      <li>缺点：仅 OpenAI 支持 Namespace</li>
+                      <li>适合：已重度使用 OpenAI 的场景</li>
+                    </ul>
+                  </div>
+                  <div class="comparison-card">
+                    <h4>方案 C：Tool Search 延迟加载</h4>
+                    <p>只给模型工具的名字和一句话摘要。模型需要某个工具时，通过 <code>tool_search</code> 搜索并加载完整定义后再调用。</p>
+                    <ul>
+                      <li>优点：初始 context 极小，支持 100+ 工具</li>
+                      <li>缺点：仅 OpenAI gpt-5.4+ 支持</li>
+                      <li>适合：工具数量大且经常变化的场景</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>tool_choice：控制模型"该不该调函数"</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">四种模式及适用场景</div>
+                  <p>用一个客服对话来说明：用户说"我要退货"，你希望模型一定去调退货函数，而不是回复"好的，请问您的订单号是多少"——这时候就用 <code>required</code> 强制模型必须调一个函数。</p>
+                </div>
+                <div class="comparison-grid">
+                  <div class="comparison-card">
+                    <h4>auto（默认）</h4>
+                    <p>模型自己决定。适合开放式对话——用户可能问"退货政策是什么"（不需要调函数）也可能说"帮我退这个订单"（需要调函数）。</p>
+                  </div>
+                  <div class="comparison-card">
+                    <h4>required</h4>
+                    <p>必须调至少一个函数。适合确定性步骤——流程走到"提交退款"这一步，模型不应该回退到闲聊。</p>
+                  </div>
+                  <div class="comparison-card">
+                    <h4>指定函数名</h4>
+                    <p>强制调特定函数。适合高度确定的场景——表单填完了，就该调 <code>submit_refund</code>，没有其他选项。</p>
+                  </div>
+                  <div class="comparison-card">
+                    <h4>none</h4>
+                    <p>禁止调函数。适合纯对话阶段——比如在调函数之前先跟用户确认细节，不希望模型冒然操作。</p>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>并行 vs 链式调用：选择的代价</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">并行调用的好处和风险</div>
+                  <p>用户说"帮我查北京和上海的天气"。模型可以一次性返回两个 <code>get_weather</code> 调用（<code>city="Beijing"</code> 和 <code>city="Shanghai"</code>），你的代码并行执行两个 API 请求。速度快一倍。</p>
+                  <p>但风险是：<code>gpt-4.1-nano</code> 有时会对同一个工具生成重复调用。OpenAI 建议在用该模型时设置 <code>parallel_tool_calls: false</code>。<a href="https://developers.openai.com/api/docs/guides/function-calling" target="_blank" rel="noopener noreferrer">[1]</a></p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">链式调用：一步的输出是下一步的输入</div>
+                  <p>用户说"如果伦敦现在温度超过 20°C 就把空调设到 20°C，否则设到 18°C"。模型需要先调 <code>get_weather(London)</code>，拿到 25°C，然后基于这个结果决定调 <code>set_thermostat(20)</code>。Google Gemini 3 原生支持这种链式调用，一次 API 请求内自动完成多步。其他厂商需要多轮对话来实现。<a href="https://ai.google.dev/gemini-api/docs/function-calling" target="_blank" rel="noopener noreferrer">[2]</a></p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ======================================== -->
+        <!-- 04 / 错误恢复 -->
+        <!-- ======================================== -->
+        <section id="error-recovery" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / Error Recovery</p>
+            <h2>错误恢复：把失败变成学习机会</h2>
+            <p>Function Calling 会失败——API 超时、参数不合法、权限不足。关键不是能不能避免所有错误，而是失败后模型能否自我纠正。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>案例：日期格式错误的自动修复</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">场景</div>
+                  <p>用户说"帮我查 3 月 15 号的航班"。模型调用 <code>search_flights(date="March 15")</code>，但 API 要求格式是 <code>YYYY-MM-DD</code>。如何处理？</p>
+                </div>
+                <div class="code-compare">
+                  <div class="code-block code-block-bad">
+                    <span class="code-block-label">差的处理</span>// 捕获错误 → 直接给用户报错
+try {
+  result = searchFlights(date);
+} catch (e) {
+  reply("抱歉，查询失败了");
+  // 对话结束，用户体验差
+  // 模型没有机会修正
+}</div>
+                  <div class="code-block code-block-good">
+                    <span class="code-block-label">好的处理</span>// 捕获错误 → 结构化反馈给模型
+try {
+  result = searchFlights(date);
+} catch (e) {
+  // 把错误作为 function_result 传回
+  functionResult = JSON.stringify({
+    "error": "invalid_date_format",
+    "message": "Date must be YYYY-MM-DD",
+    "received": "March 15",
+    "example": "2026-03-15"
+  });
+  // 模型收到后会自动修正:
+  // search_flights(date="2026-03-15")
+}</div>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">为什么这样做有效</div>
+                  <p>模型是语言模型——它擅长理解错误描述并从中纠正行为。当你告诉它"你给的是 March 15，需要 YYYY-MM-DD 格式，比如 2026-03-15"，模型几乎总能在下一轮生成正确格式。<strong>前提是你得把错误信息传回模型</strong>，而不是自己消化掉。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>分层降级策略</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">三层降级机制</div>
+                  <p>不是所有错误都值得重试。建立三层降级机制：</p>
+                </div>
+                <div class="flow-list">
+                  <div class="flow-item">
+                    <div class="flow-number">1</div>
+                    <div>
+                      <h4>参数级修正（自动）</h4>
+                      <p>传回结构化错误，让模型修正参数后重试同一函数。<strong>适用</strong>：格式错误、值超范围、缺少必填字段。上限 2 次。</p>
+                    </div>
+                  </div>
+                  <div class="flow-item">
+                    <div class="flow-number">2</div>
+                    <div>
+                      <h4>函数级降级</h4>
+                      <p>换一个等效但更宽容的函数。例如精确搜索 <code>search_exact(sku="ABC123")</code> 失败后，降级到模糊搜索 <code>search_fuzzy(query="ABC 123")</code>。在错误信息中提示模型可以尝试另一个函数。</p>
+                    </div>
+                  </div>
+                  <div class="flow-item">
+                    <div class="flow-number">3</div>
+                    <div>
+                      <h4>放弃工具，回退到文本</h4>
+                      <p>连续失败 3 次后，告诉模型"工具暂时不可用，请用你已有的知识尽量回答用户"。不是理想的结果，但比无限重试或直接报错好得多。</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>人工确认：高风险操作的安全网</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">哪些操作需要确认</div>
+                  <p>OpenAI 和 Google 文档都明确建议：<strong>有不可逆后果的操作（付款、删除、下单），必须在执行前获取用户确认</strong>。实现方式是：模型返回 <code>function_call</code> 后，应用层不立即执行，而是先向用户展示"即将执行：退款 ¥299 到订单 ORD-123，原因：商品损坏。确认？"，用户确认后再执行。<a href="https://developers.openai.com/api/docs/guides/function-calling" target="_blank" rel="noopener noreferrer">[1]</a> <a href="https://ai.google.dev/gemini-api/docs/function-calling" target="_blank" rel="noopener noreferrer">[2]</a></p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">只读函数 vs 读写函数的分类标准</div>
+                  <p>一个实用的分类：查询类函数（<code>get_order_status</code>、<code>search_products</code>）可以自动执行，不需确认。修改类函数（<code>cancel_order</code>、<code>process_refund</code>）需要用户确认。在 Schema 或内部标签中标记每个函数是 <code>read</code> 还是 <code>write</code>，由应用层根据分类决定是否走确认流程。</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ======================================== -->
+        <!-- 05 / 开源 FC 框架对比 -->
+        <!-- ======================================== -->
+        <section id="oss-frameworks" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / Open-Source Frameworks</p>
+            <h2>开源 FC 框架对比：自部署模型怎么选</h2>
+            <p>使用商业 API（OpenAI / Anthropic / Google）时，FC 能力开箱即用。但当你用开源模型自部署时，需要一个推理框架来提供 Tool Calling 解析和 Structured Output 约束。以下是主流开源方案的对比。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>四大主流框架一览</span>
+              </button>
+              <div class="subsection-content">
+                <div class="comparison-grid">
+                  <div class="comparison-card">
+                    <h4>vLLM</h4>
+                    <p><strong>定位</strong>：高性能 LLM 推理引擎，78.6K Stars。FC 是其众多特性之一。</p>
+                    <ul>
+                      <li>内置 OpenAI 兼容 API，<code>/v1/chat/completions</code> 直接支持 tool calls</li>
+                      <li>Structured Outputs 支持多后端：xgrammar（默认）、guidance、outlines、lm-format-enforcer</li>
+                      <li>内置 40+ 模型的 Tool Parser（Hermes、Llama、Qwen、Mistral、DeepSeek 等）</li>
+                      <li>支持 Reasoning 模型 + Structured Outputs 组合使用</li>
+                    </ul>
+                    <p><strong>适合</strong>：已经用 vLLM 部署模型的团队——FC 能力直接可用，无需额外集成</p>
+                  </div>
+                  <div class="comparison-card">
+                    <h4>SGLang</h4>
+                    <p><strong>定位</strong>：高性能 serving 框架，26.7K Stars。与 vLLM 直接竞争。</p>
+                    <ul>
+                      <li>OpenAI 兼容 API 支持 tool calling</li>
+                      <li>RadixAttention 前缀缓存——对工具定义不变的场景天然有利（相当于内置 Prompt Caching）</li>
+                      <li>Structured Outputs 支持 JSON Schema、Regex、Grammar</li>
+                      <li>吞吐量基准测试常优于 vLLM，尤其在大规模部署场景</li>
+                    </ul>
+                    <p><strong>适合</strong>：追求极致吞吐量、大规模 GPU 集群部署（400K+ GPU 已验证）</p>
+                  </div>
+                  <div class="comparison-card">
+                    <h4>Outlines</h4>
+                    <p><strong>定位</strong>：Structured Generation 专用库，13.8K Stars。由 .txt 公司维护。</p>
+                    <ul>
+                      <li>不是推理引擎——是约束层，可搭配 transformers、vLLM、Ollama、OpenAI 使用</li>
+                      <li>用 Python 类型系统定义输出：<code>Literal["Yes","No"]</code>、<code>int</code>、Pydantic Model</li>
+                      <li>支持 JSON Schema、Regex、CFG（上下文无关文法）约束</li>
+                      <li>内置 Function Calling 示例：从自然语言提取函数签名参数</li>
+                    </ul>
+                    <p><strong>适合</strong>：需要灵活的结构化输出约束但不想绑定特定推理引擎</p>
+                  </div>
+                  <div class="comparison-card">
+                    <h4>llama.cpp + Guidance</h4>
+                    <p><strong>定位</strong>：轻量级本地推理 + 约束生成组合。</p>
+                    <ul>
+                      <li>llama.cpp 原生支持 GBNF Grammar 约束（JSON Schema → GBNF 自动转换）</li>
+                      <li>Guidance（Microsoft）提供程序化控制流——在生成过程中交替约束和自由生成</li>
+                      <li>LLGuidance 是 Guidance 的 Rust 核心，被 vLLM 和 OpenAI 采用作为约束后端</li>
+                      <li>资源占用极低，适合边缘设备和单机部署</li>
+                    </ul>
+                    <p><strong>适合</strong>：单机 / 边缘设备部署、需要极细粒度控制生成过程</p>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>选型决策：什么场景用什么框架</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">场景 1：已有 vLLM/SGLang 部署，需要加 FC</div>
+                  <p>直接使用推理引擎内置的 Tool Calling 功能。vLLM 通过 <code>--tool-call-parser</code> 参数指定模型对应的解析器（如 <code>hermes</code>、<code>llama</code>、<code>qwen3</code>），即可在 OpenAI 兼容 API 上使用 <code>tools</code> 参数。SGLang 类似。<strong>无需额外安装任何库</strong>。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">场景 2：需要保证参数输出 100% 合规（等效 Strict Mode）</div>
+                  <p>在 vLLM 中启用 Structured Outputs：<code>{"structured_outputs": {"json": your_schema}}</code>。后端默认用 xgrammar，也可切换为 guidance 或 outlines。这等效于商业 API 的 Strict Mode——在解码阶段约束输出。SGLang 同样支持。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">场景 3：用多种模型/多种推理引擎，需要统一约束层</div>
+                  <p>用 Outlines 作为独立约束层。它不绑定推理引擎——可以包装 transformers、vLLM、Ollama、甚至 OpenAI API。同一套 Pydantic Schema 定义在所有模型上通用。代价是多了一层抽象，性能比引擎内置略低。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">场景 4：本地单机 / 边缘设备</div>
+                  <p>llama.cpp + GBNF Grammar。llama.cpp 的 <code>--grammar-file</code> 参数直接加载 JSON Schema 对应的 GBNF，资源占用极低。如果需要更复杂的控制流（比如在生成中间插入校验逻辑），加上 Guidance。</p>
+                </div>
+                <div class="action-box">
+                  <div class="event-field-label">关键判断标准</div>
+                  <p><strong>已有推理引擎</strong> → 用引擎内置能力（vLLM / SGLang），零额外集成成本。<strong>多引擎统一</strong> → Outlines 作为抽象层。<strong>极致轻量</strong> → llama.cpp。<strong>不要</strong>在已用 vLLM 的项目上再单独引入 Outlines——vLLM 的 Structured Outputs 后端已内置 outlines 支持，重复引入只增加复杂度。</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ======================================== -->
+        <!-- 06 / 实战案例分析 -->
+        <!-- ======================================== -->
+        <section id="case-study" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / Case Studies</p>
+            <h2>三个真实场景的架构分析</h2>
+            <p>前面的技巧和框架需要放到具体场景中才有意义。下面用三个逐步升级的案例，展示 Function Calling 从简单到复杂的架构演进，以及每种架构的适用条件和局限。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>案例 A：单工具天气查询（最简 FC）</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-meta"><span class="case-tag case-tag-a">案例 A</span></div>
+                <div class="event-field">
+                  <div class="event-field-label">场景</div>
+                  <p>用户问天气 → 模型调一个 <code>get_weather(city)</code> → 应用执行 API → 结果传回模型 → 模型生成自然语言回复。整个对话只需两轮 API 调用。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">架构特征</div>
+                  <p>1 个工具、无状态、单轮调用。<code>tool_choice: auto</code>。不需要重试逻辑——API 失败直接告诉用户。这是 Function Calling 的最简形态，适合做 PoC 和理解基本流程。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">局限</div>
+                  <p>用户稍微复杂一点的请求（"北京和上海哪个更热"）就需要并行调用；更复杂的请求（"如果明天下雨就帮我取消出行计划"）需要链式调用 + 条件判断。单工具架构无法处理这些场景。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>案例 B：电商客服（多工具 + 路由 + 错误恢复）</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-meta"><span class="case-tag case-tag-b">案例 B</span></div>
+                <div class="event-field">
+                  <div class="event-field-label">场景</div>
+                  <p>电商客服系统，用户可能问订单状态、申请退货、查物流、改地址、查优惠券。涉及 20-30 个工具，跨多个后端系统（订单系统、物流系统、会员系统）。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">架构设计</div>
+                  <p><strong>工具路由层</strong>：根据对话意图分类（订单/物流/会员），每次只注入对应领域的 5-8 个工具。用 System Prompt 告诉模型当前在哪个领域。如果用户话题切换，在应用层检测并切换工具集。</p>
+                  <p><strong>错误恢复层</strong>：所有函数执行结果（含错误）都传回模型。设置 2 次参数级重试上限。write 类函数（退款、取消）走用户确认流程。</p>
+                  <p><strong>上下文管理</strong>：order_id 等已知参数从对话上下文自动注入，不让模型填。返回值做 field projection——订单详情 API 返回 50 个字段，只传 5 个给模型（订单号、状态、金额、日期、物流单号）。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">成本分析</div>
+                  <p>Anthropic 数据显示，每启用一个工具就增加 264-530 个基础 token。<a href="https://platform.claude.com/docs/en/docs/build-with-claude/tool-use/overview" target="_blank" rel="noopener noreferrer">[3]</a> 如果把全部 30 个工具一次性注入，光是工具定义就要消耗 6000-15000 token（取决于描述长度），约占 GPT-4.1 128K context 的 5-12%。分组后每次只加载 5-8 个，降到 1000-2400 token。这不只是省钱——更少的工具定义意味着更少的干扰，模型做选择时信噪比更高。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>案例 C：Power Platform Skills 的多 Agent 编排</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-meta"><span class="case-tag case-tag-c">案例 C</span></div>
+                <div class="event-field">
+                  <div class="event-field-label">项目背景</div>
+                  <p>微软开源的 <a href="https://github.com/microsoft/power-platform-skills" target="_blank" rel="noopener noreferrer">power-platform-skills</a> 是一个面向 Claude Code 和 GitHub Copilot CLI 的插件系统，用于自动化 Power Platform 的开发流程（创建网站、部署、配置数据模型、认证）。整个系统有 26+ 个 Skill（工具），涉及文件操作、CLI 命令执行、API 调用、浏览器自动化等多种能力。如果把 26 个工具一次性给一个 Agent，准确率和可靠性都会有问题。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">他们怎么解决的：四层架构</div>
+                  <p>Power Platform Skills 没有把 26 个工具交给一个 Agent，而是设计了四层架构：</p>
+                </div>
+                <div class="flow-list">
+                  <div class="flow-item">
+                    <div class="flow-number">1</div>
+                    <div>
+                      <h4>Marketplace 层</h4>
+                      <p>一个 <code>marketplace.json</code> 文件列出所有可用插件。类似应用商店——你不需要安装全部插件，按需安装。这从源头控制了工具总量。</p>
+                    </div>
+                  </div>
+                  <div class="flow-item">
+                    <div class="flow-number">2</div>
+                    <div>
+                      <h4>Plugin 层</h4>
+                      <p>每个 Plugin（Power Pages / Model Apps / Code Apps / Canvas Apps）是独立单元，有自己的工具集和开发指南。用户安装 Power Pages 插件后只加载那 9 个 Skill，不会看到 Code Apps 的 13 个 Skill。这是物理级别的工具隔离。</p>
+                    </div>
+                  </div>
+                  <div class="flow-item">
+                    <div class="flow-number">3</div>
+                    <div>
+                      <h4>Skill 层</h4>
+                      <p>每个 Skill（如 <code>/create-site</code>、<code>/integrate-webapi</code>）定义了一个完整的工作流步骤，通过 YAML frontmatter 声明自己可以使用哪些底层工具（<code>allowed-tools: Read, Write, Edit, Bash, Glob, Grep</code>）。Skill 内部的工具数量被限制在合理范围内。</p>
+                    </div>
+                  </div>
+                  <div class="flow-item">
+                    <div class="flow-number">4</div>
+                    <div>
+                      <h4>Agent 层</h4>
+                      <p>特定 Skill 会调度专职 Agent 来处理子任务。Canvas Apps 插件里，<code>/generate-canvas-app</code> Skill 先调度 canvas-app-planner Agent 做规划（只读型，只分析不修改），用户审批后，再并行调度多个 canvas-screen-builder Agent 来构建各个屏幕的 YAML 文件。<a href="https://github.com/microsoft/power-platform-skills/blob/main/plugins/canvas-apps/AGENTS.md" target="_blank" rel="noopener noreferrer">[5]</a></p>
+                    </div>
+                  </div>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">关键设计决策分析</div>
+                  <p><strong>只读 Agent 模式</strong>：Data Model Architect、Table Permissions、Web API Settings 三个 Agent 被刻意设计为只读型——它们分析现有代码和数据，生成 Mermaid 图和 YAML 配置提案，但<em>绝不</em>直接创建或修改任何资源。所有变更必须经用户审批后由主 Skill 执行。这直接对应前面讲的"人工确认门控"，但做得更彻底——不是在函数调用前确认，而是在 Agent 层面就区分了"分析者"和"执行者"。<a href="https://github.com/microsoft/power-platform-skills/blob/main/plugins/power-pages/README.md" target="_blank" rel="noopener noreferrer">[6]</a></p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">跟案例 B 的对比</div>
+                  <p>案例 B（电商客服）在应用层做工具路由——一个 Agent 配不同的工具子集。案例 C 更进一步——用<strong>多个专职 Agent</strong> 来分治，每个 Agent 只看到自己领域的工具和 Persona。好处是单个 Agent 的认知负担极低（canvas-screen-builder 只需要写 YAML，不需要理解数据模型和权限）。代价是架构复杂度上升——你需要管理 Agent 间的调度、状态传递和错误处理。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>三种架构的选型决策表</span>
+              </button>
+              <div class="subsection-content">
+                <div class="comparison-grid">
+                  <div class="comparison-card">
+                    <h4><span class="pattern-label">单 Agent + 少工具</span></h4>
+                    <ul>
+                      <li>工具数：1-10 个</li>
+                      <li>适用：PoC、单一领域助手</li>
+                      <li>复杂度：低</li>
+                      <li>要求：只需做好 Schema</li>
+                      <li>案例：天气查询、简单 CRM 助手</li>
+                    </ul>
+                  </div>
+                  <div class="comparison-card">
+                    <h4><span class="pattern-label">单 Agent + 工具路由</span></h4>
+                    <ul>
+                      <li>工具数：10-40 个</li>
+                      <li>适用：跨领域客服、内部工具集合</li>
+                      <li>复杂度：中</li>
+                      <li>要求：意图分类 + 工具分组 + 错误恢复</li>
+                      <li>案例：电商客服、IT Helpdesk</li>
+                    </ul>
+                  </div>
+                  <div class="comparison-card">
+                    <h4><span class="pattern-label">多 Agent 编排</span></h4>
+                    <ul>
+                      <li>工具数：40+ 个</li>
+                      <li>适用：多系统集成、长流程自动化</li>
+                      <li>复杂度：高</li>
+                      <li>要求：Agent 调度 + 状态管理 + 审批流</li>
+                      <li>案例：Power Platform Skills、IDE 插件</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ======================================== -->
+        <!-- 06 / 评测与监控 -->
+        <!-- ======================================== -->
+        <section id="eval-monitor" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">07 / Evaluation &amp; Monitoring</p>
+            <h2>评测与监控：用数据驱动优化</h2>
+            <p>上面的优化技巧到底有没有用？你需要量化指标来衡量。OpenAI 给出的生产化建议是：先拿 20+ 个标注好的测试用例跑出基线，再逐项优化并对比。<a href="https://developers.openai.com/api/docs/guides/optimizing-llm-accuracy" target="_blank" rel="noopener noreferrer">[7]</a></p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>你应该追踪的 6 个指标</span>
+              </button>
+              <div class="subsection-content">
+                <div class="checklist-grid">
+                  <div class="check-item">
+                    <strong>工具选择准确率</strong>——给定用户请求，模型选对了函数吗？包括四种失败：选错函数、不该调时调了、该调时没调、调了不存在的函数
+                  </div>
+                  <div class="check-item">
+                    <strong>参数准确率</strong>——选对函数后，参数值对不对？开 Strict Mode 后格式错误降为 0%，但值的正确性仍需评测（比如城市名拼对没有）
+                  </div>
+                  <div class="check-item">
+                    <strong>端到端成功率</strong>——从用户提问到最终正确回复的完整成功率。这才是业务关心的数字
+                  </div>
+                  <div class="check-item">
+                    <strong>平均调用轮次</strong>——完成一个任务需要几轮 function_call？1 轮是理想的，超过 3 轮说明 Schema 或 Prompt 有优化空间
+                  </div>
+                  <div class="check-item">
+                    <strong>自我纠正率</strong>——模型收到错误反馈后成功修正的比例。高纠正率说明你的错误反馈格式有效
+                  </div>
+                  <div class="check-item">
+                    <strong>Token 消耗</strong>——每次成功调用的 input + output token。工具定义的 token 占比不应超过总 input 的 40%
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>如何构建评测集</span>
+              </button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">Step 1：收集真实对话</div>
+                  <p>从生产日志中收集至少 50 条真实的用户请求 + 模型的 function_call 响应。不要自己编——你编的测试用例会带有偏见，只覆盖"你想到的"场景。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">Step 2：人工标注 Ground Truth</div>
+                  <p>对每条请求标注：(1) 应该调哪个函数（或不应该调函数），(2) 参数应该是什么。重点标注边界情况——"帮我查一下那个之前买的东西"（模糊请求）、"退货同时查一下物流"（多意图）。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">Step 3：自动化评估</div>
+                  <p>对比模型输出与 Ground Truth，按"工具名正确 + 参数正确 = 通过"的逻辑计算准确率。BFCL V4（Berkeley Function Calling Leaderboard）提供了标准化的测试集格式和评测方法，覆盖 Simple / Parallel / Multiple / Agentic / Multi-Turn / Hallucination 六个维度。<a href="https://gorilla.cs.berkeley.edu/leaderboard.html" target="_blank" rel="noopener noreferrer">[4]</a></p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">Step 4：针对性优化</div>
+                  <p>如果某个函数持续被选错 → 改 description。如果参数格式经常出错 → 开 Strict Mode。如果特定领域准确率低 → OpenAI 支持对 Function Calling 做 Fine-Tuning，提供 (prompt, correct_function_call) 训练对来提升特定场景的准确率。<a href="https://developers.openai.com/api/docs/guides/function-calling" target="_blank" rel="noopener noreferrer">[1]</a></p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ======================================== -->
+        <!-- References -->
+        <!-- ======================================== -->
+        <section id="references" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">References</p>
+            <h2>参考来源</h2>
+          </div>
+          <ol class="bib-list">
+            <li id="ref-1"><span class="bib-id">[1]</span> <span class="bib-author">OpenAI.</span> "Function calling," <em>OpenAI API Docs,</em> 2026. <a href="https://developers.openai.com/api/docs/guides/function-calling" target="_blank" rel="noopener noreferrer">developers.openai.com</a><span class="bib-note">Best practices 原文：实习生测试法、Strict Mode、Namespace、Tool Search、parallel_tool_calls 控制。</span></li>
+            <li id="ref-2"><span class="bib-id">[2]</span> <span class="bib-author">Google.</span> "Function calling with the Gemini API," <em>Google AI for Developers,</em> 2026. <a href="https://ai.google.dev/gemini-api/docs/function-calling" target="_blank" rel="noopener noreferrer">ai.google.dev</a><span class="bib-note">Best practices 原文：Compositional Function Calling、function calling modes、Thinking Model Signatures、enum 提升准确率。</span></li>
+            <li id="ref-3"><span class="bib-id">[3]</span> <span class="bib-author">Anthropic.</span> "Tool use with Claude," <em>Claude API Docs,</em> 2026. <a href="https://platform.claude.com/docs/en/docs/build-with-claude/tool-use/overview" target="_blank" rel="noopener noreferrer">platform.claude.com</a><span class="bib-note">工具启用的 token 成本量化数据（264-530 token/模型）和 Strict Tool Use 规范。</span></li>
+            <li id="ref-4"><span class="bib-id">[4]</span> <span class="bib-author">BFCL Team.</span> "Berkeley Function Calling Leaderboard V4," <em>Gorilla Project,</em> 2026. <a href="https://gorilla.cs.berkeley.edu/leaderboard.html" target="_blank" rel="noopener noreferrer">gorilla.cs.berkeley.edu</a><span class="bib-note">109 个模型在 Simple / Parallel / Multiple / Agentic / Multi-Turn / Hallucination 六维度的评测基准。</span></li>
+            <li id="ref-5"><span class="bib-id">[5]</span> <span class="bib-author">Microsoft.</span> "Canvas Apps Plugin AGENTS.md," <em>GitHub,</em> 2026. <a href="https://github.com/microsoft/power-platform-skills/blob/main/plugins/canvas-apps/AGENTS.md" target="_blank" rel="noopener noreferrer">github.com</a><span class="bib-note">Canvas Apps 四个 Agent 的分工：planner（只读规划） → screen-builder（并行写 YAML） → compile_canvas（统一验证）。</span></li>
+            <li id="ref-6"><span class="bib-id">[6]</span> <span class="bib-author">Microsoft.</span> "Power Pages Plugin README," <em>GitHub,</em> 2026. <a href="https://github.com/microsoft/power-platform-skills/blob/main/plugins/power-pages/README.md" target="_blank" rel="noopener noreferrer">github.com</a><span class="bib-note">只读 Agent 模式的实例：Data Model Architect、Table Permissions、Web API Settings 三个 Agent 只分析提议不修改资源。</span></li>
+            <li id="ref-7"><span class="bib-id">[7]</span> <span class="bib-author">OpenAI.</span> "Optimizing LLM Accuracy," <em>OpenAI API Docs,</em> 2026. <a href="https://developers.openai.com/api/docs/guides/optimizing-llm-accuracy" target="_blank" rel="noopener noreferrer">developers.openai.com</a><span class="bib-note">LLM 准确率优化的系统方法论：prompt engineering → evaluation → RAG → fine-tuning 的迭代框架。</span></li>
+          </ol>
+        </section>
+      </main>
+
+      <footer>
+        &copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

@@ -79,6 +79,14 @@ var knowledgeTree = [
     phase: 2.9, speed: 0.86
   },
   {
+    id: 'fc-agentic',
+    parentId: 'ai-engineering-practice',
+    type: 'topic',
+    label: { zh: 'Function Calling & Agentic', en: 'Function Calling & Agentic' },
+    color: '#6366f1',
+    phase: 4.5, speed: 0.84
+  },
+  {
     id: 'claw-code',
     parentId: 'ai-research-agent',
     type: 'topic',
@@ -124,7 +132,7 @@ var knowledgeTree = [
   // ════════════════════════════════════════
   {
     id: 'enterprise-agent-arch',
-    parentId: 'ai-research-agent',
+    parentId: 'fc-agentic',
     type: 'article',
     title: {
       zh: '企业智能体架构设计与应用',
@@ -143,7 +151,7 @@ var knowledgeTree = [
   },
   {
     id: 'agentic-ai-adoption',
-    parentId: 'ai-research-agent',
+    parentId: 'fc-agentic',
     type: 'article',
     title: {
       zh: 'Agentic AI 导入实践：用成熟度模型规划企业落地',
@@ -223,7 +231,7 @@ var knowledgeTree = [
   },
   {
     id: 'hermes-open-model',
-    parentId: 'ai-research-model',
+    parentId: 'fc-agentic',
     type: 'article',
     title: {
       zh: 'NousResearch Hermes：面向工具调用与用户对齐的开源微调模型',
@@ -242,7 +250,7 @@ var knowledgeTree = [
   },
   {
     id: 'fc-landscape',
-    parentId: 'ai-research-model',
+    parentId: 'fc-agentic',
     type: 'article',
     title: {
       zh: 'Function Calling 模型全景：主流 LLM 工具调用能力深度对比',
@@ -261,7 +269,7 @@ var knowledgeTree = [
   },
   {
     id: 'fc-best-practices',
-    parentId: 'ai-research-model',
+    parentId: 'fc-agentic',
     type: 'article',
     title: {
       zh: 'Function Calling 工程实践指南：最佳实践、模型差异与避坑手册',
@@ -277,6 +285,25 @@ var knowledgeTree = [
     color: '#0ea5e9',
     phase: 1.6, speed: 0.88,
     relations: ['fc-landscape', 'enterprise-agent-arch']
+  },
+  {
+    id: 'fc-engineering-optimization',
+    parentId: 'fc-agentic',
+    type: 'article',
+    title: {
+      zh: 'Function Calling 工程化提效：同一模型下提升调用成功率的系统方法',
+      en: 'Function Calling Engineering Optimization: Systematic Methods to Improve Call Success Rate'
+    },
+    summary: {
+      zh: '从 Schema 工程、工具路由、上下文管理、错误恢复和架构模式五个维度，系统化提升 Function Calling 准确率和可靠性。',
+      en: 'Improves function calling accuracy across five dimensions: schema engineering, tool routing, context management, error recovery, and architecture.'
+    },
+    tags: ['Function Calling', 'Engineering', 'Optimization', 'AI Agent'],
+    date: '2026-04-29',
+    url: 'posts/fc-engineering-optimization/index.html',
+    color: '#6366f1',
+    phase: 3.2, speed: 0.86,
+    relations: ['fc-best-practices', 'fc-landscape', 'enterprise-agent-arch']
   },
   {
     id: 'llm-literary-creation',
@@ -609,6 +636,25 @@ var knowledgeTree = [
     color: '#7e22ce',
     phase: 5.6, speed: 0.84,
     relations: ['powerapps-vibe-coding', 'low-code-ai-era', 'copilot-studio-overview']
+  },
+  {
+    id: 'power-platform-skills',
+    parentId: 'power-apps',
+    type: 'article',
+    title: {
+      zh: 'Power Platform Skills：微软官方 AI Agent 插件市场解析',
+      en: 'Power Platform Skills: Microsoft Official AI Agent Plugin Marketplace Analysis'
+    },
+    summary: {
+      zh: '解析微软开源的 AI Agent 插件市场，4 个插件 26+ Skills 覆盖 Power Platform 创建→部署→数据→认证全流程。',
+      en: 'Analyzes Microsoft\'s open-source plugin marketplace for Claude Code/Copilot CLI, with 4 plugins and 26+ skills covering the full Power Platform lifecycle.'
+    },
+    tags: ['Power Platform', 'AI Agent', 'Plugin', 'MCP', 'Claude Code'],
+    date: '2026-04-28',
+    url: 'posts/power-platform-skills/index.html',
+    color: '#9333ea',
+    phase: 4.2, speed: 0.86,
+    relations: ['powerapps-vibe-coding', 'low-code-ai-era', 'copilot-harness-eng']
   },
 
   // ════════════════════════════════════════
@@ -1655,7 +1701,7 @@ var knowledgeTree = [
   // ════════════════════════════════════════
   {
     id: 'hermes-agent-comparison',
-    parentId: 'ai-research-agent',
+    parentId: 'fc-agentic',
     type: 'article',
     title: {
       zh: 'Hermes Agent：自进化开源 AI Agent 框架与同类产品对比',
