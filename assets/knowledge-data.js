@@ -111,6 +111,14 @@ var knowledgeTree = [
     phase: 3.2, speed: 0.85
   },
   {
+    id: 'business-ai-solution',
+    parentId: 'microsoft-ai',
+    type: 'topic',
+    label: { zh: 'Business AI Solution', en: 'Business AI Solution' },
+    color: '#a855f7',
+    phase: 5.0, speed: 0.84
+  },
+  {
     id: 'ai-mud',
     parentId: 'ai-project-practice',
     type: 'topic',
@@ -125,6 +133,29 @@ var knowledgeTree = [
     label: { zh: 'Knowledge Hub', en: 'Knowledge Hub' },
     color: '#14b8a6',
     phase: 2.2, speed: 0.86
+  },
+
+  // ════════════════════════════════════════
+  // 文章 — Business AI Solution
+  // ════════════════════════════════════════
+  {
+    id: 'mindray-crm-ai-proposal',
+    parentId: 'business-ai-solution',
+    type: 'article',
+    title: {
+      zh: '海外销售 CRM 移动 AI 智能体方案：基于 Power Platform',
+      en: 'Overseas Sales CRM Mobile AI Agent Proposal: Built on Power Platform'
+    },
+    summary: {
+      zh: '为海外销售设计的移动优先 · 语音驱动 · Agent 编排 CRM 方案，与 SAP Commerce 共生，6 个月四阶段交付。',
+      en: 'Mobile-first, voice-driven, agent-orchestrated CRM solution for overseas sales teams, coexisting with SAP Commerce, delivered in four phases over six months.'
+    },
+    tags: ['Power Platform', 'Copilot Studio', 'CRM', 'Mobile AI', 'SAP Integration'],
+    date: '2026-04-30',
+    url: 'posts/mindray-crm-ai-proposal/index.html',
+    color: '#c084fc',
+    phase: 0.5, speed: 0.9,
+    relations: ['low-code-ai-era', 'enterprise-agent-arch', 'copilot-studio-overview']
   },
 
   // ════════════════════════════════════════

@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Claw Code 运行时解剖：会话循环、压缩、提示装配与计费</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(2.0rem, 5vw, 3.6rem);
+      line-height: 1.1;
+      letter-spacing: -0.035em;
+      max-width: 22ch;
+    }
+    .hero-panel .layer-list li {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.08);
+      color: rgba(246, 248, 251, 0.78);
+      font-family: "JetBrains Mono", "SF Mono", monospace;
+      font-size: 0.78rem;
+    }
+    .hero-panel .layer-number {
+      background: rgba(255, 255, 255, 0.14);
+      color: #fff;
+    }
+
+    pre.code {
+      background: rgba(0, 0, 0, 0.24);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 16px 18px;
+      overflow-x: auto;
+      font-family: "JetBrains Mono", "SF Mono", monospace;
+      font-size: 0.78rem;
+      line-height: 1.65;
+      color: rgba(232, 236, 244, 0.92);
+      margin: 14px 0 18px;
+    }
+    pre.code .kw { color: #c084fc; }
+    pre.code .ty { color: #fbbf24; }
+    pre.code .str { color: #34d399; }
+    pre.code .cm { color: rgba(255,255,255,0.42); font-style: italic; }
+    pre.code .fn { color: #60a5fa; }
+    pre.code .num { color: #f472b6; }
+
+    /* loop step ladder */
+    .loop-ladder {
+      counter-reset: step;
+      margin-top: 22px;
+      padding: 18px 18px 6px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    .loop-step {
+      display: grid;
+      grid-template-columns: 76px 1fr;
+      gap: 14px;
+      padding: 11px 0;
+      border-bottom: 1px dashed rgba(255,255,255,0.06);
+    }
+    .loop-step:last-child { border-bottom: 0; }
+    .loop-step .loop-tag {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.72rem;
+      color: var(--accent);
+      font-weight: 600;
+      text-align: right;
+      padding-top: 2px;
+    }
+    .loop-step .loop-body strong {
+      font-size: 0.86rem;
+      color: var(--fg);
+      display: block;
+      margin-bottom: 4px;
+    }
+    .loop-step .loop-body span {
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+    .loop-step code {
+      font-family: "JetBrains Mono", "SF Mono", monospace;
+      font-size: 0.76rem;
+      color: var(--accent);
+      background: rgba(255, 122, 0, 0.08);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    /* sink callback grid */
+    .sink-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 20px;
+    }
+    .sink-card {
+      padding: 14px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    .sink-card .sink-name {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--accent);
+      display: block;
+      margin-bottom: 6px;
+    }
+    .sink-card p {
+      font-size: 0.76rem;
+      color: var(--muted);
+      margin: 0;
+      line-height: 1.55;
+    }
+    .sink-card .sink-fires {
+      display: block;
+      font-size: 0.7rem;
+      color: rgba(255,255,255,0.45);
+      margin-top: 6px;
+      font-family: "JetBrains Mono", monospace;
+    }
+
+    /* compaction flow */
+    .compact-flow {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 20px;
+    }
+    .compact-side {
+      padding: 16px 16px 18px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .compact-side h4 {
+      margin: 0 0 10px;
+      font-size: 0.84rem;
+      letter-spacing: 0.02em;
+      color: var(--fg);
+    }
+    .compact-side ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .compact-side ul li {
+      padding: 6px 0;
+      font-size: 0.78rem;
+      color: var(--muted);
+      border-bottom: 1px dashed rgba(255,255,255,0.05);
+      font-family: "JetBrains Mono", monospace;
+    }
+    .compact-side ul li:last-child { border-bottom: 0; }
+    .compact-side ul li::before { content: "• "; color: rgba(255,255,255,0.4); }
+    @media (max-width: 760px) { .compact-flow { grid-template-columns: 1fr; } }
+
+    /* pricing table */
+    .pricing-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 18px;
+      font-size: 0.82rem;
+    }
+    .pricing-table th, .pricing-table td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .pricing-table th {
+      font-weight: 600;
+      color: var(--fg);
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .pricing-table td { color: var(--muted); font-family: "JetBrains Mono", monospace; }
+    .pricing-table td:first-child { color: var(--accent); }
+    .pricing-table td.num { text-align: right; }
+
+    .pill {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 5px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      font-family: "JetBrains Mono", monospace;
+    }
+    .pill-ok { background: rgba(16, 185, 129, 0.12); color: #10b981; }
+    .pill-warn { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
+    .pill-err { background: rgba(239, 68, 68, 0.12); color: #ef4444; }
+    .pill-info { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
+
+    /* prompt anatomy */
+    .prompt-anatomy {
+      margin-top: 22px;
+      padding: 18px;
+      border-radius: 14px;
+      background: rgba(0, 0, 0, 0.18);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.78rem;
+      line-height: 1.7;
+      color: rgba(232, 236, 244, 0.85);
+    }
+    .prompt-anatomy .pa-band {
+      display: block;
+      padding: 4px 0;
+    }
+    .prompt-anatomy .pa-band.static { color: #34d399; }
+    .prompt-anatomy .pa-band.boundary { color: #ef4444; font-weight: 700; }
+    .prompt-anatomy .pa-band.dynamic { color: #fbbf24; }
+    .prompt-anatomy .pa-band.context { color: #60a5fa; }
+    .prompt-anatomy .pa-band.config { color: #c084fc; }
+    .prompt-anatomy .pa-band.note { color: rgba(255,255,255,0.4); font-style: italic; }
+
+    /* hook table */
+    .hook-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 18px;
+      font-size: 0.82rem;
+    }
+    .hook-table th, .hook-table td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      vertical-align: top;
+    }
+    .hook-table th {
+      font-weight: 600;
+      color: var(--fg);
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .hook-table td code {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.76rem;
+      color: var(--accent);
+    }
+    .hook-table td { color: var(--muted); }
+
+    [data-theme="dark"] pre.code { background: rgba(0,0,0,0.45); }
+
+    .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin-top: 22px; border-radius: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,0.07); }
+    .compare-col { padding: 18px; }
+    .compare-col.bad { background: rgba(239,68,68,0.04); }
+    .compare-col.good { background: rgba(16,185,129,0.04); }
+    .compare-col h4 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 12px; }
+    .compare-col.bad h4 { color: #ef4444; }
+    .compare-col.good h4 { color: #10b981; }
+    .compare-col ul { margin: 0; padding-left: 16px; }
+    .compare-col li { font-size: 0.8rem; color: var(--muted); line-height: 1.6; margin-bottom: 4px; }
+    @media (max-width: 600px) { .compare-grid { grid-template-columns: 1fr; } }
+
+    .insight-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 22px; }
+    .insight-card { padding: 18px; border-radius: 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); }
+    .insight-card .insight-label { font-family: "JetBrains Mono", monospace; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); margin-bottom: 8px; }
+    .insight-card h4 { margin: 0 0 8px; font-size: 0.92rem; color: var(--fg); }
+    .insight-card p { font-size: 0.8rem; color: var(--muted); margin: 0; line-height: 1.6; }
+    [data-theme="dark"] .prompt-anatomy { background: rgba(0,0,0,0.40); }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            智能体 · Claw Code 系列 · 03
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#problem">认知缺口</a>
+            <a href="#philosophy">设计哲学</a>
+            <a href="#turn-loop">Turn 循环</a>
+            <a href="#sink-protocol">宿主解耦</a>
+            <a href="#compaction">窗口控制</a>
+            <a href="#prompt-builder">动态提示</a>
+            <a href="#usage-billing">四维计费</a>
+            <a href="#hooks">策略注入</a>
+            <a href="#references">参考</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Claw Code · Series 03 · Runtime Anatomy</span>
+            <h1>把代理回合解剖成可观测、可压缩、可计费的状态推进</h1>
+            <p>
+              Series 02 拆了 worker 协议——「让代理能驱动 harness」。这一篇下沉到 <code>ConversationRuntime</code> 自身：模型流式响应如何被装回 Session、何时触发自动压缩、System Prompt 由哪些段拼出、token 用量与美元成本怎样追踪。这部分代码集中在 <code>runtime/src/</code> 的 6 个核心模块（<strong>5,829 行 Rust</strong>），是 claw-daemon、macOS App、未来 VSCode 插件共享的同一台引擎。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#turn-loop">进入 Turn 循环</a>
+              <a class="button button-secondary" href="../claw-code-worker-protocol/index.html">回看 Worker 协议</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">核心设计原则</span>
+            <h2>四条引擎设计原则</h2>
+            <ul class="layer-list" style="margin-top: 16px;">
+              <li><span class="layer-number">1</span>宿主可替换 · sink 解耦</li>
+              <li><span class="layer-number">2</span>窗口自动管理 · 不撞限</li>
+              <li><span class="layer-number">3</span>计费即 ground truth</li>
+              <li><span class="layer-number">4</span>hook 注入不改引擎</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label" data-zh="TurnEventSink 回调" data-en="TurnEventSink callbacks">TurnEventSink 回调</div>
+            <strong>7</strong>
+            <span data-zh="turn / assistant / tool×2 / usage / compaction" data-en="turn / assistant / tool×2 / usage / compaction">turn · assistant · tool×2 · usage · compaction</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="Compaction 默认窗口" data-en="Compaction default window">Compaction 默认窗口</div>
+            <strong>4 / 10K</strong>
+            <span data-zh="保留尾部 4 条消息，超 10K est tokens 触发" data-en="preserve 4 tail messages; trigger above 10K est tokens">保留尾部 4 条消息，超 10K est tokens 触发</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="提示文件预算" data-en="Instruction budget">提示文件预算</div>
+            <strong>4K / 12K</strong>
+            <span data-zh="单文件 4,000 char，总和 12,000 char 上限" data-en="4,000 chars per file, 12,000 chars total cap">单文件 4,000 char，总和 12,000 char 上限</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="计费维度" data-en="Cost dimensions">计费维度</div>
+            <strong>4</strong>
+            <span data-zh="input / output / cache_creation / cache_read" data-en="input / output / cache_creation / cache_read">input · output · cache_creation · cache_read</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="Hook 决策结果" data-en="Hook outcomes">Hook 决策结果</div>
+            <strong>4</strong>
+            <span data-zh="allow / deny / cancel / failed —— 任一非 allow 都让 tool 进 deny 路径" data-en="allow / deny / cancel / failed — any non-allow forces deny path">allow · deny · cancel · failed</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- 01 problem -->
+        <section id="problem" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / Problem</p>
+            <h2>1. 从朴素 while-let 循环到显式回合引擎</h2>
+            <p>
+              一个朴素的「LLM 主循环」往往写成 while-let：调 API、收响应、跑工具、追加消息、再调 API。这种写法在 demo 里能跑，但落到长会话场景立刻暴露四类问题。
+            </p>
+          </div>
+
+          <div class="compare-grid">
+            <div class="compare-col bad">
+              <h4>朴素 while-let 循环</h4>
+              <ul class="reference-list">
+                <li>Token 失控——没有窗口管理，撞 context length 中断会话</li>
+                <li>工具不可门控——权限、Hook、PTY 混在一处</li>
+                <li>UI 不可观测——客户端只能等 finish 拿全文</li>
+                <li>计费靠估算——cache_read / cache_creation 被忽略</li>
+              </ul>
+            </div>
+            <div class="compare-col good">
+              <h4>Claw Code run_turn 引擎</h4>
+              <ul class="reference-list">
+                <li>自动压缩——超 10K est tokens 触发 compact_session</li>
+                <li>Hook 注入——before/after_tool 不改引擎核心代码</li>
+                <li>7 个 sink 回调——增量推 assistant text / tool / usage</li>
+                <li>四维计费——input / output / cache_creation / cache_read</li>
+              </ul>
+            </div>
+          </div>
+
+          <p style="margin-top: 18px;">
+            Claw Code 把这四件事拆成四个相互独立但在 run_turn 中精确组合的子系统。在看具体实现之前，先理解驱动这些拆分的设计原则。
+          </p>
+        </section>
+
+        <!-- 02 philosophy -->
+        <section id="philosophy" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Design Philosophy</p>
+            <h2>2. 四条引擎设计原则</h2>
+          </div>
+
+          <div class="insight-grid">
+            <div class="insight-card">
+              <div class="insight-label">原则 1</div>
+              <h4>宿主可替换：sink 解耦观察与执行</h4>
+              <p>引擎内部执行 turn 时，不知道也不关心谁在观察——CLI、daemon、VSCode 插件都通过同一个 TurnEventSink trait 接收增量事件。换宿主只需换 sink 实现，不改引擎一行代码。</p>
+            </div>
+            <div class="insight-card">
+              <div class="insight-label">原则 2</div>
+              <h4>窗口自动管理：会话不会撞限</h4>
+              <p>长会话不应该靠用户手动「清除上下文」。compact_session 在每次 turn 前检查 estimated tokens，超阈值自动触发「摘要 + 尾部原文」压缩。用户无需感知这件事正在发生。</p>
+            </div>
+            <div class="insight-card">
+              <div class="insight-label">原则 3</div>
+              <h4>计费即 ground truth：四维不可少</h4>
+              <p>只追踪 input/output tokens 的计费是不完整的。Anthropic 的 cache_creation 和 cache_read 各有不同单价。UsageTracker 追踪全部 4 维，每次 API 响应实时累加，不做事后估算。</p>
+            </div>
+            <div class="insight-card">
+              <div class="insight-label">原则 4</div>
+              <h4>Hook 注入不改引擎：策略是数据</h4>
+              <p>想在工具调用前加权限检查？加日志？加审计？不需要改 run_turn 的控制流。Hook 是注入到 before_tool / after_tool 管线里的函数，引擎只看 Hook 返回的 allow/deny/cancel 三态。</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- 03 turn loop -->
+        <section id="turn-loop" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / Turn Loop</p>
+            <h2>3. 单回合的 9 步推进：从消息到工具到计费</h2>
+            <p>
+              run_turn 是整个运行时唯一的可变入口。它持有 6 个组件的所有权，按以下顺序推进每一回合：
+            </p>
+          </div>
+
+          <div class="loop-ladder" data-present-step data-step-title="run_turn 9 步">
+            <div class="loop-step">
+              <div class="loop-tag">①</div>
+              <div class="loop-body">
+                <strong data-zh="on_turn_started + push_user_text" data-en="on_turn_started + push_user_text">on_turn_started + push_user_text</strong>
+                <span>用户输入先经 <code>session.push_user_text</code> 落到 Session（带回 SessionError 即映射成 RuntimeError），再 fire <code>sink.on_turn_started</code>。<code>session_tracer</code> 同步记录 <code>turn_started</code> 事件供 OTLP 导出。</span>
+              </div>
+            </div>
+            <div class="loop-step">
+              <div class="loop-tag">②</div>
+              <div class="loop-body">
+                <strong data-zh="iterations 计数 + max_iterations 守卫" data-en="iterations counter + max_iterations guard">iterations 计数 + max_iterations 守卫</strong>
+                <span>每进一轮 iteration 自增 1；若超过 <code>with_max_iterations</code> 设的上限直接 RuntimeError，避免「loop 失控烧 token」。默认 <code>usize::MAX</code>，但 daemon 通常设到 <code>50</code>。</span>
+              </div>
+            </div>
+            <div class="loop-step">
+              <div class="loop-tag">③</div>
+              <div class="loop-body">
+                <strong data-zh="组装 ApiRequest 并 stream" data-en="Build ApiRequest and stream">组装 ApiRequest 并 stream</strong>
+                <span>每轮重新构造 <code>ApiRequest { system_prompt, messages: session.messages.clone() }</code>。注意 <strong>system_prompt 是 Vec&lt;String&gt;</strong>，每段会独立缓存——这是后面 prompt cache_creation/read 计费分开记录的根源。</span>
+              </div>
+            </div>
+            <div class="loop-step">
+              <div class="loop-tag">④</div>
+              <div class="loop-body">
+                <strong data-zh="build_assistant_message：流式事件 → 单条消息" data-en="build_assistant_message: stream events → single message">build_assistant_message：流式事件 → 单条消息</strong>
+                <span>API client 返回 <code>Vec&lt;AssistantEvent&gt;</code>，函数把 Text / ToolUseStart / ToolUseDelta / Usage / PromptCacheEvent 折叠成一条 <code>ConversationMessage</code>，外加 <code>Option&lt;TokenUsage&gt;</code> 与 <code>Vec&lt;PromptCacheEvent&gt;</code>。错误一律 record_turn_failed 后早返。</span>
+              </div>
+            </div>
+            <div class="loop-step">
+              <div class="loop-tag">⑤</div>
+              <div class="loop-body">
+                <strong data-zh="usage_tracker.record + sink.on_usage" data-en="usage_tracker.record + sink.on_usage">usage_tracker.record + sink.on_usage</strong>
+                <span>每条 usage 都即时累加到 cumulative，再 fire <code>on_usage(&amp;cumulative)</code>。<strong>这是 daemon 能实时刷计费的唯一渠道</strong>——客户端不必再去 grep 末尾响应。</span>
+              </div>
+            </div>
+            <div class="loop-step">
+              <div class="loop-tag">⑥</div>
+              <div class="loop-body">
+                <strong data-zh="提取 pending_tool_uses + push 助手消息" data-en="Extract pending_tool_uses + push assistant message">提取 pending_tool_uses + push 助手消息</strong>
+                <span>从 blocks 里筛 <code>ContentBlock::ToolUse</code> 收集 (id, name, input)，立即把整条 assistant 消息 push 进 session（含未来的 tool_result 锚点 id）。若 pending 为空 → 跳出循环，进 ⑨。</span>
+              </div>
+            </div>
+            <div class="loop-step">
+              <div class="loop-tag">⑦</div>
+              <div class="loop-body">
+                <strong data-zh="PreToolUse hook → permission → execute → PostToolUse hook" data-en="PreToolUse hook → permission → execute → PostToolUse hook">PreToolUse hook → permission → execute → PostToolUse hook</strong>
+                <span>每个工具调用都按这条「四闸门」推进：PreHook 可改输入或直接 cancel；permission_policy 拿到改后输入做授权；执行结果再喂 PostHook，PostHook 的 deny/failed/cancelled 都会把 is_error 翻 true，再用 <code>merge_hook_feedback</code> 把 hook 信息合并进 output 文本。</span>
+              </div>
+            </div>
+            <div class="loop-step">
+              <div class="loop-tag">⑧</div>
+              <div class="loop-body">
+                <strong data-zh="ToolResult 落 session + sink.on_tool_finished" data-en="ToolResult lands in session + sink.on_tool_finished">ToolResult 落 session + sink.on_tool_finished</strong>
+                <span>把 <code>ConversationMessage::tool_result(id, name, output, is_error)</code> push 进 session，同时把首块 ContentBlock::ToolResult 的字段拆出来 fire <code>on_tool_finished(name, output, is_error)</code>。回到 ② 进行下一轮。</span>
+              </div>
+            </div>
+            <div class="loop-step">
+              <div class="loop-tag">⑨</div>
+              <div class="loop-body">
+                <strong data-zh="maybe_auto_compact + 构造 TurnSummary" data-en="maybe_auto_compact + build TurnSummary">maybe_auto_compact + 构造 TurnSummary</strong>
+                <span>跳出循环后立刻调 <code>maybe_auto_compact</code>（见 §4），若发生压缩 fire <code>on_compaction</code>。最后把全部增量打包成 <code>TurnSummary { assistant_messages, tool_results, prompt_cache_events, iterations, usage, auto_compaction }</code> 返回。</span>
+              </div>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="run_turn 的不变量" class="subsection-accordion" style="margin-top: 24px;">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="为何 ApiRequest 每轮 clone 一次 messages" data-en="Why ApiRequest clones messages each iteration">为何 ApiRequest 每轮 clone 一次 messages</span></button>
+              <div class="subsection-content">
+                <p>
+                  Session 必须先持有当前轮的 assistant + tool_result 才能进入下一轮 stream。如果用借用，session 就被 stream lifetime 绑住，无法在迭代体内 push 新消息。Claw Code 选择「每轮 clone」是经过测算的：messages 多为短引用（<code>Vec&lt;ContentBlock&gt;</code>），clone 成本远低于 LLM 网络往返；换来的是简单的所有权模型与可重入性。
+                </p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="错误路径都先 record_turn_failed 再返" data-en="All error paths record_turn_failed before return">错误路径都先 record_turn_failed 再返</span></button>
+              <div class="subsection-content">
+                <p>
+                  <code>session_tracer</code> 必须看到失败回合，否则 lane completion 检测会把「半截 turn」误判为 in-flight。代码里每个早返点都显式 <code>self.record_turn_failed(iterations, &amp;error)</code>，这是 §02 worker 协议里 <code>WorkerStatus::Running</code> 不会被卡死的关键支撑。
+                </p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="permission_outcome 三态合一" data-en="permission_outcome unified into three states">permission_outcome 三态合一</span></button>
+              <div class="subsection-content">
+                <p>
+                  PreHook 的 cancelled / failed / denied 都被翻译成同一个 <code>PermissionOutcome::Deny { reason }</code>，不进 tool_executor.execute。这意味着 hook 自然就是 permission policy 的「前置补丁」——比如 PreHook 可以根据 <code>tool_name + input</code> 把权限从 Allow 降级为 Deny，policy 完全不需要改代码。
+                </p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 03 sink -->
+        <section id="sink-protocol" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / Host Decoupling</p>
+            <h2>4. 让宿主在不持有引擎的前提下增量观察</h2>
+            <p>
+              <code>TurnEventSink</code> 是 7 个回调的 trait，所有方法都有空 default。这是 Claw Code「同一台引擎服务多种宿主」的接口契约——claw-daemon 用它推 UDS、macOS App 用它驱动 SwiftUI、CLI 用它打 ANSI 流。回调全部 best-effort，<strong>实现不应阻塞 runtime</strong>（注释明确写了）。
+            </p>
+          </div>
+
+          <div class="sink-grid">
+            <div class="sink-card">
+              <span class="sink-name">on_turn_started(input)</span>
+              <p>用户消息已落 session 之前/之后？答：<strong>之前</strong> fire——输入字符串已知但 session.messages 尚未追加。daemon 用它在 UI 标记「思考中…」。</p>
+              <span class="sink-fires">每回合 1 次</span>
+            </div>
+            <div class="sink-card">
+              <span class="sink-name">on_assistant_message(iter, msg)</span>
+              <p>每轮一次，紧接 build_assistant_message 完成后。msg 已经是折叠完成的整条 ConversationMessage，含 ToolUse blocks。客户端可以渲染思考链并预览即将调用的工具。</p>
+              <span class="sink-fires">每 iteration 1 次</span>
+            </div>
+            <div class="sink-card">
+              <span class="sink-name">on_tool_started(iter, name, input)</span>
+              <p>permission Allow 之后、execute 之前 fire。<strong>Deny 路径不会 fire</strong>，避免 UI 给被拒工具显示运行动画。</p>
+              <span class="sink-fires">每 Allow 工具 1 次</span>
+            </div>
+            <div class="sink-card">
+              <span class="sink-name">on_tool_finished(iter, name, output, is_error)</span>
+              <p>无论 Allow 走完还是 Deny 直接构造的 result message 都 fire——保证 UI「Started → Finished」永远配对。</p>
+              <span class="sink-fires">每工具 1 次</span>
+            </div>
+            <div class="sink-card">
+              <span class="sink-name">on_usage(cumulative)</span>
+              <p>注意是 <strong>cumulative</strong> 而不是 turn delta。客户端只要展示「累计开销」就直接照搬，不需要自己加；要看本回合就在 Sink 自留 last 值做差。</p>
+              <span class="sink-fires">每条 model usage 1 次</span>
+            </div>
+            <div class="sink-card">
+              <span class="sink-name">on_compaction(event)</span>
+              <p>当且仅当 maybe_auto_compact 真的删掉过消息才 fire；event.removed_message_count 让 UI 在时间线上画一条「压缩到这里」的分隔。</p>
+              <span class="sink-fires">每回合 0 或 1 次</span>
+            </div>
+            <div class="sink-card">
+              <span class="sink-name">NoopTurnEventSink</span>
+              <p>测试与「批处理 CLI」用的零成本实现——所有方法都是默认空实现。<code>run_turn</code> 接 <code>Option&lt;&amp;mut dyn TurnEventSink&gt;</code>，传 None 时连 trait 调度都省了。</p>
+              <span class="sink-fires">用作 fallback</span>
+            </div>
+          </div>
+
+          <p style="margin-top: 22px;">
+            重要细节：所有 fire 都用 <code>sink.as_deref_mut()</code> 而不是 take，<strong>同一个 sink 引用贯穿整轮 N 个 iteration</strong>。这让 Sink 实现可以在自身 state 里维持 turn-scoped 缓冲（比如把同一回合的 token 增量聚合再 flush），而不必担心 sink 被中途销毁。
+          </p>
+        </section>
+
+        <!-- 04 Compaction -->
+        <section id="compaction" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / Window Control</p>
+            <h2>5. 自动压缩：把长会话改写成「摘要 + 尾部原文」</h2>
+            <p>
+              <code>compact.rs</code>（716 行）的核心是「不让 context window 成为引擎崩溃的硬上限」。它有两套触发条件：
+            </p>
+          </div>
+
+          <div class="compact-flow">
+            <div class="compact-side">
+              <h4 data-zh="① 显式压缩 should_compact()" data-en="① Explicit compact should_compact()">① 显式压缩 <code>should_compact()</code></h4>
+              <ul>
+                <li>compactable.len() &gt; preserve_recent_messages</li>
+                <li>compactable est_tokens ≥ max_estimated_tokens</li>
+                <li>默认 4 条尾部 + 10,000 token 阈值</li>
+                <li>一般由 <code>/compact</code> slash 命令显式触发</li>
+              </ul>
+            </div>
+            <div class="compact-side">
+              <h4 data-zh="② 自动压缩 maybe_auto_compact()" data-en="② Auto compact maybe_auto_compact()">② 自动压缩 <code>maybe_auto_compact()</code></h4>
+              <ul>
+                <li>cumulative.input_tokens ≥ env 阈值</li>
+                <li>调用 compact_session，<strong>但 max_estimated_tokens=0</strong></li>
+                <li>意为「token 一旦超了就强制压」</li>
+                <li>读取 <code>CLAW_AUTO_COMPACTION_INPUT_TOKENS</code> 环境变量</li>
+              </ul>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="compact_session 算法骨架" class="subsection-accordion" style="margin-top: 24px;">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="孤儿 tool_result 防护" data-en="Orphan tool_result guard">孤儿 tool_result 防护</span></button>
+              <div class="subsection-content">
+                <p>
+                  最容易写错的细节：如果保留尾部第 K 条恰好是 tool_result，而它对应的 assistant tool_use 已被压进摘要，模型会拒绝整个对话（「unknown tool_use_id」）。<code>compact_session</code> 用一个 while 循环往前回退 keep_from，跳过所有 <strong>纯 tool_result 起头</strong>的边界，直到找到合法的 user 或 assistant 消息为止：
+                </p>
+<pre class="code"><span class="kw">while</span> keep_from &gt; compacted_prefix_len {
+    <span class="kw">let</span> msg = &amp;session.messages[keep_from];
+    <span class="kw">let</span> starts_with_tool_result = msg.role == <span class="ty">MessageRole</span>::Tool
+        || (msg.role == <span class="ty">MessageRole</span>::User
+            &amp;&amp; msg.blocks.<span class="fn">iter</span>().<span class="fn">all</span>(|b|
+                <span class="fn">matches!</span>(b, <span class="ty">ContentBlock</span>::ToolResult { .. })));
+    <span class="kw">if</span> starts_with_tool_result { keep_from -= <span class="num">1</span>; } <span class="kw">else</span> { <span class="kw">break</span>; }
+}
+</pre>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="摘要文本结构：&lt;analysis&gt; / &lt;summary&gt;" data-en="Summary text structure: <analysis> / <summary>">摘要文本结构：&lt;analysis&gt; / &lt;summary&gt;</span></button>
+              <div class="subsection-content">
+                <p>
+                  <code>summarize_messages()</code> 输出的不是平文，而是带有 <code>&lt;analysis&gt;…&lt;/analysis&gt;</code> 与 <code>&lt;summary&gt;…&lt;/summary&gt;</code> 双标签的结构化文本。<code>format_compact_summary()</code> 显示前会：
+                </p>
+                <ol class="reference-list">
+                  <li>用 <code>strip_tag_block(&amp;text, "analysis")</code> 把 analysis 段整段删除</li>
+                  <li>把 <code>&lt;summary&gt;…&lt;/summary&gt;</code> 替换成 <code>"Summary:\n…"</code></li>
+                  <li>用 <code>collapse_blank_lines()</code> 折叠空行后 trim</li>
+                </ol>
+                <p>
+                  之所以保留 analysis：模型在写 summary 前会先用 analysis 自我推理，给 summary 一个「思维链锚」。生产展示时不需要它，但保留在 raw summary 里，<code>merge_compact_summaries</code> 后续合并多次压缩时能复用。
+                </p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="续写指令：直接 resume 不寒暄" data-en="Continuation instruction: resume directly, no preamble">续写指令：直接 resume 不寒暄</span></button>
+              <div class="subsection-content">
+                <p>
+                  <code>get_compact_continuation_message()</code> 拼出的系统消息会以一段强制指令收尾：
+                </p>
+<pre class="code"><span class="cm">// COMPACT_DIRECT_RESUME_INSTRUCTION</span>
+<span class="str">"Continue the conversation from where it left off without
+asking the user any further questions. Resume directly —
+do not acknowledge the summary, do not recap what was
+happening, and do not preface with continuation text."</span>
+</pre>
+                <p>
+                  这一段是为了避免压缩后模型立刻输出「Got it, picking up from the summary…」浪费一轮。<strong>当且仅当 <code>suppress_follow_up_questions=true</code></strong> 时被追加；slash 触发的手动 compact 通常关闭它，因为人类乐于看摘要确认。
+                </p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="estimate_session_tokens：粗估而非精算" data-en="estimate_session_tokens: rough estimate, not exact">estimate_session_tokens：粗估而非精算</span></button>
+              <div class="subsection-content">
+                <p>
+                  <code>estimate_message_tokens()</code> 不接 tokenizer，按 <code>chars / 4</code> 粗估。理由：tokenizer 集成会把 runtime 拖进 BPE 模型依赖，违反 PHILOSOPHY 里「runtime crate 零网络零模型」的约束。粗估对触发条件足够（精度 ±20% 不影响窗口管理决策），真正的计费走 §6 由 API 实际响应回填。
+                </p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 05 prompt -->
+        <section id="prompt-builder" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / Dynamic Prompt</p>
+            <h2>6. 从静态骨架到带 git diff 的动态环境提示</h2>
+            <p>
+              <code>prompt.rs</code>（803 行）回答的问题是「每一回合发给模型的 system prompt 究竟由什么组成」。Claw Code 把它显式分成「静态前缀 → 动态边界标记 → 动态后缀」，让 prompt cache 命中率最大化。
+            </p>
+          </div>
+
+          <div class="prompt-anatomy" data-present-step data-step-title="系统提示分层视图">
+            <span class="pa-band static">━━━ STATIC HEAD（被 prompt cache 命中） ━━━</span>
+            <span class="pa-band static">  · output_style 段（如 with_output_style 设过）</span>
+            <span class="pa-band static">  · 默认 frontier 模型自报 (FRONTIER_MODEL_NAME)</span>
+            <span class="pa-band static">  · 角色与输出协议骨架</span>
+            <span class="pa-band boundary">━━━ __SYSTEM_PROMPT_DYNAMIC_BOUNDARY__ ━━━</span>
+            <span class="pa-band dynamic">━━━ DYNAMIC TAIL ━━━</span>
+            <span class="pa-band dynamic">  · with_os(name, version)</span>
+            <span class="pa-band context">  · ProjectContext.cwd / current_date</span>
+            <span class="pa-band context">  · git_status（截断到 git --short 输出）</span>
+            <span class="pa-band context">  · git_diff（截断到合理上限）</span>
+            <span class="pa-band context">  · instruction_files[N]（每文件 ≤4,000 char，总 ≤12,000 char）</span>
+            <span class="pa-band config">  · render_config_section(RuntimeConfig)（环境感知开关）</span>
+            <span class="pa-band dynamic">  · append_section[..]（用户/SDK 追加段）</span>
+            <span class="pa-band note">注：build() 返回 Vec&lt;String&gt;，每段独立缓存键 → API 端的 cache_creation/read 计费按段累加</span>
+          </div>
+
+          <div data-present-step data-step-title="ProjectContext 自动发现" class="subsection-accordion" style="margin-top: 22px;">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="discover_with_git：cwd → 5 个字段" data-en="discover_with_git: cwd → 5 fields">discover_with_git：cwd → 5 个字段</span></button>
+              <div class="subsection-content">
+                <p>
+                  <code>ProjectContext::discover_with_git(cwd, current_date)</code> 在引擎启动期跑一次，依次：
+                </p>
+                <ol class="reference-list">
+                  <li><code>discover_instruction_files(cwd)</code>：扫 <code>CLAW.md</code>、<code>CLAUDE.md</code>、<code>AGENTS.md</code>、<code>.github/copilot-instructions.md</code> 等指引文件</li>
+                  <li><code>read_git_status(cwd)</code>：跑 <code>git status --short --untracked-files=all</code>，失败返回 None</li>
+                  <li><code>read_git_diff(cwd)</code>：跑 <code>git diff</code>，输出过长时由后续 render 阶段截断</li>
+                  <li><code>cwd</code> + <code>current_date</code>：原样塞入</li>
+                </ol>
+                <p>
+                  关键：上述命令通过 <code>read_git_output</code> 走子进程，<strong>失败永远不抛</strong>。在非 git 仓库里运行 claw 不会让 prompt 装配崩溃——只是 git_status / git_diff 字段为 None。
+                </p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="指引文件预算：4K / 12K 双限" data-en="Instruction budget: 4K / 12K dual cap">指引文件预算：4K / 12K 双限</span></button>
+              <div class="subsection-content">
+                <p>
+                  <code>MAX_INSTRUCTION_FILE_CHARS = 4_000</code> 与 <code>MAX_TOTAL_INSTRUCTION_CHARS = 12_000</code> 是硬编码常量。单个 CLAW.md 超 4K 会被截断并加 truncation marker；多文件累计超 12K 后续文件被丢弃。这套预算让指引文件「不会因 repo 越长越烂的 README 把 system prompt 撑爆」。
+                </p>
+                <p>
+                  每个 ContextFile 渲染时都附 path 元信息，模型可以引用「按 .github/copilot-instructions.md §2 所述…」——这是为什么 claw 经常在回答里精确引用规则源头。
+                </p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="DYNAMIC_BOUNDARY 标记的真实用途" data-en="Real purpose of the DYNAMIC_BOUNDARY marker">DYNAMIC_BOUNDARY 标记的真实用途</span></button>
+              <div class="subsection-content">
+                <p>
+                  <code>SYSTEM_PROMPT_DYNAMIC_BOUNDARY = "__SYSTEM_PROMPT_DYNAMIC_BOUNDARY__"</code> 看着像调试标记，实则是给 <strong>API 端 prompt cache 划分缓存键</strong>的硬边界。同一个项目下，静态前缀几乎不变 → 命中 cache_read；动态后缀（git diff、cwd 时间戳）每轮变 → 进 cache_creation。这一刀切下去，长会话里第二轮起的「真实新增 token」常常只有几十个，对应 §6 的 cache_read_cost 显著低于 input_cost。
+                </p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="build() vs render()" data-en="build() vs render()">build() vs render()</span></button>
+              <div class="subsection-content">
+                <p>
+                  builder 同时提供两种产物：
+                </p>
+                <ul class="reference-list">
+                  <li><code>build() -&gt; Vec&lt;String&gt;</code>：分段返回，<strong>给 ApiClient 用</strong>，每段对应 API 的一个 system message 元素，享受独立 cache key。</li>
+                  <li><code>render() -&gt; String</code>：拼成单一字符串，<strong>给调试 / 日志 / SystemPromptInfo 用</strong>，方便人眼读。</li>
+                </ul>
+                <p>
+                  生产路径只走 build()，render() 主要用于 <code>--print-system-prompt</code> 之类的诊断子命令。
+                </p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 06 usage -->
+        <section id="usage-billing" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">07 / Four-Axis Billing</p>
+            <h2>7. 为什么计费必须是四维的</h2>
+            <p>
+              <code>usage.rs</code>（313 行）只做一件事：把每条 model response 的 <code>TokenUsage</code> 累加到 cumulative，并按内置 <code>ModelPricing</code> 表算成美元。它的特点是「计费维度即 API 真实分桶」，不做估算式合并。
+            </p>
+          </div>
+
+          <table class="pricing-table">
+            <thead>
+              <tr>
+                <th data-zh="模型族" data-en="Model family">模型族</th>
+                <th data-zh="input USD/M" data-en="input USD/M">input USD/M</th>
+                <th data-zh="output USD/M" data-en="output USD/M">output USD/M</th>
+                <th data-zh="cache_creation USD/M" data-en="cache_creation USD/M">cache_creation USD/M</th>
+                <th data-zh="cache_read USD/M" data-en="cache_read USD/M">cache_read USD/M</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>haiku</td><td class="num">1.00</td><td class="num">5.00</td><td class="num">1.25</td><td class="num">0.10</td></tr>
+              <tr><td>sonnet（默认）</td><td class="num">15.00</td><td class="num">75.00</td><td class="num">18.75</td><td class="num">1.50</td></tr>
+              <tr><td>opus</td><td class="num">15.00</td><td class="num">75.00</td><td class="num">18.75</td><td class="num">1.50</td></tr>
+              <tr><td>未知（fallback）</td><td class="num">15.00</td><td class="num">75.00</td><td class="num">18.75</td><td class="num">1.50</td></tr>
+            </tbody>
+          </table>
+
+          <p style="margin-top: 14px;">
+            <code>pricing_for_model(name)</code> 用 <code>to_ascii_lowercase</code> + <code>contains</code> 匹配，命中即返。未知模型走 <code>default_sonnet_tier</code> 并在 summary_lines 里追加 <code>pricing=estimated-default</code> 标记，提醒账单可能不准。
+          </p>
+
+          <div data-present-step data-step-title="UsageTracker 的两条会计线" class="subsection-accordion" style="margin-top: 22px;">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="latest_turn vs cumulative" data-en="latest_turn vs cumulative">latest_turn vs cumulative</span></button>
+              <div class="subsection-content">
+                <p>
+                  Tracker 维护两条独立账：
+                </p>
+                <ul class="reference-list">
+                  <li><code>latest_turn</code>：record(usage) 时 <strong>覆盖</strong>而非累加。客户端读 <code>current_turn_usage()</code> 拿到的就是「最近一次 model call 用了多少」。</li>
+                  <li><code>cumulative</code>：四个字段分别累加。turns 计数也同步 +1。</li>
+                </ul>
+                <p>
+                  这条设计让 UI 既能展示「本次调用 1.2K token」也能展示「会话累计 38K token」，无需自行做差。
+                </p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="from_session：会话恢复后回填" data-en="from_session: backfill after session restore">from_session：会话恢复后回填</span></button>
+              <div class="subsection-content">
+                <p>
+                  <code>UsageTracker::from_session(&amp;session)</code> 遍历 <code>session.messages</code>，把每条消息的 <code>usage: Option&lt;TokenUsage&gt;</code> record 一遍。这是 daemon 重启后或加载历史会话时恢复正确累计的唯一路径——<code>ConversationRuntime::new_with_features</code> 内部就是这样调用，使「中断恢复」与「从头跑」对计费看起来无差别。
+                </p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="auto-compaction 阈值的耦合点" data-en="Auto-compaction threshold coupling">auto-compaction 阈值的耦合点</span></button>
+              <div class="subsection-content">
+                <p>
+                  §4 的 <code>maybe_auto_compact</code> 判断条件是 <code>cumulative.input_tokens &lt; threshold</code>——<strong>只看 input_tokens 而不看 output / cache</strong>。原因：output 不影响下一轮 prompt 长度，而 cache_read 即便很大对真实窗口压力小。这个细节让阈值设定与「实际撞 context length 风险」线性相关。
+                </p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 07 hooks -->
+        <section id="hooks" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">08 / Hook Injection</p>
+            <h2>8. 在工具入口和出口注入策略而不改引擎</h2>
+            <p>
+              <code>hooks.rs</code>（987 行）是 §02 turn 循环步 ⑦ 的可插拔层。它定义 5 个 <code>HookEvent</code>，运行结果统一为 <code>HookRunResult</code>，后者承载四种语义并能改写工具入参或权限判定。
+            </p>
+          </div>
+
+          <table class="hook-table">
+            <thead>
+              <tr>
+                <th>HookEvent</th>
+                <th data-zh="触发时机" data-en="Fired at">触发时机</th>
+                <th data-zh="可影响" data-en="Can influence">可影响</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>PreToolUse</code></td>
+                <td data-zh="permission 之前；可改 input、可决策 allow/deny" data-en="Before permission; can rewrite input, decide allow/deny">permission 之前；可改 input、可决策 allow/deny</td>
+                <td data-zh="工具是否执行、用什么参数执行、PermissionContext.override" data-en="Whether to execute, with what input, PermissionContext.override">工具是否执行、用什么参数执行、PermissionContext.override</td>
+              </tr>
+              <tr>
+                <td><code>PostToolUse</code></td>
+                <td data-zh="execute 成功后" data-en="After successful execute">execute 成功后</td>
+                <td data-zh="output 文本（merge_hook_feedback 合并）、是否升级为 is_error" data-en="output text (merge_hook_feedback), upgrade to is_error">output 文本（<code>merge_hook_feedback</code> 合并）、是否升级为 is_error</td>
+              </tr>
+              <tr>
+                <td><code>PostToolUseFailure</code></td>
+                <td data-zh="execute 抛错后" data-en="After execute error">execute 抛错后</td>
+                <td data-zh="把错误转写成模型可消费的 error message；可补救" data-en="Translate error into model-consumable message; remediate">把错误转写成模型可消费的 error message；可补救</td>
+              </tr>
+              <tr>
+                <td><code>Stop / SubagentStop</code></td>
+                <td data-zh="主回合或子代理结束时（hooks.rs 完整 enum）" data-en="At end of main turn or sub-agent (full enum in hooks.rs)">主回合或子代理结束时（hooks.rs 完整 enum）</td>
+                <td data-zh="副作用：发通知、写日志、触发后续脚本" data-en="Side effects: notifications, logs, follow-up scripts">副作用：发通知、写日志、触发后续脚本</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div data-present-step data-step-title="HookRunResult 的四个状态" class="subsection-accordion" style="margin-top: 22px;">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="allow / deny / cancelled / failed 的差异" data-en="Differences between allow / deny / cancelled / failed">allow / deny / cancelled / failed 的差异</span></button>
+              <div class="subsection-content">
+                <ul class="reference-list">
+                  <li><span class="pill pill-ok">allow</span> <span data-zh="messages 可作 advisory 合并到 output；不阻断" data-en="messages merged advisory into output; non-blocking">messages 可作 advisory 合并到 output；不阻断</span></li>
+                  <li><span class="pill pill-err">deny</span> <span data-zh="工具直接进 PermissionOutcome::Deny，is_error=true" data-en="Tool routed to PermissionOutcome::Deny, is_error=true">工具直接进 <code>PermissionOutcome::Deny</code>，is_error=true</span></li>
+                  <li><span class="pill pill-warn">cancelled</span> <span data-zh="例：HookAbortSignal 触发；与 deny 同效但 reason 文案不同" data-en="e.g. HookAbortSignal fires; same effect as deny but different reason text">例：HookAbortSignal 触发；与 deny 同效但 reason 文案不同</span></li>
+                  <li><span class="pill pill-err">failed</span> <span data-zh="hook 自身崩溃；视同 deny，避免「hook 挂了 → 工具裸奔」" data-en="Hook itself crashed; treated as deny to prevent 'hook crashed → tool runs free'">hook 自身崩溃；视同 deny，避免「hook 挂了 → 工具裸奔」</span></li>
+                </ul>
+                <p>
+                  conversation.rs 里这四种判定写在同一段 if/else 链中，全部翻译为同一个 <code>PermissionOutcome::Deny { reason }</code>——这是「hook 失败也安全」的兜底。
+                </p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="updated_input 与 permission_override" data-en="updated_input and permission_override">updated_input 与 permission_override</span></button>
+              <div class="subsection-content">
+                <p>
+                  PreHook 可以返回两个修改：
+                </p>
+                <ul class="reference-list">
+                  <li><code>updated_input</code>：把模型给的 raw input 改写为 <code>effective_input</code>。典型用例：把 <code>rm -rf /tmp/x</code> 改成 <code>rm -rf -- /tmp/x</code> 再做权限判定。</li>
+                  <li><code>permission_override</code>：把权限决策 override 成 Allow / Deny / Ask 之一，并附 reason。典型用例：当前 cwd 在 trusted_roots 里时把 Bash 从 Ask 升级为 Allow。</li>
+                </ul>
+                <p>
+                  两条路径相互独立：可以只改输入不动权限，反之亦然。
+                </p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="HookAbortSignal：所有 hook 共享一个停摆开关" data-en="HookAbortSignal: shared kill switch">HookAbortSignal：所有 hook 共享一个停摆开关</span></button>
+              <div class="subsection-content">
+                <p>
+                  <code>HookAbortSignal</code> 是 <code>Arc&lt;AtomicBool&gt;</code> 的薄包装，由 <code>ConversationRuntime</code> 持有并传入 <code>HookRunner</code>。当宿主调 <code>signal.abort()</code>（例如用户 Ctrl+C），<strong>所有正在排队的 hook 会立刻把结果置为 cancelled</strong>，工具被 deny，回合得以快速收敛。这是 §02 步 ⑦ 能在用户中断时不挂住整个 daemon 的关键。
+                </p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 08 references -->
+        <section id="references" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">09 / References</p>
+            <h2>9. 参考来源</h2>
+            <p data-zh="所有引用均指向当前 main 分支的具体路径与行号。" data-en="All references point to specific paths and line numbers on current main.">所有引用均指向当前 main 分支的具体路径与行号。</p>
+          </div>
+
+          <ol class="bib-list">
+            <li>
+              <span class="bib-id">[1]</span>
+              <span class="bib-author">conversation.rs (1,750 LOC)</span> —
+              <code>rust/crates/runtime/src/conversation.rs</code>
+              <span class="bib-note">ConversationRuntime / run_turn / TurnEventSink / build_assistant_message / maybe_auto_compact / record_* 追踪入口</span>
+            </li>
+            <li>
+              <span class="bib-id">[2]</span>
+              <span class="bib-author">compact.rs (716 LOC)</span> —
+              <code>rust/crates/runtime/src/compact.rs</code>
+              <span class="bib-note">CompactionConfig / compact_session / get_compact_continuation_message / 孤儿 tool_result 防护循环 / &lt;analysis&gt;&lt;summary&gt; 标签处理</span>
+            </li>
+            <li>
+              <span class="bib-id">[3]</span>
+              <span class="bib-author">prompt.rs (803 LOC)</span> —
+              <code>rust/crates/runtime/src/prompt.rs</code>
+              <span class="bib-note">SystemPromptBuilder / ProjectContext::discover_with_git / SYSTEM_PROMPT_DYNAMIC_BOUNDARY / MAX_INSTRUCTION_FILE_CHARS 4000 / MAX_TOTAL_INSTRUCTION_CHARS 12000</span>
+            </li>
+            <li>
+              <span class="bib-id">[4]</span>
+              <span class="bib-author">usage.rs (313 LOC)</span> —
+              <code>rust/crates/runtime/src/usage.rs</code>
+              <span class="bib-note">TokenUsage 四维 / UsageTracker.latest_turn vs cumulative / ModelPricing.haiku/sonnet/opus / from_session 回填</span>
+            </li>
+            <li>
+              <span class="bib-id">[5]</span>
+              <span class="bib-author">session.rs (1,246 LOC)</span> —
+              <code>rust/crates/runtime/src/session.rs</code>
+              <span class="bib-note">MessageRole / ContentBlock / ConversationMessage / Session.push_message / record_compaction / fork / to_json / from_json</span>
+            </li>
+            <li>
+              <span class="bib-id">[6]</span>
+              <span class="bib-author">hooks.rs (987 LOC)</span> —
+              <code>rust/crates/runtime/src/hooks.rs</code>
+              <span class="bib-note">HookEvent / HookRunResult / HookRunner / HookAbortSignal / merge_hook_feedback / format_hook_message</span>
+            </li>
+            <li>
+              <span class="bib-id">[7]</span>
+              <span class="bib-author">PHILOSOPHY.md</span> —
+              <code>PHILOSOPHY.md</code>
+              <span class="bib-note">runtime crate「零网络零模型」约束的来源；解释为何 estimate_session_tokens 不集成 tokenizer</span>
+            </li>
+            <li>
+              <span class="bib-id">[8]</span>
+              <span class="bib-author">DESIGN-APP-CLIENT.md</span> —
+              <code>DESIGN-APP-CLIENT.md</code>
+              <span class="bib-note">claw-daemon UDS 协议中 TurnEventSink 实现的下游消费者，证实 7 个回调全部被映射成线协议</span>
+            </li>
+          </ol>
+        </section>
+      </main>
+
+      <footer class="site-footer" data-reveal>
+        <p>© 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。</p>
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

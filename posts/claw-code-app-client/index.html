@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Claw Code App 客户端：UDS daemon、line-protocol 与 SwiftUI 包装层</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 { font-size: clamp(2.0rem, 5vw, 3.6rem); line-height: 1.1; letter-spacing: -0.035em; max-width: 24ch; }
+    .hero-panel .layer-list li { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.08); color: rgba(246,248,251,0.78); font-family: "JetBrains Mono", monospace; font-size: 0.78rem; }
+    .hero-panel .layer-number { background: rgba(255,255,255,0.14); color: #fff; }
+
+    pre.code { background: rgba(0,0,0,0.24); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 16px 18px; overflow-x: auto; font-family: "JetBrains Mono", monospace; font-size: 0.78rem; line-height: 1.65; color: rgba(232,236,244,0.92); margin: 14px 0 18px; }
+    pre.code .kw { color: #c084fc; } pre.code .ty { color: #fbbf24; } pre.code .str { color: #34d399; } pre.code .cm { color: rgba(255,255,255,0.42); font-style: italic; } pre.code .fn { color: #60a5fa; }
+
+    .matrix-table { width: 100%; border-collapse: collapse; margin-top: 18px; font-size: 0.82rem; }
+    .matrix-table th, .matrix-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); vertical-align: top; }
+    .matrix-table th { font-weight: 600; color: var(--fg); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .matrix-table td { color: var(--muted); }
+    .matrix-table td code { font-family: "JetBrains Mono", monospace; font-size: 0.74rem; color: var(--accent); }
+
+    .grid-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 20px; }
+    .info-card { padding: 16px; border-radius: 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); }
+    .info-card h4 { margin: 0 0 8px; font-size: 0.84rem; color: var(--fg); }
+    .info-card p { font-size: 0.78rem; color: var(--muted); margin: 0; line-height: 1.55; }
+    .info-card code { font-family: "JetBrains Mono", monospace; font-size: 0.74rem; color: var(--accent); background: rgba(255,122,0,0.08); padding: 1px 5px; border-radius: 4px; }
+
+    .flow-list { margin-top: 18px; padding-left: 0; list-style: none; }
+    .flow-list li { padding: 12px 14px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); margin-bottom: 8px; font-size: 0.82rem; color: var(--muted); display: grid; grid-template-columns: 28px 1fr; gap: 12px; }
+    .flow-list li .step-mark { font-family: "JetBrains Mono", monospace; color: var(--accent); font-weight: 700; }
+    .flow-list li code { font-family: "JetBrains Mono", monospace; color: var(--accent); font-size: 0.76rem; }
+
+    [data-theme="dark"] pre.code { background: rgba(0,0,0,0.45); }
+
+    .insight-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 22px; }
+    .insight-card { padding: 18px; border-radius: 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); }
+    .insight-card .insight-label { font-family: "JetBrains Mono", monospace; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); margin-bottom: 8px; }
+    .insight-card h4 { margin: 0 0 8px; font-size: 0.92rem; color: var(--fg); }
+    .insight-card p { font-size: 0.8rem; color: var(--muted); margin: 0; line-height: 1.6; }
+
+    .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin-top: 22px; border-radius: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,0.07); }
+    .compare-col { padding: 18px; }
+    .compare-col.bad { background: rgba(239,68,68,0.04); }
+    .compare-col.good { background: rgba(16,185,129,0.04); }
+    .compare-col h4 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 12px; }
+    .compare-col.bad h4 { color: #ef4444; }
+    .compare-col.good h4 { color: #10b981; }
+    .compare-col ul { margin: 0; padding-left: 16px; }
+    .compare-col li { font-size: 0.8rem; color: var(--muted); line-height: 1.6; margin-bottom: 4px; }
+    @media (max-width: 600px) { .compare-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span><span class="orb orb-b"></span><span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            智能体 · Claw Code 系列 · 06
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#problem">痛点分析</a>
+            <a href="#philosophy">设计哲学</a>
+            <a href="#protocol">线协议</a>
+            <a href="#daemon">daemon 翻译层</a>
+            <a href="#mapping">事件映射</a>
+            <a href="#app">UI 映射</a>
+            <a href="#byo">BYO 客户端</a>
+            <a href="#refs">参考</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Claw Code · Series 06 · App Client & Daemon</span>
+            <h1>用 1,209 行 Rust + 一份线协议，把终端代理改造成可被任何 GUI 包装的服务</h1>
+            <p>
+              终端体验有 7 个公认痛点：墙体文本、16KB 截断、压缩失忆、无 diff、阻塞确认对话、多会话难管理、长任务无进度。Claw Code 把解法切成两半：（1）<code>claw-daemon</code>（lib 18 + protocol 218 + server 215 + runtime_handler 558 共 1,009 行 Rust）暴露 Unix Domain Socket 上的 line-delimited JSON；（2）SwiftUI App 包装这条协议，把 Series 03 的 7 个 sink 回调全部映射到原生 UI 元素。本文走通这条线。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#protocol">进入线协议</a>
+              <a class="button button-secondary" href="../claw-code-permission-bash/index.html">回看权限层</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">核心设计原则</span>
+            <h2>两条协议设计原则</h2>
+            <ul class="layer-list" style="margin-top: 16px;">
+              <li><span class="layer-number">1</span>runtime 不变 · 新客户端只写 UI</li>
+              <li><span class="layer-number">2</span>JSON + 换行 = 全部协议</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label" data-zh="Message kind" data-en="Message kinds">Message kind</div>
+            <strong>3</strong>
+            <span data-zh="request / response / event 三态信封" data-en="request / response / event tri-state envelope">request · response · event</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="Request 方法" data-en="Request methods">Request 方法</div>
+            <strong>5</strong>
+            <span data-zh="ping / echo / session_create / session_send / permission_respond" data-en="ping / echo / session_create / session_send / permission_respond">5 个 method</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="Event 类型" data-en="Event types">Event 类型</div>
+            <strong>6</strong>
+            <span data-zh="text_delta / tool_start / tool_result / permission_request / usage / compaction" data-en="text_delta / tool_start / tool_result / permission_request / usage / compaction">6 种 EventPayload</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="Daemon Rust LOC" data-en="Daemon Rust LOC">Daemon Rust LOC</div>
+            <strong>1,009</strong>
+            <span data-zh="lib 18 + protocol 218 + server 215 + runtime_handler 558" data-en="lib 18 + protocol 218 + server 215 + runtime_handler 558">不含集成测试</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="MVP 痛点覆盖" data-en="MVP pains covered">MVP 痛点覆盖</div>
+            <strong>3 / 7</strong>
+            <span data-zh="v0.1 解决 wall-of-text / 截断 / 工具结果折叠" data-en="v0.1 fixes wall-of-text / truncation / collapsible tool results">先打三个最高频痛点</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- 01 -->
+        <section id="problem" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / Problem</p>
+            <h2>1. 终端体验的 7 个痛点为什么不能在「美化层」里解决</h2>
+          </div>
+          <div class="compare-grid">
+            <div class="compare-col bad">
+              <h4>Terminal-only 体验</h4>
+              <ul class="reference-list">
+                <li>所有输出线性堆叠——工具结果淹没 assistant prose</li>
+                <li>工具输出超 16KB 直接截断——数据丢失不可恢复</li>
+                <li>压缩后旧消息消失——用户无法回看</li>
+                <li>权限 Y/N 阻塞整个 session</li>
+              </ul>
+            </div>
+            <div class="compare-col good">
+              <h4>daemon + 结构化协议</h4>
+              <ul class="reference-list">
+                <li>6 种事件按类型分块渲染——tool 折叠、text 流式</li>
+                <li>sidecar 完整输出——截断前落盘，UI 提供「查看完整」</li>
+                <li>客户端独立持久化——压缩只影响模型视图不影响用户视图</li>
+                <li>非阻塞 toast——request_id 关联异步回执</li>
+              </ul>
+            </div>
+          </div>
+
+          <p style="margin-top: 18px;">
+            这 7 项里每一项都需要「runtime 主动暴露结构化事件」+「客户端拥有自己的存储与渲染」。terminal-only 的设计无解。在看协议设计之前，先理解驱动架构选择的两条原则。
+          </p>
+        </section>
+
+        <!-- 02 philosophy -->
+        <section id="philosophy" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Design Philosophy</p>
+            <h2>2. 两条协议设计原则</h2>
+          </div>
+
+          <div class="insight-grid">
+            <div class="insight-card">
+              <div class="insight-label">原则 1</div>
+              <h4>runtime 不变，新客户端永远只是「写 UI」</h4>
+              <p>如果每接一个新客户端（SwiftUI、TUI、Web、IDE 插件）都需要改 runtime，那架构就是错的。Claw Code 的做法是把 runtime 完全封装在 daemon 内，daemon 只负责把 TurnEventSink 的 7 个回调翻译成 line-delimited JSON 事件。新客户端只需要：(1) 连 socket；(2) 发 JSON；(3) 收 JSON。不需要理解 Rust 内部、不需要 API key、不需要重新实现工具执行。</p>
+            </div>
+            <div class="insight-card">
+              <div class="insight-label">原则 2</div>
+              <h4>JSON + 换行 = 全部协议</h4>
+              <p>故意不用 gRPC / Cap'n Proto / MessagePack。理由是<strong>最小公倍数</strong>：任何语言都有 JSON 解析器和 readline。调试时用 nc -U /tmp/claw.sock 直接 telnet 看协议流。新增事件类型不破坏旧客户端（serde 忽略未知字段）。复杂度越低，第三方集成的门槛越低。</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- 03 protocol -->
+        <section id="protocol" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / Wire Protocol</p>
+            <h2>3. 一行就是一个 Message：3 种信封 × 5 个方法</h2>
+            <p>
+              protocol.rs 的第一段注释就把规则交代清楚：「All messages are line-delimited JSON. Each line decodes to a single Message tagged by the kind field.」
+            </p>
+          </div>
+
+          <div class="grid-cards">
+            <div class="info-card">
+              <h4>Message::Request</h4>
+              <p>客户端发起，期望恰好一个 Response 终止。携带客户端选定的 id 用作匹配。</p>
+            </div>
+            <div class="info-card">
+              <h4>Message::Response</h4>
+              <p>daemon 回应，id 与 Request 对齐。Error { code, message } 是稳定 code + 人类可读 message——code 用于客户端 switch，message 用于 UI 展示。</p>
+            </div>
+            <div class="info-card">
+              <h4>Message::Event</h4>
+              <p>daemon 推送的异步通知，可选 request_id（关联触发它的 request）与 session_id（如背景压缩）。客户端按 id 路由到对应面板。</p>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="Request 5 方法" class="subsection-accordion" style="margin-top: 24px;">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="Ping / Echo —— 框架自检" data-en="Ping / Echo — framing self-test">Ping / Echo —— 框架自检</span></button>
+              <div class="subsection-content">
+                <p>专为 smoke test 与客户端启动期校验设计。Echo 回送任意字符串，让客户端在不创建 session 的前提下确认 line-framing 正常。这是「protocol 第一公里」必备工具——很多 RPC 框架因为没有这两个方法导致连接 bug 难定位。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="SessionCreate —— 显式建模会话" data-en="SessionCreate — sessions as first-class">SessionCreate —— 显式建模会话</span></button>
+              <div class="subsection-content">
+                <p>参数 <code>working_directory</code> 与 <code>model</code> 都可选；daemon 选定 <code>SessionId</code> 返回。<strong>客户端不能自带 session_id</strong>——id 由 daemon 生成是为了避免冲突与伪造。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="SessionSend —— 一次 user turn 触发整段事件流" data-en="SessionSend — one user turn triggers a full event stream">SessionSend —— 一次 user turn 触发整段事件流</span></button>
+              <div class="subsection-content">
+                <p><code>{ session_id, text }</code> 进入 daemon 后，daemon 会持续推 <code>EventPayload</code>（assistant 流、工具调用、权限请求、用量）直到 <code>ResponsePayload::TurnComplete { iterations, message }</code> 收尾。<code>iterations</code> 直接对应 Series 03 §2 的 run_turn 循环计数，便于客户端展示「这一轮跑了 N 步」。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="PermissionRespond —— 用 request_id 回应任意权限请求" data-en="PermissionRespond — reply by request_id">PermissionRespond —— 用 request_id 回应任意权限请求</span></button>
+              <div class="subsection-content">
+                <p><code>{ session_id, request_id, decision }</code>。decision 三态：<code>allow / allow_for_session / deny</code>。<strong>非阻塞</strong>——客户端可以挂起多个权限 request 让用户先看完上下文再统一处理，这是 toast UI 而非 modal 对话框的协议根基。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 03 daemon -->
+        <section id="daemon" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / Translation Layer</p>
+            <h2>4. daemon 只做翻译：为什么 runtime 与协议互不感知</h2>
+            <p>
+              215 行的 <code>server.rs</code> 只做一件事：在 Unix domain socket 上接受连接、按行读取、把 Message 派发给 <code>SessionHandler</code> 实现。558 行的 <code>runtime_handler.rs</code> 则把 <code>ConversationRuntime</code> 与协议绑起来，实现真正的 SessionHandler。
+            </p>
+          </div>
+
+          <div class="grid-cards">
+            <div class="info-card">
+              <h4>ServerConfig::new(path)</h4>
+              <p>声明 socket 文件位置。daemon 启动会先 unlink 旧文件再 bind，避免「上次崩溃留了个 stale socket」的常见坑。</p>
+            </div>
+            <div class="info-card">
+              <h4>Server::bind / serve</h4>
+              <p>分两步：<code>bind</code> 同步返回 <code>UnixListener</code>（启动期用于 systemd readiness），<code>serve</code> 异步进入 accept 循环。<strong>分离的好处</strong>是测试可以先 bind 拿到端口再注入 mock handler。</p>
+            </div>
+            <div class="info-card">
+              <h4>ResponseSink</h4>
+              <p>handler 通过 <code>sink.send(Message)</code> 推回事件 / 响应。一个 sink = 一个连接，<code>async fn send</code> 内部用 tokio mutex + writer 串行化，避免多事件交错出现半行。</p>
+            </div>
+            <div class="info-card">
+              <h4>EchoHandler</h4>
+              <p>测试与 demo 用 handler，仅响应 Ping / Echo。证明 SessionHandler 是<strong>抽象 trait</strong>——daemon 框架与具体业务可分别替换。</p>
+            </div>
+            <div class="info-card">
+              <h4>RuntimeHandler::new(api_factory)</h4>
+              <p>真正的业务实现。注入 <code>Fn() -&gt; Box&lt;dyn ApiClient&gt;</code> 工厂——每个 session 调用一次，<strong>session 之间 ApiClient 不复用</strong>，避免凭据 / token 串。</p>
+            </div>
+            <div class="info-card">
+              <h4>RuntimeHandler::with_factories</h4>
+              <p>测试用扩展构造器，可注入 ApiClient + ToolExecutor + MCP 等多组工厂；production 默认用 new 即可。</p>
+            </div>
+          </div>
+
+          <p style="margin-top: 22px;">
+            handler 的 SessionSend 实现里持有一个 <code>ConversationRuntime</code>，把 Series 03 §3 的 <code>TurnEventSink</code> 7 个回调实现成「转 Message::Event 写入 sink」。runtime 不感知协议存在，handler 不感知 socket 存在——两层都可独立替换。
+          </p>
+        </section>
+
+        <!-- 04 mapping -->
+        <section id="mapping" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / Sink-Event Mapping</p>
+            <h2>5. 把 7 个 sink 回调映射到 6 个 Event + 1 个 Response</h2>
+            <p>
+              这是整个 daemon 的核心翻译表。<code>TurnEventSink</code>（in-process 接口）与 <code>EventPayload</code>（wire 表示）一一对应——这种「sink 与 event 形状对齐」的设计让 handler 实现几乎是机械填充。
+            </p>
+          </div>
+
+          <table class="matrix-table">
+            <thead>
+              <tr><th>TurnEventSink 回调</th><th>对应 EventPayload</th><th>关键字段</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>on_assistant_text(delta)</code></td><td><code>AssistantTextDelta { text }</code></td><td>逐 token 流式 prose</td></tr>
+              <tr><td><code>on_tool_call_started(call)</code></td><td><code>ToolCallStart { call_id, summary: ToolCallSummary { tool, headline } }</code></td><td>headline 是「<code>cargo test --workspace</code>」这种一句话提要，UI 折叠卡用</td></tr>
+              <tr><td><code>on_tool_call_finished(call, result)</code></td><td><code>ToolCallResult { call_id, truncated, full_output_path?, preview }</code></td><td>truncated=true 时 full_output_path 指向 sidecar 文件，是 §1 第二痛点的协议解</td></tr>
+              <tr><td><code>on_permission_required(req)</code></td><td><code>PermissionRequest { request_id, tool, description }</code></td><td>客户端用 request_id 回 PermissionRespond</td></tr>
+              <tr><td><code>on_usage_update(usage)</code></td><td><code>UsageUpdate { input_tokens, output_tokens, estimated_cost_usd }</code></td><td>四维计费收敛到 3 个数字（cost 是综合）</td></tr>
+              <tr><td><code>on_compaction_applied(report)</code></td><td><code>CompactionApplied { removed_messages }</code></td><td>触发客户端「snapshot 原始历史」时机</td></tr>
+              <tr><td><code>on_session_complete(_)</code></td><td>—</td><td>对应 ResponsePayload::TurnComplete 而非 Event</td></tr>
+            </tbody>
+          </table>
+
+          <div data-present-step data-step-title="翻译层代码示例" class="subsection-accordion" style="margin-top: 18px;">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="SinkAdapter 的典型翻译实现" data-en="Typical SinkAdapter translation implementation">SinkAdapter 的典型翻译实现</span></button>
+              <div class="subsection-content">
+<pre class="code"><span class="cm">// runtime_handler.rs 内的典型转译（简化）</span>
+<span class="kw">impl</span> <span class="ty">TurnEventSink</span> <span class="kw">for</span> <span class="ty">SinkAdapter</span> {
+    <span class="kw">fn</span> <span class="fn">on_tool_call_finished</span>(&amp;<span class="kw">mut self</span>, call: &amp;<span class="ty">ToolCall</span>, res: &amp;<span class="ty">ToolResult</span>) {
+        <span class="kw">let</span> ev = EventPayload::ToolCallResult {
+            call_id: call.id.clone(),
+            truncated: res.was_truncated,
+            full_output_path: res.sidecar_path.clone(),
+            preview: res.preview.clone(),
+        };
+        <span class="kw">self</span>.sink.send_event(<span class="kw">self</span>.session_id.clone(), ev);
+    }
+}
+</pre>
+              </div>
+            </article>
+          </div>
+
+          <div data-present-step data-step-title="为什么 7 → 6 而不是 7 → 7" class="subsection-accordion" style="margin-top: 18px;">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="on_session_complete 走 Response，不走 Event" data-en="on_session_complete uses Response, not Event">on_session_complete 走 Response，不走 Event</span></button>
+              <div class="subsection-content">
+                <p>session 完成是「请求-响应配对」的终止，而不是异步通知。把它实现为 <code>Message::Response { TurnComplete }</code> 让客户端的 await 模式自然收束——发了 SessionSend 之后 await 一个 response 即可，期间 event 只是 side channel。混用一个事件做收尾会强迫客户端自己实现「谁是终止信号」的判断。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="ToolCallStart 与 ToolCallResult 必须分两个事件" data-en="Tool start and result must be two events">ToolCallStart 与 ToolCallResult 必须分两个事件</span></button>
+              <div class="subsection-content">
+                <p>UI 想做「折叠卡片显示进度」就必须知道「开始了但未完成」的中间态。两阶段事件让 UI 渲染 spinner 的时机精确到具体某次工具调用，而不是「整个 session 在跑」。<code>call_id</code> 把两阶段串起来——可以并行多个 tool call，每个独立刷新自己的卡片。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="UsageUpdate 折叠 4 维成本到 3 个数字" data-en="UsageUpdate collapses 4-axis cost to 3 numbers">UsageUpdate 折叠 4 维成本到 3 个数字</span></button>
+              <div class="subsection-content">
+                <p>Series 03 §6 提到 usage.rs 跟踪 4 维（input / output / cache_read / cache_write 等）。线协议只暴露 input/output 加合并 cost——这是「客户端 UI 需要的只是头部数字」的设计判断。如要细分，daemon 可以新增 <code>UsageDetail</code> event 而不破坏现有客户端。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 05 SwiftUI app -->
+        <section id="app" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / UI Mapping</p>
+            <h2>6. 把 6 种 event 映射成 4 种 UI 元素</h2>
+            <p>
+              <code>DESIGN-APP-CLIENT.md</code> 第 3 节定义了三栏布局（File Tree · Conversation · Context Panel）。Conversation 面板按事件类型分块——同一类事件总是渲染成同一种视觉单元，避免「同一种内容散落 UI 多处」。
+            </p>
+          </div>
+
+          <table class="matrix-table">
+            <thead><tr><th>消息来源</th><th>UI 元素</th><th>关键交互</th></tr></thead>
+            <tbody>
+              <tr><td>User input</td><td>Chat bubble（顶部对齐 + avatar）</td><td>右侧或上方</td></tr>
+              <tr><td>AssistantTextDelta（流式合并）</td><td>Markdown 块 + 代码 syntax highlight + 「Copy」按钮</td><td>逐 token 增量绘制</td></tr>
+              <tr><td>ToolCallStart + ToolCallResult</td><td>折叠卡：「<code>▶ bash: cargo test</code> → ✓ 12 passed」点开看完整 IO</td><td>edit_file 触发 inline diff</td></tr>
+              <tr><td>PermissionRequest</td><td>滑入 toast（Allow / Allow for session / Deny）</td><td>非阻塞，可堆叠</td></tr>
+              <tr><td>UsageUpdate / CompactionApplied</td><td>右侧 Context Panel 数值与历史轨迹</td><td>compaction 触发本地 SQLite snapshot</td></tr>
+            </tbody>
+          </table>
+
+          <ol class="flow-list" data-present-step data-step-title="数据流路径">
+            <li><span class="step-mark">1</span><div>用户输入 → App 通过 UDS 发送 <code>Message::Request { SessionSend }</code>。</div></li>
+            <li><span class="step-mark">2</span><div>daemon 启动 turn，开始推 <code>EventPayload</code>。</div></li>
+            <li><span class="step-mark">3</span><div>App 一边解析事件渲染 UI，一边把原始事件存入本地 SQLite（GRDB）。</div></li>
+            <li><span class="step-mark">4</span><div>遇到 <code>ToolCallResult { truncated: true, full_output_path }</code>，App 在折叠卡上挂一个「View full output」按钮，<strong>不读取真文件</strong>直到点击。</div></li>
+            <li><span class="step-mark">5</span><div>遇到 <code>PermissionRequest</code> 弹 toast；用户点击 → App 发 <code>PermissionRespond { request_id, decision }</code>。</div></li>
+            <li><span class="step-mark">6</span><div>收到 <code>Message::Response { TurnComplete }</code> → 关闭 spinner、把 iterations 写到 Context Panel。</div></li>
+          </ol>
+
+          <div data-present-step data-step-title="MVP 切片：先打 3 个最高频痛点" class="subsection-accordion" style="margin-top: 18px;">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="v0.1 先做：结构化渲染 + 折叠工具卡 + 完整输出 sidecar" data-en="v0.1: structured render + collapsible tool cards + full-output sidecar">v0.1 先做：结构化渲染 + 折叠工具卡 + 完整输出 sidecar</span></button>
+              <div class="subsection-content">
+                <p>选这三项是因为 ROI 最高：</p>
+                <ul class="reference-list">
+                  <li>结构化渲染消灭「墙体文本」，单条 PR 价值最大</li>
+                  <li>折叠工具卡消灭「无进度」「输出占满屏」两个痛点</li>
+                  <li>sidecar 完整输出消灭 16KB 截断的根本问题，需要 daemon 协议侧已落字段（<code>full_output_path</code>），不需要客户端魔法</li>
+                </ul>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="v0.2: inline diff + 非阻塞权限 + cost 显示" data-en="v0.2: inline diff + non-blocking perms + cost">v0.2: inline diff + 非阻塞权限 + cost 显示</span></button>
+              <div class="subsection-content">
+                <p>diff 视图依赖 edit_file 工具事件已经携带 before/after 文本块；非阻塞权限直接接 PermissionRequest event；cost 接 UsageUpdate。三者都是「协议已具备，写 UI 即可」。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="v0.3: 文件树 git status + 压缩前历史 + 拖拽" data-en="v0.3: file tree git status + pre-compaction history + drag-drop">v0.3: 文件树 git status + 压缩前历史 + 拖拽</span></button>
+              <div class="subsection-content">
+                <p>压缩前历史是「客户端独立持久化」最有价值的应用——daemon 收到 <code>CompactionApplied</code> 后 runtime 内的旧消息就被折叠成 summary，但 App 在 SQLite 里完整保存原始事件流，<strong>用户视图与模型视图分离</strong>。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 06 BYO -->
+        <section id="byo" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">07 / BYO Client</p>
+            <h2>7. 协议刻意保持极简：JSON parser + 行分割就能写客户端</h2>
+            <p>
+              这是「为什么不直接 RPC 框架」的回答。Claw Code 故意没用 gRPC / Cap'n Proto / MessagePack——这些方案对接需要 schema 编译器、IDL 文件、运行时库。而 line-delimited JSON：
+            </p>
+          </div>
+
+          <div class="grid-cards">
+            <div class="info-card">
+              <h4>语言独立</h4>
+              <p>Python <code>json.loads</code> + <code>readline</code>；TypeScript <code>JSON.parse</code> + readline；Swift Codable + AsyncStream。任何语言只要有 JSON 与 socket 即可。</p>
+            </div>
+            <div class="info-card">
+              <h4>调试友好</h4>
+              <p>用 <code>nc -U /tmp/claw.sock</code> 直接 telnet socket 看协议流，对照 protocol.rs 的 5 个 method 就能手写测试。</p>
+            </div>
+            <div class="info-card">
+              <h4>向前兼容简单</h4>
+              <p>新增 EventPayload 变体不破坏旧客户端（serde 默认忽略未知字段时配 <code>#[serde(other)]</code> 即可），新增 RequestPayload method 同理。</p>
+            </div>
+            <div class="info-card">
+              <h4>分场景客户端</h4>
+              <p>同一个 daemon 可同时被 SwiftUI App + TUI + IDE 插件 + 自动化脚本连。每个客户端按需选择关心的 event 即可。</p>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="Python 客户端示例" class="subsection-accordion" style="margin-top: 18px;">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="Python 30 行客户端示例" data-en="Python 30-line client example">Python 30 行客户端——看看有多简单</span></button>
+              <div class="subsection-content">
+<pre class="code"><span class="cm"># Python 30 行客户端示例（伪代码）</span>
+<span class="kw">import</span> json, socket
+s = socket.socket(socket.AF_UNIX); s.connect(<span class="str">"/tmp/claw.sock"</span>)
+<span class="fn">send</span>({<span class="str">"kind"</span>:<span class="str">"request"</span>,<span class="str">"id"</span>:<span class="str">"1"</span>,<span class="str">"method"</span>:<span class="str">"session_create"</span>,<span class="str">"params"</span>:{}})
+sid = <span class="fn">recv_response</span>().data.session_id
+<span class="fn">send</span>({<span class="str">"kind"</span>:<span class="str">"request"</span>,<span class="str">"id"</span>:<span class="str">"2"</span>,<span class="str">"method"</span>:<span class="str">"session_send"</span>,
+       <span class="str">"params"</span>:{<span class="str">"session_id"</span>:sid,<span class="str">"text"</span>:<span class="str">"fix login bug"</span>}})
+<span class="kw">while</span> (msg := <span class="fn">recv</span>()).kind != <span class="str">"response"</span>:
+    <span class="kw">if</span> msg.event == <span class="str">"permission_request"</span>:
+        <span class="fn">send</span>({<span class="str">"kind"</span>:<span class="str">"request"</span>,<span class="str">"id"</span>:<span class="str">"3"</span>,<span class="str">"method"</span>:<span class="str">"permission_respond"</span>,
+               <span class="str">"params"</span>:{<span class="str">"session_id"</span>:sid,<span class="str">"request_id"</span>:msg.data.request_id,
+                         <span class="str">"decision"</span>:<span class="str">"allow"</span>}})
+</pre>
+              </div>
+            </article>
+          </div>
+
+          <p>
+            这就是<strong>架构最小公倍数</strong>的力量：runtime 与 daemon 不变，新客户端永远是「写 UI」而非「重新对接 LLM/工具/MCP/权限」。
+          </p>
+        </section>
+
+        <!-- 07 references -->
+        <section id="refs" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">08 / References</p>
+            <h2>8. 参考来源</h2>
+          </div>
+          <ol class="bib-list">
+            <li><span class="bib-id">[1]</span> <span class="bib-author">claw-daemon/src/protocol.rs (218 LOC)</span> — <code>rust/crates/claw-daemon/src/protocol.rs</code><span class="bib-note">Message / RequestPayload / ResponsePayload / EventPayload / PermissionDecision / ToolCallSummary 全套线协议</span></li>
+            <li><span class="bib-id">[2]</span> <span class="bib-author">claw-daemon/src/server.rs (215 LOC)</span> — <code>rust/crates/claw-daemon/src/server.rs</code><span class="bib-note">ServerConfig / Server::bind/serve / ResponseSink / EchoHandler</span></li>
+            <li><span class="bib-id">[3]</span> <span class="bib-author">claw-daemon/src/runtime_handler.rs (558 LOC)</span> — <code>rust/crates/claw-daemon/src/runtime_handler.rs</code><span class="bib-note">RuntimeHandler / SessionHandler 实现 / TurnEventSink → EventPayload 翻译</span></li>
+            <li><span class="bib-id">[4]</span> <span class="bib-author">DESIGN-APP-CLIENT.md (418 行)</span> — <code>DESIGN-APP-CLIENT.md</code><span class="bib-note">7 个终端痛点 / 三栏 UI / MVP 切片 / 技术栈选择</span></li>
+            <li><span class="bib-id">[5]</span> <span class="bib-author">runtime/src/conversation.rs::TurnEventSink</span> — <code>rust/crates/runtime/src/conversation.rs</code><span class="bib-note">in-process sink 7 callback；见 Series 03 §3</span></li>
+            <li><span class="bib-id">[6]</span> <span class="bib-author">claw-daemon/tests/permission_round_trip.rs</span> — <code>rust/crates/claw-daemon/tests/permission_round_trip.rs</code><span class="bib-note">PermissionRequest event ↔ PermissionRespond request 的端到端集成测试</span></li>
+            <li><span class="bib-id">[7]</span> <span class="bib-author">claw-daemon/tests/smoke.rs</span> — <code>rust/crates/claw-daemon/tests/smoke.rs</code><span class="bib-note">Ping / Echo 框架自检</span></li>
+          </ol>
+        </section>
+      </main>
+
+      <footer class="site-footer" data-reveal>
+        <p>© 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。</p>
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

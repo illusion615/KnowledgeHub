@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Claw Code 权限层：5 种模式、6 阶段授权与 1004 行 bash 校验流水线</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 { font-size: clamp(2.0rem, 5vw, 3.6rem); line-height: 1.1; letter-spacing: -0.035em; max-width: 22ch; }
+    .hero-panel .layer-list li { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.08); color: rgba(246,248,251,0.78); font-family: "JetBrains Mono", monospace; font-size: 0.78rem; }
+    .hero-panel .layer-number { background: rgba(255,255,255,0.14); color: #fff; }
+
+    pre.code { background: rgba(0,0,0,0.24); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 16px 18px; overflow-x: auto; font-family: "JetBrains Mono", monospace; font-size: 0.78rem; line-height: 1.65; color: rgba(232,236,244,0.92); margin: 14px 0 18px; }
+    pre.code .kw { color: #c084fc; } pre.code .ty { color: #fbbf24; } pre.code .str { color: #34d399; } pre.code .cm { color: rgba(255,255,255,0.42); font-style: italic; } pre.code .fn { color: #60a5fa; }
+
+    .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 20px; }
+    .mode-card { padding: 16px; border-radius: 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); }
+    .mode-card .mode-id { font-family: "JetBrains Mono", monospace; font-size: 0.74rem; color: var(--accent); font-weight: 700; }
+    .mode-card h4 { margin: 6px 0 8px; font-size: 0.92rem; color: var(--fg); }
+    .mode-card p { font-size: 0.78rem; color: var(--muted); margin: 0; line-height: 1.55; }
+
+    .step-rail { margin-top: 22px; }
+    .step-row { display: grid; grid-template-columns: 60px 1fr; gap: 16px; padding: 14px 0; border-bottom: 1px dashed rgba(255,255,255,0.08); }
+    .step-row:last-child { border-bottom: 0; }
+    .step-row .step-num { font-family: "JetBrains Mono", monospace; font-weight: 700; font-size: 1.05rem; color: var(--accent); text-align: center; padding-top: 4px; }
+    .step-row h4 { margin: 0 0 4px; font-size: 0.92rem; color: var(--fg); }
+    .step-row p { margin: 0; font-size: 0.8rem; color: var(--muted); line-height: 1.6; }
+    .step-row code { font-family: "JetBrains Mono", monospace; font-size: 0.74rem; color: var(--accent); background: rgba(255,122,0,0.08); padding: 1px 5px; border-radius: 4px; }
+
+    .matrix-table { width: 100%; border-collapse: collapse; margin-top: 18px; font-size: 0.82rem; }
+    .matrix-table th, .matrix-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); vertical-align: top; }
+    .matrix-table th { font-weight: 600; color: var(--fg); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .matrix-table td { color: var(--muted); }
+    .matrix-table td code { font-family: "JetBrains Mono", monospace; font-size: 0.74rem; color: var(--accent); }
+
+    .pill-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+    .pill { display: inline-block; padding: 3px 9px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; font-family: "JetBrains Mono", monospace; background: rgba(255,255,255,0.05); color: var(--muted); border: 1px solid rgba(255,255,255,0.08); }
+    .pill-allow { background: rgba(16,185,129,0.12); color: #10b981; border-color: rgba(16,185,129,0.2); }
+    .pill-block { background: rgba(239,68,68,0.12); color: #ef4444; border-color: rgba(239,68,68,0.2); }
+    .pill-warn { background: rgba(245,158,11,0.12); color: #f59e0b; border-color: rgba(245,158,11,0.2); }
+
+    [data-theme="dark"] pre.code { background: rgba(0,0,0,0.45); }
+
+    .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin-top: 22px; border-radius: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,0.07); }
+    .compare-col { padding: 18px; }
+    .compare-col.bad { background: rgba(239,68,68,0.04); }
+    .compare-col.good { background: rgba(16,185,129,0.04); }
+    .compare-col h4 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 12px; }
+    .compare-col.bad h4 { color: #ef4444; }
+    .compare-col.good h4 { color: #10b981; }
+    .compare-col ul { margin: 0; padding-left: 16px; }
+    .compare-col li { font-size: 0.8rem; color: var(--muted); line-height: 1.6; margin-bottom: 4px; }
+    @media (max-width: 600px) { .compare-grid { grid-template-columns: 1fr; } }
+
+    .insight-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 22px; }
+    .insight-card { padding: 18px; border-radius: 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); }
+    .insight-card .insight-label { font-family: "JetBrains Mono", monospace; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); margin-bottom: 8px; }
+    .insight-card h4 { margin: 0 0 8px; font-size: 0.92rem; color: var(--fg); }
+    .insight-card p { font-size: 0.8rem; color: var(--muted); margin: 0; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span><span class="orb orb-b"></span><span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            智能体 · Claw Code 系列 · 05
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#problem">认知缺口</a>
+            <a href="#philosophy">设计哲学</a>
+            <a href="#modes">5 模式</a>
+            <a href="#authorize">6 阶段瀑布</a>
+            <a href="#bash-pipeline">命令校验</a>
+            <a href="#sandbox">沙箱隔离</a>
+            <a href="#enforcer">纵深防御</a>
+            <a href="#refs">参考</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Claw Code · Series 05 · Permissions & Bash</span>
+            <h1>把「能不能跑这条命令」拆成 5 个模式 × 6 阶段授权 × 6 段命令校验</h1>
+            <p>
+              Code agent 的安全护栏不能只是「dangerous=true 弹个对话框」。Claw Code 的 5 个权限相关模块共 <strong>2,954 行</strong>（<code>permissions.rs</code> 683 + <code>permission_enforcer.rs</code> 546 + <code>bash.rs</code> 336 + <code>bash_validation.rs</code> 1,004 + <code>sandbox.rs</code> 385）拼出了一条「mode → policy → enforcer → bash 子模块 → sandbox」的纵深防御链：每条 bash 命令都要过 6 段校验，每个工具调用都要过 6 阶段授权，hook override 还能在任何一阶段插队。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#modes">进入 5 模式</a>
+              <a class="button button-secondary" href="../claw-code-mcp-hardening/index.html">回看 MCP 硬化</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">核心设计原则</span>
+            <h2>三条权限设计原则</h2>
+            <ul class="layer-list" style="margin-top: 16px;">
+              <li><span class="layer-number">1</span>deny 永远不可被推翻</li>
+              <li><span class="layer-number">2</span>未知工具按最高敏感度</li>
+              <li><span class="layer-number">3</span>容器内自动降配</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label" data-zh="权限模式" data-en="Permission modes">权限模式</div>
+            <strong>5</strong>
+            <span data-zh="ReadOnly / WorkspaceWrite / DangerFullAccess / Prompt / Allow，全序" data-en="ReadOnly/WorkspaceWrite/DangerFullAccess/Prompt/Allow, totally ordered">5 种模式 · PartialOrd 支持升降级判断</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="授权评估阶段" data-en="Authorization stages">授权评估阶段</div>
+            <strong>6</strong>
+            <span data-zh="deny → override → ask → allow → mode 比较 → 提示" data-en="deny → override → ask → allow → mode → prompt">deny → override → ask → allow → mode 比较 → 提示</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="bash 校验子模块" data-en="bash validation modules">bash 校验子模块</div>
+            <strong>6</strong>
+            <span data-zh="readOnly / destructive / mode / sed / path / semantics" data-en="readOnly / destructive / mode / sed / path / semantics">readOnly · destructive · mode · sed · path · semantics</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="命令意图分类" data-en="Command intents">命令意图分类</div>
+            <strong>8</strong>
+            <span data-zh="Read/Write/Destructive/Network/Process/Package/Sysadmin/Unknown" data-en="Read/Write/Destructive/Network/Process/Package/Sysadmin/Unknown">8 种 CommandIntent</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="文件系统隔离模式" data-en="Filesystem isolation modes">文件系统隔离模式</div>
+            <strong>3</strong>
+            <span data-zh="off / workspace-only / allow-list" data-en="off / workspace-only / allow-list">off · workspace-only · allow-list</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- 01 -->
+        <section id="problem" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / Problem</p>
+            <h2>1. 「单层确认对话框」抵不住 4 类真实事故</h2>
+          </div>
+
+          <div class="compare-grid">
+            <div class="compare-col bad">
+              <h4>单层 dangerous=true 对话框</h4>
+              <ul class="reference-list">
+                <li>echo hi > /etc/hosts 表面是 echo——命令名安全 ≠ 命令安全</li>
+                <li>sed -i 静默修改文件——名字像「读」工具实则原地写</li>
+                <li>rm -rf $VAR/ 当 VAR 为空时炸根目录——路径段需要启发式检测</li>
+                <li>hook 想批准但 ask 规则也匹配——谁优先？没有显式优先级就是定时炸弹</li>
+              </ul>
+            </div>
+            <div class="compare-col good">
+              <h4>5 × 6 × 6 纵深防御</h4>
+              <ul class="reference-list">
+                <li>5 种 PermissionMode 全序——升降级判断用 ≥ 而非 flag</li>
+                <li>6 阶段授权瀑布——deny 永远第一、override 不能突破 deny</li>
+                <li>6 段 bash 校验——readOnly / destructive / mode / sed / path / semantics</li>
+                <li>sandbox 纵深——即使命令通过校验仍被文件系统隔离限制</li>
+              </ul>
+            </div>
+          </div>
+          <p style="margin-top: 18px;">
+            在看具体实现之前，先理解驱动整个设计的三条不可妥协的原则。
+          </p>
+        </section>
+
+        <!-- 02 philosophy -->
+        <section id="philosophy" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Design Philosophy</p>
+            <h2>2. 三条权限设计原则</h2>
+          </div>
+
+          <div class="insight-grid">
+            <div class="insight-card">
+              <div class="insight-label">原则 1</div>
+              <h4>deny 永远不可被任何 override 推翻</h4>
+              <p>授权瀑布里 deny 规则永远排在第一位。即使 hook 给了 Allow override，即使 mode 是 DangerFullAccess，deny 规则命中就直接拒绝。这是安全护栏的最后一道——如果 deny 可以被绕过，那 deny 就不是 deny。</p>
+            </div>
+            <div class="insight-card">
+              <div class="insight-label">原则 2</div>
+              <h4>未知工具按最高敏感度处理</h4>
+              <p>required_mode_for(tool_name) 查不到时返回 DangerFullAccess。这意味着任何新加的工具如果忘了登记 required_mode，就需要最高权限才能调用——强迫开发者显式声明。宁可误拦不可误放。</p>
+            </div>
+            <div class="insight-card">
+              <div class="insight-label">原则 3</div>
+              <h4>容器内自动降低 sandbox 限制</h4>
+              <p>detect_container_environment 检测 cgroup 文件、/.dockerenv 等信号。容器内本身已被隔离，再叠 namespace 限制可能起反作用（挂载冲突、权限不足）。sandbox 据此自动降配——不是「总是加更多限制」而是「在正确的层加正确的限制」。</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- 03 modes -->
+        <section id="modes" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / Permission Modes</p>
+            <h2>3. 5 种模式 + 全序关系：为什么是枚举而非 flag</h2>
+            <p>
+              枚举只有 5 个值，但 PartialOrd 让它们可比较——升降级判断用 <code>current_mode &gt;= required_mode</code> 而非 flag 集合。
+            </p>
+          </div>
+
+          <div class="mode-grid">
+            <div class="mode-card">
+              <div class="mode-id">ReadOnly</div>
+              <h4>只读</h4>
+              <p>顺序最低。调用任何写工具或写命令都被 enforcer 拒绝。bash 子模块的 <code>validate_read_only</code> 在这一模式才生效。</p>
+            </div>
+            <div class="mode-card">
+              <div class="mode-id">WorkspaceWrite</div>
+              <h4>工作区可写</h4>
+              <p>允许写工作区内文件；命令若指向 <code>/etc/ /usr/ /var/ /sbin/</code> 等系统路径，<code>validate_mode</code> 升级为 Warn 而非 Allow。</p>
+            </div>
+            <div class="mode-card">
+              <div class="mode-id">DangerFullAccess</div>
+              <h4>全权</h4>
+              <p>顺序最高。绕过 mode 维度的拦截，但 <strong>不绕过 deny 规则与 sandbox 隔离</strong>。供 CI / 受控运行环境使用。</p>
+            </div>
+            <div class="mode-card">
+              <div class="mode-id">Prompt</div>
+              <h4>逐次询问</h4>
+              <p>每个工具调用都触发 <code>PermissionPrompter::decide</code>。policy 在这里调出对话路径而非静默允许。</p>
+            </div>
+            <div class="mode-card">
+              <div class="mode-id">Allow</div>
+              <h4>全部允许</h4>
+              <p>special token，等价于「比 required 永远高」。区别于 DangerFullAccess 的语义在于：Allow 可被 ask 规则反向覆盖。</p>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="升降级判断逻辑" class="subsection-accordion" style="margin-top: 18px;">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="升降级判断的关键代码" data-en="Key code for mode escalation">升降级判断的关键代码</span></button>
+              <div class="subsection-content">
+<pre class="code"><span class="kw">if</span> allow_rule.is_some()
+    || current_mode == PermissionMode::Allow
+    || current_mode &gt;= required_mode
+{
+    <span class="kw">return</span> PermissionOutcome::Allow;
+}
+
+<span class="kw">if</span> current_mode == PermissionMode::Prompt
+    || (current_mode == PermissionMode::WorkspaceWrite
+        &amp;&amp; required_mode == PermissionMode::DangerFullAccess)
+{
+    <span class="cm">// 触发 prompter，由用户最终决定</span>
+    <span class="kw">return</span> Self::prompt_or_deny(...);
+}
+</pre>
+                <p>WorkspaceWrite &#x2192; DangerFullAccess 这条线被显式列出来：当模型只想跑一条「需要 sudo」的命令，policy 会把它升到 prompt 而不是直接 deny，避免「全程要么放弃要么开全权」。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 03 6-stage authorization -->
+        <section id="authorize" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / Authorize Waterfall</p>
+            <h2>4. 为什么授权是固定顺序的 6 级瀑布</h2>
+            <p>
+              <code>permissions.rs</code> 把授权写成一个固定顺序的 if-cascade。读源码看似冗长，但它的优势是<strong>不可越权</strong>——deny 永远在 override 前，override 内部 Deny &gt; Ask &gt; Allow，最后才是 mode 比较。
+            </p>
+          </div>
+
+          <div class="step-rail" data-present-step data-step-title="6 阶段授权流水">
+            <div class="step-row"><div class="step-num">①</div><div><h4>deny 规则匹配</h4><p>遍历 <code>deny_rules</code>，命中即返回 <code>PermissionOutcome::Deny { reason }</code>，把规则原文 <code>rule.raw</code> 嵌进 reason，便于排错。<strong>deny 永远不可被任何 override 推翻</strong>。</p></div></div>
+            <div class="step-row"><div class="step-num">②</div><div><h4>预解析 ask / allow 规则</h4><p>提前 <code>find_matching_rule</code>，结果用于第 ③ 与第 ④ 段；这一步只是查表不下决断。</p></div></div>
+            <div class="step-row"><div class="step-num">③</div><div><h4>hook override 分流</h4><p>读取 <code>PermissionContext::override_decision</code>：<span class="pill pill-block">Deny</span> 直接拒；<span class="pill pill-warn">Ask</span> 强制走 prompter；<span class="pill pill-allow">Allow</span> 进入第 ④ 看是否仍被 ask 规则截胡。<strong>override 不能突破 deny 但可以下调 allow</strong>。</p></div></div>
+            <div class="step-row"><div class="step-num">④</div><div><h4>ask 规则截胡</h4><p>命中 ask 规则一律走 prompter，理由模板：<code>"tool '{name}' requires approval due to ask rule '{raw}'"</code>。这是默认安全姿态——「明显要问就一定要问」。</p></div></div>
+            <div class="step-row"><div class="step-num">⑤</div><div><h4>allow / mode 比较</h4><p>满足以下任一即放行：allow 规则命中 / current_mode == Allow / current_mode &gt;= required_mode。</p></div></div>
+            <div class="step-row"><div class="step-num">⑥</div><div><h4>升级 prompt 兜底</h4><p>仍未决：若 mode == Prompt 或 WorkspaceWrite→DangerFullAccess 升级路径，<code>prompt_or_deny</code> 触发用户对话；prompter 缺席则默认 Deny。</p></div></div>
+          </div>
+
+          <div data-present-step data-step-title="hook override 与 ask 的优先级博弈" class="subsection-accordion" style="margin-top: 24px;">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="Allow + ask 命中 ⇒ 仍要问" data-en="Allow + ask hit ⇒ still ask">Allow + ask 命中 ⇒ 仍要问</span></button>
+              <div class="subsection-content">
+                <p>当 hook 给了 <code>PermissionOverride::Allow</code> 但同时 ask 规则也命中：源码先在 override 分支里检查 ask_rule，命中则走 prompter，失败默认 Deny。这把「hook 想放行但仓库规则要求人工把关」的冲突解释得很清楚——<strong>两者都不是绝对赢家，但更保守的一方决定走向</strong>。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="prompter 缺席的安全默认" data-en="Default deny when prompter is absent">prompter 缺席的安全默认</span></button>
+              <div class="subsection-content">
+                <p><code>prompt_or_deny</code> 在没有 <code>Some(prompter)</code> 时直接返回 Deny。这意味着 daemon 在无人参与的非交互执行（CI、headless）路径里，遇到 ask 一律拒绝；调用方必须显式提供 prompter（比如 mock 默认拒绝）才能跑过。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="required_mode 默认 DangerFullAccess 的含义" data-en="Why required_mode defaults to DangerFullAccess">required_mode 默认 DangerFullAccess 的含义</span></button>
+              <div class="subsection-content">
+                <p><code>required_mode_for(tool_name)</code> 在 tool_requirements 表里查不到时返回 <code>DangerFullAccess</code>。这是一种「未知工具按最高敏感度处理」策略——任何新加的工具如果忘了登记 required_mode，就需要 DangerFullAccess 才能调用，强迫开发者显式声明。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 04 bash pipeline -->
+        <section id="bash-pipeline" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / Bash Validation</p>
+            <h2>5. 命令名安全不等于命令安全：6 段校验流水线</h2>
+            <p>
+              当工具调用的目标是 <code>bash</code>，光靠 mode 比较远远不够——同一条命令在不同 mode 下含义不同，重定向、sed -i、rm -rf 还要单独识别。<code>bash_validation</code> 是文件最大的安全相关模块，按照 upstream <code>BashTool</code> 的 6 个子模块一一移植。
+            </p>
+          </div>
+
+          <table class="matrix-table">
+            <thead>
+              <tr><th>子模块</th><th>函数</th><th>核心检测</th><th>典型结果</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>readOnlyValidation</td>
+                <td><code>validate_read_only</code></td>
+                <td>① WRITE_COMMANDS 黑名单 ② STATE_MODIFYING_COMMANDS ③ sudo 内部命令递归校验 ④ 写重定向 <code>&gt;</code> <code>&gt;&gt;</code> <code>&gt;&amp;</code> ⑤ git 写命令</td>
+                <td><span class="pill pill-block">Block</span></td>
+              </tr>
+              <tr>
+                <td>destructiveCommandWarning</td>
+                <td><code>check_destructive</code></td>
+                <td>已知 destructive pattern + ALWAYS_DESTRUCTIVE_COMMANDS + 「rm + -r + -f」组合启发式</td>
+                <td><span class="pill pill-warn">Warn</span></td>
+              </tr>
+              <tr>
+                <td>modeValidation</td>
+                <td><code>validate_mode</code></td>
+                <td>按 mode 分流：ReadOnly 转 readOnlyValidation；WorkspaceWrite 用 <code>command_targets_outside_workspace</code> 检查 <code>/etc/ /usr/ /var/</code> 等系统路径</td>
+                <td><span class="pill pill-block">Block</span> / <span class="pill pill-warn">Warn</span></td>
+              </tr>
+              <tr>
+                <td>sedValidation</td>
+                <td><code>validate_sed</code></td>
+                <td>专门处理 sed：解析表达式、识别 <code>-i</code> 原地写、检查替换目标路径</td>
+                <td><span class="pill pill-warn">Warn</span></td>
+              </tr>
+              <tr>
+                <td>pathValidation</td>
+                <td><code>validate_paths</code></td>
+                <td>在 workspace 上下文里检查路径段，识别 <code>$VAR/</code> 空变量、<code>../</code> 越界、绝对路径外溢</td>
+                <td><span class="pill pill-warn">Warn</span></td>
+              </tr>
+              <tr>
+                <td>commandSemantics</td>
+                <td><code>classify_command</code></td>
+                <td>把命令分类成 8 种 CommandIntent，给上层 lane_events 与 hooks 提供语义标签</td>
+                <td><span class="pill pill-allow">分类</span></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <p style="margin-top: 18px;">
+            6 段最终在 <code>validate_command(command, mode, workspace)</code> 里串起来。<code>ValidationResult</code> 三态 <code>Allow / Block { reason } / Warn { message }</code>：Block 直接拦；Warn 走 confirm 路径不静默通过；Allow 进入 sandbox 阶段。
+          </p>
+
+          <div data-present-step data-step-title="readOnly 的细节：sudo 与重定向" class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="sudo 内层命令递归校验" data-en="Recursive sudo inner-command check">sudo 内层命令递归校验</span></button>
+              <div class="subsection-content">
+                <p>第一段命令是 <code>sudo</code> 不会立即放过，<code>extract_sudo_inner</code> 把内层命令（如 <code>sudo rm /tmp/foo</code> 里的 <code>rm /tmp/foo</code>）抽出后<strong>再调用一次 validate_read_only</strong>。这堵住「sudo 加魔法绕过校验」的捷径。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="重定向 vs 命令名" data-en="Redirection vs command name">重定向 vs 命令名</span></button>
+              <div class="subsection-content">
+                <p><code>WRITE_REDIRECTIONS = ["&gt;", "&gt;&gt;", "&gt;&amp;"]</code>，read-only 模式下命令包含任一即 Block。这一段处理「<code>echo hi &gt; /etc/hosts</code> 表面是 echo」的伪装。<code>&gt;&amp;</code> 同样被禁——避免「fd 重定向当作覆写文件用」。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="git 子命令的特殊处理" data-en="Special-cased git subcommands">git 子命令的特殊处理</span></button>
+              <div class="subsection-content">
+                <p>当首命令是 git，跳到 <code>validate_git_read_only</code>。它把 <code>git status / log / diff / show / blame</code> 等放行，把 <code>git commit / push / reset --hard / checkout -B</code> 等显式拦截，避免一刀切「git 全归只读」或「git 全归写」的两种错。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="classify_command 的边界：sed -i 算 Write" data-en="classify_command boundary: sed -i is Write">classify_command 的边界：sed -i 算 Write</span></button>
+              <div class="subsection-content">
+                <p><code>SEMANTIC_READ_ONLY_COMMANDS</code> 包含 sed，但 classify 时检查 <code> -i</code> 标志：含则升格为 <code>Write</code>。这是少数被显式 patch 的特例——「名字像读、行为是写」的工具必须单独建模。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 05 sandbox -->
+        <section id="sandbox" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / Sandbox</p>
+            <h2>6. 三种文件系统隔离与容器探测</h2>
+            <p>
+              即使一条命令通过了 6 段校验，仍可能被 sandbox 限定在一个更小的执行域里。<code>sandbox.rs</code>（385 行）做三件事：定义隔离级别、探测容器环境、生成 Linux sandbox-exec 命令前缀。
+            </p>
+          </div>
+
+          <div class="mode-grid">
+            <div class="mode-card">
+              <div class="mode-id">FilesystemIsolationMode::Off</div>
+              <h4>不隔离</h4>
+              <p>命令直接在 host 文件系统上跑，仅靠 §4 的路径校验兜底。CI 等可信环境使用。</p>
+            </div>
+            <div class="mode-card">
+              <div class="mode-id">::WorkspaceOnly</div>
+              <h4>仅工作区可写（默认）</h4>
+              <p>通过 mount overlay 让进程只能写 cwd 子树，<code>/etc /usr</code> 等其它目录变只读。<code>resolve_sandbox_status</code> 用 <code>SandboxConfig + cwd</code> 算出 status。</p>
+            </div>
+            <div class="mode-card">
+              <div class="mode-id">::AllowList</div>
+              <h4>白名单挂载</h4>
+              <p>用 <code>SandboxConfig.allowed_mounts</code> 显式声明允许写的额外目录；超出范围一律只读。</p>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="探测、解析、命令生成" class="subsection-accordion" style="margin-top: 24px;">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="detect_container_environment：容器内自动降配" data-en="detect_container_environment: relax inside containers">detect_container_environment：容器内自动降配</span></button>
+              <div class="subsection-content">
+                <p><code>detect_container_environment_from</code> 接收探测 inputs（cgroup 文件、env 变量、<code>/.dockerenv</code> 等），返回 <code>ContainerEnvironment</code>。容器内本身已被隔离，再叠一层 namespace 限制可能起反作用——sandbox 据此<strong>自动降低</strong> namespace_restrictions。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="resolve_request：把 SandboxConfig 折成 SandboxRequest" data-en="resolve_request: collapse SandboxConfig into SandboxRequest">resolve_request：把 SandboxConfig 折成 SandboxRequest</span></button>
+              <div class="subsection-content">
+                <p><code>SandboxConfig</code> 字段全是 <code>Option&lt;_&gt;</code>（用户没设就用默认）。<code>resolve_request(config, detection_inputs, cwd)</code> 把可选项与运行时探测结果合并成 <code>SandboxRequest</code>（字段都是 bool/具体值），后续生成命令只看 SandboxRequest 一个数据源——让「配置默认」与「运行时事实」的混合发生在一个明确的地方。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="build_linux_sandbox_command：把 request 翻成 LinuxSandboxCommand" data-en="build_linux_sandbox_command: request → LinuxSandboxCommand">build_linux_sandbox_command：把 request 翻成 LinuxSandboxCommand</span></button>
+              <div class="subsection-content">
+                <p>返回 <code>LinuxSandboxCommand { program, args }</code>，由调用方拼到原始命令前面执行。生成与执行解耦，便于单测——生成函数的输入输出都是纯数据。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 06 enforcer -->
+        <section id="enforcer" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">07 / Defense in Depth</p>
+            <h2>7. 纵深防御的最后粘合剂</h2>
+            <p>
+              ConversationRuntime 不直接调 policy / bash_validation / sandbox，而是统一调 <code>PermissionEnforcer</code>。它暴露 4 个动词，让上层只关心「能不能做这件事」。
+            </p>
+          </div>
+
+          <table class="matrix-table">
+            <thead>
+              <tr><th>方法</th><th>签名</th><th>内部走过</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>check(tool, input)</code></td>
+                <td><code>fn check(&amp;self, tool_name: &amp;str, input: &amp;str) -&gt; EnforcementResult</code></td>
+                <td>policy.authorize → 折叠成三态 EnforcementResult（Allow / Block { reason } / NeedsApproval { request }）</td>
+              </tr>
+              <tr>
+                <td><code>is_allowed(tool, input)</code></td>
+                <td><code>fn is_allowed(&amp;self, tool_name: &amp;str, input: &amp;str) -&gt; bool</code></td>
+                <td>check 的便利包装，仅当 EnforcementResult::Allow 时返回 true</td>
+              </tr>
+              <tr>
+                <td><code>check_file_write(path, root)</code></td>
+                <td><code>fn check_file_write(&amp;self, path: &amp;str, workspace_root: &amp;str) -&gt; EnforcementResult</code></td>
+                <td>专门给 file_ops（write/edit）用：检查 active_mode、判断 path 是否落在 workspace_root 内</td>
+              </tr>
+              <tr>
+                <td><code>check_bash(command)</code></td>
+                <td><code>fn check_bash(&amp;self, command: &amp;str) -&gt; EnforcementResult</code></td>
+                <td>调 §4 的 <code>validate_command(cmd, mode, ws)</code>；Block→Block；Warn→NeedsApproval；Allow→Allow</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <p style="margin-top: 18px;">
+            <code>active_mode()</code> 是只读 getter，方便 hooks / lane_events 在元信息里写「当前 mode」。整个 enforcer 是 immutable struct（构造后不可变），多线程共享只读。
+          </p>
+
+          <div data-present-step data-step-title="EnforcementResult 三态的传播" class="subsection-accordion" style="margin-top: 24px;">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="Allow → 直接执行" data-en="Allow → execute directly">Allow → 直接执行</span></button>
+              <div class="subsection-content">
+                <p>ToolExecutor 拿到 Allow 后立即调用 <code>execute_bash</code>（bash.rs）或对应 file ops。<strong>注意</strong>：Allow 仅代表通过 policy/bash_validation 校验，sandbox 仍可能在执行时拒绝写入——这是纵深防御的最后一道。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="Block → ToolBlocked 事件" data-en="Block → ToolBlocked event">Block → ToolBlocked 事件</span></button>
+              <div class="subsection-content">
+                <p>转译为 <code>WorkerEvent::ToolBlocked { reason }</code>（见 Series 02 §3）。lane 渲染为 inline 警示卡，模型在下一轮看到 reason 字符串。Block 不会重试——直到 mode 变化。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="NeedsApproval → 走 prompter / hook 链" data-en="NeedsApproval → prompter / hook chain">NeedsApproval → 走 prompter / hook 链</span></button>
+              <div class="subsection-content">
+                <p>带回 <code>PermissionRequest</code>，runtime 把它发给 hook 与 UI。Hook 可以提供 <code>PermissionOverride</code>，<strong>但 deny 永远赢</strong>（见 §3 第 ① 阶段）。最终决定回到 enforcer 二次 check 后才执行。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 07 references -->
+        <section id="refs" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">08 / References</p>
+            <h2>8. 参考来源</h2>
+          </div>
+          <ol class="bib-list">
+            <li><span class="bib-id">[1]</span> <span class="bib-author">permissions.rs (683 LOC)</span> — <code>rust/crates/runtime/src/permissions.rs</code><span class="bib-note">PermissionMode / PermissionPolicy / PermissionContext / PermissionOverride / PermissionPrompter / authorize_with_context 全套类型</span></li>
+            <li><span class="bib-id">[2]</span> <span class="bib-author">permission_enforcer.rs (546 LOC)</span> — <code>rust/crates/runtime/src/permission_enforcer.rs</code><span class="bib-note">PermissionEnforcer / EnforcementResult / check / check_file_write / check_bash</span></li>
+            <li><span class="bib-id">[3]</span> <span class="bib-author">bash_validation.rs (1,004 LOC)</span> — <code>rust/crates/runtime/src/bash_validation.rs</code><span class="bib-note">readOnly / destructive / mode / sed / path / semantics 6 子模块；ValidationResult; CommandIntent</span></li>
+            <li><span class="bib-id">[4]</span> <span class="bib-author">bash.rs (336 LOC)</span> — <code>rust/crates/runtime/src/bash.rs</code><span class="bib-note">execute_bash 入口；BashCommandInput/Output</span></li>
+            <li><span class="bib-id">[5]</span> <span class="bib-author">sandbox.rs (385 LOC)</span> — <code>rust/crates/runtime/src/sandbox.rs</code><span class="bib-note">FilesystemIsolationMode / SandboxConfig / SandboxRequest / detect_container_environment / build_linux_sandbox_command</span></li>
+            <li><span class="bib-id">[6]</span> <span class="bib-author">config.rs::RuntimePermissionRuleConfig</span> — <code>rust/crates/runtime/src/config.rs</code><span class="bib-note">allow / deny / ask 三组规则的配置侧</span></li>
+            <li><span class="bib-id">[7]</span> <span class="bib-author">claw-code 上游 BashTool 子模块</span> — <code>tools/BashTool/*.ts</code><span class="bib-note">readOnlyValidation / destructiveCommandWarning / modeValidation / sedValidation / pathValidation / commandSemantics 的 TS 原版</span></li>
+          </ol>
+        </section>
+      </main>
+
+      <footer class="site-footer" data-reveal>
+        <p>© 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。</p>
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

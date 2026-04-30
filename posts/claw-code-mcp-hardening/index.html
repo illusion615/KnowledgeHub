@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Claw Code MCP 硬化：为什么 MCP 需要显式生命周期与降级报告</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 { font-size: clamp(2.0rem, 5vw, 3.6rem); line-height: 1.1; letter-spacing: -0.035em; max-width: 24ch; }
+    .hero-panel .layer-list li { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.08); color: rgba(246,248,251,0.78); font-family: "JetBrains Mono", monospace; font-size: 0.78rem; }
+    .hero-panel .layer-number { background: rgba(255,255,255,0.14); color: #fff; }
+    pre.code { background: rgba(0,0,0,0.24); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 16px 18px; overflow-x: auto; font-family: "JetBrains Mono", monospace; font-size: 0.78rem; line-height: 1.65; color: rgba(232,236,244,0.92); margin: 14px 0 18px; }
+    pre.code .kw { color: #c084fc; } pre.code .ty { color: #fbbf24; } pre.code .str { color: #34d399; } pre.code .cm { color: rgba(255,255,255,0.42); font-style: italic; } pre.code .fn { color: #60a5fa; }
+    .pill { display: inline-block; padding: 2px 9px; border-radius: 5px; font-size: 0.7rem; font-weight: 600; font-family: "JetBrains Mono", monospace; }
+    .pill-ok { background: rgba(16,185,129,0.12); color: #10b981; }
+    .pill-warn { background: rgba(245,158,11,0.12); color: #f59e0b; }
+    .pill-err { background: rgba(239,68,68,0.12); color: #ef4444; }
+    .pill-info { background: rgba(59,130,246,0.12); color: #3b82f6; }
+    .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin-top: 22px; border-radius: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,0.07); }
+    .compare-col { padding: 18px; }
+    .compare-col.bad { background: rgba(239,68,68,0.04); }
+    .compare-col.good { background: rgba(16,185,129,0.04); }
+    .compare-col h4 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 12px; }
+    .compare-col.bad h4 { color: #ef4444; }
+    .compare-col.good h4 { color: #10b981; }
+    .compare-col ul { margin: 0; padding-left: 16px; }
+    .compare-col li { font-size: 0.8rem; color: var(--muted); line-height: 1.6; margin-bottom: 4px; }
+    @media (max-width: 600px) { .compare-grid { grid-template-columns: 1fr; } }
+    .insight-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 22px; }
+    .insight-card { padding: 18px; border-radius: 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); }
+    .insight-card .insight-label { font-family: "JetBrains Mono", monospace; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); margin-bottom: 8px; }
+    .insight-card h4 { margin: 0 0 8px; font-size: 0.92rem; color: var(--fg); }
+    .insight-card p { font-size: 0.8rem; color: var(--muted); margin: 0; line-height: 1.6; }
+    .lc-flow { margin: 28px auto 0; max-width: 720px; padding: 24px 18px; border-radius: 18px; background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.07); }
+    .lc-phase-group { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 8px; }
+    .lc-pill { padding: 8px 14px; border-radius: 8px; font-family: "JetBrains Mono", monospace; font-size: 0.74rem; font-weight: 600; border: 2px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.03); color: var(--fg); text-align: center; }
+    .lc-pill.boot { border-color: rgba(59,130,246,0.3); color: #3b82f6; }
+    .lc-pill.disco { border-color: rgba(245,158,11,0.3); color: #f59e0b; }
+    .lc-pill.run { border-color: rgba(16,185,129,0.3); color: #10b981; }
+    .lc-pill.shut { border-color: rgba(239,68,68,0.3); color: #ef4444; }
+    .lc-arrow-row { text-align: center; color: rgba(255,255,255,0.3); font-size: 0.8rem; padding: 2px 0; }
+    .lc-label { text-align: center; font-size: 0.68rem; color: rgba(255,255,255,0.4); font-family: "JetBrains Mono", monospace; margin-bottom: 6px; }
+    .lc-note { text-align: center; font-size: 0.72rem; color: rgba(255,255,255,0.45); margin-top: 14px; padding: 10px; border: 1px dashed rgba(255,255,255,0.1); border-radius: 8px; font-family: "JetBrains Mono", monospace; }
+    .grid-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 20px; }
+    .info-card { padding: 16px; border-radius: 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); }
+    .info-card h4 { margin: 0 0 8px; font-size: 0.84rem; color: var(--fg); }
+    .info-card p { font-size: 0.78rem; color: var(--muted); margin: 0; line-height: 1.55; }
+    .info-card code { font-family: "JetBrains Mono", monospace; font-size: 0.74rem; color: var(--accent); background: rgba(255,122,0,0.08); padding: 1px 5px; border-radius: 4px; }
+    .matrix-table { width: 100%; border-collapse: collapse; margin-top: 18px; font-size: 0.82rem; }
+    .matrix-table th, .matrix-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); vertical-align: top; }
+    .matrix-table th { font-weight: 600; color: var(--fg); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .matrix-table td { color: var(--muted); }
+    .matrix-table td code { font-family: "JetBrains Mono", monospace; font-size: 0.74rem; color: var(--accent); }
+    [data-theme="dark"] pre.code { background: rgba(0,0,0,0.45); }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span><span class="orb orb-b"></span><span class="orb orb-c"></span>
+    </div>
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="&#x2190;" data-en="&#x2190;" aria-label="返回首页">&#x2190;</a>
+          <div class="brand"><span class="brand-mark"></span>智能体 &#xB7; Claw Code 系列 &#xB7; 04</div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#gap">认知缺口</a>
+            <a href="#philosophy">设计哲学</a>
+            <a href="#lifecycle">生命周期图</a>
+            <a href="#error-design">错误即类型</a>
+            <a href="#degraded">部分失败</a>
+            <a href="#bridge">工具桥接</a>
+            <a href="#refs">参考</a>
+          </nav>
+        </div>
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Claw Code &#xB7; Series 04 &#xB7; MCP Hardening</span>
+            <h1>为什么 MCP 需要显式生命周期而非「全有或全无」</h1>
+            <p>MCP 在很多 harness 里是「黑盒插件」：一个 server 握手失败就整个不可用，错误日志只有一行 <code>mcp init failed</code>，模型还在调用已经退出的 server 浪费 token。本文先讲<em>为什么需要把 MCP 从插件升格为带有生命周期的子系统</em>，用一张生命周期图建立全局理解，再在折叠区展开每个设计选择背后的原理。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#lifecycle">看生命周期图</a>
+              <a class="button button-secondary" href="../claw-code-runtime-anatomy/index.html">回看运行时</a>
+            </div>
+          </div>
+          <aside class="hero-panel load-in">
+            <span class="panel-label">核心设计原则</span>
+            <h2>三条 MCP 硬化原则</h2>
+            <ul class="layer-list" style="margin-top: 16px;">
+              <li><span class="layer-number">1</span>单 server 失败不等于全死</li>
+              <li><span class="layer-number">2</span>错误必须回答 6 个问题</li>
+              <li><span class="layer-number">3</span>阶段转换受守卫约束</li>
+            </ul>
+          </aside>
+        </div>
+        <div class="hero-metrics load-in">
+          <div class="metric"><div class="metric-label" data-zh="Lifecycle 阶段" data-en="Lifecycle phases">Lifecycle 阶段</div><strong>11</strong><span data-zh="4 个分区 &#xB7; 守卫转换" data-en="4 partitions, guarded transitions">4 个分区 &#xB7; 守卫转换</span></div>
+          <div class="metric"><div class="metric-label" data-zh="阶段结果三态" data-en="Phase result tri-state">阶段结果三态</div><strong>3</strong><span data-zh="Success / Failure / Timeout" data-en="Success / Failure / Timeout">Success &#xB7; Failure &#xB7; Timeout</span></div>
+          <div class="metric"><div class="metric-label" data-zh="错误面字段" data-en="Error surface fields">错误面字段</div><strong>6</strong><span data-zh="每个错误必须回答的 6 个问题" data-en="6 questions every error must answer">每个错误必须回答 6 个问题</span></div>
+          <div class="metric"><div class="metric-label" data-zh="降级报告维度" data-en="Degraded report dimensions">降级报告维度</div><strong>4</strong><span data-zh="健康 / 故障 / 可用工具 / 缺失工具" data-en="healthy / failed / available / missing">健康 &#xB7; 故障 &#xB7; 可用工具 &#xB7; 缺失工具</span></div>
+          <div class="metric"><div class="metric-label" data-zh="模块 LOC" data-en="Module LOC">模块 LOC</div><strong>5,487</strong><span data-zh="5 个模块共计" data-en="5 modules total">lifecycle &#xB7; stdio &#xB7; bridge &#xB7; mcp &#xB7; plugin</span></div>
+        </div>
+      </header>
+
+      <main>
+        <section id="gap" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / The Gap</p>
+            <h2>1. 「黑盒 MCP」在生产代理里的三类事故</h2>
+            <p>大多数 harness 把 MCP 当作一个开关：能连就全有，不能连就全无。这种模式在单 server 环境够用，但一旦配置了多个 stdio/sse server，三类事故反复出现。</p>
+          </div>
+          <div class="compare-grid">
+            <div class="compare-col bad">
+              <h4>典型 harness 的 MCP</h4>
+              <ul>
+                <li>5 个 server 配一个开关——1 个 binary 不存在，整个 MCP 标记 down</li>
+                <li>错误日志只有 <code>mcp init failed</code> 一行——哪个 server、哪个阶段、能否恢复全部不可见</li>
+                <li>server 退出后模型仍调用旧工具列表——每次返回 connection lost，重试浪费 token</li>
+                <li>没有 degraded 概念——要么全绿要么全红</li>
+              </ul>
+            </div>
+            <div class="compare-col good">
+              <h4>Claw Code 的 MCP</h4>
+              <ul>
+                <li>每个 server 独立走 11 阶段生命周期——1 个失败不影响其它 4 个</li>
+                <li>错误是 6 字段结构体——阶段 / server / 消息 / 上下文 / 可恢复性 / 时间戳</li>
+                <li>server 断开后立即从 available_tools 移除——模型不会看见幻觉工具</li>
+                <li>显式 degraded report——「3 健康 / 1 故障 / tool X 缺失」</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section id="philosophy" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Design Philosophy</p>
+            <h2>2. 三条 MCP 硬化原则</h2>
+          </div>
+          <div class="insight-grid" data-present-step data-step-title="三条不可妥协的原则">
+            <div class="insight-card">
+              <div class="insight-label">原则 1</div>
+              <h4>单 server 失败 &#x2260; 全死</h4>
+              <p>传统 harness 把「任一 server 连接失败」等同于「MCP 子系统不可用」，原因是缺少 server 级别的隔离建模。Claw Code 让每个 server 独立持有自己的 lifecycle state，失败被记录但<strong>不传播</strong>。降级报告把健康 server 和故障 server 分成两个集合，ToolExecutor 只从健康集合路由。</p>
+            </div>
+            <div class="insight-card">
+              <div class="insight-label">原则 2</div>
+              <h4>每个错误必须回答 6 个问题</h4>
+              <p>错误不是 String，而是<strong>数据</strong>。当 MCP 错误发生时，它必须告诉你：(1) 哪个阶段；(2) 哪个 server；(3) 发生了什么；(4) 上下文（超时毫秒、stderr 片段）；(5) 能否恢复；(6) 什么时候。这 6 个字段缺任何一个，运维人员都无法定位问题。</p>
+            </div>
+            <div class="insight-card">
+              <div class="insight-label">原则 3</div>
+              <h4>阶段转换受守卫约束</h4>
+              <p>11 个阶段不是装饰性标签——它们之间有<strong>合法转换矩阵</strong>。你不能从 ConfigLoad 跳到 Invocation 跳过 Handshake——守卫函数会拒绝。这消灭了「skip handshake 直接发 tools/list 然后 server 挂了但没人知道为什么」的隐性事故。</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="lifecycle" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / Lifecycle Diagram</p>
+            <h2>3. 一张图理解 11 个阶段的 4 个分区</h2>
+            <p>11 个阶段按功能分成 4 个分区。每个分区的失败语义不同——启动期失败影响 server 注册，发现期失败影响工具列表，运行期失败影响单次调用，终止期失败可以忽略。</p>
+          </div>
+          <div class="lc-flow" data-present-step data-step-title="MCP 生命周期 4 分区">
+            <div class="lc-label">&#x250C;&#x2500; 启动期：失败 &#x2192; 进 UnsupportedMcpServer 列表 &#x2500;&#x2510;</div>
+            <div class="lc-phase-group">
+              <div class="lc-pill boot">&#x2460; ConfigLoad</div>
+              <div class="lc-pill boot">&#x2461; ServerRegistration</div>
+              <div class="lc-pill boot">&#x2462; SpawnConnect</div>
+              <div class="lc-pill boot">&#x2463; InitializeHandshake</div>
+            </div>
+            <div class="lc-arrow-row">&#x2193;</div>
+            <div class="lc-label">&#x250C;&#x2500; 发现期：失败 &#x2192; 工具/资源缺失但 server 仍可用 &#x2500;&#x2510;</div>
+            <div class="lc-phase-group">
+              <div class="lc-pill disco">&#x2464; ToolDiscovery</div>
+              <div class="lc-pill disco">&#x2465; ResourceDiscovery</div>
+            </div>
+            <div class="lc-arrow-row">&#x2193;</div>
+            <div class="lc-label">&#x250C;&#x2500; 运行期：失败 &#x2192; 单调用隔离，不污染其它 &#x2500;&#x2510;</div>
+            <div class="lc-phase-group">
+              <div class="lc-pill run">&#x2466; Ready</div>
+              <div class="lc-pill run">&#x2467; Invocation</div>
+              <div class="lc-pill run">&#x2468; ErrorSurfacing</div>
+            </div>
+            <div class="lc-arrow-row">&#x2193;</div>
+            <div class="lc-label">&#x250C;&#x2500; 终止期：失败可忽略，幂等 &#x2500;&#x2510;</div>
+            <div class="lc-phase-group">
+              <div class="lc-pill shut">&#x2469; Shutdown</div>
+              <div class="lc-pill shut">&#x246A; Cleanup</div>
+            </div>
+            <div class="lc-note">&#x23F5; 非法跳转被 validate_phase_transition 拒绝 &#xA0;&#xA0; &#x26A1; 任何阶段可跳转 ErrorSurfacing</div>
+          </div>
+          <div data-present-step data-step-title="分区设计细节" class="subsection-accordion" style="margin-top: 24px;">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="启动期为什么拆成 4 个阶段" data-en="Why boot splits into 4 phases">启动期为什么拆成 4 个阶段</span></button>
+              <div class="subsection-content">
+                <p>ConfigLoad 与 SpawnConnect 分开是因为<strong>失败原因完全不同</strong>：ConfigLoad 失败是配置问题（binary 路径错、env 冲突），修改配置即可解；SpawnConnect 失败是运行时问题（权限不够、端口占用），可能需要 retry。合成一个「启动失败」会让恢复配方无法区分。</p>
+                <p style="margin-top: 8px;">InitializeHandshake 独立出来是因为它有<strong>超时语义</strong>——spawn 成功但 handshake 超时是最常见的 MCP 失败模式。ErrorSurface 的 context 字段在这一阶段会带 <code>timeout_ms</code>，让 doctor 子命令直接定位「卡在 handshake 12 秒了」。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="发现期为什么允许空" data-en="Why discovery allows empty">发现期为什么允许空</span></button>
+              <div class="subsection-content">
+                <p>一个 server 可以只支持 tools 不支持 resources，反之亦然。ToolDiscovery 返回空集不算失败——server 可能只提供 resources。但如果 ToolDiscovery <strong>报错</strong>（不是空而是异常），那进 ErrorSurface 走恢复配方。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="阶段执行的三个入口 API" data-en="Three entry points for phase control">阶段执行的三个入口 API</span></button>
+              <div class="subsection-content">
+                <p>McpLifecycleValidator 暴露三个改状态的 API：</p>
+                <ul class="reference-list">
+                  <li><code>run_phase(phase)</code> &#x2014; 进入新阶段；先 validate_phase_transition，通过后打时间戳，返回 Success { duration }</li>
+                  <li><code>record_failure(error)</code> &#x2014; 本阶段抛错；error.recoverable 决定 lifecycle 能否继续</li>
+                  <li><code>record_timeout(phase, waited, error)</code> &#x2014; 超时专用，与 Failure 分开是为了 lane_events 分桶精确</li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="error-design" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / Error Design</p>
+            <h2>4. 把错误从字符串升格为类型：6 个必答题</h2>
+            <p>错误吞噬的根源是「错误只有一个 String」。Claw Code 把 MCP 错误写成 6 字段结构体，强制每次抛错都至少回答 6 个问题。</p>
+          </div>
+          <table class="matrix-table">
+            <thead><tr><th>问题</th><th>字段</th><th>为什么必须</th></tr></thead>
+            <tbody>
+              <tr><td>哪个阶段出的？</td><td><code>phase</code></td><td>决定恢复路径——ConfigLoad 错误改配置，Handshake 超时可 retry</td></tr>
+              <tr><td>哪个 server？</td><td><code>server_name</code></td><td>隔离故障域——只降级这一个，不拖垮其它</td></tr>
+              <tr><td>发生了什么？</td><td><code>message</code></td><td>面向人的描述——运维在频道里看的就是这行</td></tr>
+              <tr><td>更多上下文？</td><td><code>context: BTreeMap</code></td><td>结构化补充——timeout_ms、binary_path、stderr 片段</td></tr>
+              <tr><td>能恢复吗？</td><td><code>recoverable: bool</code></td><td>lifecycle 据此决定是继续走还是停</td></tr>
+              <tr><td>什么时候？</td><td><code>timestamp: u64</code></td><td>ErrorSurfacing 阶段按时间排序</td></tr>
+            </tbody>
+          </table>
+          <div data-present-step data-step-title="recoverable 设计细节" class="subsection-accordion" style="margin-top: 24px;">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="同一种错误在不同阶段 recoverable 不同" data-en="Same error, different recoverability per phase">同一种错误在不同阶段 recoverable 不同</span></button>
+              <div class="subsection-content">
+                <ul class="reference-list">
+                  <li>SpawnConnect: binary not found &#x2192; <span class="pill pill-err">recoverable=false</span>——重启也变不出来</li>
+                  <li>InitializeHandshake: timeout &#x2192; <span class="pill pill-ok">recoverable=true</span>——可能临时阻塞</li>
+                  <li>Invocation: pipe closed &#x2192; <span class="pill pill-ok">recoverable=true</span>——按配方重启 server</li>
+                  <li>ConfigLoad: invalid scope &#x2192; <span class="pill pill-err">recoverable=false</span>——必须改配置</li>
+                </ul>
+                <p style="margin-top: 10px;">这种「同一种 IO 错误在不同阶段有不同恢复性」的设计，是 lifecycle 阶段划分的直接价值——没有阶段信息就无法做出正确的恢复判断。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="Display 格式：一行定位故障" data-en="Display format: one line to locate failure">Display 格式：一行定位故障</span></button>
+              <div class="subsection-content">
+<pre class="code">MCP lifecycle error during initialize_handshake: peer closed pipe
+  (server: github-mcp) with context {<span class="str">"timeout_ms"</span>: <span class="str">"5000"</span>,
+   <span class="str">"stderr_tail"</span>: <span class="str">"address already in use"</span>} [recoverable]</pre>
+                <p>这种格式直接喂给 lane_events 的 LaneEventBlocker.detail（见 Series 02 &#xA7;5），clawhip 频道里能看到「具体哪个 server、哪个阶段、是否值得人工接管」三件事。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="degraded" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / Partial Failure</p>
+            <h2>5. 部分失败 &#x2260; 全部失败：降级报告的 4 个维度</h2>
+            <p>原则 1（单 server 失败 &#x2260; 全死）的落地是一个只有 4 个字段的数据结构。它配合 lifecycle 验证器实现了「部分失败 = 部分可用」语义。</p>
+          </div>
+          <div class="grid-cards" data-present-step data-step-title="降级报告 4 维度">
+            <div class="info-card"><h4>working_servers</h4><p>已走完 Ready 阶段、当前 Connected 的 server 列表。<strong>ToolExecutor 只从这个集合路由调用</strong>——模型不会看见挂掉的 server 上的工具。</p></div>
+            <div class="info-card"><h4>failed_servers</h4><p>每条带 (server_name, phase, error)。daemon 把它发到 lane_events，clawhip 渲染为 inline 故障卡片，<strong>不阻塞</strong>其它 server 的工具调用。</p></div>
+            <div class="info-card"><h4>available_tools</h4><p>所有 working_servers 上 ToolDiscovery 的累积结果。系统提示里只暴露这一份，模型不会看见挂掉 server 的 tool——消灭工具幻觉。</p></div>
+            <div class="info-card"><h4>missing_tools</h4><p>配置里期望但实际未发现的 tool 名集合。doctor 子命令直接说「期望 tool X 来自 server Y，但 Y 没启动」。</p></div>
+          </div>
+          <div data-present-step data-step-title="降级触发与恢复" class="subsection-accordion" style="margin-top: 24px;">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="启动期 vs 运行期降级回报" data-en="Startup vs runtime degraded report">启动期 vs 运行期降级回报</span></button>
+              <div class="subsection-content">
+                <p><strong>启动期</strong>：lifecycle 把所有 server 跑完 ConfigLoad &#x2192; Ready 后，用 working/failed 两套集合构造一次 degraded report。即使有 server 失败，daemon 仍可对外报 ready——但带降级警告。</p>
+                <p style="margin-top: 8px;"><strong>运行期</strong>：Invocation 阶段错误把 server 从 working 移到 failed，新的 degraded report 通过 lane_events 发出。recovery_recipes 的 PartialPluginStartup 配方介入：RestartPlugin + RetryMcpHandshake；失败则 LogAndContinue（不 Abort，因为剩余 server 仍可服务）。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="为什么运行期默认不重启" data-en="Why no auto-restart at runtime">为什么运行期默认不重启</span></button>
+              <div class="subsection-content">
+                <p>一个 server 在 Invocation 阶段断开，直觉上应该自动重启。但 Claw Code <strong>默认不重启</strong>，而是标记 disconnected 并发降级报告。理由：</p>
+                <ul class="reference-list">
+                  <li>重启有 token 成本——重启期间 model 等待，浪费 API 调用时间</li>
+                  <li>重启可能不安全——server 可能持有状态（事务、锁），直接 kill+restart 可能造成数据不一致</li>
+                  <li>recovery 配方已经覆盖了需要重启的场景——PartialPluginStartup 会判断是否值得</li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="bridge" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / Tool Bridge</p>
+            <h2>6. 为什么 runtime 不应知道 MCP 的存在</h2>
+            <p>McpToolRegistry（912 行）解决的核心问题是<strong>关注分离</strong>：ConversationRuntime 通过 ToolExecutor trait 调用工具，不知道也不关心工具来自 MCP 还是本地。MCP 的 lifecycle、错误面、降级报告全部封装在 registry 内。</p>
+          </div>
+          <div class="insight-grid">
+            <div class="insight-card">
+              <div class="insight-label">命名空间</div>
+              <h4><code>mcp__</code> 前缀自动路由</h4>
+              <p>工具名以 <code>mcp__</code> 开头就走 call_tool，否则走本地分发。模型不需要为 MCP 工具学不同的调用语法——命名空间天然不冲突。</p>
+            </div>
+            <div class="insight-card">
+              <div class="insight-label">断开即消失</div>
+              <h4>disconnect 移除工具列表</h4>
+              <p>server 断开时 list_tools 不再列出它的工具。这是「工具幻觉」的协议解——不是靠 timeout 后才发现调不通，而是从源头让模型看不见。</p>
+            </div>
+            <div class="insight-card">
+              <div class="insight-label">两层分离</div>
+              <h4>manager 管配置，registry 管状态</h4>
+              <p>McpServerManager &#x2192; 配置侧（哪些 server、怎么 spawn）。McpToolRegistry &#x2192; 运行时侧（哪些 server 活着、有什么工具）。set_manager() 是两层的接缝。</p>
+            </div>
+          </div>
+          <div data-present-step data-step-title="stdio 通道细节" class="subsection-accordion" style="margin-top: 24px;">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="为什么 2,897 行只做一件事：强类型通道" data-en="Why 2,897 lines for just one thing">为什么 2,897 行只做一件事：强类型通道</span></button>
+              <div class="subsection-content">
+                <p>mcp_stdio.rs 把 MCP wire protocol 的<strong>每个方法对</strong>（initialize、tools/list、tools/call、resources/list、resources/read）都建模成强类型 Params/Result 对。好处：</p>
+                <ul class="reference-list">
+                  <li>调用方不需要构造 raw JSON——用 McpToolCallParams { name, arguments } 就行</li>
+                  <li>返回值不需要 downcast——McpToolCallResult.structured_content 是 Option&lt;JsonValue&gt; 而非「从 JsonValue 里翻」</li>
+                  <li>序列化/反序列化错误在<strong>编译期</strong>被捕获——不是在 runtime 传了一个错字段才发现</li>
+                </ul>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="每次调用前先确认 server 活着" data-en="Pre-invocation liveness check">每次调用前先确认 server 活着</span></button>
+              <div class="subsection-content">
+                <p>McpStdioProcess::has_exited() 调用 try_wait，让 lifecycle 在每次 Invocation 前快速断言「这个 server 是不是已经死了」。如果死了，不发 JSON-RPC（省一次 IO + timeout 等待），直接走 ErrorSurface &#x2192; degraded report &#x2192; 从 available_tools 移除。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="refs" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">07 / References</p>
+            <h2>7. 参考来源</h2>
+          </div>
+          <ol class="bib-list">
+            <li><span class="bib-id">[1]</span> <span class="bib-author">mcp_lifecycle_hardened.rs (842 LOC)</span> &#x2014; <code>rust/crates/runtime/src/mcp_lifecycle_hardened.rs</code><span class="bib-note">McpLifecyclePhase 11 阶段 / McpErrorSurface / McpPhaseResult / McpDegradedReport / McpLifecycleValidator</span></li>
+            <li><span class="bib-id">[2]</span> <span class="bib-author">mcp_stdio.rs (2,897 LOC)</span> &#x2014; <code>rust/crates/runtime/src/mcp_stdio.rs</code><span class="bib-note">15+ JSON-RPC 强类型 / McpStdioProcess / McpServerManager</span></li>
+            <li><span class="bib-id">[3]</span> <span class="bib-author">mcp_tool_bridge.rs (912 LOC)</span> &#x2014; <code>rust/crates/runtime/src/mcp_tool_bridge.rs</code><span class="bib-note">McpToolRegistry / mcp__ 命名空间路由 / disconnect 移除工具</span></li>
+            <li><span class="bib-id">[4]</span> <span class="bib-author">mcp.rs (304 LOC)</span> &#x2014; <code>rust/crates/runtime/src/mcp.rs</code><span class="bib-note">公共 MCP 类型再导出</span></li>
+            <li><span class="bib-id">[5]</span> <span class="bib-author">plugin_lifecycle.rs (532 LOC)</span> &#x2014; <code>rust/crates/runtime/src/plugin_lifecycle.rs</code><span class="bib-note">通用 plugin 生命周期接口</span></li>
+            <li><span class="bib-id">[6]</span> <span class="bib-author">recovery_recipes.rs::PartialPluginStartup</span> &#x2014; <code>rust/crates/runtime/src/recovery_recipes.rs</code><span class="bib-note">RestartPlugin + RetryMcpHandshake 配方；见 Series 02 &#xA7;6</span></li>
+          </ol>
+        </section>
+      </main>
+
+      <footer class="site-footer" data-reveal>
+        <p>&#xA9; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。</p>
+      </footer>
+    </div>
+  </div>
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

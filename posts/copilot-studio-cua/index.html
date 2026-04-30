@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Copilot Studio CUA：让 Agent 操作网页与桌面应用的能力、边界与成本</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(2.1rem, 5vw, 3.65rem);
+      line-height: 1.05;
+      letter-spacing: -0.045em;
+      max-width: 20ch;
+    }
+
+    .hero-metrics {
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    }
+
+    .step-grid,
+    .rate-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .step-card,
+    .rate-card {
+      padding: 18px;
+      border-radius: 22px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.8);
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+    }
+
+    .step-card h4,
+    .rate-card h4 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+    }
+
+    .step-card p,
+    .rate-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.72;
+    }
+
+    .step-index {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 32px;
+      height: 32px;
+      margin-bottom: 10px;
+      border-radius: 999px;
+      background: rgba(124, 58, 237, 0.12);
+      color: rgba(109, 40, 217, 0.94);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .rate-card strong {
+      display: block;
+      margin-bottom: 10px;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 1.7rem;
+      line-height: 1;
+      letter-spacing: -0.04em;
+      color: var(--ink);
+    }
+
+    .runtime-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+    }
+
+    .runtime-table th {
+      text-align: left;
+      padding: 12px 14px;
+      background: rgba(15, 23, 42, 0.04);
+      border-bottom: 2px solid rgba(15, 23, 42, 0.1);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-weight: 700;
+      font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .runtime-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+      line-height: 1.68;
+      vertical-align: top;
+      color: var(--ink);
+    }
+
+    .runtime-table td:first-child,
+    .runtime-table td:nth-child(2) {
+      font-weight: 600;
+    }
+
+    .signal-note {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.7;
+    }
+
+    .guardrail-box {
+      padding: 18px 20px;
+      border-radius: 24px;
+      border: 1px solid rgba(124, 58, 237, 0.12);
+      background: linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(59, 130, 246, 0.05));
+    }
+
+    .guardrail-box h4 {
+      margin: 0 0 10px;
+      font-size: 1rem;
+    }
+
+    .guardrail-box p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.72;
+    }
+
+    [data-theme="dark"] .step-card,
+    [data-theme="dark"] .rate-card {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.18);
+    }
+
+    [data-theme="dark"] .step-index {
+      background: rgba(124, 58, 237, 0.2);
+      color: rgba(196, 181, 253, 0.96);
+    }
+
+    [data-theme="dark"] .runtime-table th {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    [data-theme="dark"] .runtime-table td {
+      border-color: rgba(255, 255, 255, 0.06);
+    }
+
+    [data-theme="dark"] .guardrail-box {
+      border-color: rgba(196, 181, 253, 0.18);
+      background: linear-gradient(135deg, rgba(124, 58, 237, 0.12), rgba(59, 130, 246, 0.08));
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero" data-present-step data-step-title="文章总览">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            Copilot Studio
+          </div>
+          <div class="topbar-actions">
+            <nav class="nav-links" aria-label="页面章节导航">
+              <a href="#definition">定义</a>
+              <a href="#runtime">运行</a>
+              <a href="#limits">边界</a>
+              <a href="#governance">治理</a>
+              <a href="#economics">成本</a>
+              <a href="#decision">选型</a>
+              <a href="#references">参考</a>
+            </nav>
+          </div>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Computer Use Agent Brief</span>
+            <h1>Copilot Studio CUA：让 Agent 操作网页与桌面应用的能力、边界与成本</h1>
+            <p>
+              Copilot Studio 的 computer use 是一类由 CUA（Computer-Using Agent）驱动的 GUI 自动化工具：Agent 不再只会调 API，而是能像人一样在 Windows 机器上看屏幕、点按钮、输文本。它的价值不在“替代所有集成”，而在无 API、旧系统、跨页面搬运数据等场景中补上最后一层执行接口。本文基于 Microsoft Learn 官方文档，梳理它的工作方式、三种运行环境、可靠性上限、治理手段和 step-based 成本，帮助判断这项能力该何时启用、何时避免。资料核验时间：2026-04-22。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#runtime">先看运行方式</a>
+              <a class="button button-secondary" href="#decision">直接看选型结论</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">一句话判断</span>
+            <h2>CUA 不是通用桌面助手，而是面向低风险 GUI 流程的受控自动化接口</h2>
+            <ul class="layer-list section-grid-spaced">
+              <li><span class="layer-number">1</span>优先补齐“没有现成 API”的系统接入，而不是替代本来就稳定的 connector、flow 或后端接口。</li>
+              <li><span class="layer-number">2</span>官方文档明确指出它更适合 autonomous agents 在后台执行；对话式使用会把推理消息和截图暴露在聊天里。</li>
+              <li><span class="layer-number">3</span>当前仍是 preview，可靠性在 Web 与 Desktop 场景差异显著，也不适合财务交易或敏感评分类高风险任务。</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">区域要求</div>
+            <strong>US 环境</strong>
+            <span>官方文档当前仅说明美国区域环境可用</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">运行方式</div>
+            <strong>3 种</strong>
+            <span>Hosted browser / Cloud PC pool / BYOM</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">计费单位</div>
+            <strong>5 Credits / step</strong>
+            <span>每一步视觉推理执行都计费</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">官方成功率</div>
+            <strong>Web≈80% / Desktop≈35%</strong>
+            <span>FAQ 给出区间，但未公开测试集和机器条件</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <section id="definition" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / Definition & Mechanism</p>
+            <h2>CUA 在 Copilot Studio 里到底是什么</h2>
+            <p>它是一个能被 Agent 调用的工具，不是单独的产品 SKU。真正关键的是：它把“看图形界面并操作它”的能力带进了 Copilot Studio 的工具层。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>1.1 功能定位：当人能点，Agent 就能尝试点</span>
+              </button>
+              <div class="subsection-content">
+                <div class="comparison-grid section-grid-spaced">
+                  <article class="comparison-card">
+                    <span class="comparison-label">Official Definition</span>
+                    <h3>它做什么</h3>
+                    <ul class="challenge-list">
+                      <li><strong>操作对象</strong>：网页和 Windows 桌面应用。</li>
+                      <li><strong>操作方式</strong>：通过虚拟鼠标和键盘执行点击、输入、菜单选择、滚动等动作。</li>
+                      <li><strong>使用入口</strong>：在 Agent 的 Tools 中添加一个新的 Computer use 工具，而不是额外购买一个独立产品。</li>
+                      <li><strong>典型场景</strong>：数据录入、发票搬运、跨系统表单填写、从界面读取数据后再交给其他工具继续处理。</li>
+                    </ul>
+                  </article>
+                  <article class="comparison-card next">
+                    <span class="comparison-label">Architectural Meaning</span>
+                    <h3>它解决什么缺口</h3>
+                    <ul class="challenge-list">
+                      <li><strong>无 API 集成</strong>：官方文档明确把“没有 API 也能做自动化”作为核心价值。</li>
+                      <li><strong>跨页面执行</strong>：和只返回文本答案的知识检索不同，CUA 目标是完成动作而不只是给出建议。</li>
+                      <li><strong>最后一层接口</strong>：对遗留系统、第三方后台、临时门户尤其有价值，因为这些系统最常缺的是稳定接口而不是界面。</li>
+                      <li><strong>不是默认优先方案</strong>：只要有更稳定的 API 或 connector，工程上仍应优先用确定性更强的接口。</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>1.2 工作闭环：感知 → 推理 → 动作</span>
+              </button>
+              <div class="subsection-content">
+                <div class="step-grid section-grid-spaced">
+                  <article class="step-card">
+                    <span class="step-index">01</span>
+                    <h4>Perception</h4>
+                    <p>模型先截取当前屏幕画面，把像素作为状态输入，理解按钮、文本框、表格和当前页面位置。</p>
+                  </article>
+                  <article class="step-card">
+                    <span class="step-index">02</span>
+                    <h4>Reasoning</h4>
+                    <p>结合当前截图、前一步动作和目标指令，决定下一步最合理的点击、输入或滚动动作。</p>
+                  </article>
+                  <article class="step-card">
+                    <span class="step-index">03</span>
+                    <h4>Action</h4>
+                    <p>执行鼠标和键盘动作，观察结果，再进入下一轮循环，直到完成任务或因为不确定而停下来请求人工确认。</p>
+                  </article>
+                </div>
+
+                <div class="simple-table-wrap section-grid-spaced">
+                  <table class="runtime-table">
+                    <thead>
+                      <tr>
+                        <th>模型提供方</th>
+                        <th>模型</th>
+                        <th>状态</th>
+                        <th>Human Supervision</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>Azure OpenAI</td>
+                        <td>Computer-Using Agent (CUA)</td>
+                        <td>Active</td>
+                        <td>支持</td>
+                      </tr>
+                      <tr>
+                        <td>Azure OpenAI</td>
+                        <td>OpenAI Computer Using Agent V1</td>
+                        <td>Retired</td>
+                        <td>支持</td>
+                      </tr>
+                      <tr>
+                        <td>Anthropic</td>
+                        <td>Claude Sonnet 4.5</td>
+                        <td>Active</td>
+                        <td>支持</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p class="signal-note">补充约束：要使用 computer use，Agent 需要开启 generative orchestrator。Anthropic 模型需要管理员允许 external models，并且在支持区域逐步开放。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>1.3 它不是什么：不是可靠替代所有系统集成的万能层</span>
+              </button>
+              <div class="subsection-content">
+                <div class="guardrail-box">
+                  <h4>工程判断</h4>
+                  <p>CUA 适合补足“接口不存在”的空白，不适合把一个本来就能通过 API、Power Automate 或 Connector 稳定完成的流程，反向改成视觉驱动的界面自动化。原因有三：它按 step 计费、同一任务结果可能因界面变化而波动、官方成功率在桌面应用场景显著下降。</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="runtime" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Runtime & Authoring</p>
+            <h2>怎么跑起来：机器、凭据和指令面</h2>
+            <p>Copilot Studio 已经把 computer use 包成一个工具，但落地成败仍然取决于你选哪类机器、如何给凭据、以及说明写得是否足够细。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>2.1 三种运行环境：快试、托管池、自带机器</span>
+              </button>
+              <div class="subsection-content">
+                <div class="simple-table-wrap section-grid-spaced">
+                  <table class="compare-table">
+                    <thead>
+                      <tr>
+                        <th>选项</th>
+                        <th>适合什么</th>
+                        <th>优点</th>
+                        <th>关键限制</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><strong>Hosted browser</strong></td>
+                        <td>快速试用、网页自动化 PoC</td>
+                        <td>无需自备机器；直接可用；同时可访问内置 Windows 应用</td>
+                        <td>Microsoft 托管；不 Entra join、不受 Intune 策略管理；不支持企业资源访问和自定义桌面应用；官方明确不建议用于生产，且可能按需求限流</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Cloud PC pool</strong></td>
+                        <td>需要治理、扩缩容和企业资源接入</td>
+                        <td>由 Windows 365 for Agents 提供；可自动扩缩容；工作账号接入；Entra joined + Intune enrolled，适合纳入企业管控</td>
+                        <td>需要额外的环境与资源准备；更像正式运行面，不是零准备体验</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Bring-your-own-machine</strong></td>
+                        <td>已有专用 Windows 机器或受控桌面环境</td>
+                        <td>完全使用自有机器；适合需要特定本地应用、网络、策略或定制软件的情况</td>
+                        <td>需要在机器上安装 Power Automate for desktop 2.61.132.25266+ 和 Web 扩展；同一台机器上的运行请求按队列串行执行</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>2.2 工具配置面：真正影响执行行为的不是按钮，而是字段语义</span>
+              </button>
+              <div class="subsection-content">
+                <div class="comparison-grid section-grid-spaced">
+                  <article class="comparison-card">
+                    <span class="comparison-label">Configuration Fields</span>
+                    <h3>作者需要配置什么</h3>
+                    <ul class="challenge-list">
+                      <li><strong>Name / Description</strong>：不仅给人看，也影响 Agent 何时决定调用这个工具。</li>
+                      <li><strong>Model</strong>：选择实际执行 computer use 的视觉推理模型。</li>
+                      <li><strong>Instructions</strong>：核心行为定义。应写清 URL、应用名、步骤和明确的完成条件。</li>
+                      <li><strong>Inputs</strong>：放动态值，例如单号、金额、日期，让同一套指令可被重复调用。</li>
+                      <li><strong>Machine</strong>：指向具体运行载体，决定它能看到哪些网站、系统和本地应用。</li>
+                    </ul>
+                  </article>
+                  <article class="comparison-card next">
+                    <span class="comparison-label">Credentials & Control</span>
+                    <h3>最容易出事故的配置项</h3>
+                    <ul class="challenge-list">
+                      <li><strong>Maker-provided credentials</strong>：默认项，适合 autonomous agents；但若你共享 Agent，其他人可能以原作者权限在机器上操作。</li>
+                      <li><strong>End user credentials</strong>：每个使用者都要有该机器的有效凭据，更适合对话式、以用户身份执行的流程。</li>
+                      <li><strong>Stored credentials</strong>：可存 Power Platform 内部加密存储，也可接 Azure Key Vault。</li>
+                      <li><strong>Access control</strong>：能限制允许交互的网站和桌面应用，但不能阻止模型把它们先打开。</li>
+                      <li><strong>Human supervision</strong>：当模型检测到潜在危险或信息缺失时，可向指定人工审查人发起澄清请求。</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>2.3 指令设计：写得像 SOP，而不是写得像愿景</span>
+              </button>
+              <div class="subsection-content">
+                <ul class="challenge-list section-grid-spaced">
+                  <li><strong>给全 URL 和精确应用名</strong>：官方明确建议写完整网址和应用名称，而不是“打开采购系统”这种模糊表述。</li>
+                  <li><strong>明确写出最终动作</strong>：如果需要提交、发送、下载，必须显式写出“完成后点击 Submit，不必再次确认”。</li>
+                  <li><strong>复杂交互拆成步骤</strong>：下拉框、复杂菜单、分页表格都应用编号步骤拆开，不要让模型自己猜界面路径。</li>
+                  <li><strong>动态参数走 Inputs</strong>：把每次变化的值从固定指令中抽出来，降低每次修改工具配置的成本。</li>
+                  <li><strong>输出格式先约定</strong>：若要把抽取数据交给下游工具，最好要求它只返回纯文本或合法 JSON。</li>
+                </ul>
+                <p class="signal-note">对话式发布时还要额外考虑暴露面：官方文档指出，tool 运行过程中会在聊天里共享 reasoning messages 与截图，因此 computer use 更适合后台自主执行，而不是面向终端用户长期对话暴露内部操作过程。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="limits" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / Reliability & Limits</p>
+            <h2>它能做多少，不该高估到哪里</h2>
+            <p>官方 FAQ 已经给出了最重要的现实边界：Web 自动化明显比 Desktop 自动化可靠，而“同样的任务并不保证每次都一样”。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>3.1 官方可靠性数据：Web 能用，Desktop 仍有明显落差</span>
+              </button>
+              <div class="subsection-content">
+                <div class="rate-grid section-grid-spaced">
+                  <article class="rate-card">
+                    <h4>Web 任务</h4>
+                    <strong>约 80%</strong>
+                    <p>官方 FAQ 说 computer use 在基于 Web 的任务上表现最好，成功率大约 80%。</p>
+                  </article>
+                  <article class="rate-card">
+                    <h4>Desktop 任务</h4>
+                    <strong>约 35%</strong>
+                    <p>桌面应用任务成功率显著下降，官方给出的量级约为 35%。</p>
+                  </article>
+                  <article class="rate-card">
+                    <h4>证据缺口</h4>
+                    <strong>条件未公开</strong>
+                    <p>Microsoft 只说明这些数字来自产品侧评估，没有公开测试集、UI 复杂度、机器配置和冷启动条件。</p>
+                  </article>
+                </div>
+                <p class="signal-note">这意味着这些百分比只能拿来判断“适合不适合”，不能直接当成你自己生产场景的 SLA。真正落地前仍然要在目标页面和目标机器上实测。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>3.2 已知失败模式：非标准控件、循环、复杂文本编辑</span>
+              </button>
+              <div class="subsection-content">
+                <ul class="challenge-list section-grid-spaced">
+                  <li><strong>非标准 UI 控件</strong>：下拉框、日期选择器、自定义组件等动态控件是高频故障点。</li>
+                  <li><strong>视觉或时序变化</strong>：同一个任务会因为页面微调、加载慢、弹窗或焦点变化出现不同结果。</li>
+                  <li><strong>循环和卡死</strong>：当当前界面与模型预期不一致时，可能反复尝试同一动作或停在中间状态。</li>
+                  <li><strong>复杂文本操作</strong>：需要大量复制、定位、选区或细粒度编辑的任务仍不稳定。</li>
+                  <li><strong>凭据自动填充支持不完整</strong>：密码字段虽然支持多数 Windows 应用，但 Electron、Java、Unity、游戏、命令行、Citrix 和其他虚拟化环境可能不被支持。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>3.3 官方不建议的高风险用途</span>
+              </button>
+              <div class="subsection-content">
+                <div class="comparison-grid section-grid-spaced">
+                  <article class="comparison-card">
+                    <span class="comparison-label">Do Not Use</span>
+                    <h3>不适合让 CUA 决定或执行的任务</h3>
+                    <ul class="challenge-list">
+                      <li><strong>敏感领域推荐或打分</strong>：如招聘、医疗、金融等。</li>
+                      <li><strong>金融交易</strong>：包括付款、转账或其他直接资金动作。</li>
+                      <li><strong>有害行为</strong>：垃圾信息、虚假信息等。</li>
+                      <li><strong>未经授权的数据外发</strong>：向组织外分享数据或截图。</li>
+                    </ul>
+                  </article>
+                  <article class="comparison-card next">
+                    <span class="comparison-label">Preview Reality</span>
+                    <h3>当前阶段还要额外保守</h3>
+                    <ul class="challenge-list">
+                      <li><strong>功能状态</strong>：整项能力仍是 preview，官方明示 preview 功能不以生产为目标。</li>
+                      <li><strong>Hosted browser</strong>：官方单独说明这个运行面只适合快速试验，不建议生产使用。</li>
+                      <li><strong>可用区域</strong>：当前文档限制在美国区域环境。</li>
+                      <li><strong>人工审查</strong>：Human supervision 只是补充控制，不构成真正的安全保险丝。</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="governance" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / Governance & Observability</p>
+            <h2>真正能不能用，取决于你有没有把治理补齐</h2>
+            <p>CUA 本质上会拿着真实凭据在真实界面上执行动作，所以治理不只是“多一个日志面板”，而是机器隔离、账号权限、审计留痕和人工介入的组合。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>4.1 安全基线：专机、最小权限、白名单</span>
+              </button>
+              <div class="subsection-content">
+                <ul class="challenge-list section-grid-spaced">
+                  <li><strong>专用机器</strong>：官方建议把 computer use 放到隔离的专用机器，减少被其他软件、恶意程序或人工操作干扰的概率。</li>
+                  <li><strong>最小权限账号</strong>：给运行账号只保留完成任务所需的权限，避免一旦误操作就拥有过大影响面。</li>
+                  <li><strong>网站白名单</strong>：只允许受信域名；文档甚至建议结合 Edge 策略和 Intune 限制 Web 访问范围。</li>
+                  <li><strong>应用白名单</strong>：只安装并允许执行必要应用，可结合应用控制策略缩小面。</li>
+                  <li><strong>凭据托管</strong>：密码可存在 Power Platform 内部加密存储，或转到 Azure Key Vault 统一治理。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>4.2 Human supervision：会停下来问人，但不能把它当刹车系统</span>
+              </button>
+              <div class="subsection-content">
+                <div class="comparison-grid section-grid-spaced">
+                  <article class="comparison-card">
+                    <span class="comparison-label">How It Works</span>
+                    <h3>触发与响应流程</h3>
+                    <ul class="challenge-list">
+                      <li><strong>触发条件</strong>：模型认为存在潜在恶意指令、信息缺失或多种合理解释时，会发起 review request。</li>
+                      <li><strong>通知方式</strong>：通过 Outlook 邮件发送，也可在 Agent activity map 的高级 computer-use 面板里内联处理。</li>
+                      <li><strong>响应方式</strong>：回复澄清文本，或对确认型请求输入 Yes / No。</li>
+                      <li><strong>超时行为</strong>：超时未回复时，工作流保持暂停并在到达截止时间后停止。</li>
+                    </ul>
+                  </article>
+                  <article class="comparison-card next">
+                    <span class="comparison-label">What It Does Not Guarantee</span>
+                    <h3>不能依赖它解决的问题</h3>
+                    <ul class="challenge-list">
+                      <li><strong>非确定触发</strong>：文档明确说明它由概率模型驱动，可能该停时不停，也可能不该停时停。</li>
+                      <li><strong>不是规则引擎</strong>：不会自动替你执行企业策略、审批规则或自定义禁令。</li>
+                      <li><strong>不能回复敏感信息</strong>：官方明确警告 reviewers 不应通过该流程提交密码、PIN、信用卡或社保号等。</li>
+                      <li><strong>可被持久化审计</strong>：根据组织配置，回复内容可能进入 Dataverse 或 Purview。</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>4.3 监控与审计：截图、活动图、Dataverse 与 Purview</span>
+              </button>
+              <div class="subsection-content">
+                <div class="simple-table-wrap section-grid-spaced">
+                  <table class="runtime-table">
+                    <thead>
+                      <tr>
+                        <th>能力</th>
+                        <th>官方说明</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>Transcript</td>
+                        <td>查看逐步 reasoning messages 与每一步截图，理解 computer use 如何跟随指令执行。</td>
+                      </tr>
+                      <tr>
+                        <td>Advanced computer use activity</td>
+                        <td>在活动侧栏中查看 session replay、动作坐标、使用的用户上下文、网站与应用列表、凭据使用情况，并导出日志。</td>
+                      </tr>
+                      <tr>
+                        <td>Dataverse 容量</td>
+                        <td>高级日志会消耗数据库、日志和文件三类 Dataverse 容量；Store logs in Dataverse 默认开启。</td>
+                      </tr>
+                      <tr>
+                        <td>日志保留</td>
+                        <td>默认 7 天；最大 33,554,432 分钟；填 0 或 -1 可无限保留。</td>
+                      </tr>
+                      <tr>
+                        <td>日志粒度</td>
+                        <td>All data、Data without screenshots、Minimal 三档；但即使关闭高级日志，agent transcripts 仍会保留基础 computer use 日志和截图。</td>
+                      </tr>
+                      <tr>
+                        <td>Purview</td>
+                        <td>可把日志发送到 Microsoft Purview，活动名称为 <code>CUAOperation</code>。</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="economics" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / Economics</p>
+            <h2>成本怎么读：不是按任务，而是按步骤付费</h2>
+            <p>CUA 最容易被低估的地方不是模型，而是计费颗粒度。它不是“一次成功就算一次”，而是模型每完成一个可计量的执行步骤都单独消耗 Credits。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>5.1 计费规则：每一步 5 Credits</span>
+              </button>
+              <div class="subsection-content">
+                <div class="rate-grid section-grid-spaced">
+                  <article class="rate-card">
+                    <h4>基础费率</h4>
+                    <strong>5 Credits</strong>
+                    <p>preview 期间按 Agent action feature 计费，每一步 computer use 动作序列消耗 5 Copilot Credits。</p>
+                  </article>
+                  <article class="rate-card">
+                    <h4>官方示例</h4>
+                    <strong>20 Credits</strong>
+                    <p>如果一次 timesheet 提交被分成 4 个步骤，整次运行就是 20 Credits，而不是 5 Credits。</p>
+                  </article>
+                  <article class="rate-card">
+                    <h4>成本真正受什么影响</h4>
+                    <strong>步骤数 × 重试数</strong>
+                    <p>页面越跳、字段越多、重试越多，成本越快上升。UI 不稳定和 Desktop 低成功率会直接推高每次成功交付的 Credits。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>5.2 成本控制的四个抓手</span>
+              </button>
+              <div class="subsection-content">
+                <ul class="challenge-list section-grid-spaced">
+                  <li><strong>减少界面跳转</strong>：让单次 run 尽量在少页面内完成，缩短 step 链条。</li>
+                  <li><strong>把不确定环节前置成人工或 API</strong>：例如先由结构化系统准备数据，再交给 CUA 只做最后几步界面提交。</li>
+                  <li><strong>优先 Web，谨慎 Desktop</strong>：官方成功率差异意味着 Desktop 任务更可能通过重试才能成功。</li>
+                  <li><strong>把指令写成稳态 SOP</strong>：减少模糊描述，降低模型在中间步骤试错的频率。</li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="decision" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / Adoption Decision</p>
+            <h2>什么时候该用 CUA，什么时候不要碰</h2>
+            <p>最好的判断方法不是看它“酷不酷”，而是问这个流程到底缺的是接口、缺的是治理，还是缺的是确定性。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>6.1 值得优先试的四类场景</span>
+              </button>
+              <div class="subsection-content">
+                <div class="comparison-grid section-grid-spaced">
+                  <article class="comparison-card">
+                    <span class="comparison-label">Good Fit</span>
+                    <h3>Legacy Web 后台录入</h3>
+                    <p>没有公开 API，但流程高度重复，字段结构稳定，UI 变化频率低。</p>
+                  </article>
+                  <article class="comparison-card next">
+                    <span class="comparison-label">Good Fit</span>
+                    <h3>从 PDF / 网页抽数据再回填表单</h3>
+                    <p>官方样例就覆盖 invoice processing 和 data extraction，这类“搬运型”流程与 CUA 的能力匹配度最高。</p>
+                  </article>
+                  <article class="comparison-card">
+                    <span class="comparison-label">Good Fit</span>
+                    <h3>临时性第三方门户操作</h3>
+                    <p>集成投入不值得做接口开发，但业务又需要自动化减轻人工重复劳动。</p>
+                  </article>
+                  <article class="comparison-card next">
+                    <span class="comparison-label">Good Fit</span>
+                    <h3>后台自治型流程</h3>
+                    <p>无需把过程实时暴露给终端用户，能够接受任务在后台运行并通过活动图审计。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>6.2 明确不该用的五类场景</span>
+              </button>
+              <div class="subsection-content">
+                <ul class="challenge-list section-grid-spaced">
+                  <li><strong>已有稳定 API / connector / flow</strong>：没必要把确定性接口退化成视觉点击。</li>
+                  <li><strong>高风险交易或审批</strong>：例如付款、转账、额度修改、不可逆删除。</li>
+                  <li><strong>对精度要求接近 100% 的桌面流程</strong>：官方成功率量级已说明当前不是这个阶段。</li>
+                  <li><strong>开放网页或截图中容易遭遇 prompt injection 的环境</strong>：隐藏内容可能诱导模型偏离原任务。</li>
+                  <li><strong>需要长期大规模生产 SLA 的关键路径</strong>：preview 功能和 hosted browser 都不适合作为稳态生产底座。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>6.3 五问检查表：通过越多，越适合上 CUA</span>
+              </button>
+              <div class="subsection-content">
+                <ul class="challenge-list section-grid-spaced">
+                  <li><strong>Q1</strong>：这个流程是不是缺 API，而不是缺一个更会写代码的人？</li>
+                  <li><strong>Q2</strong>：页面结构未来 1 到 3 个月是否大致稳定？</li>
+                  <li><strong>Q3</strong>：即使偶发失败，也不会造成高风险业务后果？</li>
+                  <li><strong>Q4</strong>：你是否能提供专机、最小权限账号、白名单和日志保留？</li>
+                  <li><strong>Q5</strong>：如果成本按步骤而不是按任务核算，这件事仍然划算吗？</li>
+                </ul>
+                <p class="signal-note">如果前四问里有两问以上答“否”，通常不该直接把它推进生产链路；更合理的做法是回到 API、Flow 或人工半自动方案。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="references" class="section" data-reveal data-present-step data-step-title="参考来源">
+          <div class="section-head">
+            <p class="section-kicker">References</p>
+            <h2>参考来源</h2>
+          </div>
+          <ol class="bib-list">
+            <li id="ref-1"><span class="bib-id">[1]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/computer-use" target="_blank" rel="noopener noreferrer">&quot;Automate web and desktop apps with computer use (preview),&quot;</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">CUA 的定义、前置条件、配置字段、测试流程、发布方式、指令最佳实践和 5 Credits/step 计费示例来源。</span></li>
+            <li id="ref-2"><span class="bib-id">[2]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/configure-where-computer-use-runs" target="_blank" rel="noopener noreferrer">&quot;Configure where computer use runs (preview),&quot;</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">三种运行环境（Hosted browser、Cloud PC pool、Bring-your-own-machine）、Power Automate for desktop 版本要求和运行队列规则来源。</span></li>
+            <li id="ref-3"><span class="bib-id">[3]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/faqs-computer-use" target="_blank" rel="noopener noreferrer">&quot;FAQ for the computer use tool,&quot;</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">感知-推理-动作闭环、用途边界、官方成功率、已知限制、高风险禁用场景和 prompt injection 风险说明来源。</span></li>
+            <li id="ref-4"><span class="bib-id">[4]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/human-supervision-computer-use" target="_blank" rel="noopener noreferrer">&quot;Human supervision of computer use (preview),&quot;</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">支持模型清单、审查请求触发方式、邮件与内联响应流程，以及“不是安全保险丝”的限制说明来源。</span></li>
+            <li id="ref-5"><span class="bib-id">[5]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/monitor-computer-use" target="_blank" rel="noopener noreferrer">&quot;Monitor computer use (preview),&quot;</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">Transcript、activity map、Dataverse 容量消耗、日志保留、截图粒度和 Purview 的 CUAOperation 审计事件来源。</span></li>
+            <li id="ref-6"><span class="bib-id">[6]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/requirements-licensing-subscriptions" target="_blank" rel="noopener noreferrer">&quot;Get access to Copilot Studio,&quot;</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">Copilot Studio 的访问前提、浏览器要求和试用/订阅背景信息来源。</span></li>
+          </ol>
+        </section>
+      </main>
+
+      <footer>
+        © 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

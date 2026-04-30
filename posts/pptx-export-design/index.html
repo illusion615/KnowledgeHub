@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PPT Export Design: Layout Grid, Typography Tokens &amp; Annotated Examples</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(2rem, 4.5vw, 3.2rem);
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+      max-width: 24ch;
+    }
+
+    .hero-metrics {
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    }
+
+    /* ── Slide mockup ── */
+    .slide-mockup {
+      width: 100%;
+      max-width: 800px;
+      margin: 18px auto 0;
+      aspect-ratio: 16 / 9;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      overflow: hidden;
+      box-shadow: 0 8px 30px rgba(17,31,43,0.08);
+    }
+    .slide-mockup svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .slide-caption {
+      text-align: center;
+      font-family: "Space Grotesk", monospace;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-top: 10px;
+    }
+
+    /* ── Token table ── */
+    .ppt-token-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      margin-top: 14px;
+    }
+    .ppt-token-table th {
+      text-align: left;
+      padding: 10px 14px;
+      background: rgba(15, 23, 42, 0.04);
+      border-bottom: 2px solid rgba(15, 23, 42, 0.1);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-weight: 700;
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .ppt-token-table td {
+      padding: 8px 14px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+      line-height: 1.55;
+      color: var(--ink);
+    }
+    .ppt-token-table td:nth-child(3),
+    .ppt-token-table td:nth-child(4) {
+      font-family: "Space Grotesk", monospace;
+      font-size: 0.78rem;
+    }
+    [data-theme="dark"] .ppt-token-table th {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+    [data-theme="dark"] .ppt-token-table td {
+      border-color: rgba(255, 255, 255, 0.06);
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero" data-present-step data-step-title="PPT Export Design">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="&#x2190;" data-en="&#x2190;" aria-label="返回首页">&#x2190;</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            Knowledge Hub Design
+          </div>
+          <div class="topbar-actions">
+            <nav class="nav-links" aria-label="页面章节导航">
+              <a href="#grid">Grid</a>
+              <a href="#typography">Typography</a>
+              <a href="#examples">Examples</a>
+              <a href="#colors">Colors</a>
+              <a href="#conventions">Conventions</a>
+            </nav>
+          </div>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Design Specification</span>
+            <h1>PPT Export Design: Layout Grid, Typography &amp; Annotated Examples</h1>
+            <p>
+              Complete visual specification for the PptxGenJS export pipeline. Defines the slide grid system, typography token dictionary, color palette, and layout conventions with annotated example slides for every common layout type.
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#examples">Annotated Examples</a>
+              <a class="button button-secondary" href="#conventions">Layout Rules</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">Export Pipeline</span>
+            <h2>HTML article &rarr; Presentation steps &rarr; Native PPTX slides</h2>
+            <ul class="layer-list section-grid-spaced">
+              <li><span class="layer-number">1</span>enterPresentation() collects steps from hero + sections (accordion auto-split) + ending slide.</li>
+              <li><span class="layer-number">2</span>Pre-capture: SVG diagrams serialized to PNG data URLs via Canvas API.</li>
+              <li><span class="layer-number">3</span>forEach step: setPresentStep &rarr; renderStep dispatches to typed renderers (hero, table, flow, arch, insight, ending).</li>
+              <li><span class="layer-number">4</span>restoreSnapshot() exits fullscreen and returns to reading mode.</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">Slide Size</div>
+            <strong>13.333 &times; 7.5 in</strong>
+            <span>Widescreen 16:9 (LAYOUT_WIDE)</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Font Family</div>
+            <strong>Aptos</strong>
+            <span>Display (titles) + Regular (body)</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Title Size</div>
+            <strong>28 pt</strong>
+            <span>Slide title anchor for hierarchy</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Body Size</div>
+            <strong>12 pt</strong>
+            <span>Prose and supporting text baseline</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- 01 / Slide Layout Grid                          -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <section id="grid" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / Slide Grid</p>
+            <h2>Slide Layout Constants</h2>
+            <p>Fixed grid system applied to every exported slide. All values in inches.</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>1.1 Grid Token Dictionary</span>
+              </button>
+              <div class="subsection-content">
+                <table class="ppt-token-table">
+                  <thead>
+                    <tr>
+                      <th>Token</th>
+                      <th>Description</th>
+                      <th>Value</th>
+                      <th>Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td><strong>SW</strong></td><td>Slide width</td><td>13.333 in</td><td>Widescreen 16:9</td></tr>
+                    <tr><td><strong>SH</strong></td><td>Slide height</td><td>7.5 in</td><td></td></tr>
+                    <tr><td><strong>MX</strong></td><td>Horizontal margin</td><td>0.72 in</td><td>Left &amp; right safe zone</td></tr>
+                    <tr><td><strong>BY</strong></td><td>Body area top</td><td>1.42 in</td><td>Below slide title area</td></tr>
+                    <tr><td><strong>BH</strong></td><td>Body area height</td><td>5.58 in</td><td>BY + BH = bottom safe zone</td></tr>
+                    <tr><td><strong>BW</strong></td><td>Body area width</td><td>11.893 in</td><td>SW &minus; 2 &times; MX</td></tr>
+                    <tr><td><strong>GAP</strong></td><td>Element spacing</td><td>0.18 in</td><td>Between blocks</td></tr>
+                    <tr><td><strong>R</strong></td><td>Card corner radius</td><td>0.12 in</td><td>roundRect default</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- 02 / Typography Tokens                          -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <section id="typography" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Typography</p>
+            <h2>Typography Token Dictionary</h2>
+            <p>Every text element in the exported PPTX, with font family, size, weight, and color token.</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>2.1 Full Token Table</span>
+              </button>
+              <div class="subsection-content">
+                <table class="ppt-token-table">
+                  <thead>
+                    <tr>
+                      <th>Element</th>
+                      <th>Font</th>
+                      <th>Size</th>
+                      <th>Weight</th>
+                      <th>Color</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td><strong>Slide kicker label</strong></td><td>Aptos</td><td>11 pt</td><td>Bold</td><td>alt (teal)</td></tr>
+                    <tr><td><strong>Slide title</strong></td><td>Aptos Display</td><td>28 pt</td><td>Bold</td><td>text</td></tr>
+                    <tr><td><strong>Hero H1</strong></td><td>Aptos Display</td><td>36 pt</td><td>Bold</td><td>text</td></tr>
+                    <tr><td><strong>Hero eyebrow</strong></td><td>Aptos</td><td>12 pt</td><td>Bold</td><td>alt (teal)</td></tr>
+                    <tr><td><strong>Hero panel H2</strong></td><td>Aptos Display</td><td>20 pt</td><td>Bold</td><td>bg (inverted)</td></tr>
+                    <tr><td><strong>Hero panel list item</strong></td><td>Aptos</td><td>13 pt</td><td>Regular</td><td>muted</td></tr>
+                    <tr><td><strong>Metric value</strong></td><td>Aptos Display</td><td>28 pt</td><td>Bold</td><td>accent</td></tr>
+                    <tr><td><strong>Metric label</strong></td><td>Aptos</td><td>10 pt</td><td>Bold</td><td>muted</td></tr>
+                    <tr><td><strong>Metric detail</strong></td><td>Aptos</td><td>12 pt</td><td>Regular</td><td>muted</td></tr>
+                    <tr><td><strong>Component heading</strong> (card h3, flow title, accordion)</td><td>Aptos Display</td><td>20 pt</td><td>Bold</td><td>text</td></tr>
+                    <tr><td><strong>Insight card heading</strong></td><td>Aptos Display</td><td>16 pt</td><td>Bold</td><td>text</td></tr>
+                    <tr><td><strong>Body prose</strong></td><td>Aptos</td><td>12 pt</td><td>Regular</td><td>muted</td></tr>
+                    <tr><td><strong>Card body text</strong></td><td>Aptos</td><td>12 pt</td><td>Regular</td><td>muted</td></tr>
+                    <tr><td><strong>Insight card body</strong></td><td>Aptos</td><td>11 pt</td><td>Regular</td><td>muted</td></tr>
+                    <tr><td><strong>Flow step description</strong></td><td>Aptos</td><td>11 pt</td><td>Regular</td><td>muted</td></tr>
+                    <tr><td><strong>List item text</strong></td><td>Aptos</td><td>12 pt</td><td>Regular / Bold (key)</td><td>text / muted</td></tr>
+                    <tr><td><strong>Table cell</strong></td><td>Aptos</td><td>12 pt</td><td>Regular / Bold (TH)</td><td>text / alt</td></tr>
+                    <tr><td><strong>Layer list text</strong></td><td>Aptos</td><td>14 pt</td><td>Regular</td><td>text</td></tr>
+                    <tr><td><strong>Arch block title</strong></td><td>Aptos</td><td>14 pt</td><td>Bold</td><td>block-color</td></tr>
+                    <tr><td><strong>Arch block body</strong></td><td>Aptos</td><td>11 pt</td><td>Regular</td><td>text</td></tr>
+                    <tr><td><strong>Arch block hint</strong></td><td>Aptos</td><td>10 pt</td><td>Italic</td><td>muted</td></tr>
+                    <tr><td><strong>Quote text</strong></td><td>Aptos</td><td>12 pt</td><td>Italic</td><td>text</td></tr>
+                    <tr><td><strong>Badge / card-index</strong></td><td>Aptos</td><td>10-11 pt</td><td>Bold</td><td>accent</td></tr>
+                    <tr><td><strong>Bib-list references</strong></td><td>Aptos</td><td>10 pt</td><td>Regular</td><td>muted</td></tr>
+                    <tr><td><strong>End slide title</strong></td><td>Aptos Display</td><td>44 pt</td><td>Bold</td><td>text</td></tr>
+                    <tr><td><strong>Slide number</strong></td><td>Aptos</td><td>9 pt</td><td>Regular</td><td>muted</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>2.2 Typography Hierarchy</span>
+              </button>
+              <div class="subsection-content">
+                <p>Three-tier hierarchy ensures component headings are always visually larger than body text:</p>
+                <div class="insight-grid">
+                  <article class="insight-card">
+                    <span class="card-index">T1</span>
+                    <h3>Slide Title &mdash; 28pt</h3>
+                    <p>Aptos Display bold. Anchor for the entire hierarchy. Hero H1 uses 36pt; ending slide uses 44pt.</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">T2</span>
+                    <h3>Component Heading &mdash; 20pt</h3>
+                    <p>Aptos Display bold. Flow step titles, card headings, accordion toggles. Insight cards use 16pt (smaller due to multi-column density).</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">T3</span>
+                    <h3>Body Text &mdash; 11-12pt</h3>
+                    <p>Aptos regular. Prose, descriptions, table cells. 12pt for standalone text; 11pt for dense contexts (insight cards, flow descriptions).</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- 03 / Annotated Example Slides                   -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <section id="examples" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / Examples</p>
+            <h2>Annotated Example Slides</h2>
+            <p>Each example shows the actual layout with callouts marking element names, font sizes, and dimensions. Use these as reference when requesting style adjustments.</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>3.1 Hero Slide</span>
+              </button>
+              <div class="subsection-content">
+                <p>Two-column layout: left column (title stack) + right panel (dark block with layer list). Metric cards span full width below. All elements vertically centered as a group.</p>
+                <div class="slide-mockup">
+                  <svg viewBox="0 0 960 540" xmlns="http://www.w3.org/2000/svg" fill="none">
+                    <rect width="960" height="540" fill="#FCF6EE"/>
+                    <rect x="52" y="60" width="187" height="4" rx="2" fill="#FF7A00"/>
+                    <line x1="52" y1="68" x2="52" y2="84" stroke="#FF7A00" stroke-width="1" stroke-dasharray="3 2"/>
+                    <text x="58" y="82" font-family="monospace" font-size="8" fill="#FF7A00">eyebrow 12pt bold alt</text>
+                    <rect x="52" y="88" width="300" height="18" rx="2" fill="#0D8F8C" fill-opacity="0.12"/>
+                    <text x="56" y="100" font-family="sans-serif" font-size="9" font-weight="700" fill="#0D8F8C" letter-spacing="2">SOLUTION ARCHITECTURE</text>
+                    <text x="52" y="140" font-family="sans-serif" font-size="26" font-weight="800" fill="#172430">Zava Claims 360: Power</text>
+                    <text x="52" y="168" font-family="sans-serif" font-size="26" font-weight="800" fill="#172430">Platform + Copilot Studio</text>
+                    <line x1="400" y1="130" x2="430" y2="130" stroke="#FF7A00" stroke-width="1"/>
+                    <text x="434" y="134" font-family="monospace" font-size="8" fill="#FF7A00">H1 36pt bold text</text>
+                    <rect x="52" y="185" width="440" height="50" rx="4" fill="#5D6C76" fill-opacity="0.06"/>
+                    <text x="56" y="200" font-family="sans-serif" font-size="9" fill="#5D6C76">A solution architecture for Zava...</text>
+                    <text x="56" y="214" font-family="sans-serif" font-size="9" fill="#5D6C76">Power Platform + Copilot Studio with ALM...</text>
+                    <line x1="496" y1="200" x2="520" y2="200" stroke="#FF7A00" stroke-width="1"/>
+                    <text x="524" y="204" font-family="monospace" font-size="8" fill="#FF7A00">desc 16pt muted</text>
+                    <rect x="562" y="60" width="346" height="220" rx="8" fill="#172430"/>
+                    <text x="578" y="88" font-family="sans-serif" font-size="14" font-weight="700" fill="#FCF6EE">Low-code + AI agents</text>
+                    <text x="578" y="106" font-family="sans-serif" font-size="14" font-weight="700" fill="#FCF6EE">with governance</text>
+                    <text x="820" y="72" font-family="monospace" font-size="8" fill="#FF7A00">panel H2 20pt bold bg</text>
+                    <rect x="578" y="120" width="18" height="18" rx="3" fill="#FCF6EE" fill-opacity="0.2"/>
+                    <text x="583" y="133" font-family="sans-serif" font-size="8" font-weight="700" fill="#FCF6EE">1</text>
+                    <text x="602" y="133" font-family="sans-serif" font-size="8" fill="#9CA3AF">Rapid deployment...</text>
+                    <rect x="578" y="144" width="18" height="18" rx="3" fill="#FCF6EE" fill-opacity="0.2"/>
+                    <text x="583" y="157" font-family="sans-serif" font-size="8" font-weight="700" fill="#FCF6EE">2</text>
+                    <text x="602" y="157" font-family="sans-serif" font-size="8" fill="#9CA3AF">Built-in integrations...</text>
+                    <text x="614" y="210" font-family="monospace" font-size="8" fill="#FF7A00">panel li 13pt muted</text>
+                    <rect x="52" y="300" width="210" height="100" rx="8" fill="#FFFFFF" stroke="#E8DDD2" stroke-width="1"/>
+                    <text x="66" y="320" font-family="monospace" font-size="7" font-weight="700" fill="#5D6C76" letter-spacing="1.5">PLATFORM</text>
+                    <text x="66" y="350" font-family="sans-serif" font-size="20" font-weight="700" fill="#FF7A00">Power Platform</text>
+                    <text x="66" y="370" font-family="sans-serif" font-size="8" fill="#5D6C76">Model-driven app</text>
+                    <rect x="275" y="300" width="210" height="100" rx="8" fill="#FFFFFF" stroke="#E8DDD2" stroke-width="1"/>
+                    <rect x="498" y="300" width="210" height="100" rx="8" fill="#FFFFFF" stroke="#E8DDD2" stroke-width="1"/>
+                    <rect x="721" y="300" width="210" height="100" rx="8" fill="#FFFFFF" stroke="#E8DDD2" stroke-width="1"/>
+                    <text x="170" y="420" font-family="monospace" font-size="8" fill="#FF7A00">label 10pt bold | value 28pt bold accent | detail 12pt muted</text>
+                    <line x1="48" y1="0" x2="48" y2="540" stroke="#0D8F8C" stroke-width="0.5" stroke-dasharray="4 3"/>
+                    <text x="10" y="270" font-family="monospace" font-size="8" fill="#0D8F8C" transform="rotate(-90 10 270)">MX = 0.72 in</text>
+                    <line x1="912" y1="0" x2="912" y2="540" stroke="#0D8F8C" stroke-width="0.5" stroke-dasharray="4 3"/>
+                  </svg>
+                </div>
+                <p class="slide-caption">Hero Slide &mdash; Two-Column + Metric Cards</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>3.2 Content Slide with Table</span>
+              </button>
+              <div class="subsection-content">
+                <p>Fixed header area (kicker + title) with vertically centered body. Tables: 12pt, 0.38-in row height.</p>
+                <div class="slide-mockup">
+                  <svg viewBox="0 0 960 540" xmlns="http://www.w3.org/2000/svg" fill="none">
+                    <rect width="960" height="540" fill="#FCF6EE"/>
+                    <rect x="52" y="22" width="158" height="3" rx="1.5" fill="#FF7A00"/>
+                    <text x="52" y="45" font-family="monospace" font-size="8" font-weight="700" fill="#0D8F8C" letter-spacing="1.5">01 / EXECUTIVE RECOMMENDATION</text>
+                    <line x1="310" y1="42" x2="340" y2="42" stroke="#FF7A00" stroke-width="1"/>
+                    <text x="344" y="46" font-family="monospace" font-size="8" fill="#FF7A00">kicker 11pt bold alt</text>
+                    <text x="52" y="72" font-family="sans-serif" font-size="20" font-weight="700" fill="#172430">1.3 Addressing Zava&apos;s Objections</text>
+                    <line x1="400" y1="68" x2="430" y2="68" stroke="#FF7A00" stroke-width="1"/>
+                    <text x="434" y="72" font-family="monospace" font-size="8" fill="#FF7A00">title 28pt bold text</text>
+                    <line x1="40" y1="102" x2="920" y2="102" stroke="#0D8F8C" stroke-width="0.5" stroke-dasharray="4 3"/>
+                    <text x="924" y="106" font-family="monospace" font-size="7" fill="#0D8F8C">BY = 1.42 in</text>
+                    <rect x="52" y="180" width="856" height="28" rx="0" fill="#0D8F8C" fill-opacity="0.07"/>
+                    <text x="66" y="198" font-family="monospace" font-size="8" font-weight="700" fill="#0D8F8C" letter-spacing="0.5">CONCERN</text>
+                    <text x="500" y="198" font-family="monospace" font-size="8" font-weight="700" fill="#0D8F8C" letter-spacing="0.5">HOW PLATFORM MITIGATES</text>
+                    <text x="820" y="173" font-family="monospace" font-size="8" fill="#FF7A00">TH 12pt bold alt</text>
+                    <rect x="52" y="210" width="856" height="28" rx="0" fill="#FFFFFF"/>
+                    <line x1="52" y1="238" x2="908" y2="238" stroke="#E8DDD2" stroke-width="0.5"/>
+                    <text x="66" y="228" font-family="sans-serif" font-size="9" font-weight="700" fill="#172430">No AI expertise on staff</text>
+                    <text x="500" y="228" font-family="sans-serif" font-size="9" fill="#172430">Copilot Studio is no-code...</text>
+                    <rect x="52" y="240" width="856" height="28" rx="0" fill="#FFFFFF"/>
+                    <line x1="52" y1="268" x2="908" y2="268" stroke="#E8DDD2" stroke-width="0.5"/>
+                    <rect x="52" y="270" width="856" height="28" rx="0" fill="#FFFFFF"/>
+                    <line x1="52" y1="298" x2="908" y2="298" stroke="#E8DDD2" stroke-width="0.5"/>
+                    <text x="370" y="330" font-family="monospace" font-size="8" fill="#FF7A00">TD 12pt text | rowH 0.38 in</text>
+                    <line x1="480" y1="102" x2="480" y2="170" stroke="#0D8F8C" stroke-width="0.5" stroke-dasharray="3 2"/>
+                    <text x="420" y="145" font-family="monospace" font-size="8" fill="#0D8F8C">v-center offset</text>
+                    <line x1="40" y1="500" x2="920" y2="500" stroke="#0D8F8C" stroke-width="0.5" stroke-dasharray="4 3"/>
+                    <text x="924" y="504" font-family="monospace" font-size="7" fill="#0D8F8C">BY+BH = 7.0 in</text>
+                    <text x="890" y="42" font-family="sans-serif" font-size="7" fill="#5D6C76">5</text>
+                  </svg>
+                </div>
+                <p class="slide-caption">Content Slide &mdash; Table (vertically centered)</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>3.3 Mixed Content (Prose + Diagram)</span>
+              </button>
+              <div class="subsection-content">
+                <p>Prose paragraph (12pt) followed by architecture diagram with colored blocks. Content vertically centered as a group.</p>
+                <div class="slide-mockup">
+                  <svg viewBox="0 0 960 540" xmlns="http://www.w3.org/2000/svg" fill="none">
+                    <rect width="960" height="540" fill="#FCF6EE"/>
+                    <rect x="52" y="22" width="158" height="3" rx="1.5" fill="#FF7A00"/>
+                    <text x="52" y="45" font-family="monospace" font-size="8" font-weight="700" fill="#0D8F8C" letter-spacing="1.5">01 / EXECUTIVE RECOMMENDATION</text>
+                    <text x="52" y="72" font-family="sans-serif" font-size="20" font-weight="700" fill="#172430">1.1 Solution Architecture Overview</text>
+                    <text x="52" y="115" font-family="sans-serif" font-size="9" fill="#5D6C76">The solution maps to three business objectives:</text>
+                    <line x1="420" y1="112" x2="450" y2="112" stroke="#FF7A00" stroke-width="1"/>
+                    <text x="454" y="116" font-family="monospace" font-size="8" fill="#FF7A00">prose 12pt muted</text>
+                    <rect x="200" y="140" width="560" height="60" rx="6" fill="#14B8A6" fill-opacity="0.12" stroke="#14B8A6" stroke-opacity="0.35" stroke-width="0.75"/>
+                    <text x="420" y="162" font-family="sans-serif" font-size="10" font-weight="700" fill="#14B8A6" text-anchor="middle">Channels</text>
+                    <text x="420" y="178" font-family="sans-serif" font-size="8" fill="#172430" text-anchor="middle">Web Chat &middot; Mobile &middot; Teams</text>
+                    <text x="476" y="216" font-family="sans-serif" font-size="10" fill="#5D6C76" text-anchor="middle">&darr;</text>
+                    <rect x="200" y="222" width="272" height="60" rx="6" fill="#7C3AED" fill-opacity="0.12" stroke="#7C3AED" stroke-opacity="0.35" stroke-width="0.75"/>
+                    <text x="336" y="248" font-family="sans-serif" font-size="10" font-weight="700" fill="#7C3AED" text-anchor="middle">Copilot Studio Agent</text>
+                    <rect x="488" y="222" width="272" height="60" rx="6" fill="#0EA5E9" fill-opacity="0.12" stroke="#0EA5E9" stroke-opacity="0.35" stroke-width="0.75"/>
+                    <text x="624" y="248" font-family="sans-serif" font-size="10" font-weight="700" fill="#0EA5E9" text-anchor="middle">Model-Driven App</text>
+                    <text x="476" y="300" font-family="sans-serif" font-size="10" fill="#5D6C76" text-anchor="middle">&darr;</text>
+                    <rect x="200" y="306" width="560" height="50" rx="6" fill="#F97316" fill-opacity="0.12" stroke="#F97316" stroke-opacity="0.35" stroke-width="0.75"/>
+                    <text x="420" y="328" font-family="sans-serif" font-size="10" font-weight="700" fill="#F97316" text-anchor="middle">Dataverse + Connectors</text>
+                    <text x="770" y="145" font-family="monospace" font-size="8" fill="#FF7A00">arch-block: title 14pt bold</text>
+                    <text x="770" y="157" font-family="monospace" font-size="8" fill="#FF7A00">body 11pt | hint 10pt</text>
+                    <text x="804" y="244" font-family="monospace" font-size="8" fill="#FF7A00">2-col: grid(w, 2, GAP)</text>
+                    <text x="804" y="256" font-family="monospace" font-size="8" fill="#FF7A00">fill transparency 88%</text>
+                  </svg>
+                </div>
+                <p class="slide-caption">Content Slide &mdash; Prose + Architecture Diagram</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>3.4 Insight Card Grid</span>
+              </button>
+              <div class="subsection-content">
+                <p>Auto-computed card height per row. Cards: 16pt headings, 11pt body. Badge (card-index) 11pt bold accent pill.</p>
+                <div class="slide-mockup">
+                  <svg viewBox="0 0 960 540" xmlns="http://www.w3.org/2000/svg" fill="none">
+                    <rect width="960" height="540" fill="#FCF6EE"/>
+                    <rect x="52" y="22" width="158" height="3" rx="1.5" fill="#FF7A00"/>
+                    <text x="52" y="45" font-family="monospace" font-size="8" font-weight="700" fill="#0D8F8C" letter-spacing="1.5">01 / EXECUTIVE RECOMMENDATION</text>
+                    <text x="52" y="72" font-family="sans-serif" font-size="20" font-weight="700" fill="#172430">1.2 Why Power Platform Fits</text>
+                    <rect x="52" y="130" width="210" height="280" rx="8" fill="#FFFFFF" stroke="#E8DDD2" stroke-width="0.75"/>
+                    <rect x="64" y="144" width="30" height="20" rx="10" fill="#FF7A00" fill-opacity="0.14"/>
+                    <text x="75" y="158" font-family="monospace" font-size="8" font-weight="700" fill="#FF7A00" text-anchor="middle">01</text>
+                    <text x="64" y="184" font-family="sans-serif" font-size="12" font-weight="700" fill="#172430">No AI Engineers</text>
+                    <text x="64" y="196" font-family="sans-serif" font-size="12" font-weight="700" fill="#172430">Needed</text>
+                    <text x="64" y="218" font-family="sans-serif" font-size="8" fill="#5D6C76">Copilot Studio uses</text>
+                    <text x="64" y="230" font-family="sans-serif" font-size="8" fill="#5D6C76">natural-language...</text>
+                    <rect x="275" y="130" width="210" height="280" rx="8" fill="#FFFFFF" stroke="#E8DDD2" stroke-width="0.75"/>
+                    <rect x="287" y="144" width="30" height="20" rx="10" fill="#FF7A00" fill-opacity="0.14"/>
+                    <text x="298" y="158" font-family="monospace" font-size="8" font-weight="700" fill="#FF7A00" text-anchor="middle">02</text>
+                    <rect x="498" y="130" width="210" height="280" rx="8" fill="#FFFFFF" stroke="#E8DDD2" stroke-width="0.75"/>
+                    <rect x="510" y="144" width="30" height="20" rx="10" fill="#FF7A00" fill-opacity="0.14"/>
+                    <text x="521" y="158" font-family="monospace" font-size="8" font-weight="700" fill="#FF7A00" text-anchor="middle">03</text>
+                    <rect x="721" y="130" width="210" height="280" rx="8" fill="#FFFFFF" stroke="#E8DDD2" stroke-width="0.75"/>
+                    <rect x="733" y="144" width="30" height="20" rx="10" fill="#FF7A00" fill-opacity="0.14"/>
+                    <text x="744" y="158" font-family="monospace" font-size="8" font-weight="700" fill="#FF7A00" text-anchor="middle">04</text>
+                    <text x="106" y="123" font-family="monospace" font-size="8" fill="#FF7A00">badge 11pt bold accent pill</text>
+                    <text x="138" y="110" font-family="monospace" font-size="8" fill="#FF7A00">h3 16pt bold text</text>
+                    <text x="80" y="435" font-family="monospace" font-size="8" fill="#FF7A00">body 11pt muted shrinkText</text>
+                    <line x1="52" y1="418" x2="931" y2="418" stroke="#0D8F8C" stroke-width="0.5" stroke-dasharray="4 3"/>
+                    <text x="400" y="440" font-family="monospace" font-size="8" fill="#0D8F8C">4 cols | grid(BW, 4, 0.18) | card height = max(row) auto-sized</text>
+                  </svg>
+                </div>
+                <p class="slide-caption">Content Slide &mdash; 4-Column Insight Card Grid</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>3.5 Flow List with Hierarchy Reference</span>
+              </button>
+              <div class="subsection-content">
+                <p>Numbered circles (accent) + 20pt bold titles + 11pt descriptions. Includes typography hierarchy reference block.</p>
+                <div class="slide-mockup">
+                  <svg viewBox="0 0 960 540" xmlns="http://www.w3.org/2000/svg" fill="none">
+                    <rect width="960" height="540" fill="#FCF6EE"/>
+                    <rect x="52" y="22" width="158" height="3" rx="1.5" fill="#FF7A00"/>
+                    <text x="52" y="45" font-family="monospace" font-size="8" font-weight="700" fill="#0D8F8C" letter-spacing="1.5">04 / MEASUREMENT</text>
+                    <text x="52" y="72" font-family="sans-serif" font-size="20" font-weight="700" fill="#172430">4.4 ROI Framework Against $6M</text>
+                    <text x="52" y="115" font-family="sans-serif" font-size="9" fill="#5D6C76">Zava&apos;s $6M investment spans licensing...</text>
+                    <circle cx="72" cy="160" r="14" fill="#FF7A00"/>
+                    <text x="72" y="164" font-family="sans-serif" font-size="10" font-weight="700" fill="#FFFFFF" text-anchor="middle">1</text>
+                    <text x="98" y="165" font-family="sans-serif" font-size="14" font-weight="700" fill="#172430">Pilot ROI Check (Week 4)</text>
+                    <text x="98" y="188" font-family="sans-serif" font-size="8" fill="#5D6C76">Measure claim processing time...</text>
+                    <circle cx="72" cy="235" r="14" fill="#FF7A00"/>
+                    <text x="72" y="239" font-family="sans-serif" font-size="10" font-weight="700" fill="#FFFFFF" text-anchor="middle">2</text>
+                    <text x="98" y="240" font-family="sans-serif" font-size="14" font-weight="700" fill="#172430">Production ROI Review (Week 10)</text>
+                    <circle cx="72" cy="305" r="14" fill="#FF7A00"/>
+                    <text x="72" y="309" font-family="sans-serif" font-size="10" font-weight="700" fill="#FFFFFF" text-anchor="middle">3</text>
+                    <text x="98" y="310" font-family="sans-serif" font-size="14" font-weight="700" fill="#172430">Annualized ROI Report (Week 16+)</text>
+                    <text x="30" y="136" font-family="monospace" font-size="8" fill="#FF7A00">circle 0.36in</text>
+                    <text x="384" y="160" font-family="monospace" font-size="8" fill="#FF7A00">flow title 20pt bold text</text>
+                    <text x="534" y="192" font-family="monospace" font-size="8" fill="#FF7A00">flow desc 11pt muted</text>
+                    <rect x="52" y="380" width="300" height="130" rx="6" fill="#172430" fill-opacity="0.03" stroke="#0D8F8C" stroke-width="0.5" stroke-dasharray="4 3"/>
+                    <text x="62" y="398" font-family="monospace" font-size="9" font-weight="700" fill="#0D8F8C">Typography Hierarchy</text>
+                    <text x="62" y="416" font-family="sans-serif" font-size="18" font-weight="700" fill="#172430">Slide Title 28pt</text>
+                    <text x="62" y="440" font-family="sans-serif" font-size="14" font-weight="700" fill="#172430">Component Heading 20pt</text>
+                    <text x="62" y="458" font-family="sans-serif" font-size="9" fill="#5D6C76">Body Prose 12pt</text>
+                    <text x="62" y="472" font-family="sans-serif" font-size="8" fill="#5D6C76">Supporting Text 11pt</text>
+                    <text x="62" y="486" font-family="sans-serif" font-size="7" fill="#5D6C76">Label / Badge 10pt</text>
+                    <text x="62" y="500" font-family="sans-serif" font-size="6.5" fill="#5D6C76">Slide Number 9pt</text>
+                  </svg>
+                </div>
+                <p class="slide-caption">Content Slide &mdash; Flow List + Typography Hierarchy</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>3.6 Slide Grid &amp; Centering System</span>
+              </button>
+              <div class="subsection-content">
+                <p>Content area dimensions, vertical centering calculation, and export pipeline steps.</p>
+                <div class="slide-mockup">
+                  <svg viewBox="0 0 960 540" xmlns="http://www.w3.org/2000/svg" fill="none">
+                    <rect width="960" height="540" fill="#FCF6EE"/>
+                    <line x1="52" y1="0" x2="52" y2="540" stroke="#0D8F8C" stroke-width="0.5" stroke-dasharray="4 3"/>
+                    <text x="10" y="274" font-family="monospace" font-size="7" fill="#0D8F8C" transform="rotate(-90 10 274)">MX 0.72</text>
+                    <line x1="908" y1="0" x2="908" y2="540" stroke="#0D8F8C" stroke-width="0.5" stroke-dasharray="4 3"/>
+                    <rect x="52" y="22" width="158" height="3" rx="1.5" fill="#FF7A00"/>
+                    <text x="220" y="27" font-family="monospace" font-size="7" fill="#FF7A00">accent bar y=0.30</text>
+                    <rect x="52" y="30" width="856" height="72" rx="0" fill="#172430" fill-opacity="0.02"/>
+                    <text x="56" y="48" font-family="monospace" font-size="8" font-weight="700" fill="#0D8F8C" letter-spacing="1">KICKER 11pt</text>
+                    <text x="56" y="74" font-family="sans-serif" font-size="20" font-weight="700" fill="#172430">Slide Title 28pt</text>
+                    <text x="680" y="48" font-family="monospace" font-size="7" fill="#5D6C76">slide# 9pt</text>
+                    <line x1="40" y1="102" x2="920" y2="102" stroke="#FF7A00" stroke-width="0.75" stroke-dasharray="5 3"/>
+                    <text x="60" y="115" font-family="monospace" font-size="8" fill="#FF7A00">BY = 1.42 in</text>
+                    <rect x="52" y="102" width="856" height="398" rx="0" fill="#FF7A00" fill-opacity="0.02"/>
+                    <line x1="480" y1="102" x2="480" y2="190" stroke="#0D8F8C" stroke-width="0.5" stroke-dasharray="3 2"/>
+                    <text x="490" y="150" font-family="monospace" font-size="7" fill="#0D8F8C">(BH - contentH)/2</text>
+                    <rect x="100" y="195" width="760" height="210" rx="6" fill="#172430" fill-opacity="0.04" stroke="#E8DDD2" stroke-width="0.5"/>
+                    <text x="480" y="300" font-family="sans-serif" font-size="12" fill="#5D6C76" text-anchor="middle">Content block (measureDispatch &rarr; dispatch)</text>
+                    <line x1="480" y1="405" x2="480" y2="500" stroke="#0D8F8C" stroke-width="0.5" stroke-dasharray="3 2"/>
+                    <text x="490" y="455" font-family="monospace" font-size="7" fill="#0D8F8C">(BH - contentH)/2</text>
+                    <line x1="40" y1="500" x2="920" y2="500" stroke="#FF7A00" stroke-width="0.75" stroke-dasharray="5 3"/>
+                    <text x="60" y="513" font-family="monospace" font-size="8" fill="#FF7A00">BY+BH = 7.0 in</text>
+                    <rect x="580" y="115" width="330" height="66" rx="6" fill="#172430" fill-opacity="0.03" stroke="#0D8F8C" stroke-width="0.5" stroke-dasharray="4 3"/>
+                    <text x="590" y="132" font-family="monospace" font-size="8" font-weight="700" fill="#0D8F8C">Export Pipeline</text>
+                    <text x="590" y="146" font-family="monospace" font-size="7" fill="#5D6C76">1. enterPresentation &rarr; collectSteps</text>
+                    <text x="590" y="158" font-family="monospace" font-size="7" fill="#5D6C76">2. forEach step: renderStep</text>
+                    <text x="590" y="170" font-family="monospace" font-size="7" fill="#5D6C76">3. restoreSnapshot &rarr; exitFullscreen</text>
+                  </svg>
+                </div>
+                <p class="slide-caption">PPT Export &mdash; Slide Grid &amp; Centering System</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- 04 / Color Palette                              -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <section id="colors" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / Colors</p>
+            <h2>PPT Color Palette (Light / Dark)</h2>
+            <p>Color tokens auto-selected based on the current page theme at export time.</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>4.1 Color Token Table</span>
+              </button>
+              <div class="subsection-content">
+                <table class="ppt-token-table">
+                  <thead>
+                    <tr>
+                      <th>Token</th>
+                      <th>Light Mode</th>
+                      <th>Dark Mode</th>
+                      <th>Usage</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td><strong>bg</strong></td><td>#FCF6EE</td><td>#0F1318</td><td>Slide background</td></tr>
+                    <tr><td><strong>text</strong></td><td>#172430</td><td>#E4E6EA</td><td>Primary text, headings</td></tr>
+                    <tr><td><strong>muted</strong></td><td>#5D6C76</td><td>#9CA3AF</td><td>Body text, descriptions</td></tr>
+                    <tr><td><strong>accent</strong></td><td>#FF7A00</td><td>#FF9340</td><td>Metric values, badges, accent bar, flow circles</td></tr>
+                    <tr><td><strong>alt</strong></td><td>#0D8F8C</td><td>#77D7D0</td><td>Kicker labels, table headers</td></tr>
+                    <tr><td><strong>cardBg</strong></td><td>#FFFFFF</td><td>#1E2630</td><td>Card / row fill</td></tr>
+                    <tr><td><strong>border</strong></td><td>#E8DDD2</td><td>#2A3440</td><td>Card / table borders</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- 05 / Layout Conventions                         -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <section id="conventions" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / Layout Conventions</p>
+            <h2>PPT Export Layout Rules</h2>
+            <p>Rules governing how HTML article content maps to native PptxGenJS slide objects.</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>5.1 Complete Convention Table</span>
+              </button>
+              <div class="subsection-content">
+                <table class="ppt-token-table">
+                  <thead>
+                    <tr>
+                      <th>Convention</th>
+                      <th>Rule</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td><strong>Slide master</strong></td><td>CONTENT_MASTER: accent bar at y=0.30 (w=2.2 h=0.04), slide number top-right 9pt. Hero and ending slides use blank master.</td></tr>
+                    <tr><td><strong>Header area</strong></td><td>y=0.42 kicker (11pt bold alt) + y=0.72 title (28pt bold text). Body starts at BY=1.42.</td></tr>
+                    <tr><td><strong>Body area</strong></td><td>BY=1.42 to BY+BH=7.0 (5.58 in). Width = BW = 11.893 in.</td></tr>
+                    <tr><td><strong>Vertical centering</strong></td><td>All non-overview slides: content measured by measureDispatch(). If content &lt; body area, y += (BH &minus; contentH) / 2.</td></tr>
+                    <tr><td><strong>Hero slide</strong></td><td>Measure-first: compute left column + panel heights. startY = (SH &minus; totalH) / 2. Metrics below tallest column.</td></tr>
+                    <tr><td><strong>Content sizing</strong></td><td>Text boxes use estTextH(text, fontSize, width). No hardcoded heights. Tables 0.38 in rows, list items max(0.44, estimated).</td></tr>
+                    <tr><td><strong>Insight grid</strong></td><td>Up to 4 columns. Card height = max per row (content-driven). Same row shares height.</td></tr>
+                    <tr><td><strong>Arch diagrams</strong></td><td>.arch-layer: stacked colored roundRects. .arch-flow: horizontal block-arrow-block. Native shapes, never placeholder.</td></tr>
+                    <tr><td><strong>Flow list</strong></td><td>Accent circle 0.36 in (14pt white) + title 20pt bold + desc 11pt muted.</td></tr>
+                    <tr><td><strong>Tables</strong></td><td>addTable() with equal columns. TH: 12pt bold alt 7% fill. TD: 12pt text. Row 0.38 in.</td></tr>
+                    <tr><td><strong>SVG diagrams</strong></td><td>Pre-captured as PNG via Canvas API. Embedded as addImage({ data: dataUrl }). Aspect-ratio preserved, centered.</td></tr>
+                    <tr><td><strong>Ending slide</strong></td><td>Centered: accent bar + Thank You 44pt + QR code 1.8&times;1.8 in + scan tip 13pt + brand 11pt.</td></tr>
+                    <tr><td><strong>Overview slides</strong></td><td>Description at top (12pt). Accordion titles as collapsed rows (20pt, 0.46 in). No centering.</td></tr>
+                    <tr><td><strong>shrinkText</strong></td><td>Safety net on all text boxes. estTextH() should prevent most shrinking.</td></tr>
+                    <tr><td><strong>Fullscreen</strong></td><td>Export enters presentation mode, renders, then restores + exitFullscreen.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <p>&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。</p>
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

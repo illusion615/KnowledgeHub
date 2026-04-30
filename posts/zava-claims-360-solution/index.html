@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zava Claims 360: Power Platform + Copilot Studio Solution Architecture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(2.0rem, 4.5vw, 3.2rem);
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+      max-width: 26ch;
+    }
+
+    .hero-metrics {
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    }
+
+    /* ── Phase card grid (dual-class: insight-grid for PPT export) ── */
+    .insight-grid.phase-grid {
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    }
+
+    .insight-card.phase-card {
+      padding: 22px 20px;
+    }
+
+    .insight-card.phase-card h3 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+    }
+
+    .insight-card.phase-card p {
+      margin: 0 0 4px;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.72;
+    }
+
+    .card-index.phase-label {
+      display: inline-block;
+      padding: 3px 10px;
+      margin-bottom: 10px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      width: auto;
+      height: auto;
+      min-width: 0;
+    }
+
+    .label-pilot {
+      background: rgba(14, 165, 233, 0.1);
+      color: rgba(14, 165, 233, 0.9);
+    }
+
+    .label-production {
+      background: rgba(124, 58, 237, 0.1);
+      color: rgba(124, 58, 237, 0.9);
+    }
+
+    .label-scale {
+      background: rgba(249, 115, 22, 0.1);
+      color: rgba(249, 115, 22, 0.9);
+    }
+
+    [data-theme="dark"] .label-pilot {
+      background: rgba(14, 165, 233, 0.2);
+    }
+
+    [data-theme="dark"] .label-production {
+      background: rgba(124, 58, 237, 0.2);
+    }
+
+    [data-theme="dark"] .label-scale {
+      background: rgba(249, 115, 22, 0.2);
+    }
+
+    /* ── Architecture blocks ── */
+    .arch-flow {
+      display: grid;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .arch-flow-5col {
+      grid-template-columns: repeat(5, 1fr);
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .arch-flow-7col {
+      grid-template-columns: repeat(7, 1fr);
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .arch-layer {
+      max-width: 700px;
+      margin: 14px auto 0;
+    }
+
+    .arch-layer-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 8px 0;
+    }
+
+    .arch-layer-full {
+      margin: 8px 0;
+    }
+
+    .arch-layer-divider {
+      text-align: center;
+      font-size: 1.2rem;
+      color: var(--muted);
+      padding: 2px 0;
+    }
+
+    .arch-block {
+      text-align: center;
+      padding: 16px 10px;
+      border-radius: 14px;
+      font-size: 0.82rem;
+      line-height: 1.5;
+      font-weight: 600;
+    }
+
+    .arch-block-purple {
+      background: rgba(124, 58, 237, 0.08);
+      color: rgba(124, 58, 237, 0.9);
+      border: 1px solid rgba(124, 58, 237, 0.15);
+    }
+
+    .arch-block-blue {
+      background: rgba(14, 165, 233, 0.08);
+      color: rgba(14, 165, 233, 0.9);
+      border: 1px solid rgba(14, 165, 233, 0.15);
+    }
+
+    .arch-block-teal {
+      background: rgba(20, 184, 166, 0.08);
+      color: rgba(20, 184, 166, 0.9);
+      border: 1px solid rgba(20, 184, 166, 0.15);
+    }
+
+    .arch-block-orange {
+      background: rgba(249, 115, 22, 0.08);
+      color: rgba(249, 115, 22, 0.9);
+      border: 1px solid rgba(249, 115, 22, 0.15);
+    }
+
+    .arch-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      color: var(--muted);
+    }
+
+    .arch-hint {
+      font-size: 0.75rem;
+      opacity: 0.7;
+    }
+
+    [data-theme="dark"] .arch-block-purple {
+      background: rgba(124, 58, 237, 0.15);
+    }
+
+    [data-theme="dark"] .arch-block-blue {
+      background: rgba(14, 165, 233, 0.15);
+    }
+
+    [data-theme="dark"] .arch-block-teal {
+      background: rgba(20, 184, 166, 0.15);
+    }
+
+    [data-theme="dark"] .arch-block-orange {
+      background: rgba(249, 115, 22, 0.15);
+    }
+
+    /* ── Concern/Response table ── */
+    .concern-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      margin-top: 10px;
+    }
+
+    .concern-table th {
+      text-align: left;
+      padding: 10px 14px;
+      background: rgba(15, 23, 42, 0.04);
+      border-bottom: 2px solid rgba(15, 23, 42, 0.1);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-weight: 700;
+      font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .concern-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+      line-height: 1.65;
+      color: var(--ink);
+    }
+
+    [data-theme="dark"] .concern-table th {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    [data-theme="dark"] .concern-table td {
+      border-color: rgba(255, 255, 255, 0.06);
+    }
+
+    /* ── KPI cards (dual-class: insight-grid/insight-card for PPT export) ── */
+    .insight-grid.kpi-grid {
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .insight-card.kpi-card {
+      padding: 18px 20px;
+    }
+
+    .insight-card.kpi-card h3 {
+      margin: 0 0 4px;
+      font-size: 0.92rem;
+    }
+
+    .card-index.kpi-value {
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--accent, #7c3aed);
+      display: block;
+      margin-bottom: 4px;
+      width: auto;
+      height: auto;
+      min-width: 0;
+      border-radius: 0;
+      background: none;
+    }
+
+    .insight-card.kpi-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.85rem;
+      line-height: 1.6;
+    }
+
+    /* ── Checklist (uses flow-list for PPT export) ── */
+    .flow-list.next-steps-list {
+      margin: 14px 0 0;
+    }
+
+    .flow-list.next-steps-list li {
+      padding: 14px 18px;
+      border-radius: 14px;
+      margin-bottom: 8px;
+      background: var(--card-bg);
+      border: 1px solid rgba(15, 23, 42, 0.06);
+    }
+
+    .flow-list.next-steps-list .flow-step {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: rgba(20, 184, 166, 0.1);
+      color: rgba(20, 184, 166, 0.9);
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
+    .caption-muted {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero" data-present-step data-step-title="Executive Summary">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="&#x2190;" data-en="&#x2190;" aria-label="返回首页">&#x2190;</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            Copilot Studio
+          </div>
+          <div class="topbar-actions">
+            <nav class="nav-links" aria-label="页面章节导航">
+              <a href="#recommendation">Recommendation</a>
+              <a href="#adoption-plan">Adoption</a>
+              <a href="#governance">Governance</a>
+              <a href="#measurement">Measurement</a>
+              <a href="#next-steps">Next Steps</a>
+            </nav>
+          </div>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Solution Architecture &mdash; Technical Close</span>
+            <h1>Zava Claims 360: Power Platform + Copilot Studio Modernization</h1>
+            <p>
+              A solution architecture for Zava&rsquo;s Claims 360 Modernization Initiative. Power Platform + Copilot Studio with enterprise ALM delivers a modernized claims app, an AI-powered support agent, and governed development environments&mdash;starting with a pilot that proves value in 4 weeks.
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#recommendation">Solution Fit</a>
+              <a class="button button-secondary" href="#adoption-plan">Adoption Plan</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">Why This Fits Zava</span>
+            <h2>Low-code + AI agents with enterprise governance&mdash;no AI engineers required</h2>
+            <ul class="layer-list section-grid-spaced">
+              <li><span class="layer-number">1</span>Rapid deployment: Model-driven apps and Copilot Studio agents ship in weeks, not months&mdash;matching Zava&rsquo;s limited dev capacity.</li>
+              <li><span class="layer-number">2</span>Built-in integrations: 1,400+ connectors (SAP, Dynamics 365, custom APIs) eliminate custom middleware for ERP/CRM integration.</li>
+              <li><span class="layer-number">3</span>Enterprise ALM: Managed Environments + solution pipelines enforce DLP, audit logs, and SOC-ready governance from day one.</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">Platform</div>
+            <strong>Power Platform</strong>
+            <span>Model-driven app for Claims 360</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">AI Agent</div>
+            <strong>Copilot Studio</strong>
+            <span>Customer-facing claims support agent</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Data Layer</div>
+            <strong>Dataverse</strong>
+            <span>Unified data with row-level security</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Pilot Timeline</div>
+            <strong>4 Weeks</strong>
+            <span>Proof of value before scaling</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- 01 / Executive Technical Recommendation        -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <section id="recommendation" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / Executive Recommendation</p>
+            <h2>What We Recommend and Why It Fits Zava</h2>
+            <p>Power Platform + Copilot Studio addresses all three Claims 360 objectives while directly mitigating Zava&rsquo;s stated concerns about AI expertise, code quality, and security.</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>1.1 Solution Architecture Overview</span>
+              </button>
+              <div class="subsection-content">
+                <p>The solution maps to Zava&rsquo;s three business objectives with distinct platform components:</p>
+                <div class="arch-layer">
+                  <div class="arch-layer-full">
+                    <div class="arch-block arch-block-teal">
+                      <strong>Channels</strong><br />
+                      Zava Website (Web Chat) &middot; Mobile &middot; Tablet &middot; Teams (Internal)<br />
+                      <span class="arch-hint">(No software install required for partners/vendors)</span>
+                    </div>
+                  </div>
+                  <div class="arch-layer-divider">&darr;</div>
+                  <div class="arch-layer-row">
+                    <div class="arch-block arch-block-purple">
+                      <strong>Copilot Studio Agent</strong><br />
+                      Claims status Q&amp;A<br />
+                      Documentation guidance<br />
+                      Human escalation<br />
+                      <span class="arch-hint">(Objective 2: Customer/Partner AI Agent)</span>
+                    </div>
+                    <div class="arch-block arch-block-blue">
+                      <strong>Model-Driven App</strong><br />
+                      Field claims &amp; incidents<br />
+                      Workflow automation<br />
+                      Dashboards &amp; reports<br />
+                      <span class="arch-hint">(Objective 1: Employee Efficiency)</span>
+                    </div>
+                  </div>
+                  <div class="arch-layer-divider">&darr;</div>
+                  <div class="arch-layer-full">
+                    <div class="arch-block arch-block-orange">
+                      <strong>Dataverse + Connectors</strong><br />
+                      Claims &middot; Incidents &middot; Orders &middot; SAP Connector &middot; CRM Connector<br />
+                      <span class="arch-hint">(Unified data with row-level security + DLP policies)</span>
+                    </div>
+                  </div>
+                </div>
+                <p class="caption-muted">Managed Environments wrap all components with audit logging, DLP enforcement, and solution-aware deployments (Objective 3: Compliance &amp; Governance).</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>1.2 Why Power Platform Fits Zava&rsquo;s Constraints</span>
+              </button>
+              <div class="subsection-content">
+                <div class="insight-grid">
+                  <article class="insight-card">
+                    <span class="card-index">01</span>
+                    <h3>No AI Engineers Needed</h3>
+                    <p>Copilot Studio uses natural-language instructions to define agent behavior. Data scientists can stay focused on revenue analysis&mdash;business analysts and IT admins build and maintain the agent through a visual canvas.</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">02</span>
+                    <h3>Pre-built SAP/CRM Integration</h3>
+                    <p>Power Platform provides certified SAP ERP and Dynamics 365 connectors. Field claims data flows between systems without custom middleware, reducing integration risk and time.</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">03</span>
+                    <h3>Web Chat&mdash;No App Install</h3>
+                    <p>Copilot Studio agents publish directly to Zava&rsquo;s website as an embedded web chat widget. Partners and vendors interact from any device&mdash;desktop, tablet, or mobile&mdash;without downloading software.</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">04</span>
+                    <h3>Managed Runtime</h3>
+                    <p>Microsoft operates the agent runtime (multi-tenant SaaS). Zava does not need to provision Azure infrastructure, manage containers, or maintain CI/CD pipelines for the agent.</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>1.3 Addressing Zava&rsquo;s Objections</span>
+              </button>
+              <div class="subsection-content">
+                <table class="concern-table">
+                  <thead>
+                    <tr>
+                      <th>Concern</th>
+                      <th>How Power Platform + Copilot Studio Mitigates</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>No AI expertise on staff</strong></td>
+                      <td>Copilot Studio is a no-code/low-code platform. Agent behavior is defined through instructions and topic canvas&mdash;not model training or prompt engineering. Microsoft manages the underlying GPT model.</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Fear of production data deletion</strong></td>
+                      <td>Dataverse row-level security, Managed Environments with solution-only deployment, and Power Platform DLP policies prevent agents/apps from accessing or modifying data outside their defined scope. No direct database access is exposed.</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Code quality from generation tools</strong></td>
+                      <td>Model-driven apps are declarative (schema-driven), not generated code. Business logic uses Power Fx (formulaic, auditable) and Power Automate flows (visual, testable). No opaque code generation to review.</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Technical debt from automation</strong></td>
+                      <td>Solution-aware development packages all components (apps, flows, agents, tables) into versioned solutions. ALM pipelines promote from Dev &rarr; Test &rarr; Prod with automated validation. Rollback is a single operation.</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Sensitive information exposure</strong></td>
+                      <td>Copilot Studio supports Generative AI guardrails: content moderation, topic blocking, and authentication-scoped knowledge. DLP policies restrict which connectors agents can use. Audit logs track every agent interaction.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- 02 / Phased Adoption Plan                      -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <section id="adoption-plan" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Adoption Plan</p>
+            <h2>Pilot &rarr; Production &rarr; Scale</h2>
+            <p>A phased rollout that proves value quickly, then expands with confidence. Each phase has clear entry criteria and exit gates.</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>2.1 Three-Phase Roadmap</span>
+              </button>
+              <div class="subsection-content">
+                <div class="insight-grid phase-grid">
+                  <article class="insight-card phase-card">
+                    <span class="card-index phase-label label-pilot">Phase 1</span>
+                    <h3>Prove Value (Weeks 1&ndash;4)</h3>
+                    <p>Stand up Dev + Test Managed Environments. Build claims app with 3 core entities (Claim, Incident, Order). Configure SAP connector for order lookup. Deploy Copilot Studio agent with claim-status topic + human escalation. Pilot with 10 field engineers + 2 partner accounts.</p>
+                    <p><strong>Exit gate:</strong> End-to-end claim submission and agent query with &lt;5% error rate.</p>
+                  </article>
+                  <article class="insight-card phase-card">
+                    <span class="card-index phase-label label-production">Phase 2</span>
+                    <h3>Harden &amp; Launch (Weeks 5&ndash;10)</h3>
+                    <p>Promote solutions to Production via ALM pipeline. Enable DLP policies, audit logging, and SOC-aligned controls. Expand agent knowledge sources. Add Power Automate flows for approval routing. Roll out to all field engineers and support staff.</p>
+                    <p><strong>Exit gate:</strong> SOC readiness checklist passed. Agent handles 70%+ of queries without escalation.</p>
+                  </article>
+                  <article class="insight-card phase-card">
+                    <span class="card-index phase-label label-scale">Phase 3</span>
+                    <h3>Expand &amp; Optimize (Weeks 11&ndash;16)</h3>
+                    <p>Embed agent on Zava website for all vendors/partners. Add CRM connector for customer 360 view. Integrate Power BI dashboards. Enable multi-language support for global partner base. Optimize agent topics based on analytics.</p>
+                    <p><strong>Exit gate:</strong> Full rollout to all user groups. KPI baselines established and tracked.</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>2.2 What Ships in Each Phase</span>
+              </button>
+              <div class="subsection-content">
+                <table class="concern-table">
+                  <thead>
+                    <tr>
+                      <th>Deliverable</th>
+                      <th>Phase 1</th>
+                      <th>Phase 2</th>
+                      <th>Phase 3</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>Claims Model-Driven App</strong></td>
+                      <td>Core entities + forms</td>
+                      <td>Approval flows + notifications</td>
+                      <td>CRM integration + dashboards</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Copilot Studio Agent</strong></td>
+                      <td>Claim status + escalation</td>
+                      <td>Documentation guidance + expanded KB</td>
+                      <td>Multi-language + website embed</td>
+                    </tr>
+                    <tr>
+                      <td><strong>SAP Integration</strong></td>
+                      <td>Order lookup (read)</td>
+                      <td>Bi-directional sync</td>
+                      <td>Full process automation</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Governance</strong></td>
+                      <td>Dev + Test environments</td>
+                      <td>Prod environment + DLP + audit</td>
+                      <td>SOC reporting + analytics</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Users</strong></td>
+                      <td>10 engineers + 2 partners</td>
+                      <td>All staff</td>
+                      <td>All vendors/partners globally</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- 03 / Governance, ALM & Risk Controls            -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <section id="governance" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / Governance &amp; ALM</p>
+            <h2>How We Keep It Secure and Compliant</h2>
+            <p>Enterprise governance is not an afterthought&mdash;it is built into the platform architecture from the first environment provisioning.</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>3.1 Managed Environment Architecture</span>
+              </button>
+              <div class="subsection-content">
+                <div class="arch-layer">
+                  <div class="arch-layer-row">
+                    <div class="arch-block arch-block-blue">
+                      <strong>Dev Environment</strong><br />
+                      Maker sandbox<br />
+                      Unmanaged solutions<br />
+                      <span class="arch-hint">(Isolated from production data)</span>
+                    </div>
+                    <div class="arch-block arch-block-purple">
+                      <strong>Test Environment</strong><br />
+                      Managed solution import<br />
+                      Automated validation<br />
+                      <span class="arch-hint">(Pre-prod gate)</span>
+                    </div>
+                  </div>
+                  <div class="arch-layer-divider">&darr; ALM Pipeline (automated promotion) &darr;</div>
+                  <div class="arch-layer-full">
+                    <div class="arch-block arch-block-teal">
+                      <strong>Production Environment</strong><br />
+                      Managed solutions only &middot; No direct edits<br />
+                      DLP enforced &middot; Audit logging &middot; Maker welcome content<br />
+                      <span class="arch-hint">(SOC-aligned controls active)</span>
+                    </div>
+                  </div>
+                </div>
+                <p class="caption-muted">Managed Environments provide centralized admin control: sharing limits, solution checker enforcement, IP firewall, and customer-managed encryption keys.</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>3.2 Data Protection &amp; DLP</span>
+              </button>
+              <div class="subsection-content">
+                <div class="insight-grid">
+                  <article class="insight-card">
+                    <span class="card-index">01</span>
+                    <h3>Connector Classification</h3>
+                    <p>DLP policies classify connectors into Business, Non-Business, and Blocked groups. SAP and CRM connectors are Business-only&mdash;preventing data leakage to unapproved services.</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">02</span>
+                    <h3>Dataverse Security</h3>
+                    <p>Row-level security roles control which claims each user can view/edit. Business unit hierarchy aligns with Zava&rsquo;s organizational structure. Column-level security protects sensitive fields (financial amounts, personal data).</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">03</span>
+                    <h3>Agent Guardrails</h3>
+                    <p>Copilot Studio&rsquo;s content moderation blocks prompt injection attempts. Topic-level authentication ensures the agent only surfaces data the authenticated user is authorized to see. Conversation logs are retained for audit.</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">04</span>
+                    <h3>Anti-Elicitation Controls</h3>
+                    <p>Agent instructions explicitly block disclosure of system prompts, internal data schemas, or confidential business rules. Generative answers are grounded only in approved knowledge sources&mdash;no open-web fallback.</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>3.3 ALM Pipeline &amp; Change Control</span>
+              </button>
+              <div class="subsection-content">
+                <ol class="flow-list">
+                  <li>
+                    <span class="flow-step">1</span>
+                    <div class="flow-copy">
+                      <strong>Develop in Isolation</strong>
+                      <p>Makers work in the Dev environment with unmanaged solutions. No production data is accessible. Solution checker runs automatically on save.</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">2</span>
+                    <div class="flow-copy">
+                      <strong>Export &amp; Validate</strong>
+                      <p>Solutions are exported as managed and imported to Test. Automated tests validate connector configurations, security role assignments, and agent topic coverage.</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">3</span>
+                    <div class="flow-copy">
+                      <strong>Approve &amp; Promote</strong>
+                      <p>Change Advisory Board reviews test results. Approved solutions are promoted to Production via pipeline. Direct edits in Production are blocked by Managed Environment policy.</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">4</span>
+                    <div class="flow-copy">
+                      <strong>Monitor &amp; Rollback</strong>
+                      <p>Power Platform admin center provides real-time telemetry. If issues arise, the previous solution version can be re-imported in a single operation&mdash;atomic rollback.</p>
+                    </div>
+                  </li>
+                </ol>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- 04 / Measurement & Value Realization            -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <section id="measurement" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / Measurement &amp; ROI</p>
+            <h2>KPIs, Telemetry, and Value Realization</h2>
+            <p>Concrete metrics tied to each business objective, with built-in telemetry to track them from day one.</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>4.1 Key Performance Indicators</span>
+              </button>
+              <div class="subsection-content">
+                <div class="insight-grid kpi-grid">
+                  <article class="insight-card kpi-card">
+                    <span class="card-index kpi-value">-40%</span>
+                    <h3>Claim Processing Time</h3>
+                    <p>Target reduction in average time from claim submission to resolution, measured against current spreadsheet-based baseline.</p>
+                  </article>
+                  <article class="insight-card kpi-card">
+                    <span class="card-index kpi-value">70%+</span>
+                    <h3>Agent Deflection Rate</h3>
+                    <p>Percentage of partner/vendor queries resolved by the Copilot Studio agent without human escalation.</p>
+                  </article>
+                  <article class="insight-card kpi-card">
+                    <span class="card-index kpi-value">90%</span>
+                    <h3>Field Engineer Adoption</h3>
+                    <p>Target active usage rate within 30 days of production launch, measured by weekly active users in the claims app.</p>
+                  </article>
+                  <article class="insight-card kpi-card">
+                    <span class="card-index kpi-value">100%</span>
+                    <h3>Compliance Audit Score</h3>
+                    <p>All environments pass SOC readiness checklist. Zero direct-edit violations in Production environment.</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>4.2 Built-in Telemetry Sources</span>
+              </button>
+              <div class="subsection-content">
+                <table class="concern-table">
+                  <thead>
+                    <tr>
+                      <th>Metric Category</th>
+                      <th>Data Source</th>
+                      <th>Frequency</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>App usage &amp; performance</strong></td>
+                      <td>Power Platform analytics (built-in)</td>
+                      <td>Real-time</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Agent conversations &amp; deflection</strong></td>
+                      <td>Copilot Studio analytics dashboard</td>
+                      <td>Real-time</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Claim processing workflow</strong></td>
+                      <td>Power Automate run history + Dataverse audit</td>
+                      <td>Per-transaction</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Security &amp; compliance</strong></td>
+                      <td>Microsoft Purview audit logs + DLP violation reports</td>
+                      <td>Continuous</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Integration health</strong></td>
+                      <td>Connector run analytics (SAP, CRM)</td>
+                      <td>Per-run</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p class="caption-muted">All telemetry data can be surfaced in Power BI dashboards for executive reporting. No additional instrumentation required.</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>4.3 ROI Drivers</span>
+              </button>
+              <div class="subsection-content">
+                <div class="insight-grid">
+                  <article class="insight-card">
+                    <span class="card-index">01</span>
+                    <h3>Labor Cost Reduction</h3>
+                    <p>Automated claim routing and agent deflection reduce support desk headcount requirements. Each 10% improvement in deflection rate saves approximately 0.5 FTE in support staff time.</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">02</span>
+                    <h3>Faster Time-to-Revenue</h3>
+                    <p>Accelerated claim processing reduces the average cycle from submission to settlement, directly improving cash flow and partner satisfaction scores.</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">03</span>
+                    <h3>Avoided Development Cost</h3>
+                    <p>Low-code development reduces the need for custom .NET/Java development. Estimated 60&ndash;70% reduction in development hours compared to building equivalent functionality from scratch.</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>4.4 ROI Framework Against $6M Investment</span>
+              </button>
+              <div class="subsection-content">
+                <p>Zava&rsquo;s $6M investment spans platform licensing, implementation services, SAP/CRM integration, and organizational change management across 16 weeks. The following framework maps each cost category to measurable return drivers and specifies when breakeven evidence should appear.</p>
+                <table class="concern-table">
+                  <thead>
+                    <tr>
+                      <th>Cost Category</th>
+                      <th>Estimated Allocation</th>
+                      <th>Return Driver</th>
+                      <th>Measurement</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>Platform licensing</strong></td>
+                      <td>~$1.2M / year</td>
+                      <td>Replaces 3+ legacy systems (spreadsheets, siloed apps, manual tracking)</td>
+                      <td>Compare annual license cost vs. legacy system maintenance + manual labor hours eliminated</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Implementation &amp; integration</strong></td>
+                      <td>~$2.8M one-time</td>
+                      <td>SAP/CRM connectors avoid custom middleware; low-code accelerates delivery</td>
+                      <td>Track actual dev hours vs. equivalent custom build estimate (benchmark: 60&ndash;70% reduction)</td>
+                    </tr>
+                    <tr>
+                      <td><strong>AI agent deployment</strong></td>
+                      <td>~$0.8M (Copilot Studio + credits)</td>
+                      <td>70%+ query deflection reduces support desk FTE</td>
+                      <td>Monthly: (deflected queries &times; avg handling cost) &minus; Copilot Studio credit spend</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Change management &amp; training</strong></td>
+                      <td>~$1.2M</td>
+                      <td>Faster adoption accelerates time-to-value</td>
+                      <td>90% adoption within 30 days; track ramp-up curve vs. plan</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <ol class="flow-list">
+                  <li>
+                    <span class="flow-step">1</span>
+                    <div class="flow-copy">
+                      <strong>Pilot ROI Check (Week 4)</strong>
+                      <p>Measure claim processing time reduction and agent deflection rate against pilot baseline. Extrapolate annualized savings from pilot data to validate $6M business case assumptions.</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">2</span>
+                    <div class="flow-copy">
+                      <strong>Production ROI Review (Week 10)</strong>
+                      <p>Calculate actual support FTE savings (deflection rate &times; ticket volume &times; avg cost). Compare integration hours spent vs. custom-build estimate. Project 12-month run rate.</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">3</span>
+                    <div class="flow-copy">
+                      <strong>Annualized ROI Report (Week 16+)</strong>
+                      <p>Full cost-benefit analysis: total investment ($6M) vs. annualized savings (labor + legacy decommission + faster claim settlement). Target: breakeven within 18&ndash;24 months; 150%+ ROI by month 36.</p>
+                    </div>
+                  </li>
+                </ol>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- 05 / Next Steps & Asks                          -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <section id="next-steps" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / Next Steps</p>
+            <h2>Decision Points and Commitments</h2>
+            <p>Clear actions required from both sides to move from recommendation to execution.</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>5.1 Immediate Actions (This Week)</span>
+              </button>
+              <div class="subsection-content">
+                <ol class="flow-list next-steps-list">
+                  <li>
+                    <span class="flow-step">1</span>
+                    <div class="flow-copy">
+                      <strong>Confirm pilot scope</strong>
+                      <p>Identify the 3 core claim types and 10 field engineers for Phase 1. Align on which SAP entities to integrate first.</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">2</span>
+                    <div class="flow-copy">
+                      <strong>Provision environments</strong>
+                      <p>Request Power Platform Managed Environments (Dev + Test) through Zava&rsquo;s tenant admin. Estimated setup: 1 business day.</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">3</span>
+                    <div class="flow-copy">
+                      <strong>License alignment</strong>
+                      <p>Confirm Power Apps per-user or per-app licensing model. Activate Copilot Studio trial (30-day free, extendable).</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">4</span>
+                    <div class="flow-copy">
+                      <strong>Security review</strong>
+                      <p>Share DLP policy template with Zava&rsquo;s CISO for review. Map Dataverse security roles to Zava&rsquo;s organizational hierarchy.</p>
+                    </div>
+                  </li>
+                </ol>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>5.2 Decisions Required from Zava</span>
+              </button>
+              <div class="subsection-content">
+                <table class="concern-table">
+                  <thead>
+                    <tr>
+                      <th>Decision</th>
+                      <th>Owner</th>
+                      <th>Deadline</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>Approve pilot scope &amp; timeline</strong></td>
+                      <td>IT Architect + Business Sponsor</td>
+                      <td>End of this week</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Assign pilot user group</strong></td>
+                      <td>Field Operations Manager</td>
+                      <td>Week 1</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Provide SAP connector credentials</strong></td>
+                      <td>ERP Admin</td>
+                      <td>Week 1</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Approve DLP policy configuration</strong></td>
+                      <td>CISO</td>
+                      <td>Week 1</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Designate Change Advisory Board members</strong></td>
+                      <td>IT Director</td>
+                      <td>Week 2</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>5.3 What We Deliver</span>
+              </button>
+              <div class="subsection-content">
+                <ol class="flow-list next-steps-list">
+                  <li>
+                    <span class="flow-step">&check;</span>
+                    <div class="flow-copy">
+                      <strong>Environment setup &amp; governance baseline</strong>
+                      <p>Within 2 business days of tenant access.</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">&check;</span>
+                    <div class="flow-copy">
+                      <strong>Working claims app prototype</strong>
+                      <p>3 entities, SAP read integration by end of Week 2.</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">&check;</span>
+                    <div class="flow-copy">
+                      <strong>Copilot Studio agent</strong>
+                      <p>Claim-status topic, documentation guidance, and human escalation by end of Week 3.</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">&check;</span>
+                    <div class="flow-copy">
+                      <strong>Pilot readiness review</strong>
+                      <p>With IT Architect and CISO, including security controls walkthrough, at Week 4.</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">&check;</span>
+                    <div class="flow-copy">
+                      <strong>Phase 2 detailed plan</strong>
+                      <p>Based on pilot learnings, presented at the pilot exit gate.</p>
+                    </div>
+                  </li>
+                </ol>
+              </div>
+            </article>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        &copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

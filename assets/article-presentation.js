@@ -1593,6 +1593,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     state.enabled = false;
     root.classList.remove('is-presentation-mode');
+    exitBrowserFullscreen();
     restoreAccordionStates();
     setPresentationStep(snapshot.index);
     updatePresentationLabels();
@@ -1614,12 +1615,50 @@ document.addEventListener('DOMContentLoaded', function () {
       pptx.lang = getLang() === 'zh' ? 'zh-CN' : 'en-US';
       if (exporter.setupMasters) exporter.setupMasters(pptx, palette);
       if (!snapshot.enabled) enterPresentation();
-      presentSteps.forEach(function (step, stepIndex) {
-        setPresentationStep(stepIndex);
-        exporter.renderStep(pptx, step, stepIndex, stepIndex, presentSteps.length, palette, deriveStepLabel, deriveStepTitle);
+
+      // Pre-capture SVG diagrams as PNG data URLs
+      var svgCaptures = [];
+      var svgContainers = document.querySelectorAll('.slide-mockup, .demo-block');
+      svgContainers.forEach(function (container) {
+        var svg = container.querySelector('svg');
+        if (!svg) return;
+        svgCaptures.push(new Promise(function (resolve) {
+          var serializer = new XMLSerializer();
+          var svgStr = serializer.serializeToString(svg);
+          var svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+          var blobUrl = URL.createObjectURL(svgBlob);
+          var img = new Image();
+          img.onload = function () {
+            var vb = svg.viewBox && svg.viewBox.baseVal;
+            var cw = (vb && vb.width) ? vb.width * 2 : img.naturalWidth || 960;
+            var ch = (vb && vb.height) ? vb.height * 2 : img.naturalHeight || 540;
+            var canvas = document.createElement('canvas');
+            canvas.width = cw;
+            canvas.height = ch;
+            var ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#FCF6EE';
+            ctx.fillRect(0, 0, cw, ch);
+            ctx.drawImage(img, 0, 0, cw, ch);
+            container.setAttribute('data-svg-png', canvas.toDataURL('image/png'));
+            URL.revokeObjectURL(blobUrl);
+            resolve();
+          };
+          img.onerror = function () {
+            URL.revokeObjectURL(blobUrl);
+            resolve();
+          };
+          img.src = blobUrl;
+        }));
       });
-      restorePresentationSnapshot(snapshot);
-      return pptx.write({ outputType: 'blob' });
+
+      return Promise.all(svgCaptures).then(function () {
+        presentSteps.forEach(function (step, stepIndex) {
+          setPresentationStep(stepIndex);
+          exporter.renderStep(pptx, step, stepIndex, stepIndex, presentSteps.length, palette, deriveStepLabel, deriveStepTitle);
+        });
+        restorePresentationSnapshot(snapshot);
+        return pptx.write({ outputType: 'blob' });
+      });
     }, function (error) {
       restorePresentationSnapshot(snapshot);
       throw error;

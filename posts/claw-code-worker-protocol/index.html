@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Claw Code 工作器协议：为什么自治代理需要显式状态机</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 { font-size: clamp(2.0rem, 5vw, 3.6rem); line-height: 1.1; letter-spacing: -0.035em; max-width: 24ch; }
+    .hero-panel .layer-list li { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.08); color: rgba(246,248,251,0.78); font-family: "JetBrains Mono", monospace; font-size: 0.78rem; }
+    .hero-panel .layer-number { background: rgba(255,255,255,0.14); color: #fff; }
+
+    pre.code { background: rgba(0,0,0,0.24); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 16px 18px; overflow-x: auto; font-family: "JetBrains Mono", monospace; font-size: 0.78rem; line-height: 1.65; color: rgba(232,236,244,0.92); margin: 14px 0 18px; }
+    pre.code .kw { color: #c084fc; } pre.code .ty { color: #fbbf24; } pre.code .str { color: #34d399; } pre.code .cm { color: rgba(255,255,255,0.42); font-style: italic; } pre.code .fn { color: #60a5fa; }
+    .pill { display: inline-block; padding: 2px 9px; border-radius: 5px; font-size: 0.7rem; font-weight: 600; font-family: "JetBrains Mono", monospace; }
+    .pill-ok { background: rgba(16,185,129,0.12); color: #10b981; }
+    .pill-warn { background: rgba(245,158,11,0.12); color: #f59e0b; }
+    .pill-err { background: rgba(239,68,68,0.12); color: #ef4444; }
+    .pill-info { background: rgba(59,130,246,0.12); color: #3b82f6; }
+
+    /* ── state machine diagram ── */
+    .fsm-diagram { margin: 28px auto 0; max-width: 680px; padding: 28px 20px; border-radius: 18px; background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.07); }
+    .fsm-row { display: flex; align-items: center; justify-content: center; gap: 0; margin-bottom: 0; position: relative; }
+    .fsm-node { display: inline-flex; align-items: center; justify-content: center; padding: 10px 18px; border-radius: 10px; font-family: "JetBrains Mono", monospace; font-size: 0.82rem; font-weight: 600; border: 2px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.04); color: var(--fg); white-space: nowrap; min-width: 130px; text-align: center; position: relative; z-index: 2; }
+    .fsm-node.active { border-color: var(--accent); background: rgba(255,122,0,0.08); color: var(--accent); }
+    .fsm-node.terminal-ok { border-color: #10b981; color: #10b981; background: rgba(16,185,129,0.06); }
+    .fsm-node.terminal-err { border-color: #ef4444; color: #ef4444; background: rgba(239,68,68,0.06); }
+    .fsm-arrow { display: flex; flex-direction: column; align-items: center; padding: 4px 0; color: rgba(255,255,255,0.35); font-size: 0.68rem; font-family: "JetBrains Mono", monospace; position: relative; z-index: 1; }
+    .fsm-arrow .arr { font-size: 1.1rem; line-height: 1; color: rgba(255,255,255,0.3); }
+    .fsm-arrow .lbl { color: rgba(255,255,255,0.45); max-width: 180px; text-align: center; line-height: 1.3; }
+    .fsm-split { display: flex; gap: 40px; justify-content: center; align-items: flex-start; margin-top: 0; }
+    .fsm-branch { display: flex; flex-direction: column; align-items: center; }
+    .fsm-side-arrow { display: flex; align-items: center; gap: 8px; color: rgba(255,255,255,0.35); font-family: "JetBrains Mono", monospace; font-size: 0.68rem; margin: 6px 0; }
+    .fsm-side-arrow .arr { font-size: 0.9rem; }
+    .fsm-loop { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 8px 14px; border-radius: 8px; border: 1px dashed rgba(255,255,255,0.12); color: rgba(255,255,255,0.45); font-size: 0.7rem; font-family: "JetBrains Mono", monospace; }
+    .fsm-loop .arr { color: rgba(255,255,255,0.3); }
+    .fsm-loop-center { justify-content: center; margin-top: 16px; }
+    .fsm-loop-center-sm { justify-content: center; margin-top: 6px; }
+    @media (max-width: 600px) { .fsm-split { flex-direction: column; gap: 16px; align-items: center; } .fsm-diagram { padding: 18px 12px; } }
+
+    /* ── compare grid ── */
+    .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin-top: 22px; border-radius: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,0.07); }
+    .compare-col { padding: 18px; }
+    .compare-col.bad { background: rgba(239,68,68,0.04); }
+    .compare-col.good { background: rgba(16,185,129,0.04); }
+    .compare-col h4 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 12px; }
+    .compare-col.bad h4 { color: #ef4444; }
+    .compare-col.good h4 { color: #10b981; }
+    .compare-col ul { margin: 0; padding-left: 16px; }
+    .compare-col li { font-size: 0.8rem; color: var(--muted); line-height: 1.6; margin-bottom: 4px; }
+    @media (max-width: 600px) { .compare-grid { grid-template-columns: 1fr; } }
+
+    /* ── insight cards ── */
+    .insight-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 22px; }
+    .insight-card { padding: 18px; border-radius: 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); }
+    .insight-card .insight-label { font-family: "JetBrains Mono", monospace; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); margin-bottom: 8px; }
+    .insight-card h4 { margin: 0 0 8px; font-size: 0.92rem; color: var(--fg); }
+    .insight-card p { font-size: 0.8rem; color: var(--muted); margin: 0; line-height: 1.6; }
+
+    /* ── event timeline ── */
+    .timeline { margin-top: 22px; padding-left: 20px; border-left: 2px solid rgba(255,255,255,0.08); }
+    .tl-item { padding: 14px 0 14px 18px; position: relative; }
+    .tl-item::before { content: ""; position: absolute; left: -7px; top: 20px; width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,0.06); border: 2px solid rgba(255,255,255,0.12); }
+    .tl-item.ok::before { border-color: #10b981; background: rgba(16,185,129,0.15); }
+    .tl-item.warn::before { border-color: #f59e0b; background: rgba(245,158,11,0.15); }
+    .tl-item.err::before { border-color: #ef4444; background: rgba(239,68,68,0.15); }
+    .tl-item h4 { margin: 0 0 4px; font-size: 0.88rem; color: var(--fg); }
+    .tl-item p { margin: 0; font-size: 0.8rem; color: var(--muted); line-height: 1.6; }
+
+    /* ── recipe table ── */
+    .recipe-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 20px; }
+    .recipe-card { padding: 16px; border-radius: 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); }
+    .recipe-card .scenario { font-family: "JetBrains Mono", monospace; font-size: 0.78rem; font-weight: 600; color: var(--accent); margin-bottom: 8px; }
+    .recipe-card .steps { list-style: none; padding: 0; margin: 0 0 8px; }
+    .recipe-card .steps li { font-size: 0.76rem; color: var(--muted); padding: 4px 0; font-family: "JetBrains Mono", monospace; }
+    .recipe-card .steps li::before { content: "\2192\0020"; color: rgba(255,255,255,0.35); }
+    .recipe-card .meta { font-size: 0.72rem; color: rgba(255,255,255,0.5); border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; margin-top: 6px; }
+    .recipe-card .meta strong { color: var(--fg); }
+
+    /* ── matrix table ── */
+    .matrix-table { width: 100%; border-collapse: collapse; margin-top: 18px; font-size: 0.82rem; }
+    .matrix-table th, .matrix-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); vertical-align: top; }
+    .matrix-table th { font-weight: 600; color: var(--fg); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .matrix-table td { color: var(--muted); }
+    .matrix-table td code { font-family: "JetBrains Mono", monospace; font-size: 0.74rem; color: var(--accent); }
+
+    .fail-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .fail-badge { padding: 6px 12px; border-radius: 8px; font-size: 0.74rem; font-weight: 500; font-family: "JetBrains Mono", monospace; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); color: var(--muted); }
+    .fail-badge.boot { border-color: rgba(245,158,11,0.30); color: #f59e0b; }
+    .fail-badge.test { border-color: rgba(239,68,68,0.30); color: #ef4444; }
+    .fail-badge.runtime { border-color: rgba(59,130,246,0.30); color: #3b82f6; }
+    .fail-badge.infra { border-color: rgba(16,185,129,0.30); color: #10b981; }
+
+    [data-theme="dark"] pre.code { background: rgba(0,0,0,0.45); }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span><span class="orb orb-b"></span><span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            智能体 · Claw Code 系列 · 02
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#gap">认知缺口</a>
+            <a href="#philosophy">设计哲学</a>
+            <a href="#fsm">状态图</a>
+            <a href="#hazards">启动险境</a>
+            <a href="#events">语义事件</a>
+            <a href="#recovery">恢复哲学</a>
+            <a href="#green">绿度契约</a>
+            <a href="#refs">参考</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Claw Code · Series 02 · Worker Protocol</span>
+            <h1>为什么自治代理需要显式状态机而非「scrape 终端再猜」</h1>
+            <p>
+              传统 harness 让代理通过 grep 终端输出来判断「现在能不能发任务」。这种方法有两个致命缺陷：(1) 观察与真相解耦——终端可能已经变化但你还没看到；(2) 失败没有分类——日志里只有「红了」，到底是编译红、测试红还是分支陈旧红？
+            </p>
+            <p style="margin-top: 10px;">
+              Claw Code 的回答是<strong>把 worker 的整个生命周期建模成一台 6 状态的确定性有限状态机</strong>，搭配类型化事件流与结构化恢复配方。本文不罗列参数，而是先讲<em>为什么需要这台机器</em>，再用一张状态图建立全局直觉，最后在折叠区里展开实现细节。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#fsm">看状态图</a>
+              <a class="button button-secondary" href="../claw-code-analysis/index.html">回看总览</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">核心设计原则</span>
+            <h2>三条不可妥协的原则</h2>
+            <ul class="layer-list" style="margin-top: 16px;">
+              <li><span class="layer-number">1</span>唯一真相源 · worker.status</li>
+              <li><span class="layer-number">2</span>失败即数据 · 分类 + 可恢复性</li>
+              <li><span class="layer-number">3</span>恢复即配方 · 最多一次 + 升级出口</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label" data-zh="Worker 状态" data-en="Worker states">Worker 状态</div>
+            <strong>6</strong>
+            <span data-zh="确定性有限状态机，转换由 observe 驱动" data-en="Deterministic FSM, transitions driven by observe">确定性 FSM · observe 驱动转换</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="启动险境" data-en="Boot hazards">启动险境</div>
+            <strong>2</strong>
+            <span data-zh="信任门阻塞 / 提示错投，两种都有自动恢复路径" data-en="Trust gate / prompt misdelivery, both with auto-recovery">信任门阻塞 · 提示错投</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="Lane 事件语义" data-en="Lane event semantics">Lane 事件语义</div>
+            <strong>16</strong>
+            <span data-zh="从噪音日志到类型化语义流" data-en="From noisy logs to typed semantic stream">lane.* 命名空间 · 类型化语义</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="恢复配方" data-en="Recovery recipes">恢复配方</div>
+            <strong>7</strong>
+            <span data-zh="每个场景最多自动恢复 1 次，失败即升级" data-en="Max 1 auto-recovery per scenario, then escalate">一次性策略 · 失败即升级</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="绿度等级" data-en="Green levels">绿度等级</div>
+            <strong>4</strong>
+            <span data-zh="Targeted → Package → Workspace → MergeReady" data-en="Targeted → Package → Workspace → MergeReady">「绿了」不再是布尔，而是 4 级契约</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+
+      <main>
+        <!-- 01 Gap -->
+        <section id="gap" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / The Gap</p>
+            <h2>1. 从「grep 终端输出」到「读状态机」的认知缺口</h2>
+            <p>
+              绝大多数 code agent 框架把终端当作唯一的观察窗口：发一条命令、grep stdout、做 if-else、决定下一步。这种模式在<strong>单条命令</strong>尺度够用，但一旦进入<strong>会话级别</strong>的自治（「在这个分支上跑完编译、测试、提交、等 CI 过」），它的局限就暴露出来。
+            </p>
+          </div>
+
+          <div class="compare-grid">
+            <div class="compare-col bad">
+              <h4>grep 模式的失败</h4>
+              <ul>
+                <li>「session exists」不等于「session ready」——过早发任务落到 shell 或 trust prompt 缓冲区</li>
+                <li>终端可能已变化但 observer 还没看到——观察与真相解耦</li>
+                <li>日志只有「红了」，是编译红 / 测试红 / 分支陈旧红？失败无分类</li>
+                <li>grep 本身有噪声——构建日志一秒三屏，有用信号被淹没</li>
+                <li>恢复靠写 ad-hoc if-else，每个新事故加一条 patch</li>
+              </ul>
+            </div>
+            <div class="compare-col good">
+              <h4>状态机模式的保证</h4>
+              <ul>
+                <li>worker.status 是唯一真相源——任何时刻读它就知道能否发任务</li>
+                <li>observe() 是唯一驱动转换的函数——消除观察/真相之间的时间窗口</li>
+                <li>失败带 failure_class 分类——不同类型走不同恢复配方</li>
+                <li>Lane 事件是结构化类型流——噪声被压缩成一行摘要</li>
+                <li>恢复是声明式配方——新场景只需添加一条 recipe，不改控制流</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="quote-block" style="margin-top: 22px;">
+            <strong data-zh="核心断言" data-en="Core assertion">核心断言</strong>
+            <span data-zh="自治代理不是需要更好的 grep，而是需要不同的抽象层：一台状态机，把终端观察翻译成状态转换，把失败翻译成类型化数据，把恢复翻译成可查表的配方。" data-en="Autonomous agents don't need better grep—they need a different abstraction: a state machine that translates terminal observation into transitions, failures into typed data, recovery into table-lookup recipes.">自治代理不是需要更好的 grep，而是需要不同的抽象层：一台状态机，把终端观察翻译成状态转换，把失败翻译成类型化数据，把恢复翻译成可查表的配方。</span>
+          </div>
+        </section>
+
+        <!-- 02 Philosophy -->
+        <section id="philosophy" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Design Philosophy</p>
+            <h2>2. 三条设计原则：为什么这样建模</h2>
+          </div>
+
+          <div class="insight-grid" data-present-step data-step-title="三条不可妥协的原则">
+            <div class="insight-card">
+              <div class="insight-label">原则 1</div>
+              <h4>唯一真相源：worker.status</h4>
+              <p>传统 harness 维护多个 flag：is_ready、is_running、has_error……flag 组合爆炸导致矛盾状态（is_ready &amp;&amp; has_error 意味着什么？）。状态机用<strong>互斥枚举</strong>替代 flag 集合——任何时刻 worker 只可能处于 6 个状态之一，不存在矛盾组合。代理只读一个字段就够了。</p>
+            </div>
+            <div class="insight-card">
+              <div class="insight-label">原则 2</div>
+              <h4>失败即数据：分类 + 可恢复性</h4>
+              <p>错误不是字符串，而是带结构的<strong>数据</strong>。每个失败至少携带 failure_class（11 种之一）和 recoverable 布尔。恢复系统据此查表，不需要 parse 错误信息来猜测原因。这让仪表盘聚合和策略引擎判断都变成「match 枚举」而非「regex 字符串」。</p>
+            </div>
+            <div class="insight-card">
+              <div class="insight-label">原则 3</div>
+              <h4>恢复即配方：最多一次 + 升级出口</h4>
+              <p>同一个场景只允许自动恢复一次。理由是<strong>两次相同的恢复大概率做相同的无用功</strong>。成功则继续；失败则交给明确的升级策略（人工介入 / 降级运行 / 终止），不存在无限重试耗尽 token 的死循环。</p>
+            </div>
+          </div>
+
+          <p style="margin-top: 20px;">
+            这三条原则贯穿下面所有小节。每看到一个设计决策，可以问「它在服务哪条原则」来验证一致性。
+          </p>
+        </section>
+
+        <!-- 03 State Diagram -->
+        <section id="fsm" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / State Diagram</p>
+            <h2>3. 一张图理解 Worker 的 6 个状态与转换</h2>
+            <p>
+              先看全局：Worker 从 <strong>Spawning</strong> 出发，经过可选的 <strong>TrustRequired</strong> 旁路，到达唯一允许接收任务的 <strong>ReadyForPrompt</strong>，进入 <strong>Running</strong>，最终走向 <strong>Finished</strong> 或 <strong>Failed</strong>。任何状态都可以因为异常直接跳到 Failed；restart 可以从任何状态回到 Spawning。
+            </p>
+          </div>
+
+          <div class="fsm-diagram" data-present-step data-step-title="Worker 状态转换图">
+            <div class="fsm-row"><div class="fsm-node active">Spawning</div></div>
+            <div class="fsm-row"><div class="fsm-arrow"><span class="lbl">observe() 检测到 trust 关键词 ?</span><span class="arr">&#x2193;</span></div></div>
+            <div class="fsm-split">
+              <div class="fsm-branch">
+                <div class="fsm-side-arrow"><span class="lbl">是</span></div>
+                <div class="fsm-node" style="border-color: #f59e0b; color: #f59e0b;">TrustRequired</div>
+                <div class="fsm-arrow"><span class="lbl">auto-resolve 或 manual</span><span class="arr">&#x2193;</span></div>
+                <div class="fsm-side-arrow"><span class="lbl">回到 Spawning 继续 observe</span></div>
+              </div>
+              <div class="fsm-branch">
+                <div class="fsm-side-arrow"><span class="lbl">否</span></div>
+                <div class="fsm-node" style="border-color: #10b981; color: #10b981;">ReadyForPrompt</div>
+                <div class="fsm-arrow"><span class="lbl">send_prompt() 投递任务</span><span class="arr">&#x2193;</span></div>
+                <div class="fsm-node">Running</div>
+              </div>
+            </div>
+            <div class="fsm-row" style="margin-top: 16px;"><div class="fsm-arrow"><span class="lbl">工作结束</span><span class="arr">&#x2193;</span></div></div>
+            <div class="fsm-split">
+              <div class="fsm-branch"><div class="fsm-node terminal-ok">Finished</div></div>
+              <div class="fsm-branch"><div class="fsm-node terminal-err">Failed</div></div>
+            </div>
+            <div class="fsm-loop fsm-loop-center"><span class="arr">&#x21BB;</span><span>restart() &#x2192; 回到 Spawning（事件流保留）</span></div>
+            <div class="fsm-loop fsm-loop-center-sm"><span class="arr">&#x26A1;</span><span>任何状态 &#x2192; Failed（异常跳转）</span></div>
+          </div>
+
+          <div data-present-step data-step-title="状态转换的关键约束" class="subsection-accordion" style="margin-top: 24px;">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="ReadyForPrompt 是唯一的可发任务状态" data-en="ReadyForPrompt is the sole send-able state">ReadyForPrompt 是唯一的「可发任务」状态</span></button>
+              <div class="subsection-content">
+                <p>这是整台状态机的核心设计决策。在 Spawning、TrustRequired、Running、Finished、Failed 五个状态下调用 <code>send_prompt()</code> 都会返回 not ready 错误。这意味着<strong>提示错投在协议层面被结构性消灭</strong>——不是靠「检测到再补救」，而是靠「类型系统不允许」。</p>
+                <p style="margin-top: 8px;">传统方式是发任务后 grep 终端看有没有 command not found，但这有时间窗口——发出去之后 grep 之前如果终端已经吞掉了错误信息，你永远不知道。状态机前置了这个判断。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="observe() 是唯一的自主转换驱动" data-en="observe() is the sole autonomous transition driver">observe() 是唯一的自主转换驱动</span></button>
+              <div class="subsection-content">
+                <p><code>observe(worker_id, screen_text)</code> 是整台机器里唯一会「被动」改变状态的方法。其余 API（send_prompt、resolve_trust、restart、finish）都是「显式命令」——调用方主动触发，有明确的前置条件断言。这个设计确保了：</p>
+                <ul class="reference-list">
+                  <li>只有一个入口在读终端输出并翻译成状态变化——不存在两个不同地方同时改状态的竞争</li>
+                  <li>观察行为与命令行为分离——测试时可以 mock observe 返回而不必真跑终端</li>
+                </ul>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="restart 保留事件流而非清空" data-en="restart preserves event log, does not clear">restart 保留事件流而非清空</span></button>
+              <div class="subsection-content">
+                <p>很多状态机实现在 reset 时清空所有历史。Claw Code 的 restart() 把状态回到 Spawning 但<strong>事件流保留</strong>：之前的 trust_required、prompt_misdelivery、failed 事件全部还在。这让恢复配方可以看到「这是第 2 次 restart」并决定升级而非重试。事件日志是不可变的审计轨迹。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 04 Hazards -->
+        <section id="hazards" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / Boot Hazards</p>
+            <h2>4. 启动的两个险境：信任门与提示错投</h2>
+            <p>
+              Worker 从 Spawning 到 ReadyForPrompt 只有几秒的时间窗，但这几秒是事故最密集的阶段。Claw Code 把两种最常见的启动事故——<strong>信任门阻塞</strong>和<strong>提示错投</strong>——建模成状态机的一等概念，而不是事后用 regex 去抓。
+            </p>
+          </div>
+
+          <div class="insight-grid" data-present-step data-step-title="两种启动险境">
+            <div class="insight-card">
+              <div class="insight-label">险境 A</div>
+              <h4>信任门（TrustRequired）</h4>
+              <p>代理 spawn 后 TUI 弹出 trust prompt（「你信任这个目录吗？」）。此时任何发到 stdin 的任务文本会被 trust prompt 吃掉而非转给 agent。传统解法：sleep 几秒再发。Claw Code 的解法：observe() 在屏幕文本中检测 trust 关键词，进入 TrustRequired 状态。</p>
+              <p style="margin-top: 8px;"><strong>自动解的条件</strong>：创建 worker 时传入 trusted_roots 允许列表。若当前 cwd 命中，同一个 observe 调用内立即自解（push trust_resolved { AutoAllowlisted }），状态回到 Spawning 继续轮询直到 ReadyForPrompt。不命中则保持阻塞，clawhip 在频道里渲染一条「请人按确认」的事件。</p>
+            </div>
+            <div class="insight-card">
+              <div class="insight-label">险境 B</div>
+              <h4>提示错投（PromptMisdelivery）</h4>
+              <p>任务文本被送到了 shell 而非 agent。终端里出现 command not found、zsh: 等 shell 错误，且上次 prompt 的文本片段也在屏幕里——这是提示进了 shell 的铁证。</p>
+              <p style="margin-top: 8px;"><strong>三种检测信号</strong>：(1) Shell——shell 错误 + prompt 回显；(2) WrongTarget——观察到的 cwd 与 worker 注册的 cwd 不一致；(3) Unknown——prompt_in_flight 长时间无 running cue 也无错误（兜底防 ghost-running）。</p>
+              <p style="margin-top: 8px;"><strong>自动恢复路径</strong>：若创建时开启 auto_recover_prompt_misdelivery，检测后同步把 last_prompt 复制到 replay_prompt，状态回到 ReadyForPrompt，下一次 send_prompt(None) 自动取 replay 内容重投。最多一次。</p>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="为什么不用 sleep + retry" class="subsection-accordion" style="margin-top: 24px;">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="sleep 的三个致命问题" data-en="Three fatal problems with sleep">sleep 的三个致命问题</span></button>
+              <div class="subsection-content">
+                <ul class="reference-list">
+                  <li><strong>不可预测</strong>：trust prompt 出现的时机取决于文件系统缓存、网络延迟、shell 初始化速度。任何固定的 sleep 值都可能太短（没过 trust prompt）或太长（白白等）</li>
+                  <li><strong>不可组合</strong>：如果一个 harness 管 5 个并行 worker，每个 sleep 3 秒就是 15 秒浪费；而状态机是事件驱动的——谁先 ready 谁先收任务</li>
+                  <li><strong>不可诊断</strong>：sleep 之后 grep 成功了，但你不知道 trust prompt 是否真被通过了——可能只是它还没弹出来而你恰好在窗口内溜过去了。这是隐性 flaky</li>
+                </ul>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="prompt_delivery_attempts 计数器的作用" data-en="Role of prompt_delivery_attempts counter">prompt_delivery_attempts 计数器的作用</span></button>
+              <div class="subsection-content">
+                <p>每次 send_prompt() 成功都递增 prompt_delivery_attempts（包括 replay 重投）。这个计数器单调递增，<strong>restart 不重置</strong>。策略引擎据此判断「同一个 worker 已经重投 3 次了，问题可能不是 timing 而是结构性的」——这是升级到 AlertHuman 的条件之一。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 05 Semantic Events -->
+        <section id="events" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / Semantic Events</p>
+            <h2>5. 从日志噪音到语义事件流：Lane 事件总线</h2>
+            <p>
+              状态机解决了「当前是什么状态」的问题。但代理还需要知道<strong>发生过什么</strong>——尤其是在 Discord/clawhip 频道里展示进度和异常时。传统做法是 scrape pane 文本 + regex。Claw Code 用 16 个<strong>具名事件</strong>替代，每个事件是一条不可变记录。
+            </p>
+          </div>
+
+          <p style="margin-top: 8px;">
+            设计原理：Lane（车道）是比 Worker 更高一级的抽象——一个 lane 对应一个「分支上的完整工作流」（从创建分支到合并）。Worker 是 lane 的执行单元。Lane 事件把 Worker 内部状态变化「翻译」成外部可消费的语义。
+          </p>
+
+          <div class="timeline" data-present-step data-step-title="一条典型 Lane 的事件轨迹">
+            <div class="tl-item ok">
+              <h4><code>lane.started</code></h4>
+              <p>车道启动，绑定 worker_id。从这一刻起所有后续事件都关联到同一条 lane。</p>
+            </div>
+            <div class="tl-item ok">
+              <h4><code>lane.ready</code></h4>
+              <p>Worker 进入 ReadyForPrompt。频道里渲染为「worker #3 就绪，等待任务」。</p>
+            </div>
+            <div class="tl-item">
+              <h4><code>lane.commit.created</code></h4>
+              <p>git commit 落地。频道里渲染为「feat: add login validation (abc1234)」。</p>
+            </div>
+            <div class="tl-item ok">
+              <h4><code>lane.green</code></h4>
+              <p>按 GreenLevel 契约验证通过（见 &sect;7）。频道里渲染为「&#x2713; WorkspaceGreen」。</p>
+            </div>
+            <div class="tl-item">
+              <h4><code>lane.pr.opened</code></h4>
+              <p>GitHub PR 打开。频道里渲染为可点击链接。</p>
+            </div>
+            <div class="tl-item ok">
+              <h4><code>lane.merge.ready</code> &#x2192; <code>lane.merged</code> &#x2192; <code>lane.finished</code></h4>
+              <p>合并前置条件满足 &#x2192; 合入 main &#x2192; 车道闭合。finished 事件 detail 里携带 SummaryCompressor 压缩后的一句话摘要。</p>
+            </div>
+          </div>
+
+          <p style="margin-top: 18px;">而如果过程中出错：</p>
+
+          <div class="timeline">
+            <div class="tl-item warn">
+              <h4><code>branch.stale_against_main</code></h4>
+              <p>stale_branch 模块发现当前分支落后 main 3 个 commit。在跑 broad test <strong>之前</strong>主动发出——避免「先跑红了再去查是不是因为陈旧」。</p>
+            </div>
+            <div class="tl-item err">
+              <h4><code>lane.blocked</code></h4>
+              <p>带 LaneEventBlocker { failure_class: compile, detail: &quot;missing import in crate X&quot; }。failure_class 是 11 种分类之一（见折叠区），detail 是人可读文本。</p>
+            </div>
+            <div class="tl-item">
+              <h4><code>lane.reconciled</code></h4>
+              <p>恢复配方执行后状态对齐。意味着「曾经出错，已自动修复」。</p>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="事件设计细节" class="subsection-accordion" style="margin-top: 24px;">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="为什么是 16 个事件而不是自由文本" data-en="Why 16 named events, not free text">为什么是 16 个事件而不是自由文本</span></button>
+              <div class="subsection-content">
+                <p>自由文本事件（{ type: &quot;log&quot;, message: &quot;...&quot; }）的问题是<strong>消费方必须 parse 文本才能决定展示方式</strong>。16 个具名事件意味着每个事件都有确定的 UI 渲染规则——lane.green 永远渲染为绿色勾，lane.blocked 永远渲染为红色警告卡，lane.superseded 渲染为灰色划线。消费方只需要 switch-case，不需要 regex。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="11 个失败分类（LaneFailureClass）" data-en="11 failure classes (LaneFailureClass)">11 个失败分类（LaneFailureClass）</span></button>
+              <div class="subsection-content">
+                <p>按事故起源分四组，让仪表盘可以按类别聚合统计：</p>
+                <div class="fail-grid">
+                  <span class="fail-badge boot">prompt_delivery</span>
+                  <span class="fail-badge boot">trust_gate</span>
+                  <span class="fail-badge boot">branch_divergence</span>
+                  <span class="fail-badge test">compile</span>
+                  <span class="fail-badge test">test</span>
+                  <span class="fail-badge runtime">tool_runtime</span>
+                  <span class="fail-badge runtime">gateway_routing</span>
+                  <span class="fail-badge infra">plugin_startup</span>
+                  <span class="fail-badge infra">mcp_startup</span>
+                  <span class="fail-badge infra">mcp_handshake</span>
+                  <span class="fail-badge infra">infra</span>
+                </div>
+                <p style="margin-top: 12px;">分类不是装饰——它是恢复配方查表的 key，也是策略引擎按分支做不同决策的条件输入。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="SummaryCompressor：从事件流到一句话" data-en="SummaryCompressor: event stream to one-liner">SummaryCompressor：从事件流到一句话</span></button>
+              <div class="subsection-content">
+                <p>summary_compression.rs（300 行）把整条车道事件流压缩成四元组：</p>
+                <ul class="reference-list">
+                  <li><strong>current phase</strong>：现在在做什么（编译 / 测试 / 等 CI）</li>
+                  <li><strong>last good checkpoint</strong>：最近一次成功是什么（最后一个 green commit）</li>
+                  <li><strong>current blocker</strong>：当前卡在哪（failure_class + detail 的缩写）</li>
+                  <li><strong>recommended next action</strong>：建议做什么（rebase / fix import / wait CI）</li>
+                </ul>
+                <p style="margin-top: 8px;">效果：以前频道每分钟刷三屏 cargo 日志，现在每条 lane.finished 事件配一行结构化摘要。代理直接消费 detail 字段决定下一步，不需要人去翻日志。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="Worker 事件与 Lane 事件：翻译而非复制" data-en="Worker vs Lane events: translation, not duplication">Worker 事件与 Lane 事件：翻译而非复制</span></button>
+              <div class="subsection-content">
+                <p>Worker 事件（10 种）是内部实现细节；Lane 事件（16 种）是外部语义。两者通过一个桥接函数翻译，而不是一对一复制。例如：</p>
+                <ul class="reference-list">
+                  <li>worker.failed(PromptDelivery) &#x2192; lane.blocked { failure_class: prompt_delivery }</li>
+                  <li>worker.finished 不直接变成 lane.finished——还要等 green contract 和 push 确认</li>
+                  <li>多个 worker 事件可能折叠成同一个 lane 事件——observer 连续看到三次 trust_required 只发一条 lane 级别的 blocked</li>
+                </ul>
+                <p style="margin-top: 8px;">这种翻译层的存在让 Worker 内部重构不影响外部消费者。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 06 Recovery -->
+        <section id="recovery" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / Recovery Philosophy</p>
+            <h2>6. 恢复配方：把 ad-hoc if-else 变成声明式查表</h2>
+            <p>
+              传统 harness 的恢复逻辑散落在控制流里：「如果 compile 红了就重跑，如果 trust prompt 卡了就发个 Y」。每增加一种新事故就要改控制流，很快变成不可维护的意大利面条。Claw Code 的解法是把恢复逻辑从控制流中<strong>提取成数据</strong>——7 个声明式的 RecoveryRecipe。
+            </p>
+          </div>
+
+          <div class="recipe-grid" data-present-step data-step-title="7 个恢复配方">
+            <div class="recipe-card">
+              <div class="scenario">trust_prompt_unresolved</div>
+              <ul class="steps"><li>AcceptTrustPrompt</li></ul>
+              <div class="meta">max_attempts=<strong>1</strong> &middot; escalation=<strong>AlertHuman</strong></div>
+            </div>
+            <div class="recipe-card">
+              <div class="scenario">prompt_misdelivery</div>
+              <ul class="steps"><li>RedirectPromptToAgent</li></ul>
+              <div class="meta">max_attempts=<strong>1</strong> &middot; escalation=<strong>AlertHuman</strong></div>
+            </div>
+            <div class="recipe-card">
+              <div class="scenario">stale_branch</div>
+              <ul class="steps"><li>RebaseBranch</li><li>CleanBuild</li></ul>
+              <div class="meta">max_attempts=<strong>1</strong> &middot; escalation=<strong>AlertHuman</strong></div>
+            </div>
+            <div class="recipe-card">
+              <div class="scenario">compile_red_cross_crate</div>
+              <ul class="steps"><li>CleanBuild</li></ul>
+              <div class="meta">max_attempts=<strong>1</strong> &middot; escalation=<strong>AlertHuman</strong></div>
+            </div>
+            <div class="recipe-card">
+              <div class="scenario">mcp_handshake_failure</div>
+              <ul class="steps"><li>RetryMcpHandshake { timeout: 5000 }</li></ul>
+              <div class="meta">max_attempts=<strong>1</strong> &middot; escalation=<strong>Abort</strong></div>
+            </div>
+            <div class="recipe-card">
+              <div class="scenario">partial_plugin_startup</div>
+              <ul class="steps"><li>RestartPlugin { name }</li><li>RetryMcpHandshake { timeout: 3000 }</li></ul>
+              <div class="meta">max_attempts=<strong>1</strong> &middot; escalation=<strong>LogAndContinue</strong></div>
+            </div>
+            <div class="recipe-card">
+              <div class="scenario">provider_failure</div>
+              <ul class="steps"><li>RestartWorker</li></ul>
+              <div class="meta">max_attempts=<strong>1</strong> &middot; escalation=<strong>AlertHuman</strong></div>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="恢复设计的三个关键决策" class="subsection-accordion" style="margin-top: 24px;">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="为什么 max_attempts 都是 1" data-en="Why max_attempts is always 1">为什么 max_attempts 都是 1</span></button>
+              <div class="subsection-content">
+                <p>代理消耗 token 是有成本的。每一次自动恢复意味着：(1) 构建/测试的时间成本，(2) 可能产生的额外 LLM 调用成本。同一种失败模式重试两次成功的概率远低于第一次——大多数情况是底层条件没变。</p>
+                <p style="margin-top: 8px;"><strong>一次性策略的推论</strong>：如果你需要更多重试次数，那说明你的检测或恢复步骤有问题——应该修检测逻辑而不是加 retry 次数。这是一种「向上施压」的设计哲学。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="三种升级策略的选择逻辑" data-en="Selection logic for three escalation policies">三种升级策略的选择逻辑</span></button>
+              <div class="subsection-content">
+                <p>升级策略不是随机分配的，背后有明确的决策树：</p>
+                <ul class="reference-list">
+                  <li><strong>AlertHuman</strong>——失败可能影响合并结果或产品质量。例如 trust prompt 解不了说明环境配置有问题，需要人来判断</li>
+                  <li><strong>LogAndContinue</strong>——失败不影响主路径，降级运行即可。例如一个 MCP 插件启动失败但其它插件可用（详见 Series 04 MCP 降级模式）</li>
+                  <li><strong>Abort</strong>——继续运行会浪费 token 而无实际价值。例如 MCP handshake 失败通常意味着 server 永久不可达</li>
+                </ul>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="配方是数据，不是代码" data-en="Recipes are data, not code">配方是数据，不是代码</span></button>
+              <div class="subsection-content">
+                <p>每个 recipe 是一个 { scenario, steps, max_attempts, escalation_policy } 数据结构。执行引擎 attempt_recovery() 只做一件事：查表 &#x2192; 检查计数 &#x2192; 顺序执行 steps &#x2192; 记录结果。</p>
+                <p style="margin-top: 8px;">这种设计的好处是<strong>新增场景只需要加一条 recipe，不需要改执行逻辑</strong>。步骤原语只有 8 个（AcceptTrustPrompt / RedirectPromptToAgent / RebaseBranch / CleanBuild / RetryMcpHandshake / RestartPlugin / RestartWorker / EscalateToHuman），所有配方都是这些原语的组合。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 07 Green Contract -->
+        <section id="green" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">07 / Green Contract</p>
+            <h2>7. 绿度契约：把「绿了」从布尔变成 4 级语义</h2>
+            <p>
+              「测试绿了」是代理报告里最常见也最危险的一句话。危险在于它是模糊的——跑了一个单元测试绿了和跑了整个 workspace 绿了是完全不同的保证级别。Claw Code 用 GreenLevel 把「绿」拆成 4 档，每档有明确的定义。
+            </p>
+          </div>
+
+          <table class="matrix-table">
+            <thead><tr><th>级别</th><th>含义</th><th>可用于</th></tr></thead>
+            <tbody>
+              <tr><td><code>TargetedGreen</code></td><td>只跑了与改动直接相关的 N 个测试</td><td>本地快速反馈，不可用于合并</td></tr>
+              <tr><td><code>PackageGreen</code></td><td>所在 crate 的 cargo test 全绿</td><td>文档类 PR 的合并门槛</td></tr>
+              <tr><td><code>WorkspaceGreen</code></td><td>cargo test --workspace 全绿</td><td>Feature PR 的测试门槛（还需 stale check）</td></tr>
+              <tr><td><code>MergeReadyGreen</code></td><td>WorkspaceGreen + 通过 stale_branch 检查 + commit 已 push</td><td>Feature PR 的合并门槛</td></tr>
+            </tbody>
+          </table>
+
+          <p style="margin-top: 20px;">
+            策略引擎按车道类型要求不同的最低绿度：feature 车道要求 MergeReadyGreen，文档车道允许 PackageGreen 即可放行。这消灭了「只跑了 targeted test 就声称绿了，下一个并行 worker 在 workspace 维度立刻翻车」的事故。
+          </p>
+
+          <div data-present-step data-step-title="stale_branch 检测与绿度的关系" class="subsection-accordion" style="margin-top: 24px;">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="为什么 stale check 在跑 broad test 之前" data-en="Why stale check precedes broad tests">为什么 stale check 在跑 broad test 之前</span></button>
+              <div class="subsection-content">
+                <p>如果先跑 cargo test --workspace 再查 stale，可能会出现：测试红了 &#x2192; 代理花 30 分钟 debug &#x2192; 发现是 main 上已经修复的 bug，分支没 rebase。浪费的不只是 token，还有人的注意力。</p>
+                <p style="margin-top: 8px;">stale_branch.rs 的设计是<strong>在任何 broad test 之前先比较当前分支与 main</strong>：behind 数 / ahead 数 / 是否漏掉关键 fix commit。如果陈旧，直接发 branch.stale_against_main 事件 + 触发 stale_branch recovery 配方（RebaseBranch + CleanBuild），而不是让代理去 debug 一个不存在的 regression。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="lane completion 的三个必要条件" data-en="Three necessary conditions for lane completion">lane completion 的三个必要条件</span></button>
+              <div class="subsection-content">
+                <p>detect_lane_completion() 同时观察三件事——(1) session 已 finished；(2) tests 已达到要求的 GreenLevel；(3) push 已完成。三者皆真才把 LaneContext.completed 翻成 true，触发策略引擎的 closeout 路径自动 emit lane.finished 与摘要。</p>
+                <p style="margin-top: 8px;">这避免了「session finished 但测试没跑完就声称 done」或「测试绿了但 commit 没 push」的不完整报告。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 08 References -->
+        <section id="refs" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">08 / References</p>
+            <h2>8. 参考来源</h2>
+          </div>
+          <ol class="bib-list">
+            <li><span class="bib-id">[1]</span> <span class="bib-author">worker_boot.rs (1,076 LOC)</span> &#x2014; <code>rust/crates/runtime/src/worker_boot.rs</code><span class="bib-note">WorkerStatus 6 状态 / WorkerEventKind 10 事件 / WorkerRegistry / observe / detect_trust_prompt / detect_prompt_misdelivery</span></li>
+            <li><span class="bib-id">[2]</span> <span class="bib-author">recovery_recipes.rs (630 LOC)</span> &#x2014; <code>rust/crates/runtime/src/recovery_recipes.rs</code><span class="bib-note">7 FailureScenario + RecoveryRecipe + attempt_recovery + 一次性策略</span></li>
+            <li><span class="bib-id">[3]</span> <span class="bib-author">lane_events.rs (243 LOC)</span> &#x2014; <code>rust/crates/runtime/src/lane_events.rs</code><span class="bib-note">16 LaneEventName / 11 LaneFailureClass / LaneEventBlocker</span></li>
+            <li><span class="bib-id">[4]</span> <span class="bib-author">policy_engine.rs (581 LOC)</span> &#x2014; <code>rust/crates/runtime/src/policy_engine.rs</code><span class="bib-note">LaneContext + closeout + lane completion 检测</span></li>
+            <li><span class="bib-id">[5]</span> <span class="bib-author">stale_branch.rs (416 LOC)</span> &#x2014; <code>rust/crates/runtime/src/stale_branch.rs</code><span class="bib-note">branch.stale_against_main 事件源</span></li>
+            <li><span class="bib-id">[6]</span> <span class="bib-author">summary_compression.rs (300 LOC)</span> &#x2014; <code>rust/crates/runtime/src/summary_compression.rs</code><span class="bib-note">compress_summary_text 四元组</span></li>
+            <li><span class="bib-id">[7]</span> <span class="bib-author">trust_resolver.rs (299 LOC)</span> &#x2014; <code>rust/crates/runtime/src/trust_resolver.rs</code><span class="bib-note">trust 关键词检测与允许列表</span></li>
+            <li><span class="bib-id">[8]</span> <span class="bib-author">green_contract.rs (152 LOC)</span> &#x2014; <code>rust/crates/runtime/src/green_contract.rs</code><span class="bib-note">GreenLevel 四档定义</span></li>
+            <li><span class="bib-id">[9]</span> <span class="bib-author">session_control.rs (458 LOC)</span> &#x2014; <code>rust/crates/runtime/src/session_control.rs</code><span class="bib-note">WorkerRegistry 上层会话控制接口</span></li>
+            <li><span class="bib-id">[10]</span> <span class="bib-author">ROADMAP.md</span> &#x2014; <code>ROADMAP.md</code><span class="bib-note">&#x00A7;1&#x2013;&#x00A7;11 设计来源</span></li>
+          </ol>
+        </section>
+      </main>
+
+      <footer class="site-footer" data-reveal>
+        <p>&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。</p>
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>
