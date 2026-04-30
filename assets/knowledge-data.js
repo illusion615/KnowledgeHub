@@ -306,6 +306,25 @@ var knowledgeTree = [
     relations: ['fc-best-practices', 'fc-landscape', 'enterprise-agent-arch']
   },
   {
+    id: 'intellygoal-fc-review',
+    parentId: 'fc-agentic',
+    type: 'article',
+    title: {
+      zh: 'IntellyGoal Function Calling 代码 Review：Pydantic-as-Schema 的优雅实现与 5 个待修补的工程缝隙',
+      en: 'IntellyGoal Function Calling Code Review: Elegant Pydantic-as-Schema and 5 Engineering Gaps to Fix'
+    },
+    summary: {
+      zh: '对 IntellyGoal-by-W 后端 Agent 模块（registry/runtime/tools 共 1049 行）按五维度做 ABCD 评级，列出 5 个 P0/P1 改进项与可执行 patch。',
+      en: 'ABCD review of IntellyGoal-by-W agent module (1049 LOC) across five dimensions, with 5 P0/P1 improvements and executable patches.'
+    },
+    tags: ['Code Review', 'Function Calling', 'Python', 'FastAPI'],
+    date: '2026-04-30',
+    url: 'posts/intellygoal-fc-review/index.html',
+    color: '#6366f1',
+    phase: 3.4, speed: 0.86,
+    relations: ['fc-engineering-optimization', 'fc-best-practices', 'enterprise-agent-arch']
+  },
+  {
     id: 'llm-literary-creation',
     parentId: 'ai-research-model',
     type: 'article',

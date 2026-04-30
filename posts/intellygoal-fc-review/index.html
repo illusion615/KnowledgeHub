@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IntellyGoal Function Calling 代码 Review：Pydantic-as-Schema 的优雅实现与五个待修补的工程缝隙</title>
+  <meta name="description" content="对 IntellyGoal-by-W 后端 Agent 模块的 function calling 相关代码做系统 review：架构亮点、潜在风险、改进方案。" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .grade-table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.95rem; }
+    .grade-table th, .grade-table td { border: 1px solid var(--border-color); padding: 0.6rem 0.8rem; text-align: left; vertical-align: top; }
+    .grade-table th { background: var(--surface-2); font-weight: 600; }
+    .grade-pill { display: inline-block; padding: 0.15rem 0.55rem; border-radius: 999px; font-size: 0.78rem; font-weight: 600; }
+    .grade-A { background: #d1fae5; color: #065f46; }
+    .grade-B { background: #dbeafe; color: #1e40af; }
+    .grade-C { background: #fef3c7; color: #92400e; }
+    .grade-D { background: #fee2e2; color: #991b1b; }
+    [data-theme="dark"] .grade-A { background: #064e3b; color: #6ee7b7; }
+    [data-theme="dark"] .grade-B { background: #1e3a8a; color: #93c5fd; }
+    [data-theme="dark"] .grade-C { background: #78350f; color: #fcd34d; }
+    [data-theme="dark"] .grade-D { background: #7f1d1d; color: #fca5a5; }
+    .code-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+    @media (max-width: 900px) { .code-compare { grid-template-columns: 1fr; } }
+    .code-compare > div { background: var(--surface-2); border: 1px solid var(--border-color); border-radius: 12px; padding: 0.8rem 1rem; }
+    .code-compare h4 { margin: 0 0 0.4rem 0; font-size: 0.9rem; }
+    .code-compare pre { margin: 0; font-size: 0.78rem; overflow-x: auto; line-height: 1.5; background: transparent; }
+    .label-bad { color: #b91c1c; }
+    .label-good { color: #047857; }
+    [data-theme="dark"] .label-bad { color: #fca5a5; }
+    [data-theme="dark"] .label-good { color: #6ee7b7; }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            FC &amp; Agentic
+          </div>
+          <div class="topbar-actions">
+            <nav class="nav-links" aria-label="页面章节导航">
+              <a href="#overview">概览</a>
+              <a href="#architecture">架构</a>
+              <a href="#strengths">亮点</a>
+              <a href="#issues">问题</a>
+              <a href="#recommendations">改进</a>
+            </nav>
+          </div>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Code Review · IntellyGoal-by-W · backend/src/agent</span>
+            <h1>Pydantic-as-Schema 的优雅落地，与 5 个待修补的工程缝隙</h1>
+            <p>IntellyGoal 是一个 AI 目标管理 App，后端用 FastAPI + SQLAlchemy + OpenAI SDK 实现了一个 13 工具的 Function Calling Agent。本文按照《Function Calling 工程化提效》的方法论，对 <code>backend/src/agent/</code> 三个核心文件（registry / runtime / tools，共 1 049 行）逐项 review，给出 ABCD 评级、可执行的改进 patch 和优先级排序。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#issues">查看问题清单</a>
+              <a class="button button-secondary" href="#recommendations">改进 Roadmap</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">综合评级</span>
+            <h2>B+ ／ 单用户原型已达生产线下限，多用户与多模型场景需先补 5 处工程缝隙</h2>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span>架构分层 A：registry / runtime / tools / service 四层职责清晰</li>
+              <li><span class="layer-number">2</span>Schema 工程 A-：Pydantic 单一来源，但缺 strict mode</li>
+              <li><span class="layer-number">3</span>错误处理 B+：tool 错误回灌 LLM，但 prompt 强约束未代码化</li>
+              <li><span class="layer-number">4</span>会话与成本 C+：full-replay 无截断，长对话必爆 token</li>
+              <li><span class="layer-number">5</span>可观测性 C：仅 print 级日志，无 metrics / tracing</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">代码量</div>
+            <strong>1 049 行</strong>
+            <span>registry 133 + runtime 243 + tools 487 + ai_service 186（FC 相关部分）</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">工具数</div>
+            <strong>13 个</strong>
+            <span>读 6 / 写 4 / 复合 3，处于"无需路由"的舒适区</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">最大轮次</div>
+            <strong>6 轮</strong>
+            <span>含重复检测 + 强制总结兜底，避免无限循环</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">关键风险</div>
+            <strong>5 处</strong>
+            <span>strict / 路由 / 历史截断 / 业务前置约束 / 可观测性</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- ============ 01 / 项目概览 ============ -->
+        <section id="overview" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / 项目概览</p>
+            <h2>IntellyGoal 是什么、Agent 为何而生</h2>
+            <p>用一段话先把背景交代清楚，避免后文 review 失去坐标系。</p>
+          </div>
+
+          <div class="insight-grid">
+            <div class="insight-card">
+              <h3>产品定位</h3>
+              <p>用户用自然语言写下目标（如"4 个月减重 15kg"），AI 自动拆 KPI、排日任务、收反馈、给进度报告。后端是 FastAPI + Postgres + OpenAI 兼容 LLM。</p>
+            </div>
+            <div class="insight-card">
+              <h3>Agent 模块的边界</h3>
+              <p><code>backend/src/agent/</code> 只负责"AI 助手对话"——用户在 App 内向小助手提问/下达指令，Agent 通过 13 个工具读写目标/KPI/任务/反馈数据。<strong>非</strong> goal 解析或 KPI 推荐主流程（那些走独立的 <code>AIService</code>）。</p>
+            </div>
+            <div class="insight-card">
+              <h3>三个文件的分工</h3>
+              <p><code>registry.py</code>：装饰器 + 工具注册表，把 Pydantic 模型转 OpenAI tools schema；<code>runtime.py</code>：think→tool→think 循环，含重复检测、强制总结；<code>tools.py</code>：13 个具体工具的薄包装，全部委托给已有 service。</p>
+            </div>
+            <div class="insight-card">
+              <h3>review 的对照系</h3>
+              <p>本文以《Function Calling 工程化提效》中提出的五维度（Schema 工程 / 工具路由 / 上下文管理 / 错误恢复 / 架构模式）为对照系，逐项给评级和改进建议。</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ 02 / 架构解剖 ============ -->
+        <section id="architecture" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / 架构解剖</p>
+            <h2>请求是如何从 HTTP 流到 LLM 再回来的</h2>
+            <p>把数据流摊开看，比对每一层的职责是否单一、契约是否对齐。</p>
+          </div>
+
+          <div class="flow-list">
+            <div class="flow-item">
+              <span class="flow-step">01</span>
+              <div>
+                <h4>HTTP 入口 — <code>controllers/agent_router.py</code></h4>
+                <p><code>POST /api/v1/agent/chat</code> 接收 <code>{session_id?, page_context?, message}</code>，<code>20/minute</code> 限流，鉴权后解析或新建 <code>AgentSession</code>，然后 <code>runtime.run(...)</code>。控制器很薄，符合预期。</p>
+              </div>
+            </div>
+            <div class="flow-item">
+              <span class="flow-step">02</span>
+              <div>
+                <h4>Runtime 编排 — <code>runtime.py</code></h4>
+                <p>1) 持久化 user 消息；2) 从 <code>page_context</code> 用正则抠 <code>client_date</code>；3) 进入最多 6 轮的 think→tool→think 循环；4) 检测 (name,args) 重复立即跳出；5) 强制单次"无 tools"总结作为兜底。</p>
+              </div>
+            </div>
+            <div class="flow-item">
+              <span class="flow-step">03</span>
+              <div>
+                <h4>Schema 生成 — <code>registry.openai_tools()</code></h4>
+                <p>对每个注册工具，调用 Pydantic 的 <code>spec.schema.model_json_schema()</code> 直接得到 JSON Schema，组装成 OpenAI <code>tools</code> 数组。<strong>单一来源</strong>原则贯彻得很好——人不需要手写两份 schema。</p>
+              </div>
+            </div>
+            <div class="flow-item">
+              <span class="flow-step">04</span>
+              <div>
+                <h4>LLM 调用 — <code>ai_service._call_llm_raw_async</code></h4>
+                <p>用 <code>asyncio.to_thread</code> 包同步 OpenAI SDK；<code>tool_choice</code> 默认 <code>"auto"</code>；超时 120 s 适配本地 LLM；APITimeoutError / APIError 各重试 1 次后映射成统一 ApiError。</p>
+              </div>
+            </div>
+            <div class="flow-item">
+              <span class="flow-step">05</span>
+              <div>
+                <h4>Tool 派发 — <code>registry.dispatch</code></h4>
+                <p>JSON 解析 → Pydantic 校验 → 调用 async 工具 → 异常一律捕获并返回 <code>{"error": "..."}</code> 给 LLM 继续推理。<strong>不向上抛</strong>——这是把错误信息回灌模型自我纠正的关键设计。</p>
+              </div>
+            </div>
+            <div class="flow-item">
+              <span class="flow-step">06</span>
+              <div>
+                <h4>持久化 — <code>models/agent.py</code></h4>
+                <p>每一轮 user / assistant / tool 消息都按 <code>idx</code> 写入 <code>agent_messages</code>，下一轮 <code>_replay_for_llm</code> 全量回放。可审计、可断点续聊，但代价是历史无截断（详见 04 节）。</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ 03 / 亮点（A 级实践） ============ -->
+        <section id="strengths" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / 亮点（A 级实践）</p>
+            <h2>四个值得抄到其他项目的设计决策</h2>
+            <p>这些不是锦上添花，而是把 Agent 从"能跑"推到"能稳"的关键决策。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span class="subsection-number">1</span><span>Pydantic-as-Schema：单一来源消除两份 schema 漂移</span></button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">问题背景</div>
+                  <p>很多项目里，工具的 OpenAI JSON Schema 和 Python 入参校验是两套独立写的——schema 改了忘了改校验，校验改了忘了改 schema，参数漂移是 FC 项目最常见的脏活。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">本项目做法</div>
+                  <p>每个工具用 <code>schema=</code> 显式声明一个 <code>BaseModel</code>，<code>registry.openai_tools()</code> 直接调用 <code>model_json_schema()</code> 喂给 OpenAI；<code>dispatch()</code> 又用同一个模型 <code>model_validate()</code> 校验入参。schema 漂移在编译期就被消灭。</p>
+                </div>
+                <div class="action-box">
+                  <div class="event-field-label">推荐复用</div>
+                  <p>这是几乎所有 Python FC 项目的最佳实践，建议作为新工具的强制脚手架。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span class="subsection-number">2</span><span>错误回灌而非抛出：让 LLM 自己读错误自纠</span></button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">关键代码</div>
+                  <pre><code>try:
+    result = await spec.func(args, ctx)
+except Exception as e:
+    _log.error("tool %s raised %s ...", name, ...)
+    return {"error": f"{type(e).__name__}: {e}"}</code></pre>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">为什么对</div>
+                  <p>抛异常会终结整个对话；返回 <code>{"error":...}</code> 把错误作为 tool 消息回灌给 LLM，下一轮模型有机会换参数重试或转告用户。这是 OpenAI 官方指南里多次强调的模式（参见上一篇文章 04 节）。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">细节加分</div>
+                  <p>错误同时落 <code>_log.error</code> 含 <code>traceback</code>，开发可观测；返回给 LLM 的 message 只含 type+msg，不泄露 stack——分级处理得当。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span class="subsection-number">3</span><span>循环检测 + 强制总结：杜绝无限工具调用</span></button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">两道闸</div>
+                  <p>第一道：<code>max_rounds=6</code> 硬上限；第二道：<code>seen_tool_keys</code> 记录已发生的 (name,args_json)，命中重复立即跳出循环并强制总结。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">兜底总结</div>
+                  <p>budget 耗尽后再追加一条 system 消息"基于已有结果直接回答，不要再调用工具"，并以 <code>tools=None</code> 二次调用——保证用户永远拿到一个文本回复，而不是空响应或转圈。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">改进点（在 04 节展开）</div>
+                  <p>跳出后又"白白浪费"了一次 LLM 调用做总结；可以在检测到重复时直接复用已有上下文做局部 collapse，详见 issue #4。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span class="subsection-number">4</span><span>每个工具 in-tool ownership check：纵深防御</span></button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">问题背景</div>
+                  <p>很多 Agent 把鉴权放在 controller，工具内默认"既然能调到就有权限"。但 Agent 工具会被 LLM 任意拼装参数，<strong>必须</strong>在工具边界二次校验。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">本项目做法</div>
+                  <p><code>_owned_goal()</code> 帮手 + 每个写工具内 <code>SELECT ... JOIN Goal WHERE Goal.user_id = ctx.user.id</code>。即使 LLM 幻觉出别人的 goal_id，数据库也不会返回。</p>
+                </div>
+                <div class="action-box">
+                  <div class="event-field-label">安全评级</div>
+                  <p>FC 安全维度 A 级。建议把这个模式抽成 <code>@requires_owned_goal</code> 装饰器，避免每个写工具重复 4 行 SQL。</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ============ 04 / 待修补的 5 处工程缝隙 ============ -->
+        <section id="issues" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / 待修补的 5 处工程缝隙</p>
+            <h2>从原型走向多租户生产前必须修的事</h2>
+            <p>按"修复成本 × 暴露概率"排序，<strong>Issue #1 与 #2 强烈建议在引入第二个真实用户前完成</strong>。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span class="subsection-number">1</span><span>Issue #1：未启用 Strict Mode，schema 偏离风险常驻</span></button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">现状</div>
+                  <p><code>registry.openai_tools()</code> 生成的 tools 数组里没有 <code>"strict": true</code>，<code>function.parameters</code> 也没有 <code>additionalProperties: false</code>。当模型用本地 OSS（gpt-oss、Qwen 等）时，幻觉字段、类型错位（<code>"true"</code> vs <code>true</code>、<code>"2026-04-30"</code> 写成 <code>"明天"</code>）会直接进入 <code>model_validate</code> 抛 ValidationError。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">代码对比</div>
+                  <div class="code-compare">
+                    <div>
+                      <h4 class="label-bad">现状（无 strict）</h4>
+                      <pre><code>schema = spec.schema.model_json_schema()
+schema.setdefault("type", "object")
+schema.setdefault("properties", {})
+out.append({
+  "type": "function",
+  "function": {
+    "name": spec.name,
+    "description": spec.description,
+    "parameters": schema,
+  },
+})</code></pre>
+                    </div>
+                    <div>
+                      <h4 class="label-good">建议（OpenAI 官方 strict）</h4>
+                      <pre><code>schema = spec.schema.model_json_schema()
+schema["additionalProperties"] = False
+# 强制把所有字段进 required
+schema["required"] = list(schema.get("properties", {}).keys())
+out.append({
+  "type": "function",
+  "function": {
+    "name": spec.name,
+    "description": spec.description,
+    "parameters": schema,
+    "strict": True,   # ← OpenAI / vLLM 都支持
+  },
+})</code></pre>
+                    </div>
+                  </div>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">注意事项</div>
+                  <p>strict 要求所有字段 required，因此可选字段需改用 <code>Field(None, json_schema_extra={"nullable": True})</code> 或在 schema 后处理时把 Optional 字段加进 required 但 type 保留 <code>["string","null"]</code>。如果用本地模型不支持 strict，需要在 <code>registry</code> 里加 feature flag。</p>
+                </div>
+                <div class="action-box">
+                  <div class="event-field-label">优先级</div>
+                  <p><span class="grade-pill grade-A">P0</span> 改动小、收益大，是引入更多模型前的护栏。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span class="subsection-number">2</span><span>Issue #2：业务前置约束被写在 prompt 里，模型一不听就脏写</span></button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">现状</div>
+                  <p>SYSTEM_PROMPT 第 7 条规定："写入 notes/actual_value 前必须先调用 get_task_feedback 读已有内容；写入时必须传入『已有内容 + 用户新输入』合并后的完整文本"。这是<strong>典型的约束写在 prompt</strong>——模型 90% 时听话，10% 直接 <code>submit_feedback(notes="新文本")</code> 把历史覆盖掉。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">建议方案</div>
+                  <p>把"先读后合并"从 prompt 约束改为 <strong>service 层强约束</strong>：<code>FeedbackService.submit_feedback</code> 内部先读旧 feedback，按 strategy（<code>"replace" | "append" | "merge"</code>）合并后再写。工具入参增加 <code>merge_strategy</code> 字段，由 LLM 决定语义意图，但合并动作交给后端代码。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">代码示例</div>
+                  <pre><code>class _SubmitFeedbackArgs(BaseModel):
+    task_id: str
+    completed: bool
+    actual_value: Optional[float] = None
+    notes_delta: Optional[str] = None  # 用户本轮新增内容
+    merge_strategy: Literal["append","replace","merge_meal"] = "append"
+
+# service 内
+old = await self.get_feedback(task_id)
+final_notes = self._merge(old.notes, args.notes_delta, args.merge_strategy)
+await self._write(task_id, notes=final_notes, ...)</code></pre>
+                </div>
+                <div class="action-box">
+                  <div class="event-field-label">优先级</div>
+                  <p><span class="grade-pill grade-A">P0</span> 数据正确性问题，覆盖丢失对用户体验是灾难性的。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span class="subsection-number">3</span><span>Issue #3：full-history replay 无截断，长会话必爆 token</span></button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">现状</div>
+                  <p><code>_replay_for_llm</code> 每次都 <code>SELECT * FROM agent_messages WHERE session_id=? ORDER BY idx</code>，把整段历史拼回 messages。在一个跑了几天的 session 里，<code>list_today_tasks</code> 的 tool 返回可能 10 KB+，6 轮调用 + 多日累积，分分钟把 8K context 撑爆。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">三层截断方案</div>
+                  <ol>
+                    <li><strong>分会话边界</strong>：超过 N 小时未活动自动开新 session（前端切到新 conversation 即可）。</li>
+                    <li><strong>tool 结果摘要化</strong>：tool 返回大于阈值（如 2 KB）时落 DB 全量、replay 时截断为前 N 项 + "[... omitted M items]"。</li>
+                    <li><strong>前缀 summary</strong>：当 messages 估算 token > 70% context window，把最早 K 轮压缩成一条 system summary。</li>
+                  </ol>
+                </div>
+                <div class="action-box">
+                  <div class="event-field-label">优先级</div>
+                  <p><span class="grade-pill grade-B">P1</span> 单用户原型不痛，但接入第二个用户或单用户用满一周必爆。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span class="subsection-number">4</span><span>Issue #4：循环检测靠字符串相等，被绕一次就白干</span></button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">现状</div>
+                  <p><code>seen_tool_keys</code> 用 <code>f"{name}|{arguments}"</code> 做 key，且 <code>arguments</code> 是模型原始字符串。如果模型把 <code>{"goal_id":"a"}</code> 第二次写成 <code>{ "goal_id":"a" }</code>（多了空格），重复检测就失效。另外即使检测到重复，也是<strong>先 dispatch 再 break</strong>——第二次相同调用还是被执行了。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">建议改法</div>
+                  <pre><code># 1) 规范化 key：先 json.loads 再 sort_keys 再 dumps
+try:
+    norm = json.dumps(json.loads(tc["arguments"] or "{}"),
+                      sort_keys=True, ensure_ascii=False)
+except json.JSONDecodeError:
+    norm = tc["arguments"]
+key = f"{tc['name']}|{norm}"
+
+# 2) 重复时直接复用已有 trace 的 result，跳过 dispatch
+if key in seen_tool_keys:
+    cached = next(t for t in traces if ...)  # 同 key 的最近结果
+    result = cached.result
+else:
+    result = await registry.dispatch(...)</code></pre>
+                </div>
+                <div class="action-box">
+                  <div class="event-field-label">优先级</div>
+                  <p><span class="grade-pill grade-B">P1</span> 不会出错，但在重负载场景下省钱省延迟。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span class="subsection-number">5</span><span>Issue #5：可观测性近乎为零，线上问题无法定位</span></button>
+              <div class="subsection-content">
+                <div class="event-field">
+                  <div class="event-field-label">现状</div>
+                  <p>除了 <code>_log.error</code> 在工具异常时打 traceback，没有任何 metrics：tool 调用次数 / 成功率 / p50-p99 延迟 / token usage / 平均 round 数 / 强制总结触发率，统统看不到。一旦"用户说 AI 又乱说话了"，开发只能去翻 <code>agent_messages</code> 表硬看 SQL。</p>
+                </div>
+                <div class="event-field">
+                  <div class="event-field-label">最小可行方案</div>
+                  <ol>
+                    <li>在 <code>AgentRuntime.run</code> 入口/出口埋 <code>time.perf_counter()</code>，输出 INFO 级 <code>agent_run session=... rounds=N tools=[...] elapsed_ms=...</code>。</li>
+                    <li>在 <code>registry.dispatch</code> 包一层 <code>(name, ok, ms)</code> 计数，落 Prometheus 或写 <code>agent_metrics</code> 小表。</li>
+                    <li>把 OpenAI <code>resp.usage</code>（<code>prompt_tokens / completion_tokens</code>）也存到 <code>AgentMessage.metadata</code>，方便后续 cost dashboard。</li>
+                  </ol>
+                </div>
+                <div class="action-box">
+                  <div class="event-field-label">优先级</div>
+                  <p><span class="grade-pill grade-B">P1</span> 上线前必备，线上后才补成本极高。</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ============ 05 / 评级矩阵 ============ -->
+        <section id="grading" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / 评级矩阵</p>
+            <h2>按五维度对照《FC 工程化提效》打分</h2>
+            <p>评级口径：<span class="grade-pill grade-A">A</span> 可作为最佳实践抄；<span class="grade-pill grade-B">B</span> 满足生产门槛；<span class="grade-pill grade-C">C</span> 原型可用但生产前需补；<span class="grade-pill grade-D">D</span> 有正确性或安全风险。</p>
+          </div>
+
+          <table class="grade-table">
+            <thead>
+              <tr>
+                <th>维度</th>
+                <th>评级</th>
+                <th>说明</th>
+                <th>对应改进项</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Schema 工程</td>
+                <td><span class="grade-pill grade-B">A-</span></td>
+                <td>Pydantic 单一来源；description 中文清晰；<strong>缺 strict mode + additionalProperties:false</strong>。</td>
+                <td>Issue #1</td>
+              </tr>
+              <tr>
+                <td>工具路由</td>
+                <td><span class="grade-pill grade-A">A</span></td>
+                <td>13 个工具处于"无需路由"舒适区；<code>tool_choice="auto"</code> 直接用全集合理。如果未来 &gt; 30 工具，需引入分层。</td>
+                <td>—</td>
+              </tr>
+              <tr>
+                <td>错误恢复</td>
+                <td><span class="grade-pill grade-B">B+</span></td>
+                <td>tool 错误回灌 LLM 是教科书写法；<strong>但前置约束（先读后写）写在 prompt 里靠不住</strong>。</td>
+                <td>Issue #2</td>
+              </tr>
+              <tr>
+                <td>上下文 / 成本</td>
+                <td><span class="grade-pill grade-C">C+</span></td>
+                <td>会话持久化 + 全量回放对调试友好；<strong>但缺历史截断与 tool 结果摘要化</strong>，长会话必爆 token。</td>
+                <td>Issue #3</td>
+              </tr>
+              <tr>
+                <td>架构模式</td>
+                <td><span class="grade-pill grade-A">A</span></td>
+                <td>registry / runtime / tools / service 四层职责单一；纵深鉴权到位；循环检测 + 强制总结优雅。</td>
+                <td>Issue #4 (优化)</td>
+              </tr>
+              <tr>
+                <td>安全</td>
+                <td><span class="grade-pill grade-A">A</span></td>
+                <td>每个工具内 join Goal.user_id 二次校验；ApiError 不泄露 stack；<code>_to_jsonable</code> 在 SQLAlchemy fallback 时<em>会</em>暴露所有列，需注意未来不要把敏感模型直接 return。</td>
+                <td>—</td>
+              </tr>
+              <tr>
+                <td>可观测性</td>
+                <td><span class="grade-pill grade-C">C</span></td>
+                <td>仅 ERROR 级日志；无 metrics / tracing / cost dashboard。</td>
+                <td>Issue #5</td>
+              </tr>
+              <tr>
+                <td>多模型适配</td>
+                <td><span class="grade-pill grade-B">B</span></td>
+                <td>统一走 OpenAI 兼容协议（OpenAI / vLLM / Ollama 都能跑），适配面广；<code>temperature=0.3</code> 对 FC 偏高，建议 0–0.1。</td>
+                <td>Issue #1 配套</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- ============ 06 / 改进 Roadmap ============ -->
+        <section id="recommendations" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / 改进 Roadmap</p>
+            <h2>按优先级排好的可执行清单</h2>
+            <p>每条都是周级可完成的小改动，建议按 P0 → P1 → P2 顺序推进。</p>
+          </div>
+
+          <div class="comparison-grid">
+            <div class="comparison-col">
+              <h3 class="comparison-title">P0 · 本周</h3>
+              <ul class="flow-list">
+                <li class="flow-item"><span class="flow-step">1</span><div><h4>启用 Strict Schema</h4><p>改 <code>registry.openai_tools()</code>：所有字段 required + <code>additionalProperties:false</code> + <code>strict:true</code>；可选字段改 nullable union。Issue #1。</p></div></li>
+                <li class="flow-item"><span class="flow-step">2</span><div><h4>把"先读后合并"挪进 service</h4><p><code>FeedbackService.submit_feedback</code> 内部读旧值并按 strategy 合并；工具入参改 <code>notes_delta + merge_strategy</code>。Issue #2。</p></div></li>
+                <li class="flow-item"><span class="flow-step">3</span><div><h4>FC 调用降温度</h4><p><code>_call_llm_raw_sync</code> 默认 <code>temperature=0</code>，让生成 schema 更稳定；自由文本回复可在 forced summary 时调回 0.3。</p></div></li>
+              </ul>
+            </div>
+
+            <div class="comparison-col">
+              <h3 class="comparison-title">P1 · 本月</h3>
+              <ul class="flow-list">
+                <li class="flow-item"><span class="flow-step">4</span><div><h4>历史截断三件套</h4><p>session 自动按 N 小时切；tool 结果 &gt;2KB 截断 replay；超 70% context 触发 prefix summary。Issue #3。</p></div></li>
+                <li class="flow-item"><span class="flow-step">5</span><div><h4>循环检测规范化</h4><p>arguments JSON 解析后 sort_keys 再 hash；命中重复直接复用 trace、跳过 dispatch。Issue #4。</p></div></li>
+                <li class="flow-item"><span class="flow-step">6</span><div><h4>最小 metrics</h4><p>埋 tool 调用 (name, ok, ms)、round 数、token usage；落 <code>agent_metrics</code> 表或推 Prometheus。Issue #5。</p></div></li>
+              </ul>
+            </div>
+
+            <div class="comparison-col">
+              <h3 class="comparison-title">P2 · 季度</h3>
+              <ul class="flow-list">
+                <li class="flow-item"><span class="flow-step">7</span><div><h4>page_context 结构化</h4><p>改成 <code>{"goal_id": "...", "client_date": "..."}</code> JSON，砍掉 runtime 里那段正则；schema 校验用 Pydantic。</p></div></li>
+                <li class="flow-item"><span class="flow-step">8</span><div><h4>parse_goal / clarify 也改 FC</h4><p>当前用 JSON-mode + 手写 fence-strip，脆弱；这两条同样可以表达成 tool schema，让模型走 strict FC 出结构化数据。</p></div></li>
+                <li class="flow-item"><span class="flow-step">9</span><div><h4>Eval 闭环</h4><p>定义 20–50 条典型对话作为回归集，每次模型/prompt 改动跑一遍，记录 tool 调用准确率、强制总结触发率、平均 round 数。</p></div></li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ 07 / 一句话总结 ============ -->
+        <section id="conclusion" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">07 / 一句话总结</p>
+            <h2>把 prompt 约束代码化、把成本可观测化，这套 Agent 就能上线</h2>
+          </div>
+
+          <div class="insight-grid">
+            <div class="insight-card">
+              <h3>给作者</h3>
+              <p>架构选型已经踩在了 Python FC 项目的最佳实践上（Pydantic schema + 错误回灌 + 纵深鉴权 + 循环检测）。下一步只需把"靠 prompt 自律"的两条约束（先读后写、字段填全）变成"代码强制"，再补上历史截断与 metrics，就达到了多用户 SaaS 的工程门槛。</p>
+            </div>
+            <div class="insight-card">
+              <h3>给读者</h3>
+              <p>这是一个干净的"参考实现"：8 成代码值得直接抄，2 成代码暴露了 prompt-driven Agent 的常见缝隙。把本文的 5 个 issue 当作自查清单，就能在自家项目里少踩 80% 的同类坑。</p>
+            </div>
+            <div class="insight-card">
+              <h3>给 Agent 框架设计者</h3>
+              <p>本项目的实践印证了《FC 工程化提效》的核心论点：<strong>同一个模型下，工程做到位能把成功率提一个数量级</strong>。Schema 工程（strict）、错误回灌、循环兜底、纵深鉴权——这四件事远比换更大的模型更值得投资。</p>
+            </div>
+            <div class="insight-card">
+              <h3>相关阅读</h3>
+              <p><a href="../fc-engineering-optimization/">Function Calling 工程化提效</a>（本文方法论来源）｜<a href="../function-calling-best-practices/">Function Calling 最佳实践</a>｜<a href="../enterprise-agent-architecture/">企业 Agent 架构</a>。</p>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <p>&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。</p>
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>
