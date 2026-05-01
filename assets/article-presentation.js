@@ -549,6 +549,10 @@ document.addEventListener('DOMContentLoaded', function () {
         lastBrowserVoice = '';
         syncVoiceList();
       }
+      // Refresh presentation step label/title now that lang has changed
+      if (state.enabled) {
+        setPresentationStep(state.index);
+      }
       saveLaunchSettings();
     });
 
@@ -1847,7 +1851,9 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   var deriveStepTitle = function (step, index) {
-    var explicit = step.getAttribute('data-step-title');
+    var lang = getLang();
+    var localized = step.getAttribute('data-step-title-' + lang);
+    var explicit = localized || step.getAttribute('data-step-title');
     var heading;
 
     if (explicit) {
@@ -1868,7 +1874,9 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   var deriveStepLabel = function (step, index) {
-    var explicit = step.getAttribute('data-step-label');
+    var lang = getLang();
+    var localized = step.getAttribute('data-step-label-' + lang);
+    var explicit = localized || step.getAttribute('data-step-label');
     var heading;
 
     if (explicit) {

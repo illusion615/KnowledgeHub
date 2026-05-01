@@ -1,0 +1,2870 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>销售 CRM 界面原型设计文档 — Vibe Coding 提示词集</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(2rem, 4.6vw, 3.4rem);
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      max-width: 22ch;
+    }
+    .metric strong small {
+      font-size: 0.55em;
+      font-weight: 600;
+      opacity: 0.78;
+      margin-left: 2px;
+    }
+
+    /* ── Pain points ── */
+    .pain-card {
+      padding: 22px 24px;
+      border-radius: 16px;
+      background: rgba(239,68,68,0.05);
+      border: 1px solid rgba(239,68,68,0.18);
+    }
+    .pain-card .pain-tag {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      background: rgba(239,68,68,0.18);
+      color: #f87171;
+    }
+    [data-theme="light"] .pain-card { background: rgba(239,68,68,0.04); }
+    [data-theme="light"] .pain-card .pain-tag { color: #dc2626; }
+    .pain-card h3 { margin: 0 0 8px; font-size: 1.08rem; }
+    .pain-card p { margin: 0; opacity: 0.85; font-size: 0.92rem; line-height: 1.65; }
+
+/* ── Architecture diagram (grid layout, not stack) ── */
+    .arch-diagram {
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      grid-template-areas:
+        "experience  governance"
+        "engine      governance"
+        "data        governance"
+        "sap         governance";
+      gap: 14px 18px;
+      margin: 0;
+    }
+    .arch-experience { grid-area: experience; }
+    .arch-row-engine { grid-area: engine; }
+    .arch-data { grid-area: data; }
+    .arch-sap { grid-area: sap; }
+    .arch-governance { grid-area: governance; }
+
+    .arch-cell {
+      padding: 18px 22px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.04);
+      position: relative;
+    }
+    [data-theme="light"] .arch-cell {
+      background: rgba(0,0,0,0.025);
+      border-color: rgba(0,0,0,0.08);
+    }
+    .arch-cell .layer-tag {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .layer-tag-experience { background: rgba(168,85,247,0.18); color: #c084fc; }
+    .layer-tag-cognitive { background: rgba(249,115,22,0.18); color: #fb923c; }
+    .layer-tag-orchestration { background: rgba(20,184,166,0.18); color: #2dd4bf; }
+    .layer-tag-data { background: rgba(14,165,233,0.18); color: #38bdf8; }
+    .layer-tag-system { background: rgba(148,163,184,0.18); color: #cbd5e1; }
+    .layer-tag-governance { background: rgba(99,102,241,0.18); color: #a5b4fc; }
+    .arch-cell h3 { margin: 0 0 6px; font-size: 1.05rem; }
+    .arch-cell p { margin: 0 0 10px; font-size: 0.9rem; opacity: 0.82; line-height: 1.6; }
+
+    .arch-row-engine {
+      display: grid;
+      grid-template-columns: 1fr 36px 1fr;
+      gap: 10px;
+      align-items: stretch;
+    }
+    .arch-link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      color: #fb923c;
+      font-weight: 700;
+    }
+    .arch-sap {
+      background: rgba(148,163,184,0.06);
+      border-style: dashed;
+    }
+    [data-theme="light"] .arch-sap {
+      background: rgba(148,163,184,0.08);
+    }
+    .arch-governance {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      background: linear-gradient(180deg, rgba(99,102,241,0.08), rgba(99,102,241,0.02));
+      border-color: rgba(99,102,241,0.25);
+    }
+    [data-theme="light"] .arch-governance {
+      background: linear-gradient(180deg, rgba(99,102,241,0.06), rgba(99,102,241,0.02));
+      border-color: rgba(99,102,241,0.25);
+    }
+    .arch-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 8px 0 0;
+    }
+    .arch-chip {
+      padding: 4px 10px;
+      border-radius: 10px;
+      font-size: 0.78rem;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    [data-theme="light"] .arch-chip {
+      background: rgba(0,0,0,0.04);
+      border-color: rgba(0,0,0,0.08);
+    }
+    @media (max-width: 880px) {
+      .arch-diagram {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "experience"
+          "engine"
+          "data"
+          "sap"
+          "governance";
+      }
+      .arch-row-engine {
+        grid-template-columns: 1fr;
+      }
+      .arch-link { transform: rotate(90deg); padding: 4px 0; }
+    }
+
+    /* ── Philosophy summary (presentation 2x2) ── */
+    .philosophy-summary {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .philosophy-summary .principle-card {
+      padding: 16px 20px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    [data-theme="light"] .philosophy-summary .principle-card {
+      background: rgba(0,0,0,0.025);
+      border-color: rgba(0,0,0,0.08);
+    }
+    .philosophy-summary .principle-num {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 10px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      background: rgba(168,85,247,0.18);
+      color: #c084fc;
+      margin-bottom: 8px;
+    }
+    .philosophy-summary .principle-card h3 {
+      margin: 0 0 6px; font-size: 1.02rem;
+    }
+    .philosophy-summary .principle-card p {
+      margin: 0; font-size: 0.88rem; line-height: 1.55; opacity: 0.85;
+    }
+    .philosophy-summary .principle-rule {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px dashed rgba(255,255,255,0.1);
+      font-size: 0.8rem;
+      line-height: 1.5;
+      opacity: 0.78;
+    }
+    [data-theme="light"] .philosophy-summary .principle-rule {
+      border-top-color: rgba(0,0,0,0.1);
+    }
+    .philosophy-summary .principle-rule strong {
+      display: block;
+      font-size: 0.66rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: #2dd4bf;
+      margin-bottom: 3px;
+    }
+    [data-theme="light"] .philosophy-summary .principle-rule strong { color: #0d9488; }
+    @media (max-width: 720px) {
+      .philosophy-summary { grid-template-columns: 1fr; }
+    }
+
+    /* ── Benefits ── */
+    .benefit-groups {
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+    .benefit-group {
+      padding: 20px 22px 22px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.025);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-left: 3px solid #2dd4bf;
+    }
+    .benefit-group + .benefit-group { margin-top: 28px; }
+    [data-theme="light"] .benefit-group {
+      background: rgba(0,0,0,0.018);
+      border-color: rgba(0,0,0,0.06);
+    }
+    .benefit-group.bg-sales { border-left-color: #2dd4bf; }
+    .benefit-group.bg-process { border-left-color: #fb923c; }
+    .benefit-group.bg-scale { border-left-color: #a78bfa; }
+    .benefit-group-head {
+      display: flex;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px dashed rgba(255,255,255,0.08);
+    }
+    [data-theme="light"] .benefit-group-head { border-bottom-color: rgba(0,0,0,0.08); }
+    .benefit-group-num {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 0.78rem;
+      letter-spacing: 0.14em;
+      padding: 4px 10px;
+      border-radius: 10px;
+    }
+    .bg-sales .benefit-group-num { background: rgba(20,184,166,0.18); color: #2dd4bf; }
+    .bg-process .benefit-group-num { background: rgba(251,146,60,0.18); color: #fb923c; }
+    .bg-scale .benefit-group-num { background: rgba(167,139,250,0.18); color: #a78bfa; }
+    [data-theme="light"] .bg-sales .benefit-group-num { color: #0d9488; }
+    [data-theme="light"] .bg-process .benefit-group-num { color: #c2410c; }
+    [data-theme="light"] .bg-scale .benefit-group-num { color: #6d28d9; }
+    .benefit-group-title {
+      margin: 0;
+      font-size: 1.08rem;
+      font-weight: 700;
+    }
+    .benefit-group-tagline {
+      flex: 1 1 100%;
+      margin: 0;
+      font-size: 0.85rem;
+      opacity: 0.7;
+      line-height: 1.55;
+    }
+    .benefit-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+    }
+    .benefit-card {
+      padding: 22px 24px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      position: relative;
+    }
+    [data-theme="light"] .benefit-card {
+      background: rgba(0,0,0,0.025);
+      border-color: rgba(0,0,0,0.08);
+    }
+    .benefit-card .benefit-tag {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      background: rgba(20,184,166,0.18);
+      color: #2dd4bf;
+    }
+    [data-theme="light"] .benefit-card .benefit-tag { color: #0d9488; }
+    .benefit-card h3 { margin: 0 0 6px; font-size: 1.02rem; }
+    .benefit-card .benefit-metric {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 1.6rem;
+      color: #fb923c;
+      margin: 6px 0 8px;
+      line-height: 1.1;
+    }
+    .benefit-card p { margin: 0; font-size: 0.9rem; line-height: 1.6; opacity: 0.85; }
+    .benefit-card .benefit-note {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px dashed rgba(255,255,255,0.1);
+      font-size: 0.8rem;
+      opacity: 0.65;
+    }
+    [data-theme="light"] .benefit-card .benefit-note {
+      border-top-color: rgba(0,0,0,0.1);
+    }
+
+    /* ── Day in the life timeline ── */
+    .day-timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .day-slot {
+      display: grid;
+      grid-template-columns: 96px 1fr;
+      gap: 18px;
+      align-items: start;
+      padding: 18px 22px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    [data-theme="light"] .day-slot {
+      background: rgba(0,0,0,0.025);
+      border-color: rgba(0,0,0,0.08);
+    }
+    .day-slot .day-time {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: #fb923c;
+      letter-spacing: 0.02em;
+    }
+    .day-slot h3 { margin: 0 0 6px; font-size: 1rem; }
+    .day-slot p { margin: 0; font-size: 0.92rem; line-height: 1.65; opacity: 0.85; }
+    .day-slot .day-quote {
+      margin-top: 10px;
+      padding: 10px 14px;
+      border-left: 3px solid #fb923c;
+      background: rgba(251,146,60,0.08);
+      border-radius: 8px;
+      font-style: italic;
+      font-size: 0.88rem;
+    }
+    @media (max-width: 720px) {
+      .day-slot { grid-template-columns: 1fr; gap: 6px; }
+    }
+
+    /* ── Roadmap ── */
+    .roadmap {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .roadmap-phase {
+      padding: 22px 24px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      position: relative;
+    }
+    [data-theme="light"] .roadmap-phase {
+      background: rgba(0,0,0,0.025);
+      border-color: rgba(0,0,0,0.08);
+    }
+    .roadmap-phase .phase-tag {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .phase-tag-1 { background: rgba(14,165,233,0.18); color: #38bdf8; }
+    .phase-tag-2 { background: rgba(168,85,247,0.18); color: #c084fc; }
+    .phase-tag-3 { background: rgba(249,115,22,0.18); color: #fb923c; }
+    .phase-tag-4 { background: rgba(20,184,166,0.18); color: #2dd4bf; }
+    .roadmap-phase h3 { margin: 0 0 6px; font-size: 1.05rem; }
+    .roadmap-phase .phase-meta {
+      display: inline-block;
+      margin-left: 8px;
+      font-size: 0.82rem;
+      opacity: 0.7;
+      font-weight: 500;
+    }
+    .roadmap-phase ul {
+      margin: 10px 0 0;
+      padding-left: 20px;
+      font-size: 0.9rem;
+      line-height: 1.7;
+      opacity: 0.88;
+    }
+    .is-presentation-mode .roadmap-phase ul {
+      column-count: 2;
+      column-gap: 28px;
+    }
+    .is-presentation-mode .roadmap-phase ul li {
+      break-inside: avoid;
+      -webkit-column-break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    /* ── License table ── */
+    .license-table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    [data-theme="light"] .license-table-wrap {
+      background: rgba(0,0,0,0.025);
+      border-color: rgba(0,0,0,0.08);
+    }
+    .license-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      min-width: 720px;
+    }
+    .license-table thead th {
+      text-align: left;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #c084fc;
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.03);
+      vertical-align: bottom;
+    }
+    [data-theme="light"] .license-table thead th {
+      border-bottom-color: rgba(0,0,0,0.12);
+      background: rgba(0,0,0,0.03);
+      color: #7c3aed;
+    }
+    .license-table tbody td {
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      vertical-align: top;
+      line-height: 1.55;
+    }
+    [data-theme="light"] .license-table tbody td {
+      border-bottom-color: rgba(0,0,0,0.06);
+    }
+    .license-table tbody tr:last-child td { border-bottom: none; }
+    .license-table tbody tr:hover td { background: rgba(255,255,255,0.025); }
+    [data-theme="light"] .license-table tbody tr:hover td { background: rgba(0,0,0,0.02); }
+    .license-table .lic-role { font-weight: 700; white-space: nowrap; min-width: 140px; }
+    .license-table .lic-sku { font-weight: 600; color: #fde68a; min-width: 220px; }
+    [data-theme="light"] .license-table .lic-sku { color: #b45309; }
+    .license-table .lic-scope { font-size: 0.82rem; opacity: 0.72; min-width: 160px; }
+    .license-table .lic-note { opacity: 0.85; }
+
+    /* ── Agent map ── */
+    .agent-domain {
+      padding: 18px 22px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      margin-bottom: 12px;
+    }
+    [data-theme="light"] .agent-domain {
+      background: rgba(0,0,0,0.025);
+      border-color: rgba(0,0,0,0.08);
+    }
+    .agent-domain h4 {
+      margin: 0 0 8px;
+      font-size: 0.95rem;
+      color: #fb923c;
+      letter-spacing: 0.02em;
+    }
+    .agent-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .agent-pill {
+      padding: 5px 12px;
+      border-radius: 14px;
+      font-size: 0.82rem;
+      background: rgba(168,85,247,0.12);
+      border: 1px solid rgba(168,85,247,0.25);
+      color: #c084fc;
+    }
+    [data-theme="light"] .agent-pill {
+      background: rgba(168,85,247,0.08);
+      color: #7e22ce;
+    }
+    .agent-legend {
+      margin-top: 12px;
+      font-size: 0.85rem;
+      opacity: 0.7;
+    }
+
+    /* dark theme reaffirmation (avoid validator warning) */
+    [data-theme="dark"] .pain-card { background: rgba(239,68,68,0.05); border-color: rgba(239,68,68,0.18); }
+    [data-theme="dark"] .arch-cell { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.1); }
+    [data-theme="dark"] .day-slot { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08); }
+    [data-theme="dark"] .roadmap-phase { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08); }
+    [data-theme="dark"] .agent-domain { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08); }
+    [data-theme="dark"] .benefit-card { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08); }
+
+    /* ── Prototype Mockups ── */
+    .proto-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      align-items: start;
+    }
+    @media (max-width: 980px) {
+      .proto-grid { grid-template-columns: 1fr; max-width: 320px; margin: 0 auto; }
+    }
+    .proto-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* ── Prototype + Vibe Coding prompt, two-column ── */
+    #prototypes [data-present-step] + [data-present-step] { margin-top: 64px; }
+    @media (max-width: 980px) {
+      #prototypes [data-present-step] + [data-present-step] { margin-top: 48px; }
+    }
+    .proto-detail {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 36px;
+      align-items: start;
+    }
+    @media (max-width: 980px) {
+      .proto-detail { grid-template-columns: 1fr; max-width: 560px; margin: 0 auto; gap: 24px; }
+      .proto-detail .proto-col { margin: 0 auto; }
+    }
+    .proto-prompt {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      min-width: 0;
+    }
+    .proto-prompt-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .proto-prompt-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: rgba(124,58,237,0.16);
+      color: #c4b5fd;
+    }
+    [data-theme="light"] .proto-prompt-tag { background: rgba(124,58,237,0.12); color: #6d28d9; }
+    .proto-prompt-head h3 {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: 0.005em;
+    }
+    .proto-prompt-lead {
+      margin: 0;
+      font-size: 0.86rem;
+      line-height: 1.6;
+      opacity: 0.8;
+    }
+    .proto-prompt-block {
+      position: relative;
+      margin: 0;
+      padding: 18px 20px 20px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(15,20,36,0.55);
+      backdrop-filter: blur(6px);
+      font-family: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+      font-size: 0.78rem;
+      line-height: 1.65;
+      color: #e6e9f4;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 460px;
+      overflow: auto;
+    }
+    [data-theme="light"] .proto-prompt-block {
+      background: rgba(255,251,243,0.7);
+      border-color: rgba(15,20,36,0.10);
+      color: #1f2937;
+    }
+    .proto-prompt-block::-webkit-scrollbar { width: 6px; }
+    .proto-prompt-block::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 3px; }
+    [data-theme="light"] .proto-prompt-block::-webkit-scrollbar-thumb { background: rgba(15,20,36,0.18); }
+    .proto-prompt-block strong {
+      color: #ffd8a3;
+      font-weight: 700;
+    }
+    [data-theme="light"] .proto-prompt-block strong { color: #c2410c; }
+    .proto-prompt-wrap {
+      position: relative;
+    }
+    .proto-prompt-copy {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 2;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(15,20,36,0.65);
+      color: #e6e9f4;
+      cursor: pointer;
+      opacity: 0.55;
+      transition: opacity 0.18s ease, background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+    }
+    .proto-prompt-wrap:hover .proto-prompt-copy,
+    .proto-prompt-copy:focus-visible {
+      opacity: 1;
+    }
+    .proto-prompt-copy:hover {
+      background: rgba(255,216,163,0.18);
+      border-color: rgba(255,216,163,0.5);
+      color: #ffd8a3;
+    }
+    .proto-prompt-copy.is-copied {
+      opacity: 1;
+      background: rgba(120,200,140,0.22);
+      border-color: rgba(120,200,140,0.55);
+      color: #b6efc4;
+    }
+    .proto-prompt-copy svg {
+      width: 14px;
+      height: 14px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    [data-theme="light"] .proto-prompt-copy {
+      background: rgba(255,251,243,0.85);
+      border-color: rgba(15,20,36,0.16);
+      color: #1f2937;
+    }
+    [data-theme="light"] .proto-prompt-copy:hover {
+      background: rgba(194,65,12,0.12);
+      border-color: rgba(194,65,12,0.4);
+      color: #c2410c;
+    }
+    [data-theme="light"] .proto-prompt-copy.is-copied {
+      background: rgba(34,139,69,0.14);
+      border-color: rgba(34,139,69,0.45);
+      color: #15803d;
+    }
+    .proto-prompt-foot {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 8px;
+      font-size: 0.74rem;
+      opacity: 0.65;
+    }
+    .proto-prompt-foot span {
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    [data-theme="light"] .proto-prompt-foot span { background: rgba(15,20,36,0.04); border-color: rgba(15,20,36,0.08); }
+    .proto-prompt-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 14px 14px 16px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.025);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    [data-theme="light"] .proto-prompt-section {
+      background: rgba(15,20,36,0.02);
+      border-color: rgba(15,20,36,0.06);
+    }
+    .proto-prompt-section + .proto-prompt-section { margin-top: 8px; }
+    .proto-prompt-stage {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 8px 12px;
+    }
+    .proto-prompt-stage-label {
+      font-weight: 700;
+      font-size: 0.92rem;
+      letter-spacing: 0.01em;
+      color: #FF8A2A;
+    }
+    [data-theme="light"] .proto-prompt-stage-label { color: #c2410c; }
+    .proto-prompt-stage-where {
+      font-size: 0.74rem;
+      padding: 2px 9px;
+      border-radius: 999px;
+      background: rgba(255,138,42,0.12);
+      border: 1px solid rgba(255,138,42,0.25);
+      color: #FFB075;
+    }
+    [data-theme="light"] .proto-prompt-stage-where {
+      background: rgba(194,65,12,0.08);
+      border-color: rgba(194,65,12,0.25);
+      color: #c2410c;
+    }
+    .proto-prompt-steps {
+      margin: 0;
+      padding-left: 18px;
+      font-size: 0.82rem;
+      line-height: 1.55;
+      opacity: 0.85;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .proto-prompt-steps li::marker { color: #FF8A2A; font-weight: 600; }
+    [data-theme="light"] .proto-prompt-steps li::marker { color: #c2410c; }
+    .proto-prompt-steps strong { color: #FFB075; }
+    [data-theme="light"] .proto-prompt-steps strong { color: #c2410c; }
+    .proto-caption {
+      text-align: center;
+      max-width: 280px;
+    }
+    .proto-caption .proto-tag {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      background: rgba(168,85,247,0.18);
+      color: #c084fc;
+    }
+    [data-theme="light"] .proto-caption .proto-tag { color: #7e22ce; }
+    .proto-caption h3 { margin: 0 0 4px; font-size: 0.98rem; }
+    .proto-caption p { margin: 0; font-size: 0.82rem; opacity: 0.75; line-height: 1.5; }
+
+    /* ── Bootstrap blueprint card (left column substitute for the phone mock) ── */
+    .bootstrap-blueprint {
+      width: 100%;
+      max-width: 320px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: linear-gradient(160deg, rgba(255,122,0,0.10), rgba(124,58,237,0.10));
+      padding: 18px 18px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    [data-theme="light"] .bootstrap-blueprint {
+      background: linear-gradient(160deg, rgba(255,122,0,0.10), rgba(124,58,237,0.08));
+      border-color: rgba(15,20,36,0.10);
+    }
+    .bp-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      opacity: 0.85;
+    }
+    .bp-title::before {
+      content: "▣";
+      color: #ffd8a3;
+      font-size: 0.9rem;
+    }
+    .bp-group {
+      border-top: 1px dashed rgba(255,255,255,0.10);
+      padding-top: 10px;
+    }
+    [data-theme="light"] .bp-group { border-top-color: rgba(15,20,36,0.12); }
+    .bp-group:first-of-type { border-top: none; padding-top: 0; }
+    .bp-group h4 {
+      margin: 0 0 6px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      opacity: 0.9;
+    }
+    .bp-group ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .bp-group li {
+      font-size: 0.74rem;
+      line-height: 1.5;
+      opacity: 0.78;
+      display: flex;
+      gap: 6px;
+    }
+    .bp-group li::before {
+      content: "·";
+      color: #ffd8a3;
+      font-weight: 700;
+    }
+    .bp-foot {
+      margin-top: 4px;
+      font-size: 0.7rem;
+      opacity: 0.6;
+      line-height: 1.45;
+    }
+
+
+    .phone-frame {
+      width: 280px;
+      height: calc(280px * 19 / 9);
+      border-radius: 36px;
+      padding: 10px;
+      background: linear-gradient(160deg, #1a1d2a, #0d0f17);
+      box-shadow: 0 18px 40px rgba(0,0,0,0.45), 0 2px 0 rgba(255,255,255,0.05) inset;
+      position: relative;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    [data-theme="light"] .phone-frame {
+      background: linear-gradient(160deg, #2a2d3a, #1a1d2a);
+      box-shadow: 0 18px 40px rgba(0,0,0,0.18);
+    }
+    .phone-frame::before {
+      content: '';
+      position: absolute;
+      top: 16px; left: 50%;
+      width: 90px; height: 22px;
+      background: #0d0f17;
+      border-radius: 0 0 14px 14px;
+      transform: translateX(-50%);
+      z-index: 3;
+    }
+    .phone-screen {
+      width: 100%; height: 100%;
+      border-radius: 28px;
+      background: linear-gradient(180deg, #0f1424 0%, #161b2c 100%);
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      color: #e6e9f4;
+      font-size: 11px;
+      line-height: 1.4;
+    }
+    .phone-status {
+      flex-shrink: 0;
+      padding: 8px 22px 4px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 9.5px;
+      opacity: 0.8;
+      font-weight: 600;
+    }
+    .phone-status .status-icons { letter-spacing: 1px; }
+    .phone-header {
+      flex-shrink: 0;
+      padding: 28px 16px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .phone-header .ph-back { opacity: 0.6; font-size: 14px; }
+    .phone-header .ph-title { font-weight: 600; font-size: 12px; flex: 1; text-align: center; }
+    .phone-header .ph-action { opacity: 0.55; font-size: 11px; }
+    .phone-body {
+      flex: 1;
+      overflow: hidden;
+      padding: 12px 14px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .phone-body > .ph-mic-row,
+    .phone-body > .ph-chat-input,
+    .phone-body > .ph-source-centered,
+    .phone-body > .ph-brief-ask {
+      margin-top: auto;
+    }
+    .phone-home {
+      flex-shrink: 0;
+      padding: 4px 0 6px;
+      display: flex; justify-content: center;
+    }
+    .phone-home::after {
+      content: '';
+      width: 110px; height: 4px;
+      background: rgba(255,255,255,0.5);
+      border-radius: 2px;
+    }
+
+    /* shared bubble & card */
+    .ph-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 9px 11px;
+    }
+    .ph-card-title {
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 10px; font-weight: 700; margin-bottom: 6px;
+      letter-spacing: 0.04em;
+    }
+    .ph-tag {
+      display: inline-block;
+      padding: 1px 7px;
+      border-radius: 8px;
+      font-size: 8.5px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .ph-tag-ai { background: rgba(251,146,60,0.22); color: #fdba74; }
+    .ph-tag-source { background: rgba(56,189,248,0.18); color: #7dd3fc; }
+    .ph-tag-stage { background: rgba(45,212,191,0.18); color: #5eead4; }
+    .ph-tag-confirm { background: rgba(168,85,247,0.2); color: #c4b5fd; }
+    .ph-field {
+      display: flex; justify-content: space-between; gap: 8px;
+      padding: 4px 0;
+      font-size: 10.5px;
+      border-bottom: 1px dashed rgba(255,255,255,0.06);
+    }
+    .ph-field:last-child { border-bottom: none; }
+    .ph-field .ph-fk { opacity: 0.6; }
+    .ph-field .ph-fv { font-weight: 600; text-align: right; }
+
+    /* voice bubble */
+    .ph-voice-bubble {
+      align-self: flex-end;
+      max-width: 85%;
+      background: linear-gradient(135deg, #c084fc, #a855f7);
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 14px 14px 4px 14px;
+      font-size: 10.5px;
+      box-shadow: 0 4px 14px rgba(168,85,247,0.35);
+    }
+    .ph-voice-meta {
+      align-self: flex-end;
+      font-size: 9px;
+      opacity: 0.5;
+      margin-top: -6px;
+    }
+
+    /* mic button */
+    .ph-mic-row {
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      padding: 2px 0 0;
+    }
+    .ph-mic {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #fb923c, #f97316);
+      box-shadow: 0 6px 20px rgba(249,115,22,0.45), 0 0 0 6px rgba(249,115,22,0.12);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 18px;
+      animation: ph-pulse 2s ease-in-out infinite;
+    }
+    @keyframes ph-pulse {
+      0%, 100% { box-shadow: 0 6px 20px rgba(249,115,22,0.45), 0 0 0 6px rgba(249,115,22,0.12); }
+      50% { box-shadow: 0 6px 20px rgba(249,115,22,0.55), 0 0 0 12px rgba(249,115,22,0.05); }
+    }
+    .ph-mic-hint { font-size: 9.5px; opacity: 0.6; }
+
+    /* confidence bar */
+    .ph-conf {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 9.5px;
+    }
+    .ph-conf-bar {
+      flex: 1; height: 5px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .ph-conf-bar > span {
+      display: block; height: 100%;
+      background: linear-gradient(90deg, #fb923c, #2dd4bf);
+      border-radius: 3px;
+    }
+    .ph-conf-num { font-weight: 700; color: #2dd4bf; }
+
+    /* action row */
+    .ph-action-row {
+      display: flex; gap: 6px; margin-top: 4px;
+    }
+    .ph-btn {
+      flex: 1;
+      text-align: center;
+      padding: 7px 0;
+      border-radius: 9px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+    .ph-btn-primary { background: linear-gradient(135deg, #2dd4bf, #14b8a6); color: #0b1424; }
+    .ph-btn-ghost { background: rgba(255,255,255,0.06); color: #e6e9f4; }
+    .ph-btn-warn { background: rgba(239,68,68,0.18); color: #fca5a5; }
+
+    /* chat input bar */
+    .ph-chat-input {
+      flex-shrink: 0;
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 10px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 22px;
+      font-size: 10px;
+    }
+    .ph-chat-input .ph-mic-mini {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: rgba(249,115,22,0.85); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; flex-shrink: 0;
+    }
+    .ph-chat-input .ph-chat-text { flex: 1; opacity: 0.7; }
+
+    /* agent reply bubble */
+    .ph-agent-reply {
+      align-self: flex-start;
+      max-width: 90%;
+      background: rgba(45,212,191,0.12);
+      border: 1px solid rgba(45,212,191,0.22);
+      border-radius: 14px 14px 14px 4px;
+      padding: 8px 10px;
+      font-size: 10.5px;
+    }
+    .ph-agent-name {
+      font-size: 9px; font-weight: 700;
+      color: #5eead4; letter-spacing: 0.04em; text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    /* opp pill list */
+    .ph-list-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px dashed rgba(255,255,255,0.06);
+      font-size: 10.5px;
+    }
+    .ph-list-row:last-child { border-bottom: none; }
+
+    /* source breadcrumb */
+    .ph-source {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 9.5px; opacity: 0.7;
+    }
+    .ph-source .ph-source-dot {
+      width: 5px; height: 5px; border-radius: 50%; background: #38bdf8;
+    }
+    .ph-conf-bar > span.ph-conf-60 { width: 60%; }
+    .ph-conf-bar > span.ph-conf-78 { width: 78%; }
+    .ph-source-faded { opacity: 0.6; }
+    .ph-source-spaced { margin-top: 4px; }
+    .ph-source-centered { justify-content: center; }
+
+    /* ── Dashboard / Home screen ── */
+    .ph-dash-greet {
+      display: flex; align-items: center; gap: 10px;
+      padding: 2px 0 2px;
+    }
+    .ph-avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: linear-gradient(135deg, #fb923c, #a855f7);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 700; font-size: 12px;
+      flex-shrink: 0;
+    }
+    .ph-greet-text { flex: 1; min-width: 0; }
+    .ph-greet-hi { font-size: 9.5px; opacity: 0.6; line-height: 1.2; }
+    .ph-greet-name { font-size: 12.5px; font-weight: 700; line-height: 1.25; }
+    .ph-settings {
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; opacity: 0.7; flex-shrink: 0;
+      background: transparent; border: none;
+    }
+    .ph-kpi-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .ph-kpi {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 7px 9px 8px;
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .ph-kpi-label {
+      font-size: 8.5px; opacity: 0.55;
+      letter-spacing: 0.05em; text-transform: uppercase;
+    }
+    .ph-kpi-value {
+      font-size: 18px; font-weight: 700; line-height: 1.1;
+      color: #ffd8a3;
+    }
+    .ph-kpi-delta {
+      font-size: 9px; opacity: 0.7;
+    }
+    .ph-kpi-delta.pos { color: #5eead4; }
+    .ph-kpi-delta.neg { color: #fca5a5; }
+    .ph-kpi-delta.warn { color: #fbbf24; }
+    .ph-summary-line {
+      display: flex; gap: 6px; align-items: flex-start;
+      padding: 3px 0;
+      font-size: 10px; line-height: 1.4;
+    }
+    .ph-summary-line .ph-sum-bullet {
+      flex-shrink: 0;
+      width: 14px; text-align: center;
+      font-size: 11px;
+    }
+    .ph-summary-line.warn .ph-sum-bullet { color: #fbbf24; }
+    .ph-summary-line.risk .ph-sum-bullet { color: #fca5a5; }
+    .ph-summary-line.opp  .ph-sum-bullet { color: #5eead4; }
+    .ph-summary-line.info .ph-sum-bullet { color: #93c5fd; }
+    .ph-quick {
+      display: flex; gap: 6px; flex-wrap: wrap;
+    }
+    .ph-quick-chip {
+      flex: 1;
+      text-align: center;
+      padding: 7px 6px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      font-size: 9.5px;
+      font-weight: 600;
+      display: flex; align-items: center; justify-content: center; gap: 4px;
+    }
+    .ph-quick-chip .ph-quick-emoji { font-size: 11px; }
+    .ph-quick-chip.primary {
+      background: linear-gradient(135deg, rgba(251,146,60,0.35), rgba(168,85,247,0.35));
+      border-color: rgba(251,146,60,0.4);
+      color: #ffd8a3;
+    }
+
+    /* ── Brief Me screen ── */
+    .ph-brief-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 8px;
+    }
+    .ph-brief-head h1 {
+      margin: 0; font-size: 13px; font-weight: 700; letter-spacing: 0.01em;
+    }
+    .ph-brief-head .ph-brief-meta {
+      font-size: 9px; opacity: 0.55; line-height: 1.3;
+    }
+    .ph-brief-head-title {
+      flex: 1; min-width: 0; text-align: center;
+    }
+    .ph-brief-icon {
+      width: 26px; height: 26px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+      font-size: 11px; opacity: 0.75;
+    }
+    .ph-brief-player {
+      display: flex; flex-direction: column; gap: 8px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(251,146,60,0.18), rgba(168,85,247,0.18));
+      border: 1px solid rgba(251,146,60,0.25);
+    }
+    .ph-brief-wave {
+      display: flex; align-items: end; gap: 2px;
+      height: 26px;
+    }
+    .ph-brief-wave span {
+      flex: 1; background: linear-gradient(180deg, #ffd8a3, #fb923c);
+      border-radius: 2px; opacity: 0.7;
+    }
+    .ph-brief-wave span.is-active { opacity: 1; }
+    .ph-brief-wave span.is-past { opacity: 0.3; background: rgba(255,255,255,0.4); }
+    .ph-brief-controls {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 10px;
+    }
+    .ph-brief-play {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: #ffd8a3; color: #1a1d2a;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 800;
+    }
+    .ph-brief-time { font-size: 9.5px; opacity: 0.7; font-variant-numeric: tabular-nums; }
+    .ph-brief-speed {
+      margin-left: auto; padding: 2px 8px;
+      border-radius: 999px; background: rgba(255,255,255,0.08);
+      font-size: 9px; font-weight: 700;
+    }
+    .ph-brief-chapters {
+      display: flex; gap: 4px; margin-top: 2px;
+    }
+    .ph-brief-chapters span {
+      flex: 1; height: 3px; border-radius: 2px;
+      background: rgba(255,255,255,0.15);
+    }
+    .ph-brief-chapters span.is-done { background: rgba(255,216,163,0.6); }
+    .ph-brief-chapters span.is-now { background: #ffd8a3; }
+
+    /* Brief Me unified bottom bar: speed | combined play+mic | time */
+    .phone-body > .ph-brief-bottom { margin-top: auto; }
+    .ph-brief-bottom {
+      flex-shrink: 0;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 4px 0;
+    }
+    .ph-brief-speed-btn {
+      justify-self: start;
+      display: inline-flex; align-items: center; gap: 3px;
+      padding: 4px 8px 4px 9px;
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      color: #e6e9f4;
+      font: 600 10px/1 "Space Grotesk", "Noto Sans SC", sans-serif;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .ph-brief-speed-btn:hover { background: rgba(255,255,255,0.12); }
+    .ph-brief-speed-num { font-variant-numeric: tabular-nums; }
+    .ph-brief-speed-num small { font-size: 1em; opacity: 0.85; margin-left: 1px; font-weight: inherit; }
+    .ph-brief-speed-caret { font-size: 8px; opacity: 0.55; transform: translateY(0.5px); }
+    .ph-brief-mic {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #fb923c, #f97316);
+      box-shadow: 0 6px 20px rgba(249,115,22,0.45), 0 0 0 6px rgba(249,115,22,0.12);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff;
+      animation: ph-pulse 2s ease-in-out infinite;
+      position: relative;
+      cursor: pointer;
+    }
+    .ph-brief-mic-icon {
+      font-size: 16px; font-weight: 700;
+      transform: translateX(1px);
+    }
+    .ph-brief-mic::after {
+      content: '';
+      position: absolute; inset: -3px;
+      border-radius: 50%;
+      border: 1.5px dashed rgba(255,255,255,0.22);
+      pointer-events: none;
+    }
+    .ph-brief-bottom-time {
+      justify-self: end;
+      font: 600 10px/1 "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-variant-numeric: tabular-nums;
+      opacity: 0.75;
+      letter-spacing: 0.02em;
+    }
+
+    /* Now-playing banner inside the player */
+    .ph-brief-player-now {
+      display: flex; flex-direction: column; gap: 4px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .ph-brief-player-now-row {
+      display: flex; align-items: center; gap: 6px;
+    }
+    .ph-brief-player-now-prio {
+      padding: 2px 7px; border-radius: 999px;
+      font-size: 8.5px; letter-spacing: 0.08em; text-transform: uppercase;
+      font-weight: 700;
+      background: rgba(248,113,113,0.18); color: #fecaca;
+      border: 1px solid rgba(248,113,113,0.35);
+    }
+    .ph-brief-player-now-pos {
+      font-size: 8.5px; opacity: 0.65;
+      font-variant-numeric: tabular-nums; letter-spacing: 0.04em;
+    }
+    .ph-brief-player-now-headline {
+      font-size: 11.5px; font-weight: 700; line-height: 1.35;
+    }
+
+    .ph-brief-now {
+      padding: 10px 12px; border-radius: 12px;
+      background: rgba(15,20,36,0.55);
+      border: 1px solid rgba(251,146,60,0.3);
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .ph-brief-now-kicker {
+      font-size: 8.5px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: #fdba74; font-weight: 700;
+    }
+    .ph-brief-now-text {
+      font-size: 11.5px; line-height: 1.5; font-weight: 600;
+    }
+
+    /* Swipeable single-card stage */
+    .ph-brief-stage {
+      position: relative;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .ph-brief-card {
+      min-width: 0;
+      flex: 1;
+      padding: 12px 14px; border-radius: 14px;
+      background: rgba(255,255,255,0.05);
+      border-left: 3px solid var(--prio, rgba(255,255,255,0.2));
+      box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+      display: flex; flex-direction: column; gap: 8px;
+      position: relative;
+    }
+    .ph-brief-card.prio-risk { --prio: #f87171; background: linear-gradient(135deg, rgba(248,113,113,0.16), rgba(255,255,255,0.04)); }
+    .ph-brief-card.prio-warn { --prio: #fbbf24; background: linear-gradient(135deg, rgba(251,191,36,0.16), rgba(255,255,255,0.04)); }
+    .ph-brief-card.prio-opp  { --prio: #5eead4; background: linear-gradient(135deg, rgba(94,234,212,0.16), rgba(255,255,255,0.04)); }
+    .ph-brief-card.prio-info { --prio: #93c5fd; background: linear-gradient(135deg, rgba(147,197,253,0.16), rgba(255,255,255,0.04)); }
+    .ph-brief-card-head {
+      display: flex; align-items: center; gap: 6px;
+    }
+    .ph-brief-card-prio {
+      padding: 2px 7px; border-radius: 999px;
+      font-size: 8.5px; letter-spacing: 0.08em; text-transform: uppercase;
+      font-weight: 700; color: var(--prio);
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--prio);
+    }
+    .ph-brief-card-pos {
+      font-size: 8.5px; opacity: 0.6;
+      font-variant-numeric: tabular-nums; letter-spacing: 0.04em;
+    }
+    .ph-brief-card-headline {
+      font-size: 11.5px; font-weight: 700; line-height: 1.35;
+    }
+    .ph-brief-card-player {
+      margin-top: auto;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .ph-brief-card-summary {
+      font-size: 10.5px; opacity: 0.85; line-height: 1.5;
+    }
+    .ph-brief-card-points {
+      list-style: none; margin: 0; padding: 0;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .ph-brief-card-points li {
+      position: relative;
+      padding-left: 12px;
+      font-size: 9.5px; opacity: 0.72; line-height: 1.5;
+    }
+    .ph-brief-card-points li::before {
+      content: "•"; color: var(--prio); opacity: 0.85;
+      position: absolute; left: 2px; top: 0;
+    }
+    .ph-brief-card-context {
+      display: flex; gap: 6px; align-items: flex-start;
+      font-size: 9.5px; opacity: 0.7; line-height: 1.4;
+    }
+    .ph-brief-card-context::before {
+      content: "↳"; color: var(--prio); opacity: 0.7;
+      flex-shrink: 0;
+    }
+    .ph-brief-card-metrics {
+      display: flex; gap: 6px; flex-wrap: wrap;
+    }
+    .ph-brief-card-metric {
+      padding: 2px 8px; border-radius: 999px;
+      font-size: 9.5px; font-weight: 700;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .ph-brief-card-metric.up { color: #5eead4; border-color: rgba(94,234,212,0.3); }
+    .ph-brief-card-metric.down { color: #fca5a5; border-color: rgba(252,165,165,0.3); }
+    .ph-brief-card-cta {
+      align-self: flex-start;
+      padding: 5px 11px; border-radius: 8px;
+      background: rgba(251,146,60,0.18); color: #fdba74;
+      font-size: 10.5px; font-weight: 700;
+      border: 1px solid rgba(251,146,60,0.3);
+    }
+    .ph-brief-stage-dots {
+      display: flex; align-items: center; justify-content: center;
+      gap: 5px; margin-top: 2px;
+    }
+    .ph-brief-stage-dots span {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+    }
+    .ph-brief-stage-dots span.is-now {
+      width: 16px; border-radius: 3px; background: #ffd8a3;
+    }
+    .ph-brief-swipe-hint {
+      text-align: center; font-size: 9px; opacity: 0.55;
+      letter-spacing: 0.04em;
+    }
+
+    /* Voice ask bubble */
+    .ph-brief-ask {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 999px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .ph-brief-ask-mic {
+      width: 36px; height: 36px; border-radius: 50%;
+      flex-shrink: 0;
+      background: linear-gradient(135deg, #fb923c, #a855f7);
+      color: #fff; font-size: 20px; font-weight: 700; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 14px rgba(251,146,60,0.35);
+    }
+    .ph-brief-ask-text {
+      flex: 1; min-width: 0;
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .ph-brief-ask-label {
+      font-size: 10.5px; font-weight: 700;
+    }
+    .ph-brief-ask-hint {
+      font-size: 9px; opacity: 0.6;
+    }
+    .ph-brief-ask-wave {
+      display: flex; gap: 2px; align-items: end; height: 14px;
+    }
+    .ph-brief-ask-wave span {
+      width: 2px; background: #ffd8a3; border-radius: 1px;
+    }
+    .ph-brief-ask-wave span:nth-child(1) { height: 30%; }
+    .ph-brief-ask-wave span:nth-child(2) { height: 70%; }
+    .ph-brief-ask-wave span:nth-child(3) { height: 50%; }
+    .ph-brief-ask-wave span:nth-child(4) { height: 90%; }
+    .ph-brief-ask-wave span:nth-child(5) { height: 40%; }
+
+    .ph-brief-list {
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .ph-brief-item {
+      padding: 10px 12px; border-radius: 12px;
+      background: rgba(255,255,255,0.04);
+      border-left: 3px solid var(--prio, rgba(255,255,255,0.2));
+      display: flex; flex-direction: column; gap: 6px;
+      position: relative;
+    }
+    .ph-brief-item.is-active {
+      background: rgba(255,255,255,0.07);
+      box-shadow: 0 0 0 1px rgba(251,146,60,0.35);
+    }
+    .ph-brief-item.prio-risk { --prio: #f87171; }
+    .ph-brief-item.prio-warn { --prio: #fbbf24; }
+    .ph-brief-item.prio-opp  { --prio: #5eead4; }
+    .ph-brief-item.prio-info { --prio: #93c5fd; }
+    .ph-brief-row1 {
+      display: flex; align-items: center; justify-content: space-between; gap: 6px;
+    }
+    .ph-brief-prio {
+      font-size: 8.5px; letter-spacing: 0.08em; text-transform: uppercase;
+      font-weight: 700; color: var(--prio);
+    }
+    .ph-brief-time-tag {
+      font-size: 8.5px; opacity: 0.55; font-variant-numeric: tabular-nums;
+    }
+    .ph-brief-headline {
+      font-size: 11.5px; font-weight: 700; line-height: 1.35;
+    }
+    .ph-brief-evidence {
+      font-size: 10px; opacity: 0.72; line-height: 1.5;
+    }
+    .ph-brief-metrics {
+      display: flex; gap: 6px; flex-wrap: wrap;
+    }
+    .ph-brief-metric {
+      padding: 2px 7px; border-radius: 999px;
+      font-size: 9px; font-weight: 700;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .ph-brief-metric.up { color: #5eead4; border-color: rgba(94,234,212,0.3); }
+    .ph-brief-metric.down { color: #fca5a5; border-color: rgba(252,165,165,0.3); }
+    .ph-brief-cta {
+      align-self: flex-start;
+      padding: 5px 10px; border-radius: 8px;
+      background: rgba(251,146,60,0.15); color: #fdba74;
+      font-size: 10px; font-weight: 700;
+      border: 1px solid rgba(251,146,60,0.25);
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            <span data-zh="销售 CRM" data-en="Sales CRM">Sales CRM</span>
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="../mindray-crm-ai-proposal/" data-zh="← 返回方案" data-en="← Back to Proposal">← 返回方案</a>
+            <a href="#prototypes" data-zh="界面原型" data-en="Prototypes">界面原型</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow" data-zh="Design Doc · Vibe Coding 提示词集" data-en="Design Doc · Vibe Coding Prompt Pack">Design Doc · Vibe Coding 提示词集</span>
+            <h1 data-zh="销售 CRM 界面原型设计文档" data-en="Sales CRM — Interface Prototype Design Doc">销售 CRM 界面原型设计文档</h1>
+            <p data-zh="本文档抽取主提案的&quot;界面原型&quot;章节，专为开发者与 maker 而写：每屏左侧高保真原型 + 右侧可直接粘贴进 Power Apps Vibe Coding 的提示词，外加一段&quot;平台地基&quot;Bootstrap 提示词把 Solution、Dataverse 表与 Flow 一次性拉齐。" data-en="This document lifts the &quot;Interface Prototypes&quot; chapter out of the main proposal and rewrites it for developers and makers: each screen pairs a hi-fi mock with a Power Apps Vibe Coding prompt you can paste straight in, prefixed by a single Bootstrap prompt that scaffolds the Solution, Dataverse tables and flows in one shot.">
+              本文档抽取主提案的"界面原型"章节，专为开发者与 maker 而写：每屏左侧高保真原型 + 右侧可直接粘贴进 Power Apps Vibe Coding 的提示词，外加一段"平台地基"Bootstrap 提示词把 Solution、Dataverse 表与 Flow 一次性拉齐。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#prototypes" data-zh="进入原型与提示词" data-en="Jump to Prototypes">进入原型与提示词</a>
+              <a class="button button-secondary" href="../mindray-crm-ai-proposal/" data-zh="阅读完整方案" data-en="Read Full Proposal">阅读完整方案</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label" data-zh="核心主张" data-en="Core Thesis">核心主张</span>
+            <h2 data-zh="不再让销售&quot;使用 CRM&quot;，而是让 CRM&quot;跟随销售&quot;。" data-en="Stop making sales reps &quot;use the CRM&quot;. Make the CRM follow them.">不再让销售"使用 CRM"，而是让 CRM"跟随销售"。</h2>
+            <p data-zh="传统思路是把桌面 CRM 移植到手机上；本方案的设计原点是：把 CRM 拆解成一个个可被语音召唤、可在对话中确认、可在后台自动落库的智能体（Agent），让销售只与客户、不与表单打交道。" data-en="The conventional approach ports the desktop CRM onto a phone. This proposal does the opposite — it decomposes the CRM into voice-summonable, conversation-confirmable, silently-persistable agents, so reps engage with customers, not forms.">
+              传统思路是把桌面 CRM 移植到手机上；本方案的设计原点是：把 CRM 拆解成一个个可被语音召唤、可在对话中确认、可在后台自动落库的智能体（Agent），让销售只与客户、不与表单打交道。
+            </p>
+            <ul class="layer-list" style="margin-top: 18px;">
+              <li><span class="layer-number">1</span><span data-zh="移动优先 — 单手 30 秒内完成主流程" data-en="Mobile-first — main flows finishable single-handed within 30 seconds">移动优先 — 单手 30 秒内完成主流程</span></li>
+              <li><span class="layer-number">2</span><span data-zh="语音先行 — 自然语言取代字段填空" data-en="Voice-first — natural language replaces form filling">语音先行 — 自然语言取代字段填空</span></li>
+              <li><span class="layer-number">3</span><span data-zh="AI 编排 — Agent 调度而非菜单导航" data-en="AI orchestration — agents dispatched, not menus navigated">AI 编排 — Agent 调度而非菜单导航</span></li>
+              <li><span class="layer-number">4</span><span data-zh="SAP 共生 — 不替换底座，扩展智能层" data-en="SAP symbiosis — no replacement, only an intelligence layer on top">SAP 共生 — 不替换底座，扩展智能层</span></li>
+            </ul>
+          </aside>
+        </div>
+
+        </header>
+
+      <main><!-- Section 04: 系统架构 -->
+        <section id="prototypes" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="07 / 界面原型" data-en="07 / Interface Prototypes">07 / Interface Prototypes</p>
+            <h2 data-zh="界面原型：把四条原则落到屏幕上" data-en="Prototypes: The Four Principles, Rendered on a Phone">界面原型：把四条原则落到屏幕上</h2>
+            <p data-zh="本节先用一个&quot;项目地基&quot;提示词把 Solution、数据表、Connector 与 Flow 占位一次性拉齐——客户专属信息由 Vibe Coding 在生成时主动追问，不预先写死；之后四个原型按场景独立成屏：首页 Dashboard 是销售开机后看到的&quot;今日大盘&quot;，后续三屏对应一线最高频的三个动作（活动录入 / 客户信息查询 / 商机创建）。每屏左侧是高保真界面，右侧是可以直接粘进 Power Apps Vibe Coding 的提示词。所有提示词共享同一套设计令牌（橙 #FF7A00、青 #0D8F8C、深底渐变 #0F1424→#161B2C、卡片 rgba(255,255,255,0.06)、圆角 12px），保证生成结果跨页一致。" data-en="This section opens with a &quot;platform bootstrap&quot; prompt that scaffolds the Solution, tables, connector references and flow stubs in one shot — customer-specific values are collected interactively by Vibe Coding, never hardcoded. The four prototypes that follow are presented one screen per slide: the Home Dashboard is the &quot;today at a glance&quot; the rep sees right after launch; the next three screens cover the highest-frequency moments in the field (activity capture / customer inquiry / opportunity creation). Each screen pairs a hi-fi mock on the left with a prompt you can paste straight into Power Apps Vibe Coding on the right. All prompts share the same design tokens (orange #FF7A00, teal #0D8F8C, dark gradient #0F1424→#161B2C, card rgba(255,255,255,0.06), radius 12px) so the generated screens stay consistent.">
+              本节先用一个"项目地基"提示词把 Solution、数据表、Connector 与 Flow 占位一次性拉齐——客户专属信息由 Vibe Coding 在生成时主动追问，不预先写死；之后四个原型按场景独立成屏：首页 Dashboard 是销售开机后看到的"今日大盘"，后续三屏对应一线最高频的三个动作（活动录入 / 客户信息查询 / 商机创建）。每屏左侧是高保真界面，右侧是可以直接粘进 Power Apps Vibe Coding 的提示词。所有提示词共享同一套设计令牌（橙 #FF7A00、青 #0D8F8C、深底渐变 #0F1424→#161B2C、卡片 rgba(255,255,255,0.06)、圆角 12px），保证生成结果跨页一致。
+            </p>
+          </div>
+
+          <!-- ── Step 3.00: Platform Bootstrap (Master Init Prompt) ── -->
+          <div data-present-step data-step-title="平台地基 × Vibe Coding 初始化" data-step-title-en="Platform Bootstrap × Vibe Coding Init" data-step-label="07 / INTERFACE PROTOTYPES">
+          <div class="proto-detail">
+
+            <div class="proto-col">
+              <div class="bootstrap-blueprint" aria-hidden="true">
+                <div class="bp-title" data-zh="Sales Copilot Mobile · Bootstrap" data-en="Sales Copilot Mobile · Bootstrap">Sales Copilot Mobile · Bootstrap</div>
+
+                <div class="bp-group">
+                  <h4 data-zh="Solution" data-en="Solution">Solution</h4>
+                  <ul>
+                    <li data-zh="SalesCopilotMobile（Publisher 前缀 scm）" data-en="SalesCopilotMobile (publisher prefix scm)">SalesCopilotMobile（Publisher 前缀 scm）</li>
+                  </ul>
+                </div>
+
+                <div class="bp-group">
+                  <h4 data-zh="Dataverse 表" data-en="Dataverse Tables">Dataverse 表</h4>
+                  <ul>
+                    <li>Account / Contact</li>
+                    <li>Opportunity (stage, confidence, ext_id)</li>
+                    <li>Activity (type, draft_status, raw_voice_url, parsed_json)</li>
+                    <li>OpportunityWriteQueue</li>
+                  </ul>
+                </div>
+
+                <div class="bp-group">
+                  <h4 data-zh="Connector 占位" data-en="Connector Placeholders">Connector 占位</h4>
+                  <ul>
+                    <li>ERP HTTP（待用户提供）</li>
+                    <li>Azure Speech / Azure OpenAI</li>
+                    <li>SharePoint / Outlook / Teams</li>
+                  </ul>
+                </div>
+
+                <div class="bp-group">
+                  <h4 data-zh="Power Automate Flow 空壳" data-en="Power Automate Flow Stubs">Power Automate Flow 空壳</h4>
+                  <ul>
+                    <li>Flow_VoiceToActivity</li>
+                    <li>Flow_ActivityToOpportunity</li>
+                    <li>Flow_OpportunityToERP</li>
+                    <li>Flow_DailyBriefing</li>
+                  </ul>
+                </div>
+
+                <div class="bp-foot" data-zh="Vibe Coding 在生成过程中会主动追问客户专属信息，不预先写死。" data-en="Vibe Coding interactively asks for customer-specific values; nothing is hardcoded.">Vibe Coding 在生成过程中会主动追问客户专属信息，不预先写死。</div>
+              </div>
+              <div class="proto-caption">
+                <span class="proto-tag" data-zh="先地基 · 后界面" data-en="Foundation First">先地基 · 后界面</span>
+                <h3 data-zh="一次性初始化" data-en="One-Shot Bootstrap">一次性初始化</h3>
+                <p data-zh="把 Solution、数据表、Connector、Flow 占位一次拉齐，后续四屏 Vibe Coding 直接落到既有结构上，不再重复声明数据模型。" data-en="Bring up the Solution, tables, connectors and flow stubs in one shot so the next four screen prompts plug into a stable foundation instead of redefining the data model each time.">把 Solution、数据表、Connector、Flow 占位一次拉齐，后续四屏 Vibe Coding 直接落到既有结构上，不再重复声明数据模型。</p>
+              </div>
+            </div>
+
+            <div class="proto-prompt">
+              <div class="proto-prompt-head">
+                <span class="proto-prompt-tag">Vibe Coding · Bootstrap</span>
+                <h3 data-zh="Sales Copilot Mobile · 项目初始化" data-en="Sales Copilot Mobile · Project Init">Sales Copilot Mobile · 项目初始化</h3>
+              </div>
+              <p class="proto-prompt-lead" data-zh="把 Bootstrap 拆成两步：A 在 Power Apps vibe 里搭数据骨架（draft tables + Connection References + 角色 + Env Vars），B 在 Power Automate 里按 schema 把 4 个 Flow 拼出来。两段提示词都可直接复制粘贴；下方&quot;操作指引&quot;一步步说明在哪里粘、按哪个按钮、怎么验收。" data-en="Bootstrap is split in two: Step A scaffolds the data foundation in Power Apps vibe (draft tables + Connection References + roles + env vars); Step B builds the 4 Flows in Power Automate from the schemas. Both prompts copy-paste as-is; the &quot;Steps&quot; lists below tell you where to paste, which button to click and how to verify.">把 Bootstrap 拆成两步：A 在 Power Apps vibe 里搭数据骨架（draft tables + Connection References + 角色 + Env Vars），B 在 Power Automate 里按 schema 把 4 个 Flow 拼出来。两段提示词都可直接复制粘贴；下方"操作指引"一步步说明在哪里粘、按哪个按钮、怎么验收。</p>
+              <div class="proto-prompt-section">
+                <div class="proto-prompt-stage">
+                  <span class="proto-prompt-stage-label" data-zh="A · Power Apps vibe — 数据骨架" data-en="A · Power Apps vibe — data foundation">A · Power Apps vibe — 数据骨架</span>
+                  <span class="proto-prompt-stage-where" data-zh="vibe.powerapps.com → 新建 chat → Plan 模式" data-en="vibe.powerapps.com → new chat → Plan mode">vibe.powerapps.com → 新建 chat → Plan 模式</span>
+                </div>
+                <ol class="proto-prompt-steps" data-zh-list data-en-list>
+                  <li data-zh="登录 vibe.powerapps.com；在欢迎页选好目标 Environment + Solution（vibe 不再追问这两项）。" data-en="Sign in to vibe.powerapps.com; on the welcome screen pick your target Environment + Solution (vibe will not re-ask).">登录 vibe.powerapps.com；在欢迎页选好目标 Environment + Solution（vibe 不再追问这两项）。</li>
+                  <li data-zh="点 &quot;New&quot; 起一个 chat，确保左下角是 &quot;Plan&quot; 模式（不是 &quot;Build&quot;），把下方提示词整段粘贴进去发送。" data-en="Click &quot;New&quot; to start a chat, make sure the bottom-left toggle says &quot;Plan&quot; (not &quot;Build&quot;), paste the whole prompt below and send.">点 "New" 起一个 chat，确保左下角是 "Plan" 模式（不是 "Build"），把下方提示词整段粘贴进去发送。</li>
+                  <li data-zh="vibe 会一次性问 4 组澄清问题（角色 / 对接系统 / 语言区域 / 语音 LLM）。能填就填，留空走 default。" data-en="vibe asks 4 clarifying groups in one round (roles / external systems / locale / speech &amp; LLM). Answer what you can; leave blanks to use defaults.">vibe 会一次性问 4 组澄清问题（角色 / 对接系统 / 语言区域 / 语音 LLM）。能填就填，留空走 default。</li>
+                  <li data-zh="它会回一份 Plan：5 张 Dataverse draft tables + Connection References + 3 个 Security Roles + 7 个 Env Vars。检查无误后点 &quot;Generate&quot;。" data-en="It returns a Plan: 5 Dataverse draft tables + Connection References + 3 Security Roles + 7 Env Vars. Review, then click &quot;Generate&quot;.">它会回一份 Plan：5 张 Dataverse draft tables + Connection References + 3 个 Security Roles + 7 个 Env Vars。检查无误后点 "Generate"。</li>
+                  <li data-zh="生成完毕 → 当前 plan 内出现 app 壳 + 数据模型 draft + Env Vars。<strong>暂不要 Publish</strong>：Activity / OpportunityWriteQueue 两张表要等 Step B 的 Flow 测试通过后再 Publish，否则 Flow 触发器读不到字段。" data-en="When done, your plan now contains an app shell + draft data model + env vars. <strong>Do NOT Publish yet</strong> — Activity / OpportunityWriteQueue need to wait until Step B&#39;s Flows pass smoke tests, otherwise Flow triggers will not see the fields.">生成完毕 → 当前 plan 内出现 app 壳 + 数据模型 draft + Env Vars。<strong>暂不要 Publish</strong>：Activity / OpportunityWriteQueue 两张表要等 Step B 的 Flow 测试通过后再 Publish，否则 Flow 触发器读不到字段。</li>
+                </ol>
+                <pre class="proto-prompt-block" data-zh="为 <strong>Sales Copilot Mobile</strong> 在 Power Apps vibe 中完成&quot;数据骨架&quot;初始化。当前已登录的 vibe 环境（Environment / Region / Solution）由用户在 vibe.powerapps.com 选好，不要再追问。本次只产出：app 壳 + Dataverse draft tables + Connection References + Security Roles + Env Vars；Power Automate Flow 由用户在另一个工作台手动建（已另发提示词），本次不要尝试调用 Power Automate connector 去生成 Flow。
+
+【交互式收集（Plan 模式 · 一轮问完）】
+1. <strong>身份与角色</strong>：销售一线角色名（默认 SalesRep）、区域负责人角色名（默认 RegionLead）、管理员角色名（默认 Admin）；是否启用行级 owner-based 安全（默认 是）。
+2. <strong>对接系统</strong>：用户主 ERP / 主 CRM 名称（不预设品牌）、对接方式偏好（HTTP / 自定义 Connector / 已有 OOB Connector）、是否需要写回。
+3. <strong>语言与区域</strong>：默认 UI 语言（默认 zh-Hans + en-US 双语）、时区、货币。
+4. <strong>语音 / LLM</strong>：是否使用 Azure Speech（默认 是）、是否使用 Azure OpenAI（默认 是）、模型部署名（用户填，未填则占位 {AOAI_DEPLOYMENT}）。
+
+【Dataverse draft tables】
+prefix_ 为新增字段；choice 全部用 Global Choice。
+- <strong>Account</strong>：OOB + prefix_external_id (string, unique)
+- <strong>Contact</strong>：OOB
+- <strong>Opportunity</strong>：OOB + prefix_stage (choice: lead/qualify/propose/won/lost) + prefix_confidence (int 0-100) + prefix_external_id (string)
+- <strong>Activity</strong> (custom)：type (choice: visit/call/email/voice) · draft_status (choice: draft/confirmed/discarded) · raw_voice_url (string) · parsed_json (multiline) · related_account (Lookup→Account) · related_opportunity (Lookup→Opportunity, optional) · owner · created_on · parsed_confidence (int)
+- <strong>OpportunityWriteQueue</strong> (custom)：source_activity (Lookup→Activity) · payload_json (multiline) · target_system (choice，选项 = 用户回答的 ERP/CRM 名) · status (choice: pending/sent/failed) · retry_count (int) · last_error (multiline)
+- <strong>Briefing</strong> (custom)：owner (Lookup→User) · generated_on (date) · payload_json (multiline) · audio_url (string) · last_position (int, 默认 0)
+- <strong>CopilotConversation</strong> (custom)：owner (Lookup→User) · started_on (datetime) · last_active_on (datetime) · messages_json (multiline)
+
+【Connection References（占位，认证留到部署阶段）】
+{customer_erp_or_crm} (HTTP + OAuth2 占位) · Azure Speech to Text (Region={customer_speech_region}) · Azure OpenAI (Deployment={AOAI_DEPLOYMENT}) · Office 365 Outlook · Office 365 Users · Microsoft Teams · SharePoint。
+禁止把任何客户 URL / 密钥写进生成物 — 一律走 Env Var + Connection Reference。
+
+【Security Roles】
+SalesRep：custom 表 owner-based RWA + OOB 表 BU read。
+RegionLead：custom 表 BU RW + 可改 owner。
+Admin：full。
+
+【Environment Variables（值留空，由部署时填）】
+ENV_TIMEZONE · ENV_DEFAULT_LANG · ENV_CUSTOMER_CURRENCY · ENV_CUSTOMER_ERP_NAME · ENV_CUSTOMER_ERP_BASE_URL · ENV_SPEECH_REGION · ENV_AOAI_DEPLOYMENT · ENV_SHAREPOINT_VOICE_PATH · ENV_BRIEFING_CRON。
+
+【交付清单（请明确回报）】
+- 7 张 draft tables 列表 + 关键字段 + 关系
+- Connection Reference 列表
+- 3 个 Security Roles 矩阵
+- 9 个 Env Var 列表（值留空）
+- 缺失项追问清单
+
+【硬约束】
+- 不写死任何客户专属信息（公司名、ERP 品牌、URL、密钥、模型名）— 要么提问，要么落到 Env Var / Connection Reference。
+- 所有 choice 字段用 Global Choice，便于跨表 / 跨 Flow 复用。
+- 本次不要生成 Power Automate Flow；它们由用户在 make.powerautomate.com 手动建，本提示词只声明 schema 给到下游使用。" data-en="Bootstrap the &quot;data foundation&quot; for <strong>Sales Copilot Mobile</strong> in Power Apps vibe. The signed-in vibe Environment / Region / Solution were selected on vibe.powerapps.com — do NOT ask for them again. This step produces ONLY: app shell + Dataverse draft tables + Connection References + Security Roles + Env Vars. Power Automate Flows are built by the user separately (a different prompt is used) — do NOT attempt to call any Power Automate connector to generate flows here.
+
+INTAKE (Plan mode, one round):
+1. Roles: SalesRep / RegionLead / Admin; owner-based row security (default yes).
+2. External: customer ERP / CRM names (no preset brand), integration style (HTTP / custom / OOB), write-back required?
+3. Locale: UI lang (default zh-Hans + en-US), timezone, currency.
+4. Speech / LLM: Azure Speech (default yes), Azure OpenAI (default yes), deployment ({AOAI_DEPLOYMENT}).
+
+DATAVERSE DRAFT TABLES (prefix_ = custom field; every choice = Global Choice):
+- <strong>Account</strong>: OOB + prefix_external_id (string, unique)
+- <strong>Contact</strong>: OOB
+- <strong>Opportunity</strong>: OOB + prefix_stage (lead/qualify/propose/won/lost) + prefix_confidence (int 0-100) + prefix_external_id (string)
+- <strong>Activity</strong> (custom): type (visit/call/email/voice) · draft_status (draft/confirmed/discarded) · raw_voice_url · parsed_json (multiline) · related_account (Lookup→Account) · related_opportunity (Lookup→Opportunity, optional) · owner · created_on · parsed_confidence (int)
+- <strong>OpportunityWriteQueue</strong> (custom): source_activity (Lookup→Activity) · payload_json · target_system (choice = user-named ERP/CRM) · status (pending/sent/failed) · retry_count · last_error
+- <strong>Briefing</strong> (custom): owner (Lookup→User) · generated_on (date) · payload_json · audio_url · last_position (int, default 0)
+- <strong>CopilotConversation</strong> (custom): owner (Lookup→User) · started_on (datetime) · last_active_on (datetime) · messages_json
+
+CONNECTION REFERENCES (placeholder, auth wired at deploy):
+{customer_erp_or_crm} (HTTP + OAuth2) · Azure Speech to Text (Region={customer_speech_region}) · Azure OpenAI (Deployment={AOAI_DEPLOYMENT}) · Office 365 Outlook · Office 365 Users · Microsoft Teams · SharePoint.
+Never embed customer URLs or secrets — always Env Var + Connection Reference.
+
+SECURITY ROLES:
+SalesRep: owner-based RWA on custom tables + read OOB within BU.
+RegionLead: BU-level RW on custom tables + can change owner.
+Admin: full.
+
+ENV VARS (values blank; filled at deploy):
+ENV_TIMEZONE · ENV_DEFAULT_LANG · ENV_CUSTOMER_CURRENCY · ENV_CUSTOMER_ERP_NAME · ENV_CUSTOMER_ERP_BASE_URL · ENV_SPEECH_REGION · ENV_AOAI_DEPLOYMENT · ENV_SHAREPOINT_VOICE_PATH · ENV_BRIEFING_CRON
+
+DELIVER:
+- 7 draft tables list (names + key fields + relationships)
+- Connection Reference list
+- 3-role matrix
+- 9 env var list (blank values)
+- Open-question list
+
+HARD RULES:
+- Never hardcode customer-specific values (company, ERP brand, URLs, secrets, model names) — ask or push to Env Var / Connection Reference.
+- Every choice = Global Choice for cross-table / cross-Flow reuse.
+- Do NOT generate Power Automate Flows in this step; they are built by the user in make.powerautomate.com. This prompt only declares the schema downstream prompts will reference.">为 <strong>Sales Copilot Mobile</strong> 在 Power Apps vibe 中完成"数据骨架"初始化。当前已登录的 vibe 环境（Environment / Region / Solution）由用户在 vibe.powerapps.com 选好，不要再追问。本次只产出：app 壳 + Dataverse draft tables + Connection References + Security Roles + Env Vars；Power Automate Flow 由用户在另一个工作台手动建（已另发提示词），本次不要尝试调用 Power Automate connector 去生成 Flow。
+
+【交互式收集（Plan 模式 · 一轮问完）】
+1. <strong>身份与角色</strong>：销售一线角色名（默认 SalesRep）、区域负责人角色名（默认 RegionLead）、管理员角色名（默认 Admin）；是否启用行级 owner-based 安全（默认 是）。
+2. <strong>对接系统</strong>：用户主 ERP / 主 CRM 名称（不预设品牌）、对接方式偏好（HTTP / 自定义 Connector / 已有 OOB Connector）、是否需要写回。
+3. <strong>语言与区域</strong>：默认 UI 语言（默认 zh-Hans + en-US 双语）、时区、货币。
+4. <strong>语音 / LLM</strong>：是否使用 Azure Speech（默认 是）、是否使用 Azure OpenAI（默认 是）、模型部署名（用户填，未填则占位 {AOAI_DEPLOYMENT}）。
+
+【Dataverse draft tables】
+prefix_ 为新增字段；choice 全部用 Global Choice。
+- <strong>Account</strong>：OOB + prefix_external_id (string, unique)
+- <strong>Contact</strong>：OOB
+- <strong>Opportunity</strong>：OOB + prefix_stage (choice: lead/qualify/propose/won/lost) + prefix_confidence (int 0-100) + prefix_external_id (string)
+- <strong>Activity</strong> (custom)：type (choice: visit/call/email/voice) · draft_status (choice: draft/confirmed/discarded) · raw_voice_url (string) · parsed_json (multiline) · related_account (Lookup→Account) · related_opportunity (Lookup→Opportunity, optional) · owner · created_on · parsed_confidence (int)
+- <strong>OpportunityWriteQueue</strong> (custom)：source_activity (Lookup→Activity) · payload_json (multiline) · target_system (choice，选项 = 用户回答的 ERP/CRM 名) · status (choice: pending/sent/failed) · retry_count (int) · last_error (multiline)
+- <strong>Briefing</strong> (custom)：owner (Lookup→User) · generated_on (date) · payload_json (multiline) · audio_url (string) · last_position (int, 默认 0)
+- <strong>CopilotConversation</strong> (custom)：owner (Lookup→User) · started_on (datetime) · last_active_on (datetime) · messages_json (multiline)
+
+【Connection References（占位，认证留到部署阶段）】
+{customer_erp_or_crm} (HTTP + OAuth2 占位) · Azure Speech to Text (Region={customer_speech_region}) · Azure OpenAI (Deployment={AOAI_DEPLOYMENT}) · Office 365 Outlook · Office 365 Users · Microsoft Teams · SharePoint。
+禁止把任何客户 URL / 密钥写进生成物 — 一律走 Env Var + Connection Reference。
+
+【Security Roles】
+SalesRep：custom 表 owner-based RWA + OOB 表 BU read。
+RegionLead：custom 表 BU RW + 可改 owner。
+Admin：full。
+
+【Environment Variables（值留空，由部署时填）】
+ENV_TIMEZONE · ENV_DEFAULT_LANG · ENV_CUSTOMER_CURRENCY · ENV_CUSTOMER_ERP_NAME · ENV_CUSTOMER_ERP_BASE_URL · ENV_SPEECH_REGION · ENV_AOAI_DEPLOYMENT · ENV_SHAREPOINT_VOICE_PATH · ENV_BRIEFING_CRON。
+
+【交付清单（请明确回报）】
+- 7 张 draft tables 列表 + 关键字段 + 关系
+- Connection Reference 列表
+- 3 个 Security Roles 矩阵
+- 9 个 Env Var 列表（值留空）
+- 缺失项追问清单
+
+【硬约束】
+- 不写死任何客户专属信息（公司名、ERP 品牌、URL、密钥、模型名）— 要么提问，要么落到 Env Var / Connection Reference。
+- 所有 choice 字段用 Global Choice，便于跨表 / 跨 Flow 复用。
+- 本次不要生成 Power Automate Flow；它们由用户在 make.powerautomate.com 手动建，本提示词只声明 schema 给到下游使用。</pre>
+              </div>
+              <div class="proto-prompt-section">
+                <div class="proto-prompt-stage">
+                  <span class="proto-prompt-stage-label" data-zh="B · Power Automate — 4 个 Flow 拼装" data-en="B · Power Automate — assemble the 4 Flows">B · Power Automate — 4 个 Flow 拼装</span>
+                  <span class="proto-prompt-stage-where" data-zh="make.powerautomate.com → 同一个 Solution → Copilot 描述生成" data-en="make.powerautomate.com → same Solution → Copilot describe-to-design">make.powerautomate.com → 同一个 Solution → Copilot 描述生成</span>
+                </div>
+                <ol class="proto-prompt-steps" data-zh-list data-en-list>
+                  <li data-zh="打开 make.powerautomate.com，左侧 Solutions → 选 Step A 用的同一个 Solution（不要建在 default solution，否则 Connection Reference 会丢）。" data-en="Open make.powerautomate.com → Solutions → pick the SAME solution Step A used (NOT the default solution, otherwise Connection References get lost).">打开 make.powerautomate.com，左侧 Solutions → 选 Step A 用的同一个 Solution（不要建在 default solution，否则 Connection Reference 会丢）。</li>
+                  <li data-zh="右上 &quot;+ New&quot; → 按 Flow 类型选 &quot;Automated cloud flow&quot; 或 &quot;Scheduled cloud flow&quot;。" data-en="Top-right &quot;+ New&quot; → pick &quot;Automated cloud flow&quot; or &quot;Scheduled cloud flow&quot; per the flow type below.">右上 "+ New" → 按 Flow 类型选 "Automated cloud flow" 或 "Scheduled cloud flow"。</li>
+                  <li data-zh="在新 Flow 的设计器里点顶部 Copilot 面板，把下方&quot;Copilot 提示词&quot;对应一段整段粘贴进去 → Copilot 自动拉出 trigger + actions 链。" data-en="In the new flow designer, open the Copilot panel and paste the matching &quot;Copilot prompt&quot; section below → Copilot auto-builds the trigger + action chain.">在新 Flow 的设计器里点顶部 Copilot 面板，把下方"Copilot 提示词"对应一段整段粘贴进去 → Copilot 自动拉出 trigger + actions 链。</li>
+                  <li data-zh="检查每个 action：所有客户专属值（ERP base URL / Speech region / AOAI deployment / SharePoint 路径 / cron）必须从 Solution 的 Environment Variable 取，不要硬填。Dataverse 表名和字段名按 Step A 生成的为准。" data-en="Audit each action: all customer-specific values (ERP base URL / Speech region / AOAI deployment / SharePoint path / cron) must come from Environment Variables in this Solution — never hardcoded. Use the Dataverse table + field names produced in Step A.">检查每个 action：所有客户专属值（ERP base URL / Speech region / AOAI deployment / SharePoint 路径 / cron）必须从 Solution 的 Environment Variable 取，不要硬填。Dataverse 表名和字段名按 Step A 生成的为准。</li>
+                  <li data-zh="每个 Flow 单独 Save → Test → 用对应&quot;验收用例&quot;跑一次 → 确认 Run history 是 Succeeded → Turn on。" data-en="For each flow: Save → Test → run the matching &quot;Acceptance test&quot; → confirm the run is Succeeded → Turn on.">每个 Flow 单独 Save → Test → 用对应"验收用例"跑一次 → 确认 Run history 是 Succeeded → Turn on。</li>
+                  <li data-zh="4 个 Flow 全部绿后，回 Power Apps，Publish Step A 那 5 张 custom tables，整条链路即可端到端跑通。" data-en="When all 4 flows are green, go back to Power Apps and Publish the 5 custom tables from Step A. End-to-end pipeline is now live.">4 个 Flow 全部绿后，回 Power Apps，Publish Step A 那 5 张 custom tables，整条链路即可端到端跑通。</li>
+                </ol>
+                <pre class="proto-prompt-block" data-zh="下面是 4 个 Power Automate Flow 的 Copilot 提示词 + 验收用例。每个 Flow 在 make.powerautomate.com 的&quot;+ New&quot;里按指定类型新建，进入设计器后把对应一段粘到 Copilot 面板，Copilot 会自动搭好；然后按&quot;验收用例&quot;跑通即可。所有 Env Var 名称沿用 Step A 生成的 9 个。
+
+═══════════════════════════════════════
+Flow 1 · Flow_VoiceToActivity （Automated cloud flow）
+═══════════════════════════════════════
+触发：SharePoint &quot;When a file is created (properties only)&quot;，Site Address = ENV_SHAREPOINT_VOICE_PATH 的 site 部分，Library = Documents，Folder = /SalesVoiceUploads
+Copilot 提示词（粘贴这段）：
+&quot;When a new audio file lands in SharePoint folder /SalesVoiceUploads, get the file content; send it to Azure Speech to Text (region from environment variable ENV_SPEECH_REGION) for transcription; send the transcript plus the system instruction 'Extract a structured visit summary as JSON with fields customer (string), contact (string), visit_date (ISO date), outcome (string), next_step (string), opportunity_intent (string), confidence (int 0-100). Return JSON only.' to Azure OpenAI deployment ENV_AOAI_DEPLOYMENT; parse the JSON; then create a row in the Dataverse Activity table with type='voice', draft_status='draft', raw_voice_url = file path, parsed_json = the raw JSON string, parsed_confidence = confidence, related_account = lookup Account by customer name (create if missing), owner = file uploader. Output the new Activity row id.&quot;
+验收用例：
+往 /SalesVoiceUploads 丢一个 ≤ 60 秒的中文 .webm 录音 → 60 秒内 Activity 表多出一行，draft_status=draft，parsed_json 有结构化字段，parsed_confidence 在 0-100。
+
+═══════════════════════════════════════
+Flow 2 · Flow_ActivityToOpportunity （Automated cloud flow）
+═══════════════════════════════════════
+触发：Dataverse &quot;When a row is added, modified or deleted&quot;，Change type = Added or Modified，Table = Activity，Filter rows = draft_status eq 'confirmed' and (confirmed_opportunity_id eq null)
+Copilot 提示词：
+&quot;When an Activity row in Dataverse becomes draft_status='confirmed' without a confirmed_opportunity_id, read its parsed_json; build an opportunity payload {name = parsed.customer + ' - ' + parsed.next_step, related_account = the activity&#39;s related_account, prefix_stage = mapStageFromIntent(parsed.opportunity_intent), prefix_confidence = parsed.confidence, estimated_close = parsed.visit_date + 30 days, owner = the activity&#39;s owner}; insert one row into Dataverse OpportunityWriteQueue with source_activity = this Activity id, payload_json = the payload, target_system = ENV_CUSTOMER_ERP_NAME, status='pending', retry_count=0; finally patch the Activity row with confirmed_opportunity_id = the new queue row id. Output the queue row id.&quot;
+验收用例：
+手动把一行 Activity 从 draft 改成 confirmed → 5 秒内 OpportunityWriteQueue 多一行 status=pending；Activity 行 confirmed_opportunity_id 被回填。
+
+═══════════════════════════════════════
+Flow 3 · Flow_OpportunityToERP （Automated cloud flow）
+═══════════════════════════════════════
+触发：Dataverse &quot;When a row is added&quot;，Table = OpportunityWriteQueue，Filter rows = status eq 'pending'
+Copilot 提示词：
+&quot;When a new OpportunityWriteQueue row arrives with status='pending', POST its payload_json to the customer ERP at ENV_CUSTOMER_ERP_BASE_URL + '/opportunities' using the {customer_erp_or_crm} connection reference for auth; on HTTP 2xx, update the queue row to status='sent', last_error=''; on non-2xx or timeout, update status='failed', last_error = response body, retry_count = retry_count + 1; if retry_count &lt; 3, schedule a re-trigger after 60 seconds using Delay then re-set status='pending'. Output {result, retry_count}.&quot;
+验收用例：
+往 OpportunityWriteQueue 插一行 status=pending，payload_json={&quot;name&quot;:&quot;smoke test&quot;} → ERP 端收到 POST；queue 行 status 变 sent。把 ENV_CUSTOMER_ERP_BASE_URL 改成无效地址再插一行 → queue 行 3 次重试后停在 status=failed，retry_count=3，last_error 非空。
+
+═══════════════════════════════════════
+Flow 4 · Flow_DailyBriefing （Scheduled cloud flow）
+═══════════════════════════════════════
+触发：Recurrence，频率 1 天 1 次，时区 = ENV_TIMEZONE，时刻 06:00（cron 等价 0 6 * * *）
+Copilot 提示词：
+&quot;Every day at 06:00 in environment-variable timezone ENV_TIMEZONE, list all enabled users with security role SalesRep; for each rep: query their owned Account / Opportunity / Activity rows from the last 30 days; compute KPI {visits_today, active_opps, mtd_quota_pct, follow_ups_due}; build a context block summarising the rep&#39;s top 6 focus items (mix of high-confidence opps, at-risk opps, customers not contacted &gt; 14 d, won deals); send the context to Azure OpenAI deployment ENV_AOAI_DEPLOYMENT with the system instruction 'Produce a daily briefing as JSON with items[≤6], each {id, priority (focus|opp|risk|warn|info), pos:{index,total}, time_range:{start_ms,end_ms}, headline:{zh,en}, summary:{zh,en}, context:{zh,en}, bullets:[{zh,en}] (≤2), metrics:[{label,dir}] (≤4), cta:{label:{zh,en},action}}. Return JSON only.'; synthesise speech with Azure Speech to Text (TTS, voice = zh-CN-XiaoxiaoNeural) for each chapter and concatenate; upload audio to SharePoint /SalesBriefings/{rep_id}/{date}.mp3; upsert one row in Dataverse Briefing table {owner = rep, generated_on = today, payload_json = the JSON, audio_url = sharepoint url, last_position = 0}. Output count of briefings created.&quot;
+验收用例：
+手动 Test → &quot;I&#39;ll perform the trigger action&quot; → 跑完无 error → Briefing 表为每位 SalesRep 多一行今天日期 + audio_url 可在浏览器播放 + payload_json items 数 ≤ 6。
+
+═══════════════════════════════════════
+全局硬约束（4 个 Flow 都遵守）
+═══════════════════════════════════════
+- 任何 URL / region / deployment / SharePoint 路径 / cron 一律从 Env Var 取，不准硬编码。
+- 失败时一定要回写错误到对应行的 last_error 字段，便于 UI 端展示给用户。
+- 所有 Dataverse 操作走 Connection Reference，不要新建临时 connection。
+- Flow 名字和 Step A 的 schema 完全一致：Flow_VoiceToActivity / Flow_ActivityToOpportunity / Flow_OpportunityToERP / Flow_DailyBriefing。" data-en="4 Power Automate flows. Per flow: make.powerautomate.com → + New → pick type → name → set trigger → Copilot panel → paste prompt → Copilot scaffolds → wire values from Env Vars → Save → run Acceptance → Turn on. Never hardcode URLs / regions / paths / cron — always Env Vars + Connection References.
+
+— Flow 1 · Flow_VoiceToActivity (Automated) —
+Trigger: SharePoint &quot;When a file is created (properties only)&quot;; Site = host of ENV_SHAREPOINT_VOICE_PATH; Library = Documents; Folder = /SalesVoiceUploads.
+Copilot prompt: &quot;On new audio file in /SalesVoiceUploads, get content; send to Azure Speech to Text (region = ENV_SPEECH_REGION); send transcript + system &#39;Extract visit summary as JSON {customer, contact, visit_date (ISO), outcome, next_step, opportunity_intent, confidence (0-100)}. JSON only.&#39; to Azure OpenAI ENV_AOAI_DEPLOYMENT; parse; create Dataverse Activity {type=&#39;voice&#39;, draft_status=&#39;draft&#39;, raw_voice_url=file path, parsed_json=raw, parsed_confidence=confidence, related_account = lookup Account by customer name (create if missing), owner = uploader}. Output Activity id.&quot;
+Acceptance: drop ≤60 s .webm into /SalesVoiceUploads → ≤60 s a new Activity exists, draft_status=draft, parsed_json populated, parsed_confidence in 0-100.
+
+— Flow 2 · Flow_ActivityToOpportunity (Automated) —
+Trigger: Dataverse &quot;Row added or modified&quot;; Table=Activity; Filter = draft_status eq &#39;confirmed&#39; and confirmed_opportunity_id eq null.
+Copilot prompt: &quot;On Activity → confirmed without confirmed_opportunity_id, read parsed_json; build payload {name = parsed.customer + &#39; - &#39; + parsed.next_step, related_account = Activity.related_account, prefix_stage = mapStageFromIntent(parsed.opportunity_intent), prefix_confidence = parsed.confidence, estimated_close = parsed.visit_date + 30 days, owner = Activity.owner}; insert OpportunityWriteQueue {source_activity = Activity id, payload_json, target_system = ENV_CUSTOMER_ERP_NAME, status=&#39;pending&#39;, retry_count=0}; patch Activity confirmed_opportunity_id = new queue id. Output queue id.&quot;
+Acceptance: flip Activity draft → confirmed → ≤5 s a Queue row appears status=pending; Activity confirmed_opportunity_id back-filled.
+
+— Flow 3 · Flow_OpportunityToERP (Automated) —
+Trigger: Dataverse &quot;Row added&quot;; Table=OpportunityWriteQueue; Filter = status eq &#39;pending&#39;.
+Copilot prompt: &quot;On new pending queue row, POST payload_json to ENV_CUSTOMER_ERP_BASE_URL + &#39;/opportunities&#39; via {customer_erp_or_crm} connection reference; 2xx → status=&#39;sent&#39;, last_error=&#39;&#39;; else status=&#39;failed&#39;, last_error = body, retry_count++; if retry_count &lt; 3, Delay 60 s then re-set status=&#39;pending&#39;. Output {result, retry_count}.&quot;
+Acceptance: insert pending row payload={&quot;name&quot;:&quot;smoke&quot;} → ERP receives POST; row → sent. With invalid base URL → row stops at failed, retry_count=3, last_error non-empty.
+
+— Flow 4 · Flow_DailyBriefing (Scheduled) —
+Trigger: Recurrence, every 1 day, time zone = ENV_TIMEZONE, at 06:00 (cron 0 6 * * *).
+Copilot prompt: &quot;Daily 06:00 in ENV_TIMEZONE: list enabled users with role SalesRep; per rep query owned Account / Opportunity / Activity in last 30 days; compute KPIs {visits_today, active_opps, mtd_quota_pct, follow_ups_due}; build context of top 6 focus items (high-confidence opps, at-risk opps, accounts not contacted &gt; 14 d, won deals); send to Azure OpenAI ENV_AOAI_DEPLOYMENT, system &#39;Briefing JSON items[≤6] each {id, priority, pos, time_range, headline:{zh,en}, summary:{zh,en}, context:{zh,en}, bullets[≤2]:{zh,en}, metrics[≤4]:{label,dir}, cta:{label:{zh,en},action}} — see BriefMe prompt for the full shape. JSON only.&#39;; synth speech via Azure Speech TTS (zh-CN-XiaoxiaoNeural) per chapter, concat; upload to SharePoint /SalesBriefings/{rep_id}/{date}.mp3; upsert Briefing {owner=rep, generated_on=today, payload_json, audio_url, last_position=0}. Output briefing count.&quot;
+Acceptance: Test → run succeeds → Briefing has one row per SalesRep today + playable audio_url + items ≤ 6.">下面是 4 个 Power Automate Flow 的 Copilot 提示词 + 验收用例。每个 Flow 在 make.powerautomate.com 的"+ New"里按指定类型新建，进入设计器后把对应一段粘到 Copilot 面板，Copilot 会自动搭好；然后按"验收用例"跑通即可。所有 Env Var 名称沿用 Step A 生成的 9 个。
+
+═══════════════════════════════════════
+Flow 1 · Flow_VoiceToActivity （Automated cloud flow）
+═══════════════════════════════════════
+触发：SharePoint "When a file is created (properties only)"，Site Address = ENV_SHAREPOINT_VOICE_PATH 的 site 部分，Library = Documents，Folder = /SalesVoiceUploads
+Copilot 提示词（粘贴这段）：
+"When a new audio file lands in SharePoint folder /SalesVoiceUploads, get the file content; send it to Azure Speech to Text (region from environment variable ENV_SPEECH_REGION) for transcription; send the transcript plus the system instruction 'Extract a structured visit summary as JSON with fields customer (string), contact (string), visit_date (ISO date), outcome (string), next_step (string), opportunity_intent (string), confidence (int 0-100). Return JSON only.' to Azure OpenAI deployment ENV_AOAI_DEPLOYMENT; parse the JSON; then create a row in the Dataverse Activity table with type='voice', draft_status='draft', raw_voice_url = file path, parsed_json = the raw JSON string, parsed_confidence = confidence, related_account = lookup Account by customer name (create if missing), owner = file uploader. Output the new Activity row id."
+验收用例：
+往 /SalesVoiceUploads 丢一个 ≤ 60 秒的中文 .webm 录音 → 60 秒内 Activity 表多出一行，draft_status=draft，parsed_json 有结构化字段，parsed_confidence 在 0-100。
+
+═══════════════════════════════════════
+Flow 2 · Flow_ActivityToOpportunity （Automated cloud flow）
+═══════════════════════════════════════
+触发：Dataverse "When a row is added, modified or deleted"，Change type = Added or Modified，Table = Activity，Filter rows = draft_status eq 'confirmed' and (confirmed_opportunity_id eq null)
+Copilot 提示词：
+"When an Activity row in Dataverse becomes draft_status='confirmed' without a confirmed_opportunity_id, read its parsed_json; build an opportunity payload {name = parsed.customer + ' - ' + parsed.next_step, related_account = the activity&#39;s related_account, prefix_stage = mapStageFromIntent(parsed.opportunity_intent), prefix_confidence = parsed.confidence, estimated_close = parsed.visit_date + 30 days, owner = the activity&#39;s owner}; insert one row into Dataverse OpportunityWriteQueue with source_activity = this Activity id, payload_json = the payload, target_system = ENV_CUSTOMER_ERP_NAME, status='pending', retry_count=0; finally patch the Activity row with confirmed_opportunity_id = the new queue row id. Output the queue row id."
+验收用例：
+手动把一行 Activity 从 draft 改成 confirmed → 5 秒内 OpportunityWriteQueue 多一行 status=pending；Activity 行 confirmed_opportunity_id 被回填。
+
+═══════════════════════════════════════
+Flow 3 · Flow_OpportunityToERP （Automated cloud flow）
+═══════════════════════════════════════
+触发：Dataverse "When a row is added"，Table = OpportunityWriteQueue，Filter rows = status eq 'pending'
+Copilot 提示词：
+"When a new OpportunityWriteQueue row arrives with status='pending', POST its payload_json to the customer ERP at ENV_CUSTOMER_ERP_BASE_URL + '/opportunities' using the {customer_erp_or_crm} connection reference for auth; on HTTP 2xx, update the queue row to status='sent', last_error=''; on non-2xx or timeout, update status='failed', last_error = response body, retry_count = retry_count + 1; if retry_count &lt; 3, schedule a re-trigger after 60 seconds using Delay then re-set status='pending'. Output {result, retry_count}."
+验收用例：
+往 OpportunityWriteQueue 插一行 status=pending，payload_json={"name":"smoke test"} → ERP 端收到 POST；queue 行 status 变 sent。把 ENV_CUSTOMER_ERP_BASE_URL 改成无效地址再插一行 → queue 行 3 次重试后停在 status=failed，retry_count=3，last_error 非空。
+
+═══════════════════════════════════════
+Flow 4 · Flow_DailyBriefing （Scheduled cloud flow）
+═══════════════════════════════════════
+触发：Recurrence，频率 1 天 1 次，时区 = ENV_TIMEZONE，时刻 06:00（cron 等价 0 6 * * *）
+Copilot 提示词：
+"Every day at 06:00 in environment-variable timezone ENV_TIMEZONE, list all enabled users with security role SalesRep; for each rep: query their owned Account / Opportunity / Activity rows from the last 30 days; compute KPI {visits_today, active_opps, mtd_quota_pct, follow_ups_due}; build a context block summarising the rep&#39;s top 6 focus items (mix of high-confidence opps, at-risk opps, customers not contacted &gt; 14 d, won deals); send the context to Azure OpenAI deployment ENV_AOAI_DEPLOYMENT with the system instruction 'Produce a daily briefing as JSON with items[≤6], each {id, priority (focus|opp|risk|warn|info), pos:{index,total}, time_range:{start_ms,end_ms}, headline:{zh,en}, summary:{zh,en}, context:{zh,en}, bullets:[{zh,en}] (≤2), metrics:[{label,dir}] (≤4), cta:{label:{zh,en},action}}. Return JSON only.'; synthesise speech with Azure Speech to Text (TTS, voice = zh-CN-XiaoxiaoNeural) for each chapter and concatenate; upload audio to SharePoint /SalesBriefings/{rep_id}/{date}.mp3; upsert one row in Dataverse Briefing table {owner = rep, generated_on = today, payload_json = the JSON, audio_url = sharepoint url, last_position = 0}. Output count of briefings created."
+验收用例：
+手动 Test → "I&#39;ll perform the trigger action" → 跑完无 error → Briefing 表为每位 SalesRep 多一行今天日期 + audio_url 可在浏览器播放 + payload_json items 数 ≤ 6。
+
+═══════════════════════════════════════
+全局硬约束（4 个 Flow 都遵守）
+═══════════════════════════════════════
+- 任何 URL / region / deployment / SharePoint 路径 / cron 一律从 Env Var 取，不准硬编码。
+- 失败时一定要回写错误到对应行的 last_error 字段，便于 UI 端展示给用户。
+- 所有 Dataverse 操作走 Connection Reference，不要新建临时 connection。
+- Flow 名字和 Step A 的 schema 完全一致：Flow_VoiceToActivity / Flow_ActivityToOpportunity / Flow_OpportunityToERP / Flow_DailyBriefing。</pre>
+              </div>
+              <div class="proto-prompt-foot">
+                <span data-zh="A · vibe 数据骨架" data-en="A · vibe data foundation">A · vibe 数据骨架</span>
+                <span data-zh="B · Power Automate 4 Flow" data-en="B · Power Automate 4 flows">B · Power Automate 4 Flow</span>
+                <span data-zh="每段都附操作步骤 + 验收用例" data-en="Each step ships with how-to + acceptance test">每段都附操作步骤 + 验收用例</span>
+                <span data-zh="Env Var 收口客户专属信息" data-en="Env Vars hold all customer-specific values">Env Var 收口客户专属信息</span>
+              </div>
+
+            </div>
+
+          </div>
+          </div>
+
+          <!-- ── Step 3.0: Home Dashboard + Vibe Coding 提示词 ── -->
+          <div data-present-step data-step-title="首页 Dashboard × Vibe Coding 提示词" data-step-title-en="Home Dashboard × Vibe Coding Prompt" data-step-label="07 / INTERFACE PROTOTYPES">
+          <div class="proto-detail">
+
+            <div class="proto-col">
+              <div class="phone-frame" aria-hidden="true">
+                <div class="phone-screen">
+                  <div class="phone-status"><span>9:41</span><span class="status-icons">5G ▮▮</span></div>
+                  <div class="phone-body">
+
+                    <div class="ph-dash-greet">
+                      <div class="ph-avatar">M</div>
+                      <div class="ph-greet-text">
+                        <div class="ph-greet-hi" data-zh="早上好" data-en="Good morning">早上好</div>
+                        <div class="ph-greet-name">Maria Souza</div>
+                      </div>
+                      <div class="ph-settings" aria-hidden="true">⚙</div>
+                    </div>
+
+                    <div class="ph-kpi-grid">
+                      <div class="ph-kpi">
+                        <span class="ph-kpi-label" data-zh="今日拜访" data-en="Visits Today">今日拜访</span>
+                        <span class="ph-kpi-value">4</span>
+                        <span class="ph-kpi-delta pos" data-zh="2 已确认 · 2 待出发" data-en="2 confirmed · 2 to go">2 已确认 · 2 待出发</span>
+                      </div>
+                      <div class="ph-kpi">
+                        <span class="ph-kpi-label" data-zh="活跃商机" data-en="Active Opps">活跃商机</span>
+                        <span class="ph-kpi-value">12</span>
+                        <span class="ph-kpi-delta warn" data-zh="2 风险 · 需关注" data-en="2 at risk · review">2 风险 · 需关注</span>
+                      </div>
+                      <div class="ph-kpi">
+                        <span class="ph-kpi-label" data-zh="本月业绩" data-en="MTD Quota">本月业绩</span>
+                        <span class="ph-kpi-value">68%</span>
+                        <span class="ph-kpi-delta pos" data-zh="↑ 8% vs 上月" data-en="↑ 8% vs last mo">↑ 8% vs 上月</span>
+                      </div>
+                      <div class="ph-kpi">
+                        <span class="ph-kpi-label" data-zh="待跟进" data-en="Follow-ups">待跟进</span>
+                        <span class="ph-kpi-value">5</span>
+                        <span class="ph-kpi-delta neg" data-zh="1 延期 · 1 工单" data-en="1 overdue · 1 ticket">1 延期 · 1 工单</span>
+                      </div>
+                    </div>
+
+                    <div class="ph-card">
+                      <div class="ph-card-title">
+                        <span data-zh="今日摘要" data-en="Today's Briefing">今日摘要</span>
+                        <span class="ph-tag ph-tag-ai" data-zh="AI 生成" data-en="AI Generated">AI 生成</span>
+                      </div>
+                      <div class="ph-summary-line warn"><span class="ph-sum-bullet">!</span><span data-zh="9:00 Hospital Alpha · 重点跟进 A3 演示反馈" data-en="9:00 Hospital Alpha · follow up on A3 demo feedback">9:00 Hospital Alpha · 重点跟进 A3 演示反馈</span></div>
+                      <div class="ph-summary-line risk"><span class="ph-sum-bullet">▲</span><span data-zh="Hospital Gamma 昨日提交 RFP · 14:00 拜访前需准备" data-en="Hospital Gamma RFP submitted yesterday · prep before 14:00 visit">Hospital Gamma 昨日提交 RFP · 14:00 拜访前需准备</span></div>
+                      <div class="ph-summary-line opp"><span class="ph-sum-bullet">●</span><span data-zh="Hospital Delta · A1 商机阶段升级 Propose → Negotiate" data-en="Hospital Delta · A1 opp moved Propose → Negotiate">Hospital Delta · A1 商机阶段升级 Propose → Negotiate</span></div>
+                      <div class="ph-summary-line info"><span class="ph-sum-bullet">⊙</span><span data-zh="昨日 N1 订单已清关 · 预计明日交付 Hospital Alpha" data-en="N1 order cleared customs · ETA tomorrow to Hospital Alpha">昨日 N1 订单已清关 · 预计明日交付 Hospital Alpha</span></div>
+                      <div class="ph-source"><span class="ph-source-dot"></span><span data-zh="指标分析 + 客户画像 + 订单查询 Agent" data-en="KPI Analytics + Customer Profile + Order Inquiry agents">指标分析 + 客户画像 + 订单查询 Agent</span></div>
+                    </div>
+
+                    <div class="ph-quick">
+                      <div class="ph-quick-chip primary"><span class="ph-quick-emoji">●</span><span data-zh="语音播报" data-en="Brief Me">语音播报</span></div>
+                      <div class="ph-quick-chip"><span class="ph-quick-emoji">＋</span><span data-zh="新拜访" data-en="New Visit">新拜访</span></div>
+                    </div>
+
+                    <div class="ph-mic-row">
+                      <div class="ph-mic">●</div>
+                      <span class="ph-mic-hint" data-zh="按住对 Copilot 说话" data-en="Hold to talk to Copilot">按住对 Copilot 说话</span>
+                    </div>
+
+                  </div>
+                  <div class="phone-home"></div>
+                </div>
+              </div>
+              <div class="proto-caption">
+                <span class="proto-tag" data-zh="原则 01 + 04" data-en="Principle 01 + 04">原则 01 + 04</span>
+                <h3 data-zh="首页 Dashboard" data-en="Home Dashboard">首页 Dashboard</h3>
+                <p data-zh="开机即得&quot;今日大盘&quot;：身份 + 4 张 KPI + AI 生成的今日摘要 + 三个语音/拜访/Copilot 快捷入口，承接 Maria 通勤途中的&quot;主动播报&quot;场景。" data-en="On launch the rep sees today's pulse: identity + 4 KPIs + an AI-generated daily briefing + three quick entries for voice / new visit / Copilot — the visual home of Maria's morning commute briefing.">开机即得"今日大盘"：身份 + 4 张 KPI + AI 生成的今日摘要 + 三个语音/拜访/Copilot 快捷入口，承接 Maria 通勤途中的"主动播报"场景。</p>
+              </div>
+            </div>
+
+            <div class="proto-prompt">
+              <div class="proto-prompt-head">
+                <span class="proto-prompt-tag">Vibe Coding · Screen 0</span>
+                <h3 data-zh="HomeDashboard（首页大盘）" data-en="HomeDashboard (Today at a Glance)">HomeDashboard（首页大盘）</h3>
+              </div>
+              <p class="proto-prompt-lead" data-zh="在已建好的 plan 内追加一屏，作为 App 启动后的默认页面：身份 + KPI + 今日播报入口 + 快捷动作。所有 KPI 实时从 Bootstrap 创建的 Dataverse 表读取，不在 UI 里硬编码示例数字。" data-en="Add the rep launch screen to the existing plan as the default route: identity + KPI + Brief Me entry + quick actions. All KPIs read live from the Dataverse tables created in Bootstrap — never hardcode sample numbers in the UI.">在已建好的 plan 内追加一屏，作为 App 启动后的默认页面：身份 + KPI + 今日播报入口 + 快捷动作。所有 KPI 实时从 Bootstrap 创建的 Dataverse 表读取，不在 UI 里硬编码示例数字。</p>
+              <pre class="proto-prompt-block" data-zh="在 Power Apps vibe 中向当前 app 追加一屏 <strong>HomeDashboard</strong>，作为 App 的默认路由（/home）。Mobile 预览尺寸 9:19 竖屏。
+
+【顶部栏】
+左 ≡（点击展开侧栏导航），居中标题&quot;主页&quot;，右 ⚙（跳转 Settings 屏）。
+
+【布局自上而下】
+1. 问候头：左 34px 圆形渐变头像（取 power.user().fullName 首字母）+ 右两行文字：第一行&quot;早上好&quot;（按当前时区切换 早上好 / 下午好 / 晚上好），第二行用户全名。
+2. KPI 网格：2×2 卡片，20px 圆角，深色玻璃背景，内距 12-14。四张卡：
+   · 今日拜访：当日 owner = 当前用户的 Activity 行数；副文案&quot;X 已确认 · Y 待出发&quot;，按 draft_status 分桶。
+   · 活跃商机：当前用户拥有的 Opportunity 行数（prefix_stage NOT IN won/lost）；副文案&quot;Z 风险 · 需关注&quot;，Z = prefix_confidence &lt; 50 的行数。
+   · 本月业绩：当月 won 单的 totalamount 求和 / 当前用户配额 ×100%；副文案&quot;↑/↓ N% vs 上月&quot;。
+   · 待回访客户：当前用户拥有的 Account 行数中 lastcontactedon &lt; 14 天前；副文案&quot;按距离排序&quot;。
+3. 今日播报卡：brand orange 12px 圆角，左大字&quot;今日播报 · 6 章节 · 2 分 40 秒&quot;，右白色圆形播放按钮。点击 → 跳 BriefMe 屏。
+4. 快捷操作 chip 行：4 个等宽圆角按钮——
+   · &quot;新拜访&quot; → 跳 ActivityCapture 屏，先建一行 Activity (type=visit, draft_status=draft)。
+   · &quot;提问 Copilot&quot; → 跳 CopilotChat 屏。
+   · &quot;看商机&quot; → 跳 OpportunityDraftReview 屏。
+   · &quot;扫名片&quot; → 暂占位，弹&quot;功能即将上线&quot; toast。
+5. 摘要行：单行 9.5pt 灰字&quot;今天有 N 个回访，M 个商机本周收尾&quot;，N/M 实时计算。
+
+【数据绑定】
+全部数据来自 Bootstrap 建立的 Account / Opportunity / Activity / Contact 四张表，按当前用户 owner 过滤。空数据时所有 KPI 显示&quot;—&quot;。
+
+【交互】
+- 下拉刷新触发整页重查。
+- 右下浮动 Copilot mic：56px 圆形 brand orange，按下 ≥ 300 ms 录音并跳 CopilotChat。
+- 离线：顶部插一条琥珀色横条&quot;离线 · 显示最近一次缓存&quot;。
+
+【设计约束】
+- 复用 plan 中已有的 brand orange (#FF7A00)、深色玻璃背景、Fluent UI v9 控件。
+- 双语 zh-Hans / en-US，按 power.user().lang 渲染。
+- 字号阶梯遵循 plan theme tokens（headline 18 / body 13 / caption 9.5）。" data-en="Add a screen called <strong>HomeDashboard</strong> to the current app as the default route (/home). Preview size: 9:19 portrait.
+
+TOP BAR:
+Left ≡ (opens side nav), centred title &quot;Home&quot;, right ⚙ (navigates to Settings).
+
+LAYOUT (top to bottom):
+1. Greeting header: 34px circular gradient avatar (initial of power.user().fullName) + right two-line block: line 1 &quot;Good morning&quot; (switches Good morning / afternoon / evening by current timezone), line 2 full user name.
+2. KPI grid: 2×2 cards, 20px radius, dark glass background, padding 12-14. Four cards:
+   · Visits Today — count of Activity rows owned by current user with createdon = today; sub line &quot;X confirmed · Y to go&quot; by draft_status.
+   · Active Opps — count of Opportunity rows owned by current user where prefix_stage NOT IN (won, lost); sub line &quot;Z at risk&quot; with Z = rows where prefix_confidence &lt; 50.
+   · MTD Quota — sum(totalamount) of won opps this month / current user quota × 100%; sub line &quot;↑/↓ N% vs last month&quot;.
+   · Follow-ups due — count of Account rows owned by current user with lastcontactedon &gt; 14 days ago; sub line &quot;sorted by distance&quot;.
+3. Brief Me card: brand-orange 12px radius card, left big text &quot;Brief Me · 6 chapters · 2m 40s&quot;, right white circular play button. Tap → navigate to BriefMe screen.
+4. Quick action chip row: 4 equal-width pill buttons —
+   · &quot;New visit&quot; → ActivityCapture, pre-creates an Activity row (type=visit, draft_status=draft).
+   · &quot;Ask Copilot&quot; → CopilotChat.
+   · &quot;View opps&quot; → OpportunityDraftReview.
+   · &quot;Scan card&quot; → toast &quot;coming soon&quot;.
+5. Summary line: single 9.5pt grey line &quot;You have N follow-ups today and M opps closing this week&quot;, N/M computed live.
+
+DATA BINDING:
+All data from Account / Opportunity / Activity / Contact tables created in Bootstrap, filtered by current user owner. Show &quot;—&quot; when empty. Never hardcode sample numbers.
+
+INTERACTIONS:
+- Pull to refresh requeries the page.
+- Floating Copilot mic FAB: bottom-right 56px brand-orange circle; press ≥ 300 ms records audio and navigates to CopilotChat.
+- Offline: amber top banner &quot;Offline · showing last cached snapshot&quot;.
+
+DESIGN:
+- Reuse Bootstrap brand orange (#FF7A00), dark glass background, Fluent UI v9 controls.
+- Bilingual zh-Hans / en-US via power.user().lang.
+- Type scale per plan theme tokens (headline 18 / body 13 / caption 9.5).">在 Power Apps vibe 中向当前 app 追加一屏 <strong>HomeDashboard</strong>，作为 App 的默认路由（/home）。Mobile 预览尺寸 9:19 竖屏。
+
+【顶部栏】
+左 ≡（点击展开侧栏导航），居中标题"主页"，右 ⚙（跳转 Settings 屏）。
+
+【布局自上而下】
+1. 问候头：左 34px 圆形渐变头像（取 power.user().fullName 首字母）+ 右两行文字：第一行"早上好"（按当前时区切换 早上好 / 下午好 / 晚上好），第二行用户全名。
+2. KPI 网格：2×2 卡片，20px 圆角，深色玻璃背景，内距 12-14。四张卡：
+   · 今日拜访：当日 owner = 当前用户的 Activity 行数；副文案"X 已确认 · Y 待出发"，按 draft_status 分桶。
+   · 活跃商机：当前用户拥有的 Opportunity 行数（prefix_stage NOT IN won/lost）；副文案"Z 风险 · 需关注"，Z = prefix_confidence &lt; 50 的行数。
+   · 本月业绩：当月 won 单的 totalamount 求和 / 当前用户配额 ×100%；副文案"↑/↓ N% vs 上月"。
+   · 待回访客户：当前用户拥有的 Account 行数中 lastcontactedon &lt; 14 天前；副文案"按距离排序"。
+3. 今日播报卡：brand orange 12px 圆角，左大字"今日播报 · 6 章节 · 2 分 40 秒"，右白色圆形播放按钮。点击 → 跳 BriefMe 屏。
+4. 快捷操作 chip 行：4 个等宽圆角按钮——
+   · "新拜访" → 跳 ActivityCapture 屏，先建一行 Activity (type=visit, draft_status=draft)。
+   · "提问 Copilot" → 跳 CopilotChat 屏。
+   · "看商机" → 跳 OpportunityDraftReview 屏。
+   · "扫名片" → 暂占位，弹"功能即将上线" toast。
+5. 摘要行：单行 9.5pt 灰字"今天有 N 个回访，M 个商机本周收尾"，N/M 实时计算。
+
+【数据绑定】
+全部数据来自 Bootstrap 建立的 Account / Opportunity / Activity / Contact 四张表，按当前用户 owner 过滤。空数据时所有 KPI 显示"—"。
+
+【交互】
+- 下拉刷新触发整页重查。
+- 右下浮动 Copilot mic：56px 圆形 brand orange，按下 ≥ 300 ms 录音并跳 CopilotChat。
+- 离线：顶部插一条琥珀色横条"离线 · 显示最近一次缓存"。
+
+【设计约束】
+- 复用 plan 中已有的 brand orange (#FF7A00)、深色玻璃背景、Fluent UI v9 控件。
+- 双语 zh-Hans / en-US，按 power.user().lang 渲染。
+- 字号阶梯遵循 plan theme tokens（headline 18 / body 13 / caption 9.5）。</pre>
+              <div class="proto-prompt-foot">
+                <span data-zh="交互 · 下拉刷新 + 浮动 Copilot mic" data-en="Interactions · pull-to-refresh + floating Copilot mic">交互 · 下拉刷新 + 浮动 Copilot mic</span>
+                <span data-zh="数据 · Account / Opportunity / Activity" data-en="Data · Account / Opportunity / Activity">数据 · Account / Opportunity / Activity</span>
+                <span data-zh="云流 · 仅 Brief Me 卡片用 BriefMe" data-en="Cloud Flow · only Brief Me card calls BriefMe">云流 · 仅 Brief Me 卡片用 BriefMe</span>
+                <span data-zh="路由 · /home（默认）" data-en="Route · /home (default)">路由 · /home（默认）</span>
+              </div>
+            </div>
+
+          </div>
+          </div>
+
+          <!-- ── Step 3.0B: Brief Me + Vibe Coding 提示词 ── -->
+          <div data-present-step data-step-title="今日播报 × Vibe Coding 提示词" data-step-title-en="Brief Me × Vibe Coding Prompt" data-step-label="07 / INTERFACE PROTOTYPES">
+          <div class="proto-detail">
+
+            <div class="proto-col">
+              <div class="phone-frame" aria-hidden="true">
+                <div class="phone-screen">
+                  <div class="phone-status"><span>9:41</span><span class="status-icons">5G ▮▮</span></div>
+                  <div class="phone-header">
+                    <span class="ph-back">←</span>
+                    <span class="ph-title" data-zh="今日播报 · 6 章节 2 分 40 秒" data-en="Brief Me · 6 chapters 2m 40s">今日播报 · 6 章节 2 分 40 秒</span>
+                    <span class="ph-action" data-zh="文" data-en="Aa" title="切换文字稿">文</span>
+                  </div>
+                  <div class="phone-body">
+
+                    <article class="ph-brief-card prio-risk">
+                      <div class="ph-brief-card-head">
+                        <span class="ph-brief-card-prio" data-zh="风险预警" data-en="Risk">风险预警</span>
+                        <span class="ph-brief-card-pos">03 / 06 · 00:48–01:25</span>
+                      </div>
+                      <div class="ph-brief-card-headline" data-zh="A 客户两次延期回复 · 履约掉至 78%" data-en="Account A: 2 reply delays · fulfilment 78%">A 客户两次延期回复 · 履约掉至 78%</div>
+                      <div class="ph-brief-card-summary" data-zh="14 天连续 2 次延期：付款承诺从 4/18 推到 4/26 又推到 5/03；今晨内部群已被 @两次，履约 96% → 78%。" data-en="2 reply delays in 14 days: payment commitment slid 4/18 → 4/26 → 5/03; @-mentioned twice in the team channel this morning, fulfilment 96% → 78%.">14 天连续 2 次延期：付款承诺从 4/18 推到 4/26 又推到 5/03；今晨内部群已被 @两次，履约 96% → 78%。</div>
+                      <ul class="ph-brief-card-points">
+                        <li data-zh="对方采购总监本周休假 · 已切换接口人为副总监 Lucia" data-en="Procurement lead on PTO this week · contact switched to deputy Lucia">对方采购总监本周休假 · 已切换接口人为副总监 Lucia</li>
+                        <li data-zh="信用风险分上调至 B+，回款超 30 天将触发预警" data-en="Credit risk score raised to B+; >30-day overdue will trigger alert">信用风险分上调至 B+，回款超 30 天将触发预警</li>
+                      </ul>
+                      <div class="ph-brief-card-metrics">
+                        <span class="ph-brief-card-metric down">-18% · 履约</span>
+                        <span class="ph-brief-card-metric down">SLA 超 4 天</span>
+                        <span class="ph-brief-card-metric">¥620 万 在途</span>
+                        <span class="ph-brief-card-metric">3 单待发货</span>
+                      </div>
+                      <div class="ph-brief-card-context" data-zh="今天 15:30 你正好在浦东 · 距 A 客户 2.4 km · 副总监今日在岗" data-en="You're in Pudong at 15:30 · 2.4 km from Account A · deputy on-site today">今天 15:30 你正好在浦东 · 距 A 客户 2.4 km · 副总监今日在岗</div>
+                      <button class="ph-brief-card-cta" data-zh="加入今日拜访" data-en="Add to today">加入今日拜访</button>
+                    </article>
+
+                    <div class="ph-brief-stage-dots" aria-hidden="true">
+                      <span></span><span></span><span class="is-now"></span><span></span><span></span><span></span>
+                    </div>
+                    <div class="ph-brief-swipe-hint" data-zh="左右滑动 · 切换章节" data-en="Swipe ← → to switch chapters">左右滑动 · 切换章节</div>
+
+                    <div class="ph-brief-bottom">
+                      <button class="ph-brief-speed-btn" type="button" aria-label="切换播放倍率">
+                        <span class="ph-brief-speed-num">1<small>×</small></span>
+                        <span class="ph-brief-speed-caret" aria-hidden="true">▾</span>
+                      </button>
+                      <div class="ph-brief-mic" aria-label="短按播放，长按对 Copilot 说话">
+                        <span class="ph-brief-mic-icon">▶</span>
+                      </div>
+                      <span class="ph-brief-bottom-time">01:08 / 02:40</span>
+                    </div>
+
+                  </div>
+                  <div class="phone-home"></div>
+                </div>
+              </div>
+              <div class="proto-caption">
+                <span class="proto-tag" data-zh="原则 04 · 反向播报" data-en="Principle 04 · Reverse Briefing">原则 04 · 反向播报</span>
+                <h3 data-zh="今日播报 Brief Me" data-en="Brief Me">今日播报 Brief Me</h3>
+                <p data-zh="单张 BriefCard 承载今日全部背景：摘要 + 要点 + metric chip + 加入今日 CTA。底部气泡短按播放、长按对话，左侧 chip 切 1×/1.5×/2×，dots 切章节。" data-en="One BriefCard holds today's context: summary, bullets, metric chips, Add-to-Today CTA. The bottom bubble short-taps to play, holds to talk; left chip cycles 1×/1.5×/2×, dots switch chapters.">单张 BriefCard 承载今日全部背景：摘要 + 要点 + metric chip + 加入今日 CTA。底部气泡短按播放、长按对话，左侧 chip 切 1×/1.5×/2×，dots 切章节。</p>
+              </div>
+            </div>
+
+            <div class="proto-prompt">
+              <div class="proto-prompt-head">
+                <span class="proto-prompt-tag">Vibe Coding · Screen 0B</span>
+                <h3 data-zh="BriefMe（今日主动播报）" data-en="BriefMe (Proactive Daily Briefing)">BriefMe（今日主动播报）</h3>
+              </div>
+              <p class="proto-prompt-lead" data-zh="从 HomeDashboard 的&quot;今日播报&quot;卡进入：整屏一张 BriefCard 占满可用高度，卡顶承担&quot;标题 + 关键证据&quot;、卡底钉住播放控件；章节切换的 dots / swipe 提示在卡外；底部复用共享 mic 行让用户按住对当前章节追问。所有播报内容由后端 agent 生成，不在 UI 硬编码。" data-en="Entered from HomeDashboard&#39;s Brief Me card: a single BriefCard fills the available height — top carries headline + supporting evidence, bottom pins the audio player; chapter dots + swipe hint sit outside the card; the bottom mic row is reused so the rep can press-and-hold to ask about the current chapter. All briefing copy comes from the backend agent — never hardcoded.">从 HomeDashboard 的&quot;今日播报&quot;卡进入：整屏一张 BriefCard 占满可用高度，卡顶承担&quot;标题 + 关键证据&quot;、卡底钉住播放控件；章节切换的 dots / swipe 提示在卡外；底部复用共享 mic 行让用户按住对当前章节追问。所有播报内容由后端 agent 生成，不在 UI 硬编码。</p>
+              <pre class="proto-prompt-block" data-zh="在 Power Apps vibe 中向当前 app 追加一屏 <strong>BriefMe</strong>，由 HomeDashboard 的&quot;今日播报&quot;卡唤起，路由 /brief。Mobile 预览 9:19 竖屏。
+
+【数据】
+读 Bootstrap 中创建的 Briefing 表（owner / generated_on / payload_json / audio_url / last_position）。打开屏时按&quot;owner = 当前用户 AND generated_on = 今天&quot;取一行；若不存在或离上次生成 &gt; 5 分钟，调用云流 BriefMe(userId, date) 重算并写回。payload_json 解出 items[≤6]，每个 item:
+{ id, priority: focus|opp|risk|warn|info,
+  pos: { index, total }, time_range: { start_ms, end_ms },
+  headline: { zh, en }, summary: { zh, en }, context: { zh, en },
+  bullets: [ { zh, en } ],            // ≤ 2
+  metrics: [ { label, dir: up|down|flat } ],  // ≤ 4
+  cta: { label: { zh, en }, action } }
+长度：headline ≤ 18 zh / 50 en · summary ≤ 60 zh / 140 en · bullet ≤ 22 zh / 60 en · context = 1 行。
+
+【顶部栏】共享 PhoneHeader：← / 居中&quot;今日播报 · 6 章节 2 分 40 秒&quot; / 右&quot;文&quot;（转写抽屉）。
+
+【BriefCard（flex: 1，列布局）】
+- 头部：priority pill（取 --prio 颜色）+ 等宽数字 &quot;03 / 06 · 00:48–01:25&quot;。
+- 11.5pt headline · 10.5pt summary · ≤ 2 条 bullet（priority 色圆点 + 9.5pt）。
+- ≤ 4 个 metric chip（up=青 / down=红 / flat=灰白）。
+- 9.5pt context 行，行首 ↳；之后是左对齐橙色 CTA 按钮。
+- 卡底播放区（margin-top:auto 钉住）：1px 顶分隔 + 20 根波形条 + 30px 圆形 ▶/❚❚ + 等宽数字 &quot;01:08 / 02:40&quot; + 1.0×/1.25×/1.5×/2.0× 速度 pill。
+- 5 种 priority 共用同一形态，仅 --prio 与一层淡渐变背景不同。
+
+【卡外】StageDots：6 个章节圆点，当前为胶囊高亮，点击跳章。SwipeHint：9pt 灰字&quot;左右滑动 · 切换章节&quot;。
+
+【底部】共享 PhoneMicRow：48px 跳动橙圆按钮 + &quot;按住对这条提问&quot;。最底部 110×4 home 指示条。
+
+【行为】
+- 进屏自动播放。audio.timeupdate 跨入下一 time_range 时 BriefCard 横向滑入下一 item（transform translate3d, 300 ms ease）。
+- 手动 swipe / 点 dot 暂停跟读 30 秒；30 秒静止 OR 滑回当前章节恢复跟读；双击当前卡立即恢复。
+- 速度按钮循环 1.0× → 1.25× → 1.5× → 2.0× → 1.0×；存到 localStorage briefMeRate。
+- &quot;文&quot;按钮 → 全屏 Drawer 列出 transcript_segments，当前段高亮，点段跳音频。
+- 离开屏 → 暂停音频，把 currentTime 写回 Briefing.last_position。
+- mic 按住 ≥ 300 ms 开始录音；松开把音频 blob + 当前 BriefItem.id + 当前转写片段传给 CopilotChat（route /copilot）作为 system context。按住时右滑 ≥ 80 px 取消并提示&quot;松开取消&quot;。
+
+【手势 / 无障碍】
+- 横向 swipe：|Δx| ≥ 60 px 且 ≥ 1.5×|Δy| → 切章；否则按滚动处理。
+- BriefCard role=&quot;article&quot; aria-roledescription=&quot;briefing chapter&quot;；StageDots role=&quot;tablist&quot;，dot role=&quot;tab&quot;；方向键也能切章。
+- mic 双语 aria-label；按住时 aria-live=&quot;polite&quot; 报&quot;录音中，松开发送&quot;。
+
+【约束】
+- headline / summary / bullets / metrics / cta / 答复全部来自云流，UI 严禁硬编码业务文案。
+- 颜色 / 圆角 / 字号走 plan theme tokens；priority 颜色走 --prio CSS 变量。
+- 双语 { zh, en }，由 power.user().lang 决定渲染；切语言不重新合成音频。
+- 离线：渲染 Briefing 表中昨天那一行；mic 灰化并提示&quot;离线无法提问&quot;。
+- 章节切换只用 transform，不引发整页 reflow；Drawer 走 portal。" data-en="Add a screen called <strong>BriefMe</strong> to the current app, launched from HomeDashboard&#39;s &quot;Brief Me&quot; card; route /brief. Preview size: 9:19 portrait.
+
+DATA:
+Read the Briefing table created in Bootstrap (owner / generated_on / payload_json / audio_url / last_position). On open, fetch the row where owner = current user AND generated_on = today; if missing or &gt; 5 min stale, call cloud flow BriefMe(userId, date) to regenerate and write back. payload_json yields items[≤6]:
+{ id, priority: focus|opp|risk|warn|info,
+  pos: { index, total }, time_range: { start_ms, end_ms },
+  headline: { zh, en }, summary: { zh, en }, context: { zh, en },
+  bullets: [ { zh, en } ],            // ≤ 2
+  metrics: [ { label, dir: up|down|flat } ],  // ≤ 4
+  cta: { label: { zh, en }, action } }
+Lengths: headline ≤ 18 zh / 50 en · summary ≤ 60 zh / 140 en · bullet ≤ 22 zh / 60 en · context = 1 line.
+
+TOP BAR: shared PhoneHeader — ← / centred &quot;Brief Me · 6 chapters 2m 40s&quot; / right &quot;Aa&quot; transcript drawer.
+
+BRIEFCARD (flex: 1, column layout):
+- Header: priority pill (uses --prio) + tabular-nums &quot;03 / 06 · 00:48–01:25&quot;.
+- 11.5pt headline · 10.5pt summary · ≤ 2 bullets (priority dot + 9.5pt).
+- ≤ 4 metric chips (up = teal / down = red / flat = greyish white).
+- 9.5pt context line prefixed ↳; then left-aligned orange CTA button.
+- Player pinned to bottom (margin-top:auto): 1px top divider + 20-bar waveform + 30px ▶/❚❚ + tabular-nums &quot;01:08 / 02:40&quot; + 1.0×/1.25×/1.5×/2.0× speed pill.
+- All 5 priorities share one shape; only --prio + a faint gradient bg differ.
+
+OUTSIDE CARD: StageDots — 6 chapter dots, current = pill highlight; tap to jump. SwipeHint — 9pt grey &quot;Swipe ← → to switch chapters&quot;.
+
+BOTTOM: shared PhoneMicRow — 48px pulsing orange button + &quot;Hold to ask about this&quot;. Then a 110×4 home indicator.
+
+BEHAVIOUR:
+- Auto-play on entry. timeupdate crossing into next time_range slides BriefCard (transform translate3d, 300 ms ease).
+- Manual swipe / dot tap pauses follow-audio for 30 s; 30 s idle OR swipe back to current resumes; double-tap current resumes immediately.
+- Speed button cycles 1.0× → 1.25× → 1.5× → 2.0× → 1.0×; persisted to localStorage briefMeRate.
+- &quot;Aa&quot; → full-screen Drawer of transcript_segments, current highlighted; tap segment to seek audio.
+- Leave page → pause audio, write currentTime back to Briefing.last_position.
+- Mic press ≥ 300 ms records; release passes audio blob + current BriefItem.id + transcript-so-far to CopilotChat (/copilot) as system context. Slide right ≥ 80 px while pressed cancels with &quot;Release to cancel&quot;.
+
+GESTURES / A11Y:
+- Horizontal swipe: |Δx| ≥ 60 px AND ≥ 1.5×|Δy| → switch chapter; else treat as scroll.
+- BriefCard role=&quot;article&quot; aria-roledescription=&quot;briefing chapter&quot;; StageDots role=&quot;tablist&quot;, dot role=&quot;tab&quot;; arrow keys also switch.
+- Mic bilingual aria-label; while pressed, aria-live=&quot;polite&quot; announces &quot;Recording, release to send&quot;.
+
+CONSTRAINTS:
+- All headline / summary / bullets / metrics / cta / answer copy from cloud flow — never hardcode in UI.
+- Colours / radii / sizes via plan theme tokens; priority via --prio CSS variable.
+- Bilingual { zh, en } by power.user().lang; switching lang must NOT re-synthesise audio.
+- Offline: render yesterday&#39;s row from Briefing; grey out mic + &quot;Offline — voice ask unavailable&quot;.
+- Chapter switch transform-only; Drawer via portal.">在 Power Apps vibe 中向当前 app 追加一屏 <strong>BriefMe</strong>，由 HomeDashboard 的"今日播报"卡唤起，路由 /brief。Mobile 预览 9:19 竖屏。
+
+【数据】
+读 Bootstrap 中创建的 Briefing 表（owner / generated_on / payload_json / audio_url / last_position）。打开屏时按"owner = 当前用户 AND generated_on = 今天"取一行；若不存在或离上次生成 &gt; 5 分钟，调用云流 BriefMe(userId, date) 重算并写回。payload_json 解出 items[≤6]，每个 item:
+{ id, priority: focus|opp|risk|warn|info,
+  pos: { index, total }, time_range: { start_ms, end_ms },
+  headline: { zh, en }, summary: { zh, en }, context: { zh, en },
+  bullets: [ { zh, en } ],            // ≤ 2
+  metrics: [ { label, dir: up|down|flat } ],  // ≤ 4
+  cta: { label: { zh, en }, action } }
+长度：headline ≤ 18 zh / 50 en · summary ≤ 60 zh / 140 en · bullet ≤ 22 zh / 60 en · context = 1 行。
+
+【顶部栏】共享 PhoneHeader：← / 居中"今日播报 · 6 章节 2 分 40 秒" / 右"文"（转写抽屉）。
+
+【BriefCard（flex: 1，列布局）】
+- 头部：priority pill（取 --prio 颜色）+ 等宽数字 "03 / 06 · 00:48–01:25"。
+- 11.5pt headline · 10.5pt summary · ≤ 2 条 bullet（priority 色圆点 + 9.5pt）。
+- ≤ 4 个 metric chip（up=青 / down=红 / flat=灰白）。
+- 9.5pt context 行，行首 ↳；之后是左对齐橙色 CTA 按钮。
+- 卡底播放区（margin-top:auto 钉住）：1px 顶分隔 + 20 根波形条 + 30px 圆形 ▶/❚❚ + 等宽数字 "01:08 / 02:40" + 1.0×/1.25×/1.5×/2.0× 速度 pill。
+- 5 种 priority 共用同一形态，仅 --prio 与一层淡渐变背景不同。
+
+【卡外】StageDots：6 个章节圆点，当前为胶囊高亮，点击跳章。SwipeHint：9pt 灰字"左右滑动 · 切换章节"。
+
+【底部】共享 PhoneMicRow：48px 跳动橙圆按钮 + "按住对这条提问"。最底部 110×4 home 指示条。
+
+【行为】
+- 进屏自动播放。audio.timeupdate 跨入下一 time_range 时 BriefCard 横向滑入下一 item（transform translate3d, 300 ms ease）。
+- 手动 swipe / 点 dot 暂停跟读 30 秒；30 秒静止 OR 滑回当前章节恢复跟读；双击当前卡立即恢复。
+- 速度按钮循环 1.0× → 1.25× → 1.5× → 2.0× → 1.0×；存到 localStorage briefMeRate。
+- "文"按钮 → 全屏 Drawer 列出 transcript_segments，当前段高亮，点段跳音频。
+- 离开屏 → 暂停音频，把 currentTime 写回 Briefing.last_position。
+- mic 按住 ≥ 300 ms 开始录音；松开把音频 blob + 当前 BriefItem.id + 当前转写片段传给 CopilotChat（route /copilot）作为 system context。按住时右滑 ≥ 80 px 取消并提示"松开取消"。
+
+【手势 / 无障碍】
+- 横向 swipe：|Δx| ≥ 60 px 且 ≥ 1.5×|Δy| → 切章；否则按滚动处理。
+- BriefCard role="article" aria-roledescription="briefing chapter"；StageDots role="tablist"，dot role="tab"；方向键也能切章。
+- mic 双语 aria-label；按住时 aria-live="polite" 报"录音中，松开发送"。
+
+【约束】
+- headline / summary / bullets / metrics / cta / 答复全部来自云流，UI 严禁硬编码业务文案。
+- 颜色 / 圆角 / 字号走 plan theme tokens；priority 颜色走 --prio CSS 变量。
+- 双语 { zh, en }，由 power.user().lang 决定渲染；切语言不重新合成音频。
+- 离线：渲染 Briefing 表中昨天那一行；mic 灰化并提示"离线无法提问"。
+- 章节切换只用 transform，不引发整页 reflow；Drawer 走 portal。</pre>
+              <div class="proto-prompt-foot">
+                <span data-zh="交互 · 自动跟读 / 章节滑动 / 长按追问" data-en="Interactions · auto-follow / swipe chapters / hold to ask">交互 · 自动跟读 / 章节滑动 / 长按追问</span>
+                <span data-zh="数据 · Briefing 表（来自 Flow_DailyBriefing）" data-en="Data · Briefing table (from Flow_DailyBriefing)">数据 · Briefing 表（来自 Flow_DailyBriefing）</span>
+                <span data-zh="云流 · BriefMe（按需重算）+ AskAboutBrief（追问）" data-en="Cloud Flows · BriefMe (on-demand) + AskAboutBrief">云流 · BriefMe（按需重算）+ AskAboutBrief（追问）</span>
+                <span data-zh="路由 · /brief（HomeDashboard 唤起）" data-en="Route · /brief (from HomeDashboard)">路由 · /brief</span>
+              </div>
+            </div>
+
+          </div>
+          </div>
+
+          <!-- ── Step 3A: Prototype A + Vibe Coding 提示词 ── -->
+          <div data-present-step data-step-title="活动录入 × Vibe Coding 提示词" data-step-title-en="Activity Capture × Vibe Coding Prompt" data-step-label="07 / INTERFACE PROTOTYPES">
+          <div class="proto-detail">
+
+            <div class="proto-col">
+              <div class="phone-frame" aria-hidden="true">
+                <div class="phone-screen">
+                  <div class="phone-status"><span>9:41</span><span class="status-icons">5G ▮▮</span></div>
+                  <div class="phone-header">
+                    <span class="ph-back">←</span>
+                    <span class="ph-title" data-zh="新拜访 · Hospital Alpha" data-en="New Visit · Hospital Alpha">新拜访 · Hospital Alpha</span>
+                    <span class="ph-action">⋯</span>
+                  </div>
+                  <div class="phone-body">
+
+                    <div class="ph-voice-bubble" data-zh="&quot;刚拜访了 Hospital Alpha，院方对 A1 型号比较感兴趣，预计下季度采购 8 台，下周三再上门做技术演示。&quot;" data-en="&quot;Just visited Hospital Alpha. They're interested in the A1 model, plan to buy 8 next quarter, and want a tech demo on-site next Wednesday.&quot;">"刚拜访了 Hospital Alpha，院方对 A1 型号比较感兴趣，预计下季度采购 8 台，下周三再上门做技术演示。"</div>
+                    <div class="ph-voice-meta" data-zh="语音转写 · 02:14" data-en="Voice transcript · 02:14">语音转写 · 02:14</div>
+
+                    <div class="ph-card">
+                      <div class="ph-card-title"><span data-zh="拜访摘要" data-en="Visit Summary">拜访摘要</span><span class="ph-tag ph-tag-ai" data-zh="AI 草稿" data-en="AI Draft">AI 草稿</span></div>
+                      <div class="ph-field"><span class="ph-fk" data-zh="客户" data-en="Customer">客户</span><span class="ph-fv">Hospital Alpha</span></div>
+                      <div class="ph-field"><span class="ph-fk" data-zh="主题" data-en="Subject">主题</span><span class="ph-fv" data-zh="A1 产品介绍" data-en="A1 product intro">A1 产品介绍</span></div>
+                      <div class="ph-field"><span class="ph-fk" data-zh="下一步" data-en="Next Step">下一步</span><span class="ph-fv" data-zh="下周三技术演示" data-en="Tech demo next Wed">下周三技术演示</span></div>
+                    </div>
+
+                    <div class="ph-card">
+                      <div class="ph-card-title"><span data-zh="商机草稿" data-en="Opportunity Draft">商机草稿</span><span class="ph-tag ph-tag-ai" data-zh="AI 推断" data-en="AI Inferred">AI 推断</span></div>
+                      <div class="ph-field"><span class="ph-fk" data-zh="产品 · 数量" data-en="Product · Qty">产品 · 数量</span><span class="ph-fv">A1 × 8</span></div>
+                      <div class="ph-conf"><span data-zh="信心度" data-en="Confidence">信心度</span><div class="ph-conf-bar"><span class="ph-conf-60"></span></div><span class="ph-conf-num">60%</span></div>
+                    </div>
+
+                    <div class="ph-action-row">
+                      <div class="ph-btn ph-btn-primary" data-zh="确认" data-en="Confirm">确认</div>
+                      <div class="ph-btn ph-btn-ghost" data-zh="编辑" data-en="Edit">编辑</div>
+                      <div class="ph-btn ph-btn-warn" data-zh="重录" data-en="Redo">重录</div>
+                    </div>
+
+                    <div class="ph-mic-row">
+                      <div class="ph-mic">●</div>
+                      <span class="ph-mic-hint" data-zh="按住对 Copilot 说话" data-en="Hold to talk to Copilot">按住对 Copilot 说话</span>
+                    </div>
+
+                  </div>
+                  <div class="phone-home"></div>
+                </div>
+              </div>
+              <div class="proto-caption">
+                <span class="proto-tag" data-zh="原则 02 + 03" data-en="Principle 02 + 03">原则 02 + 03</span>
+                <h3 data-zh="活动录入" data-en="Activity Capture">活动录入</h3>
+                <p data-zh="语音 → 自动生成拜访摘要 + 商机草稿 + 跟进动作，用户只做&quot;确认 / 编辑 / 重录&quot;三选一。" data-en="Voice → auto-generated visit summary + opportunity draft + next action. The user picks one of three: confirm, edit, or redo.">语音 → 自动生成拜访摘要 + 商机草稿 + 跟进动作，用户只做"确认 / 编辑 / 重录"三选一。</p>
+              </div>
+            </div>
+
+            <div class="proto-prompt">
+              <div class="proto-prompt-head">
+                <span class="proto-prompt-tag">Vibe Coding · Screen 1</span>
+                <h3 data-zh="ActivityCapture（活动录入）" data-en="ActivityCapture (Voice → Draft)">ActivityCapture（活动录入）</h3>
+              </div>
+              <p class="proto-prompt-lead" data-zh="一屏：录音 → AI 草稿 → 三按钮确认。在用户点 Confirm 之前不写 Dataverse；草稿状态由 Activity 表的 draft_status 字段承担。" data-en="One screen: record → AI draft → three-button confirm. No write to Dataverse until the user taps Confirm; draft state lives on Activity.draft_status.">一屏：录音 → AI 草稿 → 三按钮确认。在用户点 Confirm 之前不写 Dataverse；草稿状态由 Activity 表的 draft_status 字段承担。</p>
+              <pre class="proto-prompt-block" data-zh="在 Power Apps vibe 中向当前 app 追加一屏 <strong>ActivityCapture</strong>，路由 /activity/:accountId。Mobile 预览 9:19 竖屏。
+
+【顶部栏】
+左 ←（返回上屏），居中标题&quot;新拜访 · {Account.Name}&quot;（按 :accountId 查 Account 表），右 ⋯。
+
+【布局自上而下】
+1. 语音气泡：3px 橙色左竖条 + rgba(255,122,0,0.08) 浅橙背景，padding 12-14；内部等宽字体显示实时转写文本，未开始录音时占位&quot;按住下方按钮开始录音&quot;。录音中右上角显示 spinner 和已录时长（00:08）。
+2. 录音按钮：80px 圆形 brand orange，正中麦克风图标。按住开始录，松开停止；按住时按钮放大 1.05× 并外发橙色光环。最长 60 秒，临到 5 秒时按钮内圈红光提示。
+3. AI 草稿卡：录音停止后出现，标题&quot;AI 草稿&quot;+ 右上 ConfidenceBar（绿 ≥ 80 / 琥珀 50–79 / 红 &lt; 50，宽 60px）。卡内 6 行字段：客户 / 联系人 / 拜访日期 / 结果 / 下一步 / 商机意向；每行右侧带铅笔图标可内联编辑。等待转写时所有字段显示骨架占位。
+4. 三按钮行：左&quot;放弃&quot;（文字按钮，灰）、中&quot;重录&quot;（描边按钮）、右&quot;确认&quot;（橙色实心按钮）。
+
+【数据流】
+- 按住录音 → 把音频 blob 上传到 SharePoint /SalesVoiceUploads/{userId}/{guid}.webm。
+- 上传成功触发 Bootstrap 中的 Flow_VoiceToActivity：Speech 转写 → AOAI 抽取结构 → 在 Activity 表写一行 (draft_status=draft, related_account=:accountId, parsed_json, parsed_confidence)，返回 row id。
+- 屏幕轮询 Activity 表中该 row（每 1.2 秒一次，最长 30 秒）；拿到 parsed_json 后填入草稿卡。
+- 用户点&quot;确认&quot;→ Patch 该 row：draft_status=confirmed，并跳 OpportunityDraftReview 屏（带 activityId 参数）。
+- 点&quot;放弃&quot;→ Patch row 为 draft_status=discarded，回首页。
+- 点&quot;重录&quot;→ 不动 Activity 行，清空草稿卡，重置语音气泡。
+
+【约束】
+- 在用户点&quot;确认&quot;前，Activity 表里的行始终是 draft，不会被任何下游 Flow 消费。
+- 字段文案 / 占位 / 错误提示双语 zh/en，按 power.user().lang 渲染。
+- 颜色 / 圆角 / 字号全部走 plan theme tokens；ConfidenceBar 控件后续在 OpportunityDraftReview 复用。
+- 离线：录音按钮灰化 + 顶部琥珀横条&quot;离线 · 录音将在恢复网络后上传&quot;，本地用 IndexedDB 暂存音频，上线后自动续传。" data-en="Add a screen called <strong>ActivityCapture</strong> to the current app; route /activity/:accountId. Preview size: 9:19 portrait.
+
+TOP BAR:
+Left ← (back), centred title &quot;New visit · {Account.Name}&quot; (look up Account by :accountId), right ⋯.
+
+LAYOUT (top to bottom):
+1. Voice bubble: 3px orange left rule + rgba(255,122,0,0.08) bg, padding 12-14; monospaced live transcript inside; placeholder &quot;Hold the button below to record&quot; before recording. While recording, top-right shows a spinner + elapsed time (00:08).
+2. Record button: 80px circle, brand orange, mic icon centred. Press-and-hold to record, release to stop; while pressed, scale 1.05× with an orange halo. Max 60 s; from 5 s remaining the inner ring turns red.
+3. AI draft card: appears after recording stops. Title &quot;AI Draft&quot; + top-right ConfidenceBar (green ≥ 80 / amber 50–79 / red &lt; 50, 60px wide). 6 rows inside: Customer / Contact / Visit date / Outcome / Next step / Opportunity intent; each row has a pencil icon on the right for inline edit. While transcription is in flight, all rows show a skeleton placeholder.
+4. Three-button row: left &quot;Discard&quot; (text button, grey), middle &quot;Re-record&quot; (outlined), right &quot;Confirm&quot; (solid orange).
+
+DATA FLOW:
+- Hold to record → upload the audio blob to SharePoint /SalesVoiceUploads/{userId}/{guid}.webm.
+- Upload triggers Bootstrap&#39;s Flow_VoiceToActivity: Speech transcription → AOAI structured extraction → write one row to Activity (draft_status=draft, related_account=:accountId, parsed_json, parsed_confidence); returns row id.
+- Screen polls that row every 1.2 s for up to 30 s; once parsed_json is present, populate the draft card.
+- Tap Confirm → Patch the row to draft_status=confirmed and navigate to OpportunityDraftReview with activityId.
+- Tap Discard → Patch row to draft_status=discarded and return to Home.
+- Tap Re-record → leave the Activity row alone, clear the draft card, reset the voice bubble.
+
+CONSTRAINTS:
+- Until the user taps Confirm, the Activity row stays draft and is never consumed by any downstream Flow.
+- All field labels / placeholders / errors bilingual zh/en via power.user().lang.
+- Colours / radii / sizes via plan theme tokens; the ConfidenceBar control will be reused on OpportunityDraftReview.
+- Offline: record button greyed + amber top banner &quot;Offline · audio will upload once back online&quot;; cache the blob in IndexedDB and auto-resume.">在 Power Apps vibe 中向当前 app 追加一屏 <strong>ActivityCapture</strong>，路由 /activity/:accountId。Mobile 预览 9:19 竖屏。
+
+【顶部栏】
+左 ←（返回上屏），居中标题"新拜访 · {Account.Name}"（按 :accountId 查 Account 表），右 ⋯。
+
+【布局自上而下】
+1. 语音气泡：3px 橙色左竖条 + rgba(255,122,0,0.08) 浅橙背景，padding 12-14；内部等宽字体显示实时转写文本，未开始录音时占位"按住下方按钮开始录音"。录音中右上角显示 spinner 和已录时长（00:08）。
+2. 录音按钮：80px 圆形 brand orange，正中麦克风图标。按住开始录，松开停止；按住时按钮放大 1.05× 并外发橙色光环。最长 60 秒，临到 5 秒时按钮内圈红光提示。
+3. AI 草稿卡：录音停止后出现，标题"AI 草稿"+ 右上 ConfidenceBar（绿 ≥ 80 / 琥珀 50–79 / 红 &lt; 50，宽 60px）。卡内 6 行字段：客户 / 联系人 / 拜访日期 / 结果 / 下一步 / 商机意向；每行右侧带铅笔图标可内联编辑。等待转写时所有字段显示骨架占位。
+4. 三按钮行：左"放弃"（文字按钮，灰）、中"重录"（描边按钮）、右"确认"（橙色实心按钮）。
+
+【数据流】
+- 按住录音 → 把音频 blob 上传到 SharePoint /SalesVoiceUploads/{userId}/{guid}.webm。
+- 上传成功触发 Bootstrap 中的 Flow_VoiceToActivity：Speech 转写 → AOAI 抽取结构 → 在 Activity 表写一行 (draft_status=draft, related_account=:accountId, parsed_json, parsed_confidence)，返回 row id。
+- 屏幕轮询 Activity 表中该 row（每 1.2 秒一次，最长 30 秒）；拿到 parsed_json 后填入草稿卡。
+- 用户点"确认"→ Patch 该 row：draft_status=confirmed，并跳 OpportunityDraftReview 屏（带 activityId 参数）。
+- 点"放弃"→ Patch row 为 draft_status=discarded，回首页。
+- 点"重录"→ 不动 Activity 行，清空草稿卡，重置语音气泡。
+
+【约束】
+- 在用户点"确认"前，Activity 表里的行始终是 draft，不会被任何下游 Flow 消费。
+- 字段文案 / 占位 / 错误提示双语 zh/en，按 power.user().lang 渲染。
+- 颜色 / 圆角 / 字号全部走 plan theme tokens；ConfidenceBar 控件后续在 OpportunityDraftReview 复用。
+- 离线：录音按钮灰化 + 顶部琥珀横条"离线 · 录音将在恢复网络后上传"，本地用 IndexedDB 暂存音频，上线后自动续传。</pre>
+              <div class="proto-prompt-foot">
+                <span data-zh="路由 · /activity/:accountId" data-en="Route · /activity/:accountId">路由 · /activity/:accountId</span>
+                <span data-zh="数据 · Activity 表（draft → confirmed → discarded）" data-en="Data · Activity table (draft → confirmed → discarded)">数据 · Activity 表（draft → confirmed → discarded）</span>
+                <span data-zh="云流 · Flow_VoiceToActivity（SharePoint 文件触发）" data-en="Cloud Flow · Flow_VoiceToActivity (SharePoint file trigger)">云流 · Flow_VoiceToActivity（SharePoint 文件触发）</span>
+                <span data-zh="复用 · ConfidenceBar 控件" data-en="Reuse · ConfidenceBar control">复用 · ConfidenceBar 控件</span>
+              </div>
+            </div>
+
+          </div>
+          </div>
+
+          <!-- ── Step 3B: Prototype B + Vibe Coding 提示词 ── -->
+          <div data-present-step data-step-title="客户信息查询 × Vibe Coding 提示词" data-step-title-en="Customer Inquiry × Vibe Coding Prompt" data-step-label="07 / INTERFACE PROTOTYPES">
+          <div class="proto-detail">
+
+            <div class="proto-col">
+              <div class="phone-frame" aria-hidden="true">
+                <div class="phone-screen">
+                  <div class="phone-status"><span>9:41</span><span class="status-icons">5G ▮▮</span></div>
+                  <div class="phone-header">
+                    <span class="ph-back">←</span>
+                    <span class="ph-title">Ask Copilot</span>
+                    <span class="ph-action">⋯</span>
+                  </div>
+                  <div class="phone-body">
+
+                    <div class="ph-voice-bubble" data-zh="Hospital Beta 的最新商机进度？" data-en="What's the latest opportunity status for Hospital Beta?">Hospital Beta 的最新商机进度？</div>
+
+                    <div class="ph-agent-reply">
+                      <div class="ph-agent-name" data-zh="⊙ 商机评估 Agent" data-en="⊙ Opportunity Agent">⊙ 商机评估 Agent</div>
+                      <span data-zh="Hospital Beta 当前 3 个活跃商机：" data-en="Hospital Beta currently has 3 active opportunities:">Hospital Beta 当前 3 个活跃商机：</span>
+                    </div>
+
+                    <div class="ph-card">
+                      <div class="ph-list-row">
+                        <span><strong data-zh="监护仪 N17" data-en="Monitor N17">监护仪 N17</strong> × 12</span>
+                        <span class="ph-tag ph-tag-stage">Negotiate</span>
+                      </div>
+                      <div class="ph-list-row">
+                        <span><strong data-zh="监护仪 A2" data-en="Monitor A2">监护仪 A2</strong> × 4</span>
+                        <span class="ph-tag ph-tag-stage">Identify</span>
+                      </div>
+                      <div class="ph-list-row">
+                        <span><strong data-zh="超声 R9" data-en="Ultrasound R9">超声 R9</strong> × 2</span>
+                        <span class="ph-tag ph-tag-stage">Propose</span>
+                      </div>
+                    </div>
+
+                    <div class="ph-agent-reply">
+                      <div class="ph-agent-name" data-zh="⊙ 客户画像 Agent" data-en="⊙ Customer Profile Agent">⊙ 客户画像 Agent</div>
+                      <span data-zh="最近 30 天 4 次拜访 · NPS 提升 12 点 · 上次接触 04/22" data-en="4 visits in past 30d · NPS up 12 pts · last touch 04/22">最近 30 天 4 次拜访 · NPS 提升 12 点 · 上次接触 04/22</span>
+                    </div>
+
+                    <div class="ph-source">
+                      <span class="ph-source-dot"></span>
+                      <span data-zh="来自 SAP Commerce · Dataverse Virtual Table" data-en="From SAP Commerce · Dataverse Virtual Table">来自 SAP Commerce · Dataverse Virtual Table</span>
+                    </div>
+
+                    <div class="ph-chat-input">
+                      <div class="ph-mic-mini">●</div>
+                      <span class="ph-chat-text" data-zh="问点别的…" data-en="Ask anything else…">问点别的…</span>
+                      <span class="ph-source-faded">↑</span>
+                    </div>
+
+                  </div>
+                  <div class="phone-home"></div>
+                </div>
+              </div>
+              <div class="proto-caption">
+                <span class="proto-tag" data-zh="原则 04" data-en="Principle 04">原则 04</span>
+                <h3 data-zh="客户信息查询" data-en="Customer Inquiry">客户信息查询</h3>
+                <p data-zh="用户表达意图，Generative Orchestration 自动调用客户画像 + 商机评估两个 Agent 并合成回答，无需菜单导航。" data-en="The user states intent; Generative Orchestration calls Customer Profile and Opportunity agents and composes the answer. No menu navigation needed.">用户表达意图，Generative Orchestration 自动调用客户画像 + 商机评估两个 Agent 并合成回答，无需菜单导航。</p>
+              </div>
+            </div>
+
+            <div class="proto-prompt">
+              <div class="proto-prompt-head">
+                <span class="proto-prompt-tag">Vibe Coding · Screen 2</span>
+                <h3 data-zh="CopilotChat（客户信息查询）" data-en="CopilotChat (Multi-Agent Conversation)">CopilotChat（客户信息查询）</h3>
+              </div>
+              <p class="proto-prompt-lead" data-zh="一屏：单列对话流；每条 agent 回复必须带 agent 名 + 来源行；不能把多 agent 答复合并成一段散文。" data-en="One screen: single-column chat; every agent reply must carry an agent name + a source line — never merge multi-agent replies into one paragraph.">一屏：单列对话流；每条 agent 回复必须带 agent 名 + 来源行；不能把多 agent 答复合并成一段散文。</p>
+              <pre class="proto-prompt-block" data-zh="在 Power Apps vibe 中向当前 app 追加一屏 <strong>CopilotChat</strong>，路由 /copilot。可由 HomeDashboard 浮动 mic 或 BriefMe 长按 mic 唤起。Mobile 预览 9:19 竖屏。
+
+【顶部栏】
+左 ←（返回），居中标题&quot;Ask Copilot&quot;，右 ⋯（清空对话 / 新建会话）。
+
+【主体】
+单列对话流，从下往上累加（最新消息在底部，自动滚到底）。message 数据形如 { id, type, role, content, agent?, sources?[], stage_card? }，type 三种：
+1. type=&quot;user&quot;：右对齐，brand orange 描边气泡（与 ActivityCapture 引用样式一致），白底深字。如果消息附带音频（来自 BriefMe / 浮动 mic），气泡上方显示一个迷你音频条 + 时长。
+2. type=&quot;agent&quot;：左对齐白字，气泡上方一颗 agent 名 pill（如&quot;客户画像 Agent&quot;、&quot;商机评估 Agent&quot;、&quot;订单查询 Agent&quot;，每个 agent 有固定颜色），气泡下方 9.5pt 灰字&quot;来源&quot;行：列出 1-N 条引用 chip（如&quot;Account #12345 · 最近 30 天 Activity 4 条&quot;），点击 chip 弹 Drawer 显示该行原始数据。
+3. type=&quot;stage-card&quot;：特殊白色卡片，用于展示某个 Opportunity 的 pipeline 进度条（5 段 stage + 当前置信度），点击跳 OpportunityDraftReview。
+
+【底部输入】
+固定底部一行 56px 高条：左 mic 圆按钮（按住 ≥ 300 ms 录音，松开自动转写并以 user 消息发出）、中文本输入框、右 send 圆按钮（橙）。键盘弹起时整条上抬。
+
+【数据流】
+- 每发一条 user 消息，调用云流 AskCopilot(message, conversation_id, attached_audio?)，云流内部按 message intent 调度多 agent，返回 { agent_chain: [{ agent_name, content, sources[] }], stage_cards?: [...] }。
+- agent_chain 每一项渲染成一条独立 type=&quot;agent&quot; 消息（不要合成一段）。stage_cards 渲染为 type=&quot;stage-card&quot; 消息插在末尾。
+- 整段对话持久化到 Dataverse 表 CopilotConversation（如未在 Bootstrap 中创建则自动追加：id / owner / started_on / messages_json / last_active_on）。
+- 流式打字效果：agent 消息 token 从云流流式返回，前端按字符逐个显示，光标常驻末尾。
+
+【交互】
+- 来源 chip 点击 → 全屏 Drawer 显示原始 Account / Opportunity / Activity 行；Drawer 顶部带&quot;在 OpportunityDraftReview 中打开&quot;按钮。
+- 长按某条 agent 消息 → 出现菜单&quot;复制 / 转发到 Teams / 反馈不准&quot;。
+- 顶部 ⋯ → &quot;清空当前会话&quot;会把 CopilotConversation 当前行 messages_json 清空但保留 id；&quot;新建会话&quot;会插入新 id。
+
+【约束】
+- 不允许把多 agent 答复合并成一段散文——必须按 agent_chain 一条一条渲染。
+- 所有文案双语 zh/en，按 power.user().lang 渲染；agent 名称从云流返回，UI 不写死中文/英文映射。
+- 颜色 / 圆角 / 字号全部走 plan theme tokens；user 气泡复用 ActivityCapture 的引用样式。
+- 离线：mic 灰化 + 顶部琥珀横条&quot;离线 · 仅可查看历史对话&quot;；输入框禁用。" data-en="Add a screen called <strong>CopilotChat</strong> to the current app; route /copilot. Reachable from HomeDashboard&#39;s floating mic or BriefMe&#39;s press-hold mic. Preview size: 9:19 portrait.
+
+TOP BAR:
+Left ← (back), centred title &quot;Ask Copilot&quot;, right ⋯ (clear conversation / new session).
+
+BODY:
+Single-column chat stream, newest at bottom, auto-scroll to latest. Message shape: { id, type, role, content, agent?, sources?[], stage_card? }. Three types:
+1. type=&quot;user&quot;: right-aligned, brand-orange outlined bubble (same quote style as ActivityCapture), white bg, dark text. If the message carries audio (from BriefMe / floating mic), show a mini waveform + duration above the bubble.
+2. type=&quot;agent&quot;: left-aligned white text; above the bubble a pill with agent name (e.g. &quot;Profile Agent&quot;, &quot;Opportunity Agent&quot;, &quot;Order Agent&quot; — each agent has a fixed colour); below the bubble a 9.5pt grey &quot;Sources&quot; line listing 1-N citation chips (e.g. &quot;Account #12345 · 4 Activity rows in last 30 d&quot;); tap a chip to open a Drawer showing the underlying row.
+3. type=&quot;stage-card&quot;: special white card showing a 5-segment Opportunity pipeline + current confidence; tap to navigate to OpportunityDraftReview.
+
+INPUT BAR:
+Fixed 56px bottom row: left mic circle (press ≥ 300 ms records; release auto-transcribes and posts as a user message), centre text input, right send circle (orange). Whole row lifts when keyboard appears.
+
+DATA FLOW:
+- Each user message calls cloud flow AskCopilot(message, conversation_id, attached_audio?). The flow orchestrates multiple agents by intent and returns { agent_chain: [{ agent_name, content, sources[] }], stage_cards?: [...] }.
+- Render each agent_chain entry as its own type=&quot;agent&quot; message — never merge them. Render each stage_card as a type=&quot;stage-card&quot; message at the end.
+- Persist the whole conversation to a Dataverse table CopilotConversation (auto-add if not in Bootstrap: id / owner / started_on / messages_json / last_active_on).
+- Streaming typewriter: agent tokens stream from the flow; render character-by-character with a trailing cursor.
+
+INTERACTIONS:
+- Tap a source chip → full-screen Drawer of the original Account / Opportunity / Activity row; Drawer header has &quot;Open in OpportunityDraftReview&quot;.
+- Long-press an agent message → menu &quot;Copy / Forward to Teams / Mark inaccurate&quot;.
+- Top ⋯ → &quot;Clear conversation&quot; empties messages_json on the current CopilotConversation row but keeps id; &quot;New session&quot; inserts a new id.
+
+CONSTRAINTS:
+- Never merge multi-agent replies into a single paragraph — render strictly per agent_chain.
+- All UI copy bilingual zh/en via power.user().lang; agent names come from the flow — never hardcode a zh/en map in the UI.
+- Colours / radii / sizes via plan theme tokens; user bubble reuses ActivityCapture quote style.
+- Offline: mic greyed + amber top banner &quot;Offline · history only&quot;; disable text input.">在 Power Apps vibe 中向当前 app 追加一屏 <strong>CopilotChat</strong>，路由 /copilot。可由 HomeDashboard 浮动 mic 或 BriefMe 长按 mic 唤起。Mobile 预览 9:19 竖屏。
+
+【顶部栏】
+左 ←（返回），居中标题"Ask Copilot"，右 ⋯（清空对话 / 新建会话）。
+
+【主体】
+单列对话流，从下往上累加（最新消息在底部，自动滚到底）。message 数据形如 { id, type, role, content, agent?, sources?[], stage_card? }，type 三种：
+1. type="user"：右对齐，brand orange 描边气泡（与 ActivityCapture 引用样式一致），白底深字。如果消息附带音频（来自 BriefMe / 浮动 mic），气泡上方显示一个迷你音频条 + 时长。
+2. type="agent"：左对齐白字，气泡上方一颗 agent 名 pill（如"客户画像 Agent"、"商机评估 Agent"、"订单查询 Agent"，每个 agent 有固定颜色），气泡下方 9.5pt 灰字"来源"行：列出 1-N 条引用 chip（如"Account #12345 · 最近 30 天 Activity 4 条"），点击 chip 弹 Drawer 显示该行原始数据。
+3. type="stage-card"：特殊白色卡片，用于展示某个 Opportunity 的 pipeline 进度条（5 段 stage + 当前置信度），点击跳 OpportunityDraftReview。
+
+【底部输入】
+固定底部一行 56px 高条：左 mic 圆按钮（按住 ≥ 300 ms 录音，松开自动转写并以 user 消息发出）、中文本输入框、右 send 圆按钮（橙）。键盘弹起时整条上抬。
+
+【数据流】
+- 每发一条 user 消息，调用云流 AskCopilot(message, conversation_id, attached_audio?)，云流内部按 message intent 调度多 agent，返回 { agent_chain: [{ agent_name, content, sources[] }], stage_cards?: [...] }。
+- agent_chain 每一项渲染成一条独立 type="agent" 消息（不要合成一段）。stage_cards 渲染为 type="stage-card" 消息插在末尾。
+- 整段对话持久化到 Dataverse 表 CopilotConversation（如未在 Bootstrap 中创建则自动追加：id / owner / started_on / messages_json / last_active_on）。
+- 流式打字效果：agent 消息 token 从云流流式返回，前端按字符逐个显示，光标常驻末尾。
+
+【交互】
+- 来源 chip 点击 → 全屏 Drawer 显示原始 Account / Opportunity / Activity 行；Drawer 顶部带"在 OpportunityDraftReview 中打开"按钮。
+- 长按某条 agent 消息 → 出现菜单"复制 / 转发到 Teams / 反馈不准"。
+- 顶部 ⋯ → "清空当前会话"会把 CopilotConversation 当前行 messages_json 清空但保留 id；"新建会话"会插入新 id。
+
+【约束】
+- 不允许把多 agent 答复合并成一段散文——必须按 agent_chain 一条一条渲染。
+- 所有文案双语 zh/en，按 power.user().lang 渲染；agent 名称从云流返回，UI 不写死中文/英文映射。
+- 颜色 / 圆角 / 字号全部走 plan theme tokens；user 气泡复用 ActivityCapture 的引用样式。
+- 离线：mic 灰化 + 顶部琥珀横条"离线 · 仅可查看历史对话"；输入框禁用。</pre>
+              <div class="proto-prompt-foot">
+                <span data-zh="路由 · /copilot" data-en="Route · /copilot">路由 · /copilot</span>
+                <span data-zh="数据 · CopilotConversation 表 + 引用 Account / Opportunity" data-en="Data · CopilotConversation table + refs to Account / Opportunity">数据 · CopilotConversation 表 + 引用 Account / Opportunity</span>
+                <span data-zh="云流 · AskCopilot（多 agent 编排）" data-en="Cloud Flow · AskCopilot (multi-agent orchestration)">云流 · AskCopilot（多 agent 编排）</span>
+              </div>
+            </div>
+
+          </div>
+          </div>
+
+          <!-- ── Step 3C: Prototype C + Vibe Coding 提示词 + 设计取舍 ── -->
+          <div data-present-step data-step-title="商机创建 × Vibe Coding 提示词" data-step-title-en="Opportunity Creation × Vibe Coding Prompt" data-step-label="07 / INTERFACE PROTOTYPES">
+          <div class="proto-detail">
+
+            <div class="proto-col">
+              <div class="phone-frame" aria-hidden="true">
+                <div class="phone-screen">
+                  <div class="phone-status"><span>9:41</span><span class="status-icons">5G ▮▮</span></div>
+                  <div class="phone-header">
+                    <span class="ph-back">←</span>
+                    <span class="ph-title" data-zh="商机草稿" data-en="Opportunity Draft">商机草稿</span>
+                    <span class="ph-action">⋯</span>
+                  </div>
+                  <div class="phone-body">
+
+                    <div class="ph-card">
+                      <div class="ph-card-title">
+                        <span data-zh="AI 已生成" data-en="AI Generated">AI 已生成</span>
+                        <span class="ph-tag ph-tag-confirm" data-zh="待确认" data-en="To Confirm">待确认</span>
+                      </div>
+                      <div class="ph-conf"><span data-zh="整体信心度" data-en="Overall Confidence">整体信心度</span><div class="ph-conf-bar"><span class="ph-conf-78"></span></div><span class="ph-conf-num">78%</span></div>
+                    </div>
+
+                    <div class="ph-card">
+                      <div class="ph-field"><span class="ph-fk" data-zh="客户" data-en="Customer">客户</span><span class="ph-fv">Hospital Alpha</span></div>
+                      <div class="ph-field"><span class="ph-fk" data-zh="产品线" data-en="Product Line">产品线</span><span class="ph-fv" data-zh="A1 监护仪" data-en="A1 Monitor">A1 监护仪</span></div>
+                      <div class="ph-field"><span class="ph-fk" data-zh="数量" data-en="Quantity">数量</span><span class="ph-fv" data-zh="8 台" data-en="8 units">8 台</span></div>
+                      <div class="ph-field"><span class="ph-fk" data-zh="预计金额" data-en="Est. Amount">预计金额</span><span class="ph-fv">USD 96,000</span></div>
+                      <div class="ph-field"><span class="ph-fk" data-zh="阶段" data-en="Stage">阶段</span><span class="ph-fv">Identify</span></div>
+                      <div class="ph-field"><span class="ph-fk" data-zh="预计成交" data-en="Est. Close">预计成交</span><span class="ph-fv">2026 Q3</span></div>
+                    </div>
+
+                    <div class="ph-card">
+                      <div class="ph-card-title"><span data-zh="溯源" data-en="Provenance">溯源</span><span class="ph-tag ph-tag-source">Source</span></div>
+                      <div class="ph-source"><span class="ph-source-dot"></span><span data-zh="04/29 拜访活动 · Hospital Alpha" data-en="04/29 visit · Hospital Alpha">04/29 拜访活动 · Hospital Alpha</span></div>
+                      <div class="ph-source ph-source-spaced"><span class="ph-source-dot"></span><span data-zh="历史成交参考 · 类型相似 · 3 单" data-en="3 similar past deals referenced">历史成交参考 · 类型相似 · 3 单</span></div>
+                    </div>
+
+                    <div class="ph-action-row">
+                      <div class="ph-btn ph-btn-primary" data-zh="确认创建" data-en="Confirm &amp; Create">确认创建</div>
+                      <div class="ph-btn ph-btn-ghost" data-zh="编辑详情" data-en="Edit Details">编辑详情</div>
+                    </div>
+
+                    <div class="ph-source ph-source-centered">
+                      <span data-zh="确认后将异步回写 SAP Commerce" data-en="Will async-sync to SAP Commerce after confirmation">确认后将异步回写 SAP Commerce</span>
+                    </div>
+
+                  </div>
+                  <div class="phone-home"></div>
+                </div>
+              </div>
+              <div class="proto-caption">
+                <span class="proto-tag" data-zh="原则 03" data-en="Principle 03">原则 03</span>
+                <h3 data-zh="商机创建" data-en="Opportunity Creation">商机创建</h3>
+                <p data-zh="每个 AI 生成结果带&quot;信心度 + 来源 + 一键编辑&quot;，写入走&quot;草稿 → 确认 → SAP 同步&quot;三段式，绝不黑盒提交。" data-en="Every AI output carries confidence · source · one-tap edit. Writes follow Draft → Confirm → SAP sync — never a black-box submit.">每个 AI 生成结果带"信心度 + 来源 + 一键编辑"，写入走"草稿 → 确认 → SAP 同步"三段式，绝不黑盒提交。</p>
+              </div>
+            </div>
+
+            <div class="proto-prompt">
+              <div class="proto-prompt-head">
+                <span class="proto-prompt-tag">Vibe Coding · Screen 3</span>
+                <h3 data-zh="OpportunityDraftReview（商机创建）" data-en="OpportunityDraftReview (Confirm Before Write)">OpportunityDraftReview（商机创建）</h3>
+              </div>
+              <p class="proto-prompt-lead" data-zh="一屏：把 AI 生成的商机草稿做&quot;字段级可改 + 来源可追 + 异步写回 ERP&quot;的确认流。提交即入队，写回 ERP 由 Flow_OpportunityToERP 异步完成，UI 不阻塞。" data-en="One screen: turn the AI-generated opportunity draft into a field-editable + source-traceable + async ERP write-back confirmation flow. Tap Submit and the row is enqueued; Flow_OpportunityToERP handles ERP write-back asynchronously — the UI never blocks.">一屏：把 AI 生成的商机草稿做"字段级可改 + 来源可追 + 异步写回 ERP"的确认流。提交即入队，写回 ERP 由 Flow_OpportunityToERP 异步完成，UI 不阻塞。</p>
+              <pre class="proto-prompt-block" data-zh="在 Power Apps vibe 中向当前 app 追加一屏 <strong>OpportunityDraftReview</strong>，路由 /opp-draft/:activityId，由 ActivityCapture 点&quot;确认&quot;后跳入。Mobile 预览 9:19 竖屏。
+
+【顶部栏】
+左 ←（返回 ActivityCapture，不丢草稿），居中标题&quot;商机草稿&quot;，右 ⋯（&quot;重新让 AI 生成 / 拒绝草稿&quot;）。
+
+【三张卡片自上而下】
+1. 状态卡：标题&quot;AI 生成&quot;+ 右上&quot;待确认&quot;badge（rgba(96,165,250,0.18) 底 / #93C5FD 字）。卡内一行小字&quot;由 Activity #{activityId} 自动生成&quot;+ ConfidenceBar（复用 ActivityCapture 控件，宽 80px，绿/琥珀/红 同阈值）。
+
+2. 字段编辑卡：6 行 EditableRow，每行 = label + AI 建议值 + 右侧铅笔图标。行字段：
+   · 客户 → Account 选择器（默认填 Activity.related_account）
+   · 阶段 → prefix_stage choice（默认按 AI 建议）
+   · 金额 → 货币输入（默认 AI 建议金额，币种取 Bootstrap ENV_CUSTOMER_CURRENCY）
+   · 预计成交日 → 日期选择
+   · 下一步动作 → 单行文本
+   · Owner → 默认当前用户，可改为同 Business Unit 内成员
+   每行点铅笔进入内联编辑，编辑过的行右侧显示一颗橙点；底部出现一行 9.5pt 灰字&quot;已修改 N 个字段，原 AI 值保留为 tooltip&quot;。
+
+3. 来源卡：标题&quot;来源追溯&quot;，下方为来源 chip 列表，每条来自 Activity.parsed_json 的 sources[]：如&quot;录音 00:42 提到金额 ¥620 万&quot;、&quot;客户邮件 2025-04-18&quot;、&quot;上次拜访 2025-04-12&quot;。点 chip 弹 Drawer 显示原始片段（音频带高亮区段、邮件全文等）。
+
+【底部动作条】
+固定底部 64px 条：左&quot;放弃&quot;（文字按钮，灰，把 Activity.draft_status 改回 draft）、右&quot;提交&quot;（大号橙色实心按钮，宽占 70%）。
+
+【数据流】
+- 进屏：按 :activityId 读 Activity 行；调用云流 Flow_ActivityToOpportunity（如该 activity 已有对应草稿则直接返回，否则现场生成），返回 { opportunity_draft, sources }。
+- &quot;提交&quot;：在 OpportunityWriteQueue 表插一行（source_activity=:activityId, payload_json=最终字段值, target_system=ENV_CUSTOMER_ERP_NAME, status=pending, retry_count=0）；同时 Patch Activity 行附加 confirmed_opportunity_id=插入的 queue id。
+- 写回 ERP 由 Bootstrap 中的 Flow_OpportunityToERP 异步消费 OppWriteQueue（status=pending），UI 不阻塞。
+- 提交成功后：弹 Toast&quot;已入队，ERP 写回中&quot;，回到 HomeDashboard，并在 Home 顶部插一条 9.5pt 灰条&quot;商机已提交 · 状态：写回中 / 成功 / 失败（点击查看）&quot;，3 秒后自动收起。
+- 写回失败由 Flow 把 OppWriteQueue 行 status=failed 并填 last_error；当用户回 Home 时如有 failed 行，Home 顶条显示红色&quot;商机写回失败 · 点击重试&quot;。
+
+【约束】
+- 在用户点&quot;提交&quot;前，OpportunityWriteQueue 不会有任何行；单纯打开本屏不产生写操作。
+- 字段标签 / 占位 / 错误提示双语 zh/en，按 power.user().lang 渲染。
+- 颜色 / 圆角 / 字号 / ConfidenceBar 全部走 plan theme tokens 与已有控件，不再造一份。" data-en="Add a screen called <strong>OpportunityDraftReview</strong> to the current app; route /opp-draft/:activityId; entered after the user taps Confirm on ActivityCapture. Preview size: 9:19 portrait.
+
+TOP BAR:
+Left ← (back to ActivityCapture, draft preserved), centred title &quot;Opportunity Draft&quot;, right ⋯ (&quot;Regenerate with AI&quot; / &quot;Reject draft&quot;).
+
+THREE CARDS (top to bottom):
+1. Status card: title &quot;AI Generated&quot; + top-right &quot;To Confirm&quot; badge (rgba(96,165,250,0.18) bg / #93C5FD text). One small line &quot;Generated from Activity #{activityId}&quot; + ConfidenceBar (reuse the ActivityCapture control, 80px wide, same green/amber/red thresholds).
+
+2. Field-edit card: 6 EditableRow rows, each = label + AI-suggested value + pencil icon on the right. Rows:
+   · Customer → Account picker (defaults to Activity.related_account).
+   · Stage → prefix_stage choice (defaults to AI suggestion).
+   · Amount → currency input (defaults to AI amount, currency from Bootstrap ENV_CUSTOMER_CURRENCY).
+   · Estimated close date → date picker.
+   · Next action → single-line text.
+   · Owner → defaults to current user, can be changed to anyone in the same Business Unit.
+   Tap pencil to enter inline edit; edited rows show an orange dot on the right; below the card a 9.5pt grey line &quot;N fields modified — original AI values kept as tooltip&quot;.
+
+3. Source-trace card: title &quot;Sources&quot;, then a list of source chips drawn from Activity.parsed_json.sources[] — e.g. &quot;Recording 00:42 mentions ¥6.2M&quot;, &quot;Customer email 2025-04-18&quot;, &quot;Last visit 2025-04-12&quot;. Tap a chip → Drawer showing the original snippet (audio with highlighted region, full email, etc.).
+
+ACTION BAR:
+Fixed 64px bottom row: left &quot;Discard&quot; (grey text button, flips Activity.draft_status back to draft), right &quot;Submit&quot; (large solid orange button, 70% width).
+
+DATA FLOW:
+- On entry: read the Activity row by :activityId; call Flow_ActivityToOpportunity (returns the existing draft if one exists, otherwise generates one); response = { opportunity_draft, sources }.
+- Submit: insert one row into OpportunityWriteQueue (source_activity=:activityId, payload_json=final field values, target_system=ENV_CUSTOMER_ERP_NAME, status=pending, retry_count=0); also Patch the Activity row with confirmed_opportunity_id = the inserted queue id.
+- ERP write-back is consumed asynchronously by Bootstrap&#39;s Flow_OpportunityToERP (status=pending) — the UI never blocks.
+- After Submit: toast &quot;Enqueued — writing back to ERP&quot;, navigate to HomeDashboard; insert a 9.5pt grey banner at the top of Home &quot;Opportunity submitted · status: writing back / success / failed (tap to view)&quot;, auto-dismiss after 3 s.
+- On failure, the flow sets the OppWriteQueue row to status=failed and fills last_error; when the user returns to Home with any failed row, the top banner turns red &quot;Opportunity write-back failed · tap to retry&quot;.
+
+CONSTRAINTS:
+- Until the user taps Submit, no row is written to OpportunityWriteQueue — merely opening this screen produces no writes.
+- All field labels / placeholders / errors bilingual zh/en via power.user().lang.
+- Colours / radii / sizes / ConfidenceBar all from plan theme tokens and existing controls — do not invent a parallel set.">在 Power Apps vibe 中向当前 app 追加一屏 <strong>OpportunityDraftReview</strong>，路由 /opp-draft/:activityId，由 ActivityCapture 点"确认"后跳入。Mobile 预览 9:19 竖屏。
+
+【顶部栏】
+左 ←（返回 ActivityCapture，不丢草稿），居中标题"商机草稿"，右 ⋯（"重新让 AI 生成 / 拒绝草稿"）。
+
+【三张卡片自上而下】
+1. 状态卡：标题"AI 生成"+ 右上"待确认"badge（rgba(96,165,250,0.18) 底 / #93C5FD 字）。卡内一行小字"由 Activity #{activityId} 自动生成"+ ConfidenceBar（复用 ActivityCapture 控件，宽 80px，绿/琥珀/红 同阈值）。
+
+2. 字段编辑卡：6 行 EditableRow，每行 = label + AI 建议值 + 右侧铅笔图标。行字段：
+   · 客户 → Account 选择器（默认填 Activity.related_account）
+   · 阶段 → prefix_stage choice（默认按 AI 建议）
+   · 金额 → 货币输入（默认 AI 建议金额，币种取 Bootstrap ENV_CUSTOMER_CURRENCY）
+   · 预计成交日 → 日期选择
+   · 下一步动作 → 单行文本
+   · Owner → 默认当前用户，可改为同 Business Unit 内成员
+   每行点铅笔进入内联编辑，编辑过的行右侧显示一颗橙点；底部出现一行 9.5pt 灰字"已修改 N 个字段，原 AI 值保留为 tooltip"。
+
+3. 来源卡：标题"来源追溯"，下方为来源 chip 列表，每条来自 Activity.parsed_json 的 sources[]：如"录音 00:42 提到金额 ¥620 万"、"客户邮件 2025-04-18"、"上次拜访 2025-04-12"。点 chip 弹 Drawer 显示原始片段（音频带高亮区段、邮件全文等）。
+
+【底部动作条】
+固定底部 64px 条：左"放弃"（文字按钮，灰，把 Activity.draft_status 改回 draft）、右"提交"（大号橙色实心按钮，宽占 70%）。
+
+【数据流】
+- 进屏：按 :activityId 读 Activity 行；调用云流 Flow_ActivityToOpportunity（如该 activity 已有对应草稿则直接返回，否则现场生成），返回 { opportunity_draft, sources }。
+- "提交"：在 OpportunityWriteQueue 表插一行（source_activity=:activityId, payload_json=最终字段值, target_system=ENV_CUSTOMER_ERP_NAME, status=pending, retry_count=0）；同时 Patch Activity 行附加 confirmed_opportunity_id=插入的 queue id。
+- 写回 ERP 由 Bootstrap 中的 Flow_OpportunityToERP 异步消费 OppWriteQueue（status=pending），UI 不阻塞。
+- 提交成功后：弹 Toast"已入队，ERP 写回中"，回到 HomeDashboard，并在 Home 顶部插一条 9.5pt 灰条"商机已提交 · 状态：写回中 / 成功 / 失败（点击查看）"，3 秒后自动收起。
+- 写回失败由 Flow 把 OppWriteQueue 行 status=failed 并填 last_error；当用户回 Home 时如有 failed 行，Home 顶条显示红色"商机写回失败 · 点击重试"。
+
+【约束】
+- 在用户点"提交"前，OpportunityWriteQueue 不会有任何行；单纯打开本屏不产生写操作。
+- 字段标签 / 占位 / 错误提示双语 zh/en，按 power.user().lang 渲染。
+- 颜色 / 圆角 / 字号 / ConfidenceBar 全部走 plan theme tokens 与已有控件，不再造一份。</pre>
+              <div class="proto-prompt-foot">
+                <span data-zh="路由 · /opp-draft/:activityId" data-en="Route · /opp-draft/:activityId">路由 · /opp-draft/:activityId</span>
+                <span data-zh="数据 · Activity / Opportunity / OpportunityWriteQueue" data-en="Data · Activity / Opportunity / OpportunityWriteQueue">数据 · Activity / Opportunity / OpportunityWriteQueue</span>
+                <span data-zh="云流 · Flow_ActivityToOpportunity + Flow_OpportunityToERP（异步）" data-en="Cloud Flows · Flow_ActivityToOpportunity + Flow_OpportunityToERP (async)">云流 · Flow_ActivityToOpportunity + Flow_OpportunityToERP（异步）</span>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="quote-block">
+            <strong data-zh="三个原型共同呈现的设计取舍" data-en="Trade-offs Embodied by All Three Prototypes">三个原型共同呈现的设计取舍</strong>
+            <span data-zh="① 主动作永远是橙色麦克风，键盘是隐藏的 fallback；② 任何 AI 输出必须带&quot;AI 草稿&quot;标签和置信度，写入前一律可编辑；③ Agent 名字明示在回答上方，让用户对&quot;是谁在回答我&quot;有感知，便于后续追溯与调优。" data-en="(1) The primary action is always the orange mic; the keyboard is the hidden fallback. (2) Every AI output bears an &quot;AI Draft&quot; tag and confidence score, and must be editable before write. (3) The agent's name is shown above its reply, so the user knows who answered — enabling traceability and tuning.">① 主动作永远是橙色麦克风，键盘是隐藏的 fallback；② 任何 AI 输出必须带"AI 草稿"标签和置信度，写入前一律可编辑；③ Agent 名字明示在回答上方，让用户对&quot;是谁在回答我&quot;有感知，便于后续追溯与调优。</span>
+          </div>
+
+          </div>
+        </section>
+
+        <!-- Section 07: 产品配置 -->
+        </main>
+
+      <footer>
+        <p data-zh="&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。" data-en="&copy; 2026 illusion615's Knowledge Hub | Interactive HTML page.">&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。</p>
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+  <script>
+    (function () {
+      var ICON_COPY = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V6a2 2 0 0 1 2-2h9"></path></svg>';
+      var ICON_DONE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>';
+      var blocks = document.querySelectorAll('pre.proto-prompt-block');
+      blocks.forEach(function (pre) {
+        if (pre.parentNode && pre.parentNode.classList && pre.parentNode.classList.contains('proto-prompt-wrap')) return;
+        var wrap = document.createElement('div');
+        wrap.className = 'proto-prompt-wrap';
+        pre.parentNode.insertBefore(wrap, pre);
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'proto-prompt-copy';
+        btn.setAttribute('aria-label', '复制提示词');
+        btn.setAttribute('title', '复制');
+        btn.innerHTML = ICON_COPY;
+        wrap.appendChild(btn);
+        wrap.appendChild(pre);
+        btn.addEventListener('click', function () {
+          var text = pre.innerText || pre.textContent || '';
+          var done = function () {
+            btn.classList.add('is-copied');
+            btn.innerHTML = ICON_DONE;
+            setTimeout(function () {
+              btn.classList.remove('is-copied');
+              btn.innerHTML = ICON_COPY;
+            }, 1600);
+          };
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () {
+              fallback(text, done);
+            });
+          } else {
+            fallback(text, done);
+          }
+        });
+      });
+      function fallback(text, done) {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } catch (e) { /* noop */ }
+        document.body.removeChild(ta);
+      }
+    })();
+  </script>
+</body>
+</html>

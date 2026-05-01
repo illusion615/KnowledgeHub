@@ -119,6 +119,14 @@ var knowledgeTree = [
     phase: 5.0, speed: 0.84
   },
   {
+    id: 'agentic-crm',
+    parentId: 'business-ai-solution',
+    type: 'topic',
+    label: { zh: 'Agentic CRM', en: 'Agentic CRM' },
+    color: '#c084fc',
+    phase: 5.2, speed: 0.86
+  },
+  {
     id: 'ai-mud',
     parentId: 'ai-project-practice',
     type: 'topic',
@@ -140,15 +148,15 @@ var knowledgeTree = [
   // ════════════════════════════════════════
   {
     id: 'mindray-crm-ai-proposal',
-    parentId: 'business-ai-solution',
+    parentId: 'agentic-crm',
     type: 'article',
     title: {
-      zh: '海外销售 CRM 移动 AI 智能体方案：基于 Power Platform',
-      en: 'Overseas Sales CRM Mobile AI Agent Proposal: Built on Power Platform'
+      zh: '销售 CRM 移动 AI 智能体方案：基于 Power Platform',
+      en: 'Sales CRM Mobile AI Agent Proposal: Built on Power Platform'
     },
     summary: {
-      zh: '为海外销售设计的移动优先 · 语音驱动 · Agent 编排 CRM 方案，与 SAP Commerce 共生，6 个月四阶段交付。',
-      en: 'Mobile-first, voice-driven, agent-orchestrated CRM solution for overseas sales teams, coexisting with SAP Commerce, delivered in four phases over six months.'
+      zh: '为一线销售设计的移动优先 · 语音驱动 · Agent 编排 CRM 方案，与 SAP Commerce 共生，6 个月四阶段交付。',
+      en: 'Mobile-first, voice-driven, agent-orchestrated CRM solution for field sales teams, coexisting with SAP Commerce, delivered in four phases over six months.'
     },
     tags: ['Power Platform', 'Copilot Studio', 'CRM', 'Mobile AI', 'SAP Integration'],
     date: '2026-04-30',
@@ -156,6 +164,26 @@ var knowledgeTree = [
     color: '#c084fc',
     phase: 0.5, speed: 0.9,
     relations: ['low-code-ai-era', 'enterprise-agent-arch', 'copilot-studio-overview']
+  },
+
+  {
+    id: 'mindray-crm-ai-proposal-design',
+    parentId: 'agentic-crm',
+    type: 'article',
+    title: {
+      zh: '销售 CRM 界面原型设计文档：Vibe Coding 提示词集',
+      en: 'Sales CRM Interface Prototype Design Doc: Vibe Coding Prompt Pack'
+    },
+    summary: {
+      zh: '配套设计文档：5 个核心屏幕的结构、组件清单与可直接喂给 Copilot 的 Vibe Coding 提示词。',
+      en: 'Companion design doc: structure, component lists, and Vibe Coding prompts for the 5 core screens, ready to paste into Copilot.'
+    },
+    tags: ['Design Doc', 'Vibe Coding', 'Prototype', 'CRM', 'Prompt'],
+    date: '2026-05-01',
+    url: 'posts/mindray-crm-ai-proposal-design/index.html',
+    color: '#a78bfa',
+    phase: 0.6, speed: 0.85,
+    relations: ['mindray-crm-ai-proposal']
   },
 
   // ════════════════════════════════════════

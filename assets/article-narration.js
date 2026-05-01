@@ -277,6 +277,66 @@
   }
 
   /**
+   * Split text into subtitle-sized chunks (≤ ~2 visual lines).
+   * Chinese: counted by character (~36/chunk).
+   * English: counted by character but split at word boundaries (~80/chunk).
+   * Splits at sentence punctuation first; falls back to clause punctuation
+   * (，、；,;) and finally to whitespace if a single clause is still too long.
+   */
+  function splitIntoSubtitleChunks(text, lang) {
+    var max = (lang === 'zh') ? 36 : 80;
+    if (!text) return [];
+
+    // Hard-split a too-long clause without breaking words (English) or
+    // by character (Chinese, where there are no word breaks).
+    function hardSplit(str) {
+      var out = [];
+      var rest = str;
+      while (rest.length > max * 1.4) {
+        var cut = max;
+        if (lang !== 'zh') {
+          // Find last whitespace within [0, max] to avoid mid-word cuts
+          var slice = rest.slice(0, max);
+          var ws = slice.lastIndexOf(' ');
+          if (ws > max * 0.5) {
+            cut = ws;
+          } else {
+            // No reasonable space — extend forward to next space to keep word intact
+            var fwd = rest.indexOf(' ', max);
+            cut = fwd > -1 ? fwd : rest.length;
+          }
+        }
+        out.push(rest.slice(0, cut).trim());
+        rest = rest.slice(cut).replace(/^\s+/, '');
+      }
+      if (rest) out.push(rest);
+      return out;
+    }
+
+    var pieces = text.split(/(?<=[。！？.!?])\s*/).filter(Boolean);
+    var chunks = [];
+    pieces.forEach(function (p) {
+      if (p.length <= max) { chunks.push(p); return; }
+      // Sub-split on clause punctuation
+      var clauses = p.split(/(?<=[，、；,;])\s*/).filter(Boolean);
+      var buf = '';
+      clauses.forEach(function (c) {
+        if ((buf + c).length > max && buf) {
+          chunks.push(buf);
+          buf = c;
+        } else {
+          buf += c;
+        }
+      });
+      if (buf) {
+        hardSplit(buf).forEach(function (s) { chunks.push(s); });
+      }
+    });
+    return chunks.length ? chunks : [text];
+  }
+
+
+  /**
    * Speak text using Web Speech API.
    * Returns an object with pause/resume/cancel methods for control.
    */
@@ -410,9 +470,50 @@
     var paused = false;
     var audioCtx = null;
     var sourceNode = null;
+    var subtitleTimers = [];
+    var subtitleStartedAt = 0;
+    var subtitlePauseAt = 0;
+    var subtitleElapsedBeforePause = 0;
+    var subtitleSchedule = null; // { chunks, offsets } in ms
 
-    // Fire subtitle immediately with the full text
-    if (cb.onChunkStart) cb.onChunkStart(text);
+    // Prepare subtitle chunks (≤ 2 visual lines each)
+    var subtitleChunks = splitIntoSubtitleChunks(text, lang);
+
+    function clearSubtitleTimers() {
+      subtitleTimers.forEach(function (t) { clearTimeout(t); });
+      subtitleTimers = [];
+    }
+
+    function scheduleSubtitles(durationMs, fromOffsetMs) {
+      clearSubtitleTimers();
+      if (!cb.onChunkStart || subtitleChunks.length <= 1) return;
+      // Distribute by character weight so longer chunks linger longer
+      var weights = subtitleChunks.map(function (s) { return Math.max(1, s.length); });
+      var total = weights.reduce(function (a, b) { return a + b; }, 0);
+      var offsets = [0];
+      for (var i = 0; i < weights.length - 1; i++) {
+        offsets.push(offsets[i] + (weights[i] / total) * durationMs);
+      }
+      subtitleSchedule = { offsets: offsets, durationMs: durationMs };
+      subtitleStartedAt = Date.now() - (fromOffsetMs || 0);
+      subtitleChunks.forEach(function (chunk, idx) {
+        var delay = offsets[idx] - (fromOffsetMs || 0);
+        if (delay < 0) {
+          // Already past — fire immediately for the latest one before "now"
+          if (idx === subtitleChunks.length - 1 || offsets[idx + 1] > (fromOffsetMs || 0)) {
+            cb.onChunkStart(chunk);
+          }
+          return;
+        }
+        var t = setTimeout(function () {
+          if (!cancelled) cb.onChunkStart(chunk);
+        }, delay);
+        subtitleTimers.push(t);
+      });
+    }
+
+    // Show first subtitle chunk immediately while audio loads
+    if (cb.onChunkStart) cb.onChunkStart(subtitleChunks[0] || text);
 
     var audioPromise = prefetchedBuffer
       ? Promise.resolve(prefetchedBuffer)
@@ -434,8 +535,10 @@
 
       sourceNode = audioCtx.createBufferSource();
       sourceNode.buffer = audioBuffer;
+      var rateMultiplier = 1;
       if (ss.rate && ss.rate !== 0.92) {
-        sourceNode.playbackRate.value = ss.rate / 0.92;
+        rateMultiplier = ss.rate / 0.92;
+        sourceNode.playbackRate.value = rateMultiplier;
       }
       sourceNode.connect(audioCtx.destination);
 
@@ -454,6 +557,7 @@
 
       sourceNode.onended = function () {
         sourceNode = null;
+        clearSubtitleTimers();
         if (!cancelled) {
           if (cb.onEnd) cb.onEnd();
         }
@@ -464,6 +568,10 @@
       };
 
       sourceNode.start(0);
+
+      // Schedule subtitle chunks across audio duration
+      var durationMs = (audioBuffer.duration / rateMultiplier) * 1000;
+      scheduleSubtitles(durationMs, 0);
     })
     .catch(function (err) {
       if (cancelled) return;
@@ -476,15 +584,24 @@
         if (audioCtx && audioCtx.state === 'running') {
           audioCtx.suspend();
         }
+        if (subtitleStartedAt) {
+          subtitlePauseAt = Date.now();
+          subtitleElapsedBeforePause = subtitlePauseAt - subtitleStartedAt;
+        }
+        clearSubtitleTimers();
       },
       resume: function () {
         paused = false;
         if (audioCtx && audioCtx.state === 'suspended') {
           audioCtx.resume();
         }
+        if (subtitleSchedule && subtitleElapsedBeforePause) {
+          scheduleSubtitles(subtitleSchedule.durationMs, subtitleElapsedBeforePause);
+        }
       },
       cancel: function () {
         cancelled = true;
+        clearSubtitleTimers();
         if (sourceNode) {
           sourceNode.onended = null; // prevent stale callback
           try { sourceNode.stop(); } catch (e) {}
