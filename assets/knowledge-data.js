@@ -122,7 +122,7 @@ var knowledgeTree = [
     id: 'agentic-crm',
     parentId: 'business-ai-solution',
     type: 'topic',
-    label: { zh: 'Agentic CRM', en: 'Agentic CRM' },
+    label: { zh: 'Agentic Sales Mobile', en: 'Agentic Sales Mobile' },
     color: '#c084fc',
     phase: 5.2, speed: 0.86
   },
@@ -147,7 +147,7 @@ var knowledgeTree = [
   // 文章 — Business AI Solution
   // ════════════════════════════════════════
   {
-    id: 'mindray-crm-ai-proposal',
+    id: 'agentic-sales-mobile-proposal',
     parentId: 'agentic-crm',
     type: 'article',
     title: {
@@ -160,30 +160,50 @@ var knowledgeTree = [
     },
     tags: ['Power Platform', 'Copilot Studio', 'CRM', 'Mobile AI', 'SAP Integration'],
     date: '2026-04-30',
-    url: 'posts/mindray-crm-ai-proposal/index.html',
+    url: 'posts/agentic-sales-mobile-proposal/index.html',
     color: '#c084fc',
     phase: 0.5, speed: 0.9,
     relations: ['low-code-ai-era', 'enterprise-agent-arch', 'copilot-studio-overview']
   },
 
   {
-    id: 'mindray-crm-ai-proposal-design',
+    id: 'agentic-sales-mobile-design',
     parentId: 'agentic-crm',
     type: 'article',
     title: {
-      zh: '销售 CRM 界面原型设计文档：Vibe Coding 提示词集',
-      en: 'Sales CRM Interface Prototype Design Doc: Vibe Coding Prompt Pack'
+      zh: '销售 Agentic CRM 设计文档：六阶段实施手册',
+      en: 'Sales Agentic CRM Design Doc: Six-Stage Implementation Manual'
     },
     summary: {
-      zh: '配套设计文档：5 个核心屏幕的结构、组件清单与可直接喂给 Copilot 的 Vibe Coding 提示词。',
-      en: 'Companion design doc: structure, component lists, and Vibe Coding prompts for the 5 core screens, ready to paste into Copilot.'
+      zh: '八章实施手册：02 Plan + Bootstrap 搭数据骨架，04 五屏 Canvas App Vibe Coding，05 Power Automate Flow + Copilot Studio Agent。',
+      en: 'Eight-chapter manual: Ch02 Plan + Bootstrap for data skeleton, Ch04 five-screen Canvas App Vibe Coding, Ch05 Power Automate Flows + Copilot Studio Agent.'
     },
     tags: ['Design Doc', 'Vibe Coding', 'Prototype', 'CRM', 'Prompt'],
     date: '2026-05-01',
-    url: 'posts/mindray-crm-ai-proposal-design/index.html',
+    url: 'posts/agentic-sales-mobile-design/index.html',
     color: '#a78bfa',
     phase: 0.6, speed: 0.85,
-    relations: ['mindray-crm-ai-proposal']
+    relations: ['agentic-sales-mobile-proposal']
+  },
+
+  {
+    id: 'agentic-sales-mobile-prototype',
+    parentId: 'agentic-crm',
+    type: 'article',
+    title: {
+      zh: '销售 Agentic CRM 可演示原型：五屏 iPhone 拟真界面',
+      en: 'Sales Agentic CRM Interactive Prototype: 5-Screen iPhone Mockup'
+    },
+    summary: {
+      zh: '可演示原型：左侧 iPhone 拟真界面（主页 / 播报 / 录入 / Copilot / 商机），右侧同步功能卡片，5 个 tab 切换。',
+      en: 'Interactive prototype: iPhone mockup on the left (Home / Brief / Capture / Copilot / Opp), synced feature cards on the right, 5 tabs.'
+    },
+    tags: ['Prototype', 'Mobile UI', 'Demo', 'Power Apps', 'CRM'],
+    date: '2026-05-02',
+    url: 'posts/agentic-sales-mobile-prototype/index.html',
+    color: '#fb923c',
+    phase: 0.7, speed: 0.88,
+    relations: ['agentic-sales-mobile-proposal', 'agentic-sales-mobile-design']
   },
 
   // ════════════════════════════════════════

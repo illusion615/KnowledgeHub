@@ -1,0 +1,2047 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>销售 Agentic CRM 可演示原型 — 单屏左右布局 Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    /* ─────────── Full-viewport demo shell ─────────── */
+    html, body { height: 100%; }
+    body { overflow: hidden; }
+
+    .demo-shell {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column;
+      background: #0a0d18;
+      color: #e6e9f4;
+    }
+    [data-theme="light"] .demo-shell {
+      background: #f7f5f0;
+      color: #1c2230;
+    }
+
+    /* Slim top bar (utility only — no scene navigation) */
+    .demo-bar {
+      flex: 0 0 auto;
+      height: 52px;
+      display: flex; align-items: center; gap: 12px;
+      padding: 0 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      background: rgba(10,13,24,0.85);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      z-index: 5;
+    }
+    [data-theme="light"] .demo-bar {
+      background: rgba(255,255,255,0.78);
+      border-bottom-color: rgba(0,0,0,0.06);
+    }
+    .demo-bar .home-link {
+      position: static; box-shadow: none;
+      font-size: 1.05rem; text-decoration: none; color: inherit;
+      opacity: 0.7; width: 30px; height: 30px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 8px;
+    }
+    .demo-bar .home-link:hover { background: rgba(255,255,255,0.06); opacity: 1; }
+    [data-theme="light"] .demo-bar .home-link:hover { background: rgba(0,0,0,0.04); }
+    .demo-bar .brand {
+      display: flex; align-items: center; gap: 8px;
+      font-weight: 700; font-size: 0.9rem;
+    }
+    .demo-bar .brand-mark {
+      width: 20px; height: 20px; border-radius: 6px;
+      background: linear-gradient(135deg, #fb923c, #f97316);
+      box-shadow: 0 4px 12px rgba(249,115,22,0.4);
+    }
+    .demo-bar .demo-bar-spacer { flex: 1; }
+    .demo-bar-link {
+      font-size: 0.8rem; text-decoration: none;
+      color: inherit; opacity: 0.65;
+      padding: 6px 10px; border-radius: 8px;
+    }
+    .demo-bar-link:hover { background: rgba(255,255,255,0.06); opacity: 1; }
+    [data-theme="light"] .demo-bar-link:hover { background: rgba(0,0,0,0.04); }
+    .demo-bar .theme-toggle,
+    .demo-bar .lang-toggle {
+      width: 30px; height: 30px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
+      color: inherit; border-radius: 8px;
+      font-size: 0.75rem; cursor: pointer; font-family: inherit;
+    }
+    [data-theme="light"] .demo-bar .theme-toggle,
+    [data-theme="light"] .demo-bar .lang-toggle {
+      background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.08);
+    }
+
+    /* Stage: 2-col, fills remaining viewport */
+    .demo-stage {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(440px, 0.55fr) 1fr;
+      gap: 0;
+    }
+    @media (max-width: 980px) {
+      .demo-stage { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+      body { overflow: auto; }
+      .demo-shell { position: relative; }
+    }
+
+    /* Left: phone center */
+    .demo-left {
+      position: relative;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+      background:
+        radial-gradient(900px 600px at 30% 40%, rgba(251,146,60,0.10), transparent 60%),
+        radial-gradient(700px 500px at 70% 70%, rgba(168,85,247,0.08), transparent 60%);
+      border-right: 1px solid rgba(255,255,255,0.06);
+      overflow: hidden;
+    }
+    [data-theme="light"] .demo-left {
+      background:
+        radial-gradient(900px 600px at 30% 40%, rgba(251,146,60,0.16), transparent 60%),
+        radial-gradient(700px 500px at 70% 70%, rgba(168,85,247,0.12), transparent 60%);
+      border-right-color: rgba(0,0,0,0.06);
+    }
+    .demo-left-inner {
+      display: flex; flex-direction: column; align-items: center; gap: 14px;
+    }
+
+    /* iPhone frame — height-driven so it always fits the viewport */
+    .phone-frame {
+      --phone-h: min(720px, calc(100vh - 52px - 56px));
+      height: var(--phone-h);
+      width: calc(var(--phone-h) * 9 / 19);
+      min-width: 280px;
+      border-radius: 42px;
+      padding: 11px;
+      background: linear-gradient(160deg, #1a1d2a, #0d0f17);
+      box-shadow: 0 22px 48px rgba(0,0,0,0.45), 0 2px 0 rgba(255,255,255,0.05) inset;
+      position: relative;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    [data-theme="light"] .phone-frame {
+      background: linear-gradient(160deg, #2a2d3a, #1a1d2a);
+      box-shadow: 0 22px 48px rgba(0,0,0,0.18);
+    }
+    .phone-frame::before {
+      content: ''; position: absolute;
+      top: 18px; left: 50%;
+      width: 100px; height: 24px;
+      background: #0d0f17;
+      border-radius: 0 0 14px 14px;
+      transform: translateX(-50%);
+      z-index: 3;
+    }
+    .phone-screen {
+      width: 100%; height: 100%;
+      border-radius: 32px;
+      background: linear-gradient(180deg, #0f1424 0%, #161b2c 100%);
+      overflow: hidden;
+      position: relative;
+      display: flex; flex-direction: column;
+      color: #e6e9f4;
+      font-size: 11px; line-height: 1.4;
+    }
+    .phone-status {
+      flex-shrink: 0;
+      padding: 9px 24px 4px;
+      display: flex; justify-content: space-between;
+      font-size: 9.5px; opacity: 0.8; font-weight: 600;
+    }
+    .phone-status .status-icons { letter-spacing: 1px; }
+    .phone-header {
+      flex-shrink: 0;
+      padding: 30px 16px 10px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .phone-header .ph-back { opacity: 0.6; font-size: 14px; }
+    .phone-header .ph-title { font-weight: 600; font-size: 12px; flex: 1; text-align: center; }
+    .phone-header .ph-action { opacity: 0.55; font-size: 11px; }
+    .phone-body {
+      flex: 1; overflow: hidden;
+      padding: 12px 14px 18px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .phone-body > .ph-mic-row,
+    .phone-body > .ph-chat-input,
+    .phone-body > .ph-source-centered,
+    .phone-body > .ph-brief-bottom { margin-top: auto; }
+    .phone-home {
+      flex-shrink: 0;
+      padding: 5px 0 7px;
+      display: flex; justify-content: center;
+    }
+    .phone-home::after {
+      content: '';
+      width: 110px; height: 4px;
+      background: rgba(255,255,255,0.5);
+      border-radius: 2px;
+    }
+
+    /* Screen swap */
+    .phone-scene { display: none; height: 100%; flex-direction: column; }
+    .phone-scene.is-active { display: flex; }
+
+    /* Phone-only LIGHT theme (driven by sheet, scoped to phone) */
+    .phone-frame[data-ph-theme="light"] .phone-screen {
+      background: linear-gradient(180deg, #f7f8fc 0%, #eef0f7 100%);
+      color: #1c2230;
+    }
+    .phone-frame[data-ph-theme="light"] .phone-status { opacity: 0.7; }
+    .phone-frame[data-ph-theme="light"] .phone-header { border-bottom-color: rgba(0,0,0,0.06); }
+    .phone-frame[data-ph-theme="light"] .phone-home::after { background: rgba(0,0,0,0.35); }
+    .phone-frame[data-ph-theme="light"] .ph-card,
+    .phone-frame[data-ph-theme="light"] .ph-kpi,
+    .phone-frame[data-ph-theme="light"] .ph-quick-chip:not(.primary),
+    .phone-frame[data-ph-theme="light"] .ph-agent-reply,
+    .phone-frame[data-ph-theme="light"] .ph-brief-card-metric {
+      background: rgba(0,0,0,0.04);
+      border-color: rgba(0,0,0,0.08);
+    }
+    .phone-frame[data-ph-theme="light"] .ph-field { border-bottom-color: rgba(0,0,0,0.08); }
+    .phone-frame[data-ph-theme="light"] .ph-list-row { border-bottom-color: rgba(0,0,0,0.08); }
+    .phone-frame[data-ph-theme="light"] .ph-chat-input,
+    .phone-frame[data-ph-theme="light"] #copSend {
+      background: rgba(0,0,0,0.05);
+    }
+    .phone-frame[data-ph-theme="light"] .ph-settings { background: rgba(0,0,0,0.05); }
+    .phone-frame[data-ph-theme="light"] .ph-settings:hover { background: rgba(0,0,0,0.1); }
+    .phone-frame[data-ph-theme="light"] .ph-brief-stage-dots span { background: rgba(0,0,0,0.18); }
+    .phone-frame[data-ph-theme="light"] .ph-brief-speed-btn {
+      background: rgba(0,0,0,0.05);
+      border-color: rgba(0,0,0,0.1);
+      color: #1c2230;
+    }
+    .phone-frame[data-ph-theme="light"] .ph-conf-bar { background: rgba(0,0,0,0.1); }
+    .phone-frame[data-ph-theme="light"] .ph-btn-ghost {
+      background: rgba(0,0,0,0.05); border-color: rgba(0,0,0,0.1);
+    }
+    .phone-frame[data-ph-theme="light"] .ph-voice-bubble { color: #c2410c; background: rgba(255,122,0,0.10); }
+    .phone-frame[data-ph-theme="light"] .ph-user-bubble { color: #c2410c; }
+    .phone-frame[data-ph-theme="light"] .ph-settings-sheet {
+      background: linear-gradient(180deg, #ffffff 0%, #f3f4fa 100%);
+      color: #1c2230;
+      box-shadow: 0 -10px 28px rgba(20,30,60,0.18);
+    }
+    .phone-frame[data-ph-theme="light"] .ph-sheet-row { border-top-color: rgba(0,0,0,0.06); }
+    .phone-frame[data-ph-theme="light"] .ph-sheet-grip { background: rgba(0,0,0,0.18); }
+    .phone-frame[data-ph-theme="light"] .ph-sheet-seg { background: rgba(0,0,0,0.06); }
+    .phone-frame[data-ph-theme="light"] .ph-sheet-seg button.is-on { background: rgba(0,0,0,0.12); }
+    .phone-frame[data-ph-theme="light"] .ph-sheet-voice {
+      background: rgba(0,0,0,0.05); color: #1c2230; border-color: rgba(0,0,0,0.1);
+    }
+
+    /* In-phone settings sheet */
+    .ph-settings-mask {
+      position: absolute; inset: 0;
+      background: rgba(5,7,12,0.55);
+      backdrop-filter: blur(2px);
+      opacity: 0; pointer-events: none;
+      transition: opacity .22s ease;
+      z-index: 8;
+    }
+    .ph-settings-mask.is-open { opacity: 1; pointer-events: auto; }
+    .ph-settings-sheet {
+      position: absolute; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(180deg, #1a1f33 0%, #11152a 100%);
+      border-radius: 22px 22px 0 0;
+      padding: 14px 16px 20px;
+      transform: translateY(100%);
+      transition: transform .28s cubic-bezier(.22,.94,.32,1);
+      z-index: 9;
+      color: #e6e9f4;
+      box-shadow: 0 -10px 28px rgba(0,0,0,0.5);
+      max-height: 78%;
+      overflow-y: auto;
+    }
+    .ph-settings-mask.is-open .ph-settings-sheet { transform: translateY(0); }
+    .ph-sheet-grip {
+      width: 36px; height: 4px;
+      background: rgba(255,255,255,0.18);
+      border-radius: 2px;
+      margin: 0 auto 10px;
+    }
+    .ph-sheet-title {
+      font-size: 13px; font-weight: 700;
+      margin-bottom: 12px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .ph-sheet-close {
+      font-size: 14px; opacity: 0.55; cursor: pointer;
+      padding: 2px 6px; border-radius: 6px;
+    }
+    .ph-sheet-close:hover { opacity: 1; background: rgba(255,255,255,0.06); }
+    .ph-sheet-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px;
+      padding: 10px 0;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+    .ph-sheet-row:first-of-type { border-top: 0; }
+    .ph-sheet-label { font-size: 11px; opacity: 0.85; }
+    .ph-sheet-seg {
+      display: inline-flex;
+      background: rgba(255,255,255,0.06);
+      border-radius: 999px;
+      padding: 2px;
+    }
+    .ph-sheet-seg button {
+      background: transparent; border: 0; color: inherit;
+      font: inherit; cursor: pointer;
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 10.5px;
+      opacity: 0.65;
+    }
+    .ph-sheet-seg button.is-on {
+      background: rgba(255,255,255,0.16);
+      opacity: 1; font-weight: 600;
+    }
+    .ph-sheet-voice {
+      display: block;
+      width: 100%;
+      background: rgba(255,255,255,0.06);
+      color: #e6e9f4;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 11px;
+      margin-top: 6px;
+      appearance: none;
+    }
+    .ph-sheet-voice:focus { outline: 1px solid rgba(124,143,255,0.6); }
+    .ph-voice-row { display: block; }
+    .ph-voice-row .ph-sheet-label { display: block; margin-bottom: 4px; }
+    .ph-voice-hint { font-size: 9.5px; opacity: 0.55; margin-top: 6px; line-height: 1.4; }
+    .ph-voice-test {
+      margin-top: 8px;
+      background: rgba(124,143,255,0.18);
+      color: #cdd5ff;
+      border: 1px solid rgba(124,143,255,0.35);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 10.5px;
+      cursor: pointer;
+    }
+    .ph-voice-test:hover { background: rgba(124,143,255,0.28); }
+
+    /* shared primitives */
+    .ph-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 9px 11px;
+    }
+    .ph-card-title {
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 10px; font-weight: 700; margin-bottom: 6px;
+      letter-spacing: 0.04em;
+    }
+    .ph-tag {
+      display: inline-block;
+      padding: 1px 7px; border-radius: 8px;
+      font-size: 8.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    .ph-tag-ai { background: rgba(251,146,60,0.22); color: #fdba74; }
+    .ph-tag-source { background: rgba(56,189,248,0.18); color: #7dd3fc; }
+    .ph-tag-stage { background: rgba(45,212,191,0.18); color: #5eead4; }
+    .ph-tag-confirm { background: rgba(168,85,247,0.2); color: #c4b5fd; }
+    .ph-field {
+      display: flex; justify-content: space-between; gap: 8px;
+      padding: 4px 0;
+      font-size: 10.5px;
+      border-bottom: 1px dashed rgba(255,255,255,0.06);
+    }
+    .ph-field:last-child { border-bottom: none; }
+    .ph-field .ph-fk { opacity: 0.6; }
+    .ph-field .ph-fv { font-weight: 600; text-align: right; }
+
+    .ph-dash-greet { display: flex; align-items: center; gap: 10px; }
+    .ph-avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: linear-gradient(135deg, #fb923c, #f97316);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; color: #fff; font-size: 13px;
+    }
+    .ph-greet-text { flex: 1; }
+    .ph-greet-hi { font-size: 9.5px; opacity: 0.65; }
+    .ph-greet-name { font-size: 13px; font-weight: 700; }
+    .ph-settings {
+      opacity: 0.65; font-size: 22px; line-height: 1;
+      width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.06);
+      cursor: pointer;
+    }
+    .ph-settings:hover { opacity: 1; background: rgba(255,255,255,0.1); }
+
+    .ph-kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .ph-kpi {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 9px 11px;
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .ph-kpi-label { font-size: 9px; opacity: 0.6; }
+    .ph-kpi-value { font-size: 18px; font-weight: 800; line-height: 1.1; }
+    .ph-kpi-delta { font-size: 8.5px; opacity: 0.85; }
+    .ph-kpi-delta.pos { color: #5eead4; }
+    .ph-kpi-delta.warn { color: #fbbf24; }
+    .ph-kpi-delta.neg { color: #fca5a5; }
+
+    .ph-summary-line {
+      display: flex; gap: 6px; align-items: flex-start;
+      font-size: 10px; line-height: 1.45; padding: 3px 0;
+    }
+    .ph-sum-bullet { flex-shrink: 0; width: 12px; text-align: center; font-weight: 700; }
+    .ph-summary-line.warn .ph-sum-bullet { color: #fbbf24; }
+    .ph-summary-line.risk .ph-sum-bullet { color: #f87171; }
+    .ph-summary-line.opp .ph-sum-bullet { color: #5eead4; }
+    .ph-summary-line.info .ph-sum-bullet { color: #93c5fd; }
+    .ph-source {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 8.5px; opacity: 0.55; margin-top: 6px;
+    }
+    .ph-source-dot { width: 5px; height: 5px; border-radius: 50%; background: #7dd3fc; flex-shrink: 0; }
+
+    .ph-quick { display: flex; gap: 8px; }
+    .ph-quick-chip {
+      flex: 1;
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+      padding: 8px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      font-size: 10px; font-weight: 600;
+    }
+    .ph-quick-chip.primary {
+      background: linear-gradient(135deg, #fb923c, #f97316);
+      border-color: transparent; color: #fff;
+    }
+    .ph-quick-emoji { font-size: 12px; }
+
+    .ph-mic-row {
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      padding: 4px 0 0;
+    }
+    .ph-mic {
+      width: 48px; height: 48px; border-radius: 50%;
+      background: linear-gradient(135deg, #fb923c, #f97316);
+      box-shadow: 0 6px 20px rgba(249,115,22,0.45), 0 0 0 6px rgba(249,115,22,0.12);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 18px;
+    }
+    .ph-mic-hint { font-size: 9.5px; opacity: 0.7; }
+
+    /* BriefMe */
+    .ph-brief-card {
+      flex: 1;
+      padding: 12px 13px; border-radius: 14px;
+      background: rgba(248,113,113,0.08);
+      border: 1px solid rgba(248,113,113,0.22);
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .ph-brief-card-head { display: flex; justify-content: space-between; align-items: center; font-size: 9px; }
+    .ph-brief-card-prio { letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; color: #f87171; }
+    .ph-brief-card-pos { font-variant-numeric: tabular-nums; opacity: 0.55; }
+    .ph-brief-card-headline { font-size: 13px; font-weight: 800; line-height: 1.3; }
+    .ph-brief-card-summary { font-size: 10.5px; line-height: 1.55; opacity: 0.85; }
+    .ph-brief-card-points { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+    .ph-brief-card-points li { font-size: 9.5px; line-height: 1.45; opacity: 0.78; position: relative; padding-left: 11px; }
+    .ph-brief-card-points li::before { content: '·'; position: absolute; left: 2px; color: #f87171; font-weight: 800; }
+    .ph-brief-card-metrics { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 2px; }
+    .ph-brief-card-metric {
+      font-size: 8.5px; font-weight: 700;
+      padding: 2px 7px; border-radius: 999px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .ph-brief-card-metric.down { color: #fca5a5; border-color: rgba(252,165,165,0.3); }
+    .ph-brief-card-context { font-size: 9px; opacity: 0.6; line-height: 1.4; }
+    .ph-brief-card-cta {
+      align-self: flex-start;
+      padding: 6px 12px; border-radius: 10px;
+      background: rgba(251,146,60,0.18); color: #fdba74;
+      font-size: 10px; font-weight: 700; border: 1px solid rgba(251,146,60,0.35);
+      cursor: pointer;
+    }
+    .ph-brief-stage-dots { display: flex; justify-content: center; gap: 5px; padding: 4px 0; }
+    .ph-brief-stage-dots span { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,0.18); }
+    .ph-brief-stage-dots span.is-now { width: 16px; border-radius: 3px; background: #fdba74; }
+    .ph-brief-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 6px; }
+    .ph-brief-speed-btn {
+      padding: 6px 8px; border-radius: 10px;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      color: #fff; font-size: 10px; font-weight: 700;
+      display: flex; align-items: center; gap: 2px; cursor: pointer;
+    }
+    .ph-brief-speed-num small { font-size: 8px; opacity: 0.7; }
+    .ph-brief-mic {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: linear-gradient(135deg, #fb923c, #f97316);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 16px;
+      box-shadow: 0 4px 14px rgba(249,115,22,0.4);
+    }
+    .ph-brief-bottom-time { font-size: 9.5px; opacity: 0.65; font-variant-numeric: tabular-nums; }
+
+    /* ActivityCapture */
+    .ph-voice-bubble {
+      align-self: stretch;
+      background: rgba(255,122,0,0.08);
+      border-left: 3px solid #fb923c;
+      padding: 9px 11px;
+      border-radius: 10px;
+      font-size: 10.5px; line-height: 1.55;
+      color: #ffd5b3;
+    }
+    .ph-voice-meta { font-size: 8.5px; opacity: 0.5; padding-left: 4px; }
+    .ph-conf { display: flex; align-items: center; gap: 8px; font-size: 9.5px; padding: 4px 0 0; }
+    .ph-conf-bar { flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
+    .ph-conf-bar > span { display: block; height: 100%; background: linear-gradient(90deg, #5eead4, #fb923c); }
+    .ph-conf-60 { width: 60%; }
+    .ph-conf-78 { width: 78%; }
+    .ph-conf-num { font-weight: 700; font-variant-numeric: tabular-nums; }
+    .ph-action-row { display: flex; gap: 6px; }
+    .ph-btn { flex: 1; text-align: center; padding: 9px 0; border-radius: 10px; font-size: 11px; font-weight: 700; }
+    .ph-btn-primary { background: linear-gradient(135deg, #fb923c, #f97316); color: #fff; }
+    .ph-btn-ghost { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
+    .ph-btn-warn { background: rgba(248,113,113,0.12); color: #fca5a5; border: 1px solid rgba(248,113,113,0.3); }
+
+    /* CopilotChat */
+    .ph-agent-reply {
+      align-self: flex-start; max-width: 92%;
+      background: rgba(255,255,255,0.06);
+      border-radius: 14px 14px 14px 4px;
+      padding: 8px 11px;
+      font-size: 10.5px; line-height: 1.55;
+    }
+    .ph-agent-name { font-size: 9px; font-weight: 700; letter-spacing: 0.04em; color: #93c5fd; margin-bottom: 4px; }
+    .ph-list-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 4px 0; font-size: 10px;
+      border-bottom: 1px dashed rgba(255,255,255,0.06);
+    }
+    .ph-list-row:last-child { border-bottom: none; }
+    .ph-chat-input {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 6px 6px 10px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 999px;
+      flex-shrink: 0;
+    }
+    .ph-mic-mini {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: linear-gradient(135deg, #fb923c, #f97316);
+      color: #fff; font-size: 11px; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .ph-mic-mini.is-recording {
+      background: #ef4444;
+      animation: ph-pulse 0.9s infinite;
+    }
+    @keyframes ph-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); } 50% { box-shadow: 0 0 0 6px rgba(239,68,68,0); } }
+    .ph-chat-text {
+      flex: 1; min-width: 0;
+      background: transparent; border: none; outline: none;
+      color: inherit; font-family: inherit;
+      font-size: 10.5px; opacity: 0.85;
+    }
+    .ph-chat-text::placeholder { opacity: 0.5; }
+    #copSend {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: rgba(255,255,255,0.08); border: none; cursor: pointer;
+      color: inherit; opacity: 0.6;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    #copSend:hover { opacity: 1; }
+
+    .ph-chat-thread {
+      flex: 1; min-height: 0; overflow-y: auto;
+      display: flex; flex-direction: column; gap: 8px;
+      padding-right: 2px;
+    }
+    .ph-chat-thread::-webkit-scrollbar { width: 0; }
+    .ph-user-bubble {
+      align-self: flex-end; max-width: 88%;
+      background: linear-gradient(135deg, rgba(251,146,60,0.25), rgba(249,115,22,0.18));
+      border: 1px solid rgba(251,146,60,0.3);
+      border-radius: 14px 14px 4px 14px;
+      padding: 7px 11px;
+      font-size: 10.5px; line-height: 1.5;
+      color: #ffd5b3;
+    }
+
+    /* Mic recording state */
+    .ph-cap-audio { width: 100%; height: 32px; margin-top: 4px; }
+    .ph-mic.is-recording {
+      background: #ef4444;
+      animation: ph-pulse 0.9s infinite;
+    }
+    .ph-mic { cursor: pointer; user-select: none; -webkit-user-select: none; border: none; }
+    .ph-quick-chip { cursor: pointer; user-select: none; }
+    .ph-back, [data-go] { cursor: pointer; }
+
+    .ph-source-faded { opacity: 0.5; }
+    .ph-source-spaced { margin-top: 4px; }
+    .ph-source-centered { justify-content: center; }
+
+    .demo-left-caption {
+      font-size: 0.78rem; opacity: 0.55; text-align: center;
+      max-width: 320px; line-height: 1.5;
+    }
+
+    /* Right: feature panel — vertically centered, internal scroll only if overflow */
+    .demo-right {
+      position: relative;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 32px 40px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    @media (max-width: 1200px) {
+      .demo-right { padding: 24px 28px; }
+    }
+    .demo-right-inner {
+      width: 100%; max-width: 720px;
+      display: flex; flex-direction: column; gap: 16px;
+    }
+
+    /* Toggle row that replaces top bar */
+    .demo-toggle-row {
+      display: flex; align-items: center;
+      gap: 8px; flex-wrap: wrap;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+    }
+    [data-theme="light"] .demo-toggle-row {
+      background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.07);
+    }
+    .demo-toggle-tabs {
+      display: flex; gap: 4px; flex: 1; min-width: 0; flex-wrap: wrap;
+    }
+    .demo-tab {
+      flex: 0 0 auto;
+      padding: 6px 12px; border-radius: 999px;
+      background: transparent; border: 1px solid transparent;
+      font-size: 0.78rem; font-weight: 600;
+      color: inherit; opacity: 0.72;
+      cursor: pointer; font-family: inherit;
+      transition: all 0.15s ease; white-space: nowrap;
+    }
+    .demo-tab:hover { background: rgba(255,255,255,0.06); opacity: 1; }
+    [data-theme="light"] .demo-tab:hover { background: rgba(0,0,0,0.04); }
+    .demo-tab.is-active {
+      background: linear-gradient(135deg, #fb923c, #f97316);
+      color: #fff; opacity: 1;
+      box-shadow: 0 3px 10px rgba(249,115,22,0.35);
+    }
+    .demo-toggle-actions {
+      display: flex; gap: 4px; align-items: center;
+      padding-left: 8px; border-left: 1px solid rgba(255,255,255,0.08);
+    }
+    [data-theme="light"] .demo-toggle-actions { border-left-color: rgba(0,0,0,0.08); }
+    .demo-toggle-actions a,
+    .demo-toggle-actions button {
+      display: inline-flex; align-items: center; justify-content: center;
+      height: 28px; padding: 0 10px; border-radius: 8px;
+      font-size: 0.75rem; font-weight: 600;
+      background: transparent; border: 1px solid transparent;
+      color: inherit; opacity: 0.7;
+      text-decoration: none; cursor: pointer; font-family: inherit;
+    }
+    .demo-toggle-actions a:hover,
+    .demo-toggle-actions button:hover {
+      background: rgba(255,255,255,0.06); opacity: 1;
+    }
+    [data-theme="light"] .demo-toggle-actions a:hover,
+    [data-theme="light"] .demo-toggle-actions button:hover { background: rgba(0,0,0,0.04); }
+    .demo-toggle-actions .icon-btn {
+      width: 28px; padding: 0; font-size: 0.85rem;
+    }
+
+    .demo-panel { display: none; flex-direction: column; gap: 16px; }
+    .demo-panel.is-active { display: flex; }
+
+    .feat-head {
+      display: flex; flex-direction: column; gap: 8px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    [data-theme="light"] .feat-head { border-color: rgba(0,0,0,0.08); }
+    .feat-kicker {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 0.7rem; font-weight: 700;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: #fb923c;
+    }
+    .feat-title {
+      font-size: clamp(1.4rem, 2.2vw, 1.85rem); font-weight: 800;
+      line-height: 1.2; letter-spacing: -0.01em; margin: 0;
+    }
+    .feat-lead {
+      font-size: clamp(0.88rem, 1.05vw, 0.98rem);
+      line-height: 1.6; opacity: 0.82; margin: 0;
+    }
+
+    .feat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 1280px) { .feat-grid { grid-template-columns: 1fr; } }
+    .feat-card {
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    [data-theme="light"] .feat-card { background: rgba(0,0,0,0.025); border-color: rgba(0,0,0,0.07); }
+    .feat-card-tag {
+      font-size: 0.64rem; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.55;
+    }
+    .feat-card h4 { margin: 0; font-size: 0.95rem; font-weight: 700; line-height: 1.35; }
+    .feat-card ul {
+      margin: 0; padding-left: 16px;
+      font-size: 0.82rem; line-height: 1.65; opacity: 0.85;
+      display: flex; flex-direction: column; gap: 1px;
+    }
+    .feat-card.is-ai { border-color: rgba(251,146,60,0.22); background: rgba(251,146,60,0.06); }
+    .feat-card.is-data { border-color: rgba(94,234,212,0.22); background: rgba(45,212,191,0.06); }
+    .feat-card.is-interact { border-color: rgba(196,181,253,0.25); background: rgba(168,85,247,0.06); }
+    [data-theme="light"] .feat-card.is-ai { background: rgba(251,146,60,0.08); }
+    [data-theme="light"] .feat-card.is-data { background: rgba(45,212,191,0.08); }
+    [data-theme="light"] .feat-card.is-interact { background: rgba(168,85,247,0.08); }
+
+    .feat-meta { display: flex; flex-wrap: wrap; gap: 6px; }
+    .feat-chip {
+      font-size: 0.72rem; font-weight: 600;
+      padding: 4px 9px; border-radius: 999px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      opacity: 0.85;
+    }
+    [data-theme="light"] .feat-chip { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.08); }
+
+    /* Dark theme explicit overrides */
+    [data-theme="dark"] .feat-card { background: rgba(255,255,255,0.04); }
+  </style>
+</head>
+<body>
+  <div class="demo-shell">
+
+    <!-- ─────────── Slim top bar (utility only) ─────────── -->
+    <header class="demo-bar">
+      <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+      <div class="brand">
+        <span class="brand-mark"></span>
+        <span data-zh="Agentic Sales Mobile · Demo" data-en="Agentic Sales Mobile · Demo">Agentic Sales Mobile · Demo</span>
+      </div>
+      <div class="demo-bar-spacer"></div>
+      <a class="demo-bar-link" href="../agentic-sales-mobile-proposal/" data-zh="方案" data-en="Proposal">方案</a>
+      <a class="demo-bar-link" href="../agentic-sales-mobile-design/" data-zh="设计文档" data-en="Design">设计文档</a>
+      <button class="theme-toggle" type="button" aria-label="切换主题">●</button>
+      <button class="lang-toggle" type="button" aria-label="切换语言">中</button>
+    </header>
+
+    <!-- ─────────── Stage: left phone · right panel ─────────── -->
+    <main class="demo-stage">
+
+      <!-- LEFT: phone -->
+      <section class="demo-left">
+        <div class="demo-left-inner">
+          <div class="phone-frame" aria-label="iPhone 拟真原型">
+            <div class="phone-screen">
+              <div class="phone-status"><span>9:41</span><span class="status-icons">5G ▮▮</span></div>
+
+              <!-- Scene 1 · HomeDashboard -->
+              <div class="phone-scene is-active" data-scene="dashboard">
+                <div class="phone-body">
+                  <div class="ph-dash-greet">
+                    <div class="ph-avatar">M</div>
+                    <div class="ph-greet-text">
+                      <div class="ph-greet-hi" data-zh="早上好" data-en="Good morning">早上好</div>
+                      <div class="ph-greet-name">Maria Souza</div>
+                    </div>
+                    <div class="ph-settings" id="phSettingsBtn" role="button" tabindex="0" aria-label="Settings">⚙</div>
+                  </div>
+
+                  <div class="ph-kpi-grid">
+                    <div class="ph-kpi">
+                      <span class="ph-kpi-label" data-zh="今日拜访" data-en="Visits Today">今日拜访</span>
+                      <span class="ph-kpi-value">4</span>
+                      <span class="ph-kpi-delta pos" data-zh="2 已确认 · 2 待出发" data-en="2 confirmed · 2 to go">2 已确认 · 2 待出发</span>
+                    </div>
+                    <div class="ph-kpi">
+                      <span class="ph-kpi-label" data-zh="活跃商机" data-en="Active Opps">活跃商机</span>
+                      <span class="ph-kpi-value">12</span>
+                      <span class="ph-kpi-delta warn" data-zh="2 风险 · 需关注" data-en="2 at risk · review">2 风险 · 需关注</span>
+                    </div>
+                    <div class="ph-kpi">
+                      <span class="ph-kpi-label" data-zh="本月业绩" data-en="MTD Quota">本月业绩</span>
+                      <span class="ph-kpi-value">68%</span>
+                      <span class="ph-kpi-delta pos" data-zh="↑ 8% vs 上月" data-en="↑ 8% vs last mo">↑ 8% vs 上月</span>
+                    </div>
+                    <div class="ph-kpi">
+                      <span class="ph-kpi-label" data-zh="待跟进" data-en="Follow-ups">待跟进</span>
+                      <span class="ph-kpi-value">5</span>
+                      <span class="ph-kpi-delta neg" data-zh="1 延期 · 1 工单" data-en="1 overdue · 1 ticket">1 延期 · 1 工单</span>
+                    </div>
+                  </div>
+
+                  <div class="ph-card">
+                    <div class="ph-card-title">
+                      <span data-zh="今日摘要" data-en="Today's Briefing">今日摘要</span>
+                      <span class="ph-tag ph-tag-ai" data-zh="AI 生成" data-en="AI Generated">AI 生成</span>
+                    </div>
+                    <div class="ph-summary-line warn"><span class="ph-sum-bullet">!</span><span data-zh="9:00 Hospital Alpha · 跟进 A3 演示反馈" data-en="9:00 Hospital Alpha · A3 demo follow-up">9:00 Hospital Alpha · 跟进 A3 演示反馈</span></div>
+                    <div class="ph-summary-line risk"><span class="ph-sum-bullet">▲</span><span data-zh="Hospital Gamma 提交 RFP · 14:00 拜访前需准备" data-en="Hospital Gamma RFP · prep before 14:00 visit">Hospital Gamma 提交 RFP · 14:00 拜访前需准备</span></div>
+                    <div class="ph-summary-line opp"><span class="ph-sum-bullet">●</span><span data-zh="Hospital Delta · A1 商机升级 Propose → Negotiate" data-en="Hospital Delta · A1 Propose → Negotiate">Hospital Delta · A1 商机升级 Propose → Negotiate</span></div>
+                    <div class="ph-source"><span class="ph-source-dot"></span><span data-zh="指标 + 客户画像 + 订单查询 Agent" data-en="KPI + Profile + Order agents">指标 + 客户画像 + 订单查询 Agent</span></div>
+                  </div>
+
+                  <div class="ph-quick">
+                    <div class="ph-quick-chip primary" data-go="briefme" data-action="play"><span class="ph-quick-emoji">●</span><span data-zh="语音播报" data-en="Brief Me">语音播报</span></div>
+                    <div class="ph-quick-chip" data-go="capture"><span class="ph-quick-emoji">＋</span><span data-zh="新拜访" data-en="New Visit">新拜访</span></div>
+                  </div>
+
+                  <div class="ph-mic-row">
+                    <div class="ph-mic" data-go="copilot">●</div>
+                    <span class="ph-mic-hint" data-zh="点击对 Copilot 说话" data-en="Tap to talk to Copilot">点击对 Copilot 说话</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Scene 2 · BriefMe -->
+              <div class="phone-scene" data-scene="briefme">
+                <div class="phone-header">
+                  <span class="ph-back">←</span>
+                  <span class="ph-title" data-zh="今日播报 · 6 章节 2 分 40 秒" data-en="Brief Me · 6 chapters 2m 40s">今日播报 · 6 章节 2 分 40 秒</span>
+                  <span class="ph-action">文</span>
+                </div>
+                <div class="phone-body">
+                  <article class="ph-brief-card">
+                    <div class="ph-brief-card-head">
+                      <span class="ph-brief-card-prio" data-zh="风险预警" data-en="Risk">风险预警</span>
+                      <span class="ph-brief-card-pos">03 / 06 · 00:48–01:25</span>
+                    </div>
+                    <div class="ph-brief-card-headline" data-zh="A 客户两次延期回复 · 履约掉至 78%" data-en="Account A: 2 reply delays · fulfilment 78%">A 客户两次延期回复 · 履约掉至 78%</div>
+                    <div class="ph-brief-card-summary" data-zh="14 天内 2 次延期：付款承诺 4/18 → 4/26 → 5/03；今晨内部群已被 @两次，履约 96% → 78%。" data-en="2 delays in 14 d: payment 4/18 → 4/26 → 5/03; @-mentioned twice today, fulfilment 96% → 78%.">14 天内 2 次延期：付款承诺 4/18 → 4/26 → 5/03；今晨内部群已被 @两次，履约 96% → 78%。</div>
+                    <ul class="ph-brief-card-points">
+                      <li data-zh="采购总监本周休假 · 接口人切换为副总监 Lucia" data-en="Procurement lead on PTO · contact switched to deputy Lucia">采购总监本周休假 · 接口人切换为副总监 Lucia</li>
+                      <li data-zh="信用风险分上调至 B+，回款超 30 天将触发预警" data-en="Credit risk raised to B+; >30 d overdue triggers alert">信用风险分上调至 B+，回款超 30 天将触发预警</li>
+                    </ul>
+                    <div class="ph-brief-card-metrics">
+                      <span class="ph-brief-card-metric down">-18% · 履约</span>
+                      <span class="ph-brief-card-metric down">SLA 超 4 天</span>
+                      <span class="ph-brief-card-metric">¥620 万 在途</span>
+                    </div>
+                    <div class="ph-brief-card-context" data-zh="今天 15:30 你在浦东 · 距 A 客户 2.4 km · 副总监今日在岗" data-en="You're in Pudong at 15:30 · 2.4 km from Account A · deputy on-site">今天 15:30 你在浦东 · 距 A 客户 2.4 km · 副总监今日在岗</div>
+                    <button class="ph-brief-card-cta" data-zh="加入今日拜访" data-en="Add to today">加入今日拜访</button>
+                  </article>
+
+                  <div class="ph-brief-stage-dots" aria-hidden="true">
+                    <span></span><span></span><span class="is-now"></span><span></span><span></span><span></span>
+                  </div>
+
+                  <div class="ph-brief-bottom">
+                    <button class="ph-brief-speed-btn" type="button">
+                      <span class="ph-brief-speed-num">1<small>×</small></span>
+                      <span aria-hidden="true">▾</span>
+                    </button>
+                    <div class="ph-brief-mic">▶</div>
+                    <span class="ph-brief-bottom-time">01:08 / 02:40</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Scene 3 · ActivityCapture -->
+              <div class="phone-scene" data-scene="capture">
+                <div class="phone-header">
+                  <span class="ph-back" data-go="dashboard">←</span>
+                  <span class="ph-title" data-zh="新拜访 · Hospital Alpha" data-en="New Visit · Hospital Alpha">新拜访 · Hospital Alpha</span>
+                  <span class="ph-action">⋯</span>
+                </div>
+                <div class="phone-body">
+                  <div class="ph-voice-bubble" id="capTranscript" data-zh="按住下方圆黄点录音，松开后会自动转写为拜访记录。" data-en="Hold the orange dot below to record. Release to auto-transcribe into a visit note.">按住下方圆黄点录音，松开后会自动转写为拜访记录。</div>
+                  <div class="ph-voice-meta" id="capMeta" data-zh="尚未录音" data-en="No recording yet">尚未录音</div>
+                  <audio id="capAudio" class="ph-cap-audio" controls hidden></audio>
+
+                  <div class="ph-card">
+                    <div class="ph-card-title"><span data-zh="拜访摘要" data-en="Visit Summary">拜访摘要</span><span class="ph-tag ph-tag-ai" data-zh="AI 草稿" data-en="AI Draft">AI 草稿</span></div>
+                    <div class="ph-field"><span class="ph-fk" data-zh="客户" data-en="Customer">客户</span><span class="ph-fv">Hospital Alpha</span></div>
+                    <div class="ph-field"><span class="ph-fk" data-zh="主题" data-en="Subject">主题</span><span class="ph-fv" data-zh="A1 产品介绍" data-en="A1 product intro">A1 产品介绍</span></div>
+                    <div class="ph-field"><span class="ph-fk" data-zh="下一步" data-en="Next Step">下一步</span><span class="ph-fv" data-zh="下周三技术演示" data-en="Tech demo next Wed">下周三技术演示</span></div>
+                  </div>
+
+                  <div class="ph-card">
+                    <div class="ph-card-title"><span data-zh="商机草稿" data-en="Opportunity Draft">商机草稿</span><span class="ph-tag ph-tag-ai" data-zh="AI 推断" data-en="AI Inferred">AI 推断</span></div>
+                    <div class="ph-field"><span class="ph-fk" data-zh="产品 · 数量" data-en="Product · Qty">产品 · 数量</span><span class="ph-fv">A1 × 8</span></div>
+                    <div class="ph-conf"><span data-zh="信心度" data-en="Confidence">信心度</span><div class="ph-conf-bar"><span class="ph-conf-60"></span></div><span class="ph-conf-num">60%</span></div>
+                  </div>
+
+                  <div class="ph-action-row">
+                    <button class="ph-btn ph-btn-primary" id="capConfirm" type="button" data-zh="确认" data-en="Confirm">确认</button>
+                    <button class="ph-btn ph-btn-ghost" type="button" data-zh="编辑" data-en="Edit">编辑</button>
+                    <button class="ph-btn ph-btn-warn" id="capRedo" type="button" data-zh="重录" data-en="Redo">重录</button>
+                  </div>
+
+                  <div class="ph-mic-row">
+                    <button class="ph-mic" id="capMic" type="button" aria-label="Hold to record">●</button>
+                    <span class="ph-mic-hint" id="capMicHint" data-zh="按住开始录音" data-en="Hold to record">按住开始录音</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Scene 4 · CopilotChat -->
+              <div class="phone-scene" data-scene="copilot">
+                <div class="phone-header">
+                  <span class="ph-back" data-go="dashboard">←</span>
+                  <span class="ph-title">Ask Copilot</span>
+                  <span class="ph-action">⋯</span>
+                </div>
+                <div class="phone-body">
+                  <div class="ph-chat-thread" id="copThread"></div>
+
+                  <form class="ph-chat-input" id="copForm" autocomplete="off" onsubmit="return false;">
+                    <button type="button" class="ph-mic-mini" id="copMic" aria-label="Voice input">●</button>
+                    <input class="ph-chat-text" id="copInput" type="text" data-zh-placeholder="问点别的…" data-en-placeholder="Ask anything else…" placeholder="问点别的…" />
+                    <button type="submit" class="ph-source-faded" id="copSend" aria-label="Send">↑</button>
+                  </form>
+                </div>
+              </div>
+
+              <!-- Scene 5 · OpportunityDraftReview -->
+              <div class="phone-scene" data-scene="opportunity">
+                <div class="phone-header">
+                  <span class="ph-back">←</span>
+                  <span class="ph-title" data-zh="商机草稿" data-en="Opportunity Draft">商机草稿</span>
+                  <span class="ph-action">⋯</span>
+                </div>
+                <div class="phone-body">
+                  <div class="ph-card">
+                    <div class="ph-card-title">
+                      <span data-zh="AI 已生成" data-en="AI Generated">AI 已生成</span>
+                      <span class="ph-tag ph-tag-confirm" data-zh="待确认" data-en="To Confirm">待确认</span>
+                    </div>
+                    <div class="ph-conf"><span data-zh="整体信心度" data-en="Overall Confidence">整体信心度</span><div class="ph-conf-bar"><span class="ph-conf-78"></span></div><span class="ph-conf-num">78%</span></div>
+                  </div>
+
+                  <div class="ph-card">
+                    <div class="ph-field"><span class="ph-fk" data-zh="客户" data-en="Customer">客户</span><span class="ph-fv">Hospital Alpha</span></div>
+                    <div class="ph-field"><span class="ph-fk" data-zh="产品线" data-en="Product Line">产品线</span><span class="ph-fv" data-zh="A1 监护仪" data-en="A1 Monitor">A1 监护仪</span></div>
+                    <div class="ph-field"><span class="ph-fk" data-zh="数量" data-en="Quantity">数量</span><span class="ph-fv" data-zh="8 台" data-en="8 units">8 台</span></div>
+                    <div class="ph-field"><span class="ph-fk" data-zh="预计金额" data-en="Est. Amount">预计金额</span><span class="ph-fv">USD 96,000</span></div>
+                    <div class="ph-field"><span class="ph-fk" data-zh="阶段" data-en="Stage">阶段</span><span class="ph-fv">Identify</span></div>
+                    <div class="ph-field"><span class="ph-fk" data-zh="预计成交" data-en="Est. Close">预计成交</span><span class="ph-fv">2026 Q3</span></div>
+                  </div>
+
+                  <div class="ph-card">
+                    <div class="ph-card-title"><span data-zh="溯源" data-en="Provenance">溯源</span><span class="ph-tag ph-tag-source">Source</span></div>
+                    <div class="ph-source"><span class="ph-source-dot"></span><span data-zh="04/29 拜访活动 · Hospital Alpha" data-en="04/29 visit · Hospital Alpha">04/29 拜访活动 · Hospital Alpha</span></div>
+                    <div class="ph-source ph-source-spaced"><span class="ph-source-dot"></span><span data-zh="历史成交参考 · 类型相似 · 3 单" data-en="3 similar past deals referenced">历史成交参考 · 类型相似 · 3 单</span></div>
+                  </div>
+
+                  <div class="ph-action-row">
+                    <button class="ph-btn ph-btn-primary" id="oppConfirm" type="button" data-zh="确认创建" data-en="Confirm &amp; Create">确认创建</button>
+                    <button class="ph-btn ph-btn-ghost" type="button" data-zh="编辑详情" data-en="Edit Details">编辑详情</button>
+                  </div>
+
+                  <div class="ph-source ph-source-centered" id="oppFootnote">
+                    <span data-zh="确认后将异步回写 ERP" data-en="Will async-sync to ERP after confirm">确认后将异步回写 ERP</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="phone-home"></div>
+
+              <!-- In-phone settings sheet -->
+              <div class="ph-settings-mask" id="phSettingsMask" aria-hidden="true">
+                <div class="ph-settings-sheet" role="dialog" aria-modal="true" aria-labelledby="phSheetTitle">
+                  <div class="ph-sheet-grip"></div>
+                  <div class="ph-sheet-title">
+                    <span id="phSheetTitle" data-zh="设置" data-en="Settings">设置</span>
+                    <span class="ph-sheet-close" id="phSheetClose" aria-label="关闭">✕</span>
+                  </div>
+
+                  <div class="ph-sheet-row">
+                    <span class="ph-sheet-label" data-zh="外观" data-en="Appearance">外观</span>
+                    <div class="ph-sheet-seg" id="phSegTheme">
+                      <button type="button" data-val="light" data-zh="浅色" data-en="Light">浅色</button>
+                      <button type="button" data-val="dark" data-zh="深色" data-en="Dark">深色</button>
+                    </div>
+                  </div>
+
+                  <div class="ph-sheet-row">
+                    <span class="ph-sheet-label" data-zh="语言" data-en="Language">语言</span>
+                    <div class="ph-sheet-seg" id="phSegLang">
+                      <button type="button" data-val="zh">中文</button>
+                      <button type="button" data-val="en">English</button>
+                    </div>
+                  </div>
+
+                  <div class="ph-sheet-row ph-voice-row">
+                    <span class="ph-sheet-label" data-zh="语音音色（高保真）" data-en="Voice (high fidelity)">语音音色（高保真）</span>
+                    <select class="ph-sheet-voice" id="phVoiceSelect" aria-label="Voice"></select>
+                    <div class="ph-voice-hint" id="phVoiceHint" data-zh="优先列出系统神经/增强/高级音色（Neural · Premium · Enhanced）。如未列出，请在系统语音设置中下载高品质音色。" data-en="Showing Neural / Premium / Enhanced voices first. Install high-quality voices in your OS speech settings if list looks short.">优先列出系统神经/增强/高级音色（Neural · Premium · Enhanced）。如未列出，请在系统语音设置中下载高品质音色。</div>
+                    <button type="button" class="ph-voice-test" id="phVoiceTest" data-zh="试听" data-en="Preview">试听</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="demo-left-caption" data-zh="顶部 tab 切换屏幕 · 右侧说明同步刷新 · 全部为示例数据" data-en="Top tabs switch screens · cards on the right sync · sample data only">顶部 tab 切换屏幕 · 右侧说明同步刷新 · 全部为示例数据</div>
+        </div>
+      </section>
+
+      <!-- RIGHT: feature panels (one per scene) -->
+      <aside class="demo-right">
+        <div class="demo-right-inner">
+
+          <!-- Toggle row: scene tabs only -->
+          <div class="demo-toggle-row">
+            <nav class="demo-toggle-tabs" role="tablist" aria-label="原型场景">
+              <button type="button" class="demo-tab is-active" data-target="dashboard" role="tab" aria-selected="true" data-zh="① 主页" data-en="① Home">① 主页</button>
+              <button type="button" class="demo-tab" data-target="briefme" role="tab" aria-selected="false" data-zh="② 播报" data-en="② Brief">② 播报</button>
+              <button type="button" class="demo-tab" data-target="capture" role="tab" aria-selected="false" data-zh="③ 录入" data-en="③ Capture">③ 录入</button>
+              <button type="button" class="demo-tab" data-target="copilot" role="tab" aria-selected="false" data-zh="④ Copilot" data-en="④ Copilot">④ Copilot</button>
+              <button type="button" class="demo-tab" data-target="opportunity" role="tab" aria-selected="false" data-zh="⑤ 商机" data-en="⑤ Opp">⑤ 商机</button>
+            </nav>
+          </div>
+
+          <div class="demo-panel is-active" data-panel="dashboard">
+          <div class="feat-head">
+            <span class="feat-kicker" data-zh="① 主页大盘 · HomeDashboard" data-en="① Home Dashboard">① 主页大盘 · HomeDashboard</span>
+            <h3 class="feat-title" data-zh="开机即得今日大盘" data-en="The pulse, the moment you open the app">开机即得今日大盘</h3>
+            <p class="feat-lead" data-zh="销售清晨打开 App 看到的第一屏：身份 + 4 张实时 KPI + AI 摘要 + Brief Me 入口 + 浮动 Copilot mic，全部从 Dataverse 实时计算。" data-en="The first screen the rep sees: identity + 4 live KPIs + AI briefing + Brief Me entry + floating Copilot mic — all computed live from Dataverse.">销售清晨打开 App 看到的第一屏：身份 + 4 张实时 KPI + AI 摘要 + Brief Me 入口 + 浮动 Copilot mic，全部从 Dataverse 实时计算。</p>
+          </div>
+          <div class="feat-grid">
+            <div class="feat-card">
+              <span class="feat-card-tag" data-zh="功能要点" data-en="Features">功能要点</span>
+              <h4 data-zh="2×2 KPI + AI 摘要" data-en="2×2 KPIs + AI summary">2×2 KPI + AI 摘要</h4>
+              <ul>
+                <li data-zh="今日拜访 / 活跃商机 / 本月业绩 / 待跟进" data-en="Visits / active opps / MTD quota / follow-ups">今日拜访 / 活跃商机 / 本月业绩 / 待跟进</li>
+                <li data-zh="AI 摘要按风险 · 商机 · 物流分色" data-en="AI summary colour-coded by risk / opp / logistics">AI 摘要按风险 · 商机 · 物流分色</li>
+              </ul>
+            </div>
+            <div class="feat-card is-interact">
+              <span class="feat-card-tag" data-zh="核心交互" data-en="Interactions">核心交互</span>
+              <h4 data-zh="一屏三入口" data-en="One screen, three entries">一屏三入口</h4>
+              <ul>
+                <li data-zh="Brief Me 卡 → 跳今日播报" data-en="Brief Me card → Brief Me screen">Brief Me 卡 → 跳今日播报</li>
+                <li data-zh="新拜访 chip → 跳语音录入" data-en="New Visit → Activity Capture">新拜访 chip → 跳语音录入</li>
+                <li data-zh="底部 mic 按住 ≥ 300 ms → Copilot" data-en="Hold mic ≥ 300 ms → Copilot">底部 mic 按住 ≥ 300 ms → Copilot</li>
+              </ul>
+            </div>
+            <div class="feat-card is-ai">
+              <span class="feat-card-tag" data-zh="AI 角色" data-en="AI Roles">AI 角色</span>
+              <h4 data-zh="3 个 Agent 协作" data-en="3 collaborating agents">3 个 Agent 协作</h4>
+              <ul>
+                <li data-zh="指标分析 Agent · 算 KPI 与对比" data-en="KPI Agent · KPIs &amp; trends">指标分析 Agent · 算 KPI 与对比</li>
+                <li data-zh="客户画像 Agent · 风险与机会" data-en="Profile Agent · risk &amp; opp">客户画像 Agent · 风险与机会</li>
+                <li data-zh="订单查询 Agent · 物流与回款" data-en="Order Agent · logistics &amp; payment">订单查询 Agent · 物流与回款</li>
+              </ul>
+            </div>
+            <div class="feat-card is-data">
+              <span class="feat-card-tag" data-zh="数据与流" data-en="Data &amp; Flows">数据与流</span>
+              <h4 data-zh="Account / Opportunity / Activity" data-en="Account / Opportunity / Activity">Account / Opportunity / Activity</h4>
+              <ul>
+                <li data-zh="按 owner = 当前用户实时聚合" data-en="Aggregated live by owner = current user">按 owner = 当前用户实时聚合</li>
+                <li data-zh="Brief Me 卡触发 Cloud Flow" data-en="Brief Me card triggers cloud flow">Brief Me 卡触发 Cloud Flow</li>
+                <li data-zh="离线显示最近一次缓存" data-en="Offline shows last cached snapshot">离线显示最近一次缓存</li>
+              </ul>
+            </div>
+          </div>
+          <div class="feat-meta">
+            <span class="feat-chip" data-zh="路由 · /home" data-en="Route · /home">路由 · /home</span>
+            <span class="feat-chip" data-zh="Fluent UI v9" data-en="Fluent UI v9">Fluent UI v9</span>
+            <span class="feat-chip" data-zh="双语 zh / en" data-en="Bilingual zh / en">双语 zh / en</span>
+          </div>
+        </div>
+
+        <div class="demo-panel" data-panel="briefme">
+          <div class="feat-head">
+            <span class="feat-kicker" data-zh="② 今日播报 · BriefMe" data-en="② Brief Me">② 今日播报 · BriefMe</span>
+            <h3 class="feat-title" data-zh="6 章节 2 分 40 秒主动播报" data-en="6 chapters · 2m 40s proactive briefing">6 章节 2 分 40 秒主动播报</h3>
+            <p class="feat-lead" data-zh="通勤路上听一遍就知道今天该见谁、先打哪个电话。每章强制带 priority + 数字证据 + 今日就能做的 CTA。" data-en="Listen once on the commute — know who to see and call first. Every chapter forces priority + numeric evidence + a today-actionable CTA.">通勤路上听一遍就知道今天该见谁、先打哪个电话。每章强制带 priority + 数字证据 + 今日就能做的 CTA。</p>
+          </div>
+          <div class="feat-grid">
+            <div class="feat-card">
+              <span class="feat-card-tag" data-zh="功能要点" data-en="Features">功能要点</span>
+              <h4 data-zh="单卡承载完整章节" data-en="Single card per chapter">单卡承载完整章节</h4>
+              <ul>
+                <li data-zh="Headline + 证据摘要 + 2 条要点 + ≤4 metric" data-en="Headline + evidence + 2 bullets + ≤4 metrics">Headline + 证据摘要 + 2 条要点 + ≤4 metric</li>
+                <li data-zh="加入今日 CTA · 一键拉到拜访列表" data-en="Add-to-today CTA · one tap to today's plan">加入今日 CTA · 一键拉到拜访列表</li>
+              </ul>
+            </div>
+            <div class="feat-card is-interact">
+              <span class="feat-card-tag" data-zh="核心交互" data-en="Interactions">核心交互</span>
+              <h4 data-zh="听 + 切 + 追问" data-en="Listen · switch · ask back">听 + 切 + 追问</h4>
+              <ul>
+                <li data-zh="左右滑动切章节 · dots 同步" data-en="Swipe ← → to switch chapters">左右滑动切章节 · dots 同步</li>
+                <li data-zh="左 chip 切 1× / 1.5× / 2×" data-en="Left chip cycles 1× / 1.5× / 2×">左 chip 切 1× / 1.5× / 2×</li>
+                <li data-zh="底部 mic 长按 → 对当前章节追问" data-en="Hold mic → ask follow-up on this chapter">底部 mic 长按 → 对当前章节追问</li>
+              </ul>
+            </div>
+            <div class="feat-card is-ai">
+              <span class="feat-card-tag" data-zh="AI 角色" data-en="AI Roles">AI 角色</span>
+              <h4 data-zh="Briefing 编排 + TTS" data-en="Briefing orchestrator + TTS">Briefing 编排 + TTS</h4>
+              <ul>
+                <li data-zh="Azure OpenAI 输出 6 章节 JSON" data-en="Azure OpenAI emits 6-chapter JSON">Azure OpenAI 输出 6 章节 JSON</li>
+                <li data-zh="Azure Speech zh-CN-XiaoxiaoNeural 合成" data-en="Azure Speech zh-CN-XiaoxiaoNeural TTS">Azure Speech zh-CN-XiaoxiaoNeural 合成</li>
+                <li data-zh="按风险 / 商机 / 顺路三类编排顺序" data-en="Sequenced by risk / opp / on-route">按风险 / 商机 / 顺路三类编排顺序</li>
+              </ul>
+            </div>
+            <div class="feat-card is-data">
+              <span class="feat-card-tag" data-zh="数据与流" data-en="Data &amp; Flows">数据与流</span>
+              <h4 data-zh="Briefing 表 · Flow_DailyBriefing" data-en="Briefing table · Flow_DailyBriefing">Briefing 表 · Flow_DailyBriefing</h4>
+              <ul>
+                <li data-zh="每日 06:00 定时触发 · 按销售生成" data-en="Daily 06:00 schedule · per rep">每日 06:00 定时触发 · 按销售生成</li>
+                <li data-zh="payload_json 存 6 章节 + audio_url" data-en="payload_json holds 6 chapters + audio_url">payload_json 存 6 章节 + audio_url</li>
+                <li data-zh="last_position 记忆上次播放位置" data-en="last_position remembers last playback">last_position 记忆上次播放位置</li>
+              </ul>
+            </div>
+          </div>
+          <div class="feat-meta">
+            <span class="feat-chip" data-zh="路由 · /brief" data-en="Route · /brief">路由 · /brief</span>
+            <span class="feat-chip" data-zh="Cron · 0 6 * * *" data-en="Cron · 0 6 * * *">Cron · 0 6 * * *</span>
+            <span class="feat-chip" data-zh="≤ 6 章节" data-en="≤ 6 chapters">≤ 6 章节</span>
+          </div>
+        </div>
+
+        <div class="demo-panel" data-panel="capture">
+          <div class="feat-head">
+            <span class="feat-kicker" data-zh="③ 语音录入 · ActivityCapture" data-en="③ Activity Capture">③ 语音录入 · ActivityCapture</span>
+            <h3 class="feat-title" data-zh="一段语音变三件事" data-en="One voice clip · three artefacts">一段语音变三件事</h3>
+            <p class="feat-lead" data-zh="按住 mic 说一段拜访总结，AI 自动产出拜访摘要 + 商机草稿 + 跟进动作；用户只做确认 / 编辑 / 重录三选一。点确认前不动 Dataverse。" data-en="Hold mic, talk through the visit. AI yields visit summary + opp draft + next action. Pick one: confirm / edit / redo. No Dataverse write until Confirm.">按住 mic 说一段拜访总结，AI 自动产出拜访摘要 + 商机草稿 + 跟进动作；用户只做确认 / 编辑 / 重录三选一。点确认前不动 Dataverse。</p>
+          </div>
+          <div class="feat-grid">
+            <div class="feat-card">
+              <span class="feat-card-tag" data-zh="功能要点" data-en="Features">功能要点</span>
+              <h4 data-zh="一屏完成录入" data-en="One screen, end-to-end capture">一屏完成录入</h4>
+              <ul>
+                <li data-zh="语音气泡 · 实时转写" data-en="Voice bubble · live transcript">语音气泡 · 实时转写</li>
+                <li data-zh="拜访摘要 + 商机草稿双卡" data-en="Visit summary + opp draft cards">拜访摘要 + 商机草稿双卡</li>
+                <li data-zh="ConfidenceBar 绿 / 琥珀 / 红" data-en="ConfidenceBar green / amber / red">ConfidenceBar 绿 / 琥珀 / 红</li>
+              </ul>
+            </div>
+            <div class="feat-card is-interact">
+              <span class="feat-card-tag" data-zh="核心交互" data-en="Interactions">核心交互</span>
+              <h4 data-zh="确认 / 编辑 / 重录三选一" data-en="Confirm / Edit / Redo">确认 / 编辑 / 重录三选一</h4>
+              <ul>
+                <li data-zh="确认 → 写 confirmed → 跳商机草稿" data-en="Confirm → write confirmed → opp draft">确认 → 写 confirmed → 跳商机草稿</li>
+                <li data-zh="编辑 → 字段内联修改" data-en="Edit → inline field edit">编辑 → 字段内联修改</li>
+                <li data-zh="重录 → 不动 Activity 行" data-en="Redo → Activity row untouched">重录 → 不动 Activity 行</li>
+              </ul>
+            </div>
+            <div class="feat-card is-ai">
+              <span class="feat-card-tag" data-zh="AI 角色" data-en="AI Roles">AI 角色</span>
+              <h4 data-zh="转写 + 结构化抽取" data-en="Transcribe + structured extract">转写 + 结构化抽取</h4>
+              <ul>
+                <li data-zh="Azure Speech 转写音频" data-en="Azure Speech transcription">Azure Speech 转写音频</li>
+                <li data-zh="Azure OpenAI 抽取 6 字段 JSON" data-en="Azure OpenAI 6-field JSON extract">Azure OpenAI 抽取 6 字段 JSON</li>
+                <li data-zh="confidence 0-100 写入 parsed_confidence" data-en="confidence 0-100 → parsed_confidence">confidence 0-100 写入 parsed_confidence</li>
+              </ul>
+            </div>
+            <div class="feat-card is-data">
+              <span class="feat-card-tag" data-zh="数据与流" data-en="Data &amp; Flows">数据与流</span>
+              <h4 data-zh="Activity 表 · 草稿态" data-en="Activity · draft state">Activity 表 · 草稿态</h4>
+              <ul>
+                <li data-zh="draft_status: draft → confirmed → discarded" data-en="draft → confirmed → discarded">draft_status: draft → confirmed → discarded</li>
+                <li data-zh="Flow_VoiceToActivity (SharePoint 触发)" data-en="Flow_VoiceToActivity (SharePoint trigger)">Flow_VoiceToActivity (SharePoint 触发)</li>
+                <li data-zh="离线本地 IndexedDB 缓存音频" data-en="Offline IndexedDB caches audio">离线本地 IndexedDB 缓存音频</li>
+              </ul>
+            </div>
+          </div>
+          <div class="feat-meta">
+            <span class="feat-chip" data-zh="路由 · /activity/:accountId" data-en="Route · /activity/:accountId">路由 · /activity/:accountId</span>
+            <span class="feat-chip" data-zh="≤ 60 s 录音" data-en="≤ 60 s audio">≤ 60 s 录音</span>
+            <span class="feat-chip" data-zh="Confirm 才写库" data-en="Write only on Confirm">Confirm 才写库</span>
+          </div>
+        </div>
+
+        <div class="demo-panel" data-panel="copilot">
+          <div class="feat-head">
+            <span class="feat-kicker" data-zh="④ Copilot 问答 · CopilotChat" data-en="④ Copilot Chat">④ Copilot 问答 · CopilotChat</span>
+            <h3 class="feat-title" data-zh="多 Agent 自动编排，不再翻菜单" data-en="Multi-agent orchestration · no menu hunting">多 Agent 自动编排，不再翻菜单</h3>
+            <p class="feat-lead" data-zh="销售只表达意图，Generative Orchestration 自动调用客户画像 + 商机评估等 Agent；每条 agent 答复独立显示并带来源 chip，绝不合并成一段散文。" data-en="The rep just states intent. Generative Orchestration calls Profile + Opportunity agents; each agent reply is rendered separately with source chips — never merged into prose.">销售只表达意图，Generative Orchestration 自动调用客户画像 + 商机评估等 Agent；每条 agent 答复独立显示并带来源 chip，绝不合并成一段散文。</p>
+          </div>
+          <div class="feat-grid">
+            <div class="feat-card">
+              <span class="feat-card-tag" data-zh="功能要点" data-en="Features">功能要点</span>
+              <h4 data-zh="单列对话 · 三种消息类型" data-en="Single-column chat · 3 message types">单列对话 · 三种消息类型</h4>
+              <ul>
+                <li data-zh="user · agent · stage-card" data-en="user · agent · stage-card">user · agent · stage-card</li>
+                <li data-zh="agent 名 pill 固定颜色" data-en="agent name pill, fixed colour">agent 名 pill 固定颜色</li>
+                <li data-zh="来源 chip 点开看原始数据" data-en="Source chip opens raw row">来源 chip 点开看原始数据</li>
+              </ul>
+            </div>
+            <div class="feat-card is-interact">
+              <span class="feat-card-tag" data-zh="核心交互" data-en="Interactions">核心交互</span>
+              <h4 data-zh="语音 / 文本 / 跳转" data-en="Voice · text · jump">语音 / 文本 / 跳转</h4>
+              <ul>
+                <li data-zh="mic 按住 ≥ 300 ms 录音并发送" data-en="Hold mic ≥ 300 ms to record &amp; send">mic 按住 ≥ 300 ms 录音并发送</li>
+                <li data-zh="长按 agent 消息 · 复制 / 转 Teams" data-en="Long-press agent · copy / forward Teams">长按 agent 消息 · 复制 / 转 Teams</li>
+                <li data-zh="stage-card 一键跳商机草稿" data-en="stage-card → opportunity draft">stage-card 一键跳商机草稿</li>
+              </ul>
+            </div>
+            <div class="feat-card is-ai">
+              <span class="feat-card-tag" data-zh="AI 角色" data-en="AI Roles">AI 角色</span>
+              <h4 data-zh="Copilot Studio Generative Orchestration" data-en="Copilot Studio Generative Orchestration">Copilot Studio Generative Orchestration</h4>
+              <ul>
+                <li data-zh="客户画像 Agent · NPS / 互动" data-en="Profile Agent · NPS / activity">客户画像 Agent · NPS / 互动</li>
+                <li data-zh="商机评估 Agent · 阶段 / 信心" data-en="Opportunity Agent · stage / confidence">商机评估 Agent · 阶段 / 信心</li>
+                <li data-zh="订单查询 Agent · 物流 / 回款" data-en="Order Agent · logistics / payment">订单查询 Agent · 物流 / 回款</li>
+              </ul>
+            </div>
+            <div class="feat-card is-data">
+              <span class="feat-card-tag" data-zh="数据与流" data-en="Data &amp; Flows">数据与流</span>
+              <h4 data-zh="CopilotConversation 表" data-en="CopilotConversation table">CopilotConversation 表</h4>
+              <ul>
+                <li data-zh="messages_json 持久化整段对话" data-en="messages_json persists full chat">messages_json 持久化整段对话</li>
+                <li data-zh="AskCopilot Cloud Flow 编排多 agent" data-en="AskCopilot flow orchestrates agents">AskCopilot Cloud Flow 编排多 agent</li>
+                <li data-zh="ERP 数据走 Dataverse Virtual Table" data-en="ERP data via Dataverse Virtual Table">ERP 数据走 Dataverse Virtual Table</li>
+              </ul>
+            </div>
+          </div>
+          <div class="feat-meta">
+            <span class="feat-chip" data-zh="路由 · /copilot" data-en="Route · /copilot">路由 · /copilot</span>
+            <span class="feat-chip" data-zh="流式打字" data-en="Streaming tokens">流式打字</span>
+            <span class="feat-chip" data-zh="按 agent 拆分渲染" data-en="Per-agent rendering">按 agent 拆分渲染</span>
+          </div>
+        </div>
+
+        <div class="demo-panel" data-panel="opportunity">
+          <div class="feat-head">
+            <span class="feat-kicker" data-zh="⑤ 商机草稿 · OpportunityDraftReview" data-en="⑤ Opportunity Draft Review">⑤ 商机草稿 · OpportunityDraftReview</span>
+            <h3 class="feat-title" data-zh="字段可改 · 来源可追 · 异步回写 ERP" data-en="Editable · traceable · async write-back">字段可改 · 来源可追 · 异步回写 ERP</h3>
+            <p class="feat-lead" data-zh="把 AI 推断的商机做最后一次人工把关：每个字段可内联编辑，每条来源可点开看原始证据；点提交即入队，写回 ERP 由 Flow 异步完成，UI 不阻塞。" data-en="Final human checkpoint on the AI-inferred opportunity: every field is inline-editable, every source chip opens evidence; tap Submit and the row is enqueued, ERP write-back is async — UI never blocks.">把 AI 推断的商机做最后一次人工把关：每个字段可内联编辑，每条来源可点开看原始证据；点提交即入队，写回 ERP 由 Flow 异步完成，UI 不阻塞。</p>
+          </div>
+          <div class="feat-grid">
+            <div class="feat-card">
+              <span class="feat-card-tag" data-zh="功能要点" data-en="Features">功能要点</span>
+              <h4 data-zh="状态 · 字段 · 来源三段卡" data-en="Status · fields · sources">状态 · 字段 · 来源三段卡</h4>
+              <ul>
+                <li data-zh="整体 ConfidenceBar · 待确认 badge" data-en="Overall ConfidenceBar · To-Confirm badge">整体 ConfidenceBar · 待确认 badge</li>
+                <li data-zh="6 字段 EditableRow + 修改痕迹橙点" data-en="6 EditableRows + orange edited dot">6 字段 EditableRow + 修改痕迹橙点</li>
+                <li data-zh="来源 chip · 可看录音 / 邮件原文" data-en="Source chips · see audio / email">来源 chip · 可看录音 / 邮件原文</li>
+              </ul>
+            </div>
+            <div class="feat-card is-interact">
+              <span class="feat-card-tag" data-zh="核心交互" data-en="Interactions">核心交互</span>
+              <h4 data-zh="提交即入队，不阻塞 UI" data-en="Submit enqueues · UI never blocks">提交即入队，不阻塞 UI</h4>
+              <ul>
+                <li data-zh="确认创建 → 写 OppWriteQueue (pending)" data-en="Confirm → OppWriteQueue (pending)">确认创建 → 写 OppWriteQueue (pending)</li>
+                <li data-zh="Toast 已入队 · 回主页带状态条" data-en="Toast enqueued · Home shows status">Toast 已入队 · 回主页带状态条</li>
+                <li data-zh="失败行点击重试 · last_error 可见" data-en="Tap to retry on failure · last_error visible">失败行点击重试 · last_error 可见</li>
+              </ul>
+            </div>
+            <div class="feat-card is-ai">
+              <span class="feat-card-tag" data-zh="AI 角色" data-en="AI Roles">AI 角色</span>
+              <h4 data-zh="Activity → Opportunity 推断" data-en="Activity → Opportunity inference">Activity → Opportunity 推断</h4>
+              <ul>
+                <li data-zh="抽取产品 / 数量 / 金额 / 阶段 / 关闭日" data-en="Extract product / qty / amount / stage / close">抽取产品 / 数量 / 金额 / 阶段 / 关闭日</li>
+                <li data-zh="参考历史相似成交估算金额" data-en="Reference past similar deals for amount">参考历史相似成交估算金额</li>
+                <li data-zh="confidence 上 ConfidenceBar" data-en="Confidence drives ConfidenceBar">confidence 上 ConfidenceBar</li>
+              </ul>
+            </div>
+            <div class="feat-card is-data">
+              <span class="feat-card-tag" data-zh="数据与流" data-en="Data &amp; Flows">数据与流</span>
+              <h4 data-zh="OpportunityWriteQueue · ERP 同步" data-en="OpportunityWriteQueue · ERP sync">OpportunityWriteQueue · ERP 同步</h4>
+              <ul>
+                <li data-zh="Flow_ActivityToOpportunity 生成草稿" data-en="Flow_ActivityToOpportunity drafts opp">Flow_ActivityToOpportunity 生成草稿</li>
+                <li data-zh="Flow_OpportunityToERP 异步写回" data-en="Flow_OpportunityToERP async write-back">Flow_OpportunityToERP 异步写回</li>
+                <li data-zh="3 次重试 · 失败留 last_error" data-en="3 retries · failure keeps last_error">3 次重试 · 失败留 last_error</li>
+              </ul>
+            </div>
+          </div>
+          <div class="feat-meta">
+            <span class="feat-chip" data-zh="路由 · /opp-draft/:activityId" data-en="Route · /opp-draft/:activityId">路由 · /opp-draft/:activityId</span>
+            <span class="feat-chip" data-zh="字段级编辑追踪" data-en="Per-field edit tracking">字段级编辑追踪</span>
+            <span class="feat-chip" data-zh="异步 ERP 回写" data-en="Async ERP write-back">异步 ERP 回写</span>
+          </div>
+        </div>
+
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+  <script src="./data.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var DATA = window.AgenticSalesData || { briefing: { chapters: [] }, copilot: { intents: [], fallback: { replies: [] } }, capture: { sampleTranscripts: { zh: [''], en: [''] } } };
+      var root = document.documentElement;
+
+      function currentLang() {
+        var stored = localStorage.getItem('lang');
+        if (stored) return stored;
+        return root.getAttribute('lang') === 'en' ? 'en' : 'zh';
+      }
+      // phone-scoped lang accessor; before settings init it falls back to page lang
+      function phLang() {
+        return window.__getPhoneLang ? window.__getPhoneLang() : currentLang();
+      }
+
+      // ───── Scene navigation ─────
+      var tabs = document.querySelectorAll('.demo-tab');
+      var scenes = document.querySelectorAll('.phone-scene');
+      var panels = document.querySelectorAll('.demo-panel');
+
+      function activate(target) {
+        tabs.forEach(function (t) {
+          var on = t.getAttribute('data-target') === target;
+          t.classList.toggle('is-active', on);
+          t.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+        scenes.forEach(function (s) {
+          s.classList.toggle('is-active', s.getAttribute('data-scene') === target);
+        });
+        panels.forEach(function (p) {
+          p.classList.toggle('is-active', p.getAttribute('data-panel') === target);
+        });
+        // stop briefing playback when leaving briefme
+        if (target !== 'briefme') stopBrief();
+      }
+
+      tabs.forEach(function (t) {
+        t.addEventListener('click', function () { activate(t.getAttribute('data-target')); });
+      });
+
+      // Anything with [data-go] navigates between scenes
+      document.querySelectorAll('[data-go]').forEach(function (el) {
+        el.addEventListener('click', function () {
+          var target = el.getAttribute('data-go');
+          activate(target);
+          if (el.getAttribute('data-action') === 'play' && target === 'briefme') {
+            setTimeout(playBrief, 200);
+          }
+        });
+      });
+
+      // ───── Theme toggle ─────
+      var themeBtn = document.querySelector('.theme-toggle');
+      if (themeBtn) {
+        themeBtn.addEventListener('click', function () {
+          var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+          root.setAttribute('data-theme', next);
+          try { localStorage.setItem('theme', next); } catch (e) {}
+        });
+      }
+
+      // ───── Language toggle ─────
+      var langBtn = document.querySelector('.lang-toggle');
+      function applyLang(next) {
+        root.setAttribute('lang', next === 'zh' ? 'zh-CN' : 'en');
+        try { localStorage.setItem('lang', next); } catch (e) {}
+        document.querySelectorAll('[data-zh][data-en]').forEach(function (el) {
+          var val = el.getAttribute('data-' + next);
+          if (val !== null) el.innerHTML = val;
+        });
+        document.querySelectorAll('[data-zh-placeholder][data-en-placeholder]').forEach(function (el) {
+          var val = el.getAttribute('data-' + next + '-placeholder');
+          if (val !== null) el.setAttribute('placeholder', val);
+        });
+        if (langBtn) langBtn.textContent = next === 'zh' ? '中' : 'EN';
+        renderBriefChapter(briefIdx);
+      }
+      if (langBtn) {
+        langBtn.addEventListener('click', function () {
+          applyLang(currentLang() === 'zh' ? 'en' : 'zh');
+        });
+        langBtn.textContent = currentLang() === 'zh' ? '中' : 'EN';
+      }
+
+      // ═════════════════════════════════════════════════════
+      //   In-phone Settings Sheet (theme · lang · voice) — phone-scoped
+      // ═════════════════════════════════════════════════════
+      var phoneFrame = document.querySelector('.phone-frame');
+      var phMask = document.getElementById('phSettingsMask');
+      var phBtn = document.getElementById('phSettingsBtn');
+      var phClose = document.getElementById('phSheetClose');
+      var phSegTheme = document.getElementById('phSegTheme');
+      var phSegLang = document.getElementById('phSegLang');
+      var phVoiceSelect = document.getElementById('phVoiceSelect');
+      var phVoiceTest = document.getElementById('phVoiceTest');
+
+      // ── phone-scoped state (independent from page-level theme/lang) ──
+      function getPhoneTheme() {
+        try { var v = localStorage.getItem('phoneTheme'); if (v === 'light' || v === 'dark') return v; } catch (e) {}
+        return 'dark';
+      }
+      function getPhoneLang() {
+        try { var v = localStorage.getItem('phoneLang'); if (v === 'zh' || v === 'en') return v; } catch (e) {}
+        return currentLang();
+      }
+      function applyPhoneTheme(theme) {
+        if (!phoneFrame) return;
+        phoneFrame.setAttribute('data-ph-theme', theme);
+        try { localStorage.setItem('phoneTheme', theme); } catch (e) {}
+      }
+      function applyPhoneLang(lang) {
+        if (!phoneFrame) return;
+        phoneFrame.setAttribute('data-ph-lang', lang);
+        try { localStorage.setItem('phoneLang', lang); } catch (e) {}
+        // swap text only inside the phone frame
+        phoneFrame.querySelectorAll('[data-zh][data-en]').forEach(function (el) {
+          var val = el.getAttribute('data-' + lang);
+          if (val !== null) el.innerHTML = val;
+        });
+        phoneFrame.querySelectorAll('[data-zh-placeholder][data-en-placeholder]').forEach(function (el) {
+          var val = el.getAttribute('data-' + lang + '-placeholder');
+          if (val !== null) el.setAttribute('placeholder', val);
+        });
+        renderBriefChapter(briefIdx);
+        populateVoices();
+      }
+
+      function syncSheetSeg() {
+        var theme = getPhoneTheme();
+        var lang = getPhoneLang();
+        if (phSegTheme) {
+          phSegTheme.querySelectorAll('button').forEach(function (b) {
+            b.classList.toggle('is-on', b.getAttribute('data-val') === theme);
+          });
+        }
+        if (phSegLang) {
+          phSegLang.querySelectorAll('button').forEach(function (b) {
+            b.classList.toggle('is-on', b.getAttribute('data-val') === lang);
+          });
+        }
+      }
+
+      function openSheet() {
+        if (!phMask) return;
+        syncSheetSeg();
+        populateVoices();
+        phMask.classList.add('is-open');
+      }
+      function closeSheet() {
+        if (phMask) phMask.classList.remove('is-open');
+      }
+      if (phBtn) {
+        phBtn.addEventListener('click', openSheet);
+        phBtn.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSheet(); }
+        });
+      }
+      if (phClose) phClose.addEventListener('click', closeSheet);
+      if (phMask) {
+        phMask.addEventListener('click', function (e) {
+          if (e.target === phMask) closeSheet();
+        });
+      }
+
+      if (phSegTheme) {
+        phSegTheme.querySelectorAll('button').forEach(function (b) {
+          b.addEventListener('click', function () {
+            applyPhoneTheme(b.getAttribute('data-val'));
+            syncSheetSeg();
+          });
+        });
+      }
+      if (phSegLang) {
+        phSegLang.querySelectorAll('button').forEach(function (b) {
+          b.addEventListener('click', function () {
+            applyPhoneLang(b.getAttribute('data-val'));
+            syncSheetSeg();
+          });
+        });
+      }
+
+      // apply initial phone-scoped state on load
+      applyPhoneTheme(getPhoneTheme());
+      // only swap lang on init if it differs from page lang (avoid double-swap)
+      if (getPhoneLang() !== currentLang()) {
+        applyPhoneLang(getPhoneLang());
+      } else if (phoneFrame) {
+        phoneFrame.setAttribute('data-ph-lang', getPhoneLang());
+      }
+
+      // ─── High-fidelity voice picker (uses phone lang) ───
+      var HQ_HINT = /(neural|premium|enhanced|natural|online|wavenet|studio|google|microsoft)/i;
+      function loadStoredVoiceFor(lang) {
+        try { return localStorage.getItem('demoVoice_' + lang) || ''; } catch (e) { return ''; }
+      }
+      function saveStoredVoiceFor(lang, name) {
+        try { localStorage.setItem('demoVoice_' + lang, name || ''); } catch (e) {}
+      }
+      function getVoicesForLang(lang) {
+        if (!('speechSynthesis' in window)) return [];
+        var all = window.speechSynthesis.getVoices() || [];
+        var prefix = lang === 'zh' ? 'zh' : 'en';
+        var matched = all.filter(function (v) { return (v.lang || '').toLowerCase().indexOf(prefix) === 0; });
+        // sort: HQ markers first, then by name
+        matched.sort(function (a, b) {
+          var ah = HQ_HINT.test(a.name) ? 0 : 1;
+          var bh = HQ_HINT.test(b.name) ? 0 : 1;
+          if (ah !== bh) return ah - bh;
+          return (a.name || '').localeCompare(b.name || '');
+        });
+        return matched;
+      }
+      function populateVoices() {
+        if (!phVoiceSelect) return;
+        var lang = getPhoneLang();
+        var voices = getVoicesForLang(lang);
+        var stored = loadStoredVoiceFor(lang);
+        phVoiceSelect.innerHTML = '';
+        if (!voices.length) {
+          var opt0 = document.createElement('option');
+          opt0.value = '';
+          opt0.textContent = lang === 'zh' ? '（系统未提供中文音色）' : '(no voices available)';
+          phVoiceSelect.appendChild(opt0);
+          return;
+        }
+        voices.forEach(function (v) {
+          var opt = document.createElement('option');
+          opt.value = v.name;
+          var hq = HQ_HINT.test(v.name) ? ' ★' : '';
+          opt.textContent = v.name + ' (' + v.lang + ')' + hq;
+          if (v.name === stored) opt.selected = true;
+          phVoiceSelect.appendChild(opt);
+        });
+        if (!stored || !voices.some(function (v) { return v.name === stored; })) {
+          phVoiceSelect.value = voices[0].name;
+        }
+      }
+      if (phVoiceSelect) {
+        phVoiceSelect.addEventListener('change', function () {
+          saveStoredVoiceFor(getPhoneLang(), phVoiceSelect.value);
+        });
+      }
+      if ('speechSynthesis' in window) {
+        if (typeof window.speechSynthesis.onvoiceschanged !== 'undefined') {
+          window.speechSynthesis.addEventListener('voiceschanged', populateVoices);
+        }
+      }
+      if (phVoiceTest) {
+        phVoiceTest.addEventListener('click', function () {
+          if (!('speechSynthesis' in window)) return;
+          window.speechSynthesis.cancel();
+          var lang = getPhoneLang();
+          var sample = lang === 'zh'
+            ? '您好，这是当前选择的语音音色试听样本。'
+            : 'Hello, this is a preview of the currently selected voice.';
+          var u = new SpeechSynthesisUtterance(sample);
+          u.lang = lang === 'zh' ? 'zh-CN' : 'en-US';
+          var picked = pickVoice(lang);
+          if (picked) u.voice = picked;
+          window.speechSynthesis.speak(u);
+        });
+      }
+      function pickVoice(lang) {
+        if (!('speechSynthesis' in window)) return null;
+        var stored = loadStoredVoiceFor(lang);
+        var voices = window.speechSynthesis.getVoices() || [];
+        if (stored) {
+          var hit = voices.filter(function (v) { return v.name === stored; })[0];
+          if (hit) return hit;
+        }
+        var pool = getVoicesForLang(lang);
+        return pool[0] || null;
+      }
+      window.__pickDemoVoice = pickVoice;
+      window.__getPhoneLang = getPhoneLang;
+
+      // ═════════════════════════════════════════════════════
+      //   Scene 2 · Brief Me — real TTS playback
+      // ═════════════════════════════════════════════════════
+      var briefIdx = 0;
+      var briefSpeedSteps = [1, 1.25, 1.5, 0.75];
+      var briefSpeedIdx = 0;
+      var briefUtter = null;
+      var briefPlaying = false;
+      var briefStartTs = 0;
+      var briefAccumMs = 0;
+      var briefTickTimer = null;
+      var briefEstSec = 18;
+
+      var briefCardEl = document.getElementById('briefCard');
+      var briefPrioEl = document.getElementById('briefPrio');
+      var briefPosEl = document.getElementById('briefPos');
+      var briefHeadEl = document.getElementById('briefHeadline');
+      var briefSumEl = document.getElementById('briefSummary');
+      var briefPointsEl = document.getElementById('briefPoints');
+      var briefMetricsEl = document.getElementById('briefMetrics');
+      var briefContextEl = document.getElementById('briefContext');
+      var briefCtaEl = document.getElementById('briefCta');
+      var briefDotsEl = document.getElementById('briefDots');
+      var briefSpeedBtn = document.getElementById('briefSpeed');
+      var briefPlayBtn = document.getElementById('briefPlay');
+      var briefTimeEl = document.getElementById('briefTime');
+      var briefTitleEl = document.getElementById('briefTitle');
+
+      // build dots
+      if (briefDotsEl) {
+        var dotsHtml = '';
+        var i;
+        for (i = 0; i < DATA.briefing.chapters.length; i++) {
+          dotsHtml += '<span data-idx="' + i + '"></span>';
+        }
+        briefDotsEl.innerHTML = dotsHtml;
+        briefDotsEl.querySelectorAll('span').forEach(function (s) {
+          s.addEventListener('click', function () {
+            var idx = parseInt(s.getAttribute('data-idx'), 10) || 0;
+            stopBrief();
+            renderBriefChapter(idx);
+          });
+        });
+      }
+
+      function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+      function fmtTime(sec) {
+        var m = Math.floor(sec / 60), s = Math.floor(sec % 60);
+        return pad2(m) + ':' + pad2(s);
+      }
+
+      function renderBriefChapter(idx) {
+        var chapters = DATA.briefing.chapters || [];
+        if (!chapters.length) return;
+        if (idx < 0) idx = 0;
+        if (idx >= chapters.length) idx = chapters.length - 1;
+        briefIdx = idx;
+        var lang = phLang();
+        var ch = chapters[idx];
+
+        if (briefTitleEl) briefTitleEl.textContent = lang === 'zh' ? (DATA.briefing.title_zh || '') : (DATA.briefing.title_en || '');
+        if (briefPrioEl) briefPrioEl.textContent = ch['prio_' + lang] || '';
+        if (briefPosEl) briefPosEl.textContent = pad2(idx + 1) + ' / ' + pad2(chapters.length);
+        if (briefHeadEl) briefHeadEl.textContent = ch['headline_' + lang] || '';
+        if (briefSumEl) briefSumEl.textContent = ch['summary_' + lang] || '';
+
+        if (briefPointsEl) {
+          var pts = ch['points_' + lang] || [];
+          briefPointsEl.innerHTML = '';
+          pts.forEach(function (p) {
+            var li = document.createElement('li');
+            li.textContent = p;
+            briefPointsEl.appendChild(li);
+          });
+          briefPointsEl.style.display = pts.length ? '' : 'none';
+        }
+
+        if (briefMetricsEl) {
+          var metrics = ch.metrics || [];
+          briefMetricsEl.innerHTML = '';
+          metrics.forEach(function (m) {
+            var sp = document.createElement('span');
+            sp.className = 'ph-brief-card-metric' + (m.tone ? ' ' + m.tone : '');
+            sp.textContent = m['text_' + lang] || '';
+            briefMetricsEl.appendChild(sp);
+          });
+          briefMetricsEl.style.display = metrics.length ? '' : 'none';
+        }
+
+        if (briefContextEl) {
+          var ctx = ch['context_' + lang] || '';
+          briefContextEl.textContent = ctx;
+          briefContextEl.style.display = ctx ? '' : 'none';
+        }
+
+        if (briefCtaEl) {
+          var cta = ch['cta_' + lang] || '';
+          if (cta) { briefCtaEl.textContent = cta; briefCtaEl.hidden = false; }
+          else briefCtaEl.hidden = true;
+        }
+
+        if (briefDotsEl) {
+          briefDotsEl.querySelectorAll('span').forEach(function (s, n) {
+            s.classList.toggle('is-now', n === idx);
+          });
+        }
+
+        // estimate seconds: ~3.2 chars/sec for zh, ~14 chars/sec for en
+        var speech = ch['speech_' + lang] || '';
+        briefEstSec = lang === 'zh' ? Math.max(8, speech.length / 3.2) : Math.max(8, speech.length / 14);
+        briefAccumMs = 0;
+        updateBriefTime(0);
+      }
+
+      function updateBriefTime(elapsedSec) {
+        if (briefTimeEl) briefTimeEl.textContent = fmtTime(elapsedSec) + ' / ' + fmtTime(briefEstSec);
+      }
+
+      function startBriefTick() {
+        briefStartTs = Date.now();
+        if (briefTickTimer) clearInterval(briefTickTimer);
+        briefTickTimer = setInterval(function () {
+          var elapsed = (briefAccumMs + (Date.now() - briefStartTs)) / 1000;
+          if (elapsed >= briefEstSec) elapsed = briefEstSec;
+          updateBriefTime(elapsed);
+        }, 200);
+      }
+      function pauseBriefTick() {
+        if (briefTickTimer) { clearInterval(briefTickTimer); briefTickTimer = null; }
+        briefAccumMs += Date.now() - briefStartTs;
+      }
+      function resetBriefTick() {
+        if (briefTickTimer) { clearInterval(briefTickTimer); briefTickTimer = null; }
+        briefAccumMs = 0;
+        updateBriefTime(0);
+      }
+
+      function playBrief() {
+        if (!('speechSynthesis' in window)) {
+          alert('当前浏览器不支持语音合成 (SpeechSynthesis)。');
+          return;
+        }
+        var chapters = DATA.briefing.chapters || [];
+        if (!chapters.length) return;
+        var lang = phLang();
+        var ch = chapters[briefIdx];
+        var text = ch['speech_' + lang] || ch['summary_' + lang] || '';
+        if (!text) return;
+
+        if (briefPlaying) {
+          window.speechSynthesis.pause();
+          briefPlaying = false;
+          briefPlayBtn.textContent = '▶';
+          pauseBriefTick();
+          return;
+        }
+
+        // resume if paused
+        if (window.speechSynthesis.paused && briefUtter) {
+          window.speechSynthesis.resume();
+          briefPlaying = true;
+          briefPlayBtn.textContent = '⏸';
+          startBriefTick();
+          return;
+        }
+
+        window.speechSynthesis.cancel();
+        briefUtter = new SpeechSynthesisUtterance(text);
+        briefUtter.lang = lang === 'zh' ? 'zh-CN' : 'en-US';
+        briefUtter.rate = briefSpeedSteps[briefSpeedIdx];
+        var pickedVoice = window.__pickDemoVoice ? window.__pickDemoVoice(lang) : null;
+        if (pickedVoice) briefUtter.voice = pickedVoice;
+        briefUtter.onend = function () {
+          briefPlaying = false;
+          briefPlayBtn.textContent = '▶';
+          if (briefTickTimer) { clearInterval(briefTickTimer); briefTickTimer = null; }
+          updateBriefTime(briefEstSec);
+          // auto next chapter
+          if (briefIdx < chapters.length - 1) {
+            renderBriefChapter(briefIdx + 1);
+            setTimeout(playBrief, 400);
+          }
+        };
+        briefUtter.onerror = function () {
+          briefPlaying = false;
+          briefPlayBtn.textContent = '▶';
+        };
+        briefAccumMs = 0;
+        window.speechSynthesis.speak(briefUtter);
+        briefPlaying = true;
+        briefPlayBtn.textContent = '⏸';
+        startBriefTick();
+      }
+
+      function stopBrief() {
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        briefPlaying = false;
+        if (briefPlayBtn) briefPlayBtn.textContent = '▶';
+        resetBriefTick();
+      }
+
+      if (briefPlayBtn) briefPlayBtn.addEventListener('click', playBrief);
+      if (briefSpeedBtn) {
+        briefSpeedBtn.addEventListener('click', function () {
+          briefSpeedIdx = (briefSpeedIdx + 1) % briefSpeedSteps.length;
+          var rate = briefSpeedSteps[briefSpeedIdx];
+          briefSpeedBtn.querySelector('.ph-brief-speed-num').innerHTML = rate + '<small>×</small>';
+          if (briefUtter && briefPlaying) {
+            // restart utterance at new rate from current chapter
+            stopBrief();
+            setTimeout(playBrief, 100);
+          }
+        });
+      }
+      if (briefCtaEl) briefCtaEl.addEventListener('click', function () {
+        briefCtaEl.textContent = phLang() === 'zh' ? '✓ 已加入' : '✓ Added';
+        briefCtaEl.disabled = true;
+      });
+
+      renderBriefChapter(0);
+
+      // ═════════════════════════════════════════════════════
+      //   Scene 3 · Capture — real audio recording
+      // ═════════════════════════════════════════════════════
+      var capMic = document.getElementById('capMic');
+      var capTranscript = document.getElementById('capTranscript');
+      var capMeta = document.getElementById('capMeta');
+      var capAudio = document.getElementById('capAudio');
+      var capMicHint = document.getElementById('capMicHint');
+      var capRedo = document.getElementById('capRedo');
+      var capConfirm = document.getElementById('capConfirm');
+
+      var mediaRec = null;
+      var mediaChunks = [];
+      var recStartTs = 0;
+      var recTickTimer = null;
+      var recDurMs = 0;
+
+      function setCapHint(zh, en) {
+        if (!capMicHint) return;
+        capMicHint.setAttribute('data-zh', zh);
+        capMicHint.setAttribute('data-en', en);
+        capMicHint.textContent = phLang() === 'zh' ? zh : en;
+      }
+
+      function startRecording() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          alert('当前浏览器不支持麦克风录音。');
+          return;
+        }
+        navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+          try { mediaRec = new MediaRecorder(stream); }
+          catch (e) { alert('浏览器不支持 MediaRecorder。'); return; }
+          mediaChunks = [];
+          mediaRec.ondataavailable = function (e) { if (e.data && e.data.size) mediaChunks.push(e.data); };
+          mediaRec.onstop = function () {
+            stream.getTracks().forEach(function (t) { t.stop(); });
+            var blob = new Blob(mediaChunks, { type: mediaRec.mimeType || 'audio/webm' });
+            var url = URL.createObjectURL(blob);
+            if (capAudio) { capAudio.src = url; capAudio.hidden = false; }
+            // pick a sample transcript
+            var lang = phLang();
+            var samples = DATA.capture.sampleTranscripts[lang] || [''];
+            var pick = samples[Math.floor(Math.random() * samples.length)];
+            if (capTranscript) {
+              capTranscript.removeAttribute('data-zh');
+              capTranscript.removeAttribute('data-en');
+              capTranscript.textContent = pick;
+            }
+            var dur = Math.round(recDurMs / 1000);
+            var durStr = pad2(Math.floor(dur / 60)) + ':' + pad2(dur % 60);
+            if (capMeta) {
+              capMeta.setAttribute('data-zh', '语音转写 · ' + durStr);
+              capMeta.setAttribute('data-en', 'Voice transcript · ' + durStr);
+              capMeta.textContent = (lang === 'zh' ? '语音转写 · ' : 'Voice transcript · ') + durStr;
+            }
+            setCapHint('按住继续录音', 'Hold to keep recording');
+          };
+          recDurMs = 0;
+          recStartTs = Date.now();
+          mediaRec.start();
+          capMic.classList.add('is-recording');
+          setCapHint('松开结束录音…', 'Release to stop…');
+          if (recTickTimer) clearInterval(recTickTimer);
+          recTickTimer = setInterval(function () {
+            recDurMs = Date.now() - recStartTs;
+            var sec = Math.floor(recDurMs / 1000);
+            var s = pad2(Math.floor(sec / 60)) + ':' + pad2(sec % 60);
+            if (capMeta) capMeta.textContent = (phLang() === 'zh' ? '正在录音 · ' : 'Recording · ') + s;
+          }, 200);
+        }).catch(function (err) {
+          alert('无法访问麦克风：' + err.message);
+        });
+      }
+
+      function stopRecording() {
+        if (mediaRec && mediaRec.state !== 'inactive') {
+          recDurMs = Date.now() - recStartTs;
+          mediaRec.stop();
+        }
+        if (recTickTimer) { clearInterval(recTickTimer); recTickTimer = null; }
+        if (capMic) capMic.classList.remove('is-recording');
+      }
+
+      if (capMic) {
+        // Press-and-hold (mouse + touch)
+        capMic.addEventListener('mousedown', startRecording);
+        capMic.addEventListener('mouseup', stopRecording);
+        capMic.addEventListener('mouseleave', function () {
+          if (mediaRec && mediaRec.state === 'recording') stopRecording();
+        });
+        capMic.addEventListener('touchstart', function (e) { e.preventDefault(); startRecording(); }, { passive: false });
+        capMic.addEventListener('touchend', function (e) { e.preventDefault(); stopRecording(); }, { passive: false });
+      }
+      if (capRedo) capRedo.addEventListener('click', function () {
+        if (capAudio) { capAudio.removeAttribute('src'); capAudio.hidden = true; }
+        if (capTranscript) {
+          var zh = '按住下方圆黄点录音，松开后会自动转写为拜访记录。';
+          var en = 'Hold the orange dot below to record. Release to auto-transcribe into a visit note.';
+          capTranscript.setAttribute('data-zh', zh);
+          capTranscript.setAttribute('data-en', en);
+          capTranscript.textContent = phLang() === 'zh' ? zh : en;
+        }
+        if (capMeta) {
+          capMeta.setAttribute('data-zh', '尚未录音');
+          capMeta.setAttribute('data-en', 'No recording yet');
+          capMeta.textContent = phLang() === 'zh' ? '尚未录音' : 'No recording yet';
+        }
+        setCapHint('按住开始录音', 'Hold to record');
+      });
+      if (capConfirm) capConfirm.addEventListener('click', function () {
+        capConfirm.textContent = phLang() === 'zh' ? '✓ 已确认 → 跳转商机' : '✓ Confirmed → Opp draft';
+        setTimeout(function () { activate('opportunity'); }, 700);
+      });
+
+      // ═════════════════════════════════════════════════════
+      //   Scene 4 · Copilot — chat with KB
+      // ═════════════════════════════════════════════════════
+      var copThread = document.getElementById('copThread');
+      var copForm = document.getElementById('copForm');
+      var copInput = document.getElementById('copInput');
+      var copMicBtn = document.getElementById('copMic');
+
+      function appendUser(text) {
+        var div = document.createElement('div');
+        div.className = 'ph-user-bubble';
+        div.textContent = text;
+        copThread.appendChild(div);
+        copThread.scrollTop = copThread.scrollHeight;
+      }
+      function appendReplies(replies) {
+        var lang = phLang();
+        replies.forEach(function (r) {
+          if (r.type === 'agent') {
+            var box = document.createElement('div');
+            box.className = 'ph-agent-reply';
+            var nm = document.createElement('div');
+            nm.className = 'ph-agent-name';
+            nm.textContent = r['name_' + lang] || '';
+            var sp = document.createElement('span');
+            sp.textContent = r['text_' + lang] || '';
+            box.appendChild(nm); box.appendChild(sp);
+            copThread.appendChild(box);
+          } else if (r.type === 'list') {
+            var card = document.createElement('div');
+            card.className = 'ph-card';
+            r.items.forEach(function (it) {
+              var row = document.createElement('div');
+              row.className = 'ph-list-row';
+              var left = document.createElement('span');
+              left.innerHTML = '<strong>' + (it['name_' + lang] || '') + '</strong> ' + (it.qty || '');
+              var right = document.createElement('span');
+              right.className = 'ph-tag ph-tag-stage';
+              right.textContent = it.stage || '';
+              row.appendChild(left); row.appendChild(right);
+              card.appendChild(row);
+            });
+            copThread.appendChild(card);
+          } else if (r.type === 'source') {
+            var src = document.createElement('div');
+            src.className = 'ph-source';
+            src.innerHTML = '<span class="ph-source-dot"></span><span></span>';
+            src.lastChild.textContent = r['text_' + lang] || '';
+            copThread.appendChild(src);
+          }
+        });
+        copThread.scrollTop = copThread.scrollHeight;
+      }
+
+      function ask(query) {
+        if (!query) return;
+        appendUser(query);
+        var lower = query.toLowerCase();
+        var match = null;
+        (DATA.copilot.intents || []).some(function (intent) {
+          var hit = (intent.keywords || []).some(function (k) { return lower.indexOf(String(k).toLowerCase()) !== -1; });
+          if (hit) { match = intent; return true; }
+          return false;
+        });
+        var replies = (match && match.replies) || (DATA.copilot.fallback && DATA.copilot.fallback.replies) || [];
+        setTimeout(function () { appendReplies(replies); }, 350);
+      }
+
+      if (copForm && copInput) {
+        copForm.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var v = copInput.value.trim();
+          if (!v) return;
+          ask(v);
+          copInput.value = '';
+        });
+      }
+
+      // initial Copilot exchange — populate with welcome Q + Beta reply
+      if (copThread && DATA.copilot) {
+        var welcome = phLang() === 'zh' ? DATA.copilot.welcome_zh : DATA.copilot.welcome_en;
+        ask(welcome);
+      }
+
+      // Copilot mic — Web Speech Recognition where available
+      var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (copMicBtn) {
+        if (!SR) {
+          copMicBtn.addEventListener('click', function () {
+            alert('当前浏览器不支持语音识别 (SpeechRecognition)，请直接输入文字。');
+          });
+        } else {
+          var recog = null;
+          var recogActive = false;
+          copMicBtn.addEventListener('click', function () {
+            if (recogActive) { if (recog) recog.stop(); return; }
+            recog = new SR();
+            recog.lang = phLang() === 'zh' ? 'zh-CN' : 'en-US';
+            recog.interimResults = false;
+            recog.maxAlternatives = 1;
+            recog.onstart = function () { recogActive = true; copMicBtn.classList.add('is-recording'); };
+            recog.onend = function () { recogActive = false; copMicBtn.classList.remove('is-recording'); };
+            recog.onerror = function () { recogActive = false; copMicBtn.classList.remove('is-recording'); };
+            recog.onresult = function (e) {
+              var t = e.results[0][0].transcript;
+              if (copInput) copInput.value = t;
+              ask(t);
+              if (copInput) copInput.value = '';
+            };
+            try { recog.start(); } catch (err) {}
+          });
+        }
+      }
+
+      // ═════════════════════════════════════════════════════
+      //   Scene 5 · Opportunity confirm
+      // ═════════════════════════════════════════════════════
+      var oppConfirm = document.getElementById('oppConfirm');
+      var oppFootnote = document.getElementById('oppFootnote');
+      if (oppConfirm) oppConfirm.addEventListener('click', function () {
+        oppConfirm.textContent = phLang() === 'zh' ? '✓ 已写入队列' : '✓ Queued';
+        oppConfirm.disabled = true;
+        if (oppFootnote) {
+          oppFootnote.innerHTML = '<span></span>';
+          oppFootnote.firstChild.textContent = phLang() === 'zh' ? 'ERP 回写中… 预计 2 秒后完成' : 'Syncing to ERP… ETA 2s';
+          setTimeout(function () {
+            oppFootnote.firstChild.textContent = phLang() === 'zh' ? '✓ 已成功写入 ERP · 商机 ID OPP-2026-0429' : '✓ Synced to ERP · Opp ID OPP-2026-0429';
+          }, 2000);
+        }
+      });
+    });
+  </script>
+</body>
+  </script>
+</body>
+</html>
