@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>智能体平台需求规格说明书：功能与非功能要求</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(2.4rem, 6vw, 4.4rem);
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+    }
+    .req-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+      font-size: 0.9rem;
+    }
+    .req-table th,
+    .req-table td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+    .req-table th {
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .req-id {
+      font-family: 'Space Grotesk', monospace;
+      font-weight: 700;
+      color: #0891b2;
+      white-space: nowrap;
+    }
+    [data-theme="dark"] .req-id { color: #22d3ee; }
+    .priority {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+    .priority-must { background: rgba(220, 38, 38, 0.12); color: #dc2626; }
+    .priority-should { background: rgba(217, 119, 6, 0.14); color: #b45309; }
+    .priority-could { background: rgba(8, 145, 178, 0.12); color: #0891b2; }
+    [data-theme="dark"] .priority-must { background: rgba(248, 113, 113, 0.16); color: #f87171; }
+    [data-theme="dark"] .priority-should { background: rgba(251, 191, 36, 0.16); color: #fbbf24; }
+    [data-theme="dark"] .priority-could { background: rgba(34, 211, 238, 0.16); color: #67e8f9; }
+
+    .actor-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+    .actor-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      padding: 18px 18px;
+      box-shadow: var(--card-shadow);
+    }
+    .actor-card h4 { margin: 0 0 6px; font-size: 1rem; color: var(--ink); }
+    .actor-card p { margin: 0; color: var(--muted); font-size: 0.86rem; line-height: 1.55; }
+    .actor-card .actor-tag {
+      display: inline-block;
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      color: #0891b2;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    [data-theme="dark"] .actor-card .actor-tag { color: #22d3ee; }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            智能体平台
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#scope">范围</a>
+            <a href="#actors">角色与场景</a>
+            <a href="#functional">功能需求</a>
+            <a href="#non-functional">非功能需求</a>
+            <a href="#data">数据需求</a>
+            <a href="#acceptance">验收准则</a>
+            <a href="#references">参考来源</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Agent Platform · Software Requirements Specification</span>
+            <h1>智能体平台 · 需求规格说明书</h1>
+            <p>本文以 IEEE 830 SRS 结构组织，把<a href="../agent-platform-philosophy/">设计理念</a>转换为可验证的功能与非功能需求。所有 FR/NFR 编号在后续高阶设计、接口规范、应用实践三篇文档中保持唯一引用，便于 PR 评审追溯到原始需求。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#functional">查看功能需求列表</a>
+              <a class="button button-secondary" href="#non-functional">查看非功能需求</a>
+            </div>
+            <p class="hero-note">关键词：MoSCoW · FR/NFR 编号体系 · Use Case · 验收准则</p>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">需求统计</span>
+            <h2>34 条功能需求 · 24 条非功能需求 · 6 类核心角色</h2>
+            <p>每条需求都有唯一 ID（FR-NN / NFR-NN）、优先级（MUST / SHOULD / COULD）、来源章节与可验收的判定语句。MUST 类需求在 Phase 1 GA 前必须全部满足；SHOULD 类在 Phase 2 之前满足；COULD 类作为 Phase 3+ 增强项。</p>
+            <ul class="layer-list">
+              <li><span class="layer-number">M</span>MUST · 24 条 · 平台 GA 阻塞项</li>
+              <li><span class="layer-number">S</span>SHOULD · 22 条 · Phase 2 强烈建议</li>
+              <li><span class="layer-number">C</span>COULD · 12 条 · Phase 3+ 增强能力</li>
+              <li><span class="layer-number">W</span>WON'T · 见<a href="../agent-platform-philosophy/#non-goals">设计理念 §03</a></li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">功能需求</div>
+            <strong>34</strong>
+            <span>覆盖 API 网关、Skill、运行时、记忆、模型、工具、监控、评测、Supervisor、Admin。</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">非功能需求</div>
+            <strong>24</strong>
+            <span>性能、隔离、安全、可用性、可观测性、可维护性六大类。</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">用户角色</div>
+            <strong>6</strong>
+            <span>调用方、终端用户、项目管理员、平台运维、Skill 作者、合规审计。</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">追溯链路</div>
+            <strong>4</strong>
+            <span>需求 → 设计章节 → API 端点 → 实践案例（IntellyGoal Phase A→D）。</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- 01 -->
+        <section id="scope" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / Scope</p>
+            <h2>范围与术语约定</h2>
+            <p>明确"什么在范围内、什么不在"，避免后续争议时回到主观判断。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">1.1 系统目的</button>
+              <div class="subsection-content">
+                <p>提供一套独立部署的多租户智能体公共服务，承载意图分类、Skill 装载、工具调用桥接、模型路由、会话短期记忆、监控、评测、自演化等与业务无关的运行时机制。任何接入方（"项目"）通过暴露 MCP server + 上传 skill markdown 即可获得生产级智能体能力，不需要修改平台代码。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">1.2 范围内</button>
+              <div class="subsection-content">
+                <ul class="reference-list">
+                  <li><strong>运行时机制</strong> —— 意图网关、Skill Runtime、handoff、回合预算、流式 SSE 输出</li>
+                  <li><strong>Skill 治理</strong> —— 注册、版本化、灰度状态机、seed/overlay 双层、回滚</li>
+                  <li><strong>工具桥接</strong> —— MCP client pool、超时熔断、事件回流、每项目独立 endpoint registry</li>
+                  <li><strong>模型路由</strong> —— LiteLLM 抽象、BYOK 注入、回退链、流式聚合、token 计数</li>
+                  <li><strong>记忆代理</strong> —— 短期会话（Redis）、业务对象记忆代理（经 MCP 转发）</li>
+                  <li><strong>监控与治理</strong> —— OTEL trace、指标聚合、Admin 控制台、RBAC、审计日志</li>
+                  <li><strong>评测与演化</strong> —— frozen eval set 跑分、Supervisor 离线管线、人审队列</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">1.3 范围外</button>
+              <div class="subsection-content">
+                <p>严格按<a href="../agent-platform-philosophy/#non-goals">设计理念 §03 三条非目标</a>执行：</p>
+                <ul class="reference-list">
+                  <li>不做业务工具实现（项目侧 MCP server 自实现）</li>
+                  <li>不做业务数据存储（业务对象一律由项目持久化）</li>
+                  <li>不做模型托管（BYOK，平台仅做路由）</li>
+                  <li>不替业务做策略决策（评测集 / 通过标准 / 灰度阈值由项目自定）</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">1.4 术语约定</button>
+              <div class="subsection-content">
+                <ul class="reference-list">
+                  <li><strong>项目（Project）</strong> —— 平台的接入方业务系统，每项目持有独立 <code>project_id</code> 与 <code>api_key</code></li>
+                  <li><strong>Skill</strong> —— 接入方在平台上注册的对话契约 markdown，由 frontmatter（工具白名单 + handoff 目标）与正文（对话目标 / 边界 / 退出条件 / 条件段落）组成；每份 skill 自身即一个智能体</li>
+                  <li><strong>MCP</strong> —— Model Context Protocol，平台与项目之间唯一的工具调用协议</li>
+                  <li><strong>BYOK</strong> —— Bring Your Own Key，项目自带模型 API key</li>
+                  <li><strong>Seed / Overlay</strong> —— Skill 的不可变种子提示与可被 Supervisor 覆写的增量层</li>
+                  <li><strong>Session</strong> —— 一次会话上下文，绑定 <code>project_id + user_id</code>，寿命由项目自定义</li>
+                  <li><strong>Handoff</strong> —— Skill Runtime 在一个会话中替换 active_skill 的动作</li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 02 -->
+        <section id="actors" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Actors &amp; Use Cases</p>
+            <h2>用户角色与典型用例</h2>
+            <p>需求的服务对象是六类角色——它们之间能力边界互不重叠，且每条 FR 至少与一类角色对应。</p>
+          </div>
+
+          <div class="actor-grid">
+            <article class="actor-card">
+              <span class="actor-tag">A1 · CALLER</span>
+              <h4>调用方（Caller）</h4>
+              <p>项目内运行的 App、后台服务、CI 任务或上游 agent，持有 <code>project_id + api_key</code>。通过 HTTP/SSE 发起会话与消息。</p>
+            </article>
+            <article class="actor-card">
+              <span class="actor-tag">A2 · END USER</span>
+              <h4>终端用户</h4>
+              <p>项目业务的使用者。不直接持有平台凭证；调用方代其发起请求，<code>user_id</code> 用于用户级限流、telemetry 与计费分摊。</p>
+            </article>
+            <article class="actor-card">
+              <span class="actor-tag">A3 · PROJECT ADMIN</span>
+              <h4>项目管理员</h4>
+              <p>项目侧的运维或产品负责人。在 Admin Console 管理 skill 灰度、查看 telemetry、配置模型偏好与 BYOK、审阅 Supervisor 提案。</p>
+            </article>
+            <article class="actor-card">
+              <span class="actor-tag">A4 · PLATFORM OPS</span>
+              <h4>平台运维</h4>
+              <p>负责平台自身可用性，管理基础设施、配额上限、系统级告警；不接触任何项目业务数据。</p>
+            </article>
+            <article class="actor-card">
+              <span class="actor-tag">A5 · SKILL AUTHOR</span>
+              <h4>Skill 作者</h4>
+              <p>领域专家，负责撰写、维护、迭代项目下的 skill markdown。提交后通过灰度状态机晋级。</p>
+            </article>
+            <article class="actor-card">
+              <span class="actor-tag">A6 · COMPLIANCE</span>
+              <h4>合规审计</h4>
+              <p>持只读权限访问审计日志、trace 历史、RBAC 变更记录。验证操作归因与数据访问边界。</p>
+            </article>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced">
+            <article class="comparison-card">
+              <span class="comparison-label">UC-01</span>
+              <h3>用例：调用方发起一次会话并接收流式响应</h3>
+              <ol class="flow-list">
+                <li><span class="flow-step">1</span><div class="flow-copy"><strong>认证</strong><p>调用方携带 <code>X-Project-Id</code> + <code>Authorization: Bearer api_key</code> 调用 <code>POST /v1/sessions</code>。</p></div></li>
+                <li><span class="flow-step">2</span><div class="flow-copy"><strong>会话建立</strong><p>平台返回 <code>session_id</code>，初始 <code>active_skill</code> 由项目侧默认配置或 intent 推断。</p></div></li>
+                <li><span class="flow-step">3</span><div class="flow-copy"><strong>发送消息</strong><p>调用方 <code>POST /v1/sessions/{id}/messages</code>，请求建立 SSE 长连接。</p></div></li>
+                <li><span class="flow-step">4</span><div class="flow-copy"><strong>意图与执行</strong><p>Intent Gateway 判定 target_skill；Skill Runtime 装载、调用工具（MCP）、流式回吐 token。</p></div></li>
+                <li><span class="flow-step">5</span><div class="flow-copy"><strong>结束</strong><p>响应完成或调用方 <code>DELETE /v1/sessions/{id}</code> 主动结束。</p></div></li>
+              </ol>
+            </article>
+
+            <article class="comparison-card next">
+              <span class="comparison-label">UC-02</span>
+              <h3>用例：Skill 作者发布新版本经灰度晋级</h3>
+              <ol class="flow-list">
+                <li><span class="flow-step">1</span><div class="flow-copy"><strong>上传草稿</strong><p>Skill 作者通过 Admin Console 或 API 上传 markdown，落入 staging。</p></div></li>
+                <li><span class="flow-step">2</span><div class="flow-copy"><strong>契约校验</strong><p>结构合法、字段齐全、引用工具存在；任一项失败拒绝入库。</p></div></li>
+                <li><span class="flow-step">3</span><div class="flow-copy"><strong>评测跑分</strong><p>Eval Harness 用项目 frozen eval set 跑分，对比基线。</p></div></li>
+                <li><span class="flow-step">4</span><div class="flow-copy"><strong>影子 / 灰度</strong><p>分别走 shadow 与 canary，按指标决定 promote 或回滚。</p></div></li>
+                <li><span class="flow-step">5</span><div class="flow-copy"><strong>晋级 / 回滚</strong><p>通过即写入 prod；任一阶段指标退化触发自动回滚 + 告警。</p></div></li>
+              </ol>
+            </article>
+          </div>
+        </section>
+
+        <!-- 03 -->
+        <section id="functional" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / Functional Requirements</p>
+            <h2>功能需求（FR）</h2>
+            <p>共 34 条，按模块分组。每条 FR 包含 ID、优先级、描述、关联角色、关联章节。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">3.1 API 网关与会话（FR-01 ~ FR-06）</button>
+              <div class="subsection-content">
+                <table class="req-table">
+                  <thead><tr><th>ID</th><th>优先级</th><th>需求描述</th><th>角色</th></tr></thead>
+                  <tbody>
+                    <tr><td class="req-id">FR-01</td><td><span class="priority priority-must">MUST</span></td><td>所有入站请求必须携带 <code>project_id</code> + 有效 <code>api_key</code>，鉴权失败返回 401，鉴权信息不得在下游被覆写。</td><td>A1, A4</td></tr>
+                    <tr><td class="req-id">FR-02</td><td><span class="priority priority-must">MUST</span></td><td>支持创建会话、追加消息（SSE 流式）、查询会话状态、主动结束会话四类核心 API。</td><td>A1</td></tr>
+                    <tr><td class="req-id">FR-03</td><td><span class="priority priority-must">MUST</span></td><td>所有写操作支持 <code>Idempotency-Key</code> header；同一键 24 小时内重复请求返回原响应。</td><td>A1</td></tr>
+                    <tr><td class="req-id">FR-04</td><td><span class="priority priority-must">MUST</span></td><td>项目级 QPS 默认 20、用户级 QPS 默认 5；超限返回 429 + <code>Retry-After</code>。</td><td>A1, A2, A4</td></tr>
+                    <tr><td class="req-id">FR-05</td><td><span class="priority priority-should">SHOULD</span></td><td>支持月度 token 预算硬上限与软告警，可在 Admin Console 设置。</td><td>A3, A4</td></tr>
+                    <tr><td class="req-id">FR-06</td><td><span class="priority priority-should">SHOULD</span></td><td>支持 WebSocket 作为 SSE 的可选替代（用于双向交互场景）。</td><td>A1</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">3.2 Intent Gateway 与 Skill Runtime（FR-07 ~ FR-13）</button>
+              <div class="subsection-content">
+                <table class="req-table">
+                  <thead><tr><th>ID</th><th>优先级</th><th>需求描述</th><th>角色</th></tr></thead>
+                  <tbody>
+                    <tr><td class="req-id">FR-07</td><td><span class="priority priority-must">MUST</span></td><td>Intent Gateway 在每轮对话头部输出 <code>{intent, confidence, target_skill, hint, user_frustrated}</code> JSON 结构。</td><td>A1</td></tr>
+                    <tr><td class="req-id">FR-08</td><td><span class="priority priority-should">SHOULD</span></td><td>Intent 结果支持按上下文 hash 缓存；命中跳过轻量 LLM 调用。</td><td>A1, A4</td></tr>
+                    <tr><td class="req-id">FR-09</td><td><span class="priority priority-must">MUST</span></td><td>Skill Runtime 装载指定版本 skill 作为系统提示，并维护 <code>active_skill</code> 状态。</td><td>A1, A5</td></tr>
+                    <tr><td class="req-id">FR-10</td><td><span class="priority priority-must">MUST</span></td><td>支持 handoff：在同一会话中按 frontmatter 中的 <code>handoff_to</code> 切换 active_skill。</td><td>A1, A5</td></tr>
+                    <tr><td class="req-id">FR-11</td><td><span class="priority priority-must">MUST</span></td><td>每个 skill 可配置回合预算（turn_budget），超出强制收敛 respond + end。</td><td>A5</td></tr>
+                    <tr><td class="req-id">FR-12</td><td><span class="priority priority-must">MUST</span></td><td>Runtime 状态在每个节点结束后落 checkpoint（Postgres），支持崩溃恢复。</td><td>A4</td></tr>
+                    <tr><td class="req-id">FR-13</td><td><span class="priority priority-could">COULD</span></td><td>支持 skill 之间的 sub-graph 嵌套调用（一个 skill 临时唤起另一个 skill 完成子任务后返回）。</td><td>A5</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">3.3 Skill Registry 与版本治理（FR-14 ~ FR-19）</button>
+              <div class="subsection-content">
+                <table class="req-table">
+                  <thead><tr><th>ID</th><th>优先级</th><th>需求描述</th><th>角色</th></tr></thead>
+                  <tbody>
+                    <tr><td class="req-id">FR-14</td><td><span class="priority priority-must">MUST</span></td><td>Skill 按 <code>project_id/name@semver</code> 命名空间存储，禁止跨项目引用或 import。</td><td>A3, A5</td></tr>
+                    <tr><td class="req-id">FR-15</td><td><span class="priority priority-must">MUST</span></td><td>每个 skill 有不可变的 seed 层和可被 Supervisor 改写的 overlay 层；运行时合并输出。</td><td>A5</td></tr>
+                    <tr><td class="req-id">FR-16</td><td><span class="priority priority-must">MUST</span></td><td>灰度状态机：<code>draft → staging → shadow → canary → prod</code>，禁止跨级跳转。</td><td>A3, A5</td></tr>
+                    <tr><td class="req-id">FR-17</td><td><span class="priority priority-must">MUST</span></td><td>promote 失败自动回滚到上一个 prod 版本，并写入审计日志。</td><td>A3, A6</td></tr>
+                    <tr><td class="req-id">FR-18</td><td><span class="priority priority-should">SHOULD</span></td><td>支持 skill diff 视图（seed vs overlay、版本 N vs N-1）。</td><td>A3, A5</td></tr>
+                    <tr><td class="req-id">FR-19</td><td><span class="priority priority-should">SHOULD</span></td><td>支持按 user_id 或 user_segment 的 canary 路由（5% / 25% / 100%）。</td><td>A3</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">3.4 Memory · Tool Bridge · Model Router（FR-20 ~ FR-26）</button>
+              <div class="subsection-content">
+                <table class="req-table">
+                  <thead><tr><th>ID</th><th>优先级</th><th>需求描述</th><th>角色</th></tr></thead>
+                  <tbody>
+                    <tr><td class="req-id">FR-20</td><td><span class="priority priority-must">MUST</span></td><td>短期会话记忆按 <code>project_id</code> 分区存储于 Redis，支持 get / append / summarize_session 三类操作。</td><td>A1</td></tr>
+                    <tr><td class="req-id">FR-21</td><td><span class="priority priority-must">MUST</span></td><td>业务对象记忆通过 MCP <code>memory.read / memory.write</code> 代理回项目侧；平台不持久化任何业务字段。</td><td>A1, A6</td></tr>
+                    <tr><td class="req-id">FR-22</td><td><span class="priority priority-must">MUST</span></td><td>所有工具调用必须经 MCP 协议出站；禁止平台内置硬编码业务工具。</td><td>A4, A6</td></tr>
+                    <tr><td class="req-id">FR-23</td><td><span class="priority priority-must">MUST</span></td><td>MCP 调用强制护栏：单次超时 15s（上限可调到 60s）、熔断阈值 30s/5 次、重试上限 1 次（仅幂等工具）、响应大小 1MB、并发上限每项目 50 / 全平台 500。</td><td>A4</td></tr>
+                    <tr><td class="req-id">FR-24</td><td><span class="priority priority-must">MUST</span></td><td>Model Router 支持 OpenAI / Anthropic / Azure OpenAI / Bedrock / Ollama 至少 5 类 provider；BYOK 经 Vault 解密后注入。</td><td>A3</td></tr>
+                    <tr><td class="req-id">FR-25</td><td><span class="priority priority-must">MUST</span></td><td>支持回退链 <code>preferred → fallback1 → fallback2</code>；上一档失败自动切换。</td><td>A3, A4</td></tr>
+                    <tr><td class="req-id">FR-26</td><td><span class="priority priority-should">SHOULD</span></td><td>支持基于成本 / 延迟 / 项目偏好的路由策略选择。</td><td>A3</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">3.5 Telemetry · Eval · Supervisor（FR-27 ~ FR-31）</button>
+              <div class="subsection-content">
+                <table class="req-table">
+                  <thead><tr><th>ID</th><th>优先级</th><th>需求描述</th><th>角色</th></tr></thead>
+                  <tbody>
+                    <tr><td class="req-id">FR-27</td><td><span class="priority priority-must">MUST</span></td><td>所有调用产生 OTEL trace，必含 skill 版本快照、上下文、工具调用、模型输出，可完整回放。</td><td>A4, A6</td></tr>
+                    <tr><td class="req-id">FR-28</td><td><span class="priority priority-must">MUST</span></td><td>Eval Harness 按 frozen eval set 计算 correctness / latency / cost / safety 四类指标，支持 cron / Admin / Supervisor 三类触发。</td><td>A3, A5</td></tr>
+                    <tr><td class="req-id">FR-29</td><td><span class="priority priority-should">SHOULD</span></td><td>Supervisor 离线管线消费 traces 起草补丁，经 shadow → canary 入库；可由项目独立开关 <code>auto_promote</code> / <code>require_review</code>。</td><td>A3</td></tr>
+                    <tr><td class="req-id">FR-30</td><td><span class="priority priority-should">SHOULD</span></td><td>Supervisor 调用预算与变更预算双重护栏：每日 LLM 上限、每 skill 每周改写上限。</td><td>A4</td></tr>
+                    <tr><td class="req-id">FR-31</td><td><span class="priority priority-could">COULD</span></td><td>支持 Supervisor 跨 skill 的 handoff 拓扑分析与异常路径告警。</td><td>A3</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">3.6 Admin Console 与 RBAC（FR-32 ~ FR-34）</button>
+              <div class="subsection-content">
+                <table class="req-table">
+                  <thead><tr><th>ID</th><th>优先级</th><th>需求描述</th><th>角色</th></tr></thead>
+                  <tbody>
+                    <tr><td class="req-id">FR-32</td><td><span class="priority priority-must">MUST</span></td><td>Admin Console 提供 SSO / OAuth 登录，所有界面操作映射到平台内部管理 API。</td><td>A3, A4</td></tr>
+                    <tr><td class="req-id">FR-33</td><td><span class="priority priority-must">MUST</span></td><td>RBAC 至少支持四类角色：项目管理员、Skill 作者、运维、合规审计；权限按 <code>project_id</code> 范围分发。</td><td>A3, A6</td></tr>
+                    <tr><td class="req-id">FR-34</td><td><span class="priority priority-should">SHOULD</span></td><td>所有 RBAC 变更、灰度晋级、Supervisor 决策、BYOK 配置写入审计日志，保留 ≥ 365 天。</td><td>A6</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 04 -->
+        <section id="non-functional" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / Non-Functional Requirements</p>
+            <h2>非功能需求（NFR）</h2>
+            <p>性能、隔离、安全、可用性、可观测性、可维护性六大类共 24 条。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">4.1 性能（NFR-01 ~ NFR-04）</button>
+              <div class="subsection-content">
+                <table class="req-table">
+                  <thead><tr><th>ID</th><th>优先级</th><th>指标 / 描述</th></tr></thead>
+                  <tbody>
+                    <tr><td class="req-id">NFR-01</td><td><span class="priority priority-must">MUST</span></td><td>API 网关 p95 延迟 ≤ 50ms（不含上游模型调用），单 Compact 实例支撑 50 RPS。</td></tr>
+                    <tr><td class="req-id">NFR-02</td><td><span class="priority priority-must">MUST</span></td><td>Intent Gateway 端到端 p95 ≤ 800ms（含轻量 LLM 调用）；命中缓存时 ≤ 50ms。</td></tr>
+                    <tr><td class="req-id">NFR-03</td><td><span class="priority priority-should">SHOULD</span></td><td>SSE 首 token 延迟 p95 ≤ 1.5s；token 间间隔抖动 p95 ≤ 200ms。</td></tr>
+                    <tr><td class="req-id">NFR-04</td><td><span class="priority priority-should">SHOULD</span></td><td>Scale-Out 模式可水平扩展至 ≥ 1000 RPS、≥ 5000 并发会话。</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">4.2 多租户隔离（NFR-05 ~ NFR-09）</button>
+              <div class="subsection-content">
+                <table class="req-table">
+                  <thead><tr><th>ID</th><th>优先级</th><th>指标 / 描述</th></tr></thead>
+                  <tbody>
+                    <tr><td class="req-id">NFR-05</td><td><span class="priority priority-must">MUST</span></td><td>Skill 命名空间按 <code>project_id</code> 强隔离；跨项目读取在 schema 层即被拒绝。</td></tr>
+                    <tr><td class="req-id">NFR-06</td><td><span class="priority priority-must">MUST</span></td><td>MCP endpoint registry、模型 BYOK、telemetry 分区按 <code>project_id</code> 严格分离。</td></tr>
+                    <tr><td class="req-id">NFR-07</td><td><span class="priority priority-must">MUST</span></td><td>Redis 按 <code>project_id</code> 一致性哈希分片；rate-limit 计数与 session 上下文不共享。</td></tr>
+                    <tr><td class="req-id">NFR-08</td><td><span class="priority priority-must">MUST</span></td><td>Supervisor 闭环按项目独立运行；不允许跨项目样本污染补丁起草。</td></tr>
+                    <tr><td class="req-id">NFR-09</td><td><span class="priority priority-should">SHOULD</span></td><td>支持按项目独立 KMS / Vault 实例（高合规场景）。</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">4.3 安全（NFR-10 ~ NFR-14）</button>
+              <div class="subsection-content">
+                <table class="req-table">
+                  <thead><tr><th>ID</th><th>优先级</th><th>指标 / 描述</th></tr></thead>
+                  <tbody>
+                    <tr><td class="req-id">NFR-10</td><td><span class="priority priority-must">MUST</span></td><td>所有外部通信使用 TLS 1.2+；BYOK 凭据加密存储（AES-256-GCM）。</td></tr>
+                    <tr><td class="req-id">NFR-11</td><td><span class="priority priority-must">MUST</span></td><td><code>api_key</code> 仅在创建时返回明文；服务端只存储 hash + 前缀；支持轮换与撤销。</td></tr>
+                    <tr><td class="req-id">NFR-12</td><td><span class="priority priority-must">MUST</span></td><td>所有日志、trace、telemetry 在落库前完成 PII 脱敏（手机号 / 身份证 / 信用卡等）。</td></tr>
+                    <tr><td class="req-id">NFR-13</td><td><span class="priority priority-must">MUST</span></td><td>Admin Console 写操作必须经 SSO 二次确认；高危操作（删除项目、撤销 BYOK）触发邮件 / IM 通知。</td></tr>
+                    <tr><td class="req-id">NFR-14</td><td><span class="priority priority-should">SHOULD</span></td><td>提供 IP 白名单 / mTLS 可选项给金融级合规项目使用。</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">4.4 可用性与可观测性（NFR-15 ~ NFR-20）</button>
+              <div class="subsection-content">
+                <table class="req-table">
+                  <thead><tr><th>ID</th><th>优先级</th><th>指标 / 描述</th></tr></thead>
+                  <tbody>
+                    <tr><td class="req-id">NFR-15</td><td><span class="priority priority-must">MUST</span></td><td>API Gateway / Compute 层无状态，支持 rolling update 零停机；Stateful 层支持主备切换。</td></tr>
+                    <tr><td class="req-id">NFR-16</td><td><span class="priority priority-should">SHOULD</span></td><td>核心 API 月度可用性 ≥ 99.9%；维护窗口预先公告。</td></tr>
+                    <tr><td class="req-id">NFR-17</td><td><span class="priority priority-must">MUST</span></td><td>OTEL trace 默认采样率 100%（GA 阶段），保留 ≥ 30 天；可按项目调整。</td></tr>
+                    <tr><td class="req-id">NFR-18</td><td><span class="priority priority-must">MUST</span></td><td>关键指标（QPS / 延迟 / 错误率 / token 消耗）按项目维度可查询。</td></tr>
+                    <tr><td class="req-id">NFR-19</td><td><span class="priority priority-should">SHOULD</span></td><td>提供 Grafana 面板模板与告警规则示例。</td></tr>
+                    <tr><td class="req-id">NFR-20</td><td><span class="priority priority-could">COULD</span></td><td>支持把 trace 导出到 Langfuse / DataDog / 自建 ClickHouse。</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">4.5 可维护性与可移植性（NFR-21 ~ NFR-24）</button>
+              <div class="subsection-content">
+                <table class="req-table">
+                  <thead><tr><th>ID</th><th>优先级</th><th>指标 / 描述</th></tr></thead>
+                  <tbody>
+                    <tr><td class="req-id">NFR-21</td><td><span class="priority priority-must">MUST</span></td><td>同一镜像通过 <code>PROFILE=compact|edge|worker|supervisor|eval</code> 启动参数加载子模块；不同 Profile 共享同一份配置变量。</td></tr>
+                    <tr><td class="req-id">NFR-22</td><td><span class="priority priority-must">MUST</span></td><td>Compact → Scale-Out 升级不要求重写代码，仅调整 manifests + PROFILE。</td></tr>
+                    <tr><td class="req-id">NFR-23</td><td><span class="priority priority-should">SHOULD</span></td><td>所有外部依赖（模型、工具、telemetry 后端）通过抽象接口接入，可替换。</td></tr>
+                    <tr><td class="req-id">NFR-24</td><td><span class="priority priority-should">SHOULD</span></td><td>提供 Helm chart 与 Terraform module 给生产部署使用。</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 05 -->
+        <section id="data" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / Data Requirements</p>
+            <h2>数据需求</h2>
+            <p>明确平台持有什么数据、不持有什么数据，是合规审计的第一道判定。</p>
+          </div>
+
+          <div class="comparison-grid">
+            <article class="comparison-card">
+              <span class="comparison-label">D1 · 平台持有</span>
+              <h3>控制面元数据</h3>
+              <ul class="reference-list">
+                <li><code>projects(project_id, name, owner, created_at, status)</code></li>
+                <li><code>api_keys(key_hash, project_id, scopes, expires_at)</code></li>
+                <li><code>byok(project_id, provider, encrypted_key, kms_id)</code></li>
+                <li><code>skills(project_id, name, version, status, seed_md, overlay_md)</code></li>
+                <li><code>traces(trace_id, project_id, session_id, skill_version, payload)</code></li>
+                <li><code>eval_results(project_id, skill_version, eval_set, metrics, run_at)</code></li>
+                <li><code>supervisor_proposals(project_id, skill, draft, status)</code></li>
+                <li><code>audit_log(actor, action, target, before, after, ts)</code></li>
+                <li><code>session_long_ctx(session_id, project_id, summary)</code> · 仅长会话摘要</li>
+              </ul>
+            </article>
+
+            <article class="comparison-card">
+              <span class="comparison-label">D2 · 平台禁止持有</span>
+              <h3>业务对象数据</h3>
+              <ul class="reference-list">
+                <li>任何用户业务实体（订单、目标、客户、病历等）</li>
+                <li>用户 PII（姓名、身份证、地址、联系方式）超出 telemetry 脱敏副本范围</li>
+                <li>项目内部权限矩阵 / 业务 ACL 表</li>
+                <li>项目业务数据库的 schema 元数据或缓存副本</li>
+                <li>第三方 API 的明文密钥（除 BYOK 模型 key 外）</li>
+              </ul>
+              <p>所有业务对象的读写都通过 MCP <code>memory.read / memory.write</code> 代理回项目侧 MCP server 完成。</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- 06 -->
+        <section id="acceptance" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / Acceptance Criteria</p>
+            <h2>GA 验收准则</h2>
+            <p>下列五条全部通过方能宣布 GA；任一条失败均阻塞发布。</p>
+          </div>
+
+          <ol class="flow-list">
+            <li><span class="flow-step">1</span><div class="flow-copy"><strong>需求覆盖</strong><p>FR-MUST × 24 条 + NFR-MUST × 14 条全部交付，自动化测试覆盖率 ≥ 80%。</p></div></li>
+            <li><span class="flow-step">2</span><div class="flow-copy"><strong>多租户证伪测试</strong><p>构造两个项目，互相尝试访问对方的 skill / telemetry / session / BYOK，全部应返回 404 或 403；无任何路径泄漏。</p></div></li>
+            <li><span class="flow-step">3</span><div class="flow-copy"><strong>性能基准</strong><p>NFR-01 / NFR-02 / NFR-03 在 Compact 模式下达标；Scale-Out 模式 1000 RPS 持续 1 小时无 OOM、无 5xx 飙升。</p></div></li>
+            <li><span class="flow-step">4</span><div class="flow-copy"><strong>灰度回滚演练</strong><p>主动制造 promote 失败场景，验证 FR-17 自动回滚 + 审计日志写入 + 告警发出三项动作完整发生。</p></div></li>
+            <li><span class="flow-step">5</span><div class="flow-copy"><strong>合规审计走查</strong><p>合规角色（A6）以只读权限拉取最近 7 天审计日志、trace 样本、RBAC 变更记录；所有 PII 字段已脱敏，所有变更可归因到具体 actor。</p></div></li>
+          </ol>
+        </section>
+
+        <!-- 07 -->
+        <section id="references" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">References</p>
+            <h2>参考来源</h2>
+          </div>
+          <ol class="bib-list">
+            <li id="ref-1"><span class="bib-id">[1]</span> <span class="bib-author">IEEE.</span> <a href="https://standards.ieee.org/ieee/830/1222/" target="_blank" rel="noreferrer noopener">"IEEE 830 Recommended Practice for Software Requirements Specifications,"</a> 1998.<span class="bib-note">本文需求结构与术语遵循 IEEE 830 SRS 框架。</span></li>
+            <li id="ref-2"><span class="bib-id">[2]</span> <span class="bib-author">DSDM Consortium.</span> <a href="https://www.agilebusiness.org/page/themoscowrules" target="_blank" rel="noreferrer noopener">"MoSCoW Prioritisation,"</a> Agile Business Consortium.<span class="bib-note">优先级 MUST / SHOULD / COULD / WON'T 取自 MoSCoW 规则。</span></li>
+            <li id="ref-3"><span class="bib-id">[3]</span> <span class="bib-author">Anthropic.</span> <a href="https://modelcontextprotocol.io/" target="_blank" rel="noreferrer noopener">"Model Context Protocol Spec,"</a> 2024–2026.<span class="bib-note">FR-22, FR-23 工具调用协议规范来源。</span></li>
+            <li id="ref-4"><span class="bib-id">[4]</span> <span class="bib-author">本系列文档</span> · <a href="../agent-platform-philosophy/">设计理念</a> · <a href="../agent-platform-hld/">高阶设计</a> · <a href="../agent-platform-api-spec/">接口规范</a> · <a href="../agent-platform-intellygoal/">应用实践</a>.</li>
+          </ol>
+        </section>
+      </main>
+
+      <footer>
+         © 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>智能体平台高阶设计：分层架构、组件清单与数据流</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(2.4rem, 6vw, 4.4rem);
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+    }
+    .layer-block {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      padding: 18px 20px;
+      margin-bottom: 14px;
+      box-shadow: var(--card-shadow);
+    }
+    .layer-block .layer-tag {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      background: rgba(8, 145, 178, 0.12);
+      color: #0891b2;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      margin-bottom: 8px;
+    }
+    [data-theme="dark"] .layer-block .layer-tag {
+      background: rgba(34, 211, 238, 0.16);
+      color: #67e8f9;
+    }
+    .layer-block h3 { margin: 0 0 8px; font-size: 1.1rem; }
+    .layer-block p { margin: 0 0 10px; color: var(--muted); font-size: 0.92rem; line-height: 1.6; }
+    .layer-block ul {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.7;
+    }
+
+    .ascii-diagram {
+      background: rgba(0, 0, 0, 0.04);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      font-family: 'Space Grotesk', monospace;
+      font-size: 0.78rem;
+      line-height: 1.5;
+      white-space: pre;
+      overflow-x: auto;
+      color: var(--ink);
+      border: 1px solid var(--card-border);
+    }
+    [data-theme="dark"] .ascii-diagram {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .comp-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+      font-size: 0.9rem;
+    }
+    .comp-table th,
+    .comp-table td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+    .comp-table th {
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .comp-table td:first-child {
+      font-weight: 600;
+      color: #0891b2;
+      font-family: 'Space Grotesk', monospace;
+      white-space: nowrap;
+    }
+    [data-theme="dark"] .comp-table td:first-child { color: #22d3ee; }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            智能体平台
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#layers">三层视图</a>
+            <a href="#components">11 组件</a>
+            <a href="#flows">关键数据流</a>
+            <a href="#deploy">部署形态</a>
+            <a href="#evolution">自演化</a>
+            <a href="#failure">故障与降级</a>
+            <a href="#references">参考来源</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Agent Platform · High-Level Design</span>
+            <h1>智能体平台 · 高阶设计</h1>
+            <p>本文是<a href="../agent-platform-requirements/">需求规格说明书</a>到<a href="../agent-platform-api-spec/">接口规范</a>之间的桥梁，以三层视图（外部接触面 → 内部模块 → 组件细节）+ 11 个核心组件 + 5 条关键数据流 + 2 种部署形态阐明系统结构。每一项设计决策都标注其来源 FR/NFR。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#layers">阅读三层视图</a>
+              <a class="button button-secondary" href="#flows">查看关键数据流</a>
+            </div>
+            <p class="hero-note">关键词：LangGraph 内核 · LiteLLM 模型抽象 · MCP 出站 · Compact / Scale-Out</p>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">架构概览</span>
+            <h2>11 个组件，1 套抽象，2 种部署</h2>
+            <p>11 个组件全部通过 PROFILE 启动参数从同一镜像加载；进程间走 Postgres / Redis / 内存事件总线，不引入额外消息队列。Compact 模式适合 PoC 与小项目，Scale-Out 模式按层拆分为 Gateway / Compute / Worker / Eval / Supervisor 五类无状态副本。</p>
+            <ul class="layer-list">
+              <li><span class="layer-number">L0</span>外部接触面：HTTPS API · MCP 出站 · Admin 控制台</li>
+              <li><span class="layer-number">L1</span>内部模块：11 个核心组件 + 共享存储</li>
+              <li><span class="layer-number">L2</span>组件内部：状态机、桥接器、抽象层细节</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">核心组件</div>
+            <strong>11</strong>
+            <span>API Gateway · Intent · Skill Registry · Runtime · Memory · Tool Bridge · Model Router · Telemetry · Eval · Supervisor · Admin。</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">关键数据流</div>
+            <strong>5</strong>
+            <span>请求路径、工具调用、telemetry 写入、灰度晋级、Supervisor 闭环。</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">部署形态</div>
+            <strong>2</strong>
+            <span>Compact 单镜像 · Scale-Out Kubernetes 多副本。</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">外部依赖</div>
+            <strong>3</strong>
+            <span>Postgres · Redis · 项目侧 MCP server（领域工具）。</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- 01 -->
+        <section id="layers" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / Three-Layer View</p>
+            <h2>三层架构视图</h2>
+            <p>L0 → L1 → L2 三层逐级展开。L0 关注"谁在和系统说话"，L1 关注"系统内部由哪些可复用模块构成"，L2 关注"每个模块内部怎么组织"。</p>
+          </div>
+
+          <div class="layer-block">
+            <span class="layer-tag">L0 · 外部接触面</span>
+            <h3>调用方与平台的接触界面</h3>
+            <p>系统对外只暴露三类接触面，其余通信全部封闭。</p>
+            <ul>
+              <li><strong>HTTPS REST/SSE API</strong> —— 调用方发起会话与消息（FR-02、NFR-01）</li>
+              <li><strong>MCP 出站连接</strong> —— 平台作为 MCP client 拨号项目侧 MCP server，传输工具调用（FR-22）</li>
+              <li><strong>Admin Console（Web）</strong> —— 项目管理员、Skill 作者、运维、合规四类角色操作入口（FR-32、FR-33）</li>
+            </ul>
+            <p>不存在第四种接触面：禁止业务直连数据库、禁止业务订阅平台 Kafka、禁止平台主动调用项目 webhook。</p>
+          </div>
+
+          <div class="layer-block">
+            <span class="layer-tag">L1 · 内部模块</span>
+            <h3>11 个核心组件 + 共享存储</h3>
+            <p>组件按职责分为四组，共享一对存储（Postgres + Redis）。下方 ASCII 图概览组件位置与依赖方向。</p>
+            <pre class="ascii-diagram">
+   ┌────────────────────────────────────────────────────────────────┐
+   │                       L0 · External Surface                    │
+   │   HTTPS API           Admin Console            MCP outbound    │
+   └────────────┬──────────────────┬──────────────────────┬─────────┘
+                ▼                  ▼                      ▼
+   ┌─────────────────────────  L1 · Internal Modules  ─────────────────┐
+   │                                                                   │
+   │  [API Gateway] ─▶ [Intent] ─▶ [Skill Runtime] ─▶ [Tool Bridge]    │
+   │       │                          │   │                │           │
+   │       │                          │   ▼                ▼           │
+   │       │                          │  [Model Router]──▶ LLM API     │
+   │       │                          ▼                                │
+   │       │                       [Memory]                            │
+   │       │                                                           │
+   │       └──── all spans ─────▶ [Telemetry] ◀───── [Supervisor]      │
+   │                                  │                  ▲             │
+   │                                  ▼                  │             │
+   │                              [Eval Harness] ────────┘             │
+   │                                                                   │
+   │                          [Skill Registry] ◀── [Admin Console]     │
+   │                                                                   │
+   │  Shared storage:  Postgres (control-plane)   Redis (session/rl)   │
+   └───────────────────────────────────────────────────────────────────┘
+            </pre>
+          </div>
+
+          <div class="layer-block">
+            <span class="layer-tag">L2 · 组件内部</span>
+            <h3>关键组件内部结构</h3>
+            <ul>
+              <li><strong>API Gateway</strong> —— Auth Filter → Tenant Context → Rate Limiter → Idempotency Cache → Router</li>
+              <li><strong>Skill Runtime</strong> —— LangGraph StateGraph：<code>load_skill → intent_check → llm_call → maybe_handoff → tool_call → respond</code></li>
+              <li><strong>Tool Bridge</strong> —— MCP Client Pool · Circuit Breaker · Timeout Wrapper · Event Tap</li>
+              <li><strong>Model Router</strong> —— LiteLLM Adapter · BYOK Decryptor · Fallback Chain · Stream Aggregator · Token Meter</li>
+              <li><strong>Supervisor</strong> —— Trace Sampler → Failure Pattern Miner → Patch Drafter (LLM) → Eval Runner → Promotion Gate</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- 02 -->
+        <section id="components" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Component Inventory</p>
+            <h2>11 个核心组件</h2>
+            <p>每个组件对应一组明确的需求项，互相之间通过 Postgres / Redis / 进程内事件总线交互——禁止引入额外消息队列以保持 Compact 模式的零外部依赖承诺。</p>
+          </div>
+
+          <table class="comp-table">
+            <thead>
+              <tr>
+                <th>组件</th><th>职责</th><th>关键依赖</th><th>对应需求</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>API Gateway</td><td>鉴权、租户上下文、限流、幂等、SSE 适配</td><td>Postgres(api_keys), Redis(rate)</td><td>FR-01..06, NFR-01</td></tr>
+              <tr><td>Intent Gateway</td><td>识别 user 意图、判定 target_skill / hint / 情绪</td><td>Model Router, Redis(intent cache)</td><td>FR-07, FR-08, NFR-02</td></tr>
+              <tr><td>Skill Registry</td><td>skill 命名空间、版本、灰度状态、seed/overlay</td><td>Postgres(skills)</td><td>FR-14..19</td></tr>
+              <tr><td>Skill Runtime</td><td>LangGraph 状态机、handoff、turn budget、checkpoint</td><td>LangGraph, Postgres(checkpoint)</td><td>FR-09..13</td></tr>
+              <tr><td>Memory</td><td>session 短期记忆、长会话摘要、业务记忆 MCP 代理</td><td>Redis(session), MCP Bridge</td><td>FR-20, FR-21</td></tr>
+              <tr><td>Tool Bridge</td><td>MCP 客户端池、超时熔断、事件回流</td><td>项目侧 MCP server</td><td>FR-22, FR-23</td></tr>
+              <tr><td>Model Router</td><td>provider 抽象、BYOK 注入、回退链、stream 聚合</td><td>LiteLLM, Vault</td><td>FR-24..26</td></tr>
+              <tr><td>Telemetry</td><td>OTEL trace 收集、PII 脱敏、指标聚合</td><td>Postgres(traces), OTLP exporter</td><td>FR-27, NFR-12, NFR-17, NFR-18</td></tr>
+              <tr><td>Eval Harness</td><td>frozen eval set 跑分、对比报告、定时任务</td><td>Skill Registry, Model Router</td><td>FR-28</td></tr>
+              <tr><td>Supervisor</td><td>失败模式挖掘、补丁起草、灰度推动、人审队列</td><td>Telemetry, Eval Harness</td><td>FR-29..31, NFR-08</td></tr>
+              <tr><td>Admin Console</td><td>SSO 登录、灰度操作、telemetry 视图、BYOK 配置、RBAC</td><td>所有控制面 API</td><td>FR-32..34</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- 03 -->
+        <section id="flows" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / Critical Data Flows</p>
+            <h2>5 条关键数据流</h2>
+            <p>把 11 个组件用 5 条端到端流"串"起来。任何新需求都应能映射到其中一条流；映射不上者要么是范围外，要么意味需要补一条新流。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">Flow 1 · 请求路径（调用方 → 模型响应）</button>
+              <div class="subsection-content">
+                <ol class="flow-list">
+                  <li><span class="flow-step">1</span><div class="flow-copy"><strong>API Gateway</strong><p>认证（FR-01）→ 限流（FR-04）→ 幂等检查（FR-03）→ 解析 SSE 长连接。</p></div></li>
+                  <li><span class="flow-step">2</span><div class="flow-copy"><strong>Intent Gateway</strong><p>读取 session 上下文摘要 + 当前 user message → 调用轻量模型 → 输出 <code>{intent, target_skill, hint, user_frustrated}</code>。</p></div></li>
+                  <li><span class="flow-step">3</span><div class="flow-copy"><strong>Skill Runtime</strong><p>从 Skill Registry 拉取 <code>active_skill</code>（合并 seed + overlay）→ 进入 LangGraph StateGraph。</p></div></li>
+                  <li><span class="flow-step">4</span><div class="flow-copy"><strong>Model Router</strong><p>注入 BYOK → 调用首选模型，stream chunk 实时回吐到 SSE。</p></div></li>
+                  <li><span class="flow-step">5</span><div class="flow-copy"><strong>Tool Bridge（如需）</strong><p>模型若产生 tool_call，按 MCP 协议拨号项目 server → 工具结果回灌 → 模型继续生成。</p></div></li>
+                  <li><span class="flow-step">6</span><div class="flow-copy"><strong>Telemetry</strong><p>整轮所有 span 异步落 Postgres（FR-27），SSE 通道自然结束或调用方主动关闭。</p></div></li>
+                </ol>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">Flow 2 · 工具调用路径（含护栏）</button>
+              <div class="subsection-content">
+                <ol class="flow-list">
+                  <li><span class="flow-step">1</span><div class="flow-copy"><strong>白名单校验</strong><p>tool_call 请求工具必须在 skill frontmatter 的 <code>tools_allowed</code> 列表内，否则直接 reject 并写 trace。</p></div></li>
+                  <li><span class="flow-step">2</span><div class="flow-copy"><strong>并发与限流</strong><p>检查项目级并发（≤50）与全平台并发（≤500）；超限排队或 fail-fast。</p></div></li>
+                  <li><span class="flow-step">3</span><div class="flow-copy"><strong>调用 MCP server</strong><p>使用项目 MCP endpoint 池中的连接，套 15s 超时（可调到 60s 上限）。</p></div></li>
+                  <li><span class="flow-step">4</span><div class="flow-copy"><strong>结果护栏</strong><p>response 大小 ≤1MB；超出截断并标记。失败若幂等则重试 1 次，否则直接抛错。</p></div></li>
+                  <li><span class="flow-step">5</span><div class="flow-copy"><strong>熔断状态</strong><p>30 秒滑窗内 5 次失败触发 endpoint 熔断 60 秒；熔断期间所有该工具调用 fail-fast。</p></div></li>
+                </ol>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">Flow 3 · Telemetry 写入与查询</button>
+              <div class="subsection-content">
+                <ol class="flow-list">
+                  <li><span class="flow-step">1</span><div class="flow-copy"><strong>Span 生成</strong><p>API Gateway / Runtime / Tool Bridge / Model Router 各自产 OTEL span，trace_id 贯穿。</p></div></li>
+                  <li><span class="flow-step">2</span><div class="flow-copy"><strong>PII 脱敏</strong><p>落库前过 PII 过滤器（手机 / 身份证 / 信用卡 / 邮箱），原文不入库（NFR-12）。</p></div></li>
+                  <li><span class="flow-step">3</span><div class="flow-copy"><strong>分区存储</strong><p>Postgres traces 表按 <code>project_id + day</code> 分区，热数据 7 天，温数据 30 天。</p></div></li>
+                  <li><span class="flow-step">4</span><div class="flow-copy"><strong>查询入口</strong><p>Admin Console / Eval / Supervisor 通过 Telemetry 查询 API 拉取，按项目自然隔离。</p></div></li>
+                  <li><span class="flow-step">5</span><div class="flow-copy"><strong>导出（可选）</strong><p>OTLP exporter 把 trace 推送到 Langfuse / DataDog / 自建 ClickHouse（NFR-20）。</p></div></li>
+                </ol>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">Flow 4 · 灰度晋级（draft → prod）</button>
+              <div class="subsection-content">
+                <ol class="flow-list">
+                  <li><span class="flow-step">1</span><div class="flow-copy"><strong>Draft 上传</strong><p>Skill 作者上传新版本，落入 staging；契约校验通过方可进入下一步。</p></div></li>
+                  <li><span class="flow-step">2</span><div class="flow-copy"><strong>Eval 跑分</strong><p>Eval Harness 用 frozen eval set 计算 correctness / latency / cost / safety 四类指标。</p></div></li>
+                  <li><span class="flow-step">3</span><div class="flow-copy"><strong>Shadow 双跑</strong><p>真实流量复制一份给候选版本，对比 prod 版本输出，记录差异；不影响真实回包。</p></div></li>
+                  <li><span class="flow-step">4</span><div class="flow-copy"><strong>Canary 比例</strong><p>按 5% / 25% / 100% 三档分阶段开放；每档持续 N 小时，监控指标。</p></div></li>
+                  <li><span class="flow-step">5</span><div class="flow-copy"><strong>Promote / Rollback</strong><p>指标达标 promote 至 prod；任一阶段退化触发 FR-17 自动回滚 + 审计写入 + 告警。</p></div></li>
+                </ol>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">Flow 5 · Supervisor 自演化闭环</button>
+              <div class="subsection-content">
+                <ol class="flow-list">
+                  <li><span class="flow-step">1</span><div class="flow-copy"><strong>样本采集</strong><p>Supervisor 周期性扫描 traces，按失败模式聚类（如"用户拒绝率过高"、"工具误调用"）。</p></div></li>
+                  <li><span class="flow-step">2</span><div class="flow-copy"><strong>补丁起草</strong><p>调用 Patch Drafter LLM 在 overlay 层生成增量；seed 永不被改。</p></div></li>
+                  <li><span class="flow-step">3</span><div class="flow-copy"><strong>护栏</strong><p>调用预算、变更预算、人审队列三层护栏；高风险补丁强制 require_review。</p></div></li>
+                  <li><span class="flow-step">4</span><div class="flow-copy"><strong>走 Flow 4</strong><p>通过护栏的补丁直接进入灰度状态机 staging 起点，与人工补丁同流。</p></div></li>
+                  <li><span class="flow-step">5</span><div class="flow-copy"><strong>回写学习</strong><p>每个补丁的最终结局（promote / rollback）回写为 Supervisor 训练样本。</p></div></li>
+                </ol>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 04 -->
+        <section id="deploy" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / Deployment Topology</p>
+            <h2>两种部署形态</h2>
+            <p>同一个镜像通过 <code>PROFILE</code> 启动参数加载不同子模块；这是 NFR-21 / NFR-22 的硬约束。</p>
+          </div>
+
+          <div class="comparison-grid">
+            <article class="comparison-card">
+              <span class="comparison-label">Compact</span>
+              <h3>单镜像 · docker-compose</h3>
+              <p>所有组件在同一进程内，本地 Postgres + Redis 容器伴行；适合 PoC、单项目、研发联调。启动命令 <code>PROFILE=compact</code>。</p>
+              <ul class="reference-list">
+                <li>资源：≥ 2 vCPU / 4 GB RAM</li>
+                <li>外部依赖：Postgres / Redis（容器内伴行可选）</li>
+                <li>性能：单实例 50 RPS（NFR-01）</li>
+                <li>可观测：本地 OTEL collector + 浏览器 trace UI</li>
+              </ul>
+            </article>
+
+            <article class="comparison-card next">
+              <span class="comparison-label">Scale-Out</span>
+              <h3>Kubernetes 多副本</h3>
+              <p>同一镜像按 PROFILE 拆分为五类 Deployment：Gateway / Compute / Worker / Eval / Supervisor。无状态副本可水平扩展，状态全部在 Postgres + Redis（外部托管）。</p>
+              <ul class="reference-list">
+                <li><code>PROFILE=gateway</code> · API Gateway × N + HPA</li>
+                <li><code>PROFILE=compute</code> · Intent / Runtime / Memory / Model Router / Tool Bridge × M</li>
+                <li><code>PROFILE=worker</code> · 异步任务（telemetry 批写、PII 脱敏）</li>
+                <li><code>PROFILE=eval</code> · Eval Harness 定时跑批</li>
+                <li><code>PROFILE=supervisor</code> · 离线管线，独立 LLM 调用预算</li>
+              </ul>
+            </article>
+          </div>
+
+          <article class="comparison-card section-grid-spaced">
+            <span class="comparison-label">Migration Discipline</span>
+            <h3>Compact → Scale-Out 平滑升级</h3>
+            <p>升级路径：把 Postgres / Redis 切换到外部托管 → 调整 manifests 把单 Pod 拆成 5 类 Deployment → 配置 Ingress + HPA + ServiceMonitor。代码与镜像不变。如果某次需求改动让"同一镜像不能再统一启动"，则该改动违反 NFR-21，需重新设计。</p>
+          </article>
+        </section>
+
+        <!-- 05 -->
+        <section id="evolution" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / Self-Evolution</p>
+            <h2>自演化设计 · Seed / Overlay 双层</h2>
+            <p>自演化能力的设计核心是"如何让自动改写不破坏可控性"。三条规则联合保证。</p>
+          </div>
+
+          <div class="comparison-grid">
+            <article class="comparison-card">
+              <span class="comparison-label">Rule 1</span>
+              <h3>Seed 永不可变</h3>
+              <p>每个 skill 有不可变的 seed 层（人类作者所写的"骨架"），存储为 immutable record。Supervisor 只能在 overlay 层生成增量，运行时按 <code>seed + overlay</code> 合并装载。任何"清空 overlay 回到 seed"的操作 1 秒内可执行。</p>
+            </article>
+            <article class="comparison-card">
+              <span class="comparison-label">Rule 2</span>
+              <h3>双闸入库</h3>
+              <p>Supervisor 起草的补丁必须经过 shadow + canary 两个阶段才能晋级 prod。任一阶段指标退化（safety / correctness 下降，cost / latency 增长超阈值）自动回滚。绝不允许"直接覆写 prod"。</p>
+            </article>
+            <article class="comparison-card">
+              <span class="comparison-label">Rule 3</span>
+              <h3>三层护栏</h3>
+              <p>① 调用预算（每日 LLM 调用上限）防止失控；② 变更预算（每 skill 每周改写次数上限）防止漂移；③ 人审队列（高风险补丁强制 <code>require_review</code>）保留最后否决权。</p>
+            </article>
+          </div>
+
+          <article class="comparison-card section-grid-spaced">
+            <span class="comparison-label">Why this matters</span>
+            <h3>为什么自演化要刻意"慢"</h3>
+            <p>自动改写的最大风险不是"改错了一次"，而是"无人察觉的累积漂移"。Seed 不可变给了"何时回到原点"的物理基线；双闸入库给了"每次改动都被验证"的过程保证；三层护栏给了"运行节奏可控"的速率上限。三者缺一，Supervisor 就会从治理资产退化为治理负债。</p>
+          </article>
+        </section>
+
+        <!-- 06 -->
+        <section id="failure" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / Failure &amp; Degradation</p>
+            <h2>失败模型与降级路径</h2>
+            <p>对照常见故障，给出每条失败模式的发现机制与降级策略。</p>
+          </div>
+
+          <table class="comp-table">
+            <thead>
+              <tr><th>故障</th><th>发现</th><th>降级</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>模型超时</td><td>Model Router 30s timeout</td><td>切换至 fallback 链路下一档；超时计入 telemetry。</td></tr>
+              <tr><td>MCP server 不可达</td><td>Tool Bridge 连续 5 次失败</td><td>endpoint 熔断 60 秒，期间该工具 fail-fast；告警通知项目运维。</td></tr>
+              <tr><td>Postgres 主库不可用</td><td>健康检查失败</td><td>API Gateway 进入"只读 + 拒新会话"模式；现存会话经 checkpoint 续跑。</td></tr>
+              <tr><td>Redis 不可用</td><td>session/rl 写入异常</td><td>降级为内存 LRU + 单进程限流；放弃跨实例一致性，告警通知。</td></tr>
+              <tr><td>Skill 灰度退化</td><td>Eval / Canary 指标越线</td><td>FR-17 自动回滚到上一 prod 版本；写审计 + 告警。</td></tr>
+              <tr><td>Supervisor 漂移</td><td>每周变更预算耗尽 + 投诉率上升</td><td>停止该 project 的 auto_promote，强制 require_review；告警平台运维。</td></tr>
+              <tr><td>BYOK 失效</td><td>Model API 401/403</td><td>切换 fallback；连续失败时通知项目管理员轮换 key。</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- 07 -->
+        <section id="references" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">References</p>
+            <h2>参考来源</h2>
+          </div>
+          <ol class="bib-list">
+            <li id="ref-1"><span class="bib-id">[1]</span> <span class="bib-author">LangChain.</span> <a href="https://langchain-ai.github.io/langgraph/" target="_blank" rel="noreferrer noopener">"LangGraph: Building Stateful Multi-Actor Applications,"</a> 2025–2026.<span class="bib-note">Skill Runtime 内核选型，StateGraph + Checkpoint + Handoff 模型。</span></li>
+            <li id="ref-2"><span class="bib-id">[2]</span> <span class="bib-author">BerriAI.</span> <a href="https://docs.litellm.ai/" target="_blank" rel="noreferrer noopener">"LiteLLM: Unified API for 100+ LLMs,"</a> 2025–2026.<span class="bib-note">Model Router 抽象、BYOK、回退链选型依据。</span></li>
+            <li id="ref-3"><span class="bib-id">[3]</span> <span class="bib-author">Anthropic.</span> <a href="https://modelcontextprotocol.io/specification" target="_blank" rel="noreferrer noopener">"MCP Specification,"</a> 2024–2026.<span class="bib-note">Tool Bridge 出站协议规范。</span></li>
+            <li id="ref-4"><span class="bib-id">[4]</span> <span class="bib-author">OpenTelemetry.</span> <a href="https://opentelemetry.io/docs/specs/otel/trace/" target="_blank" rel="noreferrer noopener">"OTEL Tracing Specification,"</a> CNCF.<span class="bib-note">Telemetry 数据模型、OTLP exporter 协议。</span></li>
+            <li id="ref-5"><span class="bib-id">[5]</span> <span class="bib-author">本系列文档</span> · <a href="../agent-platform-philosophy/">设计理念</a> · <a href="../agent-platform-requirements/">需求规格</a> · <a href="../agent-platform-api-spec/">接口规范</a> · <a href="../agent-platform-intellygoal/">应用实践</a>.</li>
+          </ol>
+        </section>
+      </main>
+
+      <footer>
+         © 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

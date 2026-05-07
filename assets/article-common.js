@@ -84,6 +84,13 @@
   var theme = stored || (prefersDark ? 'dark' : 'light');
   root.setAttribute('data-theme', theme);
 
+  // Apply article style preset
+  var stylePreset = localStorage.getItem('article-style') || localStorage.getItem('article-decor') || 'clean';
+  // Migrate old decor values
+  if (stylePreset === 'minimal') stylePreset = 'clean';
+  if (stylePreset === 'rich') stylePreset = 'warm';
+  if (stylePreset !== 'clean') root.setAttribute('data-style', stylePreset);
+
   var lang = localStorage.getItem('lang') || 'zh';
   root.setAttribute('lang', lang === 'zh' ? 'zh-CN' : 'en');
   document.querySelectorAll('[data-zh][data-en]').forEach(function (el) {

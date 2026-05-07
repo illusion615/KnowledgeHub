@@ -328,6 +328,7 @@ document.addEventListener('DOMContentLoaded', function () {
       '      <option value="browser">' + (zhMode ? '浏览器内置' : 'Browser') + '</option>',
       '      <option value="vibevoice">VibeVoice (EN)</option>',
       '      <option value="moss-tts-nano">Qwen3-TTS (MLX)</option>',
+      '      <option value="fish-s2">Fish Audio S2 (MLX)</option>',
       '    </select>',
       '  </div>',
       '  <div class="launch-row launch-moss-row" style="display:none;">',
@@ -339,6 +340,36 @@ document.addEventListener('DOMContentLoaded', function () {
       '      <option value="dylan">dylan (' + (zhMode ? '京腔男声' : 'Male Beijing') + ')</option>',
       '      <option value="ryan">ryan (' + (zhMode ? '英文男声' : 'Male EN') + ')</option>',
       '      <option value="aiden">aiden (' + (zhMode ? '美式男声' : 'Male US') + ')</option>',
+      '    </select>',
+      '    <button type="button" class="launch-voice-test launch-clone-record" title="' + (zhMode ? '录制新声音' : 'Record new clone') + '" aria-label="' + (zhMode ? '录制新声音' : 'Record new clone') + '">' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>' +
+        '</button>',
+      '    <button type="button" class="launch-voice-test launch-clone-delete" style="display:none;" title="' + (zhMode ? '删除当前克隆' : 'Delete current clone') + '" aria-label="' + (zhMode ? '删除' : 'Delete') + '">' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>' +
+        '</button>',
+      '  </div>',
+      '  <div class="launch-row launch-moss-row launch-clone-quality-row" style="display:none;">',
+      '    <span>' + (zhMode ? '克隆质量' : 'Clone quality') + '</span>',
+      '    <select class="launch-select" data-launch="mossCloneQuality">',
+      '      <option value="8bit">' + (zhMode ? '快速（8bit）' : 'Fast (8bit)') + '</option>',
+      '      <option value="bf16">' + (zhMode ? '高质（bf16）' : 'High quality (bf16)') + '</option>',
+      '    </select>',
+      '  </div>',
+      '  <div class="launch-row launch-fish-row" style="display:none;">',
+      '    <span>' + (zhMode ? '音色' : 'Voice') + '</span>',
+      '    <input type="text" class="launch-select" data-launch="fishTtsVoice" placeholder="' + (zhMode ? '留空 = 默认音色' : 'blank = default') + '" />',
+      '  </div>',
+      '  <div class="launch-row launch-tts-emotion-row" style="display:none;">',
+      '    <span>' + (zhMode ? '情绪' : 'Emotion') + '</span>',
+      '    <select class="launch-select" data-launch="ttsEmotion">',
+      '      <option value="default">' + (zhMode ? '默认讲解' : 'Default narrator') + '</option>',
+      '      <option value="passionate">' + (zhMode ? '充满激情' : 'Passionate') + '</option>',
+      '      <option value="inspiring">' + (zhMode ? '激励鼓舞' : 'Inspiring') + '</option>',
+      '      <option value="warm">' + (zhMode ? '温暖亲切' : 'Warm') + '</option>',
+      '      <option value="cheerful">' + (zhMode ? '轻松愉快' : 'Cheerful') + '</option>',
+      '      <option value="serious">' + (zhMode ? '严肃权威' : 'Serious') + '</option>',
+      '      <option value="storytelling">' + (zhMode ? '娓娓道来' : 'Storytelling') + '</option>',
+      '      <option value="urgent">' + (zhMode ? '紧迫急切' : 'Urgent') + '</option>',
       '    </select>',
       '  </div>',
       '  <div class="launch-row">',
@@ -376,6 +407,10 @@ document.addEventListener('DOMContentLoaded', function () {
     var rateVal = panel.querySelector('.launch-rate-val');
     var mossRows = panel.querySelectorAll('.launch-moss-row');
     var mossTtsVoiceSelect = panel.querySelector('[data-launch="mossTtsVoice"]');
+    var fishRows = panel.querySelectorAll('.launch-fish-row');
+    var fishVoiceInput = panel.querySelector('[data-launch="fishTtsVoice"]');
+    var emotionRow = panel.querySelector('.launch-tts-emotion-row');
+    var emotionSelect = panel.querySelector('[data-launch="ttsEmotion"]');
 
     // VibeVoice preset voices
     var vibeVoices = [
@@ -392,6 +427,10 @@ document.addEventListener('DOMContentLoaded', function () {
     if (savedSettings.ttsProvider) ttsSelect.value = savedSettings.ttsProvider;
     if (savedSettings.rate) { rateInput.value = savedSettings.rate; rateVal.textContent = parseFloat(savedSettings.rate).toFixed(2); }
     if (savedSettings.mossTtsVoice) mossTtsVoiceSelect.value = savedSettings.mossTtsVoice;
+    if (savedSettings.fishTtsVoice && fishVoiceInput) fishVoiceInput.value = savedSettings.fishTtsVoice;
+    var launchCloneQualitySelect = panel.querySelector('[data-launch="mossCloneQuality"]');
+    if (launchCloneQualitySelect && savedSettings.mossCloneQuality) launchCloneQualitySelect.value = savedSettings.mossCloneQuality;
+    if (emotionSelect && savedSettings.ttsEmotion) emotionSelect.value = savedSettings.ttsEmotion;
     if (autoNarrate) autoNarrateBtn.classList.add('is-on');
 
     // Mobile present toggle
@@ -467,11 +506,16 @@ document.addEventListener('DOMContentLoaded', function () {
       var provider = ttsSelect.value;
       var isMoss = provider === 'moss-tts-nano';
       var isVibe = provider === 'vibevoice';
+      var isFish = provider === 'fish-s2';
       // Show/hide MOSS rows
       mossRows.forEach(function (row) { row.style.display = isMoss ? '' : 'none'; });
-      // Show/hide voice select row (hide for MOSS since it uses demo ID)
+      // Show/hide Fish rows
+      fishRows.forEach(function (row) { row.style.display = isFish ? '' : 'none'; });
+      // Emotion row applies to both Qwen and Fish (any local TTS that accepts `instructions`)
+      if (emotionRow) emotionRow.style.display = (isMoss || isFish) ? '' : 'none';
+      // Show/hide voice select row (hide for MOSS / Fish since they manage their own voice)
       var voiceRow = voiceSelect.closest('.launch-row');
-      if (voiceRow) voiceRow.style.display = isMoss ? 'none' : '';
+      if (voiceRow) voiceRow.style.display = (isMoss || isFish) ? 'none' : '';
       if (isVibe) {
         populateVibeVoices();
       } else {
@@ -487,10 +531,11 @@ document.addEventListener('DOMContentLoaded', function () {
     var saveLaunchSettings = function () {
       var isVibe = ttsSelect.value === 'vibevoice';
       var isMoss = ttsSelect.value === 'moss-tts-nano';
+      var isFish = ttsSelect.value === 'fish-s2';
       // Update tracked selections
       if (isVibe) {
         lastVibeVoice = voiceSelect.value;
-      } else if (!isMoss) {
+      } else if (!isMoss && !isFish) {
         lastBrowserVoice = voiceSelect.value;
       }
 
@@ -500,8 +545,11 @@ document.addEventListener('DOMContentLoaded', function () {
         voiceName: isVibe ? lastBrowserVoice : voiceSelect.value,
         vibeVoice: isVibe ? voiceSelect.value : lastVibeVoice,
         ttsProvider: ttsSelect.value,
-        ttsEngine: isMoss ? 'moss-tts-nano' : '',
-        mossTtsVoice: mossTtsVoiceSelect.value
+        ttsEngine: isMoss ? 'moss-tts-nano' : (isFish ? 'fish-s2' : ''),
+        mossTtsVoice: mossTtsVoiceSelect.value,
+        fishTtsVoice: fishVoiceInput ? fishVoiceInput.value.trim() : '',
+        mossCloneQuality: launchCloneQualitySelect ? launchCloneQualitySelect.value : '8bit',
+        ttsEmotion: emotionSelect ? emotionSelect.value : 'default'
       };
       localStorage.setItem('narration-settings', JSON.stringify(s));
       // Also write per-article key so narration controller picks it up
@@ -561,7 +609,85 @@ document.addEventListener('DOMContentLoaded', function () {
       saveLaunchSettings();
     });
 
-    mossTtsVoiceSelect.addEventListener('change', saveLaunchSettings);
+    mossTtsVoiceSelect.addEventListener('change', function () {
+      updateLaunchCloneUI();
+      saveLaunchSettings();
+    });
+    if (launchCloneQualitySelect) launchCloneQualitySelect.addEventListener('change', saveLaunchSettings);
+    var launchCloneRecordBtn = panel.querySelector('.launch-clone-record');
+    var launchCloneDeleteBtn = panel.querySelector('.launch-clone-delete');
+    var launchCloneQualityRow = panel.querySelector('.launch-clone-quality-row');
+
+    var refreshLaunchCloneOptions = function (selectId) {
+      var clones = loadVoiceClones();
+      // Remove existing clone options
+      var toRemove = [];
+      for (var i = 0; i < mossTtsVoiceSelect.options.length; i++) {
+        if (mossTtsVoiceSelect.options[i].value.indexOf('clone:') === 0) {
+          toRemove.push(mossTtsVoiceSelect.options[i]);
+        }
+      }
+      toRemove.forEach(function (o) { o.remove(); });
+      // Prepend (newest first)
+      clones.slice().reverse().forEach(function (c) {
+        var opt = document.createElement('option');
+        opt.value = 'clone:' + c.id;
+        var dur = c.duration ? c.duration.toFixed(1) + 's' : '';
+        opt.textContent = '🎙 ' + c.name + (dur ? ' · ' + dur : '');
+        mossTtsVoiceSelect.insertBefore(opt, mossTtsVoiceSelect.firstChild);
+      });
+      var want = selectId || mossTtsVoiceSelect.value;
+      if (want && Array.prototype.some.call(mossTtsVoiceSelect.options, function (o) { return o.value === want; })) {
+        mossTtsVoiceSelect.value = want;
+      }
+      updateLaunchCloneUI();
+    };
+
+    var updateLaunchCloneUI = function () {
+      var isClone = mossTtsVoiceSelect.value.indexOf('clone:') === 0;
+      if (launchCloneDeleteBtn) launchCloneDeleteBtn.style.display = isClone ? '' : 'none';
+      if (launchCloneQualityRow) launchCloneQualityRow.style.display = isClone ? '' : 'none';
+    };
+
+    refreshLaunchCloneOptions(savedSettings.mossTtsVoice || null);
+
+    if (launchCloneRecordBtn) {
+      launchCloneRecordBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        openVoiceCloneModal(function (entry) {
+          refreshLaunchCloneOptions('clone:' + entry.id);
+          saveLaunchSettings();
+        });
+      });
+    }
+    if (launchCloneDeleteBtn) {
+      launchCloneDeleteBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var current = mossTtsVoiceSelect.value;
+        if (current.indexOf('clone:') !== 0) return;
+        var id = current.slice(6);
+        var clones = loadVoiceClones();
+        var entry = null;
+        for (var i = 0; i < clones.length; i++) { if (clones[i].id === id) { entry = clones[i]; break; } }
+        var name = entry ? entry.name : '';
+        var msg = (zhMode ? '确定删除克隆声音 “' : 'Delete cloned voice “') + name + (zhMode ? '” 吗？此操作不可恢复。' : '”? This cannot be undone.');
+        if (!window.confirm(msg)) return;
+        var remaining = clones.filter(function (c) { return c.id !== id; });
+        saveVoiceClones(remaining);
+        mossTtsVoiceSelect.value = 'vivian';
+        refreshLaunchCloneOptions('vivian');
+        saveLaunchSettings();
+      });
+    }
+    if (fishVoiceInput) {
+      fishVoiceInput.addEventListener('input', saveLaunchSettings);
+      fishVoiceInput.addEventListener('change', saveLaunchSettings);
+    }
+    if (emotionSelect) {
+      emotionSelect.addEventListener('change', saveLaunchSettings);
+    }
 
     rateInput.addEventListener('input', function () {
       rateVal.textContent = parseFloat(rateInput.value).toFixed(2);
@@ -1066,6 +1192,273 @@ document.addEventListener('DOMContentLoaded', function () {
     return fab;
   };
 
+  /**
+   * Voice clones are stored as 'narration-clones' = [{ id, name, audio, text, sampleRate, duration, savedAt }, ...].
+   * Used by Qwen3-TTS Base model as ref_audio + ref_text.
+   * Legacy single-clone key 'narration-clone-voice' is auto-migrated on first read.
+   */
+  var REF_TEXT_ZH = '今天天气真不错，我想去公园里散散步，听听鸟鸣，看看花朵。';
+  var REF_TEXT_EN = 'The quick brown fox jumps over the lazy dog, while bright sunshine warms the morning air.';
+
+  function loadVoiceClones() {
+    var arr = [];
+    try { arr = JSON.parse(localStorage.getItem('narration-clones')) || []; } catch (e) {}
+    if (!Array.isArray(arr)) arr = [];
+    // Migrate legacy single-clone key
+    if (!arr.length) {
+      try {
+        var legacy = JSON.parse(localStorage.getItem('narration-clone-voice'));
+        if (legacy && legacy.audio && legacy.text) {
+          arr.push({
+            id: 'c' + legacy.savedAt,
+            name: getLang() === 'zh' ? '我的声音' : 'My Voice',
+            audio: legacy.audio, text: legacy.text,
+            sampleRate: legacy.sampleRate, duration: legacy.duration,
+            savedAt: legacy.savedAt
+          });
+          try { localStorage.setItem('narration-clones', JSON.stringify(arr)); } catch (e) {}
+          localStorage.removeItem('narration-clone-voice');
+        }
+      } catch (e) {}
+    }
+    return arr;
+  }
+
+  function saveVoiceClones(arr) {
+    try { localStorage.setItem('narration-clones', JSON.stringify(arr)); return true; } catch (e) { return false; }
+  }
+
+  function encodeWav(samples, sampleRate) {
+    // 16-bit PCM mono WAV encoder
+    var buffer = new ArrayBuffer(44 + samples.length * 2);
+    var view = new DataView(buffer);
+    var writeStr = function (offset, str) {
+      for (var i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+    };
+    writeStr(0, 'RIFF');
+    view.setUint32(4, 36 + samples.length * 2, true);
+    writeStr(8, 'WAVE');
+    writeStr(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);   // PCM
+    view.setUint16(22, 1, true);   // mono
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    writeStr(36, 'data');
+    view.setUint32(40, samples.length * 2, true);
+    var offset = 44;
+    for (var i = 0; i < samples.length; i++) {
+      var s = Math.max(-1, Math.min(1, samples[i]));
+      view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+      offset += 2;
+    }
+    return buffer;
+  }
+
+  function arrayBufferToBase64(buffer) {
+    var bytes = new Uint8Array(buffer);
+    var binary = '';
+    var chunk = 0x8000;
+    for (var i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    }
+    return btoa(binary);
+  }
+
+  function openVoiceCloneModal(onSaved) {
+    var zh = getLang() === 'zh';
+    var refText = zh ? REF_TEXT_ZH : REF_TEXT_EN;
+    var existing = loadVoiceClones();
+    var defaultName = (zh ? '我的声音 ' : 'My Voice ') + (existing.length + 1);
+
+    var overlay = document.createElement('div');
+    overlay.className = 'voice-clone-overlay';
+    overlay.innerHTML = [
+      '<div class="voice-clone-modal" role="dialog" aria-modal="true">',
+      '  <div class="voice-clone-header">',
+      '    <strong>' + (zh ? '克隆我的声音' : 'Clone My Voice') + '</strong>',
+      '    <button type="button" class="voice-clone-close" aria-label="Close">×</button>',
+      '  </div>',
+      '  <div class="voice-clone-name-row">',
+      '    <label for="voice-clone-name-input">' + (zh ? '声音名称' : 'Voice Name') + '</label>',
+      '    <input id="voice-clone-name-input" type="text" class="voice-clone-name" value="' + defaultName + '" maxlength="24" placeholder="' + (zh ? '为这个声音起个名字' : 'Name this voice') + '" />',
+      '  </div>',
+      '  <p class="voice-clone-instr">' + (zh ? '请用自然语速朗读下面这句话（约 5 秒）：' : 'Please read the sentence below at a natural pace (about 5 seconds):') + '</p>',
+      '  <blockquote class="voice-clone-text">' + refText + '</blockquote>',
+      '  <div class="voice-clone-controls">',
+      '    <button type="button" class="voice-clone-record">' + (zh ? '● 开始录制' : '● Start') + '</button>',
+      '    <span class="voice-clone-timer">0.0s</span>',
+      '  </div>',
+      '  <audio class="voice-clone-preview" controls style="display:none;width:100%;margin-top:12px;"></audio>',
+      '  <div class="voice-clone-msg" style="display:none;"></div>',
+      '  <div class="voice-clone-actions">',
+      '    <button type="button" class="voice-clone-cancel">' + (zh ? '取消' : 'Cancel') + '</button>',
+      '    <button type="button" class="voice-clone-save" disabled>' + (zh ? '保存' : 'Save') + '</button>',
+      '  </div>',
+      '</div>'
+    ].join('');
+    document.body.appendChild(overlay);
+
+    var recordBtn = overlay.querySelector('.voice-clone-record');
+    var timerEl = overlay.querySelector('.voice-clone-timer');
+    var previewEl = overlay.querySelector('.voice-clone-preview');
+    var msgEl = overlay.querySelector('.voice-clone-msg');
+    var saveBtn = overlay.querySelector('.voice-clone-save');
+    var cancelBtn = overlay.querySelector('.voice-clone-cancel');
+    var closeBtn = overlay.querySelector('.voice-clone-close');
+
+    var stream = null;
+    var audioCtx = null;
+    var processor = null;
+    var sourceNode = null;
+    var chunks = [];
+    var recording = false;
+    var startTime = 0;
+    var timerHandle = null;
+    var capturedWavBuffer = null;
+    var capturedDuration = 0;
+    var capturedSampleRate = 0;
+
+    var showMsg = function (text, isError) {
+      msgEl.style.display = '';
+      msgEl.textContent = text;
+      msgEl.style.color = isError ? '#e85a5a' : '';
+    };
+
+    var teardownStream = function () {
+      if (timerHandle) { clearInterval(timerHandle); timerHandle = null; }
+      if (processor) { try { processor.disconnect(); } catch (e) {} processor = null; }
+      if (sourceNode) { try { sourceNode.disconnect(); } catch (e) {} sourceNode = null; }
+      if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
+      if (audioCtx) { try { audioCtx.close(); } catch (e) {} audioCtx = null; }
+    };
+
+    var stopRecording = function () {
+      if (!recording) return;
+      recording = false;
+      if (timerHandle) { clearInterval(timerHandle); timerHandle = null; }
+      if (processor) { try { processor.disconnect(); } catch (e) {} }
+      if (sourceNode) { try { sourceNode.disconnect(); } catch (e) {} }
+      if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
+
+      // Concatenate chunks
+      var totalLen = 0;
+      chunks.forEach(function (c) { totalLen += c.length; });
+      if (totalLen === 0 || !audioCtx) {
+        showMsg(zh ? '没有捕获到音频，请重试。' : 'No audio captured. Please try again.', true);
+        recordBtn.textContent = zh ? '● 开始录制' : '● Start';
+        recordBtn.disabled = false;
+        if (audioCtx) { try { audioCtx.close(); } catch (e) {} audioCtx = null; }
+        return;
+      }
+      var samples = new Float32Array(totalLen);
+      var off = 0;
+      chunks.forEach(function (c) { samples.set(c, off); off += c.length; });
+      capturedSampleRate = audioCtx.sampleRate;
+      capturedDuration = totalLen / capturedSampleRate;
+      capturedWavBuffer = encodeWav(samples, capturedSampleRate);
+      try { audioCtx.close(); } catch (e) {}
+      audioCtx = null;
+
+      // Preview
+      var blob = new Blob([capturedWavBuffer], { type: 'audio/wav' });
+      previewEl.src = URL.createObjectURL(blob);
+      previewEl.style.display = '';
+      saveBtn.disabled = false;
+      recordBtn.textContent = zh ? '● 重新录制' : '● Re-record';
+      recordBtn.disabled = false;
+      var sizeKB = Math.round(capturedWavBuffer.byteLength / 1024);
+      showMsg((zh ? '录制完成 ' : 'Recorded ') + capturedDuration.toFixed(1) + 's · ' + sizeKB + ' KB');
+    };
+
+    var startRecording = function () {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        showMsg(zh ? '当前浏览器不支持录音。' : 'Recording not supported in this browser.', true);
+        return;
+      }
+      chunks = [];
+      capturedWavBuffer = null;
+      saveBtn.disabled = true;
+      previewEl.style.display = 'none';
+      msgEl.style.display = 'none';
+      recordBtn.disabled = true;
+
+      navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } }).then(function (s) {
+        stream = s;
+        var Ctor = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new Ctor();
+        sourceNode = audioCtx.createMediaStreamSource(stream);
+        // ScriptProcessorNode is deprecated but universally supported and good enough here
+        processor = audioCtx.createScriptProcessor(4096, 1, 1);
+        processor.onaudioprocess = function (e) {
+          if (!recording) return;
+          var input = e.inputBuffer.getChannelData(0);
+          // Copy because the buffer is reused
+          var copy = new Float32Array(input.length);
+          copy.set(input);
+          chunks.push(copy);
+        };
+        sourceNode.connect(processor);
+        processor.connect(audioCtx.destination);
+        recording = true;
+        startTime = Date.now();
+        recordBtn.textContent = zh ? '■ 停止' : '■ Stop';
+        recordBtn.disabled = false;
+        timerHandle = setInterval(function () {
+          var elapsed = (Date.now() - startTime) / 1000;
+          timerEl.textContent = elapsed.toFixed(1) + 's';
+          // Auto-stop at 15 seconds
+          if (elapsed >= 15) stopRecording();
+        }, 100);
+      }).catch(function (err) {
+        showMsg((zh ? '麦克风访问失败：' : 'Microphone access failed: ') + err.message, true);
+        recordBtn.disabled = false;
+      });
+    };
+
+    recordBtn.addEventListener('click', function () {
+      if (recording) stopRecording();
+      else startRecording();
+    });
+
+    var close = function () {
+      teardownStream();
+      if (previewEl.src) URL.revokeObjectURL(previewEl.src);
+      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    };
+    cancelBtn.addEventListener('click', close);
+    closeBtn.addEventListener('click', close);
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) close();
+    });
+
+    saveBtn.addEventListener('click', function () {
+      if (!capturedWavBuffer) return;
+      var nameInput = overlay.querySelector('.voice-clone-name');
+      var name = (nameInput && nameInput.value.trim()) || defaultName;
+      var b64 = arrayBufferToBase64(capturedWavBuffer);
+      var entry = {
+        id: 'c' + Date.now(),
+        name: name,
+        audio: b64,
+        text: refText,
+        sampleRate: capturedSampleRate,
+        duration: capturedDuration,
+        savedAt: Date.now()
+      };
+      var clones = loadVoiceClones();
+      clones.push(entry);
+      if (!saveVoiceClones(clones)) {
+        showMsg(zh ? '保存失败（可能超出存储配额）' : 'Save failed (storage quota?)', true);
+        return;
+      }
+      if (typeof onSaved === 'function') onSaved(entry);
+      close();
+    });
+  }
+
   var ensureNarrationSettingsPanel = function () {
     var existing = document.querySelector('.narration-settings-panel');
     if (existing) return existing;
@@ -1107,6 +1500,7 @@ document.addEventListener('DOMContentLoaded', function () {
       '    <option value="browser">' + (getLang() === 'zh' ? '浏览器内置' : 'Browser') + '</option>',
       '    <option value="vibevoice">VibeVoice (EN)</option>',
       '    <option value="moss-tts-nano">Qwen3-TTS (MLX)</option>',
+      '    <option value="fish-s2">Fish Audio S2 (MLX)</option>',
       '  </select>',
       '</label>',
       '<div class="narration-moss-settings" style="display:none;">',
@@ -1126,8 +1520,41 @@ document.addEventListener('DOMContentLoaded', function () {
       '    <button class="narration-voice-test narration-moss-voice-test" type="button" aria-label="' + (getLang() === 'zh' ? '试听' : 'Preview') + '" title="' + (getLang() === 'zh' ? '试听' : 'Preview') + '">' +
           '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>' +
         '</button>',
+      '    <button class="narration-voice-test narration-clone-record-btn" type="button" title="' + (getLang() === 'zh' ? '录制新声音' : 'Record new clone') + '" aria-label="' + (getLang() === 'zh' ? '录制新声音' : 'Record new clone') + '">' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>' +
+        '</button>',
+      '    <button class="narration-voice-test narration-clone-delete-btn" type="button" style="display:none;" title="' + (getLang() === 'zh' ? '删除当前克隆声音' : 'Delete current clone') + '" aria-label="' + (getLang() === 'zh' ? '删除' : 'Delete') + '">' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>' +
+        '</button>',
+      '  </label>',
+      '  <label class="narration-setting-row narration-clone-quality-row" style="display:none;">',
+      '    <span>' + (getLang() === 'zh' ? '克隆质量' : 'Clone quality') + '</span>',
+      '    <select class="narration-select" data-narration-setting="mossCloneQuality">',
+      '      <option value="8bit">' + (getLang() === 'zh' ? '快速（8bit，推荐）' : 'Fast (8bit, recommended)') + '</option>',
+      '      <option value="bf16">' + (getLang() === 'zh' ? '高质（bf16，较慢）' : 'High quality (bf16, slower)') + '</option>',
+      '    </select>',
       '  </label>',
       '</div>',
+      '<div class="narration-fish-settings" style="display:none;">',
+      '  <label class="narration-setting-row">',
+      '    <span>' + (getLang() === 'zh' ? '音色' : 'Voice') + '</span>',
+      '    <input type="text" class="narration-select" data-narration-setting="fishTtsVoice" placeholder="' + (getLang() === 'zh' ? '留空 = 默认音色' : 'blank = default voice') + '" />',
+      '  </label>',
+      '  <div class="narration-setting-hint">' + (getLang() === 'zh' ? '支持 [whisper]、[laughing] 等情感标签。' : 'Inline tags like [whisper], [laughing] are supported.') + '</div>',
+      '</div>',
+      '<label class="narration-setting-row narration-tts-emotion-row" style="display:none;">',
+      '  <span>' + (getLang() === 'zh' ? '情绪' : 'Emotion') + '</span>',
+      '  <select class="narration-select" data-narration-setting="ttsEmotion">',
+      '    <option value="default">' + (getLang() === 'zh' ? '默认讲解' : 'Default narrator') + '</option>',
+      '    <option value="passionate">' + (getLang() === 'zh' ? '充满激情' : 'Passionate') + '</option>',
+      '    <option value="inspiring">' + (getLang() === 'zh' ? '激励鼓舞' : 'Inspiring') + '</option>',
+      '    <option value="warm">' + (getLang() === 'zh' ? '温暖亲切' : 'Warm') + '</option>',
+      '    <option value="cheerful">' + (getLang() === 'zh' ? '轻松愉快' : 'Cheerful') + '</option>',
+      '    <option value="serious">' + (getLang() === 'zh' ? '严肃权威' : 'Serious') + '</option>',
+      '    <option value="storytelling">' + (getLang() === 'zh' ? '娓娓道来' : 'Storytelling') + '</option>',
+      '    <option value="urgent">' + (getLang() === 'zh' ? '紧迫急切' : 'Urgent') + '</option>',
+      '  </select>',
+      '</label>',
       '<div class="narration-setting-row narration-voice-row narration-vibe-row">',
       '  <span>' + (getLang() === 'zh' ? 'AI语音' : 'AI Voice') + '</span>',
       '  <select class="narration-select" data-narration-setting="vibeVoice">',
@@ -1175,6 +1602,8 @@ document.addEventListener('DOMContentLoaded', function () {
     var mossSettingsDiv = panel.querySelector('.narration-moss-settings');
     var mossDemoIdInput = panel.querySelector('[data-narration-setting="mossTtsVoice"]');
     var mossVoiceTestBtn = panel.querySelector('.narration-moss-voice-test');
+    var fishSettingsDiv = panel.querySelector('.narration-fish-settings');
+    var fishVoiceInput = panel.querySelector('[data-narration-setting="fishTtsVoice"]');
     var browserVoiceRow = panel.querySelector('.narration-voice-row:not(.narration-vibe-row)');
 
     if (saved.lang) langSelect.value = saved.lang;
@@ -1182,6 +1611,11 @@ document.addEventListener('DOMContentLoaded', function () {
     if (saved.ttsProvider) ttsProviderSelect.value = saved.ttsProvider;
     if (saved.vibeVoice) vibeVoiceSelect.value = saved.vibeVoice;
     if (saved.mossTtsVoice) mossDemoIdInput.value = saved.mossTtsVoice;
+    if (saved.fishTtsVoice && fishVoiceInput) fishVoiceInput.value = saved.fishTtsVoice;
+    var cloneQualitySelect = panel.querySelector('[data-narration-setting="mossCloneQuality"]');
+    var emotionSelectIn = panel.querySelector('[data-narration-setting="ttsEmotion"]');
+    var emotionRowIn = panel.querySelector('.narration-tts-emotion-row');
+    if (cloneQualitySelect && saved.mossCloneQuality) cloneQualitySelect.value = saved.mossCloneQuality;
 
     // Show/hide provider-specific rows based on TTS provider selection
     var syncProviderVisibility = function () {
@@ -1189,6 +1623,8 @@ document.addEventListener('DOMContentLoaded', function () {
       browserVoiceRow.style.display = provider === 'browser' ? '' : 'none';
       vibeRow.style.display = provider === 'vibevoice' ? '' : 'none';
       mossSettingsDiv.style.display = provider === 'moss-tts-nano' ? '' : 'none';
+      if (fishSettingsDiv) fishSettingsDiv.style.display = provider === 'fish-s2' ? '' : 'none';
+      if (emotionRowIn) emotionRowIn.style.display = (provider === 'moss-tts-nano' || provider === 'fish-s2') ? '' : 'none';
     };
     syncProviderVisibility();
     ttsProviderSelect.addEventListener('change', syncProviderVisibility);
@@ -1261,9 +1697,12 @@ document.addEventListener('DOMContentLoaded', function () {
         rate: parseFloat(rateInput.value),
         voiceName: voiceSelect.value,
         ttsProvider: ttsProviderSelect.value,
-        ttsEngine: ttsProviderSelect.value === 'moss-tts-nano' ? 'moss-tts-nano' : '',
+        ttsEngine: ttsProviderSelect.value === 'moss-tts-nano' ? 'moss-tts-nano' : (ttsProviderSelect.value === 'fish-s2' ? 'fish-s2' : ''),
         mossTtsVoice: mossDemoIdInput.value,
-        vibeVoice: vibeVoiceSelect.value
+        fishTtsVoice: fishVoiceInput ? fishVoiceInput.value.trim() : '',
+        vibeVoice: vibeVoiceSelect.value,
+        mossCloneQuality: cloneQualitySelect ? cloneQualitySelect.value : '8bit',
+        ttsEmotion: emotionSelectIn ? emotionSelectIn.value : 'default'
       };
       localStorage.setItem(globalKey, JSON.stringify(s));
       if (articleKey) {
@@ -1274,7 +1713,91 @@ document.addEventListener('DOMContentLoaded', function () {
     langSelect.addEventListener('change', saveSettings);
     ttsProviderSelect.addEventListener('change', saveSettings);
     vibeVoiceSelect.addEventListener('change', saveSettings);
-    mossDemoIdInput.addEventListener('change', saveSettings);
+    if (emotionSelectIn) emotionSelectIn.addEventListener('change', saveSettings);
+    // mossDemoIdInput change handler is registered below (in the clone section) to also toggle UI
+    if (fishVoiceInput) {
+      fishVoiceInput.addEventListener('input', saveSettings);
+      fishVoiceInput.addEventListener('change', saveSettings);
+    }
+
+    // ── Voice clones (Qwen3-TTS Base) ──
+    // Populate dropdown with saved clones (prepended) and wire record/delete buttons.
+    var cloneRecordBtn = panel.querySelector('.narration-clone-record-btn');
+    var cloneDeleteBtn = panel.querySelector('.narration-clone-delete-btn');
+    var cloneQualityRow = panel.querySelector('.narration-clone-quality-row');
+
+    var refreshCloneOptions = function (selectId) {
+      var clones = loadVoiceClones();
+      // Remove existing clone-* options
+      var toRemove = [];
+      for (var i = 0; i < mossDemoIdInput.options.length; i++) {
+        if (mossDemoIdInput.options[i].value.indexOf('clone:') === 0 || mossDemoIdInput.options[i].dataset.cloneGroup === '1') {
+          toRemove.push(mossDemoIdInput.options[i]);
+        }
+      }
+      toRemove.forEach(function (o) { o.remove(); });
+      // Prepend clones
+      var zh2 = getLang() === 'zh';
+      clones.slice().reverse().forEach(function (c) {
+        var opt = document.createElement('option');
+        opt.value = 'clone:' + c.id;
+        opt.dataset.cloneGroup = '1';
+        var dur = c.duration ? c.duration.toFixed(1) + 's' : '';
+        opt.textContent = '🎙 ' + c.name + (dur ? ' · ' + dur : '');
+        mossDemoIdInput.insertBefore(opt, mossDemoIdInput.firstChild);
+      });
+      // Restore selection if requested or current
+      var want = selectId || mossDemoIdInput.value;
+      if (want && Array.prototype.some.call(mossDemoIdInput.options, function (o) { return o.value === want; })) {
+        mossDemoIdInput.value = want;
+      }
+      updateCloneUI();
+    };
+
+    var updateCloneUI = function () {
+      var isClone = mossDemoIdInput.value.indexOf('clone:') === 0;
+      if (cloneDeleteBtn) cloneDeleteBtn.style.display = isClone ? '' : 'none';
+      if (cloneQualityRow) cloneQualityRow.style.display = isClone ? '' : 'none';
+    };
+
+    refreshCloneOptions(saved.mossTtsVoice || null);
+
+    if (cloneRecordBtn) {
+      cloneRecordBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        openVoiceCloneModal(function (entry) {
+          // Auto-select the new clone
+          refreshCloneOptions('clone:' + entry.id);
+          saveSettings();
+        });
+      });
+    }
+    if (cloneDeleteBtn) {
+      cloneDeleteBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        var current = mossDemoIdInput.value;
+        if (current.indexOf('clone:') !== 0) return;
+        var id = current.slice(6);
+        var clones = loadVoiceClones();
+        var entry = null;
+        for (var i = 0; i < clones.length; i++) { if (clones[i].id === id) { entry = clones[i]; break; } }
+        var name = entry ? entry.name : '';
+        var zh2 = getLang() === 'zh';
+        var msg = (zh2 ? '确定删除克隆声音 “' : 'Delete cloned voice “') + name + (zh2 ? '” 吗？此操作不可恢复。' : '”? This cannot be undone.');
+        if (!window.confirm(msg)) return;
+        var remaining = clones.filter(function (c) { return c.id !== id; });
+        saveVoiceClones(remaining);
+        // Fallback to first preset (vivian)
+        mossDemoIdInput.value = 'vivian';
+        refreshCloneOptions('vivian');
+        saveSettings();
+      });
+    }
+    mossDemoIdInput.addEventListener('change', function () {
+      updateCloneUI();
+      saveSettings();
+    });
+    if (cloneQualitySelect) cloneQualitySelect.addEventListener('change', saveSettings);
     rateInput.addEventListener('input', function () {
       rateValue.textContent = parseFloat(rateInput.value).toFixed(2);
       saveSettings();
@@ -1433,6 +1956,8 @@ document.addEventListener('DOMContentLoaded', function () {
       if (fresh.ttsProvider) { ttsProviderSelect.value = fresh.ttsProvider; } else { ttsProviderSelect.value = 'browser'; }
       if (fresh.vibeVoice) { vibeVoiceSelect.value = fresh.vibeVoice; }
       if (fresh.mossTtsVoice) { mossDemoIdInput.value = fresh.mossTtsVoice; }
+      if (cloneQualitySelect && fresh.mossCloneQuality) { cloneQualitySelect.value = fresh.mossCloneQuality; }
+      if (emotionSelectIn) { emotionSelectIn.value = fresh.ttsEmotion || 'default'; }
       syncProviderVisibility();
       populateVoices();
       if (fresh.voiceName) { voiceSelect.value = fresh.voiceName; }
@@ -2212,6 +2737,16 @@ document.addEventListener('DOMContentLoaded', function () {
       target.classList.add('focus-keep');
     });
 
+    // If subsection-content has NO anchors at all (only plain <p> elements),
+    // keep everything visible — dimming text-only content is meaningless.
+    var subContent = slideEl.querySelector('.subsection-content');
+    if (subContent && !subContent.querySelector('.focus-keep')) {
+      var children = subContent.children;
+      for (var ci = 0; ci < children.length; ci++) {
+        children[ci].classList.add('focus-keep');
+      }
+    }
+
     // First event-field is always kept via CSS :first-child, but also tag it
     var firstField = slideEl.querySelector('.event-field');
     if (firstField) firstField.classList.add('focus-keep');
@@ -2424,7 +2959,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var zhM = getLang() === 'zh';
       var rss = {};
       try { rss = JSON.parse(localStorage.getItem('narration-settings')) || {}; } catch (e) {}
-      var rIsLocal = rss.ttsEngine === 'moss-tts-nano';
+      var rIsLocal = rss.ttsEngine === 'moss-tts-nano' || rss.ttsEngine === 'fish-s2';
       var rSteps = [
         { id: 'script', label: zhM ? '生成讲稿' : 'Generating script' }
       ];
@@ -2498,8 +3033,8 @@ document.addEventListener('DOMContentLoaded', function () {
               }
             }
 
-            // Qwen3-TTS (MLX) — use Web Audio capture stream
-            if (ss.ttsEngine === 'moss-tts-nano' && window.StudyRoomNarration && window.StudyRoomNarration.getTtsAudioStream) {
+            // Local MLX TTS (Qwen3-TTS / Fish Audio S2) — use Web Audio capture stream
+            if ((ss.ttsEngine === 'moss-tts-nano' || ss.ttsEngine === 'fish-s2') && window.StudyRoomNarration && window.StudyRoomNarration.getTtsAudioStream) {
               var ttsStream = window.StudyRoomNarration.getTtsAudioStream();
               if (ttsStream) {
                 recordStream = new MediaStream();
@@ -2752,7 +3287,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var zhMode = getLang() === 'zh';
     var ss = {};
     try { ss = JSON.parse(localStorage.getItem('narration-settings')) || {}; } catch (e) {}
-    var isLocalTTS = ss.ttsEngine === 'moss-tts-nano';
+    var isLocalTTS = ss.ttsEngine === 'moss-tts-nano' || ss.ttsEngine === 'fish-s2';
 
     // Build step definitions
     var steps = [

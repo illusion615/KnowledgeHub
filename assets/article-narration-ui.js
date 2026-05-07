@@ -104,6 +104,7 @@
         '  <select class="narration-select" data-narration-setting="ttsEngine">',
         '    <option value="browser">' + (getLang() === 'zh' ? '浏览器语音' : 'Browser Speech') + '</option>',
         '    <option value="moss-tts-nano">Qwen3-TTS (MLX)</option>',
+        '    <option value="fish-s2">Fish Audio S2 (MLX)</option>',
         '  </select>',
         '</label>',
         '<div class="narration-moss-settings" style="display:none;">',
@@ -121,6 +122,13 @@
         '      <option value="eric">eric (' + (getLang() === 'zh' ? '英文男声' : 'Male EN') + ')</option>',
         '    </select>',
         '  </label>',
+        '</div>',
+        '<div class="narration-fish-settings" style="display:none;">',
+        '  <label class="narration-setting-row">',
+        '    <span>' + (getLang() === 'zh' ? '音色' : 'Voice') + '</span>',
+        '    <input type="text" class="narration-select" data-narration-setting="fishTtsVoice" placeholder="' + (getLang() === 'zh' ? '留空 = 默认音色' : 'blank = default voice') + '" />',
+        '  </label>',
+        '  <div class="narration-setting-hint">' + (getLang() === 'zh' ? '支持 [whisper]、[laughing] 等情感标签。' : 'Inline tags like [whisper], [laughing] are supported.') + '</div>',
         '</div>',
         '<label class="narration-setting-row">',
         '  <span>' + (getLang() === 'zh' ? '语言' : 'Language') + '</span>',
@@ -190,18 +198,22 @@
       var engineSelect = panel.querySelector('[data-narration-setting="ttsEngine"]');
       var mossSettingsDiv = panel.querySelector('.narration-moss-settings');
       var mossDemoIdInput = panel.querySelector('[data-narration-setting="mossTtsVoice"]');
+      var fishSettingsDiv = panel.querySelector('.narration-fish-settings');
+      var fishVoiceInput = panel.querySelector('[data-narration-setting="fishTtsVoice"]');
       var voiceRow = panel.querySelector('.narration-voice-row');
 
       if (saved.ttsEngine) engineSelect.value = saved.ttsEngine;
       if (saved.mossTtsVoice) mossDemoIdInput.value = saved.mossTtsVoice;
+      if (saved.fishTtsVoice && fishVoiceInput) fishVoiceInput.value = saved.fishTtsVoice;
       if (saved.lang) langSelect.value = saved.lang;
       if (saved.rate) { rateInput.value = saved.rate; rateValue.textContent = saved.rate; }
 
-      // Toggle MOSS vs browser settings visibility
+      // Toggle engine-specific settings visibility
       var updateEngineVisibility = function () {
-        var isMoss = engineSelect.value === 'moss-tts-nano';
-        mossSettingsDiv.style.display = isMoss ? '' : 'none';
-        voiceRow.style.display = isMoss ? 'none' : '';
+        var v = engineSelect.value;
+        mossSettingsDiv.style.display = (v === 'moss-tts-nano') ? '' : 'none';
+        if (fishSettingsDiv) fishSettingsDiv.style.display = (v === 'fish-s2') ? '' : 'none';
+        voiceRow.style.display = (v === 'browser') ? '' : 'none';
       };
       updateEngineVisibility();
 
@@ -256,6 +268,7 @@
         var s = {
           ttsEngine: engineSelect.value,
           mossTtsVoice: mossDemoIdInput.value,
+          fishTtsVoice: fishVoiceInput ? fishVoiceInput.value.trim() : '',
           lang: langSelect.value === 'auto' ? '' : langSelect.value,
           rate: parseFloat(rateInput.value),
           voiceName: voiceSelect.value
@@ -278,6 +291,10 @@
         saveSettings();
       });
       mossDemoIdInput.addEventListener('change', saveSettings);
+      if (fishVoiceInput) {
+        fishVoiceInput.addEventListener('input', saveSettings);
+        fishVoiceInput.addEventListener('change', saveSettings);
+      }
 
       // Phase 2: Focus mode toggle
       var focusCheckbox = panel.querySelector('[data-narration-setting="focusMode"]');

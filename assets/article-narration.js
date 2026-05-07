@@ -149,6 +149,129 @@
     return null;
   }
 
+  /**
+   * Detect the active TTS engine by merging global + per-article narration settings.
+   * Returns: 'fish-s2' | 'moss-tts-nano' | 'vibevoice' | 'browser'
+   */
+  function getActiveTtsEngine() {
+    var ns = {};
+    try { ns = JSON.parse(localStorage.getItem('narration-settings')) || {}; } catch (e) {}
+    var slug = window.location.pathname.replace(/\/$/, '').split('/').pop() || '';
+    if (slug) {
+      try {
+        var a = JSON.parse(localStorage.getItem('narration-settings:' + slug));
+        if (a) Object.keys(a).forEach(function (k) { if (a[k] !== undefined && a[k] !== '') ns[k] = a[k]; });
+      } catch (e) {}
+    }
+    if (ns.ttsEngine === 'fish-s2') return 'fish-s2';
+    if (ns.ttsEngine === 'moss-tts-nano') return 'moss-tts-nano';
+    if (ns.ttsProvider === 'vibevoice') return 'vibevoice';
+    return 'browser';
+  }
+
+  /**
+   * Return engine-specific text formatting guidance to append to the narration system prompt.
+   * Each engine has different tolerance for tags, acronyms, numbers, and pause markers.
+   */
+  function getEngineGuidance(engine, lang) {
+    if (lang === 'zh') {
+      if (engine === 'fish-s2') {
+        return '\n\n语音引擎适配（Fish Audio S2）：\n' +
+          '- 数字和年份直接用阿拉伯数字（如 2026、12.5%、第 3 条），引擎按上下文自然朗读\n' +
+          '- 英文术语保留原文（RAG、LLM、API），单字母缩写如需逐字读则在字母间留空格\n' +
+          '- 用句号、逗号、问号、感叹号划分语义节奏，标点会决定停顿长度\n' +
+          '- 在情感起伏明显的位置，可以插入中文括号标签增强表现力：(笑)、(叹气)、(停顿)、(快速)、(缓慢)。每页最多 1–2 个，仅在真正需要时使用。\n' +
+          '- 除上述括号标签外，不要再用其他括号说明、引号包裹的旁白或星号\n' +
+          '- 不要写 SSML 或 <break> 标签';
+      }
+      if (engine === 'moss-tts-nano') {
+        return '\n\n语音引擎适配（Qwen3-TTS）：\n' +
+          '- 每句话控制在 15-25 字，用句号断句。绝对不要逗号连排超过两个分句\n' +
+          '- 关键概念讲完后用句号收束，让听众有消化的停顿\n' +
+          '- 数字直接用阿拉伯数字，专业术语保留英文原文（RAG、LLM、API）\n' +
+          '- 中英混排时英文前后保留空格\n' +
+          '- 不要使用任何标签、SSML 或括号旁白——只输出标点连接的纯文本（引擎会通过语调参数控制情感，不需脚本里加标记）\n' +
+          '- 节奏比信息量更重要：宁可少说一个细节，也不要把三个要点挤进一句话';
+      }
+      if (engine === 'vibevoice') {
+        return '\n\n语音引擎适配（VibeVoice 实时引擎）：\n' +
+          '- 句子越短越流畅，建议每句 ≤ 25 字\n' +
+          '- 数字用阿拉伯数字，避免长串数字\n' +
+          '- 不要使用任何标签或括号旁白';
+      }
+      return '\n\n语音引擎适配（浏览器 TTS）：\n' +
+        '- 仅依赖标点产生停顿，请用句号、逗号合理划分\n' +
+        '- 数字用阿拉伯数字，英文术语保留原文\n' +
+        '- 不要使用任何标签';
+    }
+    // English
+    if (engine === 'fish-s2') {
+      return '\n\nTTS engine adaptation (Fish Audio S2):\n' +
+        '- Use punctuation (period, comma, question, exclamation) for natural prosody\n' +
+        '- Spell acronyms with spaces if you want letter-by-letter reading (e.g., "A P I"); otherwise keep as "API"\n' +
+        '- Use plain digits for numbers and years\n' +
+        '- At genuine emotional beats you may insert paralinguistic tags (in Chinese parentheses, supported by the engine): （笑）、（叹气）、（停顿）. Use sparingly — at most 1–2 per slide and only when the emotion is real.\n' +
+        '- Avoid other parenthetical asides, quoted side-notes, or asterisks — they may be read aloud\n' +
+        '- No SSML or <break> tags';
+    }
+    if (engine === 'moss-tts-nano') {
+      return '\n\nTTS engine adaptation (Qwen3-TTS):\n' +
+        '- Keep sentences to 10-18 words. End with a period — never chain more than two clauses with commas\n' +
+        '- After each key concept, close the sentence to create a natural pause for the listener\n' +
+        '- Keep technical terms in their normal written form (API, LLM, RAG)\n' +
+        '- No tags, SSML, or parenthetical asides — plain punctuated prose only (the engine handles emotion via its own tone parameter, not inline markup)\n' +
+        '- Rhythm matters more than coverage: better to drop one detail than cram three points into one sentence';
+    }
+    if (engine === 'vibevoice') {
+      return '\n\nTTS engine adaptation (VibeVoice realtime):\n' +
+        '- Short sentences flow better — aim for ≤ 15 words per sentence\n' +
+        '- Plain digits for numbers; avoid long digit strings\n' +
+        '- No tags or parenthetical asides';
+    }
+    return '\n\nTTS engine adaptation (browser TTS):\n' +
+      '- Punctuation alone produces pauses — use commas and periods deliberately\n' +
+      '- Plain digits, plain text, no tags';
+  }
+
+  /**
+   * Default speaker-tone instructions per engine — passed as the `instructions` field
+   * of the OpenAI-compatible TTS request. Both Fish Audio S2 and Qwen3-TTS accept it.
+   * Users may override via narration-settings.ttsInstructions (free-text, future UI).
+   */
+  function getDefaultInstructions(engine, lang) {
+    if (lang === 'zh') {
+      if (engine === 'fish-s2') return '专业讲解者语气，沉稳清晰，节奏适中，关键数据处略有强调';
+      if (engine === 'moss-tts-nano') return '讲解者语气，沉稳专业，节奏自然';
+      return '';
+    }
+    if (engine === 'fish-s2') return 'Professional narrator tone, calm and clear, with subtle emphasis on key data points';
+    if (engine === 'moss-tts-nano') return 'Professional narrator, calm, paced naturally';
+    return '';
+  }
+
+  /**
+   * Emotion presets for cloned voices and presets — natural-language instructions
+   * that bias the TTS engine toward a particular tone/energy. Returned strings are
+   * passed verbatim as the `instructions` field. Falls back to default narrator tone.
+   */
+  var EMOTION_PRESETS = {
+    'default':     { zh: '讲解者语气，沉稳专业，节奏自然，关键数据处略有强调', en: 'Professional narrator, calm and clear, paced naturally with subtle emphasis on key points' },
+    'passionate':  { zh: '充满激情，富有感染力，语调起伏明显，节奏有力，关键处声音上扬，让人热血沸腾', en: 'Passionate and energetic, with strong dynamics, dramatic intonation, rising emphasis on key phrases — make it inspiring' },
+    'inspiring':   { zh: '激励人心，鼓舞士气，节奏铿锵有力，传达坚定信念和未来希望', en: 'Inspiring and uplifting, rhythmic and powerful delivery, conveying conviction and hope for the future' },
+    'warm':        { zh: '温暖亲切，像朋友在身边倾诉，节奏舒缓，语气柔和，让人放松', en: 'Warm and intimate, like a friend speaking close by, slow soothing pace, gentle tone' },
+    'cheerful':    { zh: '轻松愉悦，活泼跳跃，节奏明快，带有微笑感，传递正能量', en: 'Cheerful and lively, bright pace, smiling tone, upbeat and positive energy' },
+    'serious':     { zh: '严肃深沉，权威感强，语速稳健，字字清晰有力，传达专业性', en: 'Serious and authoritative, steady pace, every word clear and weighty, conveying expertise' },
+    'storytelling':{ zh: '讲故事的语气，富有画面感，节奏富于变化，情感细腻，引人入胜', en: 'Storyteller voice, vivid and immersive, varied rhythm, nuanced emotion, draws the listener in' },
+    'urgent':      { zh: '紧迫急切，节奏加快，语气坚定，传达事件的重要性和时效性', en: 'Urgent and intense, faster pace, firm tone, conveying importance and time pressure' }
+  };
+
+  function getEmotionInstructions(engine, lang, emotionKey) {
+    var key = emotionKey || 'default';
+    var preset = EMOTION_PRESETS[key];
+    if (!preset) return getDefaultInstructions(engine, lang);
+    return lang === 'zh' ? preset.zh : preset.en;
+  }
+
   function generateNarrative(slideInfo, slideIndex, totalSlides, lang, abortSignal) {
     var settings = getLlmSettings();
     if (!settings) return Promise.reject(new Error('No LLM settings'));
@@ -159,6 +282,7 @@
     if (heroH1) articleTitle = (heroH1.textContent || '').trim();
 
     var systemPrompt = SYSTEM_PROMPTS[lang] || SYSTEM_PROMPTS.zh;
+    systemPrompt += getEngineGuidance(getActiveTtsEngine(), lang);
     var positionHint = '';
     if (slideIndex === 0) positionHint = '\n\n[指令：这是演示的第一页，请以"大家好，欢迎来到 illusion615 Knowledge Hub 的知识分享"开头，然后简要介绍本次演示的主题]';
     else if (slideIndex === totalSlides - 1) positionHint = '\n\n[指令：这是演示的最后一页，请在讲解完内容后，以"感谢收看，更多内容请访问 illusion615 Knowledge Hub"结尾]';
@@ -434,14 +558,59 @@
     var llm = getLlmSettings();
     var endpoint = llm ? llm.endpoint.replace(/\/+$/, '') : 'http://localhost:8000';
     var apikey = llm ? llm.apikey : '';
-    var model = ss.mossTtsModel || 'Qwen3-TTS-12Hz-0.6B-CustomVoice-8bit';
-    var voice = (ss.mossTtsVoice || (lang === 'zh' ? 'vivian' : 'ryan')).toLowerCase();
     var headers = { 'Content-Type': 'application/json' };
     if (apikey) headers['Authorization'] = 'Bearer ' + apikey;
+
+    var body;
+    if (ss.ttsEngine === 'fish-s2') {
+      // Fish Audio S2 — voice is optional (zero-shot model uses default if omitted)
+      var fishModel = ss.fishTtsModel || 'fish-audio-s2-pro-8bit';
+      body = { model: fishModel, input: text };
+      if (ss.fishTtsVoice) body.voice = ss.fishTtsVoice;
+      // Speaker-tone control via natural-language instruction (engine accepts it)
+      var fishInstr = (ss.ttsInstructions && ss.ttsInstructions.trim()) || getEmotionInstructions('fish-s2', lang, ss.ttsEmotion);
+      if (fishInstr) body.instructions = fishInstr;
+      // NOTE: voice cloning via ref_audio is currently disabled — the oMLX backend
+      // crashes ("'str' object has no attribute 'ndim'") on any ref_audio payload.
+      // Re-enable once the upstream server accepts base64/data-URI ref_audio.
+    } else {
+      // Default: moss-tts-nano / Qwen3-TTS — voice may be a preset (e.g. "vivian")
+      // or a cloned voice ("clone:<id>"). Cloned voices switch to Qwen3-TTS-Base
+      // and attach ref_audio + ref_text from the named entry in 'narration-clones'.
+      var rawVoice = (ss.mossTtsVoice || (lang === 'zh' ? 'vivian' : 'ryan'));
+      if (typeof rawVoice === 'string' && rawVoice.indexOf('clone:') === 0) {
+        var cloneId = rawVoice.slice(6);
+        var clones = [];
+        try { clones = JSON.parse(localStorage.getItem('narration-clones')) || []; } catch (e) {}
+        var entry = null;
+        for (var i = 0; i < clones.length; i++) {
+          if (clones[i].id === cloneId) { entry = clones[i]; break; }
+        }
+        if (entry && entry.audio && entry.text) {
+          var quality = ss.mossCloneQuality === 'bf16' ? 'bf16' : '8bit';
+          body = {
+            model: 'Qwen3-TTS-12Hz-1.7B-Base-' + quality,
+            input: text,
+            ref_audio: entry.audio,   // plain base64 (no data-URI prefix)
+            ref_text: entry.text
+          };
+        } else {
+          // Clone missing — fall back to a preset
+          body = { model: 'Qwen3-TTS-12Hz-0.6B-CustomVoice-8bit', input: text, voice: lang === 'zh' ? 'vivian' : 'ryan' };
+        }
+      } else {
+        var model = ss.mossTtsModel || 'Qwen3-TTS-12Hz-0.6B-CustomVoice-8bit';
+        body = { model: model, input: text, voice: rawVoice.toLowerCase() };
+      }
+      // Qwen3-TTS uses `instructions` for emotion/tone; pass selected emotion preset
+      var qwenInstr = (ss.ttsInstructions && ss.ttsInstructions.trim()) || getEmotionInstructions('moss-tts-nano', lang, ss.ttsEmotion);
+      if (qwenInstr) body.instructions = qwenInstr;
+    }
+
     return fetch(endpoint + '/audio/speech', {
       method: 'POST',
       headers: headers,
-      body: JSON.stringify({ model: model, input: text, voice: voice })
+      body: JSON.stringify(body)
     }).then(function (res) {
       if (!res.ok) throw new Error('Local TTS HTTP ' + res.status);
       return res.arrayBuffer();
@@ -461,6 +630,24 @@
     }
     if (recordingCtx.state === 'suspended') recordingCtx.resume();
     return recordingDest.stream;
+  }
+
+  /* ── Shared AudioContext for playback ──
+     Browsers (Chrome/Edge) limit concurrent AudioContexts (~6). Creating one
+     per slide caused 'AudioContext encountered an error from the audio device'
+     after a few slides, with onended never firing → controller hung.
+     Reuse a single context for all playback. */
+  var playbackCtx = null;
+  function getPlaybackCtx() {
+    var Ctor = window.AudioContext || window.webkitAudioContext;
+    if (!Ctor) return null;
+    if (!playbackCtx || playbackCtx.state === 'closed') {
+      playbackCtx = new Ctor();
+    }
+    if (playbackCtx.state === 'suspended') {
+      try { playbackCtx.resume(); } catch (e) {}
+    }
+    return playbackCtx;
   }
 
   function speakViaLocalTTS(text, lang, callbacks, speechSettings, prefetchedBuffer) {
@@ -523,9 +710,8 @@
     .then(function (buffer) {
       if (cancelled) return;
 
-      var AudioContextCtor = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContextCtor) throw new Error('Web Audio API not available');
-      audioCtx = new AudioContextCtor();
+      audioCtx = getPlaybackCtx();
+      if (!audioCtx) throw new Error('Web Audio API not available');
       // Copy the buffer before decoding — decodeAudioData detaches the original
       var copy = buffer.slice(0);
       return audioCtx.decodeAudioData(copy);
@@ -561,13 +747,26 @@
         if (!cancelled) {
           if (cb.onEnd) cb.onEnd();
         }
-        if (audioCtx) {
-          try { audioCtx.close(); } catch (e) {}
-          audioCtx = null;
-        }
+        // Do NOT close shared playback context — reused across slides
+        audioCtx = null;
       };
 
       sourceNode.start(0);
+
+      // Safety net: if onended never fires (audio device error, suspended tab),
+      // force-advance after duration + 2s grace.
+      var graceMs = (audioBuffer.duration / rateMultiplier) * 1000 + 2000;
+      var safety = setTimeout(function () {
+        if (cancelled || !sourceNode) return;
+        try { sourceNode.stop(); } catch (e) {}
+        var stale = sourceNode;
+        sourceNode = null;
+        clearSubtitleTimers();
+        if (!cancelled && cb.onEnd) cb.onEnd();
+        // null onended on stale to avoid double-fire
+        try { stale.onended = null; } catch (e) {}
+      }, graceMs);
+      subtitleTimers.push(safety);
 
       // Schedule subtitle chunks across audio duration
       var durationMs = (audioBuffer.duration / rateMultiplier) * 1000;
@@ -581,8 +780,11 @@
     return {
       pause: function () {
         paused = true;
-        if (audioCtx && audioCtx.state === 'running') {
-          audioCtx.suspend();
+        // Stop the source instead of suspending the shared context (would pause
+        // every other slide's audio too in future calls).
+        if (sourceNode) {
+          try { sourceNode.onended = null; sourceNode.stop(); } catch (e) {}
+          sourceNode = null;
         }
         if (subtitleStartedAt) {
           subtitlePauseAt = Date.now();
@@ -592,9 +794,8 @@
       },
       resume: function () {
         paused = false;
-        if (audioCtx && audioCtx.state === 'suspended') {
-          audioCtx.resume();
-        }
+        // Pause/resume of TTS playback is treated as cancel + restart at controller level;
+        // shared context stays running.
         if (subtitleSchedule && subtitleElapsedBeforePause) {
           scheduleSubtitles(subtitleSchedule.durationMs, subtitleElapsedBeforePause);
         }
@@ -607,10 +808,8 @@
           try { sourceNode.stop(); } catch (e) {}
           sourceNode = null;
         }
-        if (audioCtx) {
-          try { audioCtx.close(); } catch (e) {}
-          audioCtx = null;
-        }
+        // Do NOT close shared playback context — reused across slides
+        audioCtx = null;
       }
     };
   }
@@ -665,7 +864,10 @@
       if (slug) { try { var a = JSON.parse(localStorage.getItem('narration-settings:' + slug)); if (a) { Object.keys(a).forEach(function (k) { if (a[k] !== undefined && a[k] !== '') global[k] = a[k]; }); } } catch (e) {} }
       return global;
     };
-    var isLocalTTS = function () { return getSpeechSettings().ttsEngine === 'moss-tts-nano'; };
+    var isLocalTTS = function () {
+      var e = getSpeechSettings().ttsEngine;
+      return e === 'moss-tts-nano' || e === 'fish-s2';
+    };
 
     function setState(s) { state = s; onStateChange(s); }
 
@@ -938,14 +1140,14 @@
   function isAvailable() {
     var hasLlm = !!getLlmSettings();
     if (!hasLlm) return false;
-    // Available if browser TTS exists OR MOSS-TTS-Nano is configured
+    // Available if browser TTS exists OR a local OpenAI-compatible TTS engine is configured
     var hasBrowserTTS = !!(window.speechSynthesis && window.SpeechSynthesisUtterance);
-    var hasMossTTS = false;
+    var hasLocalTTS = false;
     try {
       var ns = JSON.parse(localStorage.getItem('narration-settings'));
-      if (ns && ns.ttsEngine === 'moss-tts-nano' && ns.mossTtsEndpoint) hasMossTTS = true;
+      if (ns && (ns.ttsEngine === 'moss-tts-nano' || ns.ttsEngine === 'fish-s2')) hasLocalTTS = true;
     } catch (e) {}
-    return hasBrowserTTS || hasMossTTS;
+    return hasBrowserTTS || hasLocalTTS;
   }
 
   function getVoiceList() {

@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>阅读风格设置 | Knowledge Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/article.css" />
+  <link rel="stylesheet" href="assets/scrollbar.css" />
+  <style>
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Noto Sans SC", "Space Grotesk", sans-serif;
+      min-height: 100vh;
+    }
+
+    .sp-shell {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 36px 24px 80px;
+    }
+
+    .sp-topbar {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+
+    .sp-back {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      color: var(--ink);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      font-size: 1.1rem;
+    }
+
+    .sp-back:hover { background: var(--accent-soft); }
+
+    .sp-titles h1 {
+      margin: 0;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
+
+    .sp-titles p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .sp-theme {
+      margin-left: auto;
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      color: var(--ink);
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    .sp-theme:hover { background: var(--accent-soft); }
+
+    /* ── Style picker ── */
+    .style-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+
+    @media (max-width: 880px) {
+      .style-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    .style-card {
+      position: relative;
+      cursor: pointer;
+      border-radius: var(--radius-lg);
+      border: 2px solid var(--line);
+      background: var(--panel);
+      padding: 16px;
+      transition: 0.2s ease;
+    }
+
+    .style-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    .style-card.is-active {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    .style-card.is-active::after {
+      content: "\2713";
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      width: 22px;
+      height: 22px;
+      line-height: 22px;
+      text-align: center;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
+    .style-name {
+      margin: 0 0 4px;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.98rem;
+      font-weight: 700;
+    }
+
+    .style-desc {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.55;
+    }
+
+    /* ── Live preview frame (single, no paging) ── */
+    .preview-label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .preview-label .live-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px var(--accent-soft);
+      animation: live-pulse 1.6s ease-in-out infinite;
+    }
+
+    @keyframes live-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.45; }
+    }
+
+    .preview-frame {
+      position: relative;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--line);
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 12% 12%, rgba(255, 122, 0, 0.18), transparent 30%),
+        radial-gradient(circle at 84% 10%, rgba(13, 143, 140, 0.14), transparent 24%),
+        linear-gradient(180deg, var(--bg-top, #fff8ec) 0%, #f4ede3 38%, var(--bg-bottom, #efe3ce) 100%);
+      isolation: isolate;
+    }
+
+    [data-theme="dark"] .preview-frame {
+      background:
+        radial-gradient(circle at 12% 12%, rgba(255, 153, 51, 0.12), transparent 30%),
+        radial-gradient(circle at 84% 10%, rgba(46, 196, 182, 0.10), transparent 24%),
+        linear-gradient(180deg, #1c2330 0%, #181f2a 38%, #141a23 100%);
+    }
+
+    /* Orbs — only visible under [data-style="warm"] thanks to article.css rules */
+    .preview-frame .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(40px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .preview-frame .orb.orb-a { width: 240px; height: 240px; top: -60px; left: -40px; background: radial-gradient(circle, rgba(255, 138, 30, 0.7), transparent 70%); }
+    .preview-frame .orb.orb-b { width: 200px; height: 200px; bottom: -60px; right: 8%; background: radial-gradient(circle, rgba(13, 143, 140, 0.55), transparent 70%); }
+    .preview-frame .orb.orb-c { width: 160px; height: 160px; top: 30%; right: -40px; background: radial-gradient(circle, rgba(255, 196, 102, 0.55), transparent 70%); }
+
+    .preview-frame .pf-inner {
+      position: relative;
+      z-index: 1;
+      padding: 32px 36px;
+    }
+
+    @media (max-width: 720px) {
+      .preview-frame .pf-inner { padding: 22px 18px; }
+    }
+
+    .pf-eyebrow {
+      display: inline-block;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.72rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: var(--accent-soft);
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+
+    .pf-title {
+      margin: 12px 0 6px;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--ink);
+    }
+
+    .pf-lede {
+      margin: 0 0 24px;
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.7;
+      max-width: 720px;
+    }
+
+    .pf-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 720px) {
+      .pf-grid { grid-template-columns: 1fr; }
+    }
+
+    .pf-cell {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+    }
+
+    .pf-cell-label {
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .pf-cell-value {
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .pf-section-h {
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 22px 0 10px;
+    }
+
+    .pf-palette {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    @media (max-width: 880px) {
+      .pf-palette { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 480px) {
+      .pf-palette { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    .pf-swatch {
+      border-radius: var(--radius-md);
+      border: 1px solid var(--line);
+      overflow: hidden;
+      background: var(--panel);
+    }
+
+    .pf-swatch-block { height: 64px; }
+
+    .pf-swatch-meta {
+      padding: 8px 10px;
+      font-size: 0.72rem;
+      color: var(--muted);
+      word-break: break-all;
+    }
+
+    .pf-swatch-meta strong {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--ink);
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+
+    .pf-components {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 14px;
+    }
+
+    @media (max-width: 880px) {
+      .pf-components { grid-template-columns: 1fr; }
+    }
+
+    /* Compact real-article components inside the preview */
+    .preview-frame .insight-card {
+      padding: 16px 18px;
+      border-radius: var(--radius-md);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: 0 8px 24px rgba(23, 36, 48, 0.06);
+      position: relative;
+    }
+    .preview-frame .insight-card::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--accent), var(--teal, #0d8f8c));
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
+      display: none;
+    }
+    .preview-frame .insight-card h4 {
+      margin: 0 0 6px;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+    .preview-frame .insight-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.85rem;
+      line-height: 1.6;
+    }
+
+    .preview-frame .flow-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .preview-frame .flow-list li {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+    }
+    .preview-frame .flow-step {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .preview-frame .flow-text {
+      font-size: 0.85rem;
+      color: var(--ink);
+      line-height: 1.55;
+    }
+    .preview-frame .flow-text small {
+      display: block;
+      color: var(--muted);
+      font-size: 0.74rem;
+      margin-top: 2px;
+    }
+
+    /* Per-style notes badge — visible style indicator */
+    .pf-style-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 10px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    /* Style-specific accent palettes — only inside preview, so we don't lie
+       about the global token state. They mirror real article-css behavior. */
+    [data-style="warm"] .preview-frame { --accent: #ff7a00; --accent-soft: rgba(255, 122, 0, 0.16); }
+    [data-style="academic"] .preview-frame { --accent: #1f4f8a; --accent-soft: rgba(31, 79, 138, 0.14); }
+    [data-style="vivid"] .preview-frame { --accent: #e02e6b; --accent-soft: rgba(224, 46, 107, 0.16); }
+    /* clean keeps the global default */
+
+    /* Academic preview: bigger leading on prose */
+    [data-style="academic"] .preview-frame .pf-lede,
+    [data-style="academic"] .preview-frame .insight-card p,
+    [data-style="academic"] .preview-frame .flow-text {
+      line-height: 2;
+      font-size: 0.92rem;
+    }
+    [data-style="academic"] .preview-frame .insight-card { box-shadow: none; }
+
+    /* Vivid preview: colored left bar + tighter title spacing */
+    [data-style="vivid"] .preview-frame .insight-card {
+      border-left: 4px solid var(--accent);
+      border-radius: var(--radius-md) var(--radius-lg) var(--radius-lg) var(--radius-md);
+    }
+    [data-style="vivid"] .preview-frame .pf-title { letter-spacing: -0.02em; }
+
+    /* Warm preview: glow on cards, show top accent strip */
+    [data-style="warm"] .preview-frame .insight-card {
+      box-shadow: 0 18px 40px rgba(255, 122, 0, 0.18);
+      -webkit-backdrop-filter: blur(14px);
+      backdrop-filter: blur(14px);
+      background: rgba(255, 255, 255, 0.78);
+    }
+    [data-theme="dark"][data-style="warm"] .preview-frame .insight-card {
+      background: rgba(40, 48, 60, 0.72);
+    }
+    [data-style="warm"] .preview-frame .insight-card::before { display: block; }
+    [data-style="warm"] .preview-frame .flow-step {
+      box-shadow: 0 10px 22px rgba(255, 122, 0, 0.28);
+    }
+
+    /* Clean preview: kill all decoration */
+    .preview-frame .orb { opacity: 0; }
+    [data-style="warm"] .preview-frame .orb { opacity: 0.55; }
+  </style>
+</head>
+<body>
+  <div class="sp-shell">
+    <div class="sp-topbar">
+      <a class="sp-back" href="./" aria-label="返回首页">←</a>
+      <div class="sp-titles">
+        <h1 data-zh="阅读风格" data-en="Reading Style">阅读风格</h1>
+        <p data-zh="选择风格，下方预览即时反映效果。" data-en="Pick a style. The preview below reflects it instantly.">选择风格，下方预览即时反映效果。</p>
+      </div>
+      <button class="sp-theme" type="button" id="themeToggle" aria-label="切换主题">☾</button>
+    </div>
+
+    <div class="style-grid" id="styleGrid">
+      <article class="style-card is-active" data-style-val="clean">
+        <h3 class="style-name" data-zh="简洁 Clean" data-en="Clean">简洁 Clean</h3>
+        <p class="style-desc" data-zh="装饰最少，信息密度最高。" data-en="Least decoration, highest info density.">装饰最少，信息密度最高。</p>
+      </article>
+      <article class="style-card" data-style-val="warm">
+        <h3 class="style-name" data-zh="温暖 Warm" data-en="Warm">温暖 Warm</h3>
+        <p class="style-desc" data-zh="毛玻璃 + 渐变辉光，氛围最强。" data-en="Frosted glass + glow, most atmospheric.">毛玻璃 + 渐变辉光，氛围最强。</p>
+      </article>
+      <article class="style-card" data-style-val="academic">
+        <h3 class="style-name" data-zh="学术 Academic" data-en="Academic">学术 Academic</h3>
+        <p class="style-desc" data-zh="大字号、大行高，阅读最舒适。" data-en="Larger type and leading, easiest to read.">大字号、大行高，阅读最舒适。</p>
+      </article>
+      <article class="style-card" data-style-val="vivid">
+        <h3 class="style-name" data-zh="鲜明 Vivid" data-en="Vivid">鲜明 Vivid</h3>
+        <p class="style-desc" data-zh="彩色边条 + 强对比，扫读最快。" data-en="Accent bars + strong contrast, fast scanning.">彩色边条 + 强对比，扫读最快。</p>
+      </article>
+    </div>
+
+    <p class="preview-label">
+      <span class="live-dot" aria-hidden="true"></span>
+      <span data-zh="实时预览（即当前风格说明）" data-en="Live preview (current style explained)">实时预览（即当前风格说明）</span>
+    </p>
+
+    <div class="preview-frame">
+      <span class="orb orb-a" aria-hidden="true"></span>
+      <span class="orb orb-b" aria-hidden="true"></span>
+      <span class="orb orb-c" aria-hidden="true"></span>
+      <div class="pf-inner">
+        <span class="pf-eyebrow" id="pfEyebrow">CLEAN STYLE</span>
+        <h2 class="pf-title" id="pfTitle">简洁 — 信息优先</h2>
+        <p class="pf-lede" id="pfLede">这段说明本身就在使用当前选中的风格。改变上方卡片，标题字重、段落色、卡片边框、强调色都会同步切换。</p>
+
+        <div class="pf-grid">
+          <div class="pf-cell">
+            <div class="pf-cell-label" data-zh="装饰强度" data-en="Decoration">装饰强度</div>
+            <div class="pf-cell-value" id="pfDeco">最低</div>
+          </div>
+          <div class="pf-cell">
+            <div class="pf-cell-label" data-zh="阅读密度" data-en="Density">阅读密度</div>
+            <div class="pf-cell-value" id="pfDensity">高</div>
+          </div>
+          <div class="pf-cell">
+            <div class="pf-cell-label" data-zh="推荐场景" data-en="Best for">推荐场景</div>
+            <div class="pf-cell-value" id="pfScene">规范 / 方法论</div>
+          </div>
+        </div>
+
+        <div class="pf-section-h" data-zh="配色 Token" data-en="Color tokens">配色 Token</div>
+        <div class="pf-palette" id="pfPalette"></div>
+
+        <div class="pf-section-h" data-zh="组件示例" data-en="Component samples">组件示例</div>
+        <div class="pf-components">
+          <div class="insight-card">
+            <h4 data-zh="卡片 Insight" data-en="Insight card">卡片 Insight</h4>
+            <p data-zh="warm 出现顶部渐变条与玻璃光晕，academic 收掉阴影，vivid 加左侧彩色边条，clean 全部收起。" data-en="Warm gets the top accent strip and glow; academic flattens shadow; vivid adds an accent left bar; clean strips it all.">warm 出现顶部渐变条与玻璃光晕，academic 收掉阴影，vivid 加左侧彩色边条，clean 全部收起。</p>
+            <span class="pf-style-tag" id="pfStyleTag">CLEAN</span>
+          </div>
+          <ul class="flow-list">
+            <li><span class="flow-step">1</span><div class="flow-text"><strong data-zh="选择风格" data-en="Pick a style">选择风格</strong><small data-zh="点击上方卡片，data-style 立即切换。" data-en="Click a card above; data-style switches instantly.">点击上方卡片，data-style 立即切换。</small></div></li>
+            <li><span class="flow-step">2</span><div class="flow-text"><strong data-zh="即时反馈" data-en="Instant feedback">即时反馈</strong><small data-zh="预览使用真实文章类，CSS 规则直接生效。" data-en="Preview uses real article classes; CSS rules apply directly.">预览使用真实文章类，CSS 规则直接生效。</small></div></li>
+            <li><span class="flow-step">3</span><div class="flow-text"><strong data-zh="保存设置" data-en="Saved automatically">保存设置</strong><small data-zh="选择会写入 localStorage，全站文章生效。" data-en="Selection persists in localStorage for all articles.">选择会写入 localStorage，全站文章生效。</small></div></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var root = document.documentElement;
+
+      // ── Theme ──
+      var stored = localStorage.getItem('theme');
+      var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var theme = stored || (prefersDark ? 'dark' : 'light');
+      root.setAttribute('data-theme', theme);
+
+      var themeBtn = document.getElementById('themeToggle');
+      themeBtn.textContent = theme === 'dark' ? '☀' : '☾';
+      themeBtn.addEventListener('click', function () {
+        theme = theme === 'dark' ? 'light' : 'dark';
+        root.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+        themeBtn.textContent = theme === 'dark' ? '☀' : '☾';
+        requestAnimationFrame(refreshPalette);
+      });
+
+      // ── Language ──
+      var lang = localStorage.getItem('lang') || 'zh';
+      root.setAttribute('lang', lang === 'zh' ? 'zh-CN' : 'en');
+      document.querySelectorAll('[data-zh][data-en]').forEach(function (el) {
+        var val = el.getAttribute('data-' + lang);
+        if (val !== null) el.innerHTML = val;
+      });
+
+      // ── Style copy ──
+      var styleInfo = {
+        clean: {
+          eyebrow: 'CLEAN STYLE',
+          title: { zh: '简洁 — 信息优先', en: 'Clean — Information first' },
+          lede: {
+            zh: '没有光球，没有渐变辉光。视觉权重全部交给正文层级——标题、段落、列表。最适合写规范、检查清单与方法论。',
+            en: 'No orbs, no glow. All visual weight goes to text hierarchy. Best for specs, checklists, and methodology.'
+          },
+          deco: { zh: '最低', en: 'Lowest' },
+          density: { zh: '高', en: 'High' },
+          scene: { zh: '规范 / 方法论', en: 'Specs / methodology' }
+        },
+        warm: {
+          eyebrow: 'WARM STYLE',
+          title: { zh: '温暖 — 故事氛围', en: 'Warm — Atmospheric' },
+          lede: {
+            zh: '保留漂浮光球与卡片渐变辉光，背景使用毛玻璃。适合复盘、趋势解读、长篇叙事。',
+            en: 'Keeps floating orbs and frosted glass. Best for retrospectives, trend pieces, and narrative content.'
+          },
+          deco: { zh: '高', en: 'High' },
+          density: { zh: '中', en: 'Medium' },
+          scene: { zh: '复盘 / 趋势', en: 'Retros / trends' }
+        },
+        academic: {
+          eyebrow: 'ACADEMIC STYLE',
+          title: { zh: '学术 — 长文舒适', en: 'Academic — Long-form comfort' },
+          lede: {
+            zh: '更大的字号与行高、更弱的卡片阴影、更冷的强调色。最适合课程讲义、研究笔记与长论述。',
+            en: 'Larger type, more leading, cooler accent. Best for lecture notes, research, and long arguments.'
+          },
+          deco: { zh: '低', en: 'Low' },
+          density: { zh: '中', en: 'Medium' },
+          scene: { zh: '讲义 / 研究', en: 'Notes / research' }
+        },
+        vivid: {
+          eyebrow: 'VIVID STYLE',
+          title: { zh: '鲜明 — 强结构对比', en: 'Vivid — Strong hierarchy' },
+          lede: {
+            zh: '彩色左边条、填充徽章、强对比颜色。适合销售提案、路演、需要快速扫读的页面。',
+            en: 'Accent bars, filled badges, high contrast. Best for pitches, decks, and fast-scan pages.'
+          },
+          deco: { zh: '中', en: 'Medium' },
+          density: { zh: '高', en: 'High' },
+          scene: { zh: '提案 / 路演', en: 'Pitches / decks' }
+        }
+      };
+
+      var paletteTokens = [
+        { name: { zh: '强调色', en: 'Accent' }, varName: '--accent' },
+        { name: { zh: '强调浅', en: 'Accent soft' }, varName: '--accent-soft' },
+        { name: { zh: '正文', en: 'Ink' }, varName: '--ink' },
+        { name: { zh: '次要文本', en: 'Muted' }, varName: '--muted' },
+        { name: { zh: '面板', en: 'Panel' }, varName: '--panel' },
+        { name: { zh: '描边', en: 'Line' }, varName: '--line' },
+        { name: { zh: '背景', en: 'Background' }, varName: '--bg' }
+      ];
+
+      // ── Refs ──
+      var pfEyebrow = document.getElementById('pfEyebrow');
+      var pfTitle = document.getElementById('pfTitle');
+      var pfLede = document.getElementById('pfLede');
+      var pfDeco = document.getElementById('pfDeco');
+      var pfDensity = document.getElementById('pfDensity');
+      var pfScene = document.getElementById('pfScene');
+      var pfPalette = document.getElementById('pfPalette');
+      var pfStyleTag = document.getElementById('pfStyleTag');
+
+      function refreshPalette() {
+        var styles = getComputedStyle(root);
+        pfPalette.innerHTML = '';
+        paletteTokens.forEach(function (token) {
+          var value = styles.getPropertyValue(token.varName).trim() || '—';
+          var swatch = document.createElement('div');
+          swatch.className = 'pf-swatch';
+          var block = document.createElement('div');
+          block.className = 'pf-swatch-block';
+          block.style.background = value;
+          var meta = document.createElement('div');
+          meta.className = 'pf-swatch-meta';
+          var label = (token.name[lang] || token.name.zh);
+          meta.innerHTML = '<strong>' + label + '</strong>' + token.varName + ' · ' + value;
+          swatch.appendChild(block);
+          swatch.appendChild(meta);
+          pfPalette.appendChild(swatch);
+        });
+      }
+
+      function applyStyle(value) {
+        root.removeAttribute('data-style');
+        root.removeAttribute('data-decor');
+        if (value !== 'clean') root.setAttribute('data-style', value);
+        localStorage.setItem('article-style', value);
+        localStorage.setItem('article-decor', value === 'warm' ? 'rich' : 'minimal');
+
+        document.querySelectorAll('.style-card').forEach(function (card) {
+          card.classList.toggle('is-active', card.getAttribute('data-style-val') === value);
+        });
+
+        var info = styleInfo[value] || styleInfo.clean;
+        pfEyebrow.textContent = info.eyebrow;
+        pfTitle.textContent = info.title[lang] || info.title.zh;
+        pfLede.textContent = info.lede[lang] || info.lede.zh;
+        pfDeco.textContent = info.deco[lang] || info.deco.zh;
+        pfDensity.textContent = info.density[lang] || info.density.zh;
+        pfScene.textContent = info.scene[lang] || info.scene.zh;
+        if (pfStyleTag) pfStyleTag.textContent = value.toUpperCase();
+
+        requestAnimationFrame(refreshPalette);
+      }
+
+      var initial = localStorage.getItem('article-style');
+      if (!initial) {
+        var oldDecor = localStorage.getItem('article-decor');
+        initial = oldDecor === 'rich' ? 'warm' : 'clean';
+      }
+      if (!styleInfo[initial]) initial = 'clean';
+      applyStyle(initial);
+
+      document.getElementById('styleGrid').addEventListener('click', function (e) {
+        var card = e.target.closest('[data-style-val]');
+        if (!card) return;
+        applyStyle(card.getAttribute('data-style-val'));
+      });
+    })();
+  </script>
+</body>
+</html>

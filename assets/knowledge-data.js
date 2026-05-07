@@ -290,6 +290,25 @@ var knowledgeTree = [
     relations: ['copilot-harness-eng', 'enterprise-agent-arch', 'claw-code']
   },
   {
+    id: 'open-design-research',
+    parentId: 'ai-research-vibe-coding',
+    type: 'article',
+    title: {
+      zh: 'Open Design 解析：让 AI 帮你做设计的开源工作台',
+      en: 'Open Design: An Open-Source AI Design Workbench'
+    },
+    summary: {
+      zh: '拆解 OD 的六步设计流程、五道质量闸门与三层架构，以及它如何打开 Claude Design 的四把锁。',
+      en: 'How OD unlocks Claude Design with a six-step flow, five quality gates, three-layer architecture, and BYOK model flexibility.'
+    },
+    tags: ['Open Source', 'AI Design', 'BYOK', 'Skills'],
+    date: '2026-05-05',
+    url: 'posts/open-design-research/index.html',
+    color: '#a78bfa',
+    phase: 4.4, speed: 0.84,
+    relations: ['copilot-deep-dive', 'claw-code-analysis', 'copilot-harness-eng']
+  },
+  {
     id: 'text-to-image-prompting',
     parentId: 'ai-research-model',
     type: 'article',
@@ -1930,5 +1949,155 @@ var knowledgeTree = [
     color: '#ea6428',
     phase: 4.2, speed: 0.88,
     relations: ['text-to-image-prompting', 'mai-image-2-efficient']
+  },
+
+  // ════════════════════════════════════════
+  // 文章 — Fish Audio S2 模型研究
+  // ════════════════════════════════════════
+  {
+    id: 'fish-audio-s2',
+    parentId: 'ai-research-model',
+    type: 'article',
+    title: {
+      zh: 'Fish Audio S2 技术研究：Dual-AR 架构、细粒度语音控制与流式部署边界',
+      en: 'Fish Audio S2 Technical Analysis: Dual-AR TTS, Fine-Grained Control, and Streaming Limits'
+    },
+    summary: {
+      zh: '基于技术报告、README 与模型卡，拆解 Fish Audio S2 的 Dual-AR 架构、词级语音控制、流式延迟口径与研究许可边界。',
+      en: 'Analyzes Fish Audio S2 across Dual-AR architecture, word-level speech control, streaming latency metrics, and its research-license boundary.'
+    },
+    tags: ['Text-to-Speech', 'Fish Audio', 'Voice Cloning', 'Speech Model'],
+    date: '2026-05-03',
+    url: 'posts/fish-audio-s2/index.html',
+    color: '#38bdf8',
+    phase: 1.1, speed: 0.86,
+    relations: ['m4-max-local-models', 'llm-wiki']
+  },
+
+  // ════════════════════════════════════════
+  // 根节点 — 智能体平台
+  // ════════════════════════════════════════
+  {
+    id: 'agent-platform',
+    parentId: 'ai-project-practice',
+    type: 'topic',
+    label: { zh: '智能体平台', en: 'Agent Platform' },
+    color: '#0891b2',
+    phase: 0.8, speed: 0.52
+  },
+
+  // ════════════════════════════════════════
+  // 文章 — 智能体平台设计理念
+  // ════════════════════════════════════════
+  {
+    id: 'agent-platform-philosophy',
+    parentId: 'agent-platform',
+    type: 'article',
+    title: {
+      zh: '智能体平台设计理念：边界划分、八条目标与五条已知不适用场景',
+      en: 'Agent Platform Design Philosophy: Boundary, Eight Goals and Five Known Limitations'
+    },
+    summary: {
+      zh: '将“抽出智能体运行时”表述为可证伪假设，给出 8 条可观测目标、4 条非目标、与 8 个主流方案的逆维度对比、5 条不适用场景与 IntellyGoal 实证锚点。',
+      en: 'Frames runtime extraction as falsifiable: 8 observable goals, 4 non-goals, 7-axis vendor comparison, 5 limitations, IntellyGoal anchor.'
+    },
+    tags: ['Agent Platform', 'Architecture', 'Multi-Tenant', 'MCP'],
+    date: '2026-05-04',
+    url: 'posts/agent-platform-philosophy/index.html',
+    color: '#0891b2',
+    phase: 0.4, speed: 0.9,
+    relations: ['agent-platform-requirements', 'agent-platform-hld', 'enterprise-agent-architecture']
+  },
+
+  // ════════════════════════════════════════
+  // 文章 — 智能体平台需求规格说明书
+  // ════════════════════════════════════════
+  {
+    id: 'agent-platform-requirements',
+    parentId: 'agent-platform',
+    type: 'article',
+    title: {
+      zh: '智能体平台需求规格说明书：34 条功能与 24 条非功能需求',
+      en: 'Agent Platform SRS: 34 Functional and 24 Non-Functional Requirements'
+    },
+    summary: {
+      zh: 'IEEE 830 风格需求规格，含六类角色、两条核心用例、按 MoSCoW 分级的 FR/NFR 编号体系与 GA 验收准则。',
+      en: 'IEEE 830 style SRS: six actors, two core use cases, MoSCoW-prioritized FR/NFR numbering, and GA acceptance criteria.'
+    },
+    tags: ['Agent Platform', 'Requirements', 'SRS', 'MoSCoW'],
+    date: '2026-05-04',
+    url: 'posts/agent-platform-requirements/index.html',
+    color: '#0891b2',
+    phase: 1.4, speed: 0.88,
+    relations: ['agent-platform-philosophy', 'agent-platform-hld', 'agent-platform-api-spec']
+  },
+
+  // ════════════════════════════════════════
+  // 文章 — 智能体平台高阶设计
+  // ════════════════════════════════════════
+  {
+    id: 'agent-platform-hld',
+    parentId: 'agent-platform',
+    type: 'article',
+    title: {
+      zh: '智能体平台高阶设计：三层视图、11 组件与 5 条数据流',
+      en: 'Agent Platform HLD: Three-Layer View, 11 Components and 5 Data Flows'
+    },
+    summary: {
+      zh: '给出三层架构（外部接触面/内部模块/组件细节）、11 核心组件清单、5 条关键数据流、Compact/Scale-Out 双部署形态与 Seed/Overlay 自演化设计。',
+      en: 'Three-layer architecture, 11 components, 5 data flows, Compact/Scale-Out deployments and Seed/Overlay self-evolution design.'
+    },
+    tags: ['Agent Platform', 'High-Level Design', 'LangGraph', 'LiteLLM'],
+    date: '2026-05-04',
+    url: 'posts/agent-platform-hld/index.html',
+    color: '#0891b2',
+    phase: 2.5, speed: 0.86,
+    relations: ['agent-platform-requirements', 'agent-platform-api-spec', 'agent-platform-intellygoal']
+  },
+
+  // ════════════════════════════════════════
+  // 文章 — 智能体平台接口规范说明书
+  // ════════════════════════════════════════
+  {
+    id: 'agent-platform-api-spec',
+    parentId: 'agent-platform',
+    type: 'article',
+    title: {
+      zh: '智能体平台接口规范说明书：REST + SSE + MCP 单通道',
+      en: 'Agent Platform API Specification: REST + SSE + MCP Single Channel'
+    },
+    summary: {
+      zh: '17 个 REST 端点契约、SSE 流式协议、MCP 出站约定（超时/熔断/重试/响应大小），统一错误模型与限流策略。',
+      en: 'Defines 17 REST endpoints, SSE streaming, MCP outbound contract with guardrails, unified error model and rate-limit policy.'
+    },
+    tags: ['Agent Platform', 'API Spec', 'MCP', 'REST'],
+    date: '2026-05-04',
+    url: 'posts/agent-platform-api-spec/index.html',
+    color: '#0891b2',
+    phase: 3.7, speed: 0.84,
+    relations: ['agent-platform-hld', 'agent-platform-intellygoal', 'function-calling-best-practices']
+  },
+
+  // ════════════════════════════════════════
+  // 文章 — 智能体平台应用实践（IntellyGoal）
+  // ════════════════════════════════════════
+  {
+    id: 'agent-platform-intellygoal',
+    parentId: 'agent-platform',
+    type: 'article',
+    title: {
+      zh: '智能体平台应用实践：IntellyGoal 项目四阶段迁移',
+      en: 'Agent Platform Practice: IntellyGoal Four-Phase Migration'
+    },
+    summary: {
+      zh: '记录 IntellyGoal 从业务内嵌智能体迁移到平台首个 MCP 租户的四个阶段，含 5 Skill 拓扑、commit_goal_plan 实现样例与六条经验教训。',
+      en: 'IntellyGoal four-phase migration from in-app agent to first MCP tenant: 5 skills, commit_goal_plan sample and six lessons learned.'
+    },
+    tags: ['Agent Platform', 'Case Study', 'IntellyGoal', 'MCP'],
+    date: '2026-05-04',
+    url: 'posts/agent-platform-intellygoal/index.html',
+    color: '#0891b2',
+    phase: 4.9, speed: 0.82,
+    relations: ['agent-platform-hld', 'agent-platform-api-spec', 'intellygoal-fc-review']
   }
 ];

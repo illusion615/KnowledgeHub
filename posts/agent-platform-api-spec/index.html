@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>智能体平台接口规范说明书：REST + SSE + MCP 单通道</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(2.4rem, 6vw, 4.4rem);
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+    }
+    .api-block {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      padding: 18px 20px;
+      margin-bottom: 14px;
+      box-shadow: var(--card-shadow);
+    }
+    .api-method {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 6px;
+      font-family: 'Space Grotesk', monospace;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      margin-right: 8px;
+    }
+    .m-get { background: rgba(8, 145, 178, 0.14); color: #0891b2; }
+    .m-post { background: rgba(22, 163, 74, 0.14); color: #16a34a; }
+    .m-put { background: rgba(217, 119, 6, 0.16); color: #b45309; }
+    .m-delete { background: rgba(220, 38, 38, 0.14); color: #dc2626; }
+    [data-theme="dark"] .m-get { background: rgba(34, 211, 238, 0.18); color: #67e8f9; }
+    [data-theme="dark"] .m-post { background: rgba(74, 222, 128, 0.16); color: #86efac; }
+    [data-theme="dark"] .m-put { background: rgba(251, 191, 36, 0.16); color: #fbbf24; }
+    [data-theme="dark"] .m-delete { background: rgba(248, 113, 113, 0.16); color: #f87171; }
+    .api-path {
+      font-family: 'Space Grotesk', monospace;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    .api-block h4 { margin: 0 0 6px; font-size: 0.95rem; color: var(--ink); display: inline; font-weight: 600; }
+    .api-block p { margin: 8px 0 6px; color: var(--muted); font-size: 0.88rem; line-height: 1.6; }
+    .api-block pre {
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-family: 'Space Grotesk', monospace;
+      font-size: 0.78rem;
+      line-height: 1.5;
+      white-space: pre;
+      overflow-x: auto;
+      color: var(--ink);
+      margin: 8px 0 0;
+    }
+    [data-theme="dark"] .api-block pre { background: rgba(255, 255, 255, 0.04); }
+
+    .err-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 0.88rem;
+    }
+    .err-table th, .err-table td {
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+    .err-table th {
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .err-code {
+      font-family: 'Space Grotesk', monospace;
+      font-weight: 700;
+      color: #0891b2;
+    }
+    [data-theme="dark"] .err-code { color: #22d3ee; }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            智能体平台
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#principles">设计原则</a>
+            <a href="#auth">鉴权与限流</a>
+            <a href="#runtime">运行时 API</a>
+            <a href="#mgmt">控制面 API</a>
+            <a href="#mcp">MCP 协议</a>
+            <a href="#errors">错误模型</a>
+            <a href="#references">参考来源</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Agent Platform · API Specification</span>
+            <h1>智能体平台 · 接口规范说明书</h1>
+            <p>本文给出对外 REST/SSE 接口与对内 MCP 出站协议的完整契约。所有路径以 <code>/v1/</code> 前缀，配合 <code>X-Project-Id</code> + <code>Authorization: Bearer</code> 完成租户与鉴权识别。MCP 出站严格遵循 Model Context Protocol 规范，并叠加平台护栏（超时 / 熔断 / 大小限制）。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#runtime">运行时 API</a>
+              <a class="button button-secondary" href="#mcp">MCP 协议</a>
+            </div>
+            <p class="hero-note">关键词：REST · SSE · Idempotency-Key · MCP · BYOK · Rate Limit</p>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">接口总览</span>
+            <h2>17 个 REST 端点 · 1 套 MCP 协议</h2>
+            <p>API 分两类：运行时（高频、对接调用方代码）与控制面（低频、对接 Admin 与 CI）。MCP 协议是平台与项目侧的唯一出站通道——禁止在平台代码中出现任何项目业务的 HTTP / gRPC 直连。</p>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span>所有时间字段统一 ISO-8601 UTC</li>
+              <li><span class="layer-number">2</span>所有写操作支持 <code>Idempotency-Key</code></li>
+              <li><span class="layer-number">3</span>错误体统一 <code>{ error: { code, message, request_id } }</code></li>
+              <li><span class="layer-number">4</span>分页统一 <code>cursor + limit</code> 模式</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">REST 端点</div>
+            <strong>17</strong>
+            <span>4 个 Sessions / 13 个控制面（projects, skills, mcp-servers, models, telemetry, supervisor）。</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">协议版本</div>
+            <strong>v1</strong>
+            <span>所有路径均带 <code>/v1/</code> 前缀，向后不兼容修改需进入 <code>/v2/</code>。</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">默认限流</div>
+            <strong>20/5</strong>
+            <span>项目级 20 QPS、用户级 5 QPS（FR-04），可在 Admin Console 提升上限。</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">MCP 护栏</div>
+            <strong>15s</strong>
+            <span>单次工具调用 15s 超时（上限 60s），熔断阈值 5 次/30s，响应 ≤1MB。</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- 01 -->
+        <section id="principles" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / Design Principles</p>
+            <h2>API 设计原则</h2>
+            <p>规范的可用性来自一致性。下列六条作为 API 评审的硬性 checklist。</p>
+          </div>
+
+          <div class="comparison-grid">
+            <article class="comparison-card">
+              <span class="comparison-label">P1 · REST + SSE</span>
+              <h3>双协议分工</h3>
+              <p>常规请求走 REST/JSON；流式响应走 SSE（<code>Content-Type: text/event-stream</code>）。WebSocket 仅作为 SSE 的可选替代（FR-06）。不引入第三种协议。</p>
+            </article>
+            <article class="comparison-card">
+              <span class="comparison-label">P2 · Idempotency-Key</span>
+              <h3>所有写操作幂等</h3>
+              <p>任何 POST/PUT/DELETE 均接受 <code>Idempotency-Key</code> header。同一 key 24 小时内重复请求返回原响应（FR-03）。</p>
+            </article>
+            <article class="comparison-card">
+              <span class="comparison-label">P3 · 显式版本</span>
+              <h3>路径前缀 v1</h3>
+              <p>所有端点带 <code>/v1/</code>。新增字段视为兼容；删字段、改语义视为不兼容，必须新版本号。</p>
+            </article>
+            <article class="comparison-card">
+              <span class="comparison-label">P4 · 统一错误体</span>
+              <h3>error 对象结构</h3>
+              <p>响应非 2xx 时返回 <code>{ error: { code, message, request_id, details? } }</code>。<code>code</code> 是稳定枚举，<code>message</code> 给人看，<code>request_id</code> 用于追责。</p>
+            </article>
+            <article class="comparison-card">
+              <span class="comparison-label">P5 · 租户上下文</span>
+              <h3>X-Project-Id 强制</h3>
+              <p>除 <code>/v1/health</code> 外，所有请求必须带 <code>X-Project-Id</code>。该 header 与 api_key 必须匹配，否则 401。</p>
+            </article>
+            <article class="comparison-card">
+              <span class="comparison-label">P6 · cursor 分页</span>
+              <h3>无 offset</h3>
+              <p>列表接口统一 <code>{ items, next_cursor }</code> 模式；不暴露 offset，避免大数据集深分页性能问题。</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- 02 -->
+        <section id="auth" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Auth &amp; Rate Limit</p>
+            <h2>鉴权、租户上下文与限流</h2>
+            <p>每个请求通过两个 header 完成"我是谁、我代表哪个项目"的识别。</p>
+          </div>
+
+          <div class="api-block">
+            <h4>请求头部规范</h4>
+            <pre>X-Project-Id:        proj_01HN... (string, required)
+Authorization:       Bearer sk_live_... (api_key, required)
+X-User-Id:           u_... (string, optional, for user-level rate limit / telemetry)
+Idempotency-Key:     uuid (string, optional but recommended on writes)
+X-Request-Id:        uuid (string, optional, server will generate if absent)
+Accept:              application/json | text/event-stream</pre>
+            <p><strong>响应头部</strong>：</p>
+            <pre>X-Request-Id:        uuid (echo or server-generated)
+X-RateLimit-Limit:   20
+X-RateLimit-Remaining: 18
+X-RateLimit-Reset:   epoch seconds
+Retry-After:         seconds (only on 429)</pre>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced">
+            <article class="comparison-card">
+              <span class="comparison-label">限流维度</span>
+              <h3>项目级 + 用户级双维度</h3>
+              <p>默认 <code>project: 20 QPS</code>、<code>user: 5 QPS</code>（FR-04）。两条规则均触发即返回 429。可在 Admin Console 按项目调整。</p>
+            </article>
+            <article class="comparison-card">
+              <span class="comparison-label">api_key 生命周期</span>
+              <h3>创建 → 撤销 → 轮换</h3>
+              <p>创建时返回明文（仅一次）；服务端只存 hash + 前缀（NFR-11）。支持设置 expires_at；轮换通过双 key 共存窗口完成。</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- 03 -->
+        <section id="runtime" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / Runtime API</p>
+            <h2>运行时 API · Sessions &amp; Messages</h2>
+            <p>运行时 API 是调用方接触最频繁的 4 个端点，承载会话生命周期与流式消息。</p>
+          </div>
+
+          <div class="api-block">
+            <span class="api-method m-post">POST</span><span class="api-path">/v1/sessions</span>
+            <h4>创建会话</h4>
+            <p>建立一个新的 session 上下文。可选指定 <code>preferred_skill</code> 跳过首次 intent 推断。</p>
+            <pre>// Request
+{
+  "user_id": "u_123",
+  "preferred_skill": "consultation@latest",   // optional
+  "metadata": { "channel": "wechat" },        // optional, opaque
+  "ttl_seconds": 3600                          // optional, default 3600
+}
+
+// 200 Response
+{
+  "session_id": "sess_01HN...",
+  "project_id": "proj_01HN...",
+  "active_skill": "consultation@1.4.2",
+  "expires_at": "2026-04-15T10:00:00Z"
+}</pre>
+          </div>
+
+          <div class="api-block">
+            <span class="api-method m-post">POST</span><span class="api-path">/v1/sessions/{session_id}/messages</span>
+            <h4>发送消息（SSE 流式响应）</h4>
+            <p>请求体为 user message；响应为 SSE 流。客户端使用 <code>Accept: text/event-stream</code>。</p>
+            <pre>// Request
+{
+  "role": "user",
+  "content": "帮我计划一下下周的目标。",
+  "attachments": [],                           // optional
+  "intent_hint": "goal_planning"               // optional
+}
+
+// SSE Response (multi-event stream)
+event: intent
+data: { "intent": "goal_planning", "target_skill": "consultation@1.4.2", "user_frustrated": false }
+
+event: token
+data: { "delta": "好的," }
+
+event: token
+data: { "delta": "我来帮你规划。" }
+
+event: tool_call
+data: { "name": "list_recent_goals", "args": { "limit": 5 }, "call_id": "c_..." }
+
+event: tool_result
+data: { "call_id": "c_...", "ok": true, "content": [...] }
+
+event: token
+data: { "delta": "..." }
+
+event: done
+data: { "trace_id": "tr_01HN...", "usage": { "tokens_in": 812, "tokens_out": 240 } }</pre>
+          </div>
+
+          <div class="api-block">
+            <span class="api-method m-get">GET</span><span class="api-path">/v1/sessions/{session_id}</span>
+            <h4>查询会话状态</h4>
+            <p>返回会话元数据、当前 active_skill、最近 trace_id。不返回完整对话历史（项目侧自管）。</p>
+          </div>
+
+          <div class="api-block">
+            <span class="api-method m-delete">DELETE</span><span class="api-path">/v1/sessions/{session_id}</span>
+            <h4>结束会话</h4>
+            <p>主动结束并清理 Redis 中的短期上下文。已写入的 telemetry 不受影响。</p>
+          </div>
+        </section>
+
+        <!-- 04 -->
+        <section id="mgmt" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / Management API</p>
+            <h2>控制面 API · 项目、Skill、模型、Supervisor</h2>
+            <p>Admin Console 与 CI 通过控制面 API 管理资源。所有接口要求登录 actor 拥有相应 RBAC 角色（FR-33）。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">4.1 项目与 api_key</button>
+              <div class="subsection-content">
+                <div class="api-block">
+                  <span class="api-method m-post">POST</span><span class="api-path">/v1/projects</span>
+                  <h4>创建项目</h4>
+                  <pre>{ "name": "intellygoal-prod", "owner": "ops@illusion615.com" }
+// 201 → { "project_id": "proj_...", "default_api_key": "sk_live_...","status":"active" }</pre>
+                </div>
+                <div class="api-block">
+                  <span class="api-method m-post">POST</span><span class="api-path">/v1/projects/{project_id}/api-keys</span>
+                  <h4>签发 api_key</h4>
+                  <p>返回的明文仅出现一次，后续仅可通过 hash 前缀检索。</p>
+                </div>
+                <div class="api-block">
+                  <span class="api-method m-delete">DELETE</span><span class="api-path">/v1/projects/{project_id}/api-keys/{key_id}</span>
+                  <h4>撤销 api_key</h4>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">4.2 Skill 注册与版本治理</button>
+              <div class="subsection-content">
+                <div class="api-block">
+                  <span class="api-method m-post">POST</span><span class="api-path">/v1/projects/{project_id}/skills</span>
+                  <h4>上传 skill 草稿</h4>
+                  <pre>{
+  "name": "consultation",
+  "version": "1.5.0",
+  "seed_md": "<base64>",                  // immutable seed
+  "overlay_md": "<base64>",               // optional, can be empty
+  "tools_allowed": ["list_recent_goals", "commit_goal_plan"],
+  "handoff_to": ["intake", "review"],
+  "turn_budget": 12
+}
+// 201 → { "skill_id": "sk_...", "status": "staging" }</pre>
+                </div>
+                <div class="api-block">
+                  <span class="api-method m-post">POST</span><span class="api-path">/v1/projects/{project_id}/skills/{skill_id}/promote</span>
+                  <h4>晋级到下一阶段</h4>
+                  <pre>{ "to": "shadow" | "canary" | "prod", "canary_pct": 5 }</pre>
+                  <p>促级动作走 FR-16 灰度状态机，禁止跨级跳转。失败将自动回滚（FR-17）。</p>
+                </div>
+                <div class="api-block">
+                  <span class="api-method m-get">GET</span><span class="api-path">/v1/projects/{project_id}/skills?name=consultation</span>
+                  <h4>列出 skill 与各版本状态</h4>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">4.3 MCP server 注册</button>
+              <div class="subsection-content">
+                <div class="api-block">
+                  <span class="api-method m-post">POST</span><span class="api-path">/v1/projects/{project_id}/mcp-servers</span>
+                  <h4>注册一个项目侧 MCP endpoint</h4>
+                  <pre>{
+  "name": "intellygoal-core",
+  "transport": "http" | "stdio" | "sse",
+  "endpoint": "https://mcp.intellygoal.io",
+  "auth": { "type": "bearer", "secret_ref": "vault://intellygoal/mcp_token" },
+  "advertised_tools": ["list_recent_goals", "commit_goal_plan", "memory.read", "memory.write"]
+}
+// 201 → { "server_id": "mcp_...", "status": "active" }</pre>
+                </div>
+                <div class="api-block">
+                  <span class="api-method m-get">GET</span><span class="api-path">/v1/projects/{project_id}/mcp-servers/{server_id}/tools</span>
+                  <h4>动态拉取工具清单</h4>
+                  <p>调用 MCP <code>tools/list</code>，返回工具的 name / description / inputSchema。Skill 中引用的工具必须在此清单内。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">4.4 模型路由与 BYOK</button>
+              <div class="subsection-content">
+                <div class="api-block">
+                  <span class="api-method m-put">PUT</span><span class="api-path">/v1/projects/{project_id}/models</span>
+                  <h4>设置模型偏好与回退链</h4>
+                  <pre>{
+  "preferred":  { "provider": "openai",     "model": "gpt-4o-mini" },
+  "fallbacks":  [
+    { "provider": "anthropic", "model": "claude-3-5-haiku" },
+    { "provider": "azure",     "model": "gpt-4o-mini-azure" }
+  ],
+  "byok": [
+    { "provider": "openai",    "secret_ref": "vault://proj/openai_key" },
+    { "provider": "anthropic", "secret_ref": "vault://proj/anthropic_key" }
+  ]
+}</pre>
+                  <p>BYOK 凭据通过 Vault reference 提供，平台调用时按需解密注入；明文不进数据库（NFR-10）。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">4.5 Telemetry &amp; Supervisor</button>
+              <div class="subsection-content">
+                <div class="api-block">
+                  <span class="api-method m-get">GET</span><span class="api-path">/v1/projects/{project_id}/traces?from=...&amp;to=...&amp;skill=...</span>
+                  <h4>查询 trace 列表（支持 cursor 分页）</h4>
+                </div>
+                <div class="api-block">
+                  <span class="api-method m-get">GET</span><span class="api-path">/v1/projects/{project_id}/traces/{trace_id}</span>
+                  <h4>查询完整 trace 回放</h4>
+                </div>
+                <div class="api-block">
+                  <span class="api-method m-get">GET</span><span class="api-path">/v1/projects/{project_id}/eval-results?skill=...</span>
+                  <h4>评测结果列表</h4>
+                </div>
+                <div class="api-block">
+                  <span class="api-method m-get">GET</span><span class="api-path">/v1/projects/{project_id}/supervisor/proposals</span>
+                  <h4>Supervisor 起草的待审补丁</h4>
+                </div>
+                <div class="api-block">
+                  <span class="api-method m-post">POST</span><span class="api-path">/v1/projects/{project_id}/supervisor/proposals/{id}/decision</span>
+                  <h4>人审决策</h4>
+                  <pre>{ "decision": "approve" | "reject", "reason": "..." }</pre>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 05 -->
+        <section id="mcp" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / MCP Outbound Contract</p>
+            <h2>MCP 协议契约 · 平台 → 项目侧</h2>
+            <p>平台作为 MCP client 拨号项目侧 MCP server，唯一允许的工具调用通道。本节给出契约细节，包括发现、调用、错误模型与平台叠加的护栏规则。</p>
+          </div>
+
+          <div class="api-block">
+            <h4>5.1 工具发现 · tools/list</h4>
+            <p>注册 MCP server 时与每次 server 重启后调用，拉取当前 server 暴露的工具元数据。</p>
+            <pre>// MCP request
+{ "jsonrpc": "2.0", "id": 1, "method": "tools/list" }
+
+// MCP response
+{
+  "jsonrpc": "2.0", "id": 1,
+  "result": {
+    "tools": [
+      {
+        "name": "commit_goal_plan",
+        "description": "Commit a planned goal with milestones and reminders.",
+        "inputSchema": {
+          "type": "object",
+          "required": ["goal_text", "milestones"],
+          "properties": {
+            "goal_text":  { "type": "string", "minLength": 4 },
+            "milestones": { "type": "array", "items": { "type": "object" } }
+          }
+        }
+      }
+    ]
+  }
+}</pre>
+          </div>
+
+          <div class="api-block">
+            <h4>5.2 工具调用 · tools/call</h4>
+            <pre>// MCP request
+{
+  "jsonrpc": "2.0", "id": 42,
+  "method": "tools/call",
+  "params": {
+    "name": "commit_goal_plan",
+    "arguments": {
+      "goal_text": "在 Q2 完成毕业论文初稿",
+      "milestones": [ { "title": "完成文献综述", "due": "2026-05-01" } ]
+    }
+  }
+}
+
+// MCP response (success)
+{
+  "jsonrpc": "2.0", "id": 42,
+  "result": {
+    "content": [{ "type": "text", "text": "{\"goal_id\":\"g_...\",\"status\":\"committed\"}" }],
+    "isError": false
+  }
+}
+
+// MCP response (business error)
+{
+  "jsonrpc": "2.0", "id": 42,
+  "result": {
+    "content": [{ "type": "text", "text": "Validation failed: milestones[0].due in past" }],
+    "isError": true
+  }
+}</pre>
+          </div>
+
+          <div class="api-block">
+            <h4>5.3 平台叠加的护栏规则</h4>
+            <ul>
+              <li><strong>超时</strong> —— 默认 15 秒，可在 skill frontmatter 调到上限 60 秒</li>
+              <li><strong>熔断</strong> —— 30 秒滑窗内 5 次失败触发 endpoint 熔断 60 秒</li>
+              <li><strong>重试</strong> —— 仅幂等工具（idempotent: true）允许 1 次重试，其余 fail-fast</li>
+              <li><strong>响应大小</strong> —— ≤ 1MB；超出截断并标记 <code>truncated: true</code></li>
+              <li><strong>并发</strong> —— 每项目 ≤ 50 并发出站；全平台 ≤ 500（FR-23）</li>
+              <li><strong>白名单</strong> —— 调用工具必须在 skill <code>tools_allowed</code> 列表内</li>
+            </ul>
+          </div>
+
+          <div class="api-block">
+            <h4>5.4 memory.read / memory.write 约定</h4>
+            <p>业务对象长期记忆通过保留工具名 <code>memory.read</code> / <code>memory.write</code> 走 MCP，由项目侧 server 实现并落到自家数据库。平台不持有任何业务字段（FR-21、NFR-12）。</p>
+            <pre>// memory.write
+{ "name": "memory.write", "arguments": { "scope": "user:u_123", "key": "preferred_lang", "value": "zh-CN" } }
+
+// memory.read
+{ "name": "memory.read",  "arguments": { "scope": "user:u_123", "key": "preferred_lang" } }
+// → { "value": "zh-CN" }</pre>
+          </div>
+        </section>
+
+        <!-- 06 -->
+        <section id="errors" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / Error Model</p>
+            <h2>统一错误模型与 HTTP 状态码</h2>
+            <p>所有非 2xx 响应都返回相同结构，<code>code</code> 是稳定枚举供客户端编程，<code>message</code> 给人看。</p>
+          </div>
+
+          <div class="api-block">
+            <pre>{
+  "error": {
+    "code": "rate_limited",
+    "message": "Project QPS limit exceeded. Retry after 1 second.",
+    "request_id": "req_01HN...",
+    "details": { "limit": 20, "remaining": 0 }
+  }
+}</pre>
+          </div>
+
+          <table class="err-table">
+            <thead><tr><th>HTTP</th><th>code</th><th>含义</th></tr></thead>
+            <tbody>
+              <tr><td><span class="err-code">400</span></td><td>invalid_request</td><td>请求体不符合 schema 或参数缺失</td></tr>
+              <tr><td><span class="err-code">401</span></td><td>unauthenticated</td><td>缺少 / 错误的 api_key 或 X-Project-Id</td></tr>
+              <tr><td><span class="err-code">403</span></td><td>forbidden</td><td>认证通过但无权访问该资源</td></tr>
+              <tr><td><span class="err-code">404</span></td><td>not_found</td><td>资源不存在或不属于当前 project</td></tr>
+              <tr><td><span class="err-code">409</span></td><td>conflict</td><td>状态机非法跳转、资源冲突</td></tr>
+              <tr><td><span class="err-code">409</span></td><td>idempotency_replay_mismatch</td><td>同 key 不同请求体</td></tr>
+              <tr><td><span class="err-code">413</span></td><td>payload_too_large</td><td>请求体超过 10MB 上限</td></tr>
+              <tr><td><span class="err-code">422</span></td><td>skill_validation_failed</td><td>skill 草稿契约校验失败</td></tr>
+              <tr><td><span class="err-code">429</span></td><td>rate_limited</td><td>项目级或用户级限流触发</td></tr>
+              <tr><td><span class="err-code">499</span></td><td>client_closed_request</td><td>SSE 客户端主动关闭</td></tr>
+              <tr><td><span class="err-code">500</span></td><td>internal_error</td><td>未分类的服务端错误</td></tr>
+              <tr><td><span class="err-code">502</span></td><td>upstream_model_error</td><td>所有 fallback 模型均失败</td></tr>
+              <tr><td><span class="err-code">503</span></td><td>tool_circuit_open</td><td>工具 endpoint 熔断中</td></tr>
+              <tr><td><span class="err-code">504</span></td><td>tool_timeout</td><td>MCP 工具调用超时</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- 07 -->
+        <section id="references" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">References</p>
+            <h2>参考来源</h2>
+          </div>
+          <ol class="bib-list">
+            <li id="ref-1"><span class="bib-id">[1]</span> <span class="bib-author">Anthropic.</span> <a href="https://modelcontextprotocol.io/specification" target="_blank" rel="noreferrer noopener">"Model Context Protocol Specification,"</a> 2024–2026.<span class="bib-note">tools/list, tools/call 报文与错误模型来源。</span></li>
+            <li id="ref-2"><span class="bib-id">[2]</span> <span class="bib-author">Stripe.</span> <a href="https://stripe.com/docs/api/idempotent_requests" target="_blank" rel="noreferrer noopener">"Idempotent Requests,"</a> Stripe API Reference.<span class="bib-note">Idempotency-Key header 与 24 小时窗口约定参考来源。</span></li>
+            <li id="ref-3"><span class="bib-id">[3]</span> <span class="bib-author">WHATWG.</span> <a href="https://html.spec.whatwg.org/multipage/server-sent-events.html" target="_blank" rel="noreferrer noopener">"Server-Sent Events,"</a> HTML Living Standard.<span class="bib-note">SSE 报文格式与连接管理依据。</span></li>
+            <li id="ref-4"><span class="bib-id">[4]</span> <span class="bib-author">IETF.</span> <a href="https://datatracker.ietf.org/doc/html/rfc6585" target="_blank" rel="noreferrer noopener">"RFC 6585 — Additional HTTP Status Codes,"</a> 2012.<span class="bib-note">429 Too Many Requests / Retry-After 来源。</span></li>
+            <li id="ref-5"><span class="bib-id">[5]</span> <span class="bib-author">本系列文档</span> · <a href="../agent-platform-philosophy/">设计理念</a> · <a href="../agent-platform-requirements/">需求规格</a> · <a href="../agent-platform-hld/">高阶设计</a> · <a href="../agent-platform-intellygoal/">应用实践</a>.</li>
+          </ol>
+        </section>
+      </main>
+
+      <footer>
+         © 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>智能体平台应用实践：IntellyGoal 项目四阶段迁移</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(2.4rem, 6vw, 4.4rem);
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+    }
+    .phase-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      padding: 22px 22px;
+      box-shadow: var(--card-shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    .phase-card .phase-tag {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: rgba(8, 145, 178, 0.12);
+      color: #0891b2;
+      font-family: 'Space Grotesk', monospace;
+      font-size: 0.74rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      margin-bottom: 10px;
+    }
+    [data-theme="dark"] .phase-card .phase-tag {
+      background: rgba(34, 211, 238, 0.16);
+      color: #67e8f9;
+    }
+    .phase-card h3 { margin: 0 0 6px; font-size: 1.1rem; }
+    .phase-card .phase-sub { margin: 0 0 12px; color: var(--muted); font-size: 0.86rem; }
+    .phase-card ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 0.88rem; line-height: 1.7; }
+
+    .skill-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+      font-size: 0.9rem;
+    }
+    .skill-table th, .skill-table td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+    .skill-table th {
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .skill-table td:first-child {
+      font-family: 'Space Grotesk', monospace;
+      font-weight: 600;
+      color: #0891b2;
+      white-space: nowrap;
+    }
+    [data-theme="dark"] .skill-table td:first-child { color: #22d3ee; }
+
+    .code-block {
+      background: rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-family: 'Space Grotesk', monospace;
+      font-size: 0.8rem;
+      line-height: 1.55;
+      white-space: pre;
+      overflow-x: auto;
+      color: var(--ink);
+      margin: 12px 0;
+    }
+    [data-theme="dark"] .code-block { background: rgba(255, 255, 255, 0.04); }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            智能体平台
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#background">背景</a>
+            <a href="#phases">四阶段迁移</a>
+            <a href="#skills">Skill 清单</a>
+            <a href="#mcp">MCP 工具样例</a>
+            <a href="#memory">长期记忆</a>
+            <a href="#lessons">经验教训</a>
+            <a href="#references">参考来源</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Agent Platform · IntellyGoal Practice</span>
+            <h1>智能体平台 · IntellyGoal 应用实践</h1>
+            <p>IntellyGoal 是<a href="../agent-platform-philosophy/">本平台</a>的首个参考接入项目——一款帮助用户拆解长期目标、跟进进度的目标管理 App。本文记录从"业务内嵌智能体"到"项目作为平台首个 MCP 租户"的四阶段迁移路径，连同 Skill 设计、工具实现、长期记忆方案与回顾教训。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#phases">查看四阶段迁移</a>
+              <a class="button button-secondary" href="#mcp">查看 MCP 工具实现</a>
+            </div>
+            <p class="hero-note">关键词：参考实现 · 渐进迁移 · MCP server · goals.memorandum · 多租户验证</p>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">实践目标</span>
+            <h2>用真实业务证伪"业务无关 + 多租户硬隔离"两条边界</h2>
+            <p>边界设计的最强证伪是"用真实项目跑一遍"。IntellyGoal 在 Phase A 充当 in-process 验证场景，Phase B 拆分为独立 MCP server 完成业务-平台代码分仓，Phase C 引入 Admin / Eval / Supervisor 完成治理闭环，Phase D 第二个租户（健康提醒类项目）接入验证零平台改动。</p>
+            <ul class="layer-list">
+              <li><span class="layer-number">A</span>Phase A · 进程内联调，验证 skill / runtime / tool 抽象</li>
+              <li><span class="layer-number">B</span>Phase B · 拆出 MCP server，平台代码与业务代码分离</li>
+              <li><span class="layer-number">C</span>Phase C · 上 Admin / Eval / Supervisor 治理闭环</li>
+              <li><span class="layer-number">D</span>Phase D · 接入第二租户，证伪多租户隔离</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">Skill 数量</div>
+            <strong>5</strong>
+            <span>intake · consultation · planning · review · escalation 五个角色化 skill 通过 handoff 串联。</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">MCP 工具</div>
+            <strong>9</strong>
+            <span>4 个目标管理 + 3 个进度跟进 + 2 个保留工具（memory.read/write）。</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">迁移周期</div>
+            <strong>4 阶段</strong>
+            <span>从进程内联调到第二租户接入，每阶段交付明确的可验证成果。</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">第二租户</div>
+            <strong>0 改动</strong>
+            <span>Phase D 接入新项目时，平台代码零修改即满足上线条件。</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- 01 -->
+        <section id="background" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / Background</p>
+            <h2>项目背景与迁移动机</h2>
+            <p>IntellyGoal 早期把对话智能体直接嵌进 App 后端代码：提示词、状态机、工具调用、token 计数全部混在业务服务里。引入第二条产品线（一款健康提醒应用）时，团队发现重复造轮子的代价已经不可接受。本平台的设计动机直接来自 IntellyGoal 项目的实战痛点。</p>
+          </div>
+
+          <div class="comparison-grid">
+            <article class="comparison-card">
+              <span class="comparison-label">迁移前</span>
+              <h3>业务内嵌智能体</h3>
+              <ul class="reference-list">
+                <li>提示模板硬编码在 service 层</li>
+                <li>对话状态用业务侧 Postgres 表持久化，与 Goal 表混合</li>
+                <li>OpenAI 调用与回退逻辑由每个 controller 自行处理</li>
+                <li>token 用量没有统一报表，按项目散落</li>
+                <li>引入第二应用需要复制粘贴整套智能体代码</li>
+              </ul>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label">迁移后</span>
+              <h3>平台 + MCP 租户</h3>
+              <ul class="reference-list">
+                <li>提示词以 skill markdown 上传至平台 Skill Registry</li>
+                <li>对话状态与 trace 由平台集中持有，业务表只剩业务对象</li>
+                <li>模型路由 / 回退 / token 计数由 Model Router 处理</li>
+                <li>跨项目统一 telemetry 与计费视图</li>
+                <li>新项目接入零平台改动，仅暴露 MCP endpoint</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <!-- 02 -->
+        <section id="phases" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Four Phases</p>
+            <h2>四阶段渐进迁移</h2>
+            <p>每个阶段交付一个明确的可验证成果，避免"大爆炸式重构"。下一阶段开始前，必须先验证上一阶段成果。</p>
+          </div>
+
+          <div class="comparison-grid">
+            <article class="phase-card">
+              <span class="phase-tag">Phase A</span>
+              <h3>In-Process 验证</h3>
+              <p class="phase-sub">把 skill / runtime / tool 抽象在 IntellyGoal 仓库内试跑</p>
+              <ul>
+                <li>新增 <code>agent_platform/</code> 子模块，承载 LangGraph runtime</li>
+                <li>把现有提示词改写成 skill markdown，仍在同进程加载</li>
+                <li>tool_call 走本地函数注册，不引 MCP</li>
+                <li><strong>成果</strong>：验证 skill / handoff / turn budget 抽象在真实业务跑得通</li>
+              </ul>
+            </article>
+            <article class="phase-card">
+              <span class="phase-tag">Phase B</span>
+              <h3>抽出独立平台仓库</h3>
+              <p class="phase-sub">IntellyGoal 退化为 MCP server，平台独立部署</p>
+              <ul>
+                <li>把 <code>agent_platform/</code> 抽出到独立 git 仓库 + Docker 镜像</li>
+                <li>IntellyGoal 仓库新增 <code>mcp_server/</code> 暴露领域工具</li>
+                <li>App 后端调用方式从函数 import 改为 HTTP /v1/sessions</li>
+                <li><strong>成果</strong>：业务代码与平台代码物理隔离，两边独立发布</li>
+              </ul>
+            </article>
+            <article class="phase-card">
+              <span class="phase-tag">Phase C</span>
+              <h3>上 Admin / Eval / Supervisor</h3>
+              <p class="phase-sub">补齐治理闭环，接入生产流量</p>
+              <ul>
+                <li>Admin Console 上线，灰度操作可视化</li>
+                <li>构建 frozen eval set（200 个真实 case），跑 nightly 评测</li>
+                <li>Supervisor 启用，<code>auto_promote=false</code> + <code>require_review=true</code></li>
+                <li><strong>成果</strong>：每次 skill 改动均经评测 + 灰度，迭代速度提升而风险可控</li>
+              </ul>
+            </article>
+            <article class="phase-card">
+              <span class="phase-tag">Phase D</span>
+              <h3>第二租户接入</h3>
+              <p class="phase-sub">健康提醒应用作为第二项目验证多租户隔离</p>
+              <ul>
+                <li>新项目仅完成：注册项目 → 上传 skill → 注册 MCP server 三步</li>
+                <li>平台代码零行改动；两个项目 telemetry 完全隔离</li>
+                <li>主动构造交叉访问测试，验证 skill / trace / BYOK 互不可见</li>
+                <li><strong>成果</strong>：边界设计被真实证伪，平台进入"可对外销售"状态</li>
+              </ul>
+            </article>
+          </div>
+
+          <article class="comparison-card section-grid-spaced">
+            <span class="comparison-label">Discipline</span>
+            <h3>渐进迁移的纪律</h3>
+            <p>四个阶段不可跳序：跳过 Phase A 直接抽平台仓库，会让 skill 抽象在没有真实业务校准的情况下定型；跳过 Phase C 直接接第二租户，会让多租户隔离的隐患在生产环境暴露。每个阶段交付物必须先在 staging / shadow 验证，再进入下一阶段。</p>
+          </article>
+        </section>
+
+        <!-- 03 -->
+        <section id="skills" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / Skill Inventory</p>
+            <h2>5 个 Skill 与 handoff 拓扑</h2>
+            <p>IntellyGoal 把对话过程拆为 5 个角色化 skill，通过 frontmatter 中的 <code>handoff_to</code> 串联，避免单一 skill 膨胀。</p>
+          </div>
+
+          <table class="skill-table">
+            <thead>
+              <tr><th>Skill</th><th>角色</th><th>退出条件</th><th>handoff_to</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>intake</td><td>识别用户意图、收集基本背景</td><td>已识别用户主诉 + 基础背景齐全</td><td>consultation, escalation</td></tr>
+              <tr><td>consultation</td><td>深入理解目标动机与约束</td><td>动机清晰、可量化 + 用户准备好规划</td><td>planning, escalation</td></tr>
+              <tr><td>planning</td><td>拆解里程碑与节奏，调用 commit_goal_plan</td><td>计划已落库 + 用户确认</td><td>review</td></tr>
+              <tr><td>review</td><td>定期回顾进度、调整计划</td><td>本轮回顾完成 + 用户无新需求</td><td>(end)</td></tr>
+              <tr><td>escalation</td><td>识别情绪困境或超出能力范围，引导人审</td><td>情绪稳定 / 已生成人审工单</td><td>(end)</td></tr>
+            </tbody>
+          </table>
+
+          <article class="comparison-card section-grid-spaced">
+            <span class="comparison-label">Skill markdown 样例</span>
+            <h3>planning.md（裁剪片段）</h3>
+            <pre class="code-block">---
+name: planning
+version: 1.4.0
+seed: true
+turn_budget: 8
+tools_allowed:
+  - list_recent_goals
+  - commit_goal_plan
+  - memory.read
+  - memory.write
+handoff_to:
+  - review
+---
+
+## 角色
+你是用户的目标规划伙伴。在 consultation 已经摸清用户动机后，你的任务是把目标
+拆为 3-5 个里程碑，与用户对齐节奏与提醒频率，然后调用 `commit_goal_plan` 落库。
+
+## 退出条件
+- 计划已落库（commit_goal_plan 返回 status=committed）
+- 用户在最后一条消息确认计划合理
+
+## 行为边界
+- 不涉及健康 / 心理诊断；如出现，立即 handoff 到 escalation
+- 不擅自承诺平台外的能力（如发邮件、设手机闹钟）
+- 节奏建议优先采用用户偏好（memory.read scope=user 读 preferred_pace）
+
+## 条件段落
+- 如果用户表达犹豫，引导其量化"完成后的最具体收益"再继续
+- 如果计划落库失败，复述错误并询问是否调整
+</pre>
+          </article>
+        </section>
+
+        <!-- 04 -->
+        <section id="mcp" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / MCP Tool</p>
+            <h2>MCP 工具实现样例 · commit_goal_plan</h2>
+            <p>领域工具一律由 IntellyGoal 侧 MCP server 实现，平台只调用。下方给出 Python (FastMCP) 实现骨架。</p>
+          </div>
+
+          <pre class="code-block">from mcp.server.fastmcp import FastMCP
+from intellygoal.db import goals_repo
+from intellygoal.auth import resolve_user
+
+mcp = FastMCP("intellygoal-core")
+
+@mcp.tool()
+def commit_goal_plan(
+    goal_text: str,
+    milestones: list[dict],
+    pace: str = "weekly",
+) -> dict:
+    """Commit a planned goal with milestones and reminders.
+
+    All side effects happen in IntellyGoal's database, never in the platform.
+    """
+    user = resolve_user()  # MCP context provides project_id + user_id
+    if len(goal_text) < 4:
+        raise ValueError("goal_text too short")
+    for m in milestones:
+        if m["due"] &lt; today():
+            raise ValueError(f"milestone due in past: {m}")
+
+    goal = goals_repo.create(
+        user_id=user.id,
+        text=goal_text,
+        milestones=milestones,
+        pace=pace,
+    )
+    return { "goal_id": goal.id, "status": "committed" }
+
+
+@mcp.tool()
+def list_recent_goals(limit: int = 5) -> list[dict]:
+    user = resolve_user()
+    return [g.to_dict() for g in goals_repo.recent(user.id, limit)]
+
+
+# memory.read / memory.write 是 MCP 协议的保留工具名
+@mcp.tool(name="memory.read")
+def memory_read(scope: str, key: str) -> dict | None:
+    return memory_repo.get(scope, key)
+
+@mcp.tool(name="memory.write")
+def memory_write(scope: str, key: str, value) -> dict:
+    memory_repo.upsert(scope, key, value)
+    return { "ok": True }
+
+
+if __name__ == "__main__":
+    mcp.run(transport="http", host="0.0.0.0", port=7100)
+</pre>
+
+          <article class="comparison-card section-grid-spaced">
+            <span class="comparison-label">边界检查</span>
+            <h3>为什么 commit_goal_plan 不在平台</h3>
+            <p>它带有"创建业务对象"的副作用，必须由业务持有事务边界。如果平台代码直接调用 IntellyGoal 数据库会同时违反三条非目标——业务工具实现、业务数据存储、业务策略决策（pace 默认值的语义）。MCP 抽象让平台只关心"我请求一个工具调用"，业务侧拥有完整自决权。</p>
+          </article>
+        </section>
+
+        <!-- 05 -->
+        <section id="memory" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / Long-term Memory</p>
+            <h2>长期记忆 · goals.memorandum 模式</h2>
+            <p>IntellyGoal 用一个名为 <code>goals.memorandum</code> 的业务表承载用户长期偏好（节奏、敏感话题、过往承诺）。该表完全由 IntellyGoal 自管，平台通过 <code>memory.read / memory.write</code> 透明读写。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">5.1 表结构与 scope 命名</button>
+              <div class="subsection-content">
+                <pre class="code-block">create table goals_memorandum (
+  scope          text   not null,    -- e.g. user:u_123, goal:g_456
+  key            text   not null,    -- e.g. preferred_pace, sensitive_topics
+  value          jsonb  not null,
+  updated_at     timestamptz not null default now(),
+  primary key (scope, key)
+);</pre>
+                <p>scope 命名约定：<code>user:&lt;user_id&gt;</code> 用于跨目标的用户偏好；<code>goal:&lt;goal_id&gt;</code> 用于目标级备忘；<code>session:&lt;session_id&gt;</code> 用于一次会话内的临时备忘（可选）。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">5.2 Skill 中的使用模式</button>
+              <div class="subsection-content">
+                <p>Skill 在每轮开始或退出条件检查前主动 <code>memory.read</code> 拉取必要偏好；在用户给出新承诺时 <code>memory.write</code> 持久化。两类调用均经 MCP 透传，无平台缓存——保证业务对象数据离开平台。</p>
+                <pre class="code-block">// 典型对话片段
+tool_call: memory.read { scope: "user:u_123", key: "preferred_pace" }
+tool_result: { value: "weekly" }
+
+tool_call: memory.write { scope: "user:u_123", key: "preferred_pace", value: "biweekly" }
+tool_result: { ok: true }</pre>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">5.3 隐私与保留期</button>
+              <div class="subsection-content">
+                <p>因数据全部在 IntellyGoal 自有 Postgres，其保留期、加密、删除请求处理完全由 IntellyGoal 合规策略决定。平台 telemetry 中只保留经 PII 脱敏的工具调用元数据（scope / key / 调用时间），不留 value 明文。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 06 -->
+        <section id="lessons" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / Lessons</p>
+            <h2>经验教训</h2>
+            <p>四阶段迁移中累积的踩坑与反思。下列教训在后续接入新租户时被作为 checklist 复用。</p>
+          </div>
+
+          <div class="insight-grid">
+            <article class="insight-card">
+              <span class="card-index">L1</span>
+              <h3>Skill 拆得太细反而增加 handoff 噪音</h3>
+              <p>Phase A 早期把 consultation 拆成 3 个子 skill，handoff 频繁让对话节奏变碎。最终保留单一 consultation，里程碑与节奏由 planning 接手。规则：handoff 应对应清晰的"角色变更"，不是单纯的"步骤推进"。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">L2</span>
+              <h3>turn_budget 必须从第一天设</h3>
+              <p>未设 budget 的 skill 在长对话中会反复诱导用户提供细节，token 消耗暴涨。强制每个 skill 上线即设 budget，到点强收敛。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">L3</span>
+              <h3>frozen eval set 是治理的最大杠杆</h3>
+              <p>200 个真实 case 的评测集让每次 skill 改动有客观分数。Supervisor 起草补丁的接受率从 ~40% 提升到 ~75%，因为补丁前先要过 eval。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">L4</span>
+              <h3>BYOK 校验在 Phase B 漏掉</h3>
+              <p>Phase B 上线初期允许平台默认 key 兜底，导致一次配额超限影响所有项目。修复：项目 BYOK 缺失时直接拒绝服务，不提供"友好降级"。BYOK 是合规边界，不容妥协。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">L5</span>
+              <h3>第二租户暴露的命名冲突</h3>
+              <p>Phase D 接入健康提醒应用时，发现两边都叫 <code>review</code> skill，但语义完全不同。平台命名空间已按 project_id 隔离，没冲突；但 Admin Console 的列表页 UI 没显示 project_id 前缀，造成运维误判。修复：所有 skill 名称在管控面强制带项目前缀展示。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">L6</span>
+              <h3>Supervisor auto_promote 默认关</h3>
+              <p>初期试图开启 auto_promote 加速迭代，结果一次模型偶发 hallucination 导致连续 3 个补丁起草偏离原意——若入库会造成行为漂移。改回 require_review 后稳定。规则：自动入库应是项目主动选择，不是平台默认。</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- 07 -->
+        <section id="references" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">References</p>
+            <h2>参考来源</h2>
+          </div>
+          <ol class="bib-list">
+            <li id="ref-1"><span class="bib-id">[1]</span> <span class="bib-author">Anthropic.</span> <a href="https://github.com/modelcontextprotocol/python-sdk" target="_blank" rel="noreferrer noopener">"Python MCP SDK (FastMCP)",</a> 2024–2026.<span class="bib-note">commit_goal_plan 实现样例所用的 MCP server 框架。</span></li>
+            <li id="ref-2"><span class="bib-id">[2]</span> <span class="bib-author">本系列文档</span> · <a href="../agent-platform-philosophy/">设计理念</a> · <a href="../agent-platform-requirements/">需求规格</a> · <a href="../agent-platform-hld/">高阶设计</a> · <a href="../agent-platform-api-spec/">接口规范</a>.</li>
+            <li id="ref-3"><span class="bib-id">[3]</span> <span class="bib-author">原始设计文档</span> · IntellyGoal 团队内部 <code>docs/agent-platform-design.html</code>，作为本系列五篇文章的素材源。</li>
+          </ol>
+        </section>
+      </main>
+
+      <footer>
+         © 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

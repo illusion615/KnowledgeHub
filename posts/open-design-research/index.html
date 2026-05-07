@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Open Design 解析：让 AI 帮你做设计的开源工作台</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(2.1rem, 5vw, 3.8rem);
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      max-width: 22ch;
+    }
+    .hero-panel .layer-list li {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.08);
+      color: rgba(246, 248, 251, 0.78);
+    }
+    .hero-panel .layer-number {
+      background: rgba(255, 255, 255, 0.14);
+      color: #fff;
+    }
+
+    .matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 18px;
+      font-size: 0.82rem;
+    }
+    .matrix-table th, .matrix-table td {
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      vertical-align: top;
+    }
+    .matrix-table th {
+      font-weight: 600;
+      color: var(--fg);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .matrix-table td {
+      color: var(--muted);
+    }
+    .matrix-table .yes { color: #34d399; font-weight: 600; }
+    .matrix-table .no { color: #f87171; font-weight: 600; }
+    .matrix-table .partial { color: #fbbf24; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="&#x2190;" data-en="&#x2190;" aria-label="返回首页">&#x2190;</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            <span data-zh="Vibe Coding" data-en="Vibe Coding">Vibe Coding</span>
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#what" data-zh="它是什么" data-en="What">它是什么</a>
+            <a href="#why" data-zh="为什么" data-en="Why">为什么</a>
+            <a href="#experience" data-zh="使用体验" data-en="Experience">使用体验</a>
+            <a href="#quality" data-zh="质量保证" data-en="Quality">质量保证</a>
+            <a href="#comparison" data-zh="竞品对比" data-en="Compare">竞品对比</a>
+            <a href="#architecture" data-zh="技术架构" data-en="Architecture">技术架构</a>
+            <a href="#takeaways" data-zh="启示" data-en="Takeaways">启示</a>
+            <a href="#references" data-zh="参考" data-en="Refs">参考</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Open Source &middot; Local-First &middot; AI Design</span>
+            <h1>Open Design：让 AI 帮你做设计，代码直接能用</h1>
+            <p>
+              Open Design（下称 OD）是一个开源的 AI 设计工作台。你用一句话描述需求，它调用你电脑上已有的 AI 编码助手（Claude Code、Copilot、Gemini 等 13 种），帮你生成完整的网页、落地页、演示文稿或邮件设计稿——产出的不是图片，而是可以直接部署的 HTML/CSS/JS 代码。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#experience" data-zh="看使用流程" data-en="See the Flow">看使用流程</a>
+              <a class="button button-secondary" href="#why" data-zh="为什么需要它" data-en="Why It Exists">为什么需要它</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label" data-zh="核心理念" data-en="Core Idea">核心理念</span>
+            <h2 data-zh="不造新代理，而是让你的代理学会设计" data-en="Don't ship a new agent — teach yours to design">不造新代理，而是让你的代理学会设计</h2>
+            <p data-zh="OD 认为最强的编码 AI 已经在你的电脑上了。它做的不是再造一个 AI，而是给你的 AI 套上一套设计纪律：先问需求、再锁品牌、写完自查、不合格就重来。" data-en="OD believes the strongest coding AI is already on your laptop. Instead of building another AI, it wraps yours in a design discipline: ask first, lock brand, self-review, redo if below par.">
+              OD 认为最强的编码 AI 已经在你的电脑上了。它做的不是再造一个 AI，而是给你的 AI 套上一套设计纪律：先问需求、再锁品牌、写完自查、不合格就重来。
+            </p>
+            <ul class="layer-list" style="margin-top: 18px;">
+              <li><span class="layer-number">1</span><span data-zh="你的 AI 助手就是设计引擎" data-en="Your AI assistant IS the design engine">你的 AI 助手就是设计引擎</span></li>
+              <li><span class="layer-number">2</span><span data-zh="技能和设计规范都是普通文件" data-en="Skills and design specs are plain files">技能和设计规范都是普通文件</span></li>
+              <li><span class="layer-number">3</span><span data-zh="所有数据留在你电脑上" data-en="All data stays on your machine">所有数据留在你电脑上</span></li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label" data-zh="GitHub Star" data-en="GitHub Stars">GitHub Star</div>
+            <strong>23k</strong>
+            <span data-zh="两周内达成，Apache-2.0 开源" data-en="Reached in two weeks, Apache-2.0">两周内达成，Apache-2.0 开源</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="支持的 AI 助手" data-en="Supported AI Assistants">支持的 AI 助手</div>
+            <strong>13</strong>
+            <span data-zh="Claude Code / Copilot / Gemini / Codex 等主流助手" data-en="Claude Code / Copilot / Gemini / Codex and more">Claude Code / Copilot / Gemini / Codex 等主流助手</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="设计技能 / 设计系统" data-en="Skills / Design Systems">设计技能 / 设计系统</div>
+            <strong>31 / 129</strong>
+            <span data-zh="31 种设计技能 + 129 套品牌视觉规范" data-en="31 design skills + 129 brand visual systems">31 种设计技能 + 129 套品牌视觉规范</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="贡献者" data-en="Contributors">贡献者</div>
+            <strong>92</strong>
+            <span data-zh="启动两周，社区即有 2.5k fork" data-en="2.5k forks in two weeks">启动两周，社区即有 2.5k fork</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- Section 01 — 它是什么 -->
+        <section id="what" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / What It Is</p>
+            <h2 data-zh="1. 一个让 AI 帮你做设计的工作台" data-en="1. An AI-powered design workbench">1. 一个让 AI 帮你做设计的工作台</h2>
+            <p data-zh="你告诉它「帮我做一个产品落地页」，它会先问你几个问题（给谁看？什么风格？有品牌色吗？），然后调用你电脑上的 AI 编码助手来生成完整设计。产出不是截图，而是可以直接部署的代码。" data-en="You say 'make me a product landing page'. It asks a few questions (audience? style? brand colors?), then calls your local AI coding assistant to generate a complete design — deployable code, not screenshots.">
+              你告诉它「帮我做一个产品落地页」，它会先问你几个问题（给谁看？什么风格？有品牌色吗？），然后调用你电脑上的 AI 编码助手来生成完整设计。产出不是截图，而是可以直接部署的代码。
+            </p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" aria-expanded="true" data-zh="它能做什么" data-en="What it can do">它能做什么</button>
+              <div class="subsection-content">
+                <p data-zh="OD 支持生成多种设计成品，覆盖从网页到演示文稿的常见场景。" data-en="OD generates various design deliverables, covering common scenarios from web pages to presentations.">OD 支持生成多种设计成品，覆盖从网页到演示文稿的常见场景。</p>
+                <div class="insight-grid">
+                  <article class="insight-card">
+                    <span class="card-index">网页</span>
+                    <h3 data-zh="落地页 / 产品页 / 博客" data-en="Landing / product / blog pages">落地页 / 产品页 / 博客</h3>
+                    <p data-zh="完整的 HTML + CSS + JS，自带响应式布局和动画，可直接部署到 Vercel 等平台。" data-en="Full HTML + CSS + JS with responsive layout and animations, deployable to Vercel.">完整的 HTML + CSS + JS，自带响应式布局和动画，可直接部署到 Vercel 等平台。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">演示</span>
+                    <h3 data-zh="PPT / Deck 演示文稿" data-en="Presentations / Decks">PPT / Deck 演示文稿</h3>
+                    <p data-zh="支持生成 PPTX 和 HTML 幻灯片，有专门的 deck 技能控制排版和动效。" data-en="Generates PPTX and HTML slides, with dedicated deck skills controlling layout and motion.">支持生成 PPTX 和 HTML 幻灯片，有专门的 deck 技能控制排版和动效。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">导出</span>
+                    <h3 data-zh="5 种导出格式" data-en="5 export formats">5 种导出格式</h3>
+                    <p data-zh="HTML（内联资源）/ PDF / PPTX / ZIP / Markdown，满足不同交付场景。" data-en="HTML (inlined) / PDF / PPTX / ZIP / Markdown for different delivery needs.">HTML（内联资源）/ PDF / PPTX / ZIP / Markdown，满足不同交付场景。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false" data-zh="它跑在哪里" data-en="Where it runs">它跑在哪里</button>
+              <div class="subsection-content">
+                <p data-zh="OD 完全运行在你自己的电脑上。一条命令启动，所有数据都留在本地，不上传任何云端。" data-en="OD runs entirely on your own machine. One command to start, all data stays local.">OD 完全运行在你自己的电脑上。一条命令启动，所有数据都留在本地，不上传任何云端。</p>
+                <div class="insight-grid">
+                  <article class="insight-card">
+                    <span class="card-index">本地</span>
+                    <h3 data-zh="数据不离开你的电脑" data-en="Data never leaves your machine">数据不离开你的电脑</h3>
+                    <p data-zh="对话记录、设计稿、API 密钥全部存在本地数据库里。关掉再打开，一切还在原处。" data-en="Conversations, designs, and API keys are stored in a local database. Close and reopen — everything stays put.">对话记录、设计稿、API 密钥全部存在本地数据库里。关掉再打开，一切还在原处。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">BYOK</span>
+                    <h3 data-zh="用你自己的 AI 账号" data-en="Use your own AI account">用你自己的 AI 账号</h3>
+                    <p data-zh="BYOK 是 Bring Your Own Key（自带密钥）的缩写。你不需要额外付费——用你已有的 AI 助手账号就够了，或者直接填入 API 密钥。" data-en="BYOK stands for Bring Your Own Key. No extra payments — use your existing AI assistant account or fill in an API key.">BYOK 是 Bring Your Own Key（自带密钥）的缩写。你不需要额外付费——用你已有的 AI 助手账号就够了，或者直接填入 API 密钥。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 02 — 为什么需要它 -->
+        <section id="why" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Why It Exists</p>
+            <h2 data-zh="2. Claude Design 的四把锁，OD 逐个打开" data-en="2. Four locks on Claude Design, OD unlocks each">2. Claude Design 的四把锁，OD 逐个打开</h2>
+            <p data-zh="2026 年 4 月，Anthropic 发布了 Claude Design——让 AI 直接输出可交互的设计成品，发布即爆红。但它有四个限制，OD 的存在就是逐个打开这四把锁。" data-en="In April 2026, Anthropic shipped Claude Design — AI that outputs interactive design artifacts, instantly viral. But it has four limits that OD exists to unlock.">
+              2026 年 4 月，Anthropic 发布了 Claude Design——让 AI 直接输出可交互的设计成品，发布即爆红。但它有四个限制，OD 的存在就是逐个打开这四把锁。
+            </p>
+          </div>
+
+          <div class="insight-grid">
+            <article class="insight-card">
+              <span class="card-index">锁 1</span>
+              <h3 data-zh="闭源，不能改" data-en="Closed-source">闭源，不能改</h3>
+              <p data-zh="Claude Design 的技能和设计规范都是专有的，用户无法查看、修改或分发。OD 全部开源（Apache-2.0），技能就是文件夹里的 Markdown 文件。" data-en="Claude Design's skills and specs are proprietary. OD is fully open-source (Apache-2.0) — skills are just Markdown files in folders.">Claude Design 的技能和设计规范都是专有的，用户无法查看、修改或分发。OD 全部开源（Apache-2.0），技能就是文件夹里的 Markdown 文件。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">锁 2</span>
+              <h3 data-zh="必须付费订阅" data-en="Paid subscription">必须付费订阅</h3>
+              <p data-zh="Claude Design 需要 Pro/Max/Team 订阅才能用。OD 免费，只需要你自己的 AI 助手账号。" data-en="Claude Design requires a Pro/Max/Team subscription. OD is free — you just need your own AI assistant account.">Claude Design 需要 Pro/Max/Team 订阅才能用。OD 免费，只需要你自己的 AI 助手账号。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">锁 3</span>
+              <h3 data-zh="只能在云上用" data-en="Cloud-only">只能在云上用</h3>
+              <p data-zh="Claude Design 跑在 claude.ai 上，数据在 Anthropic 的服务器。OD 完全跑在你电脑上，数据不出本地。" data-en="Claude Design runs on claude.ai with data on Anthropic's servers. OD runs on your machine — data never leaves.">Claude Design 跑在 claude.ai 上，数据在 Anthropic 的服务器。OD 完全跑在你电脑上，数据不出本地。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">锁 4</span>
+              <h3 data-zh="绑定单一模型" data-en="Locked to one model">绑定单一模型</h3>
+              <p data-zh="Claude Design 只能用 Anthropic 自家的 Opus 4.7。OD 支持 13 种主流 AI 助手，在下拉菜单里切换就行。" data-en="Claude Design only works with Opus 4.7. OD supports 13 mainstream AI assistants — switch in a dropdown.">Claude Design 只能用 Anthropic 自家的 Opus 4.7。OD 支持 13 种主流 AI 助手，在下拉菜单里切换就行。</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 03 — 使用体验 -->
+        <section id="experience" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / User Experience</p>
+            <h2 data-zh="3. 从一句话到成品设计：六步流程" data-en="3. From one sentence to finished design: Six steps">3. 从一句话到成品设计：六步流程</h2>
+            <p data-zh="OD 把 AI 做设计的过程拆成六步，每一步都有硬性规则，AI 不能跳过。这套流程借鉴了 huashu-design 项目的「初级设计师模式」：先批量提问、再出可见物、让用户尽早纠偏。" data-en="OD breaks AI design into six hard-gated steps the AI cannot skip. The philosophy comes from huashu-design's 'Junior Designer mode': batch questions first, ship something visible, let users course-correct early.">
+              OD 把 AI 做设计的过程拆成六步，每一步都有硬性规则，AI 不能跳过。这套流程借鉴了 huashu-design 项目的「初级设计师模式」：先批量提问、再出可见物、让用户尽早纠偏。
+            </p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" aria-expanded="true" data-zh="六步设计流程" data-en="Six-step design flow">六步设计流程</button>
+              <div class="subsection-content">
+                <p data-zh="从你输入需求到拿到设计稿，OD 内部走过这六步。每一步都是强制的——AI 不能跳过。" data-en="From your input to the finished design, OD enforces these six steps — the AI cannot skip any.">从你输入需求到拿到设计稿，OD 内部走过这六步。每一步都是强制的——AI 不能跳过。</p>
+                <ol class="flow-list">
+                  <li><span class="flow-step">1</span><div class="flow-copy"><strong data-zh="问需求" data-en="Ask">问需求</strong><p data-zh="AI 的第一步只能是弹出一个问题表单：给谁看？什么风格？有没有品牌色？做多大？有什么限制？30 秒勾完，胜过 30 分钟来回改方向。" data-en="The AI's first move is always a question form: audience, style, brand colors, scale, constraints. 30 seconds of checkboxes beats 30 minutes of redirects.">AI 的第一步只能是弹出一个问题表单：给谁看？什么风格？有没有品牌色？做多大？有什么限制？30 秒勾完，胜过 30 分钟来回改方向。</p></div></li>
+                  <li><span class="flow-step">2</span><div class="flow-copy"><strong data-zh="锁品牌" data-en="Lock brand">锁品牌</strong><p data-zh="如果你提供了品牌截图或网址，AI 会自动提取品牌色、字体等信息写成规范文件，然后严格按照规范来设计——绝不凭记忆猜颜色。没有品牌？会给你 5 个预设风格选。" data-en="If you provide a brand screenshot or URL, the AI extracts colors and fonts into a spec file — never guessing. No brand? Five preset styles to choose from.">如果你提供了品牌截图或网址，AI 会自动提取品牌色、字体等信息写成规范文件，然后严格按照规范来设计——绝不凭记忆猜颜色。没有品牌？会给你 5 个预设风格选。</p></div></li>
+                  <li><span class="flow-step">3</span><div class="flow-copy"><strong data-zh="定计划" data-en="Plan">定计划</strong><p data-zh="AI 把任务拆成一个个待办事项，完成一个勾一个，你能实时看到进度，随时可以打断说「这里不对，改方向」。" data-en="The AI breaks the task into to-dos, checking them off live. You can interrupt anytime to redirect.">AI 把任务拆成一个个待办事项，完成一个勾一个，你能实时看到进度，随时可以打断说「这里不对，改方向」。</p></div></li>
+                  <li><span class="flow-step">4</span><div class="flow-copy"><strong data-zh="读规范" data-en="Read specs">读规范</strong><p data-zh="动手写代码之前，AI 必须先读当前技能的模板文件和检查清单——相当于设计师先看设计规范再动手。" data-en="Before writing code, the AI must read the skill's template and checklist — like a designer reviewing the spec first.">动手写代码之前，AI 必须先读当前技能的模板文件和检查清单——相当于设计师先看设计规范再动手。</p></div></li>
+                  <li><span class="flow-step">5</span><div class="flow-copy"><strong data-zh="自查打分" data-en="Self-review">自查打分</strong><p data-zh="交稿之前，AI 必须从 5 个维度给自己打分（哲学/层次/执行/具体性/克制）。任何一维低于 3 分就必须重做——文档里写着「两轮修改是正常的」。" data-en="Before submitting, the AI scores itself on 5 axes. Any axis below 3 means redo — the docs say 'two passes is normal'.">交稿之前，AI 必须从 5 个维度给自己打分（哲学/层次/执行/具体性/克制）。任何一维低于 3 分就必须重做——文档里写着「两轮修改是正常的」。</p></div></li>
+                  <li><span class="flow-step">6</span><div class="flow-copy"><strong data-zh="机器检查" data-en="Lint">机器检查</strong><p data-zh="最后还有一道自动检查，用程序扫描生成的代码有没有结构损坏、品牌色跑偏、缺少必要文件——让自查有数据依据，而非凭感觉。" data-en="A final automated lint scans the code for structural damage, color drift, or missing files — grounding self-review in data.">最后还有一道自动检查，用程序扫描生成的代码有没有结构损坏、品牌色跑偏、缺少必要文件——让自查有数据依据，而非凭感觉。</p></div></li>
+                </ol>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false" data-zh="技能和设计系统：拖进去就能用" data-en="Skills &amp; design systems: drag and drop">技能和设计系统：拖进去就能用</button>
+              <div class="subsection-content">
+                <p data-zh="OD 用两种「普通文件」来控制 AI 的设计行为。不需要写代码，不需要装插件——就是文件夹。" data-en="OD uses two types of plain files to control AI design behavior. No code, no plugins — just folders.">OD 用两种「普通文件」来控制 AI 的设计行为。不需要写代码，不需要装插件——就是文件夹。</p>
+                <div class="insight-grid">
+                  <article class="insight-card">
+                    <span class="card-index">31</span>
+                    <h3 data-zh="设计技能（SKILL.md）" data-en="Design Skills (SKILL.md)">设计技能（SKILL.md）</h3>
+                    <p data-zh="每个技能就是一个文件夹，里面有一份 Markdown 说明书 + 模板文件 + 检查清单。想加新技能？把文件夹拖进 skills/ 目录，重启就行。社区第二周就拿到了 92 个贡献者，就是因为门槛这么低。" data-en="Each skill is a folder with a Markdown instruction + template + checklist. Add a new skill? Drop the folder into skills/, restart. 92 contributors in week two — the barrier is that low.">每个技能就是一个文件夹，里面有一份 Markdown 说明书 + 模板文件 + 检查清单。想加新技能？把文件夹拖进 skills/ 目录，重启就行。社区第二周就拿到了 92 个贡献者，就是因为门槛这么低。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">129</span>
+                    <h3 data-zh="设计系统（DESIGN.md）" data-en="Design Systems (DESIGN.md)">设计系统（DESIGN.md）</h3>
+                    <p data-zh="每个设计系统是一份 9 段式的 Markdown：颜色 / 字体 / 间距 / 布局 / 组件 / 动效 / 语调 / 品牌 / 反模式。下拉切换一个，AI 下次生成就会用新的视觉规范。已有 129 套，包括 Stripe、Vercel、Airbnb、Notion 等 70 个知名产品的品牌规范。" data-en="Each system is a 9-section Markdown: color / typography / spacing / layout / components / motion / voice / brand / anti-patterns. Switch in a dropdown; the AI uses the new spec next time. 129 systems ship, including 70+ brand specs for Stripe, Vercel, Airbnb, Notion, etc.">每个设计系统是一份 9 段式的 Markdown：颜色 / 字体 / 间距 / 布局 / 组件 / 动效 / 语调 / 品牌 / 反模式。下拉切换一个，AI 下次生成就会用新的视觉规范。已有 129 套，包括 Stripe、Vercel、Airbnb、Notion 等 70 个知名产品的品牌规范。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 04 — 质量保证 -->
+        <section id="quality" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / Quality Gates</p>
+            <h2 data-zh="4. AI 出的设计不丑：五道质量闸门" data-en="4. Five gates against ugly AI output">4. AI 出的设计不丑：五道质量闸门</h2>
+            <p data-zh="AI 生成的设计最常被吐槽的就是「AI 味太重」：千篇一律的紫色渐变、通用 emoji 图标、假数据、毫无品牌感。OD 在提示词里硬编码了五道闸门，每一道都不可跳过。" data-en="The top complaint about AI design is 'it looks like AI made it': cookie-cutter purple gradients, generic emoji icons, fake data, zero brand sense. OD hard-codes five gates in its prompts, each unskippable.">
+              AI 生成的设计最常被吐槽的就是「AI 味太重」：千篇一律的紫色渐变、通用 emoji 图标、假数据、毫无品牌感。OD 在提示词里硬编码了五道闸门，每一道都不可跳过。
+            </p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" aria-expanded="true" data-zh="五道闸门详解" data-en="Five gates explained">五道闸门详解</button>
+              <div class="subsection-content">
+                <p data-zh="这五道闸门层层叠加，把 AI 设计从「看着还行」推向「真正能用」。" data-en="Five gates stacked to push AI design from 'looks OK' to 'actually usable'.">这五道闸门层层叠加，把 AI 设计从「看着还行」推向「真正能用」。</p>
+                <div class="insight-grid">
+                  <article class="insight-card">
+                    <span class="card-index">1</span>
+                    <h3 data-zh="先问后做" data-en="Ask before doing">先问后做</h3>
+                    <p data-zh="AI 第一步只能问你需求，不能直接动手。锁定视觉基调再开始，避免做完才发现方向不对。" data-en="The AI must ask first, never start directly. Lock visual stance before beginning.">AI 第一步只能问你需求，不能直接动手。锁定视觉基调再开始，避免做完才发现方向不对。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">2</span>
+                    <h3 data-zh="品牌色必须有据" data-en="Brand colors must be evidence-based">品牌色必须有据</h3>
+                    <p data-zh="从截图或网址提取真实品牌色，写成规范文件后再用。绝不凭 AI 的「记忆」猜颜色。" data-en="Extract real brand colors from screenshots or URLs. Never guess from AI 'memory'.">从截图或网址提取真实品牌色，写成规范文件后再用。绝不凭 AI 的「记忆」猜颜色。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">3</span>
+                    <h3 data-zh="检查清单全过才能交稿" data-en="Checklist must pass before output">检查清单全过才能交稿</h3>
+                    <p data-zh="每个技能自带硬性检查项（如「是否有响应式布局」「是否有真实内容」），全部通过才能输出。" data-en="Each skill ships mandatory checks ('is it responsive', 'does it use real content') — all must pass.">每个技能自带硬性检查项（如「是否有响应式布局」「是否有真实内容」），全部通过才能输出。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">4</span>
+                    <h3 data-zh="AI 味黑名单" data-en="AI-slop blacklist">AI 味黑名单</h3>
+                    <p data-zh="明确禁止：激进紫色渐变、通用 emoji 图标、左边框圆角卡片、手绘 SVG 人像、把 Inter 当标题字体、凭空编造数据。" data-en="Explicitly banned: purple gradients, generic emoji icons, left-border cards, hand-drawn SVG humans, Inter as display font, invented metrics.">明确禁止：激进紫色渐变、通用 emoji 图标、左边框圆角卡片、手绘 SVG 人像、把 Inter 当标题字体、凭空编造数据。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">5</span>
+                    <h3 data-zh="五维自审" data-en="Five-axis self-review">五维自审</h3>
+                    <p data-zh="AI 交稿前必须从哲学、层次、执行、具体性、克制五个维度自评。任何一维低于 3 分就必须重做——文档写着「两轮修改是正常的」。" data-en="Before submitting, the AI self-scores on philosophy, hierarchy, execution, specificity, and restraint. Any axis below 3 means redo — the docs say 'two passes is normal'.">AI 交稿前必须从哲学、层次、执行、具体性、克制五个维度自评。任何一维低于 3 分就必须重做——文档写着「两轮修改是正常的」。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">6</span>
+                    <h3 data-zh="自动代码检查" data-en="Automated code lint">自动代码检查</h3>
+                    <p data-zh="程序自动扫描生成的代码：结构是否完整、品牌色是否跑偏、必要文件是否缺失。让自评有数据依据而非凭感觉。没有真实数据时必须写占位符，不准编造。" data-en="Automated lint scans the code for structural integrity, color drift, and missing files. Self-review grounded in data, not vibes. Missing data must use placeholders, never fabrication.">程序自动扫描生成的代码：结构是否完整、品牌色是否跑偏、必要文件是否缺失。让自评有数据依据而非凭感觉。没有真实数据时必须写占位符，不准编造。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 05 — 竞品对比 -->
+        <section id="comparison" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / Comparison</p>
+            <h2 data-zh="5. 跟竞品比怎样" data-en="5. How it compares">5. 跟竞品比怎样</h2>
+            <p data-zh="目前做 AI 设计的主要有三家：Anthropic 的 Claude Design（闭源领头羊）、OpenCoworkAI 的 open-codesign（开源桌面端）、以及 OD。下面挑出最关键的 12 个差异。" data-en="Three main AI design players: Claude Design (closed-source leader), open-codesign (open-source desktop), and OD. Twelve key differences below.">
+              目前做 AI 设计的主要有三家：Anthropic 的 Claude Design（闭源领头羊）、OpenCoworkAI 的 open-codesign（开源桌面端）、以及 OD。下面挑出最关键的 12 个差异。
+            </p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" aria-expanded="true" data-zh="12 个关键差异" data-en="12 key differences">12 个关键差异</button>
+              <div class="subsection-content">
+                <p data-zh="OD 在「可替换性」与「设计纪律」上领先，唯一明显落后项是精细编辑功能的可靠性，被列为 0.4+ 路线。" data-en="OD leads in replaceability and design discipline. The one clear lag is surgical-edit reliability, on the 0.4+ roadmap.">OD 在「可替换性」与「设计纪律」上领先，唯一明显落后项是精细编辑功能的可靠性，被列为 0.4+ 路线。</p>
+                <div style="overflow-x: auto;">
+                <table class="matrix-table">
+                  <thead>
+                    <tr>
+                      <th data-zh="维度" data-en="Dimension">维度</th>
+                      <th>Claude Design</th>
+                      <th>open-codesign</th>
+                      <th>Open Design</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td data-zh="开源" data-en="Open source">开源</td><td><span class="no">闭源</span></td><td>MIT</td><td>Apache-2.0</td></tr>
+                    <tr><td data-zh="运行方式" data-en="Runtime">运行方式</td><td>云端 Web</td><td>桌面 Electron</td><td>本地 Web + 后台服务</td></tr>
+                    <tr><td data-zh="AI 来源" data-en="AI source">AI 来源</td><td>固定 Opus 4.7</td><td>内置 pi-ai</td><td>你电脑上的任意 AI 助手</td></tr>
+                    <tr><td data-zh="支持的 AI 数量" data-en="AI count">支持的 AI 数量</td><td>1</td><td>7+</td><td>13 + BYOK 4 协议</td></tr>
+                    <tr><td data-zh="设计技能" data-en="Skills">设计技能</td><td>专有</td><td>12 个</td><td>31 个，拖入即用</td></tr>
+                    <tr><td data-zh="设计系统" data-en="Design systems">设计系统</td><td>专有</td><td>规划中</td><td>129 套已就位</td></tr>
+                    <tr><td data-zh="需求表单" data-en="Question form">需求表单</td><td><span class="no">&times;</span></td><td><span class="no">&times;</span></td><td><span class="yes">&checkmark; 强制第一步</span></td></tr>
+                    <tr><td data-zh="风格选择器" data-en="Style picker">风格选择器</td><td><span class="no">&times;</span></td><td><span class="no">&times;</span></td><td><span class="yes">&checkmark; 5 个预设</span></td></tr>
+                    <tr><td data-zh="导入 Claude Design 项目" data-en="Import Claude Design">导入 Claude Design 项目</td><td>n/a</td><td><span class="no">&times;</span></td><td><span class="yes">&checkmark;</span></td></tr>
+                    <tr><td data-zh="精细编辑" data-en="Surgical edit">精细编辑</td><td><span class="no">&times;</span></td><td><span class="yes">&checkmark;</span></td><td><span class="partial">开发中</span></td></tr>
+                    <tr><td data-zh="质量自查" data-en="Quality self-review">质量自查</td><td><span class="no">&times;</span></td><td><span class="no">&times;</span></td><td><span class="yes">&checkmark; 五维 + 自动检查</span></td></tr>
+                    <tr><td data-zh="部署到 Vercel" data-en="Vercel deploy">部署到 Vercel</td><td><span class="no">&times;</span></td><td><span class="no">&times;</span></td><td><span class="yes">&checkmark;</span></td></tr>
+                  </tbody>
+                </table>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 06 — 技术架构 -->
+        <section id="architecture" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / Under the Hood</p>
+            <h2 data-zh="6. 底层怎么实现的" data-en="6. Under the hood">6. 底层怎么实现的</h2>
+            <p data-zh="如果你想了解 OD 的技术实现，或者考虑贡献代码，这一节拆解它的内部结构。不关心技术的读者可以跳过。" data-en="For those interested in OD's technical implementation or contributing code. Non-technical readers can skip ahead.">
+              如果你想了解 OD 的技术实现，或者考虑贡献代码，这一节拆解它的内部结构。不关心技术的读者可以跳过。
+            </p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" aria-expanded="true" data-zh="三层架构" data-en="Three-layer architecture">三层架构</button>
+              <div class="subsection-content">
+                <p data-zh="OD 的架构只有三层：浏览器（界面）→ 本地后台服务（数据和 API）→ AI 助手（写代码的 AI）。" data-en="Three layers: browser (UI) → local backend (data and APIs) → AI assistant (the AI that writes code).">OD 的架构只有三层：浏览器（界面）→ 本地后台服务（数据和 API）→ AI 助手（写代码的 AI）。</p>
+                <div class="insight-grid">
+                  <article class="insight-card">
+                    <span class="card-index" data-zh="界面" data-en="UI">界面</span>
+                    <h3 data-zh="浏览器层" data-en="Browser layer">浏览器层</h3>
+                    <p data-zh="Next.js 16 + React 18 网页应用。负责聊天界面、文件管理、设计预览（在安全的 iframe 沙箱中渲染）。可部署到 Vercel。" data-en="Next.js 16 + React 18 web app. Handles chat, files, and design preview (sandboxed iframe). Deployable to Vercel.">Next.js 16 + React 18 网页应用。负责聊天界面、文件管理、设计预览（在安全的 iframe 沙箱中渲染）。可部署到 Vercel。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index" data-zh="后台" data-en="Backend">后台</span>
+                    <h3 data-zh="本地后台服务" data-en="Local backend service">本地后台服务</h3>
+                    <p data-zh="Node.js 单进程，是唯一能读写文件和存储数据的部分。所有敏感信息（API 密钥、对话、设计稿）都由它管理，浏览器端只负责展示。" data-en="Single Node.js process — the only part that reads/writes files and stores data. All sensitive info managed here; browser only displays.">Node.js 单进程，是唯一能读写文件和存储数据的部分。所有敏感信息（API 密钥、对话、设计稿）都由它管理，浏览器端只负责展示。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index" data-zh="AI" data-en="AI">AI</span>
+                    <h3 data-zh="AI 助手层" data-en="AI assistant layer">AI 助手层</h3>
+                    <p data-zh="启动时自动扫描你电脑上已装的 AI 编码助手，在下拉菜单中列出。没装也行——填入 API 密钥后直接调用 Anthropic / OpenAI / Azure / Gemini 接口。" data-en="Auto-scans installed AI assistants on startup. No assistant? Enter an API key to call Anthropic / OpenAI / Azure / Gemini directly.">启动时自动扫描你电脑上已装的 AI 编码助手，在下拉菜单中列出。没装也行——填入 API 密钥后直接调用 Anthropic / OpenAI / Azure / Gemini 接口。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false" data-zh="提示词是分层组装的产品代码" data-en="Prompts are layered product code">提示词是分层组装的产品代码</button>
+              <div class="subsection-content">
+                <p data-zh="OD 发给 AI 的提示词不是简单的两段文字，而是六层组装。每一层都是一个可编辑的 TypeScript 文件，像管理代码一样管理提示词——可以单独测试、可以看版本差异、可以提交审核。" data-en="OD's prompt isn't a simple two-part message — it's assembled from six layers, each an editable TypeScript file managed like code: testable, diffable, reviewable.">OD 发给 AI 的提示词不是简单的两段文字，而是六层组装。每一层都是一个可编辑的 TypeScript 文件，像管理代码一样管理提示词——可以单独测试、可以看版本差异、可以提交审核。</p>
+                <ol class="flow-list">
+                  <li><span class="flow-step">1</span><div class="flow-copy"><strong>需求表单规则</strong><p>控制第一步的问答流程和品牌分支</p></div></li>
+                  <li><span class="flow-step">2</span><div class="flow-copy"><strong>设计师身份 + 质量规则</strong><p>反 AI 味黑名单 + 自审规则</p></div></li>
+                  <li><span class="flow-step">3</span><div class="flow-copy"><strong>当前设计系统</strong><p>从 129 套中选中的那一套品牌规范</p></div></li>
+                  <li><span class="flow-step">4</span><div class="flow-copy"><strong>当前技能</strong><p>从 31 个技能中选中的那一个</p></div></li>
+                  <li><span class="flow-step">5</span><div class="flow-copy"><strong>项目信息</strong><p>项目名称、历史对话等上下文</p></div></li>
+                  <li><span class="flow-step">6</span><div class="flow-copy"><strong>模板和参考文件</strong><p>技能自带的 HTML 模板和检查清单</p></div></li>
+                </ol>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false" data-zh="数据存储和外部集成" data-en="Storage &amp; integrations">数据存储和外部集成</button>
+              <div class="subsection-content">
+                <p data-zh="所有运行时数据都存在项目根目录的 .od/ 隐藏文件夹里。OD 还提供了 MCP 协议接口，让外部 AI 工具也能读取你的设计项目。" data-en="All runtime data lives in a hidden .od/ folder. OD also exposes an MCP interface so external AI tools can read your design projects.">所有运行时数据都存在项目根目录的 .od/ 隐藏文件夹里。OD 还提供了 MCP 协议接口，让外部 AI 工具也能读取你的设计项目。</p>
+                <div class="insight-grid">
+                  <article class="insight-card">
+                    <span class="card-index">存储</span>
+                    <h3 data-zh="本地 SQLite 数据库" data-en="Local SQLite database">本地 SQLite 数据库</h3>
+                    <p data-zh="对话记录、项目文件、设计稿、打开的标签页——全部存在本地。关掉再打开，一切还在原处。" data-en="Conversations, files, designs, open tabs — all local. Close and reopen, everything stays.">对话记录、项目文件、设计稿、打开的标签页——全部存在本地。关掉再打开，一切还在原处。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">集成</span>
+                    <h3 data-zh="MCP 只读接口" data-en="MCP read-only interface">MCP 只读接口</h3>
+                    <p data-zh="注册到 Claude Code / VS Code / Cursor 等工具后，其他 AI 可以直接读取你 OD 项目里的设计文件，省掉「导出 → 重新导入」的循环。默认只允许本机访问。" data-en="Register with Claude Code / VS Code / Cursor, and other AIs can read your design files directly. Defaults to localhost-only.">注册到 Claude Code / VS Code / Cursor 等工具后，其他 AI 可以直接读取你 OD 项目里的设计文件，省掉「导出 → 重新导入」的循环。默认只允许本机访问。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 07 — 启示 -->
+        <section id="takeaways" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">07 / Takeaways</p>
+            <h2 data-zh="7. OD 给 AI 产品设计带来的三个启发" data-en="7. Three lessons from OD">7. OD 给 AI 产品设计带来的三个启发</h2>
+            <p data-zh="OD 不只是「免费版 Claude Design」。它验证了三个对所有 AI 产品都有参考价值的思路。" data-en="OD is more than 'free Claude Design'. It validates three ideas valuable to any AI product.">
+              OD 不只是「免费版 Claude Design」。它验证了三个对所有 AI 产品都有参考价值的思路。
+            </p>
+          </div>
+
+          <div class="insight-grid">
+            <article class="insight-card">
+              <span class="card-index">01</span>
+              <h3 data-zh="产品力在纪律，不在模型" data-en="Value is in discipline, not the model">产品力在纪律，不在模型</h3>
+              <p data-zh="OD 支持 13 种 AI 助手，但产出质量差异显著——说明产品力来自那套「先问后做、品牌锁定、五维自查」的设计纪律，而不是底层用了哪个模型。" data-en="OD supports 13 AI assistants yet quality varies — proving value comes from design discipline, not the model.">OD 支持 13 种 AI 助手，但产出质量差异显著——说明产品力来自那套「先问后做、品牌锁定、五维自查」的设计纪律，而不是底层用了哪个模型。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">02</span>
+              <h3 data-zh="降低贡献门槛是增长杠杆" data-en="Lowering contribution cost is a growth lever">降低贡献门槛是增长杠杆</h3>
+              <p data-zh="把扩展方式从「写代码 + 装插件」降到「拖个文件夹 + 写份 Markdown」，让 OD 两周就拿到 92 个贡献者。这比打磨任何单个功能都更有效。" data-en="Reducing extension from 'write code + install plugin' to 'drag folder + write Markdown' gave 92 contributors in two weeks — more effective than polishing any single feature.">把扩展方式从「写代码 + 装插件」降到「拖个文件夹 + 写份 Markdown」，让 OD 两周就拿到 92 个贡献者。这比打磨任何单个功能都更有效。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">03</span>
+              <h3 data-zh="还有哪些坑没填" data-en="Gaps still open">还有哪些坑没填</h3>
+              <p data-zh="精细编辑（选中局部修改）的可靠性、桌面打包分发、技能市场（一键安装社区技能）仍在 0.4+ 路线上。101 个 issue + 43 个 PR 表明高速迭代期的文档同步是下一阶段挑战。" data-en="Surgical editing, packaged desktop builds, and skill marketplace are on the 0.4+ roadmap. 101 issues + 43 PRs show doc-code sync is the next challenge.">精细编辑（选中局部修改）的可靠性、桌面打包分发、技能市场（一键安装社区技能）仍在 0.4+ 路线上。101 个 issue + 43 个 PR 表明高速迭代期的文档同步是下一阶段挑战。</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 08 — References -->
+        <section id="references" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">08 / References</p>
+            <h2 data-zh="8. 参考来源" data-en="8. References">8. 参考来源</h2>
+          </div>
+
+          <ol class="bib-list">
+            <li>
+              <span class="bib-id">[1]</span>
+              <span class="bib-author">nexu-io/open-design</span> —
+              <a href="https://github.com/nexu-io/open-design" target="_blank" rel="noopener noreferrer">https://github.com/nexu-io/open-design</a>
+              <span class="bib-note" data-zh="主仓库 README、QUICKSTART、CHANGELOG" data-en="Main README, QUICKSTART, CHANGELOG">主仓库 README、QUICKSTART、CHANGELOG</span>
+            </li>
+            <li>
+              <span class="bib-id">[2]</span>
+              <span class="bib-author">apps/web/src/prompts/</span> —
+              <a href="https://github.com/nexu-io/open-design/blob/main/apps/web/src/prompts/discovery.ts" target="_blank" rel="noopener noreferrer">prompts/discovery.ts</a>
+              <span class="bib-note" data-zh="需求表单、五维自审、品牌协议的实际代码" data-en="Discovery form, five-axis critique, brand protocol source code">需求表单、五维自审、品牌协议的实际代码</span>
+            </li>
+            <li>
+              <span class="bib-id">[3]</span>
+              <span class="bib-author">apps/daemon/src/agents.ts</span> —
+              <a href="https://github.com/nexu-io/open-design/blob/main/apps/daemon/src/agents.ts" target="_blank" rel="noopener noreferrer">daemon/src/agents.ts</a>
+              <span class="bib-note" data-zh="AI 助手自动发现和适配的核心代码" data-en="AI assistant auto-discovery and adapter core">AI 助手自动发现和适配的核心代码</span>
+            </li>
+            <li>
+              <span class="bib-id">[4]</span>
+              <span class="bib-author">alchaincyf/huashu-design</span> —
+              <a href="https://github.com/alchaincyf/huashu-design" target="_blank" rel="noopener noreferrer">https://github.com/alchaincyf/huashu-design</a>
+              <span class="bib-note" data-zh="OD 的设计哲学来源：反 AI 味、五维自审、初级设计师模式" data-en="OD's design philosophy: anti-slop, five-axis critique, Junior Designer mode">OD 的设计哲学来源：反 AI 味、五维自审、初级设计师模式</span>
+            </li>
+            <li>
+              <span class="bib-id">[5]</span>
+              <span class="bib-author">OpenCoworkAI/open-codesign</span> —
+              <a href="https://github.com/OpenCoworkAI/open-codesign" target="_blank" rel="noopener noreferrer">https://github.com/OpenCoworkAI/open-codesign</a>
+              <span class="bib-note" data-zh="OD 的 UX 模式来源：流式预览、iframe 沙箱、导出格式" data-en="UX patterns: streaming preview, iframe sandbox, export formats">OD 的 UX 模式来源：流式预览、iframe 沙箱、导出格式</span>
+            </li>
+            <li>
+              <span class="bib-id">[6]</span>
+              <span class="bib-author">multica-ai/multica</span> —
+              <a href="https://github.com/multica-ai/multica" target="_blank" rel="noopener noreferrer">https://github.com/multica-ai/multica</a>
+              <span class="bib-note" data-zh="OD 的架构来源：本地后台服务 + AI 助手自动发现" data-en="Architecture source: local daemon + AI auto-discovery">OD 的架构来源：本地后台服务 + AI 助手自动发现</span>
+            </li>
+            <li>
+              <span class="bib-id">[7]</span>
+              <span class="bib-author">VoltAgent/awesome-design-md</span> —
+              <a href="https://github.com/VoltAgent/awesome-design-md" target="_blank" rel="noopener noreferrer">https://github.com/VoltAgent/awesome-design-md</a>
+              <span class="bib-note" data-zh="DESIGN.md 格式规范与 70 个产品品牌系统的数据来源" data-en="DESIGN.md schema and 70 product brand systems source">DESIGN.md 格式规范与 70 个产品品牌系统的数据来源</span>
+            </li>
+            <li>
+              <span class="bib-id">[8]</span>
+              <span class="bib-author">Open Design 0.3.0 Release</span> —
+              <a href="https://github.com/nexu-io/open-design/releases/tag/open-design-v0.3.0" target="_blank" rel="noopener noreferrer">v0.3.0 release</a>
+              <span class="bib-note" data-zh="2026-05-04 发布的最新版本" data-en="Latest release on 2026-05-04">2026-05-04 发布的最新版本</span>
+            </li>
+          </ol>
+        </section>
+      </main>
+
+      <footer class="site-footer" data-reveal>
+        <p>&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。</p>
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

@@ -233,6 +233,16 @@ Presentation mode auto-layouts these as a **2-column grid** (collapses to 1-col 
 
 When subsection content uses structured components (`.comparison-grid`, `.insight-grid`, `.flow-list`, `.layer-list`), **no special treatment needed** — these components already have responsive grid layouts that work at any width.
 
+**Symmetric grid layout rule** (applies to `.insight-grid`, `.comparison-grid`, and any card grid):
+- Card count per grid MUST produce balanced rows: use **2, 3, 4, or 6** cards. NEVER use 5, 7, or other counts that leave an orphan card on the last row.
+- If the content naturally has 5 points, either merge two related points into one card, or split one point into two to reach 4 or 6.
+- Presentation mode caps `insight-grid` to 3 columns. Design card content accordingly — card text should be ≤ 3 lines of body copy.
+- When a grid appears directly inside a `<section>` (not inside accordion), it shares the same presentation slide as the `section-head`. Keep it to 3 cards max so it doesn't crowd the page title.
+
+**Subsection content density rule** (progressive disclosure per slide):
+- Every accordion subsection should open with a **1-sentence summary** `<p>` (the top-level takeaway), followed by **structured detail** (cards, flow-list, table).
+- NEVER put a single long `<p>` as the only child of `.subsection-content`. If the information cannot be structured, break it into 2-3 short paragraphs with `<strong>` lead-ins.
+
 #### Pure prose pattern (avoid in subsections)
 
 **Do NOT** put long unstructured paragraphs directly inside `.subsection-content`. In presentation mode they render as a wall of text with no visual hierarchy. Instead:
@@ -260,6 +270,16 @@ Content text is extracted and sent to LLM for narration script generation, then 
 - Keep individual subsection content under ~800 characters for optimal narration chunk sizing
 
 ## Other Rules
+
+### Post-design presentation review checklist
+
+After completing an article, review **every presentation slide** (each `data-present-step` and each accordion subsection) against these criteria before declaring it done:
+
+1. **One slide = one idea**. If a slide shows both a card grid AND an accordion, split them into separate steps or move the cards into an accordion subsection.
+2. **No content overflow**. Each slide must fit within the viewport without scrolling. If content overflows, either reduce text or split into more slides.
+3. **Symmetric card grids**. Card counts must be 2, 3, 4, or 6 — never 5 or 7. In presentation mode, max 3 columns.
+4. **No bare text walls**. Every subsection-content must open with a 1-sentence summary, followed by structured components (cards, flow-list, table). Never a single long `<p>` as the only child.
+5. **Non-accordion content inside `<section>` must be inside a `subsection-accordion`**. Standalone `<div class="insight-grid">` directly under `<section>` will merge with the section overview slide and crowd it. Wrap it in an accordion item instead.
 
 - Use semantic section structure: `.section` with `data-reveal`, `.section-head` with `.section-kicker`
 - Footer format: `© 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。` — 统一使用项目名，不放文章标题

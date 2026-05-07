@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>智能体平台设计理念：边界划分、八条目标与五条已知不适用场景</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(2.4rem, 6vw, 4.4rem);
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+    }
+    .pillar-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 18px;
+      margin-top: 18px;
+    }
+    .pillar-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      padding: 22px 20px;
+      box-shadow: var(--card-shadow);
+    }
+    .pillar-card .pillar-no {
+      display: inline-block;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      color: #0891b2;
+      letter-spacing: 0.08em;
+      font-size: 0.78rem;
+      margin-bottom: 8px;
+    }
+    .pillar-card h3 { font-size: 1.05rem; margin: 0 0 8px; }
+    .pillar-card p { margin: 0; color: var(--muted); font-size: 0.92rem; line-height: 1.6; }
+    [data-theme="dark"] .pillar-card .pillar-no { color: #22d3ee; }
+
+    .vendor-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+      font-size: 0.92rem;
+    }
+    .vendor-table th,
+    .vendor-table td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+    .vendor-table th {
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .vendor-table td:first-child { font-weight: 600; white-space: nowrap; }
+    .vendor-table .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      background: rgba(8, 145, 178, 0.1);
+      color: #0891b2;
+      margin-right: 4px;
+    }
+    [data-theme="dark"] .vendor-table .tag {
+      background: rgba(34, 211, 238, 0.16);
+      color: #67e8f9;
+    }
+
+    .def-block {
+      background: var(--card-bg);
+      border-left: 3px solid #0891b2;
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-top: 14px;
+    }
+    .def-block .def-term {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      color: #0891b2;
+      font-size: 0.95rem;
+      letter-spacing: 0.02em;
+    }
+    .def-block .def-body {
+      margin: 6px 0 0;
+      font-size: 0.92rem;
+      line-height: 1.65;
+      color: var(--text);
+    }
+    .def-block .def-body code {
+      font-size: 0.86rem;
+    }
+    [data-theme="dark"] .def-block { border-left-color: #22d3ee; }
+    [data-theme="dark"] .def-block .def-term { color: #22d3ee; }
+
+    .verify-table { font-size: 0.9rem; }
+    .verify-table .verify-method {
+      font-family: 'Space Grotesk', monospace;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .limit-card {
+      background: rgba(245, 158, 11, 0.06);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      border-radius: var(--radius-md);
+      padding: 18px 20px;
+    }
+    .limit-card h3 {
+      margin: 0 0 6px;
+      font-size: 1rem;
+      color: #b45309;
+    }
+    [data-theme="dark"] .limit-card { background: rgba(245, 158, 11, 0.08); }
+    [data-theme="dark"] .limit-card h3 { color: #fbbf24; }
+
+    .empirical-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+    .empirical-grid .ec {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      padding: 16px 18px;
+    }
+    .empirical-grid .ec strong {
+      display: block;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.5rem;
+      color: #0891b2;
+      letter-spacing: -0.02em;
+    }
+    .empirical-grid .ec span {
+      font-size: 0.82rem;
+      color: var(--muted);
+      display: block;
+      margin-top: 4px;
+    }
+    [data-theme="dark"] .empirical-grid .ec strong { color: #22d3ee; }
+    .non-goal-heading {
+      margin-top: 28px;
+      font-size: 1.1rem;
+    }
+    .deprecation-note {
+      color: #b45309;
+      font-size: 0.78rem;
+    }
+    [data-theme="dark"] .deprecation-note { color: #fbbf24; }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            智能体平台
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#problem">假设与待证伪命题</a>
+            <a href="#definitions">术语定义</a>
+            <a href="#pillars">八条设计目标</a>
+            <a href="#boundary">边界与非目标</a>
+            <a href="#landscape">市场对标</a>
+            <a href="#tradeoffs">关键取舍</a>
+            <a href="#limitations">不适用场景</a>
+            <a href="#verification">可观测验证</a>
+            <a href="#empirical">IntellyGoal 实证</a>
+            <a href="#references">参考来源</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Agent Platform · Design Philosophy</span>
+            <h1>智能体平台的边界、目标与不适用场景</h1>
+            <p>本文把"是否需要把智能体运行时从业务系统中抽出来"当作一个待验证的工程假设，给出八条可观测的设计目标、四条不进入平台的非目标、与七个主流方案的逐维度对照，并明确五条本设计已知不适用的场景。论证手段以 IntellyGoal（Phase 1 真实租户）为实证锚点，避免把分类决定误读为测量结果。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#pillars">查看八条设计目标</a>
+              <a class="button button-secondary" href="#limitations">先看不适用场景</a>
+            </div>
+            <p class="hero-note">关键词：业务无关 · 多租户硬隔离 · BYOK · MCP 单通道 · 可观测验证 · 已知失败模式</p>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">中心假设（待证伪）</span>
+            <h2>智能体运行时是基础设施层级的能力，不是业务功能</h2>
+            <p>该假设可被以下情况证伪：(a) 接入第二个项目时平台代码改动 ≥ 50 行；(b) 任意一类业务对象（订单、患者档案、销售线索）必须存放在平台数据库；(c) 三个以上项目同时运行时，无法用单一 trace ID 复现某次跨项目调用。下文的八条设计目标即为该假设的判定标尺。</p>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span>平台代码静态依赖图不得包含任何项目命名空间</li>
+              <li><span class="layer-number">2</span>新项目接入仅 3 步：注册 project_id、登记 MCP endpoint、上传 skill</li>
+              <li><span class="layer-number">3</span>每次调用必须可回放 skill 版本 / 上下文 / 工具序列 / 模型输出四元组</li>
+              <li><span class="layer-number">4</span>模型、工具、运行时内核任一供应商锁定均触发设计违反</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">平台职责（设计层划分）</div>
+            <strong>8</strong>
+            <span>边界表中平台侧 8 类与业务无关的运行时机制；为分类决定，非测量结果。</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">项目职责（设计层划分）</div>
+            <strong>6</strong>
+            <span>边界表中项目侧 6 类带业务副作用的责任；同上为分类决定。</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">已知不适用场景</div>
+            <strong>5</strong>
+            <span>本设计在单租户、低调用量、强分支逻辑等 5 类场景下不优于直接内嵌（见 Limitations）。</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">实证锚点</div>
+            <strong>1</strong>
+            <span>IntellyGoal Phase 1 是当前唯一已落地租户；下文实证数据均限于该项目。</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- 01 -->
+        <section id="problem" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / Hypothesis</p>
+            <h2>需要被验证的工程假设</h2>
+            <p>"组织内每多一个引入 LLM 能力的业务系统，自建智能体堆栈的边际成本就会重复出现一次。"该陈述本身是假设而非定理。本节列出三类被多次报告的失败模式，并标注当前可获得的证据强度，供读者按本组织实际情况判断该假设是否成立。</p>
+          </div>
+
+          <div class="insight-grid">
+            <article class="insight-card">
+              <span class="card-index">F1</span>
+              <h3>同一类机制的重复实现</h3>
+              <p>对话状态机、流式 SSE 适配器、token 计数器、限流配额逻辑在不同项目中独立维护。<em>证据强度</em>：IntellyGoal Phase 0（迁移前）含 ~1.4k 行此类代码，与团队内另一原型项目高度同构；尚无更大样本统计。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">F2</span>
+              <h3>跨项目行为漂移</h3>
+              <p>不同团队迭代提示模板、回退策略、工具描述格式后，同类问句在不同项目得到风格与深度差异显著的响应。<em>证据强度</em>：业内多次报告（参见 LangSmith 与 Arize 的 trace 漂移分析），本组织尚无量化对比。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">F3</span>
+              <h3>运维信号分散</h3>
+              <p>token 用量、慢调用、负反馈散落在各项目本地日志，安全审计需逐项目走一遍。<em>证据强度</em>：合规需求驱动，已被本组织安全团队明确列为 Phase 1 必须解决项。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">F4</span>
+              <h3>抽象层级的可能错配</h3>
+              <p>若 F1–F3 在 ≥ 3 个项目同时出现，则把"运行时机制"留在业务层的代价大概率超过抽出独立平台的代价。本文按该判断展开后续设计；不同组织可代入自身项目数评估。</p>
+            </article>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced">
+            <article class="comparison-card">
+              <span class="comparison-label">Pattern A · 内嵌</span>
+              <h3>智能体作为业务模块</h3>
+              <p>对话状态、工具调用、模型路由直接嵌入业务服务代码库，与领域逻辑共享数据库与发布周期。</p>
+              <ul class="reference-list">
+                <li><strong>耦合面</strong> —— 模型升级与业务发布同周期</li>
+                <li><strong>调试面</strong> —— prompt 改动散落在领域代码 PR 中</li>
+                <li><strong>合规面</strong> —— 审计日志需在每个服务复刻</li>
+                <li><strong>成本面</strong> —— 跨项目 token 议价与统一限流缺乏落点</li>
+              </ul>
+            </article>
+
+            <article class="comparison-card next">
+              <span class="comparison-label">Pattern B · 抽出</span>
+              <h3>智能体作为独立运行时服务</h3>
+              <p>抽出容器化服务，对内承诺统一 API 与 SLA，对外仅经 MCP 消费项目能力。业务侧负责工具实现、skill 撰写、评测集与 BYOK。</p>
+              <ul class="reference-list">
+                <li><strong>耦合面</strong> —— 模型升级与业务发布解耦</li>
+                <li><strong>调试面</strong> —— skill 版本化 + 集中 trace</li>
+                <li><strong>合规面</strong> —— 集中审计、集中 RBAC</li>
+                <li><strong>成本面</strong> —— 跨项目 token 报表与统一配额</li>
+              </ul>
+            </article>
+          </div>
+
+          <article class="comparison-card section-grid-spaced">
+            <span class="comparison-label">证伪条件</span>
+            <h3>本假设何时不成立</h3>
+            <p>当组织内只有 1 个 LLM 项目、或所有 LLM 项目共享同一业务数据库与同一团队时，Pattern B 的隔离与运维收益不足以补偿额外的运维与协议复杂度。下文 <a href="#limitations">第 07 节</a>列出五条具体不适用场景。</p>
+          </article>
+        </section>
+
+        <!-- 02 Definitions -->
+        <section id="definitions" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Definitions</p>
+            <h2>关键术语的操作定义</h2>
+            <p>下列定义供后续章节判定争议特性的归属。每条定义给出充分必要条件或可机械执行的判定算法，避免读者用直觉裁决。</p>
+          </div>
+
+          <div class="def-block">
+            <span class="def-term">D1 · Skill</span>
+            <p class="def-body">五元组 <code>(system_prompt_md, tools_whitelist, model_pref, version, eval_set_ref)</code>。其中 <code>system_prompt_md</code> 为不可变 markdown，<code>version</code> 须随任一字段变化递增。运行时按 (project_id, skill_id, version) 三元组唯一加载。</p>
+          </div>
+          <div class="def-block">
+            <span class="def-term">D2 · 业务对象</span>
+            <p class="def-body">满足下列任一条件即为业务对象：(i) 参与项目侧事务边界；(ii) 受项目 ACL 策略保护；(iii) 出现在项目业务表的主键或外键中。判定算法：在项目数据库 schema 上跑一次扫描，命中即归项目侧。</p>
+          </div>
+          <div class="def-block">
+            <span class="def-term">D3 · 运行时机制</span>
+            <p class="def-body">同时满足三条：(i) 实现不依赖任何业务概念；(ii) 在两个以上项目中接口形状一致；(iii) 输入输出可被 trace 完整记录。例：意图分类、模型路由、限流。反例：commit_goal_plan、create_order。</p>
+          </div>
+          <div class="def-block">
+            <span class="def-term">D4 · 多租户硬隔离</span>
+            <p class="def-body">在 schema、缓存键、配置表、灰度状态、telemetry 分区五个维度上，跨 project_id 的读写默认拒绝；放行需显式策略授权且写入 audit_log。判定测试：跨租户读写测试集 100% 拒绝。</p>
+          </div>
+          <div class="def-block">
+            <span class="def-term">D5 · 可回放</span>
+            <p class="def-body">给定 trace_id，能以确定的方式还原 (skill 版本、输入上下文、工具调用序列与参数、模型完整输出) 四元组。判定算法：对随机抽样的 N 条 trace 执行 replay，结构化字段一致性 ≥ 99%。</p>
+          </div>
+          <div class="def-block">
+            <span class="def-term">D6 · 业务无关</span>
+            <p class="def-body">平台代码静态依赖图不得包含任何项目命名空间。判定算法：CI 阶段执行 import 扫描，命中项目包即构建失败。</p>
+          </div>
+        </section>
+
+        <!-- 03 Pillars -->
+        <section id="pillars" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / Design Goals</p>
+            <h2>八条设计目标</h2>
+            <p>下列八条是后续每个架构决策的判定依据：每当有"是否引入此特性"的争议，对照八条逐项检查；若违反前两条任一条则不进入主线，违反后六条则需在 PR 描述中显式说明取舍依据。</p>
+          </div>
+
+          <div class="pillar-grid">
+            <article class="pillar-card">
+              <span class="pillar-no">Goal 01</span>
+              <h3>业务无关</h3>
+              <p>定义见 D6。判定方法：依赖图扫描 + 把任意项目从平台拔掉后回归测试仍通过。</p>
+            </article>
+            <article class="pillar-card">
+              <span class="pillar-no">Goal 02</span>
+              <h3>多租户硬隔离</h3>
+              <p>定义见 D4。判定方法：跨租户读写测试集 100% 拒绝；audit_log 完整记录授权放行。</p>
+            </article>
+            <article class="pillar-card">
+              <span class="pillar-no">Goal 03</span>
+              <h3>可回放</h3>
+              <p>定义见 D5。判定方法：N=200 抽样 replay 一致性 ≥ 99%；缺失字段触发告警。</p>
+            </article>
+            <article class="pillar-card">
+              <span class="pillar-no">Goal 04</span>
+              <h3>可替换</h3>
+              <p>模型经 LiteLLM 抽象、工具经 MCP 抽象、运行时经 LangGraph 接口；任一层供应商锁定均触发违反。判定方法：模型 swap、工具 swap、内核 swap 三类 e2e 测试。</p>
+            </article>
+            <article class="pillar-card">
+              <span class="pillar-no">Goal 05</span>
+              <h3>单镜像可启动</h3>
+              <p>最小可用形态为 1 个 Docker 镜像 + Postgres + Redis。新项目接入步数 ≤ 3：注册 project_id、登记 MCP endpoint、上传 skill。</p>
+            </article>
+            <article class="pillar-card">
+              <span class="pillar-no">Goal 06</span>
+              <h3>BYOK</h3>
+              <p>模型 API key 由项目自带，平台只在调用时注入。平台代码中不出现任何 provider key 字面量；CI 含 secret-scan 检查。</p>
+            </article>
+            <article class="pillar-card">
+              <span class="pillar-no">Goal 07</span>
+              <h3>MCP 单通道</h3>
+              <p>平台出站到项目仅经 MCP 协议，禁止并行 webhook / gRPC / 私有 RPC。判定方法：网络策略只放行注册的 MCP endpoint。</p>
+            </article>
+            <article class="pillar-card">
+              <span class="pillar-no">Goal 08</span>
+              <h3>可演进</h3>
+              <p>支持 Supervisor 离线管线在 shadow / canary 双闸下提交 skill 补丁。Phase 1 可暂不实现，但 schema 与接口须为该路径预留。</p>
+            </article>
+          </div>
+
+          <article class="comparison-card section-grid-spaced">
+            <span class="comparison-label">Decision Rule</span>
+            <h3>八条目标的优先级</h3>
+            <p>裁决序列：<em>业务无关 &gt; 多租户硬隔离 &gt; 可回放 &gt; 可替换 &gt; BYOK &gt; MCP 单通道 &gt; 单镜像 &gt; 可演进</em>。</p>
+            <ul class="reference-list">
+              <li><strong>1 → 2</strong>：业务无关是隔离的前提，没有业务无关，隔离失去意义</li>
+              <li><strong>2 → 3</strong>：先保证不串户，再追求复现；隔离失败后即便可回放也已是事故</li>
+              <li><strong>3 → 4</strong>：可回放是可替换的安全网；不可回放的前提下任何替换都是赌博</li>
+              <li><strong>4 → 5</strong>：可替换属架构属性，BYOK 属商业边界；前者破坏后者尚可补救</li>
+              <li><strong>5 → 6</strong>：BYOK 决定 token 责任主体，比通道单一性更高优先级</li>
+              <li><strong>6 → 7</strong>：MCP 单通道是工程约束；单镜像与可演进属阶段性能力</li>
+              <li><strong>7 → 8</strong>：单镜像服务于早期接入门槛，可演进是后续能力</li>
+            </ul>
+          </article>
+        </section>
+
+        <!-- 04 Boundary & Non-Goals (merged) -->
+        <section id="boundary" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / Boundary &amp; Non-Goals</p>
+            <h2>边界划分与四条不进入平台的事项</h2>
+            <p>本节给出平台/项目责任的逐项归属，并列出四条平台明确不承担的事项。归属依据使用 D1–D6 的操作定义，避免诉诸主观偏好。</p>
+          </div>
+
+          <table class="vendor-table">
+            <thead>
+              <tr>
+                <th>归属</th>
+                <th>职责</th>
+                <th>归属依据（引用定义）</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><span class="tag">平台</span></td><td>项目鉴权 / 限流 / 计费元数据</td><td>D3 运行时机制；跨项目共用</td></tr>
+              <tr><td><span class="tag">平台</span></td><td>意图网关 · Skill 注册与版本治理</td><td>D1 + D3；与领域无关</td></tr>
+              <tr><td><span class="tag">平台</span></td><td>Skill Runtime 与 handoff</td><td>D3；状态机协议跨项目同构</td></tr>
+              <tr><td><span class="tag">平台</span></td><td>工具桥（MCP 客户端）· 超时 / 熔断 / 重试</td><td>D3；协议层与具体工具无关</td></tr>
+              <tr><td><span class="tag">平台</span></td><td>模型路由 · BYOK 注入 · 回退链</td><td>D3 + Goal 06</td></tr>
+              <tr><td><span class="tag">平台</span></td><td>会话短期记忆（≤ session 寿命）</td><td>非业务对象（D2 不命中）</td></tr>
+              <tr><td><span class="tag">平台</span></td><td>全链路 telemetry · 评测 · Supervisor 管线</td><td>D5 可回放的承载</td></tr>
+              <tr><td><span class="tag">平台</span></td><td>Admin 控制台</td><td>D3；面向人的运维入口</td></tr>
+              <tr><td><span class="tag">项目</span></td><td>领域工具实现，以 MCP server 暴露</td><td>D2 命中（带业务副作用）</td></tr>
+              <tr><td><span class="tag">项目</span></td><td>业务数据库与事务边界</td><td>D2 命中；事务边界须贴聚合根</td></tr>
+              <tr><td><span class="tag">项目</span></td><td>权限与租户策略</td><td>业务语义下的 ACL，平台不可代决</td></tr>
+              <tr><td><span class="tag">项目</span></td><td>业务对象长期记忆</td><td>D2 命中；与业务表同源</td></tr>
+              <tr><td><span class="tag">项目</span></td><td>模型 API key（BYOK）· 评测集 · 通过标准</td><td>Goal 06；计费与领域成功标准</td></tr>
+              <tr><td><span class="tag">项目</span></td><td>Skill markdown 撰写与维护</td><td>领域知识产物</td></tr>
+            </tbody>
+          </table>
+
+          <h3 class="non-goal-heading" data-zh="四条不进入平台的事项" data-en="Four Non-Goals">四条不进入平台的事项</h3>
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">NG1 · 不实现业务工具</button>
+              <div class="subsection-content">
+                <p><em>判定边界</em>：任何带"创建/修改/删除业务对象"语义的工具（命中 D2）必属项目侧。<em>依据</em>：违反 Goal 01；同时跨业务事务边界，违反聚合根原则。</p>
+                <p><em>常见违反</em>：把"通用 SQL 工具"放入平台，看似业务无关，实则把所有项目业务表暴露在统一接口下，等价于把多租户隔离削弱到数据库账号层级。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">NG2 · 不持有业务对象数据</button>
+              <div class="subsection-content">
+                <p><em>判定边界</em>：平台 Postgres 仅存控制面元数据（skills@version、traces、eval_results、supervisor_proposals、project + api_key、audit_log）；Redis 仅存 session 短期上下文、限流计数、幂等 token、热缓存。</p>
+                <p><em>典型失败模式</em>：为"加速跨项目上下文"在平台缓存用户档案，遭遇 GDPR 删除请求时需在平台与项目两侧分别处理，跨地域同步窗口期会出现违规风险。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">NG3 · 不托管模型 API key</button>
+              <div class="subsection-content">
+                <p><em>判定边界</em>：BYOK；平台不出现"预付费余额"概念；不为项目代付 token 费用。</p>
+                <p><em>依据</em>：(a) 合规边界——模型供应商账号通常已签署独立 DPA；(b) 商业边界——代付意味着平台需为项目违规承担连带责任。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">NG4 · 不替业务设定通过阈值</button>
+              <div class="subsection-content">
+                <p><em>判定边界</em>：平台只提供机制（评测 runner、灰度状态机、人审队列），不预设阈值。默认配置必须是宽容兜底（如灰度 auto-promote 默认关闭）。</p>
+                <p><em>依据</em>：通过阈值是领域成功标准的体现；由平台预设会形成隐式策略，被项目方误以为"已被审核"。</p>
+              </div>
+            </article>
+          </div>
+
+          <article class="comparison-card section-grid-spaced">
+            <span class="comparison-label">边界一句话</span>
+            <h3>One-Liner</h3>
+            <p>平台承担运行时机制（D3），项目承担业务对象与领域决策（D2 + 通过标准）。新需求评审时优先回到 D2 / D3 判定，再讨论实现成本。</p>
+          </article>
+        </section>
+
+        <!-- 05 Landscape -->
+        <section id="landscape" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / Market Landscape</p>
+            <h2>市场对标 · 主流方案的边界形状</h2>
+            <p>下表按七个维度对照本设计与 2024–2026 期间公开可查的主流方案。维度选取依据：每个维度均能被官方文档或 SDK 行为佐证，避免主观比较。所有产品状态注明截至 2026-05 的查阅时间。</p>
+          </div>
+
+          <table class="vendor-table">
+            <thead>
+              <tr>
+                <th>方案</th>
+                <th>定位</th>
+                <th>工具协议</th>
+                <th>模型 key</th>
+                <th>多租户</th>
+                <th>数据驻留</th>
+                <th>可观测下界</th>
+                <th>演进机制</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>LangChain 生态<br/>（LangGraph + LangSmith + Hub）</td>
+                <td>SDK + 平台化 Trace/Eval</td>
+                <td>开发者自接 / MCP 适配器</td>
+                <td>BYOK</td>
+                <td>账户级</td>
+                <td>SaaS（LangSmith）默认存输入输出</td>
+                <td>调用元数据 + 输入输出</td>
+                <td>Prompt Hub 版本化；自动改写需自建</td>
+              </tr>
+              <tr>
+                <td>Dify</td>
+                <td>开源 BaaS + 可视化编排</td>
+                <td>支持 MCP（HTTP）</td>
+                <td>BYOK</td>
+                <td>工作空间</td>
+                <td>含业务对象表（Datasets）</td>
+                <td>工作流节点级</td>
+                <td>手工版本管理</td>
+              </tr>
+              <tr>
+                <td>AWS Bedrock Agents</td>
+                <td>云托管 Agent + Action Group</td>
+                <td>OpenAPI / Lambda</td>
+                <td>云账户</td>
+                <td>账户/区域</td>
+                <td>云账户内</td>
+                <td>CloudWatch + Bedrock Logs</td>
+                <td>Prompt 模板 + 版本</td>
+              </tr>
+              <tr>
+                <td>Azure AI Foundry Agents</td>
+                <td>云托管 Agent + Threads</td>
+                <td>OpenAPI / 内置 Tools / MCP</td>
+                <td>Azure 订阅</td>
+                <td>项目/资源</td>
+                <td>Azure 区域内</td>
+                <td>Foundry Tracing + App Insights</td>
+                <td>Agent 配置版本 + 内置评测</td>
+              </tr>
+              <tr>
+                <td>OpenAI Responses API + Agents SDK<br/><span class="deprecation-note">（取代已 deprecate 的 Assistants API）</span></td>
+                <td>SaaS 模型侧托管 + 客户端 SDK</td>
+                <td>Function Calling / MCP / Hosted Tools</td>
+                <td>OpenAI 平台</td>
+                <td>API key / Project</td>
+                <td>OpenAI 数据中心</td>
+                <td>Responses 调用日志</td>
+                <td>客户端自管</td>
+              </tr>
+              <tr>
+                <td>Microsoft Agent Framework</td>
+                <td>开源 .NET / Python SDK（替代 AutoGen + SK）</td>
+                <td>MCP / 自定义 Function</td>
+                <td>BYOK</td>
+                <td>SDK 内由宿主决定</td>
+                <td>由宿主进程决定</td>
+                <td>OpenTelemetry 自接</td>
+                <td>Workflow 级回放，prompt 改写由 Foundry 侧承担</td>
+              </tr>
+              <tr>
+                <td>Coze（按形态分）</td>
+                <td>低代码 Bot 平台<br/>（C 端：coze.com；自托管：Coze Studio OSS）</td>
+                <td>插件市场 / 自定义</td>
+                <td>SaaS 平台供给为主；OSS 支持 BYOK</td>
+                <td>账户 / 工作空间</td>
+                <td>SaaS 形态业务对象托管在平台</td>
+                <td>Bot 调用日志</td>
+                <td>Workflow 版本管理</td>
+              </tr>
+              <tr>
+                <td>Microsoft Copilot Studio</td>
+                <td>低代码企业 Agent 平台</td>
+                <td>Power Platform Connectors / MCP</td>
+                <td>Microsoft 生态</td>
+                <td>租户 / 环境</td>
+                <td>Microsoft 365 数据边界</td>
+                <td>Dataverse 审计 + AppInsights</td>
+                <td>主题与 Topic 版本管理</td>
+              </tr>
+              <tr>
+                <td><strong>本设计</strong></td>
+                <td>容器化业务无关运行时</td>
+                <td><strong>MCP 单通道</strong></td>
+                <td><strong>BYOK</strong></td>
+                <td><strong>项目级硬隔离（D4）</strong></td>
+                <td><strong>不持有任何业务对象（NG2）</strong></td>
+                <td><strong>四元组可回放（D5）</strong></td>
+                <td>Supervisor 离线管线（Goal 08）</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">5.1 与 LangChain 生态的关系</button>
+              <div class="subsection-content">
+                <p>本平台 Skill Runtime 直接采用 LangGraph 内核；可观测性可对接 LangSmith 作为可选 telemetry 后端。差异在于本平台规约部署形态与多租户隔离，LangChain 生态本身不规约这两层。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">5.2 与 Dify 的差异</button>
+              <div class="subsection-content">
+                <p>Dify 工作空间允许在 Datasets 中持有业务对象，这与本设计的 NG2 直接冲突。Dify 编排面向"低代码搭智能体"；本设计的 skill 仅为不可变 markdown，不提供节点编排画布。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">5.3 与云厂商方案（Bedrock / Foundry）的差异</button>
+              <div class="subsection-content">
+                <p>云厂商方案的多租户与计费天然依附于云账户，工具即云函数。本设计通过 LiteLLM + MCP 抽象解耦云厂商绑定，但代价是失去与单一云生态的深度集成（IAM、监控、计费打通）。该取舍在 <a href="#tradeoffs">第 06 节 Trade-Off 02</a> 显式列出。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">5.4 与 OpenAI Responses + Agents SDK 的差异</button>
+              <div class="subsection-content">
+                <p>Assistants API 已于 2025 年公告进入 deprecation，迁移目标为 Responses API + Agents SDK。OpenAI 路径把对话历史与状态托管在 OpenAI 侧；本设计把 session 短期记忆放本地 Redis，长期记忆代理回项目侧 MCP，避免业务对象离开自有数据中心。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">5.5 与 Microsoft Agent Framework 的关系</button>
+              <div class="subsection-content">
+                <p>Agent Framework 是 SDK 层抽象，不规约部署形态、多租户、telemetry 持久化，可作为本平台 Skill Runtime 的备选内核（与 LangGraph 平行评估）。本平台与之是"运行时容器 vs SDK"层级关系，不冲突。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">5.6 与 Coze / Copilot Studio 的差异</button>
+              <div class="subsection-content">
+                <p>这两类方案的共性是"平台即业务底座"——承担对话历史、知识库、用户身份、渠道接入。优点是上手极快；代价是核心业务数据离开自有数据中心。对企业关键系统而言，"业务对象不离开自有数据库"通常是合规与事务一致性的硬约束，本设计直接为该约束服务。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 06 Trade-Offs -->
+        <section id="tradeoffs" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / Trade-Offs</p>
+            <h2>关键取舍及其对应代价</h2>
+            <p>每条设计决策都附带代价。本节逐条列出，避免后续将"已知取舍"误判为"设计缺陷"。</p>
+          </div>
+
+          <div class="comparison-grid">
+            <article class="comparison-card">
+              <span class="comparison-label">Trade-Off 01</span>
+              <h3>MCP 单通道 vs 多协议</h3>
+              <p><em>选择</em>：平台 ↔ 项目仅经 MCP，禁止并行 webhook / gRPC。</p>
+              <p><em>收益</em>：协议表面收敛、SDK 复用、错误模型与工具发现统一。</p>
+              <p><em>代价</em>：项目侧需维护 MCP server；存量 REST API 需经 MCP 包装层。短期接入工作量增加。</p>
+            </article>
+
+            <article class="comparison-card">
+              <span class="comparison-label">Trade-Off 02</span>
+              <h3>BYOK vs 平台统管 key</h3>
+              <p><em>选择</em>：模型 API key 由项目自带，平台仅在调用时注入。</p>
+              <p><em>收益</em>：计费、合规、限流责任边界清晰；项目自由选 provider；平台不承担 token 成本风险。</p>
+              <p><em>代价</em>：项目需自行注册 OpenAI / Anthropic / Azure 账号、申请配额；接入多一道运营手续。</p>
+            </article>
+
+            <article class="comparison-card">
+              <span class="comparison-label">Trade-Off 03</span>
+              <h3>Skill markdown vs 可视化编排</h3>
+              <p><em>选择</em>：skill 为纯 markdown 文本，禁模板字符串、条件 include、函数调用。</p>
+              <p><em>收益</em>：可读、可 diff、可版本化；Supervisor 写补丁的解析面收敛。</p>
+              <p><em>代价</em>：复杂分支逻辑表达比可视化节点冗长，需依赖多 skill handoff 拆分；某些重分支场景应直接走代码（见 <a href="#limitations">L3</a>）。</p>
+            </article>
+
+            <article class="comparison-card">
+              <span class="comparison-label">Trade-Off 04</span>
+              <h3>项目级硬隔离 vs 共享优化</h3>
+              <p><em>选择</em>：skill 命名空间、Supervisor 闭环、telemetry 分区、灰度状态全部按项目独立。</p>
+              <p><em>收益</em>：合规可审计、跨项目无知识泄漏、单项目故障不扩散。</p>
+              <p><em>代价</em>：同类问题的优秀 skill 不能自动跨项目共享；规模大于一定阈值后会出现"知识不复用"反模式（见 <a href="#limitations">L4</a>）。</p>
+            </article>
+
+            <article class="comparison-card">
+              <span class="comparison-label">Trade-Off 05</span>
+              <h3>Supervisor 自演化 vs 全人工迭代</h3>
+              <p><em>选择</em>：内建 Supervisor 离线管线，shadow / canary 双闸下自动起草补丁。</p>
+              <p><em>收益</em>：常见失败模式可被自动捕获并改写，迭代速度可量化提升。</p>
+              <p><em>代价</em>：Supervisor 自身有运维成本；不可变 seed + 灰度护栏 + 人审队列三层机制必须严格落地，否则会引入难以归因的行为漂移。Phase 1 默认不启用为合理选择。</p>
+            </article>
+
+            <article class="comparison-card">
+              <span class="comparison-label">Trade-Off 06</span>
+              <h3>Compact 单镜像 vs Scale-Out</h3>
+              <p><em>选择</em>：默认 Compact 模式（单镜像 + docker-compose），承诺可平滑升级到 Scale-Out。</p>
+              <p><em>收益</em>：PoC 与早期项目运维成本低，1 命令启动。</p>
+              <p><em>代价</em>：升级到 Scale-Out 需调整 manifests、引入 Ingress / HPA / StatefulSet；同一镜像通过 PROFILE 启动子模块的承诺必须从第一天保持，否则后期重写代价大。</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- 07 Limitations -->
+        <section id="limitations" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">07 / Limitations</p>
+            <h2>五条已知不适用场景</h2>
+            <p>本设计在下列场景中不优于"直接内嵌 LLM 到业务系统"。读者应在采纳前对照评估。</p>
+          </div>
+
+          <div class="empirical-grid">
+            <div class="limit-card">
+              <h3>L1 · 单租户极简场景</h3>
+              <p>组织内仅 1 个 LLM 项目，且 ≤ 6 个月内不会出现第二个。BYOK + 多租户隔离 + MCP 单通道带来的运维与协议复杂度无法被项目数摊平。</p>
+            </div>
+            <div class="limit-card">
+              <h3>L2 · 调用量极低</h3>
+              <p>日均请求 &lt; 1k 且无 SLA 要求。集中可观测、统一限流、跨项目报表的收益不足以覆盖独立服务的常驻成本（容器 + DB + Redis）。</p>
+            </div>
+            <div class="limit-card">
+              <h3>L3 · 强分支逻辑场景</h3>
+              <p>业务流程含 &gt; 10 个状态分支且分支条件依赖结构化数据（如规则引擎、审批流）。skill markdown 表达冗长，应保留代码层 orchestration，仅把"自然语言理解节点"委托给平台。</p>
+            </div>
+            <div class="limit-card">
+              <h3>L4 · 强跨项目知识共享需求</h3>
+              <p>组织对"同类问题的最佳 skill 跨项目自动复用"是核心需求。本设计的项目级硬隔离与该目标直接冲突，需引入额外的"skill 跨项目市场"机制（不在本设计范围）。</p>
+            </div>
+            <div class="limit-card">
+              <h3>L5 · MCP 协议演进风险敏感场景</h3>
+              <p>MCP 协议在 2024–2026 期间已经历多次破坏性变更。对协议稳定性敏感（如医疗、金融关键路径）的项目，应评估锁定 MCP 版本号、维护协议兼容层的额外成本。</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- 08 Verification -->
+        <section id="verification" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">08 / Verification</p>
+            <h2>八条目标的可观测验证方法</h2>
+            <p>每条目标必须配套机械可执行的验证手段；不能验证的目标会退化为标语。下表给出 Phase 1 可立即落地的检查方法。</p>
+          </div>
+
+          <table class="vendor-table verify-table">
+            <thead>
+              <tr>
+                <th>目标</th>
+                <th>验证方法</th>
+                <th>通过判据</th>
+                <th>失败动作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Goal 01 · 业务无关</td>
+                <td><span class="verify-method">CI 阶段静态依赖图扫描 import</span></td>
+                <td>0 项目命名空间命中</td>
+                <td>构建失败</td>
+              </tr>
+              <tr>
+                <td>Goal 02 · 多租户硬隔离</td>
+                <td><span class="verify-method">跨租户读写测试集（schema / cache / config / 灰度 / telemetry）</span></td>
+                <td>5 维度 100% 拒绝</td>
+                <td>release 阻断 + 安全告警</td>
+              </tr>
+              <tr>
+                <td>Goal 03 · 可回放</td>
+                <td><span class="verify-method">每日抽样 N=200 trace 执行 replay</span></td>
+                <td>四元组结构化字段一致性 ≥ 99%</td>
+                <td>SLO 告警 + 字段补齐 PR</td>
+              </tr>
+              <tr>
+                <td>Goal 04 · 可替换</td>
+                <td><span class="verify-method">e2e 三类 swap 测试：模型 / 工具 / 内核</span></td>
+                <td>所有 skill 在两个模型 provider 下 eval 通过率 Δ ≤ 5pp</td>
+                <td>路由策略回退 + 评测集补充</td>
+              </tr>
+              <tr>
+                <td>Goal 05 · 单镜像</td>
+                <td><span class="verify-method">从空环境 docker compose up 到首次成功响应</span></td>
+                <td>≤ 5 分钟，0 平台代码改动</td>
+                <td>启动脚本回归</td>
+              </tr>
+              <tr>
+                <td>Goal 06 · BYOK</td>
+                <td><span class="verify-method">CI secret-scan + 运行时 key 注入路径审计</span></td>
+                <td>仓库 0 命中；运行时 key 仅来自 project_secrets 表</td>
+                <td>构建失败 + 安全工单</td>
+              </tr>
+              <tr>
+                <td>Goal 07 · MCP 单通道</td>
+                <td><span class="verify-method">网络策略白名单 + 出站连接审计</span></td>
+                <td>非注册 MCP endpoint 出站 = 0</td>
+                <td>策略阻断 + 事件告警</td>
+              </tr>
+              <tr>
+                <td>Goal 08 · 可演进</td>
+                <td><span class="verify-method">Supervisor 路径 schema / API 兼容性测试</span></td>
+                <td>shadow / canary / 人审三态可达</td>
+                <td>schema 迁移补丁</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- 09 Empirical Anchor -->
+        <section id="empirical" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">09 / Empirical Anchor</p>
+            <h2>IntellyGoal Phase 1 的实证数据</h2>
+            <p>本节限定到当前唯一已落地的租户 IntellyGoal。下列数字仅代表 N=1 的早期观测，不构成跨项目结论；详细方法学与上下文见 <a href="../agent-platform-intellygoal/">智能体平台应用实践（IntellyGoal 项目实践）</a>。</p>
+          </div>
+
+          <div class="empirical-grid">
+            <div class="ec">
+              <strong>0</strong>
+              <span>第二个 MCP 租户接入时平台代码改动行数（Phase D 验证）</span>
+            </div>
+            <div class="ec">
+              <strong>5</strong>
+              <span>从 Phase 0 业务内嵌迁出的 skill 数（goal_create / plan_optimize 等）</span>
+            </div>
+            <div class="ec">
+              <strong>9</strong>
+              <span>项目侧 MCP server 暴露的工具数</span>
+            </div>
+            <div class="ec">
+              <strong>4</strong>
+              <span>迁移阶段（A 内嵌 → B 抽离 → C 治理 → D 第二租户）</span>
+            </div>
+            <div class="ec">
+              <strong>~1.4k</strong>
+              <span>Phase 0 业务侧自建智能体堆栈代码行（迁移后归零）</span>
+            </div>
+            <div class="ec">
+              <strong>1</strong>
+              <span>当前样本量。不足以泛化到其他领域；下一组验证待第二租户接入</span>
+            </div>
+          </div>
+
+          <article class="comparison-card section-grid-spaced">
+            <span class="comparison-label">读法说明</span>
+            <h3>这些数字证明了什么 · 没证明什么</h3>
+            <p><em>已支持的命题</em>：在 IntellyGoal 这一案例中，Goal 01 / 02 / 05 的判定方法可机械执行且通过；第二租户接入零平台改动这条承诺在 Phase D 验证为真。</p>
+            <p><em>尚未支持的命题</em>：八条目标中 Goal 03（可回放一致性）、Goal 04（多 provider eval Δ）、Goal 08（Supervisor 全闭环）仍处于度量样本不足阶段；跨项目泛化结论需 N ≥ 3 才能讨论。</p>
+          </article>
+        </section>
+
+        <!-- 10 References -->
+        <section id="references" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">10 / References</p>
+            <h2>参考来源</h2>
+            <p>除官方文档外，补充协议规范的具体版本号与同行评审来源。所有 URL 访问日期为 2026-05-04。</p>
+          </div>
+          <ol class="bib-list">
+            <li id="ref-1"><span class="bib-id">[1]</span> <span class="bib-author">Anthropic.</span> <a href="https://modelcontextprotocol.io/specification/2025-06-18/" target="_blank" rel="noreferrer noopener">"Model Context Protocol Specification, revision 2025-06-18,"</a> 2025.<span class="bib-note">本设计采用的 MCP 协议版本基线；含 tools/list、tools/call、resources、prompts 四类原语。</span></li>
+            <li id="ref-2"><span class="bib-id">[2]</span> <span class="bib-author">BerriAI.</span> <a href="https://docs.litellm.ai/" target="_blank" rel="noreferrer noopener">"LiteLLM Documentation,"</a> 访问 2026-05-04。<span class="bib-note">100+ LLM 统一接口、BYOK 路由、Proxy 模式与回退机制；本平台模型路由层选型依据。</span></li>
+            <li id="ref-3"><span class="bib-id">[3]</span> <span class="bib-author">LangChain.</span> <a href="https://langchain-ai.github.io/langgraph/" target="_blank" rel="noreferrer noopener">"LangGraph Documentation,"</a> 访问 2026-05-04。<span class="bib-note">本平台 Skill Runtime 内核选型依据；状态机与 handoff 模型。</span></li>
+            <li id="ref-4"><span class="bib-id">[4]</span> <span class="bib-author">Microsoft.</span> <a href="https://github.com/microsoft/agent-framework" target="_blank" rel="noreferrer noopener">"Microsoft Agent Framework,"</a> 访问 2026-05-04。<span class="bib-note">备选内核，与 LangGraph 平行评估；Workflow + OpenTelemetry 对接。</span></li>
+            <li id="ref-5"><span class="bib-id">[5]</span> <span class="bib-author">OpenAI.</span> <a href="https://platform.openai.com/docs/guides/responses" target="_blank" rel="noreferrer noopener">"Responses API &amp; Agents SDK,"</a> 访问 2026-05-04。<span class="bib-note">对比项；Assistants API 已于 2025 年公告 deprecation。</span></li>
+            <li id="ref-6"><span class="bib-id">[6]</span> <span class="bib-author">LangGenius.</span> <a href="https://docs.dify.ai/" target="_blank" rel="noreferrer noopener">"Dify Documentation,"</a> 访问 2026-05-04。<span class="bib-note">对比项：开源 BaaS + 可视化编排、MCP 集成、工作空间多租户模型。</span></li>
+            <li id="ref-7"><span class="bib-id">[7]</span> <span class="bib-author">AWS.</span> <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/agents.html" target="_blank" rel="noreferrer noopener">"Amazon Bedrock Agents,"</a> 访问 2026-05-04。<span class="bib-note">对比项：云托管 Agent、Action Group + Lambda 工具协议。</span></li>
+            <li id="ref-8"><span class="bib-id">[8]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/azure/ai-foundry/agents/overview" target="_blank" rel="noreferrer noopener">"Azure AI Foundry Agent Service,"</a> 访问 2026-05-04。<span class="bib-note">对比项：云原生 Agent、Threads、知识与工具集成。</span></li>
+            <li id="ref-9"><span class="bib-id">[9]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/" target="_blank" rel="noreferrer noopener">"Microsoft Copilot Studio,"</a> 访问 2026-05-04。<span class="bib-note">对比项：低代码企业 Agent + Power Platform 连接器。</span></li>
+            <li id="ref-10"><span class="bib-id">[10]</span> <span class="bib-author">ByteDance / Coze.</span> <a href="https://github.com/coze-dev/coze-studio" target="_blank" rel="noreferrer noopener">"Coze Studio (open source)"</a>，访问 2026-05-04。<span class="bib-note">对比项 OSS 形态；与 coze.com SaaS 形态在数据驻留上差异显著。</span></li>
+            <li id="ref-11"><span class="bib-id">[11]</span> <span class="bib-author">Guo, T. et al.</span> <a href="https://arxiv.org/abs/2402.01680" target="_blank" rel="noreferrer noopener">"Large Language Model based Multi-Agents: A Survey of Progress and Challenges,"</a> arXiv:2402.01680, 2024.<span class="bib-note">多智能体系统综述；含运行时治理与协作模式分类。</span></li>
+            <li id="ref-12"><span class="bib-id">[12]</span> <span class="bib-author">Patil, S. G. et al.</span> <a href="https://arxiv.org/abs/2305.15334" target="_blank" rel="noreferrer noopener">"Gorilla: Large Language Model Connected with Massive APIs,"</a> arXiv:2305.15334, 2023.<span class="bib-note">工具调用基准与失败模式分析；为本设计 Goal 04 模型 swap 测试方法学提供参考。</span></li>
+          </ol>
+        </section>
+      </main>
+
+      <footer>
+         © 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>
