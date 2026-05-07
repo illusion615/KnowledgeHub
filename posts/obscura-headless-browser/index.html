@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Obscura：为 AI Agent 与抓取而生的 Rust 无头浏览器</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(2.0rem, 5vw, 3.4rem);
+      line-height: 1.12;
+      letter-spacing: -0.03em;
+      max-width: 22ch;
+    }
+    .hero-panel .layer-list li {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.08);
+      color: rgba(246, 248, 251, 0.82);
+      font-family: "JetBrains Mono", "SF Mono", monospace;
+      font-size: 0.78rem;
+    }
+    .hero-panel .layer-number {
+      background: rgba(255, 255, 255, 0.14);
+      color: #fff;
+    }
+
+    pre.code {
+      background: rgba(0, 0, 0, 0.24);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      font-family: "JetBrains Mono", "SF Mono", monospace;
+      font-size: 0.78rem;
+      line-height: 1.65;
+      color: rgba(232, 236, 244, 0.92);
+      margin: 12px 0 16px;
+    }
+    [data-theme="light"] pre.code {
+      background: rgba(15, 23, 42, 0.06);
+      border-color: rgba(15, 23, 42, 0.08);
+      color: rgba(15, 23, 42, 0.9);
+    }
+    pre.code .cm { color: rgba(255,255,255,0.42); font-style: italic; }
+    [data-theme="light"] pre.code .cm { color: rgba(15,23,42,0.45); }
+
+    /* compare table */
+    .compare-grid {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: 1.4fr 1fr 1fr;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      background: var(--surface);
+    }
+    .compare-grid > div {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.88rem;
+    }
+    .compare-grid > div:nth-child(-n+3) {
+      background: rgba(127, 127, 127, 0.08);
+      font-weight: 700;
+      font-family: "Space Grotesk", sans-serif;
+      letter-spacing: 0.02em;
+    }
+    .compare-grid > div:nth-last-child(-n+3) { border-bottom: 0; }
+    .compare-grid .win { color: #16a34a; font-weight: 600; }
+    [data-theme="dark"] .compare-grid .win { color: #4ade80; }
+    .compare-grid .neutral { color: var(--muted); }
+
+    /* crate cards */
+    .crate-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+    .crate-card {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 16px 14px;
+      background: var(--surface);
+    }
+    .crate-card h4 {
+      margin: 0 0 6px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.92rem;
+      color: var(--accent);
+      letter-spacing: -0.01em;
+    }
+    .crate-card p { margin: 0; font-size: 0.84rem; color: var(--muted); line-height: 1.55; }
+
+    /* feature chips */
+    .chip-row {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      margin-top: 12px;
+    }
+    .chip-row span {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-family: "JetBrains Mono", monospace;
+      background: var(--surface);
+    }
+
+    /* takeaway list */
+    .takeaway-list { list-style: none; padding: 0; margin: 14px 0 0; }
+    .takeaway-list li {
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px dashed var(--border);
+      font-size: 0.92rem;
+      line-height: 1.55;
+    }
+    .takeaway-list li:last-child { border-bottom: 0; }
+    .takeaway-list .num {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.72rem;
+      color: var(--accent);
+      font-weight: 700;
+      padding-top: 2px;
+    }
+
+    .note {
+      margin-top: 16px;
+      font-size: 0.86rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .note-sm {
+      margin-top: 12px;
+      font-size: 0.86rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .note-foot {
+      margin-top: 14px;
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* pipeline flow */
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin: 18px 0 6px;
+    }
+    .pipeline-step {
+      position: relative;
+      padding: 14px 14px 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface);
+    }
+    .pipeline-step .ps-tag {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.7rem;
+      color: var(--accent);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+    .pipeline-step h5 {
+      margin: 4px 0 6px;
+      font-size: 0.92rem;
+      font-family: "Space Grotesk", sans-serif;
+    }
+    .pipeline-step p {
+      margin: 0;
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    /* verdict callout */
+    .verdict {
+      margin-top: 18px;
+      padding: 16px 18px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(249, 115, 22, 0.08);
+      display: grid;
+      grid-template-columns: 88px 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+    .verdict .v-badge {
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 700;
+      font-size: 0.78rem;
+      text-align: center;
+      padding: 8px 0;
+      border-radius: 999px;
+      background: rgba(249, 115, 22, 0.18);
+      color: #ea580c;
+      letter-spacing: 0.04em;
+    }
+    [data-theme="dark"] .verdict .v-badge { color: #fdba74; }
+    .verdict p { margin: 0; font-size: 0.9rem; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            智能体
+          </div>
+          <div class="topbar-actions">
+            <nav class="nav-links" aria-label="页面章节导航">
+              <a href="#positioning">定位</a>
+              <a href="#benchmarks">性能</a>
+              <a href="#architecture">架构</a>
+              <a href="#stealth">隐身</a>
+              <a href="#cdp">CDP</a>
+              <a href="#scenarios">场景</a>
+              <a href="#practice">实践</a>
+              <a href="#references">参考</a>
+            </nav>
+          </div>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Open-Source · Rust · Headless Browser</span>
+            <h1>Obscura：为 AI Agent 与抓取而生的 Rust 无头浏览器</h1>
+            <p>h4ckf0r0day/obscura 是一款用 Rust 编写、内嵌 V8、实现 Chrome DevTools Protocol 的无头浏览器，定位为 headless Chrome 的「替身」。仓库 3 周内积累 10.6k stars、688 forks、14 位贡献者，Apache-2.0 许可。本文基于其公开 README 与仓库结构整理设计要点、性能数据与适用边界。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#positioning">从定位读起</a>
+              <a class="button button-secondary" href="https://github.com/h4ckf0r0day/obscura" target="_blank" rel="noopener">GitHub 仓库 ↗</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">核心命题</span>
+            <h2>把浏览器从「桌面工具」剥离成「自动化引擎」。</h2>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span>Rust 核心，无 Node / 无 Chromium 二进制依赖</li>
+              <li><span class="layer-number">2</span>V8 真 JS + CDP 协议，Puppeteer/Playwright 直接连</li>
+              <li><span class="layer-number">3</span>30 MB 内存、70 MB 二进制、85 ms 页面加载</li>
+              <li><span class="layer-number">4</span>Stealth feature flag：指纹随机化 + 3,520 域名拦截</li>
+              <li><span class="layer-number">5</span>Apache-2.0 引擎永不收费，云托管版作为商业化路径</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">内存 vs Chromium</div>
+            <strong>30 / 200+ MB</strong>
+            <span>常驻内存对比，README 公布数据</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">二进制体积</div>
+            <strong>70 MB</strong>
+            <span>含 V8，对比 Chromium 300+ MB</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">页面加载</div>
+            <strong>85 ms</strong>
+            <span>Chromium ≈ 500 ms（同样负载）</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">指纹拦截域名</div>
+            <strong>3,520</strong>
+            <span>Stealth 模式默认启用</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- 01 定位 -->
+        <section id="positioning" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / 项目定位</p>
+            <h2>不是再造 Chromium，而是为机器流量重写浏览器</h2>
+            <p>Obscura 的 README 第一句即定义边界：<em>The open-source headless browser for AI agents and web scraping.</em> 项目刻意放弃桌面浏览体验所需的 UI 渲染、扩展系统、多媒体管线，把工程预算全部投入到「程序化访问」需要的 JS 执行、网络栈、协议兼容与反检测上。</p>
+          </div>
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span>问题域：抓取与 Agent 的浏览器需要什么</span></button>
+              <div class="subsection-content">
+                <p>当浏览器从「人类终端」变成「Agent 工具」时，需求函数发生反转：</p>
+                <ul class="takeaway-list">
+                  <li><span class="num">A1</span><span><strong>启动延迟</strong>取代帧率成为关键指标——一次抓取常需冷启动几十次</span></li>
+                  <li><span class="num">A2</span><span><strong>常驻内存</strong>决定单机并发上限，30 MB vs 200 MB 直接转化为 6× 并发数</span></li>
+                  <li><span class="num">A3</span><span><strong>指纹一致性</strong>从隐私问题变成业务问题：webdriver 标记会让抓取直接被风控拦截</span></li>
+                  <li><span class="num">A4</span><span><strong>协议表面</strong>必须对齐 CDP，才能让现有 Puppeteer/Playwright 代码零改动迁移</span></li>
+                </ul>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span>差异化：与 headless Chrome / Playwright Browsers / Browserless 的位置</span></button>
+              <div class="subsection-content">
+                <p>headless Chrome 仍带着完整桌面包袱；Playwright 自带的 browsers 本质是同一份 Chromium；Browserless 是托管的 Chrome 集群。Obscura 选择重写引擎，把 Stealth 与轻量化做成「内核默认」而非「胶水补丁」。代价是协议覆盖目前限于 README 列出的 9 个 CDP Domain（Target / Page / Runtime / DOM / Network / Fetch / Storage / Input / LP），未达到 Chromium 全功能。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span>商业化路径：开源引擎 + 托管云</span></button>
+              <div class="subsection-content">
+                <p>作者明确承诺开源引擎 Apache-2.0 永不功能阉割，付费部分是 Obscura Cloud——托管基础设施、住宅代理、专属支持。这是当下「Open-Core 但不掏空开源版」流派的典型实践（参考 Plausible、Posthog），把"运维负担"而非"功能"做成付费墙。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 02 性能 -->
+        <section id="benchmarks" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / 性能与对比</p>
+            <h2>README 公布的对比数据：6× 内存、4× 体积、6× 页面加载差距</h2>
+            <p>所有数字均来自项目 README，未经第三方独立复测。条件未在文档中给出（硬件、Chromium 版本、抓取目标），引用时需注明出处。</p>
+          </div>
+
+          <div class="compare-grid">
+            <div>指标</div><div>Obscura</div><div>Headless Chromium</div>
+
+            <div>常驻内存</div><div class="win">30 MB</div><div class="neutral">200+ MB</div>
+            <div>二进制体积</div><div class="win">70 MB</div><div class="neutral">300+ MB</div>
+            <div>启动时间</div><div class="win">Instant</div><div class="neutral">~2 s</div>
+            <div>页面加载（综合）</div><div class="win">85 ms</div><div class="neutral">~500 ms</div>
+            <div>静态 HTML</div><div class="win">51 ms</div><div class="neutral">~500 ms</div>
+            <div>JS + XHR + fetch</div><div class="win">84 ms</div><div class="neutral">~800 ms</div>
+            <div>动态脚本</div><div class="win">78 ms</div><div class="neutral">~700 ms</div>
+            <div>反检测内置</div><div class="win">Built-in</div><div class="neutral">None</div>
+            <div>Puppeteer / Playwright</div><div class="win">Yes</div><div class="win">Yes</div>
+          </div>
+
+          <p class="note">需要警惕的口径差异：Chromium 的 200 MB 通常包含多进程、GPU、扩展宿主等组件；Obscura 的 30 MB 是单进程引擎数。这并非"作弊"，而是反映设计取舍——Obscura 没有这些组件，所以也无法提供它们带来的功能（多 Tab 隔离、GPU 合成等）。</p>
+        </section>
+
+        <!-- 03 架构 -->
+        <section id="architecture" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / 仓库架构</p>
+            <h2>6 个 Rust crate 拆分浏览器关注点</h2>
+            <p>仓库 <code>crates/</code> 目录列出 6 个 crate，名字即职责：</p>
+          </div>
+
+          <div class="crate-grid">
+            <div class="crate-card">
+              <h4>obscura-cli</h4>
+              <p>命令行入口。提供 <code>fetch</code>（单页抓取）、<code>scrape</code>（并行批量）、<code>serve</code>（CDP 服务器）三个子命令。</p>
+            </div>
+            <div class="crate-card">
+              <h4>obscura-browser</h4>
+              <p>浏览器顶层会话编排：Target / Page / BrowserContext 模型，对应 CDP 的 Target Domain。</p>
+            </div>
+            <div class="crate-card">
+              <h4>obscura-cdp</h4>
+              <p>Chrome DevTools Protocol 服务端实现，WebSocket 接入，使外部 Puppeteer / Playwright 客户端可直连。</p>
+            </div>
+            <div class="crate-card">
+              <h4>obscura-dom</h4>
+              <p>DOM 引擎与查询器，承载 Page / DOM Domain（getDocument、querySelector、resolveNode 等）。</p>
+            </div>
+            <div class="crate-card">
+              <h4>obscura-js</h4>
+              <p>V8 嵌入与 JS Runtime 桥接，处理 Runtime.evaluate、callFunctionOn、绑定，以及最近新增的 elementFromPoint stub。</p>
+            </div>
+            <div class="crate-card">
+              <h4>obscura-net</h4>
+              <p>HTTP / Cookie / Fetch 拦截栈，对接 Network 与 Fetch Domain，支持 setExtraHTTPHeaders、live request interception。</p>
+            </div>
+          </div>
+
+          <div class="chip-row">
+            <span>crates: 6</span>
+            <span>Languages: Rust 100%</span>
+            <span>License: Apache-2.0</span>
+            <span>MSRV: 1.75+</span>
+            <span>First build: ~5 min（V8 源码编译，后续缓存）</span>
+          </div>
+        </section>
+
+        <!-- 04 Stealth -->
+        <section id="stealth" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / 隐身模式</p>
+            <h2>Stealth：把反检测做进引擎而非外挂脚本</h2>
+            <p>用 <code>--features stealth</code> 编译，或运行时加 <code>--stealth</code>。它是 Obscura 与传统方案最大的差异点——puppeteer-extra-stealth 之类项目用 JS patch 后注入，容易被新一代风控识别；Obscura 把这些行为内置到 V8 与协议层。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span>反指纹（Anti-fingerprinting）</span></button>
+              <div class="subsection-content">
+                <ul class="takeaway-list">
+                  <li><span class="num">F1</span><span>每会话随机化 GPU、屏幕、Canvas、Audio、Battery 指纹</span></li>
+                  <li><span class="num">F2</span><span>真实的 <code>navigator.userAgentData</code>（Chrome 145，含 high-entropy 字段）</span></li>
+                  <li><span class="num">F3</span><span>派发的 DOM 事件 <code>event.isTrusted = true</code>——这是 puppeteer 长期被识别的根因之一</span></li>
+                  <li><span class="num">F4</span><span>隐藏内部对象，<code>Object.keys(window)</code> 不暴露注入痕迹</span></li>
+                  <li><span class="num">F5</span><span><code>Function.prototype.toString()</code> 对原生函数返回 <code>[native code]</code>（Native function masking）</span></li>
+                  <li><span class="num">F6</span><span><code>navigator.webdriver</code> 不存在，与真实 Chrome 一致</span></li>
+                </ul>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span>Tracker Blocking（默认随 Stealth 启用）</span></button>
+              <div class="subsection-content">
+                <p>3,520 个域名的拦截列表覆盖广告、分析、遥测与指纹脚本。这是双重收益：① 减少被第三方收集的反向特征；② 抓取速度天然提升，因为不再下载 Google Analytics、Hotjar、各类 SDK。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span>合规边界：Stealth 不等于授权抓取</span></button>
+              <div class="subsection-content">
+                <p>CLI 提供 <code>--obey-robots</code> 选项默认 off。这是工具的中立姿态，但调用方必须自行判断目标站点的服务条款、robots.txt、法律辖区与速率约束。Stealth 让抓取"更像浏览器"，并不为绕过授权提供合法性。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 05 CDP 兼容 -->
+        <section id="cdp" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / CDP 与生态兼容</p>
+            <h2>Puppeteer / Playwright 直接连，存量代码零改动</h2>
+            <p>启动 <code>obscura serve --port 9222</code> 后，外部客户端按标准方式连接 WebSocket 即可。这是 Obscura 的「生态借力」策略——不重造客户端 SDK，复用 npm 上数百万下载的 puppeteer-core / playwright-core。</p>
+          </div>
+
+          <pre class="code"><span class="cm">// Puppeteer 直连</span>
+import puppeteer from 'puppeteer-core';
+const browser = await puppeteer.connect({
+  browserWSEndpoint: 'ws://127.0.0.1:9222/devtools/browser',
+});
+const page = await browser.newPage();
+await page.goto('https://news.ycombinator.com');
+const stories = await page.evaluate(() =>
+  Array.from(document.querySelectorAll('.titleline > a'))
+    .map(a => ({ title: a.textContent, url: a.href }))
+);
+await browser.disconnect();</pre>
+
+          <pre class="code"><span class="cm">// Playwright over CDP</span>
+import { chromium } from 'playwright-core';
+const browser = await chromium.connectOverCDP({
+  endpointURL: 'ws://127.0.0.1:9222',
+});
+const page = await browser.newContext().then(ctx => ctx.newPage());
+await page.goto('https://en.wikipedia.org/wiki/Web_scraping');
+console.log(await page.title());
+await browser.close();</pre>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span>已实现的 CDP Domain（README 自述）</span></button>
+              <div class="subsection-content">
+                <ul class="takeaway-list">
+                  <li><span class="num">D1</span><span><strong>Target</strong>：createTarget / closeTarget / attachToTarget / createBrowserContext / disposeBrowserContext</span></li>
+                  <li><span class="num">D2</span><span><strong>Page</strong>：navigate / getFrameTree / addScriptToEvaluateOnNewDocument / lifecycleEvents</span></li>
+                  <li><span class="num">D3</span><span><strong>Runtime</strong>：evaluate / callFunctionOn / getProperties / addBinding</span></li>
+                  <li><span class="num">D4</span><span><strong>DOM</strong>：getDocument / querySelector / querySelectorAll / getOuterHTML / resolveNode</span></li>
+                  <li><span class="num">D5</span><span><strong>Network</strong>：enable / setCookies / getCookies / setExtraHTTPHeaders / setUserAgentOverride</span></li>
+                  <li><span class="num">D6</span><span><strong>Fetch</strong>：enable / continueRequest / fulfillRequest / failRequest（实时拦截）</span></li>
+                  <li><span class="num">D7</span><span><strong>Storage</strong>：getCookies / setCookies / deleteCookies</span></li>
+                  <li><span class="num">D8</span><span><strong>Input</strong>：dispatchMouseEvent / dispatchKeyEvent</span></li>
+                  <li><span class="num">D9</span><span><strong>LP</strong>（自定义）：getMarkdown——DOM 直转 Markdown，明显是给 LLM 上下文准备的</span></li>
+                </ul>
+                <p class="note-sm">未列出的 Domain（Accessibility、Animation、CSS Coverage、Profiler、Tracing 等）目前不保证支持。如果你的 Puppeteer 代码用了高级特性，需要自己验证。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span>原生子命令（不依赖外部 SDK）</span></button>
+              <div class="subsection-content">
+                <pre class="code"><span class="cm"># 单页抓取 + 表达式求值</span>
+obscura fetch https://example.com --eval "document.title"
+
+<span class="cm"># 抓所有链接</span>
+obscura fetch https://example.com --dump links
+
+<span class="cm"># 等待动态内容</span>
+obscura fetch https://example.com --wait-until networkidle0
+
+<span class="cm"># 并行批量抓取（worker 进程模型）</span>
+obscura scrape url1 url2 url3 \
+  --concurrency 25 \
+  --eval "document.querySelector('h1').textContent" \
+  --format json</pre>
+                <p>Release 包含 <code>obscura</code> 与 <code>obscura-worker</code> 两个二进制，<code>scrape</code> 命令依赖 worker 进程并行调度——这暗示其并发模型是多进程而非单进程多 Tab，与 Chromium 设计一致，但更显式。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 06 场景与局限 -->
+        <section id="scenarios" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / 适用场景与局限</p>
+            <h2>选 Obscura 的判断条件，与不该选它的场景</h2>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span>适合的场景</span></button>
+              <div class="subsection-content">
+                <ul class="takeaway-list">
+                  <li><span class="num">S1</span><span><strong>AI Agent 浏览器工具</strong>：LangChain / Agent SDK 里需要给 LLM 一个"看网页"的工具，<code>LP.getMarkdown</code> 直接给出 LLM-friendly 内容</span></li>
+                  <li><span class="num">S2</span><span><strong>大规模抓取集群</strong>：单机内存预算紧，需要把并发数推高 5–6 倍</span></li>
+                  <li><span class="num">S3</span><span><strong>反检测优先的数据采集</strong>：对手风控敏感，传统 puppeteer-stealth 已被识别</span></li>
+                  <li><span class="num">S4</span><span><strong>容器/Serverless 抓取</strong>：70 MB 二进制和无依赖让镜像体积大幅缩小，冷启动友好</span></li>
+                </ul>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span>不该选 Obscura 的场景</span></button>
+              <div class="subsection-content">
+                <ul class="takeaway-list">
+                  <li><span class="num">N1</span><span>需要 PDF 渲染、视频解码、WebRTC、扩展系统——Obscura 不提供</span></li>
+                  <li><span class="num">N2</span><span>需要完整 CDP 表面（Tracing / Coverage / Heap Profiler）——目前覆盖有限</span></li>
+                  <li><span class="num">N3</span><span>端到端 UI 测试 / 视觉回归——Playwright 自带 browsers 仍是更稳的选择</span></li>
+                  <li><span class="num">N4</span><span>Windows 主机生产部署——Release 仅给 zip，没有官方 MSI / 服务封装</span></li>
+                </ul>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span>项目成熟度信号</span></button>
+              <div class="subsection-content">
+                <p>仓库时间轴：Initial Release 3 周前，最新版本 v0.1.2（3 天前），已发布 3 个 release。Issues 27、PR 22、贡献者 14 位。从信号判断处于早期采用期：核心功能可用，API 稳定性、边缘协议覆盖、跨平台分发仍在快速迭代。生产使用前应该 pin 具体版本，并持续观察 Cargo.lock / 二进制 ABI 变化。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 07 实践探讨 -->
+        <section id="practice" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">07 / 实践探讨</p>
+            <h2>用 Obscura 替代 Copilot 完成 Knowledge Hub 的拓取-生成闭环？</h2>
+            <p>问题拆为三层：外部信息拓取、内容提炼与生成、HTML 文章落盘。Knowledge Hub 现有棈：浏览器端的 <code>article-assistant.js</code> + <code>localStorage('llm-settings')</code> 已具备调用 Ollama / Azure OpenAI / OpenAI-compatible 的能力；Copilot 现在承担的是“调用代理+文件写入+仓库上下文管理”三项。Obscura 只能裥上这里的“拓取”一项。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span>现状架构对齐：哪些环节由谁承担</span></button>
+              <div class="subsection-content">
+                <ul class="takeaway-list">
+                  <li><span class="num">C1</span><span><strong>外部信息拓取</strong> — 现在靠 Copilot 内置的 <code>fetch_webpage</code>，运行在服务端、绕过浏览器 CORS；仅返回静态 HTML 摘要，翻页/动态加载/反机器人页面会拿不全</span></li>
+                  <li><span class="num">C2</span><span><strong>内容提炼与生成</strong> — 现在靠 Copilot 背后的大模型；Knowledge Hub 设置页已能接 Ollama/Azure/OpenAI，但这里只面向“读者在文章页聊天”，未应用于“作者写作”</span></li>
+                  <li><span class="num">C3</span><span><strong>HTML 文章落盘</strong> — 现在靠 Copilot 的文件写入工具 + <code>knowledge-data.js</code> 手动注册；需要遵守 <code>.github/instructions/article-pages.instructions.md</code> 中的脚手架约束，以及 <code>node tests/validate.js</code> 十条检查</span></li>
+                  <li><span class="num">C4</span><span><strong>仓库上下文</strong> — git 状态、列出已有文章、读取 user/repo memory；这部分是 Copilot Agent 运行时能力，Obscura 完全不覃</span></li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span>可行方案：本地 CLI 管道代替 Copilot 作为“编排者”</span></button>
+              <div class="subsection-content">
+                <p>考虑到浏览器端不能 spawn 外部进程、也不能写本地文件，可行路径是在仓库里补一个小型 Node CLI（例如 <code>scripts/research.js</code>），它復用与浏览器端同一套 <code>llm-settings</code>（从 <code>~/.config/knowledge-hub/llm.json</code> 或环境变量读取），拼出下面这条管道：</p>
+
+                <div class="pipeline">
+                  <div class="pipeline-step">
+                    <div class="ps-tag">P1</div>
+                    <h5>启动 Obscura</h5>
+                    <p><code>obscura serve --port 9222 --stealth</code> 常驻运行，CLI 连上 CDP</p>
+                  </div>
+                  <div class="pipeline-step">
+                    <div class="ps-tag">P2</div>
+                    <h5>拓取与清洗</h5>
+                    <p>Puppeteer-core 调用 <code>LP.getMarkdown</code>，直接拿 LLM-friendly 正文</p>
+                  </div>
+                  <div class="pipeline-step">
+                    <div class="ps-tag">P3</div>
+                    <h5>LLM 提炼</h5>
+                    <p>复用 <code>llm-settings</code>，POST 到 Ollama/Azure/OpenAI，输出结构化 JSON（标题/摘要/章节树）</p>
+                  </div>
+                  <div class="pipeline-step">
+                    <div class="ps-tag">P4</div>
+                    <h5>HTML 渲染</h5>
+                    <p>用本仓 article 骨架模板填入节点，生成 <code>posts/{slug}/index.html</code></p>
+                  </div>
+                  <div class="pipeline-step">
+                    <div class="ps-tag">P5</div>
+                    <h5>注册与校验</h5>
+                    <p>向 <code>knowledge-data.js</code> append节点 → <code>node tests/validate.js</code> exit 0</p>
+                  </div>
+                </div>
+
+                <pre class="code"><span class="cm">// scripts/research.js 伪代码</span>
+const pup = require('puppeteer-core');
+const llm = require('./llm-client');     <span class="cm">// 复用与 article-assistant.js 同样的 settings 格式</span>
+const { renderArticle, registerNode, runValidate } = require('./hub-pipeline');
+
+const browser = await pup.connect({ browserWSEndpoint: 'ws://127.0.0.1:9222/devtools/browser' });
+const page = await browser.newPage();
+await page.goto(targetUrl, { waitUntil: 'networkidle0', timeout: 30000 });
+const markdown = await page.evaluate(() => /* CDP LP.getMarkdown 的 客户端调用 */ );
+
+const plan = await llm.chat({
+  messages: [
+    { role: 'system', content: HUB_WRITING_RUBRIC },   <span class="cm">// 提炼 Hero/01-08/References 结构</span>
+    { role: 'user', content: markdown }
+  ],
+  format: 'json'
+});
+
+const html = renderArticle(plan);                       <span class="cm">// 填入 page-shell 骨架模板</span>
+await fs.writeFile(`posts/${plan.slug}/index.html`, html);
+await registerNode(plan);                                <span class="cm">// patch knowledge-data.js</span>
+await runValidate();                                     <span class="cm">// node tests/validate.js</span></pre>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span>Obscura 在这条管道里的净增价值</span></button>
+              <div class="subsection-content">
+                <ul class="takeaway-list">
+                  <li><span class="num">V1</span><span><strong>复现性</strong>：Copilot 的 <code>fetch_webpage</code> 黑盒，拿不动⓫动态页面；Obscura 能面对 SPA、需登录、需滚动加载场景调 <code>--wait-until networkidle0</code></span></li>
+                  <li><span class="num">V2</span><span><strong>低检测率</strong>：<code>--stealth</code> 下反指纹与 3,520 域名拦截，避免被资料站拍“拒访”拦截，这是包含 GitHub 以外的重点资料源时的刚需</span></li>
+                  <li><span class="num">V3</span><span><strong>LLM-友好输出</strong>：<code>LP.getMarkdown</code> 是 Obscura 的自定义 CDP 方法，直接交付拼到 prompt 的正文，省了 readability/markdownify 步骤</span></li>
+                  <li><span class="num">V4</span><span><strong>本地闭环</strong>：与 Ollama 等本地模型串起后，一条“拓取 → 生成 → 落盘”全部走 localhost，资料不出机，适合内部知识库场景</span></li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span>不能指望 Obscura 解决的部分</span></button>
+              <div class="subsection-content">
+                <ul class="takeaway-list">
+                  <li><span class="num">L1</span><span><strong>“问题框定与结构设计”</strong>：Hub 的 Progressive Disclosure 纪律（hero/01-08/手风琴/insight grid）需要严格的 prompt rubric；小模型容易崩成传统博客，这是 LLM 质量问题不是拓取问题</span></li>
+                  <li><span class="num">L2</span><span><strong>事实与量化纠错</strong>：Copilot 会主动多轮抓取、互证、重读代码。本地管道需要显式编程实现“拼接多个资料源 + 要求模型标注不确定性”，不是架 Obscura 就有</span></li>
+                  <li><span class="num">L3</span><span><strong>脚手约束检查</strong>：<code>tests/validate.js</code> 中的 inline-style 禁用、脚本加载顺序、zh/en summary 长度需要主动迭代，Copilot 会读到错误后修复，本地管道需要“生成→校验→反馈重生”的 retry 逻辑</span></li>
+                  <li><span class="num">L4</span><span><strong>git 与 Memory</strong>：提交纪律、boss-guardrails、session memory 仍然由调用者（人或其他 agent）控制</span></li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span>最小可行原型的工作量估算</span></button>
+              <div class="subsection-content">
+                <ul class="takeaway-list">
+                  <li><span class="num">E1</span><span><strong>scripts/research.js</strong>（约 200-300 LOC）：CDP 连接、<code>getMarkdown</code> 包装、LLM 客户端、retry、日志</span></li>
+                  <li><span class="num">E2</span><span><strong>scripts/render-article.js</strong>（约 300 LOC）：读取骨架模板、插入 hero/section/accordion/references、生成 inline <code>&lt;style&gt;</code> 补丁</span></li>
+                  <li><span class="num">E3</span><span><strong>HUB_WRITING_RUBRIC 提词</strong>（约 800 token）：明确优先级、禁使用修辞、证据纪律、脚手不变量</span></li>
+                  <li><span class="num">E4</span><span><strong>质量门槛</strong>：<code>node tests/validate.js</code> 作为硬报错、LLM 交叉检查作为软报错、人工评审作为发布门</span></li>
+                </ul>
+              </div>
+            </article>
+          </div>
+
+          <div class="verdict">
+            <div class="v-badge">结论</div>
+            <p>Obscura 能让 Knowledge Hub 的“拓取”环节从 Copilot 那里独立出来，配合已有的 <code>llm-settings</code> 可以实现“本地闭环生成”的 80%。剩下 20%（问题框定、多源交叉、结构纪律、脚手重生、git 纪律）仍需要一个「编排者」——可以是简易的本地 Node CLI + 严格 rubric，也可以是另一套 Agent。判断边界：如果资料源以 SPA / 需登录 / 反机器人为主，Obscura 是净增量；如果仅是静态页面与 GitHub README，Copilot 现有能力已足够。</p>
+          </div>
+        </section>
+
+        <!-- 08 参考 -->
+        <section id="references" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">08 / 参考</p>
+            <h2>Sources</h2>
+          </div>
+          <ol class="takeaway-list">
+            <li><span class="num">[1]</span><span><strong>h4ckf0r0day/obscura · README.md</strong> — 项目定位、性能数据、CDP Domain 清单、Stealth 行为，截至 2026-05-05 的 main 分支版本。<br/><code>https://github.com/h4ckf0r0day/obscura</code></span></li>
+            <li><span class="num">[2]</span><span><strong>crates/ 目录树</strong> — 6 个 crate 的命名与提交历史（最新提交 3 天前）。<br/><code>https://github.com/h4ckf0r0day/obscura/tree/main/crates</code></span></li>
+            <li><span class="num">[3]</span><span><strong>Releases v0.1.2</strong> — 二进制分发与平台覆盖（Linux x86_64 / macOS aarch64+x86_64 / Windows zip）。<br/><code>https://github.com/h4ckf0r0day/obscura/releases</code></span></li>
+            <li><span class="num">[4]</span><span><strong>Obscura Cloud Waitlist</strong> — 商业化定位声明（开源引擎不功能阉割）。<br/><code>https://tally.so/r/gDWzdD</code></span></li>
+          </ol>
+          <p class="note-foot">本文所有量化指标均直接引自 README，未做独立基准复测。读者在生产决策前建议在自己的硬件与目标站点上重测页面加载与并发数据。</p>
+        </section>
+      </main>
+
+      <footer class="site-footer" data-reveal>
+        <p>© 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。</p>
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

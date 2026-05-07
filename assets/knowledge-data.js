@@ -1841,6 +1841,29 @@ var knowledgeTree = [
   },
 
   // ════════════════════════════════════════
+  // 文章 — Obscura 无头浏览器
+  // ════════════════════════════════════════
+  {
+    id: 'obscura-headless-browser',
+    parentId: 'ai-research-agent',
+    type: 'article',
+    title: {
+      zh: 'Obscura：为 AI Agent 与抓取而生的 Rust 无头浏览器',
+      en: 'Obscura: A Rust Headless Browser Built for AI Agents and Scraping'
+    },
+    summary: {
+      zh: '解读 h4ckf0r0day/obscura：6 个 Rust crate、9 个 CDP Domain、Stealth 反指纹 + 3,520 域名拦截，30 MB 对比 Chromium 200+ MB。',
+      en: 'h4ckf0r0day/obscura teardown: 6 Rust crates, 9 CDP domains, built-in stealth with 3,520 blocked trackers, 30 MB vs Chromium 200+ MB.'
+    },
+    tags: ['Headless Browser', 'Rust', 'CDP', 'Web Scraping', 'AI Agent Tool'],
+    date: '2026-05-07',
+    url: 'posts/obscura-headless-browser/index.html',
+    color: '#f97316',
+    phase: 5.4, speed: 0.85,
+    relations: ['enterprise-agent-arch', 'agentic-skill-exec']
+  },
+
+  // ════════════════════════════════════════
   // 文章 — Progressive Disclosure 设计原理
   // ════════════════════════════════════════
   {
