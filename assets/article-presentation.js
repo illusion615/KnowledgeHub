@@ -17,7 +17,10 @@ document.addEventListener('DOMContentLoaded', function () {
   var topbarCenter;
   var topbarEnd;
   var presentationToggle;
+  var styleToggle;
+  var styleWrapper;
   var shareWrapper;
+  var topbarOverlayBackdrop;
   var presentationFloating;
   var presentationExit;
   var presentationPrev;
@@ -86,8 +89,14 @@ document.addEventListener('DOMContentLoaded', function () {
   var labels = {
     zh: {
       enter: '开始演示',
+      style: '风格',
       exit: '退出演示',
       share: '分享',
+      transitions: '过渡风格',
+      transitionFade: '淡入',
+      transitionMorph: '变形',
+      transitionSlide: '滑动',
+      transitionZoom: '缩放',
       copyUrl: '复制链接',
       shareWechat: '分享到微信',
       wechatScanTip: '请使用微信扫码分享当前页面。',
@@ -119,8 +128,14 @@ document.addEventListener('DOMContentLoaded', function () {
     },
     en: {
       enter: 'Start presentation',
+      style: 'Style',
       exit: 'Exit presentation',
       share: 'Share',
+      transitions: 'Transition',
+      transitionFade: 'Fade',
+      transitionMorph: 'Morph',
+      transitionSlide: 'Slide',
+      transitionZoom: 'Zoom',
       copyUrl: 'Copy URL',
       shareWechat: 'Share to WeChat',
       wechatScanTip: 'Use WeChat to scan and share this page.',
@@ -171,6 +186,39 @@ document.addEventListener('DOMContentLoaded', function () {
     var lang = getLang();
     var pack = labels[lang] || labels.zh;
     return pack[key] || '';
+  };
+
+  var applyLanguageToDocument = function (lang) {
+    var targetLang = lang === 'en' ? 'en' : 'zh';
+    var htmlLang = targetLang === 'zh' ? 'zh-CN' : 'en';
+
+    localStorage.setItem('lang', targetLang);
+    root.setAttribute('lang', htmlLang);
+
+    document.querySelectorAll('[data-zh][data-en]').forEach(function (el) {
+      var val = el.getAttribute('data-' + targetLang);
+      if (val !== null) {
+        el.innerHTML = val;
+      }
+    });
+
+    document.dispatchEvent(new CustomEvent('langChanged', { detail: { lang: targetLang } }));
+  };
+
+  var applyPresentationTransitionStyle = function (style) {
+    var normalized = style || 'fade';
+    var classes = [
+      'present-transition-fade',
+      'present-transition-morph',
+      'present-transition-slide',
+      'present-transition-zoom'
+    ];
+
+    classes.forEach(function (cls) {
+      document.body.classList.remove(cls);
+    });
+
+    document.body.classList.add('present-transition-' + normalized);
   };
 
   var ensureTopbarLayout = function () {
@@ -268,7 +316,8 @@ document.addEventListener('DOMContentLoaded', function () {
     toggle.className = 'present-toggle';
     toggle.type = 'button';
     toggle.setAttribute('data-presentation-toggle', '');
-    toggle.innerHTML = '<svg class="present-toggle-icon" viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M9.5 10l2.5-2.5L14.5 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    // Settings/gear icon — clicking opens the panel; the panel's play button starts the presentation
+    toggle.innerHTML = '<svg class="present-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="3.5" width="19" height="13" rx="2"/><path d="M8 20.5h8M12 16.5v4"/><path d="M10.5 7.5l4.5 2.5-4.5 2.5z" fill="currentColor" stroke="none"/></svg><span class="topbar-action-label" data-present-toggle-label></span>';
 
     // Wrap toggle in a launch-wrapper for hover dropdown
     var launchWrapper = document.createElement('div');
@@ -277,6 +326,27 @@ document.addEventListener('DOMContentLoaded', function () {
     topbarActions.appendChild(launchWrapper);
 
     return toggle;
+  };
+
+  var ensureStyleToggle = function () {
+    var btn = topbar.querySelector('[data-style-toggle]');
+
+    if (btn) {
+      return btn;
+    }
+
+    btn = document.createElement('button');
+    btn.className = 'present-toggle present-style-toggle';
+    btn.type = 'button';
+    btn.setAttribute('data-style-toggle', '');
+    btn.innerHTML = '<svg class="present-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5a9.5 9.5 0 1 0 0 19c1 0 1.6-.6 1.6-1.4 0-.4-.2-.7-.4-1-.3-.3-.4-.6-.4-1 0-.8.6-1.4 1.4-1.4H16a5.5 5.5 0 0 0 5.5-5.5C21.5 6.7 17.2 2.5 12 2.5z"/><circle cx="7.5" cy="11" r="1.2" fill="currentColor" stroke="none"/><circle cx="11" cy="7" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="7.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="17.5" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg><span class="topbar-action-label" data-style-toggle-label></span>';
+
+    styleWrapper = document.createElement('div');
+    styleWrapper.className = 'present-style-wrapper';
+    styleWrapper.appendChild(btn);
+    topbarActions.appendChild(styleWrapper);
+
+    return btn;
   };
 
   /* ── Pre-launch settings panel (hover dropdown) ── */
@@ -301,13 +371,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // Build panel HTML
     var zhMode = lang === 'zh';
     panel.innerHTML = [
-      '<div class="launch-hero">',
-      '  <button type="button" class="launch-play-btn" aria-label="' + (zhMode ? '开始演示' : 'Start Presentation') + '">',
-      '    <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M10 8l5 3-5 3V8z" fill="currentColor"/></svg>',
-      '  </button>',
-      '  <span class="launch-hero-label">' + (zhMode ? '开始演示' : 'Start Presentation') + '</span>',
-      '</div>',
-      '<div class="launch-divider-line"></div>',
+      '<div class="launch-section">',
+      '<h4 class="launch-section-title">' + (zhMode ? '基础' : 'General') + '</h4>',
       '<div class="launch-row">',
       '  <span class="launch-row-label">' + (zhMode ? '语言' : 'Language') + '</span>',
       '  <select class="launch-select" data-launch="lang">',
@@ -316,6 +381,9 @@ document.addEventListener('DOMContentLoaded', function () {
       '    <option value="en">English</option>',
       '  </select>',
       '</div>',
+      '</div>',
+      '<div class="launch-section">',
+      '<h4 class="launch-section-title">' + (zhMode ? '语音讲解' : 'Narration') + '</h4>',
       '<div class="launch-row">',
       '  <span class="launch-row-label">' + (zhMode ? '自动语音讲解' : 'Auto narration') + '</span>',
       '  <button type="button" class="launch-switch" data-launch="autoNarrate" aria-label="' + (zhMode ? '自动语音讲解' : 'Auto narration') + '"></button>',
@@ -387,14 +455,62 @@ document.addEventListener('DOMContentLoaded', function () {
       '    <span class="launch-rate-val">0.92</span>',
       '  </div>',
       '</div>',
-      '<div class="launch-divider-line"></div>',
+      '</div>',
+      '<div class="launch-section">',
+      '<h4 class="launch-section-title">' + (zhMode ? '显示' : 'Display') + '</h4>',
+      '<div class="launch-section-grid">',
+      '<div class="launch-row">',
+      '  <span class="launch-row-label">' + (zhMode ? '焦点模式' : 'Focus mode') + '</span>',
+      '  <button type="button" class="launch-switch" data-launch="focusMode" aria-label="' + (zhMode ? '焦点模式：突出当前段落并虚化其他内容' : 'Focus mode: highlight active block, dim others') + '"></button>',
+      '</div>',
       '<div class="launch-row">',
       '  <span class="launch-row-label">' + (zhMode ? '手机优化' : 'Mobile optimized') + '</span>',
       '  <button type="button" class="launch-switch" data-launch="mobilePresent" aria-label="' + (zhMode ? '手机优化' : 'Mobile optimized') + '"></button>',
+      '</div>',
+      '<div class="launch-row">',
+      '  <span class="launch-row-label">' + (zhMode ? '左下角 Logo' : 'Bottom-left logo') + '</span>',
+      '  <button type="button" class="launch-switch" data-launch="showLogo" aria-label="' + (zhMode ? '显示左下角 Logo' : 'Show bottom-left logo') + '"></button>',
+      '</div>',
+      '<div class="launch-row">',
+      '  <span class="launch-row-label">' + (zhMode ? '右下角按钮' : 'Bottom-right buttons') + '</span>',
+      '  <button type="button" class="launch-switch" data-launch="showFab" aria-label="' + (zhMode ? '显示右下角按钮' : 'Show bottom-right buttons') + '"></button>',
+      '</div>',
+      '</div>',
+      '</div>',
+      '<div class="launch-section">',
+      '<h4 class="launch-section-title">' + getLabel('transitions') + '</h4>',
+      '<div class="launch-transition-options" data-launch="transitionOptions">',
+      '  <button type="button" class="launch-transition-option" data-transition-style="fade">',
+      '    <span class="launch-transition-preview is-fade"></span>',
+      '    <span>' + getLabel('transitionFade') + '</span>',
+      '  </button>',
+      '  <button type="button" class="launch-transition-option" data-transition-style="morph">',
+      '    <span class="launch-transition-preview is-morph"></span>',
+      '    <span>' + getLabel('transitionMorph') + '</span>',
+      '  </button>',
+      '  <button type="button" class="launch-transition-option" data-transition-style="slide">',
+      '    <span class="launch-transition-preview is-slide"></span>',
+      '    <span>' + getLabel('transitionSlide') + '</span>',
+      '  </button>',
+      '  <button type="button" class="launch-transition-option" data-transition-style="zoom">',
+      '    <span class="launch-transition-preview is-zoom"></span>',
+      '    <span>' + getLabel('transitionZoom') + '</span>',
+      '  </button>',
+      '</div>',
+      '</div>',
+      '<div class="launch-hero">',
+      '  <button type="button" class="launch-play-btn" aria-label="' + (zhMode ? '开始演示' : 'Start Presentation') + '">',
+      '    <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M10 8l5 3-5 3V8z" fill="currentColor"/></svg>',
+      '  </button>',
+      '  <span class="launch-hero-label">' + (zhMode ? '开始演示' : 'Start Presentation') + '</span>',
       '</div>'
     ].join('\n');
 
-    wrapper.appendChild(panel);
+    // Portal to topbar's parent so the panel sits in the same stacking context as the topbar,
+    // above the backdrop and free from the topbar's transform / backdrop-filter containing block.
+    var __launchHost = (topbar && topbar.parentElement) || document.body;
+    __launchHost.appendChild(panel);
+    wrapper._panel = panel;
 
     // DOM references
     var langSelect = panel.querySelector('[data-launch="lang"]');
@@ -436,6 +552,60 @@ document.addEventListener('DOMContentLoaded', function () {
     // Mobile present toggle
     var mobilePresentBtn = panel.querySelector('[data-launch="mobilePresent"]');
     if (mobilePresentEnabled) mobilePresentBtn.classList.add('is-on');
+
+    // ── Display options: logo / fab / transition style ──
+    // (Theme / background / font live in the Style panel — keep them out of the launch panel.)
+    var showLogoBtn = panel.querySelector('[data-launch="showLogo"]');
+    var showFabBtn = panel.querySelector('[data-launch="showFab"]');
+    var transitionOptions = panel.querySelectorAll('[data-transition-style]');
+
+    var showLogo = localStorage.getItem('present-show-logo') !== 'false'; // default true
+    var showFab = localStorage.getItem('present-show-fab') !== 'false';   // default true
+    var presentTransition = localStorage.getItem('present-transition-style') || 'fade';
+
+    var applyShowLogo = function (on) {
+      document.body.classList.toggle('present-hide-logo', !on);
+    };
+    var applyShowFab = function (on) {
+      document.body.classList.toggle('present-hide-fab', !on);
+    };
+
+    if (showLogo) showLogoBtn.classList.add('is-on');
+    if (showFab) showFabBtn.classList.add('is-on');
+    transitionOptions.forEach(function (btn) {
+      btn.classList.toggle('is-active', btn.getAttribute('data-transition-style') === presentTransition);
+    });
+    // Apply on load
+    applyShowLogo(showLogo);
+    applyShowFab(showFab);
+    applyPresentationTransitionStyle(presentTransition);
+
+    showLogoBtn.addEventListener('click', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      showLogoBtn.classList.toggle('is-on');
+      var on = showLogoBtn.classList.contains('is-on');
+      localStorage.setItem('present-show-logo', on ? 'true' : 'false');
+      applyShowLogo(on);
+    });
+    showFabBtn.addEventListener('click', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      showFabBtn.classList.toggle('is-on');
+      var on = showFabBtn.classList.contains('is-on');
+      localStorage.setItem('present-show-fab', on ? 'true' : 'false');
+      applyShowFab(on);
+    });
+    transitionOptions.forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var style = btn.getAttribute('data-transition-style') || 'fade';
+        transitionOptions.forEach(function (item) {
+          item.classList.toggle('is-active', item === btn);
+        });
+        localStorage.setItem('present-transition-style', style);
+        applyPresentationTransitionStyle(style);
+      });
+    });
 
     // Track last known browser/vibe voice selections separately
     var lastBrowserVoice = savedSettings.voiceName || '';
@@ -583,6 +753,20 @@ document.addEventListener('DOMContentLoaded', function () {
       document.dispatchEvent(new CustomEvent('mobilePresentChanged', { detail: { enabled: isOn } }));
     });
 
+    // Focus mode toggle
+    var focusModeBtn = panel.querySelector('[data-launch="focusMode"]');
+    if (focusModeBtn) {
+      if (focusModeEnabled) focusModeBtn.classList.add('is-on');
+      focusModeBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        focusModeBtn.classList.toggle('is-on');
+        var isOn = focusModeBtn.classList.contains('is-on');
+        localStorage.setItem('present-focus-mode', isOn ? 'true' : 'false');
+        document.dispatchEvent(new CustomEvent('focusModeChanged', { detail: { enabled: isOn } }));
+      });
+    }
+
     langSelect.addEventListener('change', function () {
       // Switch article display language
       var selectedLang = langSelect.value === 'auto' ? getLang() : langSelect.value;
@@ -597,6 +781,8 @@ document.addEventListener('DOMContentLoaded', function () {
         lastBrowserVoice = '';
         syncVoiceList();
       }
+      // Re-populate font list for new language
+      populatePresentFontOptions(selectedLang === 'zh' ? 'zh' : 'en');
       // Refresh presentation step label/title now that lang has changed
       if (state.enabled) {
         setPresentationStep(state.index);
@@ -792,10 +978,187 @@ document.addEventListener('DOMContentLoaded', function () {
     if (launchPlayBtn) {
       launchPlayBtn.addEventListener('click', function (e) {
         e.stopPropagation();
-        // Trigger the same flow as the original toggle click
-        presentationToggle.click();
+        // Close the panel
+        closeTopbarPanels();
+        // Enter presentation directly (do not route through toggle to avoid the no-op toggle handler)
+        if (state.enabled) return;
+        enterPresentation();
+        if (hasNarrationSupport() && localStorage.getItem('narration-autostart') === 'true') {
+          startAutoNarration();
+        }
       });
     }
+  };
+
+  var stylePanelBuilt = false;
+
+  var buildStylePanel = function () {
+    if (stylePanelBuilt) return;
+    stylePanelBuilt = true;
+
+    var wrapper = topbar.querySelector('.present-style-wrapper');
+    if (!wrapper) return;
+
+    var zhMode = getLang() === 'zh';
+    var panel = document.createElement('div');
+    panel.className = 'present-style-panel';
+    panel.innerHTML = [
+      '<div class="style-panel-header">',
+      '  <strong>' + getLabel('style') + '</strong>',
+      '</div>',
+      '<div class="style-panel-row">',
+      '  <span class="style-panel-label">' + (zhMode ? '语言' : 'Language') + '</span>',
+      '  <select class="style-panel-select" data-style-panel="lang">',
+      '    <option value="zh">中文</option>',
+      '    <option value="en">English</option>',
+      '  </select>',
+      '</div>',
+      '<div class="style-panel-row">',
+      '  <span class="style-panel-label">' + (zhMode ? '明暗模式' : 'Theme') + '</span>',
+      '  <select class="style-panel-select" data-style-panel="theme">',
+      '    <option value="light">' + (zhMode ? '浅色' : 'Light') + '</option>',
+      '    <option value="dark">' + (zhMode ? '深色' : 'Dark') + '</option>',
+      '  </select>',
+      '</div>',
+      '<div class="style-panel-row">',
+      '  <span class="style-panel-label">' + (zhMode ? '背景' : 'Background') + '</span>',
+      '  <select class="style-panel-select" data-style-panel="presentBg">',
+      '    <option value="default">' + (zhMode ? '默认渐变' : 'Default') + '</option>',
+      '    <option value="white">' + (zhMode ? '纯白' : 'Pure white') + '</option>',
+      '    <option value="black">' + (zhMode ? '纯黑' : 'Pure black') + '</option>',
+      '    <option value="gray">' + (zhMode ? '浅灰' : 'Light gray') + '</option>',
+      '  </select>',
+      '</div>',
+      '<div class="style-panel-row">',
+      '  <span class="style-panel-label">' + (zhMode ? '字体' : 'Font') + '</span>',
+      '  <select class="style-panel-select" data-style-panel="presentFont"></select>',
+      '</div>'
+    ].join('\n');
+
+    // Portal to topbar's parent so the panel sits in the same stacking context as the topbar.
+    var __styleHost = (topbar && topbar.parentElement) || document.body;
+    __styleHost.appendChild(panel);
+    wrapper._panel = panel;
+
+    var langSelect = panel.querySelector('[data-style-panel="lang"]');
+    var themeSelect = panel.querySelector('[data-style-panel="theme"]');
+    var bgSelect = panel.querySelector('[data-style-panel="presentBg"]');
+    var fontSelect = panel.querySelector('[data-style-panel="presentFont"]');
+
+    var FONT_PRESETS = {
+      zh: [
+        { value: 'default', label: '默认（Noto Sans SC）', stack: '' },
+        { value: 'noto-serif-sc', label: '思源宋体', stack: '"Noto Serif SC", "Source Han Serif SC", "Songti SC", serif' },
+        { value: 'pingfang', label: '苹方 PingFang', stack: '"PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif' },
+        { value: 'yahei', label: '微软雅黑', stack: '"Microsoft YaHei", "微软雅黑", "PingFang SC", sans-serif' },
+        { value: 'heiti', label: '黑体', stack: '"Heiti SC", "黑体", "STHeiti", "PingFang SC", sans-serif' },
+        { value: 'kaiti', label: '楷体', stack: '"Kaiti SC", "STKaiti", "楷体", "KaiTi", serif' },
+        { value: 'songti', label: '宋体', stack: '"Songti SC", "STSong", "宋体", "SimSun", serif' },
+        { value: 'fangsong', label: '仿宋', stack: '"FangSong", "STFangsong", "仿宋", serif' }
+      ],
+      en: [
+        { value: 'default', label: 'Default (Noto Sans)', stack: '' },
+        { value: 'helvetica', label: 'Helvetica', stack: '"Helvetica Neue", Helvetica, Arial, sans-serif' },
+        { value: 'arial', label: 'Arial', stack: 'Arial, "Helvetica Neue", Helvetica, sans-serif' },
+        { value: 'calibri', label: 'Calibri', stack: 'Calibri, Candara, Segoe, "Segoe UI", Optima, sans-serif' },
+        { value: 'segoe', label: 'Segoe UI', stack: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif' },
+        { value: 'roboto', label: 'Roboto', stack: 'Roboto, "Helvetica Neue", Arial, sans-serif' },
+        { value: 'inter', label: 'Inter', stack: 'Inter, "Segoe UI", Roboto, sans-serif' },
+        { value: 'georgia', label: 'Georgia', stack: 'Georgia, "Times New Roman", Times, serif' },
+        { value: 'times', label: 'Times New Roman', stack: '"Times New Roman", Times, serif' },
+        { value: 'garamond', label: 'Garamond', stack: 'Garamond, "EB Garamond", Georgia, serif' }
+      ]
+    };
+
+    var applyPresentBg = function (val) {
+      var classes = ['present-bg-white', 'present-bg-black', 'present-bg-gray'];
+      classes.forEach(function (c) { document.body.classList.remove(c); });
+      if (val === 'white') document.body.classList.add('present-bg-white');
+      else if (val === 'black') document.body.classList.add('present-bg-black');
+      else if (val === 'gray') document.body.classList.add('present-bg-gray');
+    };
+
+    var applyPresentFont = function (langKey, value) {
+      var list = FONT_PRESETS[langKey] || FONT_PRESETS.en;
+      var entry = null;
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].value === value) {
+          entry = list[i];
+          break;
+        }
+      }
+      if (!entry || !entry.stack) {
+        document.documentElement.style.removeProperty('--present-font');
+        document.body.classList.remove('present-custom-font');
+      } else {
+        document.documentElement.style.setProperty('--present-font', entry.stack);
+        document.body.classList.add('present-custom-font');
+      }
+    };
+
+    var populatePresentFontOptions = function (langKey) {
+      var list = FONT_PRESETS[langKey] || FONT_PRESETS.en;
+      while (fontSelect.options.length) {
+        fontSelect.removeChild(fontSelect.lastChild);
+      }
+
+      list.forEach(function (item) {
+        var opt = document.createElement('option');
+        opt.value = item.value;
+        opt.textContent = item.label;
+        if (item.stack) opt.style.fontFamily = item.stack;
+        fontSelect.appendChild(opt);
+      });
+
+      var saved = localStorage.getItem('present-font:' + langKey) || 'default';
+      fontSelect.value = saved;
+      applyPresentFont(langKey, saved);
+    };
+
+    var syncPanelState = function () {
+      var lang = getLang();
+      var currentTheme = root.getAttribute('data-theme') || localStorage.getItem('theme') || 'light';
+      var bg = localStorage.getItem('present-bg') || 'default';
+      var langKey = lang === 'zh' ? 'zh' : 'en';
+
+      langSelect.value = lang;
+      themeSelect.value = currentTheme === 'dark' ? 'dark' : 'light';
+      bgSelect.value = bg;
+      populatePresentFontOptions(langKey);
+      applyPresentBg(bg);
+    };
+
+    langSelect.addEventListener('change', function () {
+      applyLanguageToDocument(langSelect.value);
+      syncPanelState();
+      updatePresentationLabels();
+    });
+
+    themeSelect.addEventListener('change', function () {
+      root.setAttribute('data-theme', themeSelect.value);
+      localStorage.setItem('theme', themeSelect.value);
+    });
+
+    bgSelect.addEventListener('change', function () {
+      localStorage.setItem('present-bg', bgSelect.value);
+      applyPresentBg(bgSelect.value);
+    });
+
+    fontSelect.addEventListener('change', function () {
+      var langKey = getLang() === 'zh' ? 'zh' : 'en';
+      localStorage.setItem('present-font:' + langKey, fontSelect.value);
+      applyPresentFont(langKey, fontSelect.value);
+    });
+
+    document.addEventListener('langChanged', function () {
+      syncPanelState();
+    });
+
+    panel.addEventListener('click', function (e) {
+      e.stopPropagation();
+    });
+
+    syncPanelState();
   };
 
   var ensureShareDropdown = function () {
@@ -810,7 +1173,7 @@ document.addEventListener('DOMContentLoaded', function () {
     btn.type = 'button';
     btn.setAttribute('aria-haspopup', 'true');
     btn.setAttribute('aria-expanded', 'false');
-    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="topbar-action-label" data-share-toggle-label></span>';
     wrapper.appendChild(btn);
 
     var menu = document.createElement('div');
@@ -893,6 +1256,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     btn.addEventListener('click', function (e) {
       e.stopPropagation();
+      closeTopbarPanels();
       var isOpen = wrapper.classList.contains('is-open');
       wrapper.classList.toggle('is-open', !isOpen);
       btn.setAttribute('aria-expanded', String(!isOpen));
@@ -985,6 +1349,57 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     return wrapper;
+  };
+
+  var ensureTopbarOverlayBackdrop = function () {
+    if (topbarOverlayBackdrop) {
+      return topbarOverlayBackdrop;
+    }
+
+    topbarOverlayBackdrop = document.createElement('button');
+    topbarOverlayBackdrop.className = 'topbar-overlay-backdrop';
+    topbarOverlayBackdrop.type = 'button';
+    topbarOverlayBackdrop.setAttribute('aria-label', 'Close panel');
+    topbarOverlayBackdrop.addEventListener('click', function () {
+      closeTopbarPanels();
+    });
+    // Append into topbar's parent so the backdrop shares the same stacking context as the topbar
+    // (the .site wrapper has z-index:1, which would otherwise trap the topbar below a body-level backdrop).
+    var host = (topbar && topbar.parentElement) || document.body;
+    host.appendChild(topbarOverlayBackdrop);
+
+    return topbarOverlayBackdrop;
+  };
+
+  var closeTopbarPanels = function () {
+    var launchWrapper = topbar && topbar.querySelector('.present-launch-wrapper');
+    var stylePanelWrapper = topbar && topbar.querySelector('.present-style-wrapper');
+
+    if (launchWrapper) {
+      launchWrapper.classList.remove('is-open');
+      if (launchWrapper._panel) launchWrapper._panel.classList.remove('is-open');
+    }
+    if (stylePanelWrapper) {
+      stylePanelWrapper.classList.remove('is-open');
+      if (stylePanelWrapper._panel) stylePanelWrapper._panel.classList.remove('is-open');
+    }
+    if (topbarOverlayBackdrop) topbarOverlayBackdrop.classList.remove('is-open');
+    root.classList.remove('has-topbar-overlay');
+  };
+
+  var openTopbarPanel = function (wrapperSelector) {
+    var wrapper = topbar && topbar.querySelector(wrapperSelector);
+
+    if (!wrapper) {
+      return;
+    }
+
+    closeTopbarPanels();
+    ensureTopbarOverlayBackdrop();
+    wrapper.classList.add('is-open');
+    if (wrapper._panel) wrapper._panel.classList.add('is-open');
+    topbarOverlayBackdrop.classList.add('is-open');
+    root.classList.add('has-topbar-overlay');
   };
 
   var createNavButton = function (direction, labelText) {
@@ -2430,6 +2845,27 @@ document.addEventListener('DOMContentLoaded', function () {
       if (parentStep && container.contains(parentStep)) {
         return;
       }
+      // Substep expansion: if this candidate has [data-present-substep] descendants,
+      // replace it with the substeps so each one becomes its own slide.
+      var subs = candidate.querySelectorAll('[data-present-substep]');
+      if (subs.length > 0) {
+        var pTitle = candidate.getAttribute('data-step-title') || '';
+        var pLabel = candidate.getAttribute('data-step-label') || '';
+        // Drop the parent's step status so it's not double-counted.
+        candidate.removeAttribute('data-present-step');
+        subs.forEach(function (sub, idx) {
+          if (!sub.hasAttribute('data-step-title')) {
+            sub.setAttribute('data-step-title', pTitle + (subs.length > 1 ? ' (' + (idx + 1) + '/' + subs.length + ')' : ''));
+          }
+          if (pLabel && !sub.hasAttribute('data-step-label')) {
+            sub.setAttribute('data-step-label', pLabel);
+          }
+          sub.setAttribute('data-present-step', '');
+          autoAssignedSteps.push(sub);
+          result.push(sub);
+        });
+        return;
+      }
       result.push(candidate);
     });
 
@@ -2542,9 +2978,26 @@ document.addEventListener('DOMContentLoaded', function () {
           var subTitle = getAccordionTitle(item);
           if (kickerStr) item.setAttribute('data-step-label', kickerStr);
           item.setAttribute('data-step-title', subTitle || h2Str || '');
-          item.setAttribute('data-present-step', '');
-          autoAssignedSteps.push(item);
-          presentSteps.push(item);
+          // Substep expansion: if accordion item contains [data-present-substep],
+          // promote each substep instead of the item itself.
+          var subs = item.querySelectorAll('[data-present-substep]');
+          if (subs.length > 0) {
+            subs.forEach(function (sub, idx) {
+              if (!sub.hasAttribute('data-step-title')) {
+                sub.setAttribute('data-step-title', subTitle + (subs.length > 1 ? ' (' + (idx + 1) + '/' + subs.length + ')' : ''));
+              }
+              if (kickerStr && !sub.hasAttribute('data-step-label')) {
+                sub.setAttribute('data-step-label', kickerStr);
+              }
+              sub.setAttribute('data-present-step', '');
+              autoAssignedSteps.push(sub);
+              presentSteps.push(sub);
+            });
+          } else {
+            item.setAttribute('data-present-step', '');
+            autoAssignedSteps.push(item);
+            presentSteps.push(item);
+          }
         });
         return;
       }
@@ -2605,10 +3058,40 @@ document.addEventListener('DOMContentLoaded', function () {
   var updatePresentationLabels = function () {
     var prevLabel = getLabel('prev');
     var nextLabel = getLabel('next');
+    var presentText = getLabel('enter');
+    var styleText = getLabel('style');
+    var shareText = getLabel('share');
+    var presentTextNode = presentationToggle ? presentationToggle.querySelector('[data-present-toggle-label]') : null;
+    var styleTextNode = styleToggle ? styleToggle.querySelector('[data-style-toggle-label]') : null;
+    var shareTextNode = shareWrapper ? shareWrapper.querySelector('[data-share-toggle-label]') : null;
 
     presentationToggle.setAttribute('aria-label', state.enabled ? getLabel('exit') : getLabel('enter'));
     presentationToggle.setAttribute('aria-pressed', String(state.enabled));
     presentationToggle.classList.toggle('is-active', state.enabled);
+
+    if (presentTextNode) {
+      presentTextNode.textContent = presentText;
+    }
+    if (presentationToggle) {
+      presentationToggle.setAttribute('title', presentText);
+    }
+    if (styleTextNode) {
+      styleTextNode.textContent = styleText;
+    }
+    if (styleToggle) {
+      styleToggle.setAttribute('aria-label', styleText);
+      styleToggle.setAttribute('title', styleText);
+    }
+    if (shareTextNode) {
+      shareTextNode.textContent = shareText;
+    }
+    if (shareWrapper) {
+      var shareBtn = shareWrapper.querySelector('.share-btn');
+      if (shareBtn) {
+        shareBtn.setAttribute('aria-label', shareText);
+        shareBtn.setAttribute('title', shareText);
+      }
+    }
 
     if (presentationExit) {
       presentationExit.setAttribute('aria-label', getLabel('exit'));
@@ -2714,7 +3197,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     window.requestAnimationFrame(function () {
       var isOverflowing = activeStep.scrollHeight > activeStep.clientHeight + 24;
-
       activeStep.classList.toggle('is-step-overflowing', isOverflowing);
     });
   };
@@ -2906,13 +3388,15 @@ document.addEventListener('DOMContentLoaded', function () {
       narrationSubtitle.classList.remove('is-visible');
       return;
     }
-    // Position subtitle symmetrically: left side clears brand logo, right mirrors
+    // Position subtitle: shrink to content while staying clear of brand logo (left) and FAB (right)
     var logo = document.querySelector('.present-brand-logo');
     if (logo) {
       var logoRect = logo.getBoundingClientRect();
       var leftDist = logoRect.right + 16; // logo right edge + 16px gap
-      narrationSubtitle.style.left = leftDist + 'px';
-      narrationSubtitle.style.right = leftDist + 'px';
+      // Clear inline left/right (older builds may have set them) and constrain max-width symmetrically
+      narrationSubtitle.style.left = '';
+      narrationSubtitle.style.right = '';
+      narrationSubtitle.style.maxWidth = 'calc(100vw - ' + (leftDist * 2) + 'px)';
     }
     narrationSubtitle.textContent = text;
     narrationSubtitle.classList.add('is-visible');
@@ -3530,7 +4014,9 @@ document.addEventListener('DOMContentLoaded', function () {
   ensureTopbarLayout();
   topbarActions = ensureTopbarActions();
   presentationToggle = ensureToggle();
+  styleToggle = ensureStyleToggle();
   buildLaunchPanel();
+  buildStylePanel();
   shareWrapper = ensureShareDropdown();
   presentationFloating = ensureFloating();
   presentationExit = presentationFloating.querySelector('[data-present-exit]');
@@ -3555,17 +4041,48 @@ document.addEventListener('DOMContentLoaded', function () {
   updatePresentationLabels();
   setPresentationStep(0);
 
-  presentationToggle.addEventListener('click', function () {
+  presentationToggle.addEventListener('click', function (e) {
     if (state.enabled) {
       exitPresentation();
       return;
     }
 
-    enterPresentation();
+    // Click no longer auto-starts presentation. Toggle the panel open/closed instead.
+    var wrapper = topbar.querySelector('.present-launch-wrapper');
+    if (wrapper) {
+      e.stopPropagation();
+      buildLaunchPanel();
+      if (wrapper.classList.contains('is-open')) {
+        closeTopbarPanels();
+      } else {
+        openTopbarPanel('.present-launch-wrapper');
+      }
+    }
+  });
 
-    // Auto-start narration with countdown if enabled
-    if (hasNarrationSupport() && localStorage.getItem('narration-autostart') === 'true') {
-      startAutoNarration();
+  if (styleToggle) {
+    styleToggle.addEventListener('click', function (e) {
+      var wrapper = topbar.querySelector('.present-style-wrapper');
+      e.stopPropagation();
+      if (!wrapper) return;
+      if (wrapper.classList.contains('is-open')) {
+        closeTopbarPanels();
+      } else {
+        openTopbarPanel('.present-style-wrapper');
+      }
+    });
+  }
+
+  // Close the panel when clicking outside (panels are portaled to body, so check them too).
+  document.addEventListener('click', function (e) {
+    var launchWrapper = topbar && topbar.querySelector('.present-launch-wrapper.is-open');
+    var stylePanelWrapper = topbar && topbar.querySelector('.present-style-wrapper.is-open');
+    var launchPanel = document.querySelector('.present-launch-panel.is-open');
+    var stylePanel = document.querySelector('.present-style-panel.is-open');
+    var insideLaunch = (launchWrapper && launchWrapper.contains(e.target)) || (launchPanel && launchPanel.contains(e.target));
+    var insideStyle = (stylePanelWrapper && stylePanelWrapper.contains(e.target)) || (stylePanel && stylePanel.contains(e.target));
+    if ((launchWrapper || stylePanelWrapper) && !insideLaunch && !insideStyle) {
+      closeTopbarPanels();
     }
   });
 

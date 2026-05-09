@@ -452,7 +452,9 @@
     '<div class="assistant-header">',
     '  <div>',
     '    <h3>AI Assistant</h3>',
-    '    <div class="assistant-header-meta">' + escapeHtml(settings.model || '') + ' via ' + escapeHtml(settings.provider) + '</div>',
+    (settings.showModelName === false
+      ? ''
+      : '    <div class="assistant-header-meta">' + escapeHtml(settings.model || '') + ' via ' + escapeHtml(settings.provider) + '</div>'),
     '  </div>',
     '  <div class="assistant-header-actions">',
     '    <button class="assistant-expand" id="assistant-expand" aria-label="Expand">',

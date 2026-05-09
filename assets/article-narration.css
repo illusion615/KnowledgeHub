@@ -163,13 +163,42 @@
   display: inline-flex;
 }
 
+.present-style-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.topbar-overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  border: none;
+  background: rgba(8, 10, 16, 0.48);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 999;
+}
+
+.topbar-overlay-backdrop.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Lift topbar above the backdrop while open. Panels themselves are portaled to body,
+   so the topbar's transform / backdrop-filter no longer traps them. */
+html.has-topbar-overlay .topbar {
+  z-index: 1003;
+}
+
 .present-launch-panel {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  z-index: 1001;
-  width: 310px;
-  margin-top: 8px;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.98);
+  z-index: 1002;
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100vh - 100px);
+  overflow: auto;
   padding: 16px 18px;
   border-radius: 16px;
   border: 1px solid var(--line);
@@ -178,7 +207,6 @@
   -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
   opacity: 0;
-  transform: translateY(-6px);
   pointer-events: none;
   transition: opacity 0.22s ease, transform 0.22s ease;
 }
@@ -189,21 +217,96 @@
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
 }
 
-.present-launch-wrapper:hover .present-launch-panel,
-.present-launch-panel:hover {
+.present-launch-panel.is-open,
+.has-topbar-overlay .present-launch-panel.is-open {
   opacity: 1;
-  transform: translateY(0);
+  transform: translate(-50%, -50%) scale(1);
   pointer-events: auto;
 }
 
-/* Invisible bridge between toggle and panel to avoid hover gap */
+/* Unused in overlay mode; keep neutralized for compatibility */
 .present-launch-panel::before {
-  content: '';
-  position: absolute;
-  top: -12px;
-  right: 0;
-  width: 100%;
-  height: 12px;
+  display: none;
+}
+
+.present-style-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 1002;
+  width: min(460px, calc(100vw - 32px));
+  max-height: calc(100vh - 100px);
+  overflow: auto;
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(0.98);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+
+[data-theme="dark"] .present-style-panel {
+  background: rgba(20, 28, 36, 0.96);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.present-style-panel.is-open,
+.has-topbar-overlay .present-style-panel.is-open {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+  pointer-events: auto;
+}
+
+.style-panel-header {
+  margin-bottom: 14px;
+}
+
+.style-panel-header strong {
+  font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.style-panel-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.style-panel-row:last-child {
+  margin-bottom: 0;
+}
+
+.style-panel-label {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.style-panel-select {
+  min-width: 170px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--card-bg, #fff);
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-family: inherit;
+  outline: none;
+}
+
+[data-theme="dark"] .style-panel-select {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 /* Launch hero — centered play icon at top */
@@ -266,6 +369,33 @@
   color: var(--muted);
   letter-spacing: 0.04em;
   margin: 0 0 12px;
+}
+
+.present-launch-panel .launch-section {
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+
+.present-launch-panel .launch-section:first-child {
+  border-top: 0;
+  padding-top: 4px;
+}
+
+.present-launch-panel .launch-section-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+}
+
+.present-launch-panel .launch-section-grid .launch-row {
+  margin-bottom: 0;
+  min-width: 0;
+}
+
+.present-launch-panel .launch-section-grid .launch-row-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .present-launch-panel .launch-row {
@@ -346,6 +476,87 @@
 
 [data-theme="dark"] .launch-switch.is-on {
   background: var(--accent, #ff7a00);
+}
+
+.launch-transition-row {
+  margin-bottom: 6px;
+}
+
+.launch-transition-options {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.launch-transition-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+  padding: 8px 4px;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.launch-transition-option:hover {
+  border-color: var(--accent, #ff7a00);
+}
+
+.launch-transition-option.is-active {
+  border-color: var(--accent, #ff7a00);
+  background: rgba(255, 122, 0, 0.08);
+}
+
+.launch-transition-preview {
+  width: 26px;
+  height: 16px;
+  border-radius: 6px;
+  display: inline-block;
+  background: linear-gradient(135deg, rgba(255, 122, 0, 0.28), rgba(44, 203, 203, 0.22));
+}
+
+.launch-transition-preview.is-fade {
+  animation: transitionPreviewFade 1.1s ease-in-out infinite;
+}
+
+.launch-transition-preview.is-morph {
+  animation: transitionPreviewMorph 1.2s ease-in-out infinite;
+}
+
+.launch-transition-preview.is-slide {
+  animation: transitionPreviewSlide 1.2s ease-in-out infinite;
+}
+
+.launch-transition-preview.is-zoom {
+  animation: transitionPreviewZoom 1.15s ease-in-out infinite;
+}
+
+@keyframes transitionPreviewFade {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+
+@keyframes transitionPreviewMorph {
+  0%, 100% { border-radius: 3px; transform: scale(0.9); }
+  50% { border-radius: 12px; transform: scale(1); }
+}
+
+@keyframes transitionPreviewSlide {
+  0%, 100% { transform: translateX(-3px); }
+  50% { transform: translateX(3px); }
+}
+
+@keyframes transitionPreviewZoom {
+  0%, 100% { transform: scale(0.86); opacity: 0.72; }
+  50% { transform: scale(1); opacity: 1; }
 }
 
 /* Voice settings section — expandable */
@@ -877,10 +1088,10 @@
 .narration-subtitle {
   position: fixed;
   bottom: 16px;
-  left: 160px;
-  right: 160px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: auto;
   max-width: 70%;
-  margin: 0 auto;
   padding: 8px 20px;
   background: rgba(0, 0, 0, 0.35);
   color: rgba(255, 255, 255, 0.92);
