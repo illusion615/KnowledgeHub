@@ -139,4 +139,11 @@
 
   var savedFont = localStorage.getItem('readingFontFamily');
   if (savedFont) root.style.setProperty('--reading-font', savedFont);
+
+  // ── Hide home-link when articles are opened in new tab ──
+  var openMode = localStorage.getItem('openMode') || 'self';
+  if (openMode === 'blank') {
+    var homeLink = document.querySelector('.home-link');
+    if (homeLink) homeLink.style.display = 'none';
+  }
 })();
