@@ -38,6 +38,39 @@
     sectionTargets.forEach(function (section) { navObserver.observe(section); });
   }
 
+  // ── Mobile nav toggle ──
+  var navEl = document.querySelector('.nav-links');
+  if (navEl) {
+    var navToggle = document.createElement('button');
+    navToggle.className = 'nav-toggle';
+    navToggle.setAttribute('aria-label', 'Toggle navigation');
+    navToggle.setAttribute('aria-expanded', 'false');
+    navToggle.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>';
+    navEl.parentNode.insertBefore(navToggle, navEl);
+
+    var closeMobileNav = function () {
+      navEl.classList.remove('is-mobile-open');
+      navToggle.setAttribute('aria-expanded', 'false');
+    };
+
+    navToggle.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var isOpen = navEl.classList.toggle('is-mobile-open');
+      navToggle.setAttribute('aria-expanded', String(isOpen));
+    });
+
+    navEl.querySelectorAll('a').forEach(function (link) {
+      link.addEventListener('click', function () { closeMobileNav(); });
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!navEl.classList.contains('is-mobile-open')) return;
+      if (!navEl.contains(e.target) && !navToggle.contains(e.target)) {
+        closeMobileNav();
+      }
+    });
+  }
+
   // ── Load-in stagger delay ──
   document.querySelectorAll('.load-in').forEach(function (element, index) {
     element.style.transitionDelay = (index * 120) + 'ms';
