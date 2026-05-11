@@ -141,8 +141,8 @@
   if (savedFont) root.style.setProperty('--reading-font', savedFont);
 
   // ── Hide home-link when articles are opened in new tab ──
-  var openMode = localStorage.getItem('openMode') || 'self';
-  if (openMode === 'blank') {
+  var openMode = localStorage.getItem('openMode') || 'same';
+  if (openMode === 'new') {
     var homeLink = document.querySelector('.home-link');
     if (homeLink) homeLink.style.display = 'none';
   }
