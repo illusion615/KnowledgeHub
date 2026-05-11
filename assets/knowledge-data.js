@@ -226,8 +226,8 @@ var knowledgeTree = [
       en: 'AI Co-Creation Progress Report & Agile Enterprise Agent Platform Blueprint'
     },
     summary: {
-      zh: 'MedTech 行业的 CIO 汇报蓝图：4 个 PoC 验证、28 个 Agent 全景、四波次路线、3 个灯塔项目，对齐 IDC 与 Microsoft Work Trend Index 行业基准。',
-      en: 'A CIO briefing for MedTech: 4 validated PoCs, a 28-agent landscape, a four-wave roadmap, and 3 lighthouse initiatives, aligned with IDC and Microsoft Work Trend Index benchmarks.'
+      zh: '面向医疗器械行业：4 个 PoC 验证、28 个 Agent 全景、3 个在行项目、四波次路线图，从 AI 助手到智能体组织的三年跃迁蓝图。',
+      en: 'For MedTech: 4 validated PoCs, 28-agent landscape, 3 projects in progress, four-wave roadmap — a 3-year blueprint from AI assistant to agentic organization.'
     },
     tags: ['MedTech', 'Industry Solution', 'Copilot Studio', 'Power Platform', 'Dynamics 365'],
     date: '2026-05-15',
