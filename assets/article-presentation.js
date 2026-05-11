@@ -271,6 +271,16 @@ document.addEventListener('DOMContentLoaded', function () {
       topbarCenter.appendChild(navLinks);
     }
 
+    // Ensure mobile nav-toggle exists in center slot
+    if (navLinks && !topbarCenter.querySelector('.nav-toggle')) {
+      var mobileToggle = document.createElement('button');
+      mobileToggle.className = 'nav-toggle';
+      mobileToggle.setAttribute('aria-label', 'Toggle navigation');
+      mobileToggle.setAttribute('aria-expanded', 'false');
+      mobileToggle.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>';
+      topbarCenter.insertBefore(mobileToggle, navLinks);
+    }
+
     if (!actions) {
       actions = document.createElement('div');
       actions.className = 'topbar-actions';
