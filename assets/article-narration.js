@@ -481,10 +481,20 @@
         return;
       }
 
-      // Notify which sentence is being spoken
-      if (cb.onChunkStart) cb.onChunkStart(chunks[chunkIndex]);
+      var chunkText = chunks[chunkIndex];
+      // Compute subtitle-sized sub-chunks and their character offsets
+      var subChunks = splitIntoSubtitleChunks(chunkText, lang);
+      var subOffsets = [];
+      var pos = 0;
+      for (var si = 0; si < subChunks.length; si++) {
+        var idx = chunkText.indexOf(subChunks[si], pos);
+        subOffsets.push(idx >= 0 ? idx : pos);
+        pos = (idx >= 0 ? idx : pos) + subChunks[si].length;
+      }
+      var currentSubIdx = 0;
+      if (cb.onChunkStart) cb.onChunkStart(subChunks[0]);
 
-      var utterance = new SpeechSynthesisUtterance(chunks[chunkIndex]);
+      var utterance = new SpeechSynthesisUtterance(chunkText);
       utterance.lang = (lang === 'zh') ? 'zh-CN' : 'en-US';
       utterance.rate = ss.rate || 0.92;
       utterance.pitch = 1.0;
@@ -495,6 +505,19 @@
 
       currentUtterance = utterance;
 
+      // Use boundary events to sync subtitles with actual speech
+      utterance.onboundary = function (e) {
+        if (cancelled || !cb.onChunkStart) return;
+        var charIdx = e.charIndex || 0;
+        // Find which sub-chunk this position falls into
+        for (var j = currentSubIdx + 1; j < subOffsets.length; j++) {
+          if (charIdx >= subOffsets[j]) {
+            currentSubIdx = j;
+            cb.onChunkStart(subChunks[j]);
+          }
+        }
+      };
+
       utterance.onend = function () {
         chunkIndex++;
         if (!cancelled && !paused) {
@@ -504,7 +527,6 @@
 
       utterance.onerror = function (e) {
         if (cancelled) return;
-        // 'interrupted' is expected when we cancel mid-speech
         if (e.error === 'interrupted' || e.error === 'canceled') return;
         if (cb.onError) cb.onError(e);
       };

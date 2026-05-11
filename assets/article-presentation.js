@@ -1983,7 +1983,11 @@ document.addEventListener('DOMContentLoaded', function () {
       '  <button class="narration-voice-test narration-vibe-test" type="button" aria-label="' + (getLang() === 'zh' ? '试听' : 'Preview') + '" title="' + (getLang() === 'zh' ? '试听' : 'Preview') + '">' +
           '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>' +
         '</button>',
-      '</div>'
+      '</div>',
+      '<label class="narration-setting-row">',
+      '  <span>' + (getLang() === 'zh' ? '结尾二维码' : 'End QR Code') + '</span>',
+      '  <input type="checkbox" class="narration-checkbox" data-narration-setting="showEndQR" />',
+      '</label>'
     ].join('\n');
 
     document.body.appendChild(panel);
@@ -2129,6 +2133,19 @@ document.addEventListener('DOMContentLoaded', function () {
     ttsProviderSelect.addEventListener('change', saveSettings);
     vibeVoiceSelect.addEventListener('change', saveSettings);
     if (emotionSelectIn) emotionSelectIn.addEventListener('change', saveSettings);
+
+    // End QR toggle
+    var showEndQRCheckbox = panel.querySelector('[data-narration-setting="showEndQR"]');
+    if (showEndQRCheckbox) {
+      var qrSaved = false;
+      try { qrSaved = JSON.parse(localStorage.getItem('narration-showEndQR') || 'false'); } catch (e) {}
+      showEndQRCheckbox.checked = qrSaved;
+      showEndQRCheckbox.addEventListener('change', function () {
+        localStorage.setItem('narration-showEndQR', JSON.stringify(showEndQRCheckbox.checked));
+        var endQr = document.querySelector('.present-end-qr');
+        if (endQr) endQr.style.display = showEndQRCheckbox.checked ? '' : 'none';
+      });
+    }
     // mossDemoIdInput change handler is registered below (in the clone section) to also toggle UI
     if (fishVoiceInput) {
       fishVoiceInput.addEventListener('input', saveSettings);
@@ -3031,8 +3048,12 @@ document.addEventListener('DOMContentLoaded', function () {
       endTitle.textContent = getLang() === 'zh' ? '感谢收看' : 'Thank You';
       endInner.appendChild(endTitle);
 
+      var showQR = false;
+      try { showQR = JSON.parse(localStorage.getItem('narration-showEndQR') || 'false'); } catch (e) {}
+
       var endQrWrap = document.createElement('div');
       endQrWrap.className = 'present-end-qr';
+      endQrWrap.style.display = showQR ? '' : 'none';
       var endQrImg = document.createElement('img');
       endQrImg.alt = 'QR Code';
       endQrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=8&data=' + encodeURIComponent(window.location.href);

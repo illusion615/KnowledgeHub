@@ -127,6 +127,14 @@ var knowledgeTree = [
     phase: 5.2, speed: 0.86
   },
   {
+    id: 'industry-solution',
+    parentId: 'business-ai-solution',
+    type: 'topic',
+    label: { zh: 'Industry Solution', en: 'Industry Solution' },
+    color: '#d8b4fe',
+    phase: 5.4, speed: 0.85
+  },
+  {
     id: 'ai-mud',
     parentId: 'ai-project-practice',
     type: 'topic',
@@ -204,6 +212,29 @@ var knowledgeTree = [
     color: '#fb923c',
     phase: 0.7, speed: 0.88,
     relations: ['agentic-sales-mobile-proposal', 'agentic-sales-mobile-design']
+  },
+
+  // ════════════════════════════════════════
+  // 文章 — Industry Solution
+  // ════════════════════════════════════════
+  {
+    id: 'medtech-agent-platform-blueprint',
+    parentId: 'industry-solution',
+    type: 'article',
+    title: {
+      zh: 'AI 共创进度汇报暨敏捷化企业智能体平台蓝图展望',
+      en: 'AI Co-Creation Progress Report & Agile Enterprise Agent Platform Blueprint'
+    },
+    summary: {
+      zh: 'MedTech 行业的 CIO 汇报蓝图：4 个 PoC 验证、28 个 Agent 全景、四波次路线、3 个灯塔项目，对齐 IDC 与 Microsoft Work Trend Index 行业基准。',
+      en: 'A CIO briefing for MedTech: 4 validated PoCs, a 28-agent landscape, a four-wave roadmap, and 3 lighthouse initiatives, aligned with IDC and Microsoft Work Trend Index benchmarks.'
+    },
+    tags: ['MedTech', 'Industry Solution', 'Copilot Studio', 'Power Platform', 'Dynamics 365'],
+    date: '2026-05-15',
+    url: 'posts/medtech-agent-platform-blueprint/index.html',
+    color: '#d8b4fe',
+    phase: 0.4, speed: 0.87,
+    relations: ['agentic-sales-mobile-proposal', 'enterprise-agent-arch', 'copilot-studio-overview']
   },
 
   // ════════════════════════════════════════
