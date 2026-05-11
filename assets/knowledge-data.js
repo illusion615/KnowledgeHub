@@ -229,7 +229,7 @@ var knowledgeTree = [
       zh: '面向医疗器械行业：4 个 PoC 验证、28 个 Agent 全景、3 个在行项目、四波次路线图，从 AI 助手到智能体组织的三年跃迁蓝图。',
       en: 'For MedTech: 4 validated PoCs, 28-agent landscape, 3 projects in progress, four-wave roadmap — a 3-year blueprint from AI assistant to agentic organization.'
     },
-    tags: ['MedTech', 'Industry Solution', 'Copilot Studio', 'Power Platform', 'Dynamics 365'],
+    tags: ['MedTech', 'Copilot Studio', 'Power Platform', 'Dynamics 365'],
     date: '2026-05-15',
     url: 'posts/medtech-agent-platform-blueprint/index.html',
     color: '#d8b4fe',
