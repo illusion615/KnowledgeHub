@@ -111,6 +111,14 @@ var knowledgeTree = [
     phase: 3.2, speed: 0.85
   },
   {
+    id: 'power-platform',
+    parentId: 'microsoft-ai',
+    type: 'topic',
+    label: { zh: 'Power Platform', en: 'Power Platform' },
+    color: '#8b5cf6',
+    phase: 3.9, speed: 0.84
+  },
+  {
     id: 'business-ai-solution',
     parentId: 'microsoft-ai',
     type: 'topic',
@@ -765,6 +773,26 @@ var knowledgeTree = [
     color: '#a855f7',
     phase: 2.4, speed: 0.82,
     relations: ['low-code-ai-era']
+  },
+
+  {
+    id: 'power-platform-governance',
+    parentId: 'power-platform',
+    type: 'article',
+    title: {
+      zh: 'Power Platform 治理速览：从许可到运维落地',
+      en: 'Power Platform Governance Quickstart: Licensing to Operations'
+    },
+    summary: {
+      zh: '基于微软官方文档，先用 7 阶段项目流程讲清"哪个角色在哪个阶段做什么"，再依次拆解许可、容量、环境、权限与治理监控，并给出 30 天落地路径。',
+      en: '7-stage project process showing who does what when, then licensing, capacity, environments, access, and monitoring — plus a 30-day plan.'
+    },
+    tags: ['Power Platform', 'Governance', 'Licensing', 'Dataverse Capacity', 'Enterprise IT'],
+    date: '2026-05-12',
+    url: 'posts/power-platform-governance/index.html',
+    color: '#8b5cf6',
+    phase: 4.2, speed: 0.83,
+    relations: ['low-code-ai-era', 'copilot-studio-overview', 'agentic-sales-mobile-proposal']
   },
   {
     id: 'power-platform-pricing-quote-tool',
@@ -1719,7 +1747,26 @@ var knowledgeTree = [
     url: 'posts/four-schools-profile/index.html',
     color: '#e11d48',
     phase: 4.8, speed: 0.82,
-    relations: ['zhongkao-volunteer-strategy', 'zhongkao-policy-data']
+    relations: ['zhongkao-volunteer-strategy', 'zhongkao-policy-data', 'sh-top12-gaokao']
+  },
+  {
+    id: 'sh-top12-gaokao',
+    parentId: 'shanghai-zhongkao',
+    type: 'article',
+    title: {
+      zh: '上海四校八大 · 近三年高考出口数据全景（2023–2025）',
+      en: 'Shanghai Top 12 High Schools: 3-Year Gaokao Outcomes (2023–2025)'
+    },
+    summary: {
+      zh: '汇总四校与八大 2023–2025 清北、复交、综评、重本率四项指标，标注来源档次并指出公开数据缺口。',
+      en: 'Compiles 2023–2025 Tsinghua/Peking, Fudan/SJTU, comprehensive and top-tier rates for 12 Shanghai schools with sourced citations.'
+    },
+    tags: ['中考', '高考', '四校', '八大', '出口数据'],
+    date: '2026-04-15',
+    url: 'posts/sh-top12-gaokao/index.html',
+    color: '#be123c',
+    phase: 5.2, speed: 0.80,
+    relations: ['four-schools-profile', 'zhongkao-policy-data', 'zhongkao-volunteer-strategy']
   },
 
   {
