@@ -3233,6 +3233,41 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   };
 
+  var ensureAccordionStepVisible = function (activeStep) {
+    var btn;
+    var content;
+    var parentAccordion;
+
+    if (!state.enabled || !activeStep) {
+      return;
+    }
+
+    if (activeStep.hasAttribute('data-accordion')) {
+      btn = activeStep.querySelector('.subsection-toggle');
+      content = activeStep.querySelector('.subsection-content');
+      activeStep.classList.add('is-open');
+      if (btn) {
+        btn.setAttribute('aria-expanded', 'true');
+      }
+      if (content) {
+        content.setAttribute('aria-hidden', 'false');
+      }
+    }
+
+    parentAccordion = activeStep.parentElement ? activeStep.parentElement.closest('[data-accordion]') : null;
+    if (parentAccordion) {
+      btn = parentAccordion.querySelector('.subsection-toggle');
+      content = parentAccordion.querySelector('.subsection-content');
+      parentAccordion.classList.add('is-open');
+      if (btn) {
+        btn.setAttribute('aria-expanded', 'true');
+      }
+      if (content) {
+        content.setAttribute('aria-hidden', 'false');
+      }
+    }
+  };
+
   var syncStepOverflowState = function (activeStep) {
     presentSteps.forEach(function (step) {
       step.classList.remove('is-step-overflowing');
@@ -3329,6 +3364,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     syncContainerVisibility(activeStep);
     syncDetailsPresentationState(activeStep);
+    ensureAccordionStepVisible(activeStep);
 
     if (state.enabled) {
       window.scrollTo(0, 0);
