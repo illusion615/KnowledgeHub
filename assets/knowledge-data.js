@@ -244,6 +244,25 @@ var knowledgeTree = [
     phase: 0.4, speed: 0.87,
     relations: ['agentic-sales-mobile-proposal', 'enterprise-agent-arch', 'copilot-studio-overview']
   },
+  {
+    id: 'life-science-ai-blueprint',
+    parentId: 'industry-solution',
+    type: 'article',
+    title: {
+      zh: 'Life Science 行业 AI 场景蓝图：基于微软 AI Business Application',
+      en: 'Life Science AI Scenario Blueprint: Microsoft AI Business Application'
+    },
+    summary: {
+      zh: '7 阶段药物价值链 x 4 大微软产品栈 = 28 个 AI 场景交叉蓝图，覆盖 Pharma/Biotech/MedTech/CRO/Dx 五细分，附三阶段实施路线。',
+      en: '7 drug value chain stages x 4 Microsoft product pillars = 28 AI scenario cross-reference blueprint across 5 subsectors, with a 3-phase rollout roadmap.'
+    },
+    tags: ['Life Science', 'Pharma', 'Industry Solution', 'Copilot Studio', 'Dynamics 365', 'Power Platform'],
+    date: '2026-05-18',
+    url: 'posts/life-science-ai-blueprint/index.html',
+    color: '#c4b5fd',
+    phase: 0.8, speed: 0.85,
+    relations: ['medtech-agent-platform-blueprint', 'enterprise-agent-arch', 'copilot-studio-overview']
+  },
 
   // ════════════════════════════════════════
   // 文章 — 企业智能体架构

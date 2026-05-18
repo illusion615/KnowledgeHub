@@ -3206,6 +3206,33 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   };
 
+  var syncDetailsPresentationState = function (activeStep) {
+    presentSteps.forEach(function (step) {
+      var wasOpen;
+
+      if (!step || step.tagName !== 'DETAILS') {
+        return;
+      }
+
+      wasOpen = step.getAttribute('data-present-was-open');
+      if (wasOpen === null) {
+        step.setAttribute('data-present-was-open', step.hasAttribute('open') ? 'true' : 'false');
+        wasOpen = step.getAttribute('data-present-was-open');
+      }
+
+      if (state.enabled && step === activeStep) {
+        step.setAttribute('open', '');
+        return;
+      }
+
+      if (wasOpen === 'true') {
+        step.setAttribute('open', '');
+      } else {
+        step.removeAttribute('open');
+      }
+    });
+  };
+
   var syncStepOverflowState = function (activeStep) {
     presentSteps.forEach(function (step) {
       step.classList.remove('is-step-overflowing');
@@ -3301,6 +3328,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     syncContainerVisibility(activeStep);
+    syncDetailsPresentationState(activeStep);
 
     if (state.enabled) {
       window.scrollTo(0, 0);

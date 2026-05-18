@@ -1901,22 +1901,6 @@
       font-size: 10px; font-weight: 700;
       border: 1px solid rgba(251,146,60,0.25);
     }
-
-    /* In-place pager: turn the last/first slot into a clickable "…" link.
-       The nav itself never scrolls; JS pre-trims items to fit. */
-    nav.nav-links[data-nav-pager] {
-      overflow: hidden;
-      flex-wrap: nowrap;
-    }
-    .nav-links a.nav-ellipsis {
-      cursor: pointer;
-      letter-spacing: 1px;
-      padding-bottom: 2px;
-      opacity: 0.7;
-      user-select: none;
-    }
-    .nav-links a.nav-ellipsis:hover { opacity: 1; }
-    .nav-links a.nav-ellipsis::after { display: none !important; }
   </style>
 </head>
 <body>
@@ -3155,105 +3139,6 @@
         ta.select();
         try { document.execCommand('copy'); done(); } catch (e) { /* noop */ }
         document.body.removeChild(ta);
-      }
-    })();
-  </script>
-  <script>
-    (function () {
-      var nav = document.querySelector('.nav-links[data-nav-pager]');
-      if (!nav) return;
-
-      // Snapshot original anchors once.
-      var items = Array.prototype.slice.call(nav.children).filter(function (el) {
-        return el.tagName === 'A';
-      });
-      if (!items.length) return;
-
-      // Stack of starting indexes for "back" pagination.
-      var stack = [0];
-
-      function makeEllipsis(label, onClick) {
-        var a = document.createElement('a');
-        a.href = '#';
-        a.className = 'nav-ellipsis';
-        a.textContent = '…';
-        a.setAttribute('aria-label', label);
-        a.addEventListener('click', function (e) {
-          e.preventDefault();
-          onClick();
-        });
-        return a;
-      }
-
-      function fits() {
-        return nav.scrollWidth <= nav.clientWidth + 1;
-      }
-
-      function render() {
-        var start = stack[stack.length - 1];
-        // Clear nav.
-        while (nav.firstChild) nav.removeChild(nav.firstChild);
-
-        // Prepend back ellipsis if not at start.
-        if (start > 0) {
-          nav.appendChild(makeEllipsis('上一页', function () {
-            if (stack.length > 1) stack.pop();
-            else stack.length = 1;
-            render();
-          }));
-        }
-
-        // Append items until one would overflow.
-        var i = start;
-        var overflow = false;
-        for (; i < items.length; i++) {
-          nav.appendChild(items[i]);
-          if (!fits()) {
-            nav.removeChild(items[i]);
-            overflow = true;
-            break;
-          }
-        }
-
-        // If items remain, append forward ellipsis; ensure room by trimming if needed.
-        if (overflow) {
-          var fwd = makeEllipsis('下一页', function () {});
-          nav.appendChild(fwd);
-          var nextStart = i;
-          // Trim trailing items until fwd fits (must keep at least 1 real item after the optional back ellipsis).
-          var minChildren = (start > 0 ? 2 : 1) + 1; // back? + 1 item + fwd
-          while (!fits() && nav.children.length > minChildren) {
-            // Remove the item just before fwd.
-            var trimmed = nav.children[nav.children.length - 2];
-            if (!trimmed || trimmed === fwd) break;
-            nav.removeChild(trimmed);
-            nextStart--;
-          }
-          if (nextStart < start + 1) nextStart = start + 1; // safety
-          // Re-bind click with the resolved nextStart.
-          var clone = fwd.cloneNode(true);
-          fwd.parentNode.replaceChild(clone, fwd);
-          clone.addEventListener('click', function (e) {
-            e.preventDefault();
-            stack.push(nextStart);
-            render();
-          });
-        }
-      }
-
-      function reset() {
-        stack = [0];
-        render();
-      }
-
-      window.addEventListener('resize', reset);
-      reset();
-      // Re-render after late layout shifts (fonts, presentation.js restructuring).
-      setTimeout(reset, 0);
-      setTimeout(reset, 200);
-      setTimeout(reset, 600);
-      if (document.fonts && document.fonts.ready && document.fonts.ready.then) {
-        document.fonts.ready.then(reset);
       }
     })();
   </script>

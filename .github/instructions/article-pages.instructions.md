@@ -4,6 +4,114 @@ applyTo: "posts/**/*.html"
 
 # Article Page Conventions
 
+> 本文件是 Study-Room 文章页的**唯一权威规范**。新建或修改 `posts/**/*.html` 前必须把 §0 当作 checklist 全部过一遍。其余 §1–§N 是组件级 spec，按需查阅。
+>
+> **设计系统入口**（写组件前必读）：
+> - 可视化文档：[posts/article-design-system/index.html](../../posts/article-design-system/index.html) §04 Core Components — 列出每个共享组件的 markup、padding、字号、阴影、暗色模式
+> - 样式实现源：[assets/article.css](../../assets/article.css) — 所有 canonical class 的真身
+> - 验证器：`node tests/validate.js`（必须 exit 0；当前已知 14 条无关 WARN 基线）
+
+## §0 Authoring Pre-Flight (READ FIRST, every time)
+
+写文章前先按这 5 条自检；任意一条不达标，要求 boss 澄清或调整方案，**不要先动手**。
+
+### 0.0 Intake Clarification — 内容澄清优先（开工前必走）
+
+收到选题后，**先问内容侧问题**再动手。技术侧问题（章节顺序、用什么组件、放第几节、配色、CSS）由我自己判断，**严禁反问 boss**。
+
+收到选题 → 一次性把下列 **5 个必问** 抛给 boss，缺答即停工等待。
+
+1. **读者是谁** — 角色 + 先验知识水平 + 阅读处境（例：「企业 IT 经理，零 Power Platform 经验，正在被业务催方案」）。
+2. **读完想达成什么** — 一个可验证的动作/判断（例：「能向 CIO 解释谁做什么」「能照做出 30 天落地计划」「评审会上能回答 5 个常见反对」）。
+3. **形式偏好** — 主线形态：流程 / 对比 / 决策树 / 角色×阶段 / 时间轴 / 案例 / FAQ；篇幅：速览 / 深度 / 参考手册。
+4. **信息源** — 必须采纳的官方文档 / 内部资料 / 客户原话 / 已发表文章；以及"不要用"的来源。
+5. **边界** — 这篇 *不* 解决什么（防主题膨胀）；不能公开的信息；是否双语。
+
+视情况追问：是否复用站内文章作为前置阅读？完稿后用途（站内发布 / 客户分享 / PPT 演示）？时间约束？
+
+**禁止行为**：
+- 用「我先按 X 做你看看」绕过澄清。
+- 把内容侧问题包装成技术侧问题（"要不要分两节"是结构判断，背后还是受众和目的没问清）。
+- 一次只问一个，挤牙膏。一次性列全。
+
+### 0.1 写作纪律（详见 `/memories/writing-rigor.md`）
+- 禁用空话：「不是 X 而是 Y」「真正的…」「最关键的…」「全方位」「极致」「赋能」等。每个论断必须可量化或可证伪。
+- 量化数据必须带测量条件或显式声明缺失，不要用模糊比较代替绝对数。
+- 引用必须给到具体来源（arxiv ID、Microsoft Learn URL、官方 doc URL），并说明每条来源支撑文中哪句论断。
+- **排印**：英文撇号/引号一律用 ASCII `'` `"`，禁止 `&rsquo;` `&lsquo;` `&rdquo;` `&ldquo;` 及裸 U+2018/2019/201C/201D 字符。弯引号在中英混排回退到中文字体后会被渲染得偏宽不紧凑，且容易被误认为全角标点。中文标点（，。：；「」）正常使用，仅约束英文。
+- **大小写**：英文 section `<h2>` 与 hero `<h2>` 一律用 **Title Case**（每个实词首字母大写）。冠词 `a/an/the`、并列连词 `and/but/or/nor/for/so/yet`、介词（不论长度，如 `of/in/on/at/to/from/with/into`）小写；首词与末词无论词性一律大写；连字符复合词（`One-Shot`、`ALM-Ready`、`Per-Environment`、`Pay-as-You-Go`）每段都大写；缩写（DLP、ALM、IT、PPAC、URL）保持全大写。`section-kicker`（"01 / Section Label"）同样 Title Case。**演示模式所有"页标题"也必须 Title Case**：包括 `data-step-title` 属性、`[data-accordion]` 内 `.subsection-toggle > span` 文本（accordion 既是阅读分节也是 present slide 标题）、以及 `[data-present-step]` slide 顶部直接出现的 `<h3>` 分组标题。正文段落与卡片说明仍用 sentence case。
+
+### 0.2 受众与结构判断（先决定，再写）
+- 用一句话写下受众与他们的预期收获；如果受众是「零基础」，主线必须按 learn-flow 排，不要按 reference-completeness 排。
+- 选定**一条主线**（流程 / 对比 / 决策树 / 角色 × 阶段 / 时间轴）。辅助信息（角色词典、术语表、补充资料）一律放进 accordion 收起，不与主线竞争注意力。
+
+### 0.3 视觉对称（详见 `/memories/visual-layout.md`，本规范强制执行）
+- **卡片数量只能是 2 / 3 / 4 / 6**。出现 5、7、9、11 等数字立即重组：合并、拆分，或改成 accordion 列表。
+- 严禁对会出现孤儿行的卡片组使用 `grid-template-columns: repeat(auto-fit, minmax(...))`；多列布局必须显式按断点写 `repeat(N, 1fr)` 或显式分行。
+- 7 张必须 4+3，5 张必须 3+2，绝不允许 4+1、6+1、5+2 等单卡末行。
+- Presentation 模式 `insight-grid` 最多 3 列，详见 §"Symmetric grid layout rule"。
+
+### 0.4 渐进披露密度
+- 每个 `<section>` 默认只展开一条主线 + ≤3 张总览卡。深度内容必须放进 `.subsection-accordion`，默认折叠。
+- `.subsection-content` 第一句必须是一句话总结，后接结构化组件（cards / flow-list / table），禁止整块只放一段散文。
+- 一张幻灯片只承载一个想法；若 section 同时有卡片网格和 accordion，必须拆 step。
+
+### 0.5 完工闸门（顺序不可调）
+1. `node tests/validate.js` 必须 exit 0，warnings 数量不得新增（基线 14 条无关 WARN）。
+2. `assets/knowledge-data.js` 的 `summary.zh ≤ 100` 字符、`summary.en ≤ 160` 字符。
+3. 用 built-in browser 打开本文，**逐 section 截图**，确认无 grid 孤儿、无文字溢出、暗色/亮色都正常（详见 `/memories/boss-guardrails.md` 的 Post-Edit Browser Verification）。
+4. 完成前再回头扫一遍 §0.1–§0.4 自检。
+
+### 0.6 组件复用纪律（NO ROGUE COMPONENTS）
+
+**默认结论：你想做的卡片站内已经有了。** 写任何"卡片/网格/列表/chip/表格"之前，按下面的顺序排查：
+
+1. **先查 canonical 清单**（`assets/article.css` + `posts/article-design-system/index.html` §04）：
+   - 信息卡片网格 → `.insight-grid` + `.insight-card`（含 `.card-index` 角标）
+   - 二元/多元对比 → `.comparison-grid` + `.comparison-card`（可加 `.next` 强调）
+   - 步骤 / 流程 / 时间轴 → `.flow-list` + `.flow-step` + `.flow-copy > strong + p`
+   - 编号要点列表 → `.layer-list` + `.layer-number`
+   - 数字指标 → `.metric` + `.metric-label` + `<strong>` + `<span>`
+   - 引用 / 关键观点 → `.quote-block`
+   - 数据表 → `.simple-table`
+   - 折叠分节 → `.subsection-accordion` + `.subsection-item[data-accordion]` + `.subsection-toggle` + `.subsection-content`
+   - 标签 / chip → 复用 `.comparison-label` 或 `.event-tag`
+2. **找到等价物 → 直接用**，不要重命名、不要"我加点小改动"。需要色彩区分时用语义 modifier（如 `.event-tag-model`），不要新建独立组件。
+3. **找不到等价物 → 暂停，先和 boss 确认**：说明用例、为什么 canonical 不够、新组件命名空间、是否进 `assets/article.css`。得到批准后再写。
+4. **inline `<style>` 严禁定义"通用组件"职能的 class**。inline 样式只允许：
+   - 文章一次性的微调（间距、特定颜色覆盖）
+   - 该文章特有的、明显不会被复用的可视化（如某张矩阵图、某个示意图）
+5. 任何新增"卡片/网格"组件时，必须同步更新 `posts/article-design-system/index.html` §04 demo + 在 `assets/article.css` 加暗色模式样式。
+
+**反例（本文已发生过）**：为 7 阶段流程新造 `.lifecycle-stage` + `.ls-chip` 而不用 `.flow-list`；为 11 角色卡新造 `.role-card` + `.role-fam-*` 而不用 `.insight-card`。这两类都属于直接违规。
+
+### 0.7 Article Logic Contract — 文章逻辑结构契约
+
+**A. 写之前必须填写三件**（写在 session 笔记里，不达标不开工）
+1. **一句话受众**：`______ 读者打开本文，期望在 ______ 分钟内拿到 ______ 的能力/判断`。
+2. **一句话主张（thesis）**：本文用 ______ 证明 / 教会 ______。
+3. **章节大纲**：列出 §01–§N 的 kicker，逐条问"删掉它读者还能不能拿到主张"。删得掉就删。
+
+**B. 章节顺序原则**（按优先级排列；冲突时上层胜出）
+1. **认知顺序优先**：零基础读者先要 *what / who*，再要 *why*，最后要 *how*。术语、许可、规格不许放在主线之前。
+2. **主线唯一**：全文只允许一条主线（流程 / 对比 / 决策 / 角色×阶段 / 时间轴 / 案例 / FAQ 之一）。其余信息是支线，进 accordion。
+3. **承接成链**：每章的"产出"应是下一章的"输入"。intro 段显式说一句"上一章我们 X，本章把 X 变成 Y"。
+4. **References 永远在最后**。
+
+**C. 单章节三件套契约**
+每个 `<section>` 的 `.section-head` 必须能回答：
+- **kicker** = 章节代号（"01 / Section Label"）
+- **h2** = 这一章的*结论或承诺*（动宾或判断句，不是干巴巴的名词短语）
+- **intro `<p>`** = 一句话说明读完本章读者能做什么决定 / 拿到什么产出，并显式承接上一章
+
+**D. Hero 对账**
+hero `.hero-metrics` 抛出的每个 metric、`.hero-panel .layer-list` 抛出的每个要点，都必须在正文里被一个 section 兑现。完稿后逐一对照，未兑现的要么删 hero、要么补正文。
+
+**E. 完稿"一句话回放"自检**
+用一句话复述每个 section 的主张，串起来读一遍。如果读起来跳跃、缺环、或顺序倒过来也说得通，结构就不及格，必须重排。
+
+---
+
 ## Script & CSS Loading
 
 ### CSS（`<head>` 内，inline `<style>` 之前）
@@ -99,20 +207,22 @@ Rules:
   <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
   <div class="brand">
     <span class="brand-mark"></span>
-    Parent Topic Name
+    <span data-zh="父级主题名" data-en="Parent Topic Name">父级主题名</span>
   </div>
-  <div class="topbar-actions">
-    <nav class="nav-links" aria-label="页面章节导航">
-      <a href="#section-id">Section</a>
-    </nav>
-  </div>
+  <nav class="nav-links" aria-label="页面章节导航" data-nav-pager>
+    <a href="#section-id" data-zh="章节名" data-en="Section">章节名</a>
+    <!-- one anchor per top-level <section id="..."> in main; bilingual via data-zh/data-en -->
+  </nav>
 </div>
 ```
 
 Rules:
 - `←` home link shows arrow only — no trailing text
-- `.brand` text = the article's parent topic name from `assets/knowledge-data.js`, **not** the article title
-- Presentation toggle, share dropdown, and other action buttons are injected dynamically by `article-presentation.js` — **NEVER** add them in HTML
+- `.brand` 文本 = 文章在 `assets/knowledge-data.js` 中的父级主题名（**不是**文章标题），用 `data-zh/data-en` 包一层支持双语
+- **章节导航必须用 `<nav class="nav-links" data-nav-pager>`**，且作为 `.topbar` 的直接子节点，不要再外包 `<div class="topbar-actions">`（演示按钮的 `topbar-actions` 由 `article-presentation.js` 自动注入）
+- `data-nav-pager` 触发共享分页器（`assets/article-common.js`）：nav 永不横向滚动；放不下时尾部塞 `…` 翻到下一组，再次显示时首部出现 `…` 翻回。**禁止**为单文章再写一份分页 inline JS / CSS — 共享 CSS 见 `assets/article.css` `.nav-links[data-nav-pager]` + `.nav-ellipsis`，共享 JS 见 `article-common.js` 末尾「In-place chapter-nav pager」段
+- 每个章节链接必须带 `data-zh` / `data-en`；`href` 指向 `<section id="...">`
+- Presentation toggle / share dropdown / chat / narrator 等按钮由 `article-presentation.js` 动态注入到 topbar 末尾的 `.topbar-actions`，**严禁**在 HTML 里硬编码
 
 ### Full Page Skeleton
 

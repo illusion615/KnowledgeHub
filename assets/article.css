@@ -545,6 +545,21 @@ a {
   background: linear-gradient(135deg, var(--accent, #ff7a00), #ff9340);
 }
 
+/* ── In-place pager: nav never scrolls; JS trims items and inserts "…" prev/next ── */
+nav.nav-links[data-nav-pager] {
+  overflow: hidden;
+  flex-wrap: nowrap;
+}
+.nav-links a.nav-ellipsis {
+  cursor: pointer;
+  letter-spacing: 1px;
+  padding-bottom: 2px;
+  opacity: 0.7;
+  user-select: none;
+}
+.nav-links a.nav-ellipsis:hover { opacity: 1; }
+.nav-links a.nav-ellipsis::after { display: none !important; }
+
 .home-link {
   display: inline-flex;
   align-items: center;
@@ -1813,7 +1828,7 @@ body.present-custom-font div {
   /* Footer band = .present-status bottom32 + height52 + breathing ≈ clamp(96px,10vh,116px) */
   --present-safe-bottom: clamp(96px, 10vh, 116px);
   --present-body-max-width: 1480px;
-  --present-body-font: clamp(1.2rem, 1.5vw, 1.5rem);
+  --present-body-font: clamp(1.05rem, 1.25vw, 1.25rem);
   --present-body-line-height: 1.75;
   width: 100%;
   max-width: none;
@@ -1845,9 +1860,13 @@ body.present-custom-font div {
 
 /* ── Normal-flow spacing for data-present-step blocks ──
    Consecutive step blocks and section-head → step transitions
-   need vertical rhythm; presentation mode overrides display. */
+   need vertical rhythm; presentation mode overrides display.
+   Exclude .subsection-accordion children — grid gap handles their spacing. */
 [data-present-step] + [data-present-step] {
   margin-top: 32px;
+}
+.subsection-accordion > [data-present-step] + [data-present-step] {
+  margin-top: 0;
 }
 .section-head + [data-present-step] {
   margin-top: 24px;
@@ -1994,6 +2013,16 @@ html.is-presentation-mode body.present-transition-zoom [data-present-step].is-ac
 .is-presentation-mode .section:has([data-present-step]),
 .is-presentation-mode .section:first-of-type:has([data-present-step]) {
   padding: 0;
+}
+
+/* 1-pre-2. If a section owns multiple direct child steps (for example a task
+   slide followed by a reference slide), only the active child may remain visible.
+   Otherwise the parent section leaks the inactive sibling into the viewport. */
+.is-presentation-mode .section:has(> [data-present-step].is-active) > *:not(.section-head):not([data-present-step]) {
+  display: none !important;
+}
+.is-presentation-mode .section:has(> [data-present-step].is-active) > [data-present-step]:not(.is-active) {
+  display: none !important;
 }
 
 /* 1a. On overview step, hide non-accordion siblings (paradigm-grid, flow-list, etc.)
@@ -2258,14 +2287,14 @@ html.is-presentation-mode body.present-transition-zoom [data-present-step].is-ac
 }
 
 /* Font consistency in presentation mode: hero metric values mix Latin (Space Grotesk)
-   with Chinese fallback (Noto Sans SC) which clashes with serif body. Force the
-   body font stack so Chinese chars render in serif consistently with the rest of
-   the slide while Latin numerals remain readable. */
+   with Chinese fallback which can clash with the user-selected slide font. Force the
+   present-font stack so all hero-metric text matches the body. Falls back to the
+   normal reading font (sans-serif) when the user keeps "Default". */
 .is-presentation-mode .hero-metrics .metric strong,
 .is-presentation-mode .hero-metrics .metric .metric-label,
 .is-presentation-mode .hero-metrics .metric span,
 .is-presentation-mode .hero-copy .eyebrow {
-  font-family: var(--present-font, "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif);
+  font-family: var(--present-font, var(--reading-font, "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", sans-serif));
 }
 
 .is-presentation-mode .narration-subtitle {
@@ -3101,6 +3130,18 @@ main {
 .comparison-card.next .layer-list li {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Hero panel sits on a dark background — invert layer-list pills for contrast */
+.hero-panel .layer-list li {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: rgba(246, 248, 251, 0.92);
+}
+
+.hero-panel .layer-number {
+  background: rgba(255, 255, 255, 0.2);
+  color: #f6f8fb;
 }
 
 .comparison-card.next .layer-number {
