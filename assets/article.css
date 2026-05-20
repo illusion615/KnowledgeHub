@@ -197,6 +197,8 @@
 .orb { opacity: 0; pointer-events: none; }
 .insight-card::before { display: none; }
 .flow-step { box-shadow: 0 4px 12px rgba(255, 122, 0, 0.10); }
+.flow-list > .flow-step::before,
+.flow-number { box-shadow: 0 4px 12px rgba(255, 122, 0, 0.10); }
 .insight-card,
 .pattern-card,
 .comparison-card,
@@ -212,6 +214,8 @@
 [data-theme="dark"][data-style="warm"] .orb { opacity: 0.2; }
 [data-style="warm"] .insight-card::before { display: block; }
 [data-style="warm"] .flow-step { box-shadow: 0 14px 28px rgba(255, 122, 0, 0.18); }
+[data-style="warm"] .flow-list > .flow-step::before,
+[data-style="warm"] .flow-number { box-shadow: 0 14px 28px rgba(255, 122, 0, 0.18); }
 [data-style="warm"] .insight-card,
 [data-style="warm"] .pattern-card,
 [data-style="warm"] .comparison-card,
@@ -255,6 +259,11 @@
   box-shadow: none;
   background: var(--accent);
 }
+[data-style="academic"] .flow-list > .flow-step::before,
+[data-style="academic"] .flow-number {
+  box-shadow: none;
+  background: var(--accent);
+}
 
 /* ── Vivid — colored accent borders, strong structure ── */
 [data-style="vivid"] .orb { opacity: 0; }
@@ -279,6 +288,10 @@
 [data-style="vivid"] .flow-step {
   box-shadow: 0 6px 18px rgba(255, 122, 0, 0.14);
 }
+[data-style="vivid"] .flow-list > .flow-step::before,
+[data-style="vivid"] .flow-number {
+  box-shadow: 0 6px 18px rgba(255, 122, 0, 0.14);
+}
 [data-style="vivid"] .section-head h2 {
   letter-spacing: -0.02em;
 }
@@ -288,6 +301,8 @@
 [data-theme="dark"][data-decor="rich"] .orb { opacity: 0.2; }
 [data-decor="rich"] .insight-card::before { display: block; }
 [data-decor="rich"] .flow-step { box-shadow: 0 14px 28px rgba(255, 122, 0, 0.18); }
+[data-decor="rich"] .flow-list > .flow-step::before,
+[data-decor="rich"] .flow-number { box-shadow: 0 14px 28px rgba(255, 122, 0, 0.18); }
 [data-decor="rich"] .insight-card,
 [data-decor="rich"] .pattern-card,
 [data-decor="rich"] .comparison-card,
@@ -3536,13 +3551,64 @@ main {
   margin: 18px 0 0;
   display: grid;
   gap: 14px;
+  counter-reset: flow-counter;
 }
 
-.flow-list li {
+.flow-list li,
+.flow-list > .flow-step,
+.flow-list > .flow-item {
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr);
   gap: 14px;
   align-items: flex-start;
+}
+
+/* When .flow-step is a direct child of .flow-list it acts as a row
+   container, not as the numbered circle badge. Neutralise the badge
+   styles and auto-generate the circle via ::before. */
+.flow-list > .flow-step {
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  background: none;
+  color: inherit;
+  box-shadow: none;
+  font-weight: inherit;
+  counter-increment: flow-counter;
+}
+
+.flow-list > .flow-step::before {
+  content: counter(flow-counter);
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #ff9340);
+  color: #fff;
+  font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  box-shadow: 0 4px 12px rgba(255, 122, 0, 0.10);
+  flex-shrink: 0;
+}
+
+/* .flow-number badge (variant of .flow-step used in .flow-item rows) */
+.flow-number {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #ff9340);
+  color: #fff;
+  font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  box-shadow: 0 4px 12px rgba(255, 122, 0, 0.10);
+  flex-shrink: 0;
 }
 
 .flow-step {
@@ -4394,13 +4460,22 @@ footer {
     padding-right: 18px;
   }
 
-  .flow-list li {
+  .flow-list li,
+  .flow-list > .flow-step,
+  .flow-list > .flow-item {
     grid-template-columns: 34px minmax(0, 1fr);
   }
 
   .flow-step {
     width: 34px;
     height: 34px;
+  }
+
+  .flow-list > .flow-step::before,
+  .flow-number {
+    width: 34px;
+    height: 34px;
+    font-size: 0.85rem;
   }
 
   .signal-map {

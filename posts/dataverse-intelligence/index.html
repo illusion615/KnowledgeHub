@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dataverse Intelligence 入门：业务上下文层、Business Skills 与 MCP Server</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(2.1rem, 5vw, 3.6rem);
+      line-height: 1.06;
+      letter-spacing: -0.04em;
+      max-width: 24ch;
+    }
+
+    .hero-metrics {
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+
+    .stack-flow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .stack-flow .stack-node {
+      flex: 1 1 180px;
+      padding: 16px 18px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.76);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      box-shadow: 0 14px 30px rgba(15, 23, 42, 0.06);
+    }
+
+    .stack-flow .stack-node strong {
+      display: block;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .stack-flow .stack-node p {
+      margin: 0;
+      font-size: 0.92rem;
+      line-height: 1.65;
+      color: var(--ink);
+    }
+
+    .stack-flow .stack-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      color: var(--muted);
+      flex: 0 0 auto;
+    }
+
+    [data-theme="dark"] .stack-flow .stack-node {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.18);
+    }
+
+    .skill-anatomy {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+    }
+
+    .skill-anatomy .anatomy-card {
+      padding: 18px;
+      border-radius: 20px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 14px 30px rgba(15, 23, 42, 0.06);
+    }
+
+    .skill-anatomy .anatomy-card h4 {
+      margin: 0 0 8px;
+      font-size: 0.98rem;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+    }
+
+    .skill-anatomy .anatomy-card p {
+      margin: 0;
+      font-size: 0.9rem;
+      line-height: 1.7;
+      color: var(--muted);
+    }
+
+    .skill-anatomy .anatomy-tag {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      background: rgba(6, 182, 212, 0.12);
+      color: rgba(6, 132, 158, 1);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    [data-theme="dark"] .skill-anatomy .anatomy-card {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.18);
+    }
+
+    [data-theme="dark"] .skill-anatomy .anatomy-tag {
+      background: rgba(6, 182, 212, 0.18);
+      color: rgba(125, 211, 252, 1);
+    }
+
+    .path-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .path-card {
+      padding: 22px;
+      border-radius: 22px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.78);
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+    }
+
+    .path-card .path-role {
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(6, 132, 158, 1);
+      margin: 0 0 6px;
+    }
+
+    .path-card h4 {
+      margin: 0 0 12px;
+      font-size: 1.05rem;
+    }
+
+    .path-card ol {
+      margin: 0;
+      padding-left: 1.1rem;
+      font-size: 0.92rem;
+      line-height: 1.75;
+      color: var(--ink);
+    }
+
+    .path-card ol li {
+      margin-bottom: 6px;
+    }
+
+    [data-theme="dark"] .path-card {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.18);
+    }
+
+    [data-theme="dark"] .path-card .path-role {
+      color: rgba(125, 211, 252, 1);
+    }
+
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+
+    .compare-table th,
+    .compare-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+      text-align: left;
+      vertical-align: top;
+      line-height: 1.6;
+    }
+
+    .compare-table th {
+      background: rgba(15, 23, 42, 0.04);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-weight: 700;
+      font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .compare-table td:first-child {
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    [data-theme="dark"] .compare-table th {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    [data-theme="dark"] .compare-table th,
+    [data-theme="dark"] .compare-table td {
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .table-scroll {
+      overflow-x: auto;
+    }
+
+    .callout {
+      padding: 16px 18px;
+      border-radius: 18px;
+      border-left: 4px solid rgba(6, 182, 212, 0.9);
+      background: rgba(6, 182, 212, 0.06);
+      margin: 12px 0 0;
+      font-size: 0.92rem;
+      line-height: 1.7;
+    }
+
+    [data-theme="dark"] .callout {
+      background: rgba(6, 182, 212, 0.12);
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero" data-present-step data-step-title="Article Overview">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            Dataverse Intelligence
+          </div>
+          <div class="topbar-actions">
+            <nav class="nav-links" aria-label="页面章节导航">
+              <a href="#overview">是什么</a>
+              <a href="#stack-position">所处位置</a>
+              <a href="#business-skills">Business Skills</a>
+              <a href="#choose">选型对比</a>
+              <a href="#enablement">启用配置</a>
+              <a href="#paths">两条路径</a>
+              <a href="#boundaries">边界与实践</a>
+              <a href="#faq">FAQ</a>
+              <a href="#references">参考资料</a>
+            </nav>
+          </div>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Power Platform · Preview</span>
+            <h1>Dataverse Intelligence：组织业务上下文的复用层</h1>
+            <p>
+              Dataverse Intelligence 把 Work IQ 从"理解文件、邮件、会议"延展到"理解 Dataverse 业务数据与流程"。它的核心交付物是 Business Skills——一次定义、跨 agent 复用的自然语言流程指令，通过 Dataverse MCP Server（preview）暴露给 Microsoft 365 Copilot、Copilot Studio agent，以及 VS Code 等非微软 MCP 客户端。本文按 Microsoft Learn 官方 preview 文档（2026 年 3 月 31 日更新）整理。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#stack-position">看清它在哪里</a>
+              <a class="button button-secondary" href="#choose">选型对比</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">一句话概览</span>
+            <h2>Dataverse Intelligence 的四个事实</h2>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span>定位：Work IQ 在 Dataverse 业务数据维度的延伸</li>
+              <li><span class="layer-number">2</span>资产：可复用的自然语言 Business Skills（不是代码）</li>
+              <li><span class="layer-number">3</span>通道：Dataverse MCP Server preview（标准 MCP 协议）</li>
+              <li><span class="layer-number">4</span>状态：Preview，仅 Managed Environment 可用，禁止生产</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">特性状态</div>
+            <strong>Preview</strong>
+            <span>2026/03/31 文档；不进生产，API 可能变更</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">环境前置</div>
+            <strong>Managed Env</strong>
+            <span>必须开启 MCP Server preview</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">核心资产</div>
+            <strong>Business Skill</strong>
+            <span>Solution-aware，跨环境迁移</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">调用接口</div>
+            <strong>MCP Endpoint</strong>
+            <span>/api/mcp_preview</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+
+        <!-- ====== Section 1: 是什么 ====== -->
+        <section id="overview" class="section" data-reveal data-present-step data-step-title="What Dataverse Intelligence Is">
+          <div class="section-head">
+            <p class="section-kicker">01 / What It Is</p>
+            <h2>Dataverse Intelligence 解决一个具体问题：agent 看不懂业务数据</h2>
+            <p>本章先给出 Microsoft 的官方定义，并用一句话说明它要解决的具体痛点；后续章节再把它放回 Microsoft Copilot 生态里看坐标。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>Microsoft 官方定义</span>
+              </button>
+              <div class="subsection-content">
+                <p>引用 Microsoft Learn《What is Dataverse intelligence?》原文（2026/03/31）：</p>
+                <blockquote class="quote-block">
+                  Microsoft Dataverse intelligence extends Work IQ to bring business data understanding to AI agents and Microsoft Copilot. Work IQ helps agents understand work artifacts like files, meetings, and messages. Dataverse intelligence builds on this foundation by enabling agents to understand and act on your business data.
+                </blockquote>
+                <p>翻成大白话：</p>
+                <ul>
+                  <li><strong>Work IQ</strong> 让 Copilot 看懂 Microsoft 365 里的"工作产物"——邮件、文件、会议、Teams 消息。</li>
+                  <li><strong>Dataverse Intelligence</strong> 在同一根管线上接出一根支线，让 Copilot 看懂 Dataverse 里的"业务对象"——客户、订单、工单、自定义表，以及处理它们的标准流程。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>它要解决的痛点</span>
+              </button>
+              <div class="subsection-content">
+                <p>在没有 Dataverse Intelligence 之前，一个连接到 Dataverse 的 agent 通常要靠下面三种方式获得"业务感"：</p>
+                <ol>
+                  <li><strong>System Prompt 里写规则</strong>：把"客户分类怎么判定""退款流程几步走"塞进 agent 的 instructions。每个 agent 各写一份，散落、不一致。</li>
+                  <li><strong>表名/字段名"自解释"</strong>：靠 schema 命名让 LLM 猜。Status 字段值 1/2/3 是什么意思？只能写注释或喂示例。</li>
+                  <li><strong>Plugin / Connector 封装动作</strong>：在 Copilot Studio 里逐 agent 配置工具。流程更新时要同步改多个 agent。</li>
+                </ol>
+                <p>Dataverse Intelligence 的解法是：</p>
+                <div class="callout">
+                  把"组织怎么解读和操作业务数据"这件事，从每个 agent 的 prompt 中抽出来，作为<strong>一类一等公民资产</strong>存在 Dataverse 里（Business Skills），让所有 agent 通过 Dataverse MCP Server 按需检索使用。一次写，到处用。
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ====== Section 2: 所处位置 ====== -->
+        <section id="stack-position" class="section" data-reveal data-present-step data-step-title="Where It Sits">
+          <div class="section-head">
+            <p class="section-kicker">02 / Where It Sits</p>
+            <h2>从 Work IQ 到 Agent：Dataverse Intelligence 在中间一层</h2>
+            <p>上一章定义了"是什么"。本章把它放回 Microsoft 智能体堆栈里，画出从底层智能到 agent 调用的链路；下一章再深入这条链路中"Business Skills"这一节。</p>
+          </div>
+
+          <div class="stack-flow">
+            <div class="stack-node">
+              <strong>1. 智能基座</strong>
+              <p>Work IQ：Microsoft Copilot 的工作上下文层，理解文件、会议、邮件、Teams 消息和人际关系。</p>
+            </div>
+            <div class="stack-arrow" aria-hidden="true">→</div>
+            <div class="stack-node">
+              <strong>2. 业务延展</strong>
+              <p>Dataverse Intelligence：把 Work IQ 的理解能力延展到 Dataverse 业务记录与流程上。</p>
+            </div>
+            <div class="stack-arrow" aria-hidden="true">→</div>
+            <div class="stack-node">
+              <strong>3. 可复用资产</strong>
+              <p>Business Skills：自然语言写成的"流程剧本"，描述 agent 应该按什么步骤完成业务任务。</p>
+            </div>
+            <div class="stack-arrow" aria-hidden="true">→</div>
+            <div class="stack-node">
+              <strong>4. 协议通道</strong>
+              <p>Dataverse MCP Server（preview）：通过标准 MCP 协议，把 Skills 与 Dataverse 工具暴露给客户端。</p>
+            </div>
+            <div class="stack-arrow" aria-hidden="true">→</div>
+            <div class="stack-node">
+              <strong>5. 消费方</strong>
+              <p>Microsoft 365 Copilot、Copilot Studio agent、VS Code、Claude、GitHub 等支持 MCP 的客户端。</p>
+            </div>
+          </div>
+
+          <div class="subsection-accordion accordion-gap">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>和 Work IQ 的关系：同源、分工不同</span>
+              </button>
+              <div class="subsection-content">
+                <p>Work IQ 是 Microsoft 在 Ignite 2025 后正式命名的"Copilot 智能层"，覆盖 Microsoft 365 里所有非结构化工作产物。Dataverse Intelligence 没有自建一套智能基座，它使用同一套 Microsoft 365 Copilot 设置入口（M365 admin center → Copilot → Settings → Dataverse data available in Microsoft 365 Copilot），把"理解能力"扩展到 Dataverse 这块结构化数据。</p>
+                <p>实践含义：</p>
+                <ul>
+                  <li>租户没启用 Microsoft 365 Copilot 的话，Dataverse 数据无法被 Copilot 主体使用（但 agent 通过 MCP 仍可访问业务上下文）。</li>
+                  <li>两者权限模型不同：Work IQ 走 Microsoft Graph + Entra 权限；Dataverse Intelligence 仍走 Dataverse 自身的安全角色与行/列级权限。详见站内的 <a href="../dataverse-security-roles/index.html">Dataverse Security Role 完全指南</a>。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>和 MCP / Copilot Studio 的关系：复用同一个 MCP 通道</span>
+              </button>
+              <div class="subsection-content">
+                <p>Dataverse 已经有一个生产可用的 MCP Server（GA 版本，提供基础 CRUD/查询工具）。Dataverse Intelligence 引入的 Business Skills 目前<strong>只在 Preview 版本</strong>的 Dataverse MCP Server 中暴露：</p>
+                <ul>
+                  <li>Copilot Studio：添加连接器时选 <em>Microsoft Dataverse MCP Server (Preview)</em>，注意与默认连接器同名但带 "(Preview)" 后缀。</li>
+                  <li>非微软 MCP 客户端：使用 endpoint <code>https://&lt;orgUrl&gt;/api/mcp_preview</code>。</li>
+                </ul>
+                <p>这意味着：要让 agent 用上 Business Skills，必须用 Preview 版本的 MCP Server。Preview 不在 Microsoft 支持协议范围内，API 可能不通知变更。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ====== Section 3: Business Skills ====== -->
+        <section id="business-skills" class="section" data-reveal data-present-step data-step-title="Business Skills">
+          <div class="section-head">
+            <p class="section-kicker">03 / Business Skills</p>
+            <h2>Business Skills：组织流程的"可复用脚本"</h2>
+            <p>上一章把 Business Skills 放在了链路第 3 节。本章拆开看它本身的结构、能力和约束；下一章再把它和其它"教 agent 做事"的手段放在一起做选型对比。</p>
+          </div>
+
+          <p>官方定义（《Business skills overview》，2026/03/10）：Business Skills 是<strong>自然语言写成的指令</strong>，描述组织如何完成一件具体工作——步骤、输入、业务规则。它不是可执行代码，而是"给新员工写的操作手册"那种 SOP，只不过受众变成了 agent。</p>
+
+          <div class="skill-anatomy">
+            <div class="anatomy-card">
+              <span class="anatomy-tag">Metadata</span>
+              <h4>Name + Description</h4>
+              <p>agent 用它做"技能检索"——根据用户意图先匹配出相关的 Skills，再去拉详细指令。</p>
+            </div>
+            <div class="anatomy-card">
+              <span class="anatomy-tag">Instructions</span>
+              <h4>Markdown 步骤</h4>
+              <p>完整的流程定义，写在 Markdown 编辑器里，agent 命中后才完整读取。</p>
+            </div>
+            <div class="anatomy-card">
+              <span class="anatomy-tag">Resources</span>
+              <h4>附件文件（≤20MB）</h4>
+              <p>SOP、政策、计算模板、表单——agent 在执行时可引用作为参考材料。</p>
+            </div>
+            <div class="anatomy-card">
+              <span class="anatomy-tag">Lifecycle</span>
+              <h4>Active / Inactive</h4>
+              <p>未定稿时可 Deactivate 阻止 agent 发现；定稿后激活并通过 Share 控制可见范围。</p>
+            </div>
+          </div>
+
+          <div class="subsection-accordion accordion-gap">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>Business Skill 的四个关键性质</span>
+              </button>
+              <div class="subsection-content">
+                <ol>
+                  <li><strong>Reusability（可复用）</strong>：定义一次，多个 agent、多个表面（M365 Copilot、Copilot Studio、外部 MCP 客户端）共用。</li>
+                  <li><strong>Consistency（一致性）</strong>：所有 agent 按同一份指令执行，跨 agent 行为差异降到最小。</li>
+                  <li><strong>Maintainability（可维护）</strong>：流程改了，只改一处；所有引用该 Skill 的 agent 自动跟上。</li>
+                  <li><strong>Solution-aware（解决方案对象）</strong>：可放进 Dataverse Solution，跟随 ALM 流程在 Dev → Test → Prod 之间迁移。</li>
+                </ol>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>分层检索机制：先 Metadata 后 Instructions</span>
+              </button>
+              <div class="subsection-content">
+                <p>组织里 Skills 数量可能很多。Microsoft 在文档里明确了 agent 不是"全文检索 + 长上下文"，而是分两步：</p>
+                <ol>
+                  <li>agent 通过 MCP Server 查询所有 Skills 的 <strong>metadata（name + description）</strong>，做意图匹配。</li>
+                  <li>命中后再拉完整 <strong>instructions</strong>。</li>
+                </ol>
+                <p>这就直接决定了 Skill description 的写法：描述里必须包含"什么时候用我"的明确信号词（例：<em>"Use when user asks about order status or mentions shipment tracking"</em>），否则匹配率会显著下降。这是 Skill 写作的第一条质量准则。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>权限模型：复用 Dataverse 的 RBAC，不另起炉灶</span>
+              </button>
+              <div class="subsection-content">
+                <p>Skills 沿用 Dataverse 安全角色，每个 Skill 都有 owner，通过 Share 机制控制访问。文档列出三档典型权限：</p>
+                <div class="table-scroll">
+                  <table class="compare-table">
+                    <thead>
+                      <tr><th>角色</th><th>可以做什么</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td>Basic User</td><td>创建自己拥有的 Skill；使用别人分享给自己的 Skill；<strong>不能</strong>在环境范围内发布。</td></tr>
+                      <tr><td>Environment Maker</td><td>创建并分享自己拥有的 Skill；管理 Solution 部署。</td></tr>
+                      <tr><td>System Administrator / Customizer</td><td>创建、分享所有 Skill；管理 Solution 部署。</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p>Skill 的可见性还可以单独切到 Organization 级（环境内所有具备 Basic User 权限的人都能看见），或者保持默认的 Individual（仅 owner + 被分享者）。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ====== Section 4: 选型对比 ====== -->
+        <section id="choose" class="section" data-reveal data-present-step data-step-title="When to Choose Skills">
+          <div class="section-head">
+            <p class="section-kicker">04 / Choose the Right Tool</p>
+            <h2>选型对比：Skill / Agent Instructions / Plugin / Connector</h2>
+            <p>Business Skills 不是要取代 Copilot Studio 已有的所有扩展机制。本章用一张表对四种常见"教 agent 做事"的手段做正面对比，给出"什么时候选 Skill"的判断依据。</p>
+          </div>
+
+          <div class="comparison-grid">
+            <div class="comparison-card">
+              <span class="comparison-label">Business Skill</span>
+              <h3>跨 agent 复用的流程剧本</h3>
+              <p>适合：组织有标准化业务流程、希望多个 agent 行为一致、希望流程跟着业务方而不是技术方走的场景。</p>
+            </div>
+            <div class="comparison-card">
+              <span class="comparison-label">Agent Instructions</span>
+              <h3>单个 agent 的角色设定</h3>
+              <p>适合：agent 本身的语气、身份、范围设定；与组织无关的角色性指令；不需要被其它 agent 复用的部分。</p>
+            </div>
+            <div class="comparison-card">
+              <span class="comparison-label">Plugin / Action</span>
+              <h3>调用具体 API 完成动作</h3>
+              <p>适合：调用外部系统、执行 Power Automate flow、读写非 Dataverse 数据；Skill 中可"调用"它们，二者互补。</p>
+            </div>
+            <div class="comparison-card">
+              <span class="comparison-label">Knowledge / Connector</span>
+              <h3>外挂文档与系统数据</h3>
+              <p>适合：把 SharePoint、外部 SaaS、第三方数据库的内容作为知识喂给 agent；处理的是"读"，不是"按流程做"。</p>
+            </div>
+          </div>
+
+          <div class="subsection-accordion accordion-gap">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>判断树：到底要不要写成 Skill</span>
+              </button>
+              <div class="subsection-content">
+                <ol>
+                  <li>这件事是不是"我们组织怎么干"，而不是"某个 agent 怎么说话"？是 → 候选 Skill；否 → 留在 Agent Instructions。</li>
+                  <li>它会不会被 ≥2 个 agent 或 ≥2 个客户端表面使用？会 → 强烈推荐 Skill；只有一个 → 留在 agent 内部更轻量。</li>
+                  <li>它的更新频率是不是由业务方决定？是 → Skill 更合适（业务方可直接在 Business skills 页编辑）；否 → 用 plugin/工具更稳。</li>
+                  <li>它的核心是"流程编排 + 决策"还是"调用 API 取数"？前者 → Skill；后者 → Plugin 或 MCP Tool。</li>
+                  <li>结论：Skill ≠ 取代 plugin/connector。Skill 是"剧本"，plugin/connector 是"道具"。一个完整任务往往是 <strong>一个 Skill 编排若干个 Tool/Plugin</strong>。</li>
+                </ol>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>对比表：四种机制并排看</span>
+              </button>
+              <div class="subsection-content">
+                <div class="table-scroll">
+                  <table class="compare-table">
+                    <thead>
+                      <tr>
+                        <th>维度</th>
+                        <th>Business Skill</th>
+                        <th>Agent Instructions</th>
+                        <th>Plugin / Action</th>
+                        <th>Knowledge / Connector</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>表达形式</td>
+                        <td>Markdown 自然语言</td>
+                        <td>自然语言</td>
+                        <td>API/Flow 定义</td>
+                        <td>数据源连接</td>
+                      </tr>
+                      <tr>
+                        <td>复用范围</td>
+                        <td>所有连 MCP Server 的客户端</td>
+                        <td>仅当前 agent</td>
+                        <td>当前 agent 配置</td>
+                        <td>当前 agent 配置</td>
+                      </tr>
+                      <tr>
+                        <td>主要消费方</td>
+                        <td>LLM 推理 + 流程编排</td>
+                        <td>LLM 推理</td>
+                        <td>LLM 选择并调用</td>
+                        <td>LLM 检索引用</td>
+                      </tr>
+                      <tr>
+                        <td>所有权</td>
+                        <td>业务方可直接维护</td>
+                        <td>agent 作者</td>
+                        <td>开发者/IT</td>
+                        <td>IT/数据负责人</td>
+                      </tr>
+                      <tr>
+                        <td>ALM</td>
+                        <td>Solution-aware，可迁移</td>
+                        <td>跟随 agent solution</td>
+                        <td>solution + 凭据</td>
+                        <td>需重新配置连接</td>
+                      </tr>
+                      <tr>
+                        <td>当前状态</td>
+                        <td>Preview</td>
+                        <td>GA</td>
+                        <td>GA</td>
+                        <td>GA</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ====== Section 5: 启用配置 ====== -->
+        <section id="enablement" class="section" data-reveal data-present-step data-step-title="Enable & Configure">
+          <div class="section-head">
+            <p class="section-kicker">05 / Enable & Configure</p>
+            <h2>启用流程：四步打通 M365 → PPAC → MCP Preview</h2>
+            <p>本章给出"从零到 agent 能调用 Skills"的启用清单。所有步骤来自《What is Dataverse intelligence?》和《Use preview tools and upcoming features in Dataverse MCP server》两篇官方文档。</p>
+          </div>
+
+          <ol class="flow-list">
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong>① 角色与许可前置</strong>
+                <p>需要 Microsoft 365 AI Administrator 或 Global Administrator 角色访问 M365 admin center Copilot 设置；需要 Power Platform Administrator 角色配置环境层 Dataverse Intelligence。目标环境必须是 <strong>Managed Environment</strong>，license 细节见下方矩阵。</p>
+              </div>
+            </li>
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong>② M365 admin center：开放 Dataverse 数据给 Copilot</strong>
+                <p>Microsoft 365 admin center → Copilot → Settings → 找到 <em>Dataverse data available in Microsoft 365 Copilot</em>，选择 All users 或 Specific groups（指定 Entra 安全组），保存。</p>
+              </div>
+            </li>
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong>③ Power Platform 管理中心：环境级开启</strong>
+                <p>PPAC → Manage → Environments → 选定环境 → Settings → Product → Features → 滚动到 Dataverse intelligence 区段，打开 <em>Allow data availability in M365 copilot</em> 和（或）<em>Enable Dataverse intelligence (Work IQ) for agents and AI experiences</em>。同一区段确认 <em>Allow MCP clients to interact with Dataverse MCP server (Preview version)</em> 已打开。保存后生效需要几分钟。</p>
+              </div>
+            </li>
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong>④ 连接到 Preview 版本 MCP Server</strong>
+                <p>Copilot Studio：添加连接器时选 <em>Microsoft Dataverse MCP Server (Preview)</em>（与 GA 同名 + "(Preview)" 后缀，不要选错）。VS Code / Claude / GitHub 等非微软 MCP 客户端：使用 endpoint <code>https://&lt;orgUrl&gt;/api/mcp_preview</code>（例如 <code>https://contoso.crm.dynamics.com/api/mcp_preview</code>）。</p>
+              </div>
+            </li>
+          </ol>
+
+          <div class="callout">
+            没有"Dataverse Intelligence"专属 SKU。计费分三层：环境层（Managed Environment）、调用层（Copilot Studio messages / M365 Copilot / D365）、用户层（Dataverse 访问 license + 安全角色）。下方矩阵把三层拆开列。其他治理话题（DLP、capacity、ALM）见站内 <a href="../power-platform-governance/index.html">Power Platform 治理速览</a>。
+          </div>
+
+          <div class="subsection-accordion accordion-gap">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>环境与租户层：tenant 必须先付的三件事</span>
+              </button>
+              <div class="subsection-content">
+                <table class="compare-table">
+                  <thead>
+                    <tr><th>层级</th><th>要求</th><th>谁付费 / 形态</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>环境</td>
+                      <td><strong>Managed Environment</strong> 开启 + Dataverse Intelligence 开关 + MCP preview 开关</td>
+                      <td>Managed Environment 本身不收费，但要求该环境内每位活跃用户都持有 premium license（Power Apps Premium / Power Automate Premium / Copilot Studio / Dynamics 365 等任一），否则触发 license enforcement。</td>
+                    </tr>
+                    <tr>
+                      <td>数据</td>
+                      <td><strong>Dataverse 数据库</strong>容量足以存放 Skill 定义和业务表</td>
+                      <td>Power Apps / D365 / Power Platform plan 自带初始容量；不足部分按 Dataverse capacity add-on 计费。Developer Plan 可用于 PoC，不可生产。</td>
+                    </tr>
+                    <tr>
+                      <td>调用</td>
+                      <td><strong>Copilot Studio messages</strong> 池（每次 agent 执行 Skill / 调用 MCP 工具计 1+ message）</td>
+                      <td>两种付费方式：PAYG（按 message 后付费，挂 Azure 订阅）或 Copilot Studio 预付费 messages pack。M365 Copilot 持证者在 M365 Copilot 渠道内调用时由其 license 覆盖。Preview 期间 MCP server 本身不另收费，GA 定价未公布。</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>终端用户层：调用 agent 的人需要什么 license</span>
+              </button>
+              <div class="subsection-content">
+                <p>核心结论：<strong>没有"Dataverse Intelligence"用户 SKU</strong>。终端用户只要满足"有 Dataverse 访问权 + 落到一个能扣 messages 的渠道"即可。</p>
+                <table class="compare-table">
+                  <thead>
+                    <tr><th>用户已有许可</th><th>能否调用 Business Skills</th><th>messages 由谁出</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Dynamics 365 app 许可（Sales / Customer Service / Field Service / Finance 等）</td>
+                      <td>可以。D365 许可天然带 Dataverse 访问。</td>
+                      <td>在 D365 Copilot / agent 渠道内调用，messages 计入 D365 配额；跳出 D365 走自建渠道则由 tenant PAYG 覆盖。</td>
+                    </tr>
+                    <tr>
+                      <td>Power Apps Premium（$20/user/月）</td>
+                      <td>可以。可访问 Dataverse 表，作为 Maker 或 agent 调用者均可。</td>
+                      <td>tenant PAYG 或预付费 messages 池。</td>
+                    </tr>
+                    <tr>
+                      <td>Microsoft 365 Copilot（$30/user/月）</td>
+                      <td>可以，但需要 admin 在 Dataverse 里给该用户配安全角色。</td>
+                      <td>M365 Copilot 渠道内调用由 M365 Copilot license 覆盖；走 Copilot Studio 自建 agent 仍走 tenant messages。</td>
+                    </tr>
+                    <tr>
+                      <td>仅 M365 E3 / E5，无 Copilot、无 Power 系列</td>
+                      <td>需要补 license 或改身份模式。</td>
+                      <td>方案 A：加 Power Apps Premium；方案 B：agent 改用 service principal 连接 Dataverse，messages 由 tenant PAYG 出。</td>
+                    </tr>
+                    <tr>
+                      <td>外部 / 匿名 web 渠道用户</td>
+                      <td>可以，但必须用 service principal 连接。</td>
+                      <td>tenant PAYG 全包；失去行级安全隔离，需要在 Skill 内做显式 scope 限制。</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p><strong>两个常被踩的坑：</strong></p>
+                <ul>
+                  <li><strong>License 给的是"能用"，不是"能看所有数据"。</strong>Business Skill 调用 Dataverse 时按调用者身份做 RBAC 检查；用户即使有 D365，也只看得到安全角色授权的行。详见站内 <a href="../dataverse-security-roles/index.html">Dataverse Security Roles</a>。</li>
+                  <li><strong>身份模式决定计费主体。</strong>Delegated（agent 借用户身份）→ 用户必须有 Dataverse license；Service principal（agent 用自己身份）→ 用户不需要 Dataverse license，但 tenant 必须给 application user 配 admin 角色并承担 messages 费用。外部用户场景必须走 service principal。</li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ====== Section 6: 两条路径 ====== -->
+        <section id="paths" class="section" data-reveal data-present-step data-step-title="Two Paths">
+          <div class="section-head">
+            <p class="section-kicker">06 / Two Paths</p>
+            <h2>两条使用路径：Maker 创作 vs. Agent 开发者调用</h2>
+            <p>启用完成后，组织里通常有两类人会动 Dataverse Intelligence：业务/Maker 负责把流程沉淀为 Skill；agent 开发者负责让 agent 把这些 Skill 用起来。这一章把两条路径并排列出。</p>
+          </div>
+
+          <div class="path-grid">
+            <article class="path-card">
+              <p class="path-role">路径 A · Maker / 业务方</p>
+              <h4>把流程写成 Business Skill</h4>
+              <ol>
+                <li>打开 <a href="https://make.powerapps.com/" target="_blank" rel="noopener noreferrer">Power Apps</a> → 左侧 More → <em>Business skills (preview)</em>（建议固定到导航栏）。</li>
+                <li>New business skill：写 Name、Description（必含触发场景的信号词）、Instructions（Markdown 步骤，可在 Edit/Preview 间切换）。</li>
+                <li>保存后在 Resources 区上传引用材料（≤20MB）：SOP、表单、计算模板。</li>
+                <li>Share 给具体用户/团队（Viewer / Co-owner），或切到 Organization 可见性。</li>
+                <li>需要时 Deactivate 阻止 agent 发现；定稿后 Activate。</li>
+                <li>需要跨环境流转：把 Skill 加进 Solution（Add existing → Business skill），走 Dev → Test → Prod ALM。</li>
+              </ol>
+            </article>
+
+            <article class="path-card">
+              <p class="path-role">路径 B · Agent 开发者</p>
+              <h4>让 agent 用上 Skills</h4>
+              <ol>
+                <li>给 agent 添加 Dataverse MCP Server (Preview) 工具（Copilot Studio 选连接器；VS Code 等用 <code>/api/mcp_preview</code> endpoint）。</li>
+                <li>先做发现性测试：向 agent 说 <em>"Show me all business skills in this environment."</em> 确认 MCP 拉到 Skill 列表。</li>
+                <li>用真实场景测试：给 agent 一段与某 Skill 设计目的匹配的 prompt（例如调用日志记录 Skill 时附一段通话记录）。</li>
+                <li>命中率低时，加前缀 <em>"Using business skills，..."</em> 强制让 agent 先检索 Skill。</li>
+                <li>补齐配套：Skill 编排逻辑里需要的 connector / plugin / 其它 MCP server 也要挂在同一个 agent 上。</li>
+                <li>迭代 Skill description 与步骤直到命中率与执行结果稳定。</li>
+              </ol>
+            </article>
+          </div>
+
+          <div class="subsection-accordion accordion-gap">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>另一种创作方式：用 MCP 让 agent 帮你写 Skill</span>
+              </button>
+              <div class="subsection-content">
+                <p>Microsoft 在《Create and use business skills》明确支持第三种创作方式：通过任意连到 Dataverse MCP Server (Preview) 的 agent（Copilot Studio、VS Code、Claude 等）发起 "create a new skill" / "update an existing skill" 的请求，描述业务流程后由 agent 调用 MCP 工具写入 Dataverse。</p>
+                <p>实践意义：业务专家可以在自己熟悉的对话界面（甚至是编码 IDE）里口述 SOP，由 agent 翻译为 Skill 结构；省去切到 Power Apps UI 的成本。但 description 与触发词仍需人工把关，确保检索命中率。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Skill 写作模板（官方建议结构）</span>
+              </button>
+              <div class="subsection-content">
+                <p>官方在"Best practices for creating business skills"中给了"结构良好的 Skill"应包含的字段，按字段对应到 Skill 三段（Description / Instructions / Resources）大致是：</p>
+                <ul>
+                  <li><strong>Description</strong>：技能用途 + 何时使用 + 具体触发短语（trigger phrases），例如 <em>"Use when user asks about order status or mentions shipment tracking"</em>。</li>
+                  <li><strong>Instructions</strong>：编号步骤、每步做什么、每步做完如何验证再进入下一步；典型场景的输入输出示例；常见错误与恢复步骤。</li>
+                  <li><strong>Input / Output 规范</strong>：必填 vs. 可选参数及格式；输出字段；成功判定标准；执行该 Skill 必须挂哪些工具。</li>
+                </ul>
+                <p>同时遵守："一个 Skill 一个流程"（不要堆叠流程到一个 Skill 里）、"清晰具体的指令"（含糊会导致 agent 行为漂移）、"用真实场景测试后再广泛分享"。</p>
+                <p>Microsoft 提供了一个开源样例仓库：<a href="https://aka.ms/DVBusinessSkillRepo" target="_blank" rel="noopener noreferrer">Business skills repo on GitHub</a>，含可安装的 Solution，可直接作为模板起步。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ====== Section 7: 边界与实践 ====== -->
+        <section id="boundaries" class="section" data-reveal data-present-step data-step-title="Boundaries & Practice">
+          <div class="section-head">
+            <p class="section-kicker">07 / Boundaries & Practice</p>
+            <h2>现状边界、风险与最佳实践</h2>
+            <p>Dataverse Intelligence 当前是 preview，存在硬约束与变更风险。本章把"用之前必须知道的事"集中列出，避免在选型评审或试点上线时被打脸。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>四条硬约束（不满足无法开通）</span>
+              </button>
+              <div class="subsection-content">
+                <ol>
+                  <li><strong>Preview Only</strong>：Business Skills 仅在 Dataverse MCP Server 的 Preview 版本里可用；preview API 可能在不通知的情况下变更。</li>
+                  <li><strong>Managed Environment Only</strong>：目标环境必须是受管环境，意味着对应许可成本。</li>
+                  <li><strong>双向开关都要开</strong>：环境层既要打开 Dataverse intelligence，也要打开 MCP Server preview；只开一个 agent 拿不到 Skills。</li>
+                  <li><strong>非微软客户端走专用 endpoint</strong>：必须用 <code>/api/mcp_preview</code>，不要用 GA 的 MCP endpoint。</li>
+                </ol>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Preview 的支持承诺</span>
+              </button>
+              <div class="subsection-content">
+                <p>来自《Use preview tools and upcoming features in Dataverse MCP server》官方表格：</p>
+                <div class="table-scroll">
+                  <table class="compare-table">
+                    <thead><tr><th>项目</th><th>承诺</th></tr></thead>
+                    <tbody>
+                      <tr><td>Support</td><td>Preview tools 不在 Microsoft 支持协议范围内。</td></tr>
+                      <tr><td>Breaking changes</td><td>Preview API 可能在不通知的情况下变更。</td></tr>
+                      <tr><td>Performance</td><td>可能达不到生产级可靠性。</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p>含义：可以做受控试点、内部 POC、对外演示，但不要把它放进 SLA 承诺的对外业务链路。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Skill 写作四条质量准则</span>
+              </button>
+              <div class="subsection-content">
+                <ul>
+                  <li><strong>Description 必含触发信号词</strong>：metadata 决定命中率，含糊的描述会让 agent 永远找不到这个 Skill。</li>
+                  <li><strong>一个 Skill 一个流程</strong>：跨流程拼凑会让 agent 在子步骤间漂移。订单状态查询、退款审批、客户分级各写一个。</li>
+                  <li><strong>每步给出验证条件</strong>：让 agent 在进入下一步前自检"上一步是否成功"，比单纯写"做 A 然后做 B"更稳。</li>
+                  <li><strong>用真实场景而非合成 prompt 测</strong>：跑 3–5 个真实业务输入，看输出是否符合预期，再分享给更多人。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>治理与 ALM 建议</span>
+              </button>
+              <div class="subsection-content">
+                <ul>
+                  <li><strong>Solution 化所有共享 Skill</strong>：单 owner 拥有的 Skill 个人化太强，跨环境流转和审计困难；用 Solution 装起来走 ALM。</li>
+                  <li><strong>命名与描述规范化</strong>：建议在描述里固定写明"业务领域 + 触发场景 + 涉及的表"，方便后期检索与审计。</li>
+                  <li><strong>分享时优先用 Team 而非个人</strong>：人员变动时不需要逐 Skill 改授权。</li>
+                  <li><strong>定期审视 Inactive Skills</strong>：preview 阶段试错多，及时清理或归档失效 Skill，避免 metadata 污染检索命中率。</li>
+                  <li><strong>权限走 Dataverse 体系</strong>：Skill 不是绕过 Dataverse 安全角色的捷径——agent 执行 Skill 时仍受调用者的 Dataverse 安全角色与行/列级权限约束。详见 <a href="../dataverse-security-roles/index.html">Dataverse Security Role 完全指南</a>。</li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ====== Section 8: FAQ ====== -->
+        <section id="faq" class="section" data-reveal data-present-step data-step-title="FAQ">
+          <div class="section-head">
+            <p class="section-kicker">08 / FAQ</p>
+            <h2>常见问题（来自 GitHub microsoft/Dataverse-skills 官方仓库）</h2>
+            <p>下列问题整理自官方仓库 <a href="https://github.com/microsoft/Dataverse-skills" target="_blank" rel="noopener noreferrer">microsoft/Dataverse-skills</a> 的 README、Issues 与 SUPPORT 文档。该仓库是 Microsoft 发布的"AI coding agent ↔ Dataverse MCP"插件，把 GA 版 Dataverse MCP Server / CLI / Python SDK / PAC CLI 封装成 dv-connect、dv-query、dv-data、dv-metadata、dv-solution、dv-admin、dv-security 八个 skill；与本文上半部分讲的"Business Skills"（server-side preview）不是同一层东西，配套使用。</p>
+          </div>
+
+          <div class="subsection-accordion accordion-gap">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>Q1：GitHub 上的 Dataverse-skills 插件和本文讲的 Business Skills 是同一个东西吗？</span>
+              </button>
+              <div class="subsection-content">
+                <p>不是。两者层级不同，配合使用：</p>
+                <ul>
+                  <li><strong>Dataverse-skills（GitHub 开源 MIT 插件，GA）</strong>：跑在 AI coding agent 一侧（GitHub Copilot、Claude Code），把 Dataverse MCP server / CLI / Python SDK / PAC CLI 封装成 8 个开发者 skill（dv-connect、dv-query、dv-data、dv-metadata、dv-solution、dv-admin、dv-security、dv-overview）。面向开发者建模、查询、部署 Dataverse。</li>
+                  <li><strong>Business Skills（Dataverse 平台内 preview）</strong>：跑在 Dataverse 一侧，作为表格式记录存放业务流程指令，由 Dataverse MCP server preview 暴露给任何 MCP 客户端发现并调用。面向 Maker 沉淀组织知识。</li>
+                </ul>
+                <p>典型组合：开发者用 Dataverse-skills 插件设计表与解决方案，业务方用 Business Skills 把流程写成可被 agent 调用的指令。两者都依赖 Dataverse MCP server。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Q2：使用 Dataverse-skills 插件的最低环境前提是什么？</span>
+              </button>
+              <div class="subsection-content">
+                <p>官方 README "Prerequisites" 段落只列一条：<strong>一个 Microsoft Dataverse 环境</strong>。可通过 Power Apps / Dynamics 365 / Power Platform plan 获得，或免费的 <a href="https://learn.microsoft.com/en-us/power-platform/developer/plan" target="_blank" rel="noopener noreferrer">Power Apps Developer Plan</a>（个人开发者免费，仅可用于开发测试）。</p>
+                <p>注意：这是<em>插件本身</em>的最低门槛。如果要进一步用 Business Skills（preview），仍需第 05 节列出的 Managed Environment + premium license。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Q3：怎么安装？怎么验证装好了？</span>
+              </button>
+              <div class="subsection-content">
+                <p>官方推荐 plugin 安装命令（README "Install" 段）：</p>
+                <ul>
+                  <li><strong>GitHub Copilot</strong>：<code>/plugin install dataverse@awesome-copilot</code></li>
+                  <li><strong>Claude Code</strong>：<code>/plugin install dataverse@claude-plugins-official</code></li>
+                </ul>
+                <p>验证：装好后直接对 agent 说 <em>"Connect to Dataverse"</em>，<code>dv-connect</code> skill 会自动跑工具检查、认证、注册 MCP server。成功后应该看到名为 <code>dataverse-&lt;orgname&gt;</code> 的 MCP server 出现在 agent 里，<code>pac auth list</code> 会列出当前激活的环境。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Q4：插件能不能绕过我的安全角色，做我本来没权限的操作？</span>
+              </button>
+              <div class="subsection-content">
+                <p>不能。README "Safety &amp; Security" 段明确：插件按最小权限模型设计，<strong>不能超出当前认证用户的权限</strong>。三道闸：</p>
+                <ul>
+                  <li><strong>MCP 授权</strong>：要求开发者认证 + tenant admin consent + per-environment allowlist 才能用 MCP；其他工具（SDK、PAC CLI）走直接认证。</li>
+                  <li><strong>Security role enforcement</strong>：每次 API 调用都由 Dataverse 服务端做授权检查，插件无法绕过或提权。</li>
+                  <li><strong>Token 安全</strong>：凭据存在 OS 原生 credential store 或仅内存中，从不外传给第三方服务。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Q5：我的 prompt 和数据会被回传给 Microsoft 吗？</span>
+              </button>
+              <div class="subsection-content">
+                <p>README 给出的结论：<strong>不会回传 prompt、工具参数或记录数据</strong>。只有应用层 telemetry——出站到 Dataverse 的请求会带上插件名 / 版本 / skill / agent 这类元数据标签，以便服务端 dashboard 做流量归因。完整的 safety 模型见仓库 <a href="https://github.com/microsoft/Dataverse-skills/blob/main/docs/safety-and-guardrails.md" target="_blank" rel="noopener noreferrer">docs/safety-and-guardrails.md</a>。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Q6：在 GitHub Copilot CLI 里 project scope 注册 MCP 不生效（曾经报告的 Bug #49）</span>
+              </button>
+              <div class="subsection-content">
+                <p>历史问题：早期 <code>dv-connect</code> 在 project scope 下把 MCP 配置写到了 <code>.mcp/copilot/mcp.json</code>，但 Copilot CLI 实际只读项目根的 <code>.mcp.json</code>，导致 <code>/mcp show</code> 看不到 Dataverse MCP。</p>
+                <p>修复：PR #50（dmitmikh，3 周前）已合并，新版会把配置写到 <code>.mcp.json</code> 根路径。如果还在用旧版本，手动把文件从 <code>.mcp/copilot/mcp.json</code> 移到项目根 <code>.mcp.json</code>，重启 Copilot CLI 即可。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Q7：enable-mcp-client.py 报 503 SystemLabelDictionaryCache 锁错误（Bug #26）</span>
+              </button>
+              <div class="subsection-content">
+                <p>症状：脚本能 GET 到 <code>allowedmcpclient</code> 记录，但 PATCH <code>isenabled=True</code> 持续返回 503，错误码 <code>0x80048d3d</code>，提示 "Could not acquire Write lock in time 30000 milliseconds. Lock name: SystemLabelDictionaryCache"。重试 10 分钟无果。</p>
+                <p>官方 workaround：跳过脚本，直接在 <strong>PPAC UI</strong> 手动开启：Environments → 选环境 → Settings → Product → Features → 把 <em>MCP Server</em> 开关打开 → 添加 client ID <code>aebc6443-996d-45c2-90f0-388ff96faa56</code>。该错误属于环境级偶发锁竞争，UI 路径不会触发。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Q8：一句 prompt 让 agent 建表后，display name 带了 publisher 前缀（Bug #34）</span>
+              </button>
+              <div class="subsection-content">
+                <p>症状：用 dv-metadata / dv-solution 一气呵成 "create a solution and tables"，结果生成的表的 <strong>display name 直接复用了带 publisher prefix 的 schema name</strong>（例如表显示成 <code>new_contact</code> 而不是 <code>Contact</code>）。</p>
+                <p>修复：PR #51 已合并。如果建表后看到这个现象：①检查 dv-connect 是否复用了既有 publisher 而不是默认 publisher；②手动改 display name 和 plural display name；③下次提示词里显式指定 "use display name X, schema name Y"。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Q9：插件能做哪些事？有哪些 skill？</span>
+              </button>
+              <div class="subsection-content">
+                <p>仓库 README 列出 8 个 skill，<code>dv-overview</code> 负责路由分发：</p>
+                <table class="compare-table">
+                  <thead><tr><th>Skill</th><th>负责什么</th></tr></thead>
+                  <tbody>
+                    <tr><td>dv-connect</td><td>一次性 setup：装 CLI / Python SDK / PAC CLI，认证，注册 MCP server。</td></tr>
+                    <tr><td>dv-query</td><td>读、过滤、分页、聚合记录；支持自然语言问句、多页结果、pandas DataFrame 加载。</td></tr>
+                    <tr><td>dv-data</td><td>单条 CRUD + 批量导入：CSV、多表带外键、按 alternate key upsert、AI 生成测试数据。</td></tr>
+                    <tr><td>dv-metadata</td><td>建模：表、列、关系、表单、视图。</td></tr>
+                    <tr><td>dv-solution</td><td>Solution 生命周期：建、导出、导入、跨环境推进、部署验证。</td></tr>
+                    <tr><td>dv-admin</td><td>环境管理：批量删除、保留 / 归档、组织设置、OrgDB 设置、回收站、审计、PPAC 白名单开关。</td></tr>
+                    <tr><td>dv-security</td><td>分配安全角色、加 application user、配置 business unit、admin 自提升。</td></tr>
+                    <tr><td>dv-overview</td><td>跨 skill 的路由与规则，先于其他 skill 加载。</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Q10：插件可以用在生产环境吗？许可证是什么？</span>
+              </button>
+              <div class="subsection-content">
+                <p>仓库 LICENSE 标注 <strong>MIT License</strong>，可商用、可修改、可二次分发，保留版权声明即可。Microsoft 自己把它定位为"Microsoft 官方维护的开发者插件"（README "About"）。是否在生产环境用，建议同时评估两件事：①agent 端权限模型（你的开发者账号绑了什么 Dataverse 安全角色）；②运维流程（Solution 走 dv-solution 推到生产前，是否经过同样的 ALM 评审）。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ====== Section 9: References ====== -->
+        <section id="references" class="section" data-reveal data-present-step data-step-title="References">
+          <div class="section-head">
+            <p class="section-kicker">09 / References</p>
+            <h2>参考资料</h2>
+            <p>正文所有事实性论断来自下列 Microsoft Learn 官方 preview 文档与 GitHub microsoft/Dataverse-skills 仓库。非官方分析仅在背景描述处使用并显式标注。</p>
+          </div>
+
+          <ol class="bib-list">
+            <li id="ref-1">
+              <span class="bib-id">[1]</span>
+              <span class="bib-author">Microsoft Learn</span>
+              <a href="https://learn.microsoft.com/en-us/power-apps/maker/data-platform/data-platform-intelligence" target="_blank" rel="noopener noreferrer">What is Dataverse intelligence?</a>
+              <span class="bib-note">官方定义、与 Work IQ 的关系、前置条件、M365 / PPAC 启用步骤（2026/03/31）。</span>
+            </li>
+            <li id="ref-2">
+              <span class="bib-id">[2]</span>
+              <span class="bib-author">Microsoft Learn</span>
+              <a href="https://learn.microsoft.com/en-us/power-apps/maker/data-platform/data-platform-business-skill-overview" target="_blank" rel="noopener noreferrer">Business skills overview</a>
+              <span class="bib-note">Business Skill 的概念、四性质（Reusability/Consistency/Maintainability/Solution-aware）、分层 metadata/instructions 结构、安全模型（2026/03/10）。</span>
+            </li>
+            <li id="ref-3">
+              <span class="bib-id">[3]</span>
+              <span class="bib-author">Microsoft Learn</span>
+              <a href="https://learn.microsoft.com/en-us/power-apps/maker/data-platform/data-platform-business-skills" target="_blank" rel="noopener noreferrer">Create and use business skills</a>
+              <span class="bib-note">Maker 创作流程、上传/分享/可见性/激活、通过 MCP 让 agent 创建 Skill、加入 Solution、最佳实践与写作模板（2026/04/21）。</span>
+            </li>
+            <li id="ref-4">
+              <span class="bib-id">[4]</span>
+              <span class="bib-author">Microsoft Learn</span>
+              <a href="https://learn.microsoft.com/en-us/power-apps/maker/data-platform/data-platform-mcp-preview-tools" target="_blank" rel="noopener noreferrer">Use preview tools and upcoming features in Dataverse MCP server</a>
+              <span class="bib-note">Preview MCP Server 启用方式、Copilot Studio 连接器选择、非微软客户端 endpoint <code>/api/mcp_preview</code>、Preview 支持承诺（2026/01/09）。</span>
+            </li>
+            <li id="ref-5">
+              <span class="bib-id">[5]</span>
+              <span class="bib-author">Microsoft GitHub</span>
+              <a href="https://aka.ms/DVBusinessSkillRepo" target="_blank" rel="noopener noreferrer">Business skills repo</a>
+              <span class="bib-note">官方开源样例 Skill 仓库，可安装成 Dataverse Solution 作为模板起步。</span>
+            </li>
+            <li id="ref-6">
+              <span class="bib-id">[6]</span>
+              <span class="bib-author">Microsoft Learn</span>
+              <a href="https://learn.microsoft.com/en-us/microsoft-365/copilot/extensibility/work-iq" target="_blank" rel="noopener noreferrer">Work IQ overview</a>
+              <span class="bib-note">Work IQ 作为 Microsoft Copilot 智能基座的定位；用于解释 Dataverse Intelligence 的"延伸"含义。</span>
+            </li>
+            <li id="ref-7">
+              <span class="bib-id">[7]</span>
+              <span class="bib-author">Microsoft GitHub</span>
+              <a href="https://github.com/microsoft/Dataverse-skills" target="_blank" rel="noopener noreferrer">microsoft/Dataverse-skills</a>
+              <span class="bib-note">官方 AI coding agent 插件（MIT 许可），封装 Dataverse MCP / CLI / Python SDK / PAC CLI；FAQ 章节的 README 引用、Issue #26 / #34 / #49 均来自此仓库。</span>
+            </li>
+          </ol>
+        </section>
+
+      </main>
+
+      <footer>
+        <p>&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。</p>
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

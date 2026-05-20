@@ -793,6 +793,25 @@ var knowledgeTree = [
     phase: 2.4, speed: 0.82,
     relations: ['low-code-ai-era']
   },
+  {
+    id: 'dataverse-intelligence',
+    parentId: 'power-apps',
+    type: 'article',
+    title: {
+      zh: 'Dataverse Intelligence 入门：业务上下文层、Business Skills 与 MCP Server',
+      en: 'Dataverse Intelligence Primer: Business Context Layer, Business Skills & MCP Server'
+    },
+    summary: {
+      zh: 'Work IQ 在业务数据维度的延伸：用 Business Skills 沉淀组织流程，通过 Dataverse MCP Server preview 让所有 agent 复用。',
+      en: 'Work IQ extended to business data: capture org processes as reusable Business Skills, exposed to all agents via Dataverse MCP Server preview.'
+    },
+    tags: ['Dataverse', 'MCP', 'Copilot', 'Business Skills', 'Power Platform'],
+    date: '2026-05-20',
+    url: 'posts/dataverse-intelligence/index.html',
+    color: '#06b6d4',
+    phase: 2.7, speed: 0.84,
+    relations: ['dataverse-security-roles', 'copilot-studio-overview', 'power-platform-governance']
+  },
 
   {
     id: 'power-platform-governance',
@@ -850,6 +869,25 @@ var knowledgeTree = [
     color: '#9333ea',
     phase: 4.2, speed: 0.86,
     relations: ['powerapps-vibe-coding', 'low-code-ai-era', 'copilot-harness-eng']
+  },
+  {
+    id: 'power-apps-code-app',
+    parentId: 'power-apps',
+    type: 'article',
+    title: {
+      zh: 'Power Apps Code App：专业开发者的托管应用新路径',
+      en: 'Power Apps Code App: A New Managed App Path for Pro Developers'
+    },
+    summary: {
+      zh: '梳理 Code App 的定位、三层架构、与 Canvas/Model-driven 的差异、开发流程、数据连接、限制和最佳实践。',
+      en: 'Covers Code App positioning, 3-layer architecture, comparison with Canvas/Model-driven, dev workflow, data connection, limitations, and best practices.'
+    },
+    tags: ['Power Apps', 'Code App', 'React', 'TypeScript', 'Pro Developer'],
+    date: '2026-05-20',
+    url: 'posts/power-apps-code-app/index.html',
+    color: '#7c3aed',
+    phase: 4.5, speed: 0.84,
+    relations: ['power-platform-governance', 'powerapps-vibe-coding', 'power-platform-skills']
   },
 
   // ════════════════════════════════════════
