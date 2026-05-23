@@ -470,6 +470,41 @@ function testDataAttrQuoteSafety() {
   }
 }
 
+// ── Test 9: data-gap-managed contract (no inline margin overrides) ──
+
+function testGapManagedContract() {
+  console.log('\n\x1b[36m[9] data-gap-managed contract\x1b[0m');
+  var articles = findArticles();
+  var passCount = 0;
+  // Match any inline-style rule that targets consecutive [data-present-step]
+  // siblings AND sets margin-top to 0 (or 0px / 0rem). That's the exact CSS
+  // hack the data-gap-managed attribute now replaces.
+  var hackPattern = /\[data-present-step\][^{}]*\+[^{}]*\[data-present-step\][^{}]*\{[^}]*margin-top\s*:\s*0(?:px|rem|em)?\s*[;}\s]/;
+
+  articles.forEach(function (article) {
+    var html = readFile(article.path);
+    // Only scan inline <style> blocks (shared article.css is allowed to do this).
+    var styleBlocks = html.match(/<style\b[^>]*>[\s\S]*?<\/style>/gi) || [];
+    var offenders = [];
+    styleBlocks.forEach(function (block) {
+      if (hackPattern.test(block)) {
+        offenders.push(block.slice(0, 80).replace(/\s+/g, ' '));
+      }
+    });
+    if (offenders.length > 0) {
+      warn(article.path, 'Inline <style> contains `[data-present-step] + [data-present-step] { margin-top: 0 }` override — replace with `data-gap-managed` attribute on the wrapping container (see instructions §0.8).');
+    } else {
+      passCount++;
+    }
+  });
+
+  if (passCount === articles.length) {
+    pass('All ' + articles.length + ' articles honor data-gap-managed contract');
+  } else {
+    pass(passCount + '/' + articles.length + ' articles OK');
+  }
+}
+
 // ── Run all tests ──
 
 console.log('\n\x1b[1m══════════════════════════════════════════\x1b[0m');
@@ -484,6 +519,7 @@ testAssetSyntax();
 testCSSIssues();
 testArticleStructure();
 testDataAttrQuoteSafety();
+testGapManagedContract();
 
 console.log('\n\x1b[1m══════════════════════════════════════════\x1b[0m');
 if (totalErrors > 0) {

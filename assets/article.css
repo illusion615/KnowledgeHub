@@ -19,6 +19,16 @@
   --card-bg: rgba(255, 255, 255, 0.62);
   --card-border: rgba(255, 255, 255, 0.55);
   --card-shadow: 0 4px 24px rgba(17, 31, 43, 0.06);
+  /* ── Vertical rhythm tokens ──
+     Pick from this scale when authoring inline <style>; do not invent ad-hoc gap values.
+     --rhythm-step  = spacing between sibling [data-present-step] blocks inside a <section>
+     --rhythm-card  = gap inside card grids (insight-grid, comparison-grid, etc.)
+     --rhythm-inline= gap between chips / inline tags / small badges
+     --rhythm-tight = gap inside dense lists / pill rows */
+  --rhythm-step: 32px;
+  --rhythm-card: 18px;
+  --rhythm-inline: 12px;
+  --rhythm-tight: 8px;
 }
 
 [data-theme="dark"] {
@@ -428,17 +438,17 @@ a {
   margin-left: 0;
   margin-right: 0;
   padding: 10px clamp(20px, 3vw, 34px);
-  background: transparent;
-  border-bottom: 0;
-  box-shadow: none;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
+  background: rgba(255, 255, 255, 0.62);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 6px 24px -18px rgba(15, 23, 42, 0.35);
+  -webkit-backdrop-filter: saturate(180%) blur(18px);
+  backdrop-filter: saturate(180%) blur(18px);
 }
 
 [data-theme="dark"] .topbar {
-  background: transparent;
-  border-bottom-color: transparent;
-  box-shadow: none;
+  background: rgba(15, 23, 42, 0.55);
+  border-bottom-color: rgba(148, 163, 184, 0.18);
+  box-shadow: 0 6px 24px -18px rgba(0, 0, 0, 0.6);
 }
 
 .topbar-slot {
@@ -1876,11 +1886,16 @@ body.present-custom-font div {
 /* ── Normal-flow spacing for data-present-step blocks ──
    Consecutive step blocks and section-head → step transitions
    need vertical rhythm; presentation mode overrides display.
-   Exclude .subsection-accordion children — grid gap handles their spacing. */
+   Exclude .subsection-accordion children — grid gap handles their spacing.
+   OPT-OUT: any container that handles its own step spacing via
+   `display: grid|flex; gap: ...` MUST add the `data-gap-managed`
+   attribute so this rule does not double-charge spacing.
+   See .github/instructions/article-pages.instructions.md §0.8. */
 [data-present-step] + [data-present-step] {
-  margin-top: 32px;
+  margin-top: var(--rhythm-step, 32px);
 }
-.subsection-accordion > [data-present-step] + [data-present-step] {
+.subsection-accordion > [data-present-step] + [data-present-step],
+[data-gap-managed] > [data-present-step] + [data-present-step] {
   margin-top: 0;
 }
 .section-head + [data-present-step] {
@@ -1900,8 +1915,8 @@ body.present-custom-font div {
   display: none;
 }
 
-.is-presentation-mode [data-present-step] {
-  display: none;
+.is-presentation-mode [data-present-step]:not(.is-active) {
+  display: none !important;
 }
 
 .is-presentation-mode [data-present-step].is-active {
@@ -1959,8 +1974,10 @@ html.is-presentation-mode body.present-transition-zoom [data-present-step].is-ac
 
 /* 1. Hide the parent section's head + stray <p> when nested steps exist
       — the deck label/title carry the section context.
-      Covers both accordion-split steps and explicit data-present-step children. */
-.is-presentation-mode .section:has([data-present-step]) > .section-head {
+      Covers both accordion-split steps and explicit data-present-step children.
+      EXCEPTION: if the section-head itself IS the active step (i.e. it carries
+      data-present-step and is the chapter-overview slide), keep it visible. */
+.is-presentation-mode .section:has([data-present-step]) > .section-head:not(.is-active) {
   display: none;
 }
 .is-presentation-mode .section:has([data-present-step]) > p {
@@ -2003,27 +2020,118 @@ html.is-presentation-mode body.present-transition-zoom [data-present-step].is-ac
   padding: 0 !important;
   gap: 0 !important;
 }
+/* Host subsection-item that wraps the active substep: collapse the article box
+   completely so the substep becomes a direct child of .subsection-accordion and
+   inherits the standard [data-present-step].is-active centering / sizing.
+   Without this, the article's box-shadow + border-radius leak through as a
+   visible "white card", and its narrower .subsection-content (1180px) clips
+   the substep horizontally. */
 .is-presentation-mode .subsection-item:has(> .subsection-content [data-present-substep].is-active),
-.is-presentation-mode .subsection-item[data-present-substep].is-active {
-  margin: 0 auto !important;
-  padding: 0 !important;
-  border: none !important;
-  background: none !important;
+.is-presentation-mode .subsection-item:has(> .subsection-content [data-present-substep].is-active) > .subsection-content {
+  display: contents !important;
 }
-.is-presentation-mode .subsection-item:has(> .subsection-content [data-present-substep].is-active) > .subsection-toggle,
-.is-presentation-mode .subsection-item[data-present-substep].is-active > .subsection-toggle {
+.is-presentation-mode .subsection-item:has(> .subsection-content [data-present-substep].is-active) > .subsection-toggle {
   display: none !important;
-}
-.is-presentation-mode .subsection-item:has(> .subsection-content [data-present-substep].is-active) > .subsection-content,
-.is-presentation-mode .subsection-item[data-present-substep].is-active > .subsection-content {
-  margin: 0 auto !important;
-  padding: 0 !important;
-  width: min(1180px, 100%) !important;
-  max-height: none !important;
-  overflow: visible !important;
 }
 .is-presentation-mode .subsection-content > [data-present-substep]:not(.is-active) {
   display: none !important;
+}
+/* Ensure the active substep itself centers its inner content. Top-level steps
+   inherit text-align via .section, but substeps escape that chain via display:contents. */
+.is-presentation-mode [data-present-substep].is-active {
+  justify-items: center;
+}
+.is-presentation-mode [data-present-substep].is-active > * {
+  width: 100%;
+  max-width: var(--present-body-max-width);
+}
+
+/* Nested accordion chrome removal — when a .subsection-item lives INSIDE an
+   active substep (e.g. the "Conditional & Break-Glass" footnote accordion),
+   strip its card background / border / shadow / padding and hide its toggle
+   button so only the inner content renders. Without this, the nested
+   accordion looks like a floating tinted card, breaking the centered slide. */
+.is-presentation-mode [data-present-substep].is-active .subsection-item {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+}
+.is-presentation-mode [data-present-substep].is-active .subsection-item > .subsection-toggle {
+  display: none !important;
+}
+.is-presentation-mode [data-present-substep].is-active .subsection-item > .subsection-content {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+.is-presentation-mode [data-present-substep].is-active .subsection-accordion {
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 0 !important;
+}
+
+/* Grid symmetry — when a 3-col concept-grid has exactly 5 items, the default
+   wrap leaves the bottom row left-aligned (3+2 orphan). In presentation mode
+   re-pitch onto a 6-fr track and center the trailing 2 across cols 2-5 so the
+   layout reads as balanced 3+2-centered. Mirrors visual-layout.md grid rule. */
+.is-presentation-mode [data-present-step].is-active .concept-grid.is-3-col:has(> :nth-child(5):last-child) {
+  grid-template-columns: repeat(6, 1fr) !important;
+}
+.is-presentation-mode [data-present-step].is-active .concept-grid.is-3-col:has(> :nth-child(5):last-child) > * {
+  grid-column: span 2;
+}
+.is-presentation-mode [data-present-step].is-active .concept-grid.is-3-col:has(> :nth-child(5):last-child) > :nth-child(4) {
+  grid-column: 2 / span 2;
+}
+.is-presentation-mode [data-present-step].is-active .concept-grid.is-3-col:has(> :nth-child(5):last-child) > :nth-child(5) {
+  grid-column: 4 / span 2;
+}
+
+/* Density tweak — 5-card 3-col grids in presentation mode have ~6 lines of body
+   copy per card and overflow 100vh at default 1rem. Pull body text down a notch
+   so all 5 cards fit without scroll. Title size unchanged. */
+.is-presentation-mode [data-present-step].is-active .concept-grid.is-3-col:has(> :nth-child(5):last-child) .concept-card {
+  padding: 14px 16px;
+}
+.is-presentation-mode [data-present-step].is-active .concept-grid.is-3-col:has(> :nth-child(5):last-child) .concept-card p {
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+.is-presentation-mode [data-present-step].is-active .concept-grid.is-3-col:has(> :nth-child(5):last-child) .concept-card .role-portals,
+.is-presentation-mode [data-present-step].is-active .concept-grid.is-3-col:has(> :nth-child(5):last-child) .concept-card .role-portal-chip {
+  font-size: 0.74rem;
+}
+
+/* Trailing Note paragraph that sits as a sibling of a 5-card grid should
+   shrink in lockstep with the cards — otherwise it visually dominates the slide. */
+.is-presentation-mode [data-present-substep].is-active:has(> .concept-grid.is-3-col > :nth-child(5):last-child) > p {
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+/* Conditional / footnote-style paragraphs (.source-note) carry secondary
+   reference content. In presentation mode they should read smaller than the
+   primary card body so they don't compete visually with the cards above. */
+.is-presentation-mode [data-present-substep].is-active .source-note,
+.is-presentation-mode [data-present-step].is-active .source-note {
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+/* Bulleted footnote lists should be a notch smaller than the lead paragraph
+   so the lead reads as the label and the items as its expanded detail. */
+.is-presentation-mode [data-present-substep].is-active .source-note-list,
+.is-presentation-mode [data-present-step].is-active .source-note-list {
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+/* Force list items to inherit the smaller font from .source-note-list
+   instead of the larger .subsection-content li preset. */
+.is-presentation-mode [data-present-substep].is-active .source-note-list li,
+.is-presentation-mode [data-present-step].is-active .source-note-list li {
+  font-size: inherit;
+  line-height: inherit;
 }
 
 /* 1-pre. Reset the default .section top padding so the active step
@@ -2042,6 +2150,105 @@ html.is-presentation-mode body.present-transition-zoom [data-present-step].is-ac
 }
 .is-presentation-mode .section:has(> [data-present-step].is-active) > [data-present-step]:not(.is-active) {
   display: none !important;
+}
+
+/* 1-pre-2b. When the active step is a DEEPER descendant (e.g. .maturity-grid
+   > .maturity-card[data-present-step] or .task-grid > article[data-present-step]),
+   the section-direct-sibling rule above misses it. Hide any direct section child
+   that is neither the section-head, nor itself a step, nor an ancestor of the
+   active step. Containers that wrap the active step (.maturity-grid, .task-grid,
+   .task-references, etc.) stay visible via the :has() escape clause. */
+.is-presentation-mode .section:has([data-present-step].is-active) > *:not(.section-head):not([data-present-step]):not(:has([data-present-step].is-active)) {
+  display: none !important;
+}
+
+/* 1-pre-3. Task-references slides — a section may contain a Task X main
+   slide (.task-grid > article[data-present-step]) followed by a reference
+   block (.task-references > details[data-present-step]). When a reference
+   step is active, hide every direct section child except .task-references,
+   and collapse the .task-references chrome (kicker, summary, hint, inactive
+   sibling details) so the active details body fills the slide. */
+.is-presentation-mode .section:has(.task-references > [data-present-step].is-active) > *:not(.task-references) {
+  display: none !important;
+}
+.is-presentation-mode .task-references:has(> [data-present-step].is-active) {
+  margin: 0 !important;
+  padding: 0 !important;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.is-presentation-mode .task-references:has(> [data-present-step].is-active) > .task-references-kicker,
+.is-presentation-mode .task-references:has(> [data-present-step].is-active) > [data-present-step]:not(.is-active) {
+  display: none !important;
+}
+.is-presentation-mode .task-collapsible[data-present-step].is-active {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.is-presentation-mode .task-collapsible[data-present-step].is-active > summary,
+.is-presentation-mode .task-collapsible[data-present-step].is-active > .tref-summary-hint {
+  display: none !important;
+}
+.is-presentation-mode .task-collapsible[data-present-step].is-active > .tref-body {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+/* Hide the inner section-head H2/kicker/intro of a task-reference-block —
+   the deck title already carries the slide identity, and we need the
+   vertical space for the grid content. */
+.is-presentation-mode .task-collapsible[data-present-step].is-active .task-reference-block > .section-head {
+  display: none !important;
+}
+
+/* 1-pre-4. Neutralize wrapper margin / padding / gap when a deep grid
+   (.maturity-grid, .task-grid, .env-grid, .insight-grid, …) contains the
+   active step. Otherwise the wrapper's own block-flow margin (e.g. 18px on
+   .maturity-grid) pushes the active step past the viewport edge. */
+.is-presentation-mode .maturity-grid:has(> [data-present-step].is-active),
+.is-presentation-mode .task-grid:has(> [data-present-step].is-active) {
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 0 !important;
+}
+
+/* 1-pre-5. Compression for cards that are the active step but carry rich
+   content (maturity tiers, tcv-b step-card lists). Slightly tighter padding
+   / font / gap so the card fits the viewport at 16:9 without scroll. */
+.is-presentation-mode .maturity-card[data-present-step].is-active {
+  padding: 18px 22px 16px;
+}
+.is-presentation-mode .maturity-card[data-present-step].is-active .mat-profile {
+  margin: 4px 0 10px;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+.is-presentation-mode .maturity-card[data-present-step].is-active .mat-priorities {
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.is-presentation-mode .maturity-card[data-present-step].is-active .mat-priority-row {
+  padding: 8px 10px;
+}
+.is-presentation-mode .maturity-card[data-present-step].is-active .mat-priority-row ul li {
+  font-size: 0.78rem;
+  padding: 1px 0;
+  line-height: 1.5;
+}
+.is-presentation-mode .task-card[data-present-step].is-active .tcv-b-step-card {
+  padding: 12px 14px;
+}
+.is-presentation-mode .task-card[data-present-step].is-active .tcv-b-step-cards {
+  gap: 10px;
+}
+.is-presentation-mode .task-card[data-present-step].is-active .tcv-b-ttext {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin: 6px 0;
+}
+.is-presentation-mode .task-card[data-present-step].is-active .tcv-b-step-asset {
+  padding: 6px 10px;
 }
 
 /* 1a. On overview step, hide non-accordion siblings (paradigm-grid, flow-list, etc.)

@@ -36,6 +36,12 @@ applyTo: "posts/**/*.html"
 
 ### 0.1 写作纪律（详见 `/memories/writing-rigor.md`）
 - 禁用空话：「不是 X 而是 Y」「真正的…」「最关键的…」「全方位」「极致」「赋能」等。每个论断必须可量化或可证伪。
+- **措辞体例 = 论文体陈述句**。文章正文（含 hero、editorial stance、frontier-callout、stream lead、quote-block、principles 正例/反例、open-question 描述、decision 列表项）一律使用陈述式专业表达，禁止以下口语化比喻与自造术语：
+  - **口语化禁用词**：钉死 / 写死 / 锁死 / 活体 / 祖师爷 / 最热 / 试水 / 噩梦 / 笔墨 / 住址 / 栖息 / 大脑+手脚 / 有人觉得X有人觉得Y / 没人讲清楚 / 没人攻 / 不要再争 / 认真做 / 代码乱炖 / 它记得我。
+  - **自造术语禁用**：「可预测性契约」类自造复合词；优先复用已有学术词汇（Mixed-Initiative、schema、structured outputs、runtime confidence、mode switching cost、affordance、定义权归属、向前兼容、合规审计）。
+  - **改写范式**：「X 怎么定义 / 谁定义」→「X 的定义权归属 / 演进策略尚无定论」；「用户怎么知道」→「用户如何形成对……的认知」；「做不好就落后」→「缺失即落后」；连串疑问句 → 一句陈述 + 一条判据。
+  - **副词收敛**：「最 / 极 / 最深刻 / 无限」必须配可证伪锚点（"引用最广泛"／"工程化程度最高"），否则删除。
+  - **stance bullet 不得伪装大纲**：editorial-stance / decision 等"立场列表"的每一条必须是可证伪论断，不是目录条目。
 - 量化数据必须带测量条件或显式声明缺失，不要用模糊比较代替绝对数。
 - 引用必须给到具体来源（arxiv ID、Microsoft Learn URL、官方 doc URL），并说明每条来源支撑文中哪句论断。
 - **排印**：英文撇号/引号一律用 ASCII `'` `"`，禁止 `&rsquo;` `&lsquo;` `&rdquo;` `&ldquo;` 及裸 U+2018/2019/201C/201D 字符。弯引号在中英混排回退到中文字体后会被渲染得偏宽不紧凑，且容易被误认为全角标点。中文标点（，。：；「」）正常使用，仅约束英文。
@@ -109,6 +115,60 @@ hero `.hero-metrics` 抛出的每个 metric、`.hero-panel .layer-list` 抛出�
 
 **E. 完稿"一句话回放"自检**
 用一句话复述每个 section 的主张，串起来读一遍。如果读起来跳跃、缺环、或顺序倒过来也说得通，结构就不及格，必须重排。
+
+### 0.8 双模式组件契约 — Dual-Mode Component Contract
+
+文章页同时承担**阅读模式**（自上而下滚动）和**演示模式**（一屏一 step）。任何新组件落地前必须同时满足两个模式，否则会和共享规则打架——本节列出必须遵守的硬约束。
+
+**A. Spacing tokens（强制使用，禁止发明新 gap 值）**
+
+`assets/article.css :root` 声明了 4 个垂直节奏 token，inline `<style>` 必须从中挑选；要新增 token 先扩 `:root` 再用。
+- `--rhythm-step: 32px` — `<section>` 内相邻 `[data-present-step]` 兄弟之间（已由共享规则自动应用）
+- `--rhythm-card: 18px` — 卡片网格 gap（`.insight-grid` / `.comparison-grid` 等）
+- `--rhythm-inline: 12px` — chip / 标签 / 行内徽章 gap
+- `--rhythm-tight: 8px` — 密集 pill / 小标签列表
+
+**B. `data-present-step` 子级间距 — opt-out 契约**
+
+`assets/article.css` 有一条全局规则：
+```css
+[data-present-step] + [data-present-step] { margin-top: var(--rhythm-step); }
+```
+它保证 `<section>` 直接子级的多个 step 在阅读模式下有节奏。**陷阱**：如果你的自定义容器自己用 `display: grid|flex; gap: …` 排版（如 `.lifecycle-map / .lc-stages / 任何自造 stack`）并直接包了多个 `[data-present-step]` 兄弟，全局 margin + 容器 gap 会叠加，产生双重间距。
+
+**唯一正确做法**：在该容器上加 `data-gap-managed` 属性：
+```html
+<div class="lifecycle-map" data-gap-managed>
+  <div class="lc-phase" data-present-step>…</div>
+  <div class="lc-phase" data-present-step>…</div>
+</div>
+```
+inline `<style>` 里**禁止**写 `.X > [data-present-step] + [data-present-step] { margin-top: 0 }` 这种局部 hack——重复一遍：用属性，不要写 CSS override。
+
+**C. 新组件 inline `<style>` 顶部注释模板**
+
+任何新组件块在 inline `<style>` 顶部必须写 3 行注释，注明双模式行为：
+```css
+/* Component: .lifecycle-map
+   Reading mode: own grid gap (--rhythm-card); data-gap-managed disables global step margin.
+   Presentation mode: each .lc-phase becomes one slide via data-present-step. */
+```
+没有这段注释 = 组件没设计完，不准提交。
+
+**D. 完工自检（写完组件后必做）**
+
+1. `node tests/validate.js` 必须 exit 0（含 §0.8 检查）。
+2. 浏览器打开，**测量相邻 `[data-present-step]` 实际间距**：若容器有自己的 gap，间距应等于 gap；若直接挂在 `<section>` 下，间距应等于 `--rhythm-step`。任意一项不符则有双重 margin。
+3. 进入演示模式，逐 step 翻一遍，确认每个 step 居中、内容不溢出。
+4. 切深色模式过一遍。
+
+### 0.9 自治原则 — Tech Decisions Are Mine
+
+Boss 只关心**内容与业务**。技术问题（CSS 选择器范围、是否抽共享、是否扩 validate、组件契约位置）一律由我决策并落实到全局规则/instructions/memory/test，**不反问 boss**。当 boss 给出技术反馈时，我必须：
+1. 解决眼前 bug；
+2. 判断是单文章问题还是模式问题；
+3. 若是模式问题，立刻把修复固化到 `assets/article.css` / `.github/instructions/` / `tests/validate.js` / repo memory；
+4. 输出"做了什么 + 边界"一句话总结，不需 boss 批准。
 
 ---
 

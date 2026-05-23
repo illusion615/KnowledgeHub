@@ -2234,5 +2234,28 @@ var knowledgeTree = [
     color: '#0891b2',
     phase: 4.9, speed: 0.82,
     relations: ['agent-platform-hld', 'agent-platform-api-spec', 'intellygoal-fc-review']
+  },
+
+  // ════════════════════════════════════════
+  // 文章 — AI 时代 Application 进化论
+  // ════════════════════════════════════════
+  {
+    id: 'ai-era-app-evolution',
+    parentId: 'ai-research-agent',
+    type: 'article',
+    title: {
+      zh: 'Application × AI × Agent：范式综述与前沿设计',
+      en: 'Application × AI × Agent: Pattern Survey and Frontier Design'
+    },
+    summary: {
+      zh: 'App / AI / Agent 三元景观把已有 5 种范式定位为概览，深入研究 App-Centric × Agentic 角落的 5 条研究流派、设计原则与 7 个未解问题。',
+      en: 'Trinity map of App/AI/Agent: 5 stable patterns as overview, deep dive on the App-Centric x Agentic frontier — 5 research streams and 7 open questions.'
+    },
+    tags: ['Application', 'AI Agent', 'UI Paradigm', 'Product Strategy', 'Compound AI'],
+    date: '2026-05-21',
+    url: 'posts/ai-era-application-evolution/index.html',
+    color: '#f97316',
+    phase: 3.6, speed: 0.84,
+    relations: ['enterprise-agent-arch', 'copilot-deep-dive', 'agentic-ai-adoption']
   }
 ];
