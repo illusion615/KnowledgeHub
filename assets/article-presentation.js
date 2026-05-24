@@ -359,6 +359,37 @@ document.addEventListener('DOMContentLoaded', function () {
     return btn;
   };
 
+  /* ── Topbar inline toggles: theme (light/dark) + lang (zh/en) ──
+     Replace the legacy palette panel: theme & lang flip directly from the topbar,
+     no dropdown panel. */
+  var ensureThemeToggle = function () {
+    var btn = topbar.querySelector('[data-theme-toggle]');
+    if (btn) return btn;
+    btn = document.createElement('button');
+    btn.className = 'present-toggle topbar-theme-toggle';
+    btn.type = 'button';
+    btn.setAttribute('data-theme-toggle', '');
+    btn.setAttribute('aria-label', getLang() === 'zh' ? '切换深浅色' : 'Toggle theme');
+    btn.innerHTML = ''
+      + '<svg class="present-toggle-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>'
+      + '<svg class="present-toggle-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+    topbarActions.appendChild(btn);
+    return btn;
+  };
+
+  var ensureLangToggle = function () {
+    var btn = topbar.querySelector('[data-lang-toggle]');
+    if (btn) return btn;
+    btn = document.createElement('button');
+    btn.className = 'present-toggle topbar-lang-toggle';
+    btn.type = 'button';
+    btn.setAttribute('data-lang-toggle', '');
+    btn.setAttribute('aria-label', 'Toggle language');
+    btn.innerHTML = '<span class="topbar-lang-label">' + (getLang() === 'zh' ? 'EN' : '中') + '</span>';
+    topbarActions.appendChild(btn);
+    return btn;
+  };
+
   /* ── Pre-launch settings panel (hover dropdown) ── */
   var launchPanelBuilt = false;
 
@@ -381,17 +412,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // Build panel HTML
     var zhMode = lang === 'zh';
     panel.innerHTML = [
-      '<div class="launch-section">',
-      '<h4 class="launch-section-title">' + (zhMode ? '基础' : 'General') + '</h4>',
-      '<div class="launch-row">',
-      '  <span class="launch-row-label">' + (zhMode ? '语言' : 'Language') + '</span>',
-      '  <select class="launch-select" data-launch="lang">',
-      '    <option value="auto">' + (zhMode ? '跟随页面' : 'Follow page') + '</option>',
-      '    <option value="zh">中文</option>',
-      '    <option value="en">English</option>',
-      '  </select>',
-      '</div>',
-      '</div>',
       '<div class="launch-section">',
       '<h4 class="launch-section-title">' + (zhMode ? '语音讲解' : 'Narration') + '</h4>',
       '<div class="launch-row">',
@@ -488,6 +508,22 @@ document.addEventListener('DOMContentLoaded', function () {
       '</div>',
       '</div>',
       '<div class="launch-section">',
+      '<h4 class="launch-section-title">' + (zhMode ? '外观' : 'Appearance') + '</h4>',
+      '<div class="launch-row">',
+      '  <span class="launch-row-label">' + (zhMode ? '背景' : 'Background') + '</span>',
+      '  <div class="launch-toggle-group" role="group" data-launch="presentBg">',
+      '    <button type="button" class="launch-toggle" data-value="default">' + (zhMode ? '默认' : 'Default') + '</button>',
+      '    <button type="button" class="launch-toggle" data-value="white">' + (zhMode ? '纯白' : 'White') + '</button>',
+      '    <button type="button" class="launch-toggle" data-value="black">' + (zhMode ? '纯黑' : 'Black') + '</button>',
+      '    <button type="button" class="launch-toggle" data-value="gray">' + (zhMode ? '浅灰' : 'Gray') + '</button>',
+      '  </div>',
+      '</div>',
+      '<div class="launch-row">',
+      '  <span class="launch-row-label">' + (zhMode ? '字体' : 'Font') + '</span>',
+      '  <select class="launch-select" data-launch="presentFont"></select>',
+      '</div>',
+      '</div>',
+      '<div class="launch-section">',
       '<h4 class="launch-section-title">' + getLabel('transitions') + '</h4>',
       '<div class="launch-transition-options" data-launch="transitionOptions">',
       '  <button type="button" class="launch-transition-option" data-transition-style="fade">',
@@ -523,7 +559,13 @@ document.addEventListener('DOMContentLoaded', function () {
     wrapper._panel = panel;
 
     // DOM references
-    var langSelect = panel.querySelector('[data-launch="lang"]');
+    // Lang select removed from launch panel — language now lives on the topbar toggle.
+    // Provide a proxy so legacy narration code keeps reading the current page language.
+    var langSelect = {
+      get value() { return getLang(); },
+      set value(v) {},
+      addEventListener: function () {}
+    };
     var autoNarrateBtn = panel.querySelector('[data-launch="autoNarrate"]');
     var voiceSection = panel.querySelector('.launch-voice-settings');
     var ttsSelect = panel.querySelector('[data-launch="ttsProvider"]');
@@ -549,7 +591,6 @@ document.addEventListener('DOMContentLoaded', function () {
     ];
 
     // Apply saved values
-    if (savedSettings.lang) langSelect.value = savedSettings.lang;
     if (savedSettings.ttsProvider) ttsSelect.value = savedSettings.ttsProvider;
     if (savedSettings.rate) { rateInput.value = savedSettings.rate; rateVal.textContent = parseFloat(savedSettings.rate).toFixed(2); }
     if (savedSettings.mossTtsVoice) mossTtsVoiceSelect.value = savedSettings.mossTtsVoice;
@@ -777,23 +818,114 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
 
-    langSelect.addEventListener('change', function () {
-      // Switch article display language
-      var selectedLang = langSelect.value === 'auto' ? getLang() : langSelect.value;
-      localStorage.setItem('lang', selectedLang);
-      root.setAttribute('lang', selectedLang === 'zh' ? 'zh-CN' : 'en');
-      document.querySelectorAll('[data-zh][data-en]').forEach(function (el) {
-        var val = el.getAttribute('data-' + selectedLang);
-        if (val !== null) el.innerHTML = val;
+    /* ── Appearance: background + font (migrated from style panel) ── */
+    var bgGroup = panel.querySelector('[data-launch="presentBg"]');
+    var fontSelect = panel.querySelector('[data-launch="presentFont"]');
+
+    var FONT_PRESETS = {
+      zh: [
+        { value: 'default', label: '默认（Noto Sans SC）', stack: '' },
+        { value: 'noto-serif-sc', label: '思源宋体', stack: '"Noto Serif SC", "Source Han Serif SC", "Songti SC", serif' },
+        { value: 'pingfang', label: '苹方 PingFang', stack: '"PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif' },
+        { value: 'yahei', label: '微软雅黑', stack: '"Microsoft YaHei", "微软雅黑", "PingFang SC", sans-serif' },
+        { value: 'heiti', label: '黑体', stack: '"Heiti SC", "黑体", "STHeiti", "PingFang SC", sans-serif' },
+        { value: 'kaiti', label: '楷体', stack: '"Kaiti SC", "STKaiti", "楷体", "KaiTi", serif' },
+        { value: 'songti', label: '宋体', stack: '"Songti SC", "STSong", "宋体", "SimSun", serif' },
+        { value: 'fangsong', label: '仿宋', stack: '"FangSong", "STFangsong", "仿宋", serif' }
+      ],
+      en: [
+        { value: 'default', label: 'Default (Noto Sans)', stack: '' },
+        { value: 'helvetica', label: 'Helvetica', stack: '"Helvetica Neue", Helvetica, Arial, sans-serif' },
+        { value: 'arial', label: 'Arial', stack: 'Arial, "Helvetica Neue", Helvetica, sans-serif' },
+        { value: 'calibri', label: 'Calibri', stack: 'Calibri, Candara, Segoe, "Segoe UI", Optima, sans-serif' },
+        { value: 'segoe', label: 'Segoe UI', stack: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif' },
+        { value: 'roboto', label: 'Roboto', stack: 'Roboto, "Helvetica Neue", Arial, sans-serif' },
+        { value: 'inter', label: 'Inter', stack: 'Inter, "Segoe UI", Roboto, sans-serif' },
+        { value: 'georgia', label: 'Georgia', stack: 'Georgia, "Times New Roman", Times, serif' },
+        { value: 'times', label: 'Times New Roman', stack: '"Times New Roman", Times, serif' },
+        { value: 'garamond', label: 'Garamond', stack: 'Garamond, "EB Garamond", Georgia, serif' }
+      ]
+    };
+
+    var applyPresentBg = function (val) {
+      var classes = ['present-bg-white', 'present-bg-black', 'present-bg-gray'];
+      classes.forEach(function (c) { document.body.classList.remove(c); });
+      if (val === 'white') document.body.classList.add('present-bg-white');
+      else if (val === 'black') document.body.classList.add('present-bg-black');
+      else if (val === 'gray') document.body.classList.add('present-bg-gray');
+    };
+
+    var applyPresentFont = function (langKey, value) {
+      var list = FONT_PRESETS[langKey] || FONT_PRESETS.en;
+      var entry = null;
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].value === value) { entry = list[i]; break; }
+      }
+      if (!entry || !entry.stack) {
+        document.documentElement.style.removeProperty('--present-font');
+        document.body.classList.remove('present-custom-font');
+      } else {
+        document.documentElement.style.setProperty('--present-font', entry.stack);
+        document.body.classList.add('present-custom-font');
+      }
+    };
+
+    var populatePresentFontOptions = function (langKey) {
+      if (!fontSelect) return;
+      var list = FONT_PRESETS[langKey] || FONT_PRESETS.en;
+      while (fontSelect.options.length) {
+        fontSelect.removeChild(fontSelect.lastChild);
+      }
+      list.forEach(function (item) {
+        var opt = document.createElement('option');
+        opt.value = item.value;
+        opt.textContent = item.label;
+        if (item.stack) opt.style.fontFamily = item.stack;
+        fontSelect.appendChild(opt);
       });
-      // Re-populate voices for new language (only relevant for browser voices)
+      var saved = localStorage.getItem('present-font:' + langKey) || 'default';
+      fontSelect.value = saved;
+      applyPresentFont(langKey, saved);
+    };
+
+    if (bgGroup) {
+      var initialBg = localStorage.getItem('present-bg') || 'default';
+      bgGroup.querySelectorAll('.launch-toggle').forEach(function (btn) {
+        if (btn.getAttribute('data-value') === initialBg) btn.classList.add('is-active');
+        btn.addEventListener('click', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          var v = btn.getAttribute('data-value');
+          bgGroup.querySelectorAll('.launch-toggle').forEach(function (b) { b.classList.remove('is-active'); });
+          btn.classList.add('is-active');
+          localStorage.setItem('present-bg', v);
+          applyPresentBg(v);
+        });
+      });
+      applyPresentBg(initialBg);
+    }
+
+    if (fontSelect) {
+      populatePresentFontOptions(getLang() === 'zh' ? 'zh' : 'en');
+      fontSelect.addEventListener('change', function () {
+        var langKey = getLang() === 'zh' ? 'zh' : 'en';
+        localStorage.setItem('present-font:' + langKey, fontSelect.value);
+        applyPresentFont(langKey, fontSelect.value);
+      });
+    }
+
+    langSelect.addEventListener('change', function () {
+      // Stub — lang now switches via the topbar toggle; the langChanged listener below
+      // handles voice/font refresh.
+    });
+
+    document.addEventListener('langChanged', function () {
+      var selectedLang = getLang();
       if (ttsSelect.value !== 'vibevoice') {
         lastBrowserVoice = '';
         syncVoiceList();
       }
-      // Re-populate font list for new language
       populatePresentFontOptions(selectedLang === 'zh' ? 'zh' : 'en');
-      // Refresh presentation step label/title now that lang has changed
       if (state.enabled) {
         setPresentationStep(state.index);
       }
@@ -1009,39 +1141,63 @@ document.addEventListener('DOMContentLoaded', function () {
     var wrapper = topbar.querySelector('.present-style-wrapper');
     if (!wrapper) return;
 
-    var zhMode = getLang() === 'zh';
+    var STYLE_PANEL_COPY = {
+      langLabel: { zh: '语言', en: 'Language' },
+      themeLabel: { zh: '明暗模式', en: 'Theme' },
+      backgroundLabel: { zh: '背景', en: 'Background' },
+      fontLabel: { zh: '字体', en: 'Font' },
+      themeLight: { zh: '浅色', en: 'Light' },
+      themeDark: { zh: '深色', en: 'Dark' },
+      bgDefault: { zh: '默认', en: 'Default' },
+      bgWhite: { zh: '纯白', en: 'White' },
+      bgBlack: { zh: '纯黑', en: 'Black' },
+      bgGray: { zh: '浅灰', en: 'Gray' }
+    };
+    var getStylePanelCopy = function (key) {
+      var langKey = getLang() === 'zh' ? 'zh' : 'en';
+      var entry = STYLE_PANEL_COPY[key];
+      return entry && entry[langKey] ? entry[langKey] : '';
+    };
     var panel = document.createElement('div');
     panel.className = 'present-style-panel';
     panel.innerHTML = [
       '<div class="style-panel-header">',
-      '  <strong>' + getLabel('style') + '</strong>',
+      '  <strong data-style-panel-title>' + getLabel('style') + '</strong>',
       '</div>',
       '<div class="style-panel-row">',
-      '  <span class="style-panel-label">' + (zhMode ? '语言' : 'Language') + '</span>',
-      '  <select class="style-panel-select" data-style-panel="lang">',
-      '    <option value="zh">中文</option>',
-      '    <option value="en">English</option>',
-      '  </select>',
+      '  <span class="style-panel-label" data-style-panel-copy="langLabel">' + getStylePanelCopy('langLabel') + '</span>',
+      '  <div class="style-panel-control">',
+      '    <div class="style-panel-toggle-group" role="group" data-style-panel="lang" data-style-panel-group-label="langLabel" aria-label="' + getStylePanelCopy('langLabel') + '">',
+      '      <button type="button" class="style-panel-toggle" data-value="zh">中文</button>',
+      '      <button type="button" class="style-panel-toggle" data-value="en">English</button>',
+      '    </div>',
+      '  </div>',
       '</div>',
       '<div class="style-panel-row">',
-      '  <span class="style-panel-label">' + (zhMode ? '明暗模式' : 'Theme') + '</span>',
-      '  <select class="style-panel-select" data-style-panel="theme">',
-      '    <option value="light">' + (zhMode ? '浅色' : 'Light') + '</option>',
-      '    <option value="dark">' + (zhMode ? '深色' : 'Dark') + '</option>',
-      '  </select>',
+      '  <span class="style-panel-label" data-style-panel-copy="themeLabel">' + getStylePanelCopy('themeLabel') + '</span>',
+      '  <div class="style-panel-control">',
+      '    <div class="style-panel-toggle-group" role="group" data-style-panel="theme" data-style-panel-group-label="themeLabel" aria-label="' + getStylePanelCopy('themeLabel') + '">',
+      '      <button type="button" class="style-panel-toggle" data-value="light" data-style-panel-copy="themeLight">' + getStylePanelCopy('themeLight') + '</button>',
+      '      <button type="button" class="style-panel-toggle" data-value="dark" data-style-panel-copy="themeDark">' + getStylePanelCopy('themeDark') + '</button>',
+      '    </div>',
+      '  </div>',
       '</div>',
       '<div class="style-panel-row">',
-      '  <span class="style-panel-label">' + (zhMode ? '背景' : 'Background') + '</span>',
-      '  <select class="style-panel-select" data-style-panel="presentBg">',
-      '    <option value="default">' + (zhMode ? '默认渐变' : 'Default') + '</option>',
-      '    <option value="white">' + (zhMode ? '纯白' : 'Pure white') + '</option>',
-      '    <option value="black">' + (zhMode ? '纯黑' : 'Pure black') + '</option>',
-      '    <option value="gray">' + (zhMode ? '浅灰' : 'Light gray') + '</option>',
-      '  </select>',
+      '  <span class="style-panel-label" data-style-panel-copy="backgroundLabel">' + getStylePanelCopy('backgroundLabel') + '</span>',
+      '  <div class="style-panel-control">',
+      '    <div class="style-panel-toggle-group" role="group" data-style-panel="presentBg" data-style-panel-group-label="backgroundLabel" aria-label="' + getStylePanelCopy('backgroundLabel') + '">',
+      '      <button type="button" class="style-panel-toggle" data-value="default" data-style-panel-copy="bgDefault">' + getStylePanelCopy('bgDefault') + '</button>',
+      '      <button type="button" class="style-panel-toggle" data-value="white" data-style-panel-copy="bgWhite">' + getStylePanelCopy('bgWhite') + '</button>',
+      '      <button type="button" class="style-panel-toggle" data-value="black" data-style-panel-copy="bgBlack">' + getStylePanelCopy('bgBlack') + '</button>',
+      '      <button type="button" class="style-panel-toggle" data-value="gray" data-style-panel-copy="bgGray">' + getStylePanelCopy('bgGray') + '</button>',
+      '    </div>',
+      '  </div>',
       '</div>',
       '<div class="style-panel-row">',
-      '  <span class="style-panel-label">' + (zhMode ? '字体' : 'Font') + '</span>',
-      '  <select class="style-panel-select" data-style-panel="presentFont"></select>',
+      '  <span class="style-panel-label" data-style-panel-copy="fontLabel">' + getStylePanelCopy('fontLabel') + '</span>',
+      '  <div class="style-panel-control">',
+      '    <select class="style-panel-select" data-style-panel="presentFont"></select>',
+      '  </div>',
       '</div>'
     ].join('\n');
 
@@ -1050,9 +1206,9 @@ document.addEventListener('DOMContentLoaded', function () {
     __styleHost.appendChild(panel);
     wrapper._panel = panel;
 
-    var langSelect = panel.querySelector('[data-style-panel="lang"]');
-    var themeSelect = panel.querySelector('[data-style-panel="theme"]');
-    var bgSelect = panel.querySelector('[data-style-panel="presentBg"]');
+    var langGroup = panel.querySelector('[data-style-panel="lang"]');
+    var themeGroup = panel.querySelector('[data-style-panel="theme"]');
+    var bgGroup = panel.querySelector('[data-style-panel="presentBg"]');
     var fontSelect = panel.querySelector('[data-style-panel="presentFont"]');
 
     var FONT_PRESETS = {
@@ -1086,6 +1242,50 @@ document.addEventListener('DOMContentLoaded', function () {
       if (val === 'white') document.body.classList.add('present-bg-white');
       else if (val === 'black') document.body.classList.add('present-bg-black');
       else if (val === 'gray') document.body.classList.add('present-bg-gray');
+    };
+
+    var syncStylePanelCopy = function () {
+      var title = panel.querySelector('[data-style-panel-title]');
+      if (title) {
+        title.textContent = getLabel('style');
+      }
+
+      panel.querySelectorAll('[data-style-panel-copy]').forEach(function (el) {
+        var key = el.getAttribute('data-style-panel-copy');
+        el.textContent = getStylePanelCopy(key);
+      });
+
+      panel.querySelectorAll('[data-style-panel-group-label]').forEach(function (group) {
+        var key = group.getAttribute('data-style-panel-group-label');
+        group.setAttribute('aria-label', getStylePanelCopy(key));
+      });
+    };
+
+    var setToggleGroupValue = function (group, value) {
+      if (!group) return;
+
+      group.setAttribute('data-selected', value);
+      group.querySelectorAll('.style-panel-toggle').forEach(function (button) {
+        var isActive = button.getAttribute('data-value') === value;
+        button.classList.toggle('is-active', isActive);
+        button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      });
+    };
+
+    var bindToggleGroup = function (group, onChange) {
+      if (!group) return;
+
+      group.querySelectorAll('.style-panel-toggle').forEach(function (button) {
+        button.addEventListener('click', function () {
+          var value = button.getAttribute('data-value');
+          if (group.getAttribute('data-selected') === value) {
+            return;
+          }
+
+          setToggleGroupValue(group, value);
+          onChange(value);
+        });
+      });
     };
 
     var applyPresentFont = function (langKey, value) {
@@ -1131,27 +1331,28 @@ document.addEventListener('DOMContentLoaded', function () {
       var bg = localStorage.getItem('present-bg') || 'default';
       var langKey = lang === 'zh' ? 'zh' : 'en';
 
-      langSelect.value = lang;
-      themeSelect.value = currentTheme === 'dark' ? 'dark' : 'light';
-      bgSelect.value = bg;
+      syncStylePanelCopy();
+      setToggleGroupValue(langGroup, lang);
+      setToggleGroupValue(themeGroup, currentTheme === 'dark' ? 'dark' : 'light');
+      setToggleGroupValue(bgGroup, bg);
       populatePresentFontOptions(langKey);
       applyPresentBg(bg);
     };
 
-    langSelect.addEventListener('change', function () {
-      applyLanguageToDocument(langSelect.value);
+    bindToggleGroup(langGroup, function (value) {
+      applyLanguageToDocument(value);
       syncPanelState();
       updatePresentationLabels();
     });
 
-    themeSelect.addEventListener('change', function () {
-      root.setAttribute('data-theme', themeSelect.value);
-      localStorage.setItem('theme', themeSelect.value);
+    bindToggleGroup(themeGroup, function (value) {
+      root.setAttribute('data-theme', value);
+      localStorage.setItem('theme', value);
     });
 
-    bgSelect.addEventListener('change', function () {
-      localStorage.setItem('present-bg', bgSelect.value);
-      applyPresentBg(bgSelect.value);
+    bindToggleGroup(bgGroup, function (value) {
+      localStorage.setItem('present-bg', value);
+      applyPresentBg(value);
     });
 
     fontSelect.addEventListener('change', function () {
@@ -4109,9 +4310,9 @@ document.addEventListener('DOMContentLoaded', function () {
   ensureTopbarLayout();
   topbarActions = ensureTopbarActions();
   presentationToggle = ensureToggle();
-  styleToggle = ensureStyleToggle();
+  var themeToggleBtn = ensureThemeToggle();
+  var langToggleBtn = ensureLangToggle();
   buildLaunchPanel();
-  buildStylePanel();
   shareWrapper = ensureShareDropdown();
   presentationFloating = ensureFloating();
   presentationExit = presentationFloating.querySelector('[data-present-exit]');
@@ -4167,6 +4368,26 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
+
+  themeToggleBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var cur = root.getAttribute('data-theme') || 'light';
+    var next = cur === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('theme', next); } catch (err) {}
+  });
+
+  langToggleBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var cur = getLang();
+    var next = cur === 'zh' ? 'en' : 'zh';
+    applyLanguageToDocument(next);
+    var labelSpan = langToggleBtn.querySelector('.topbar-lang-label');
+    if (labelSpan) labelSpan.textContent = next === 'zh' ? 'EN' : '中';
+    var themeBtn = topbar.querySelector('[data-theme-toggle]');
+    if (themeBtn) themeBtn.setAttribute('aria-label', next === 'zh' ? '切换深浅色' : 'Toggle theme');
+  });
+
 
   // Close the panel when clicking outside (panels are portaled to body, so check them too).
   document.addEventListener('click', function (e) {

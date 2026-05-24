@@ -88,6 +88,7 @@ applyTo: "posts/**/*.html"
    - 文章一次性的微调（间距、特定颜色覆盖）
    - 该文章特有的、明显不会被复用的可视化（如某张矩阵图、某个示意图）
 5. 任何新增"卡片/网格"组件时，必须同步更新 `posts/article-design-system/index.html` §04 demo + 在 `assets/article.css` 加暗色模式样式。
+6. 任何叠在彩色 pill / 渐变底 / 染色卡片上的二级标签（如 `small`、role badge、chip、anchor badge）都必须单独定义 **dark mode 对比度规则**，禁止只继承父元素文字色。至少补其中一项：更深独立底色、边框 / inset ring、text-shadow；并在浏览器里实测可读性。
 
 **反例（本文已发生过）**：为 7 阶段流程新造 `.lifecycle-stage` + `.ls-chip` 而不用 `.flow-list`；为 11 角色卡新造 `.role-card` + `.role-fam-*` 而不用 `.insight-card`。这两类都属于直接违规。
 
