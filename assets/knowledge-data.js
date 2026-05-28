@@ -989,6 +989,25 @@ var knowledgeTree = [
     relations: ['copilot-studio-overview', 'copilot-studio-constraints', 'copilot-studio-vs-agent-sdk']
   },
   {
+    id: 'copilot-studio-mcp-cross-tenant',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Copilot Studio 跨租户 MCP 连接：以 Global 调用 21Vianet Dataverse MCP 为例',
+      en: 'Cross-Tenant MCP in Copilot Studio: Global to 21Vianet Dataverse MCP'
+    },
+    summary: {
+      zh: '同云跨租户经 OAuth Manual + 环境 allow-list 可配通。Global→21V 实测可通：21V 用 .default+offline_access scope，在 allowedmcpclient 表加调用方 app ID。',
+      en: 'In-cloud cross-tenant works via OAuth Manual + env allow-list. Empirical: Global→21V works using .default+offline_access scope plus an allowedmcpclient record for the calling app.'
+    },
+    tags: ['Copilot Studio', 'MCP', 'Dataverse', 'Cross-Tenant', 'Sovereign Cloud'],
+    date: '2026-05-28',
+    url: 'posts/copilot-studio-mcp-cross-tenant/index.html',
+    color: '#8b5cf6',
+    phase: 5.4, speed: 0.81,
+    relations: ['copilot-studio-overview', 'dataverse-security-roles', 'copilot-studio-constraints']
+  },
+  {
     id: 'zava-claims-360-solution',
     parentId: 'copilot-studio',
     type: 'article',

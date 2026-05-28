@@ -1,0 +1,1426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Copilot Studio 跨租户 MCP 连接：以 Global 调用 21Vianet Dataverse MCP 为例</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(2rem, 4.6vw, 3.2rem);
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      max-width: 24ch;
+    }
+
+    .hero-metrics {
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    @media (max-width: 900px) {
+      .hero-metrics { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .verdict-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .verdict-yes { background: rgba(16, 185, 129, 0.14); color: #047857; }
+    .verdict-partial { background: rgba(234, 179, 8, 0.18); color: #92400e; }
+    .verdict-no { background: rgba(239, 68, 68, 0.14); color: #b91c1c; }
+
+    [data-theme="dark"] .verdict-yes { background: rgba(16, 185, 129, 0.24); color: #6ee7b7; }
+    [data-theme="dark"] .verdict-partial { background: rgba(234, 179, 8, 0.26); color: #fcd34d; }
+    [data-theme="dark"] .verdict-no { background: rgba(239, 68, 68, 0.24); color: #fca5a5; }
+
+    .simple-table-wrap { overflow-x: auto; }
+    .simple-table { min-width: 640px; }
+    .simple-table td.cell-yes { color: #047857; font-weight: 600; }
+    .simple-table td.cell-no { color: #b91c1c; font-weight: 600; }
+    .simple-table td.cell-partial { color: #b45309; font-weight: 600; }
+    [data-theme="dark"] .simple-table td.cell-yes { color: #6ee7b7; }
+    [data-theme="dark"] .simple-table td.cell-no { color: #fca5a5; }
+    [data-theme="dark"] .simple-table td.cell-partial { color: #fcd34d; }
+
+    .hero-hint {
+      margin-top: 14px;
+      padding: 10px 14px;
+      border-left: 3px solid #2563eb;
+      border-radius: 0 10px 10px 0;
+      background: rgba(37, 99, 235, 0.08);
+      color: var(--text-muted);
+      font-size: 0.92rem;
+    }
+
+    [data-theme="dark"] .hero-hint {
+      background: rgba(37, 99, 235, 0.16);
+    }
+
+    .layer-banner {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .layer-banner.layer-ops {
+      background: rgba(37, 99, 235, 0.14);
+      color: #1d4ed8;
+    }
+
+    .layer-banner.layer-gov {
+      background: rgba(217, 119, 6, 0.14);
+      color: #b45309;
+    }
+
+    [data-theme="dark"] .layer-banner.layer-ops {
+      background: rgba(59, 130, 246, 0.24);
+      color: #93c5fd;
+    }
+
+    [data-theme="dark"] .layer-banner.layer-gov {
+      background: rgba(217, 119, 6, 0.24);
+      color: #fdba74;
+    }
+
+    .prereq-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    /* Component: .phase-step-stack / .phase-step-grid
+       Reading mode: stack uses its own gap; data-gap-managed disables global step margin.
+       Presentation mode: each .phase-step-card becomes one slide via data-present-substep.
+       Visual model: .phase-step-card IS the card. Inner .phase-step-copy / .phase-step-visual
+       are plain panels — backgrounds, borders, shadows of inner .comparison-card are suppressed. */
+    .phase-step-stack {
+      display: grid;
+      gap: 18px;
+      margin-top: 12px;
+    }
+
+    /* Shared accordion caps .subsection-content at max-height: 1600px.
+       Phase 1-4 each contain 5-8 step cards that exceed that, so lift the cap
+       only for subsections that host a .phase-step-stack. */
+    .subsection-item.is-open:has(.phase-step-stack) > .subsection-content {
+      max-height: none;
+    }
+
+    .phase-step-card {
+      padding: 22px 24px;
+      border-radius: 18px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.74);
+      box-shadow: 0 22px 44px rgba(15, 23, 42, 0.08);
+      backdrop-filter: blur(10px);
+    }
+
+    [data-theme="dark"] .phase-step-card {
+      border-color: rgba(148, 163, 184, 0.22);
+      background: rgba(15, 23, 42, 0.62);
+      box-shadow: 0 22px 44px rgba(2, 6, 23, 0.42);
+    }
+
+    .phase-step-card .phase-step-grid {
+      grid-template-columns: minmax(0, 1.08fr) minmax(280px, 0.92fr);
+      gap: 22px;
+      align-items: stretch;
+      margin: 0;
+    }
+
+    /* Suppress the inner comparison-card chrome so they read as one card. */
+    .phase-step-card .comparison-card.phase-step-copy,
+    .phase-step-card .comparison-card.phase-step-visual {
+      padding: 0;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+      backdrop-filter: none;
+    }
+
+    .phase-step-copy,
+    .phase-step-visual {
+      height: 100%;
+    }
+
+    .phase-step-copy {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .phase-step-copy h3,
+    .phase-step-visual h4 {
+      margin: 0;
+    }
+
+    .phase-step-visual {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding-left: 22px;
+      border-left: 1px solid rgba(15, 23, 42, 0.08);
+    }
+
+    [data-theme="dark"] .phase-step-visual {
+      border-left-color: rgba(148, 163, 184, 0.22);
+    }
+
+    .phase-step-visual p {
+      margin: 0;
+      color: var(--text-muted);
+    }
+
+    .phase-step-facts {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+    }
+
+    .phase-step-facts div {
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.56);
+    }
+
+    .phase-step-facts dt {
+      margin: 0 0 4px;
+      color: var(--accent);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .phase-step-facts dd {
+      margin: 0;
+      color: var(--text-muted);
+    }
+
+    .portal-shot {
+      display: block;
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      box-shadow: 0 18px 34px rgba(15, 23, 42, 0.12);
+    }
+
+    [data-theme="dark"] .phase-step-facts div {
+      border-color: rgba(148, 163, 184, 0.22);
+      background: rgba(15, 23, 42, 0.58);
+    }
+
+    [data-theme="dark"] .portal-shot {
+      border-color: rgba(148, 163, 184, 0.22);
+      box-shadow: 0 18px 34px rgba(2, 6, 23, 0.4);
+    }
+
+    @media (max-width: 900px) {
+      .prereq-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .phase-step-card .phase-step-grid {
+        grid-template-columns: 1fr;
+        gap: 18px;
+      }
+
+      .phase-step-visual {
+        padding-left: 0;
+        padding-top: 18px;
+        border-left: 0;
+        border-top: 1px solid rgba(15, 23, 42, 0.08);
+      }
+
+      [data-theme="dark"] .phase-step-visual {
+        border-top-color: rgba(148, 163, 184, 0.22);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .prereq-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero" data-present-step data-step-title="Cross-Tenant MCP Runbook">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            <span data-zh="Copilot Studio" data-en="Copilot Studio">Copilot Studio</span>
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航" data-nav-pager>
+            <a href="#mechanism" data-zh="01 机制" data-en="01 Mechanism">01 机制</a>
+            <a href="#scenarios" data-zh="02 场景判定" data-en="02 Scenarios">02 场景判定</a>
+            <a href="#runbook" data-zh="03 操作 Runbook" data-en="03 Runbook">03 操作 Runbook</a>
+            <a href="#cross-cloud" data-zh="04 跨云边界" data-en="04 Cross-Cloud Limits">04 跨云边界</a>
+            <a href="#alternatives" data-zh="05 替代路径" data-en="05 Alternatives">05 替代路径</a>
+            <a href="#governance" data-zh="06 治理层" data-en="06 Governance Layer">06 治理层</a>
+            <a href="#references" data-zh="参考" data-en="References">参考</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Cross-Tenant MCP Decision Guide</span>
+            <h1>Copilot Studio 跨租户 MCP 连接：以 Global 调用 21Vianet Dataverse MCP 为例</h1>
+            <p>
+              Copilot Studio 内置「Dataverse MCP Server」连接器只解析到 maker 自己租户内的 Dataverse 环境，不提供 UI 切换到外部租户。本文以 Global Commercial 租户调用 Microsoft Azure operated by 21Vianet 的 Dataverse MCP 为主线，给出三类跨租户场景（同云 B2B / Global × GCC / Global × 21V）的可行性判定、配置步骤与替代路径。所有结论以 Microsoft Learn 官方文档 + 2026-05 实测可复现路径为准（2026-05-28 核验）。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#runbook">直达操作 Runbook</a>
+              <a class="button button-secondary" href="#scenarios">先看三类场景判定</a>
+            </div>
+            <p class="hero-hint">本文分两层阅读：<strong>§01–§05 是操作层</strong>，聚焦机制、场景判定、可执行步骤、边界与替代路径；<strong>§06 是治理层</strong>，面向管理员与安全合规角色。Maker 想最快配通，直接看 §03。</p>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">一句话结论</span>
+            <h2>Global Commercial Copilot Studio 可以连通 21Vianet Dataverse MCP（2026-05 实测）：OAuth 2.0 Manual + 21V 应用注册 + 目标环境 <code>allowedmcpclient</code> 表登记调用方 app ID，全链路即可走通。</h2>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span>同云跨租户：在目标租户注册 Entra 应用并配 <code>Dynamics CRM/mcp.tools</code> 权限，目标环境 allow-list 加入 client ID，Copilot Studio 用 MCP 向导 OAuth Manual 配置即可。</li>
+              <li><span class="layer-number">2</span>Global → 21V 与同云的差异仅三点：Authority 走 <code>login.partner.microsoftonline.cn</code>、scope 用 <code>https://{org}.crm.dynamics.cn/.default offline_access</code>、allow-list 是 Dataverse <code>allowedmcpclient</code> 表（Unique Name 需带 publisher prefix）。</li>
+              <li><span class="layer-number">3</span>跨云身份层（B2B）已支持；浏览器 OAuth 弹窗需放行 <code>copilotstudio.preview.microsoft.com</code>，CA / 出口策略需放行 <code>global.consent.azure-apim.net</code> 回跳。</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">同云跨租户</div>
+            <strong>可配置</strong>
+            <span>OAuth Manual + 目标环境 allow-list</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Global × 21V 身份</div>
+            <strong>B2B 支持</strong>
+            <span>需手动启用 Microsoft cloud settings</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Global × 21V 数据面</div>
+            <strong>实测可通</strong>
+            <span>OAuth Manual + 21V <code>allowedmcpclient</code> 登记</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Dataverse MCP 端点</div>
+            <strong>/api/mcp</strong>
+            <span>每环境独立，需 PPAC 允许清单</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <section id="mechanism" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / Dataverse MCP Mechanism</p>
+            <h2>Dataverse MCP 的工作机制：理解三个边界</h2>
+            <p>跨租户能否成立，取决于三个层面是否对齐：MCP 端点的物理位置、调用方使用哪个 Entra 身份获取 token，以及目标 Dataverse 环境是否把调用方的 client ID 加入了允许清单。本节先固定术语，后续章节据此判断各场景。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span>1.1 端点形态：每个 Dataverse 环境一个 MCP URL</span></button>
+              <div class="subsection-content">
+                <p>Dataverse MCP server 不是租户级服务，而是绑在每个环境上的 endpoint。URL 由环境主域名 + <code>/api/mcp</code> 组成，sovereign 云走对应的根域名。</p>
+                <div class="insight-grid">
+                  <article class="insight-card">
+                    <span class="card-index">01</span>
+                    <h3>Commercial（Global）</h3>
+                    <p>格式：<code>https://{org}.crm.dynamics.com/api/mcp</code>。地域后缀（<code>.crm4</code>、<code>.crm5</code> 等）随环境实际所在 region 变化。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">02</span>
+                    <h3>21Vianet（China）</h3>
+                    <p>格式：<code>https://{org}.crm.dynamics.cn/api/mcp</code>。China 3 区数据中心 2023 年完成切换，环境 ID/URL/URI 未变。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">03</span>
+                    <h3>GCC / GCC High / DoD</h3>
+                    <p>分别走 <code>.crm9</code>、<code>.crm.appsplatform.us</code>、<code>.crm.microsoftdynamics.us</code> 等政府云后缀，规则同上：环境绑定，不跨域。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span>1.2 客户端两条路径：内置连接器 vs 自带 Entra 应用</span></button>
+              <div class="subsection-content">
+                <p>Copilot Studio 接入 Dataverse MCP 有两种身份模型，二者的跨租户能力截然不同。理解它们的差别，是判断跨租户可行性的关键。</p>
+                <div class="comparison-grid">
+                  <article class="comparison-card">
+                    <span class="comparison-label">Path A · 内置连接器</span>
+                    <h3>Dataverse MCP Server（开箱即用）</h3>
+                    <ul class="challenge-list">
+                      <li><strong>身份模型</strong> — 复用 Power Platform connector 框架，使用 maker 当前登录身份对应的 Dataverse connection。</li>
+                      <li><strong>目标环境</strong> — 默认指向 maker 当前选择的 Power Platform environment，UI 中无独立的「目标 org URL」字段。</li>
+                      <li><strong>租户边界</strong> — 在同一租户的不同环境间可切换；不支持指向另一个租户或另一个云的 Dataverse 实例。</li>
+                      <li><strong>许可清单</strong> — Copilot Studio client 默认已被 PPAC 自动允许，无需手工配置。</li>
+                    </ul>
+                  </article>
+                  <article class="comparison-card next">
+                    <span class="comparison-label">Path B · OAuth Manual</span>
+                    <h3>自带 Entra 应用 + MCP 向导</h3>
+                    <ul class="challenge-list">
+                      <li><strong>身份模型</strong> — 在目标租户注册自定义 Entra 应用，授予 <code>Dynamics CRM/mcp.tools</code> 权限，Copilot Studio 在运行时用 OAuth 2.0 拿用户委托 token。</li>
+                      <li><strong>目标环境</strong> — 在 MCP 向导里直接填 <code>https://{org}.crm.dynamics.com/api/mcp</code>，可以是任意租户的环境 URL。</li>
+                      <li><strong>租户边界</strong> — 跨同云租户可行；跨云受到 §04 的数据面限制。</li>
+                      <li><strong>许可清单</strong> — 必须把这个自定义应用的 Application (client) ID 加到目标环境的「Dataverse Model Context Protocol → Advanced Settings」白名单。</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span>1.3 环境级 Allow-List 是最后一道闸</span></button>
+              <div class="subsection-content">
+                <p>无论走 Path A 还是 Path B，调用方的 Entra app ID 必须在目标 Dataverse 环境的 MCP allow-list 中显式启用，否则 Dataverse 直接拒绝 <code>/api/mcp</code> 调用。</p>
+                <ul class="challenge-list">
+                  <li><strong>位置</strong> — Power Platform admin center → Environments → 选择环境 → Settings → Product → Features → Dataverse Model Context Protocol → Advanced Settings。</li>
+                  <li><strong>默认条目</strong> — Microsoft Copilot Studio client、Microsoft GitHub Copilot client、Dataverse CLI client（app ID <code>0c412cc3-0dd6-449b-987f-05b053db9457</code>）。Copilot Studio 默认启用，其他默认关闭。</li>
+                  <li><strong>前置条件</strong> — 环境必须是 Managed Environment；操作者必须有 Power Platform administrator 角色。</li>
+                  <li><strong>作用范围</strong> — 只对 <code>/api/mcp</code> 入口生效，不影响 MCP 命名的 Custom API（后者按普通 Dataverse API 走原有权限）。</li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="scenarios" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Scenario Matrix</p>
+            <h2>三类跨租户场景的能力边界</h2>
+            <p>把「Copilot Studio 在租户 A，要调 Dataverse MCP 在租户 B」按云分布拆为三类。下表给出各层是否成立的判定，后续章节展开同云跨租户（§03）和跨云（§04）。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span>2.1 三类场景判定表</span></button>
+              <div class="subsection-content">
+                <p>判定按四层展开：Entra 身份联邦是否可建立、Dataverse 端点是否可被 Commercial Copilot Studio 直接拨号、PPAC allow-list 是否提供管控位、整链是否走得通。</p>
+                <div class="simple-table-wrap">
+                  <table class="simple-table">
+                    <thead>
+                      <tr>
+                        <th>场景</th>
+                        <th>Entra B2B 身份层</th>
+                        <th>MCP 端点可达性</th>
+                        <th>PPAC Allow-List</th>
+                        <th>整链结论</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>Global 租户 A → Global 租户 B</td>
+                        <td class="cell-yes">支持</td>
+                        <td class="cell-yes">同云内可达</td>
+                        <td class="cell-yes">在 B 环境配置</td>
+                        <td class="cell-yes">可配置（§03）</td>
+                      </tr>
+                      <tr>
+                        <td>Global → GCC / GCC High</td>
+                        <td class="cell-partial">B2B 可建立</td>
+                        <td class="cell-no">跨云隔离</td>
+                        <td class="cell-partial">允许配置但不可达</td>
+                        <td class="cell-no">不支持（§04）</td>
+                      </tr>
+                      <tr>
+                        <td>Global → 21Vianet（China）</td>
+                        <td class="cell-partial">需启用 Microsoft cloud settings</td>
+                        <td class="cell-yes">sovereign URL 可达</td>
+                        <td class="cell-yes">在 21V 环境配置</td>
+                        <td class="cell-yes">实测可通（§4.4）</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p>「支持 B2B 身份层」不等于「Copilot Studio 能调通 MCP」。下两章分别给可行场景的步骤和不可行场景的根因。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span>2.2 为什么这样划分</span></button>
+              <div class="subsection-content">
+                <p>Microsoft Entra 的「Microsoft cloud settings」明文允许 Commercial × 21Vianet、Commercial × Government 两对跨云 B2B；但 Power Platform 服务部署是按云独立的，Copilot Studio Commercial 的连接器栈不会主动尝试解析 <code>.crm.dynamics.cn</code> 这类 sovereign 主机。</p>
+                <div class="insight-grid">
+                  <article class="insight-card">
+                    <span class="card-index">01</span>
+                    <h3>身份联邦支持</h3>
+                    <p>Commercial 与 21Vianet 通过 Microsoft cloud settings 互加 tenant ID 后，用户可被作为 guest 邀请到对方租户；但 B2B Direct Connect 在跨云场景明确不支持。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">02</span>
+                    <h3>数据面物理分离</h3>
+                    <p>Power Platform 和 Dynamics 365 apps 在 China 由 21Vianet（Shanghai Blue Cloud Technology）作为本地运营方独立运营，与 Commercial 是「physically separated environment」。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">03</span>
+                    <h3>连接器栈分云部署</h3>
+                    <p>Copilot Studio 通过 Power Platform connectors 接 Dataverse MCP；连接器运行在云本地的 Power Platform 实例中，没有官方的跨云路由把 Commercial 调用转译到 China cloud。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="runbook" class="section" data-reveal>
+          <div class="section-head">
+            <span class="layer-banner layer-ops">Layer 1 · 操作层 · Maker / IT 可直接执行</span>
+            <p class="section-kicker">03 / In-Cloud Cross-Tenant Runbook</p>
+            <h2>操作 Runbook：同云跨租户配通步骤</h2>
+            <p>当两个租户位于同一 Microsoft 云（两个 Commercial、两个 21V、或两个 GCC 租户），按以下 5 个阶段顺序执行。Phase 0 是不可跳过的前置；Phase 1–2 双方各做一半；Phase 3 做验收；Phase 4 做回滚排错。§3.6 给出 OAuth Manual 6 项字段速查表。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span>3.1 Phase 0 · 前置条件清单（不满足直接终止）</span></button>
+              <div class="subsection-content">
+                <p>先对完这 6 项，再进入配置动作。缺一项，后面都会卡在注册、授权、allow-list 或连接阶段。</p>
+                <div class="insight-grid prereq-grid">
+                  <article class="insight-card">
+                    <span class="card-index">01</span>
+                    <h3>同一云域</h3>
+                    <p>双方租户必须同处 Commercial、21V 或 GCC 的同一云。跨云场景直接跳到 §04，不要进 §03。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">02</span>
+                    <h3>Managed Environment</h3>
+                    <p>目标 Dataverse 环境必须是 Managed Environment，否则 PPAC 中不会出现 Dataverse Model Context Protocol 开关。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">03</span>
+                    <h3>管理员权限</h3>
+                    <p>目标方至少具备 Entra Application Admin 与目标环境 System Administrator；来源方至少是 Copilot Studio Maker。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">04</span>
+                    <h3>跨租户身份</h3>
+                    <p>来源方实际操作者必须已在目标租户中作为 B2B guest 或原生用户存在，并且可登录目标租户。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">05</span>
+                    <h3>许可与容量</h3>
+                    <p>来源方有 Copilot Studio 可用容量；目标方用户在 Dataverse 环境中有对应安全角色，不是“能登录就够了”。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">06</span>
+                    <h3>基础信息互换</h3>
+                    <p>目标方知道来源方使用者 UPN；来源方知道目标 Org URL 与目标租户 tenant ID，后续 callback 回填有对接人。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span>3.2 Phase 1 · 目标租户（Dataverse 所属方）做的事</span></button>
+              <div class="subsection-content">
+                <div class="phase-step-stack" data-gap-managed>
+                  <div class="phase-step-card" data-present-substep data-step-title="Phase 1 · Step 1A · 注册页先建 App" data-step-title-en="Phase 1 · Step 1A · Register the App" data-step-label="03 / 操作 Runbook · Phase 1" data-step-label-en="03 / Runbook · Phase 1">
+                    <div class="comparison-grid phase-step-grid">
+                      <article class="comparison-card phase-step-copy">
+                        <span class="comparison-label">Step 1A / Registration</span>
+                        <h3>注册页先把 Multitenant App 建出来</h3>
+                        <p>目标方先在自己的租户里创建一个 multitenant Entra app。这个 app 后面既是 OAuth Manual 的 client ID，也是 Dataverse MCP allow-list 要放行的主体。</p>
+                        <ul class="challenge-list">
+                          <li><strong>入口</strong> — Entra 管理中心 → Identity → Applications → App registrations → <em>New registration</em>。</li>
+                          <li><strong>关键参数</strong> — Name = <code>Dataverse MCP Bridge for {SourceTenantName}</code>；Supported account types = <em>Multiple Entra ID tenants</em>。</li>
+                          <li><strong>注意事项</strong> — 二级单选优先选 <em>Allow all tenants</em>；先把应用注册成功，再用环境 allow-list 和安全角色做边界控制。</li>
+                          <li><strong>完成判据</strong> — 点击 Register 后成功进入应用详情页，没有被 Preview 的 allowed tenants 面板卡住。</li>
+                        </ul>
+                      </article>
+                      <figure class="comparison-card phase-step-visual">
+                        <span class="comparison-label">Portal Screen 01</span>
+                        <h4>Register an application</h4>
+                        <img class="portal-shot" src="./step-01-register-app.png" alt="21V 门户 Register an application 页面，选择 Multiple Entra ID tenants 与 Allow all tenants" loading="eager" />
+                        <p>这一步最容易误入 <em>Allow only certain tenants (Preview)</em>，导致 Register 按钮一直灰掉。</p>
+                      </figure>
+                    </div>
+                  </div>
+
+                  <div class="phase-step-card" data-present-substep data-step-title="Phase 1 · Step 1B · 记录 Client ID 与 Tenant ID" data-step-title-en="Phase 1 · Step 1B · Capture Client ID and Tenant ID" data-step-label="03 / 操作 Runbook · Phase 1" data-step-label-en="03 / Runbook · Phase 1">
+                    <div class="comparison-grid phase-step-grid">
+                      <article class="comparison-card phase-step-copy">
+                        <span class="comparison-label">Step 1B / Overview</span>
+                        <h3>注册完成后马上回看 Overview</h3>
+                        <p>应用一旦建好，第一时间在 Overview 里记录两项最关键的 ID。后面 Phase 1 的 allow-list 和 Phase 2 的 OAuth Manual 都要用到。</p>
+                        <ul class="challenge-list">
+                          <li><strong>入口</strong> — 应用注册完成后落在 <em>Overview</em>；如不在该页，手动点左侧 <em>Overview</em>。</li>
+                          <li><strong>必须记录</strong> — <em>Application (client) ID</em> 与 <em>Directory (tenant) ID</em>。</li>
+                          <li><strong>交付对象</strong> — 这两个值后面都要发给来源租户的 Copilot Studio 配置人。</li>
+                          <li><strong>注意事项</strong> — 对外发布截图时要遮挡具体 ID，公开版不应暴露真实值。</li>
+                        </ul>
+                      </article>
+                      <figure class="comparison-card phase-step-visual">
+                        <span class="comparison-label">Portal Screen 02</span>
+                        <h4>Overview → Essentials</h4>
+                        <img class="portal-shot" src="./step-02-app-overview.png" alt="21V 门户 App registration 的 Overview 页面，Essentials 区域显示应用基础信息，公开版遮挡了具体 ID 数值" loading="eager" />
+                        <p>图里遮住了真实值，但定位没变。读者应该在 Essentials 里复制 client ID 与 tenant ID。</p>
+                      </figure>
+                    </div>
+                  </div>
+
+                  <div class="phase-step-card" data-present-substep data-step-title="Phase 1 · Step 2A · 进入 API Permissions" data-step-title-en="Phase 1 · Step 2A · Open API Permissions" data-step-label="03 / 操作 Runbook · Phase 1" data-step-label-en="03 / Runbook · Phase 1">
+                    <div class="comparison-grid phase-step-grid">
+                      <article class="comparison-card phase-step-copy">
+                        <span class="comparison-label">Step 2A / API Permissions</span>
+                        <h3>从默认权限页进入 Dataverse 授权流程</h3>
+                        <p>应用刚创建出来通常只有 <code>Microsoft Graph / User.Read</code>。这不是问题，真正需要补的是 Dataverse MCP 所需的 delegated permission。</p>
+                        <ul class="challenge-list">
+                          <li><strong>入口</strong> — 左侧 <em>API permissions</em> → 左上角 <em>Add a permission</em>。</li>
+                          <li><strong>当前状态</strong> — 页面只显示 <code>User.Read</code> 很正常，说明还没加 Dataverse 权限。</li>
+                          <li><strong>下一步目标</strong> — 进入 <em>Microsoft APIs</em>，继续寻找 <em>Dynamics CRM</em>。</li>
+                          <li><strong>完成判据</strong> — 成功打开右侧的 <em>Request API permissions</em> 侧栏。</li>
+                        </ul>
+                      </article>
+                      <figure class="comparison-card phase-step-visual">
+                        <span class="comparison-label">Portal Screen 03</span>
+                        <h4>API permissions 起点页</h4>
+                        <img class="portal-shot" src="./step-03-api-permissions.png" alt="21V 门户 API permissions 页面，当前仅配置了默认的 Microsoft Graph User.Read，并可点击 Add a permission" loading="eager" />
+                        <p>看到只有 <code>User.Read</code> 不用慌，这只是默认起点，不代表配置错了。</p>
+                      </figure>
+                    </div>
+                  </div>
+
+                  <div class="phase-step-card" data-present-substep data-step-title="Phase 1 · Step 2B · 找到 Dynamics CRM / mcp.tools" data-step-title-en="Phase 1 · Step 2B · Add Dynamics CRM mcp.tools" data-step-label="03 / 操作 Runbook · Phase 1" data-step-label-en="03 / Runbook · Phase 1">
+                    <div class="comparison-grid phase-step-grid">
+                      <article class="comparison-card phase-step-copy">
+                        <span class="comparison-label">Step 2B / Dynamics CRM</span>
+                        <h3>在侧栏里继续向下找 Dynamics CRM</h3>
+                        <p>21V 门户这里最容易误判：第一屏并不会把 <em>Dynamics CRM</em> 直接露出来，所以很多人以为该 API 不存在。</p>
+                        <ul class="challenge-list">
+                          <li><strong>关键动作</strong> — 保持在 <em>Microsoft APIs</em> tab 内，向下滚动找到 <em>Dynamics CRM</em>。</li>
+                          <li><strong>权限选择</strong> — 进入后选 <em>Delegated permissions</em> → 勾选 <code>mcp.tools</code> → Add permissions。</li>
+                          <li><strong>管理员动作</strong> — 回到权限主页后点 <em>Grant admin consent for {tenant}</em>。</li>
+                          <li><strong>注意事项</strong> — 不要先切到 <em>APIs my organization uses</em>，这次实操里那一页是空的。</li>
+                          <li><strong>21V 差异（实测）</strong> — Azure China 门户下对应服务名为 <em>Common Data Service</em>（well-known appId <code>00000007-0000-0000-c000-000000000000</code>），Delegated permissions 仅暴露 <code>user_impersonation</code>。21V Dataverse <code>/api/mcp</code> 入口不要求 <code>mcp.tools</code> claim，<code>user_impersonation</code> 即可通过；完整 Global → 21V 路径见 §4.4。</li>
+                        </ul>
+                      </article>
+                      <figure class="comparison-card phase-step-visual">
+                        <span class="comparison-label">Portal Screen 04</span>
+                        <h4>Request API permissions 侧栏</h4>
+                        <img class="portal-shot" src="./step-04-request-api-pane.png" alt="21V 门户 Request API permissions 侧栏，默认停在 Microsoft APIs 标签页" loading="eager" />
+                        <p>这张图对应的动作不是“看一眼就结束”，而是继续向下滚，直到看到 <em>Dynamics CRM</em>。</p>
+                      </figure>
+                    </div>
+                  </div>
+
+                  <div class="phase-step-card" data-present-substep data-step-title="Phase 1 · Step 3 · 创建 Client Secret" data-step-title-en="Phase 1 · Step 3 · Create the Client Secret" data-step-label="03 / 操作 Runbook · Phase 1" data-step-label-en="03 / Runbook · Phase 1">
+                    <div class="comparison-grid phase-step-grid">
+                      <article class="comparison-card phase-step-copy">
+                        <span class="comparison-label">Step 3 / Client Secret</span>
+                        <h3>创建 Client Secret，并且当场保存 Value</h3>
+                        <p>OAuth Manual 最终要吃的是 secret value，不是 secret ID。这个值在 Azure 门户只显示一次，所以这一页不是“回头再看”的步骤。</p>
+                        <ul class="challenge-list">
+                          <li><strong>入口</strong> — 左侧 <em>Certificates &amp; secrets</em> → <em>Client secrets</em> → <em>New client secret</em>。</li>
+                          <li><strong>建议写法</strong> — Description 写清来源租户或用途，避免后面多个 secret 混在一起。</li>
+                          <li><strong>注意事项</strong> — 页面生成后必须立即复制 <em>Value</em>，不要只记 Secret ID。</li>
+                          <li><strong>完成判据</strong> — 已把 secret value 安全保存，并能与 client ID 一起交付给来源方。</li>
+                        </ul>
+                      </article>
+                      <figure class="comparison-card phase-step-visual">
+                        <span class="comparison-label">Portal Screen 05–06</span>
+                        <h4>New client secret → secret 列表</h4>
+                        <img class="portal-shot" src="./step-08-new-secret-pane.png" alt="21V 门户 Add a client secret 侧栏，填写 Description 与 Expires" loading="eager" />
+                        <img class="portal-shot" src="./step-09-secret-created.png" alt="21V 门户 Client secrets 列表，Value 与 Secret ID 列均已打码" loading="eager" style="margin-top:12px;" />
+                        <p>第二张图里 Value 仅在生成瞬间可见；离开此页后只剩末尾 4 位。Secret ID 与 Value 均已掩码。</p>
+                      </figure>
+                    </div>
+                  </div>
+
+                  <div class="phase-step-card" data-present-substep data-step-title="Phase 1 · Step 4 · 环境 Allow-List 放行" data-step-title-en="Phase 1 · Step 4 · Add the Environment Allow-List Entry" data-step-label="03 / 操作 Runbook · Phase 1" data-step-label-en="03 / Runbook · Phase 1">
+                    <div class="comparison-grid phase-step-grid">
+                      <article class="comparison-card phase-step-copy">
+                        <span class="comparison-label">Step 4 / Allow-List</span>
+                        <h3>在目标环境 allow-list 里显式放行这个 App ID</h3>
+                        <p>应用注册成功并不等于 Dataverse MCP 能放行。真正控制 <code>/api/mcp</code> 是否接受调用的，是环境级 allow-list。</p>
+                        <ul class="challenge-list">
+                          <li><strong>入口</strong> — PPAC → Environments → 目标 Environment → Settings → <em>Product → Features</em> → Dataverse Model Context Protocol → <em>Advanced Settings</em>，跳转到模型驱动表 <code>allowedmcpclient</code>（URL <code>{org}/main.aspx?...&amp;etn=allowedmcpclient</code>）。</li>
+                          <li><strong>填写字段</strong> — <em>Name</em>（自由文本，便于识别，如 <code>Wells Dev 21V Dataverse MCP Test</code>）；<em>Unique Name</em>（必须带 publisher prefix，如 <code>crf5c_21vdataversemcptest</code>，否则保存报 <em>must start with a valid customization prefix</em>）；<em>Application Id</em> = Step 1B 的 client ID；<em>Is Enabled</em> = Yes。</li>
+                          <li><strong>注意事项</strong> — 目标环境必须已是 Managed Environment；Unique Name 的 prefix 取自该环境默认 publisher 或 maker 自定义 publisher。</li>
+                          <li><strong>完成判据</strong> — 新条目保存成功并出现在 Active Allowed MCP Clients 视图，Application ID 与 Entra 应用完全一致。</li>
+                        </ul>
+                      </article>
+                      <figure class="comparison-card phase-step-visual">
+                        <span class="comparison-label">Portal Screen 10–11</span>
+                        <h4>PPAC Features → Allowed MCP Clients 列表</h4>
+                        <img class="portal-shot" src="./step-13-ppac-mcp-feature.png" alt="PPAC Environment Settings → Features 中 Dataverse Model Context Protocol 开关已启用，并提示前往 Advanced Settings 维护 Allowed MCP Clients" loading="eager" />
+                        <img class="portal-shot" src="./step-14-allowed-mcp-clients.png" alt="Power Apps model-driven 视图 Active Allowed MCP Clients，列出 3 个 Microsoft first-party MCP 客户端，仅 Microsoft Copilot Studio App 启用为 Yes" loading="eager" style="margin-top:12px;" />
+                        <p>第一张图说明 MCP 总开关已开；第二张是默认视图，3 条 first-party 客户端中只有 Copilot Studio App 默认 Enabled。要让自定义 multitenant app 调用 <code>/api/mcp</code>，须用 <em>+ New</em> 在 <code>allowedmcpclient</code> 表里追加一条记录（Unique Name 必须带 publisher prefix），把调用方 client ID 与 Is Enabled = Yes 写入。</p>
+                      </figure>
+                    </div>
+                  </div>
+
+                  <div class="phase-step-card" data-present-substep data-step-title="Phase 1 · Step 5 · Guest 用户授权" data-step-title-en="Phase 1 · Step 5 · Grant the Guest User the Right Role" data-step-label="03 / 操作 Runbook · Phase 1" data-step-label-en="03 / Runbook · Phase 1">
+                    <div class="comparison-grid phase-step-grid">
+                      <article class="comparison-card phase-step-copy">
+                        <span class="comparison-label">Step 5 / Guest Authorization</span>
+                        <h3>把来源方使用者绑到最小权限安全角色</h3>
+                        <p>OAuth 拿到的是用户委托 token，但最终这个用户能读什么、写什么，还是由目标 Dataverse 环境里的安全角色决定。</p>
+                        <ul class="challenge-list">
+                          <li><strong>入口</strong> — 目标环境 → Settings → Users + permissions → Users。</li>
+                          <li><strong>关键动作</strong> — 找到来源方 UPN 对应的 guest 用户 → <em>Manage security roles</em> → 绑定最小权限 role。</li>
+                          <li><strong>注意事项</strong> — 不要图省事直接给 System Customizer 之类高权限角色。</li>
+                          <li><strong>完成判据</strong> — guest 用户能看到目标环境需要暴露的表，但没有多余写权限。</li>
+                        </ul>
+                      </article>
+                      <figure class="comparison-card phase-step-visual">
+                        <span class="comparison-label">Portal Screen 12</span>
+                        <h4>PPAC Users 列表 → Manage security roles 入口</h4>
+                        <img class="portal-shot" src="./step-15-users-list.png" alt="PPAC 21V 环境 Users 列表，姓名列保留显示，Username 与 Main phone 列已用深色掩码遮挡" loading="eager" />
+                        <p>截图来自 21V 实测：Username（UPN）与电话列已掩码。选中目标 guest 用户后，从工具栏点 <em>Manage security roles</em> 绑定最小权限 role；若调用回 403，先回查这里。</p>
+                      </figure>
+                    </div>
+                  </div>
+
+                  <div class="phase-step-card" data-present-substep data-step-title="Phase 1 · Step 6 · 把 4 项交付物发给来源方" data-step-title-en="Phase 1 · Step 6 · Hand Off the Four Required Values" data-step-label="03 / 操作 Runbook · Phase 1" data-step-label-en="03 / Runbook · Phase 1">
+                    <div class="comparison-grid phase-step-grid">
+                      <article class="comparison-card phase-step-copy">
+                        <span class="comparison-label">Step 6 / Handoff</span>
+                        <h3>把来源方真正需要的 4 项交付物一次发全</h3>
+                        <p>如果目标方交付不完整，来源方在 Copilot Studio 里会不断来回补字段。最省事的做法是这里一次性交齐。</p>
+                        <ul class="challenge-list">
+                          <li><strong>必须交付</strong> — Application (client) ID、Client secret Value、Directory (tenant) ID、目标 Dataverse Org URL。</li>
+                          <li><strong>URL 格式</strong> — 必须是 <code>https://{org}.crm.dynamics.com</code> 这一层 org host，不是 PPAC 地址。</li>
+                          <li><strong>交付对象</strong> — 直接交给来源租户中负责 Copilot Studio MCP 向导的人。</li>
+                          <li><strong>完成判据</strong> — 来源方不需要再回头追问“还缺哪一个字段”。</li>
+                        </ul>
+                      </article>
+                      <aside class="comparison-card next phase-step-visual">
+                        <span class="comparison-label">Deliverables</span>
+                        <h4>一次发全，避免来回追数</h4>
+                        <dl class="phase-step-facts">
+                          <div><dt>Client ID</dt><dd>来自 Step 1B 的 Application (client) ID。</dd></div>
+                          <div><dt>Tenant ID</dt><dd>来自 Step 1B 的 Directory (tenant) ID。</dd></div>
+                          <div><dt>Secret + Org URL</dt><dd>来自 Step 3 的 secret value 与目标 org 根 URL。</dd></div>
+                        </dl>
+                      </aside>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span>3.3 Phase 2 · 来源租户（Copilot Studio 所属方）做的事</span></button>
+              <div class="subsection-content">
+                <div class="phase-step-stack" data-gap-managed>
+                  <div class="phase-step-card" data-present-substep data-step-title="Phase 2 · Step 1 · 进入 MCP 向导" data-step-title-en="Phase 2 · Step 1 · Open the MCP Wizard" data-step-label="03 / 操作 Runbook · Phase 2" data-step-label-en="03 / Runbook · Phase 2">
+                    <div class="comparison-grid phase-step-grid">
+                      <article class="comparison-card phase-step-copy">
+                        <span class="comparison-label">Step 1 / Open MCP Wizard</span>
+                        <h3>从 Agent 的 Tools 面板进入 MCP 向导</h3>
+                        <p>来源方所有动作都从 Agent 的 Tools 面板开始。这里决定你走的是“自带 Entra 应用的通用 MCP”路径，而不是内置 Dataverse MCP Server。</p>
+                        <ul class="challenge-list">
+                          <li><strong>入口</strong> — Copilot Studio → 选 Agent → Tools → <em>Add a tool</em> → <em>New tool</em> → <em>Model Context Protocol</em>。</li>
+                          <li><strong>关键判断</strong> — 当前目标是“连到外部租户的 Dataverse MCP endpoint”，不是“连到自己租户的 Dataverse”。</li>
+                          <li><strong>注意事项</strong> — 不要点 catalog 里的「Dataverse MCP Server」；那条路径只能指向本租户环境。</li>
+                          <li><strong>完成判据</strong> — 进入新建 MCP server 的向导页，而不是 Dataverse 内置连接器详情页。</li>
+                        </ul>
+                      </article>
+                      <figure class="comparison-card phase-step-visual">
+                        <span class="comparison-label">Portal Screen 13</span>
+                        <h4>Copilot Studio Add tool → Add new MCP</h4>
+                        <img class="portal-shot" src="./step-16-cs-add-tool-mcp.png" alt="Copilot Studio Tools → Add a tool 对话框，顶部 4 个 Add new 入口中包含 MCP，下方分类 chip 行包含 Model Context Protocol" loading="eager" />
+                        <p>正确入口是顶部 <em>Add new MCP</em> 或下方 chip <em>Model Context Protocol</em>；不要点 catalog 中的「Dataverse」整合卡，那条路径只能指向本租户环境。</p>
+                      </figure>
+                    </div>
+                  </div>
+
+                  <div class="phase-step-card" data-present-substep data-step-title="Phase 2 · Step 2 · 填 MCP Server 基础信息" data-step-title-en="Phase 2 · Step 2 · Fill the MCP Server Basics" data-step-label="03 / 操作 Runbook · Phase 2" data-step-label-en="03 / Runbook · Phase 2">
+                    <div class="comparison-grid phase-step-grid">
+                      <article class="comparison-card phase-step-copy">
+                        <span class="comparison-label">Step 2 / Server Basics</span>
+                        <h3>先把 MCP Server URL 填对</h3>
+                        <p>这一页的重点只有一个：连接必须打到目标 org 的 <code>/api/mcp</code>。最多人犯的错，是把 PPAC 地址、租户首页，甚至环境列表页 URL 填进去。</p>
+                        <ul class="challenge-list">
+                          <li><strong>Server name</strong> — 自定义即可（CS 后台会以正则校验生成 connector 唯一名，仅接受字母数字 / <code>-</code> / <code>_</code> 且首字符为字母数字，空格/括号/中文会触发 HTTP 400），例如 <code>21V Dataverse MCP</code>。</li>
+                          <li><strong>Server URL</strong> — Commercial 目标填 <code>https://{target-org}.crm.dynamics.com/api/mcp</code>；21V 目标填 <code>https://{target-org}.crm.dynamics.cn/api/mcp</code>（本次实测：<code>https://coe.crm.dynamics.cn/api/mcp</code>）。</li>
+                          <li><strong>注意事项</strong> — URL 必须落在目标 org host，末尾必须显式带 <code>/api/mcp</code>；不要填 PPAC / make.powerapps 入口。</li>
+                          <li><strong>完成判据</strong> — 基础信息页能顺利继续，不是因为 URL 基础格式错误而被拦住。</li>
+                        </ul>
+                      </article>
+                      <figure class="comparison-card phase-step-visual">
+                        <span class="comparison-label">Portal Screen 07</span>
+                        <h4>CS MCP 向导基础信息页</h4>
+                        <img class="portal-shot" src="./step-10-cs-wizard-filled.png" alt="Copilot Studio MCP 向导：Server URL 已填写为目标 org 的 /api/mcp，Authentication 选 OAuth Manual" loading="eager" />
+                        <p>Server URL 与租户名已掩码；右侧 Authentication 必须显式选 <em>OAuth 2.0</em>（Manual），否则后续 6 字段面板不会出现。</p>
+                      </figure>
+                    </div>
+                  </div>
+
+                  <div class="phase-step-card" data-present-substep data-step-title="Phase 2 · Step 3 · 按速查表填 OAuth Manual" data-step-title-en="Phase 2 · Step 3 · Fill the OAuth Manual Fields" data-step-label="03 / 操作 Runbook · Phase 2" data-step-label-en="03 / Runbook · Phase 2">
+                    <div class="comparison-grid phase-step-grid">
+                      <article class="comparison-card phase-step-copy">
+                        <span class="comparison-label">Step 3 / OAuth Manual</span>
+                        <h3>按 3.6 速查表填写 6 个 OAuth 字段</h3>
+                        <p>这一步不需要猜，也不应该猜。所有输入都来自目标方交付物，尤其是 tenant ID、secret、scope 格式，只要有一个写错就会出现 token 或 refresh 异常。</p>
+                        <ul class="challenge-list">
+                          <li><strong>必填来源</strong> — Client ID、Client secret、Directory (tenant) ID、Org URL 全都来自目标方。</li>
+                          <li><strong>最容易漏</strong> — Scopes 必须包含 <code>offline_access</code>，否则 60–90 分钟后会强制重新登录。</li>
+                          <li><strong>不要自己拼</strong> — Authorization / Token URL 直接按 §3.6 模板替换 tenant ID，不要写成通用 login URL。</li>
+                          <li><strong>完成判据</strong> — 6 个字段填完后能进入 Create 阶段，不出现明显的字段级格式报错。</li>
+                        </ul>
+                      </article>
+                      <figure class="comparison-card phase-step-visual">
+                        <span class="comparison-label">Portal Screen 14</span>
+                        <h4>MCP 向导 → OAuth 2.0 · Manual 6 字段</h4>
+                        <img class="portal-shot" src="./step-17-cs-mcp-oauth-manual.png" alt="Copilot Studio Add a Model Context Protocol server 对话框，Authentication 选 OAuth 2.0，Type 选 Manual，展开 Client ID / Client secret / Authorization URL / Token URL template / Refresh URL / Scopes 6 个字段" loading="eager" />
+                        <p>必须选 <em>OAuth 2.0 → Manual</em>，才会暴露完整 6 字段。Client ID/Secret 在截图中以掩码形式呈现；Scopes 必须包含 <code>offline_access</code>，否则 60–90 分钟后强制重新登录。</p>
+                      </figure>
+                    </div>
+                  </div>
+
+                  <div class="phase-step-card" data-present-substep data-step-title="Phase 2 · Step 4 · 回填 Callback URL" data-step-title-en="Phase 2 · Step 4 · Send Back the Callback URL" data-step-label="03 / 操作 Runbook · Phase 2" data-step-label-en="03 / Runbook · Phase 2">
+                    <div class="comparison-grid phase-step-grid">
+                      <article class="comparison-card phase-step-copy">
+                        <span class="comparison-label">Step 4 / Callback URL</span>
+                        <h3>Create 后立刻把 callback URL 回填给目标方</h3>
+                        <p>Copilot Studio 只有在创建连接动作发生后，才会吐出 callback URL。目标方必须把这条 URL 加进应用 Redirect URI，否则授权完成后一定会 404 或 <code>redirect_uri_mismatch</code>。</p>
+                        <ul class="challenge-list">
+                          <li><strong>动作顺序</strong> — 点 <em>Create</em> → 复制 callback URL（形如 <code>https://global.consent.azure-apim.net/redirect/{connector-hash}</code>，跨云时同样在 Commercial APIM 域）→ 发给目标方。</li>
+                          <li><strong>目标方动作</strong> — 目标方在 Entra 应用的 Authentication → Web → Redirect URIs 中保存这条 URL。<strong>必须先回填再点 Create connection</strong>，否则 OAuth 弹窗会以 <code>redirect_uri_mismatch</code> 拒绝。</li>
+                          <li><strong>浏览器</strong> — Create connection 会以 <code>window.open</code> 弹子窗，浏览器需放行 <code>copilotstudio.preview.microsoft.com</code> 的弹窗；自动化场景无法完成同意握手。</li>
+                          <li><strong>完成判据</strong> — 两侧都完成保存后，再继续下一步建连接。</li>
+                        </ul>
+                      </article>
+                      <figure class="comparison-card phase-step-visual">
+                        <span class="comparison-label">Portal Screen 08–09</span>
+                        <h4>CS 生成 Redirect → 21V Authentication 回填</h4>
+                        <img class="portal-shot" src="./step-11-connector-created-redirect.png" alt="Copilot Studio 创建连接后弹出的 Redirect URL，域名为 global.consent.azure-apim.net" loading="eager" />
+                        <img class="portal-shot" src="./step-12-redirect-uri-registered.png" alt="21V 门户 Authentication → Web → Redirect URIs，已新增上一步的 callback URL" loading="eager" style="margin-top:12px;" />
+                        <p>第一张图来自来源方 Copilot Studio；第二张图是目标方在 Entra 应用 Authentication 页粘贴整条 URL 后的状态。Connector hash 与 tenant 名已掩码。</p>
+                      </figure>
+                    </div>
+                  </div>
+
+                  <div class="phase-step-card" data-present-substep data-step-title="Phase 2 · Step 5 · 建连接并加入 Agent" data-step-title-en="Phase 2 · Step 5 · Create the Connection and Add It to the Agent" data-step-label="03 / 操作 Runbook · Phase 2" data-step-label-en="03 / Runbook · Phase 2">
+                    <div class="comparison-grid phase-step-grid">
+                      <article class="comparison-card phase-step-copy">
+                        <span class="comparison-label">Step 5 / Connection + Agent</span>
+                        <h3>建立连接，并把 MCP 工具真正挂进 Agent</h3>
+                        <p>到这一步，来源方才会以 guest 身份跳到目标租户完成 consent。授权成功后，还要把连接挂进 Agent，最后确认 Agent 的编排模式。</p>
+                        <ul class="challenge-list">
+                          <li><strong>连接动作</strong> — Next → <em>Create new connection</em> → 浏览器跳目标租户登录页 → 用准备好的 B2B 身份登录并同意。</li>
+                          <li><strong>加入 Agent</strong> — 授权成功后点 <em>Add to agent</em>。</li>
+                          <li><strong>最后检查</strong> — Agent → Overview 确认 <em>Generative orchestration</em> 已开启。</li>
+                          <li><strong>完成判据</strong> — Agent 测试面板里能看到 MCP 工具被正常调度，而不是一直留在连接状态未挂载。</li>
+                        </ul>
+                      </article>
+                      <figure class="comparison-card phase-step-visual">
+                        <span class="comparison-label">Portal Screen 15</span>
+                        <h4>Agent Settings → Generative AI · Orchestration</h4>
+                        <img class="portal-shot" src="./step-18-cs-generative-orchestration.png" alt="Copilot Studio Agent Settings → Generative AI 页面，Orchestration 选项 Yes - Responses will be dynamic 已选中" loading="eager" />
+                        <p>建好连接、点 <em>Add to agent</em> 后，必须回到 <em>Settings → Generative AI → Orchestration</em> 确认选中 <em>Yes – Responses will be dynamic</em>；保留 <em>No (classic)</em> 时 MCP 工具不会被调度。Identity 必须是目标租户中已存在的 B2B guest 身份。</p>
+                      </figure>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span>3.4 Phase 3 · 验收（5 分钟自测）</span></button>
+              <div class="subsection-content">
+                <div class="phase-step-stack" data-gap-managed>
+                  <div class="phase-step-card" data-present-substep data-step-title="Phase 3 · Validation 1 · 连通性" data-step-title-en="Phase 3 · Validation 1 · Connectivity" data-step-label="03 / 操作 Runbook · Phase 3" data-step-label-en="03 / Runbook · Phase 3">
+                    <div class="comparison-grid phase-step-grid">
+                      <article class="comparison-card phase-step-copy">
+                        <span class="comparison-label">Validation 1 / Connectivity</span>
+                        <h3>先验证 MCP 调用是否真的打到目标环境</h3>
+                        <p>第一项不要做复杂动作，先确认最基本的连通性。只要这里不通，后面所有权限和写入验证都没有意义。</p>
+                        <ul class="challenge-list">
+                          <li><strong>测试动作</strong> — 在 Copilot Studio 的 Test your agent 面板输入「list tables in Dataverse」。</li>
+                          <li><strong>期望结果</strong> — 返回的是 <em>目标环境</em> 的表列表，而不是来源租户本地环境的表。</li>
+                          <li><strong>注意事项</strong> — 如果返回空或返回错环境，先回查 Server URL 与 allow-list。</li>
+                        </ul>
+                      </article>
+                      <aside class="comparison-card next phase-step-visual">
+                        <span class="comparison-label">Pass Signal</span>
+                        <h4>看到“对的环境”才算通过</h4>
+                        <dl class="phase-step-facts">
+                          <div><dt>Pass</dt><dd>表名明显来自目标环境。</dd></div>
+                          <div><dt>Fail</dt><dd>无返回、报 401、或列出的是来源租户自己的表。</dd></div>
+                        </dl>
+                      </aside>
+                    </div>
+                  </div>
+
+                  <div class="phase-step-card" data-present-substep data-step-title="Phase 3 · Validation 2 · 身份归属" data-step-title-en="Phase 3 · Validation 2 · Identity Attribution" data-step-label="03 / 操作 Runbook · Phase 3" data-step-label-en="03 / Runbook · Phase 3">
+                    <div class="comparison-grid phase-step-grid">
+                      <article class="comparison-card phase-step-copy">
+                        <span class="comparison-label">Validation 2 / Identity</span>
+                        <h3>确认写操作确实归到目标租户里的 guest 身份</h3>
+                        <p>连通不等于身份归属正确。第二项要确认 Dataverse 里记录到的操作者，是你准备好的 B2B guest，而不是别的应用主体。</p>
+                        <ul class="challenge-list">
+                          <li><strong>测试动作</strong> — 用 MCP 工具创建一条测试记录。</li>
+                          <li><strong>核对位置</strong> — 到目标环境 Auditing 查看 <em>Modified By</em>。</li>
+                          <li><strong>期望结果</strong> — <em>Modified By</em> 等于准备好的 B2B guest UPN。</li>
+                        </ul>
+                      </article>
+                      <aside class="comparison-card next phase-step-visual">
+                        <span class="comparison-label">Pass Signal</span>
+                        <h4>看到 guest UPN 才说明用户委托链路正确</h4>
+                        <dl class="phase-step-facts">
+                          <div><dt>Pass</dt><dd>审计里显示目标租户中的 guest 用户。</dd></div>
+                          <div><dt>Fail</dt><dd>显示成别的主体，或根本没有审计记录。</dd></div>
+                        </dl>
+                      </aside>
+                    </div>
+                  </div>
+
+                  <div class="phase-step-card" data-present-substep data-step-title="Phase 3 · Validation 3 · 权限边界" data-step-title-en="Phase 3 · Validation 3 · Permission Boundary" data-step-label="03 / 操作 Runbook · Phase 3" data-step-label-en="03 / Runbook · Phase 3">
+                    <div class="comparison-grid phase-step-grid">
+                      <article class="comparison-card phase-step-copy">
+                        <span class="comparison-label">Validation 3 / Boundary</span>
+                        <h3>故意降权限，确认边界真的生效</h3>
+                        <p>最可靠的安全验证，不是“它能写”，而是“我收回写权限后它立刻不能写”。这一步验证的是角色边界是否真实生效。</p>
+                        <ul class="challenge-list">
+                          <li><strong>测试动作</strong> — 临时把 guest 安全角色降为只读，再调 <code>create_record</code>。</li>
+                          <li><strong>期望结果</strong> — 应返回 403 / <em>Insufficient privileges</em>。</li>
+                          <li><strong>注意事项</strong> — 验证完要恢复原角色，避免影响正式使用。</li>
+                        </ul>
+                      </article>
+                      <aside class="comparison-card next phase-step-visual">
+                        <span class="comparison-label">Pass Signal</span>
+                        <h4>“能失败”才说明边界有效</h4>
+                        <dl class="phase-step-facts">
+                          <div><dt>Pass</dt><dd>降权后立刻收到权限不足错误。</dd></div>
+                          <div><dt>Fail</dt><dd>降权后依旧能写，说明角色配置过宽。</dd></div>
+                        </dl>
+                      </aside>
+                    </div>
+                  </div>
+
+                  <div class="phase-step-card" data-present-substep data-step-title="Phase 3 · Validation 4 · Refresh 行为" data-step-title-en="Phase 3 · Validation 4 · Refresh Behavior" data-step-label="03 / 操作 Runbook · Phase 3" data-step-label-en="03 / Runbook · Phase 3">
+                    <div class="comparison-grid phase-step-grid">
+                      <article class="comparison-card phase-step-copy">
+                        <span class="comparison-label">Validation 4 / Refresh</span>
+                        <h3>等待一轮 token 周期，确认 refresh 正常</h3>
+                        <p>很多连接第一次能通，但 1 小时后就掉。第四项验证的是 refresh token 路径，核心看点是你有没有把 <code>offline_access</code> 配对。</p>
+                        <ul class="challenge-list">
+                          <li><strong>测试动作</strong> — 等待 60–90 分钟后再次发起 MCP 请求。</li>
+                          <li><strong>期望结果</strong> — 能自动续期，不弹登录页。</li>
+                          <li><strong>注意事项</strong> — 如果重新要求登录，优先回查 scope 是否缺少 <code>offline_access</code>。</li>
+                        </ul>
+                      </article>
+                      <aside class="comparison-card next phase-step-visual">
+                        <span class="comparison-label">Pass Signal</span>
+                        <h4>自动续期才算真的可用</h4>
+                        <dl class="phase-step-facts">
+                          <div><dt>Pass</dt><dd>二次调用直接成功，不要求再次登录。</dd></div>
+                          <div><dt>Fail</dt><dd>强制回到登录流程，通常是 scope 配置不完整。</dd></div>
+                        </dl>
+                      </aside>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span>3.5 Phase 4 · 常见错误速查</span></button>
+              <div class="subsection-content">
+                <div class="phase-step-stack" data-gap-managed>
+                  <div class="phase-step-card" data-present-substep data-step-title="Phase 4 · Error 1 · 401 或权限不足" data-step-title-en="Phase 4 · Error 1 · 401 or Insufficient Privileges" data-step-label="03 / 操作 Runbook · Phase 4" data-step-label-en="03 / Runbook · Phase 4">
+                    <div class="comparison-grid phase-step-grid">
+                      <article class="comparison-card phase-step-copy">
+                        <span class="comparison-label">Error 1 / 401</span>
+                        <h3>401 或 Insufficient privileges</h3>
+                        <p>这类问题通常不是 OAuth 字段本身错了，而是目标环境还没有真正放行这个应用，或者 guest 用户没有对应表权限。</p>
+                        <ul class="challenge-list">
+                          <li><strong>先查 allow-list</strong> — 回到 §3.2 Step 4，确认启用的是正确的 Application ID。</li>
+                          <li><strong>再查安全角色</strong> — 回到 §3.2 Step 5，确认 guest 用户确实被绑定了需要的 role。</li>
+                          <li><strong>判断顺序</strong> — 401 更偏 allow-list / token；403 更偏 role / privilege。</li>
+                        </ul>
+                      </article>
+                      <aside class="comparison-card next phase-step-visual">
+                        <span class="comparison-label">Rollback Path</span>
+                        <h4>优先回查目标租户两道门</h4>
+                        <dl class="phase-step-facts">
+                          <div><dt>Door 1</dt><dd>Environment allow-list。</dd></div>
+                          <div><dt>Door 2</dt><dd>Guest user's Dataverse security role。</dd></div>
+                        </dl>
+                      </aside>
+                    </div>
+                  </div>
+
+                  <div class="phase-step-card" data-present-substep data-step-title="Phase 4 · Error 2 · Register 按钮灰掉" data-step-title-en="Phase 4 · Error 2 · Register Button Disabled" data-step-label="03 / 操作 Runbook · Phase 4" data-step-label-en="03 / Runbook · Phase 4">
+                    <div class="comparison-grid phase-step-grid">
+                      <article class="comparison-card phase-step-copy">
+                        <span class="comparison-label">Error 2 / Register Disabled</span>
+                        <h3>Register 按钮灰掉，提示缺少 allowed tenant</h3>
+                        <p>这不是账号权限问题，而是你选了 <em>Allow only certain tenants (Preview)</em> 但没有把来源租户加进 allowed list。</p>
+                        <ul class="challenge-list">
+                          <li><strong>症状</strong> — 提示 <em>At least one allowed tenant is required</em>。</li>
+                          <li><strong>两种处理</strong> — 要么点 <em>Manage allowed tenants</em> 输入来源 Tenant ID 后 Apply；要么改选 <em>Allow all tenants</em> 先注册。</li>
+                          <li><strong>推荐处理</strong> — 首次配通优先用 <em>Allow all tenants</em>，边界靠 allow-list + role 兜底。</li>
+                        </ul>
+                      </article>
+                      <aside class="comparison-card next phase-step-visual">
+                        <span class="comparison-label">Fast Fix</span>
+                        <h4>别在注册页提前做过度收紧</h4>
+                        <dl class="phase-step-facts">
+                          <div><dt>Fastest Path</dt><dd>改回 <em>Allow all tenants</em>，先把 app 建出来。</dd></div>
+                          <div><dt>Strict Path</dt><dd>只有在你已经掌握来源 tenant ID 时，再用 Preview 选项。</dd></div>
+                        </dl>
+                      </aside>
+                    </div>
+                  </div>
+
+                  <div class="phase-step-card" data-present-substep data-step-title="Phase 4 · Error 3 · 外租户同意页不出现" data-step-title-en="Phase 4 · Error 3 · External Consent Page Never Appears" data-step-label="03 / 操作 Runbook · Phase 4" data-step-label-en="03 / Runbook · Phase 4">
+                    <div class="comparison-grid phase-step-grid">
+                      <article class="comparison-card phase-step-copy">
+                        <span class="comparison-label">Error 3 / No Consent</span>
+                        <h3>外租户用户看不到同意页</h3>
+                        <p>最常见原因是应用仍然是 single-tenant。这样外租户用户即使拿到了 URL，也不会被允许进入授权流程。</p>
+                        <ul class="challenge-list">
+                          <li><strong>回查位置</strong> — §3.2 Step 1A 的 Supported account types。</li>
+                          <li><strong>正确值</strong> — 必须是 <em>Multiple Entra ID tenants</em>。</li>
+                          <li><strong>错误值</strong> — <em>Single tenant only</em> 会直接拒绝外租户用户。</li>
+                        </ul>
+                      </article>
+                      <aside class="comparison-card next phase-step-visual">
+                        <span class="comparison-label">Root Cause</span>
+                        <h4>这是 app registration 级别的路由问题</h4>
+                        <dl class="phase-step-facts">
+                          <div><dt>Fix</dt><dd>回到注册配置，把应用改成 multitenant。</dd></div>
+                          <div><dt>Why</dt><dd>single-tenant app 根本不会接受外租户用户授权。</dd></div>
+                        </dl>
+                      </aside>
+                    </div>
+                  </div>
+
+                  <div class="phase-step-card" data-present-substep data-step-title="Phase 4 · Error 4 · Callback 404 或 URI 不匹配" data-step-title-en="Phase 4 · Error 4 · Callback 404 or Redirect URI Mismatch" data-step-label="03 / 操作 Runbook · Phase 4" data-step-label-en="03 / Runbook · Phase 4">
+                    <div class="comparison-grid phase-step-grid">
+                      <article class="comparison-card phase-step-copy">
+                        <span class="comparison-label">Error 4 / Callback</span>
+                        <h3>Callback 404 或 redirect_uri_mismatch</h3>
+                        <p>这种错误不要怀疑 token endpoint，先看 Redirect URI 是否原样回填。这里最怕人为修改大小写、删尾部路径、或者加错 slash。</p>
+                        <ul class="challenge-list">
+                          <li><strong>回查位置</strong> — §3.3 Step 4 拿到的 callback URL 原文。</li>
+                          <li><strong>正确做法</strong> — 整条复制到目标方应用的 Redirect URI，不做手改。</li>
+                          <li><strong>注意事项</strong> — 含末尾路径、斜杠、大小写都必须完全一致。</li>
+                        </ul>
+                      </article>
+                      <aside class="comparison-card next phase-step-visual">
+                        <span class="comparison-label">Root Cause</span>
+                        <h4>这是字符串精确匹配，不是“差不多就行”</h4>
+                        <dl class="phase-step-facts">
+                          <div><dt>Fix</dt><dd>重新复制 callback URL，整条覆盖 Redirect URI。</dd></div>
+                          <div><dt>Typical Mistake</dt><dd>省略尾部路径、手动改 slash、复制错环境 URL。</dd></div>
+                        </dl>
+                      </aside>
+                    </div>
+                  </div>
+
+                  <div class="phase-step-card" data-present-substep data-step-title="Phase 4 · Error 5 · 工具不被 Agent 调度" data-step-title-en="Phase 4 · Error 5 · The Agent Never Calls the Tool" data-step-label="03 / 操作 Runbook · Phase 4" data-step-label-en="03 / Runbook · Phase 4">
+                    <div class="comparison-grid phase-step-grid">
+                      <article class="comparison-card phase-step-copy">
+                        <span class="comparison-label">Error 5 / No Tool Call</span>
+                        <h3>工具明明连好了，但 Agent 从来不触发它</h3>
+                        <p>这类问题通常不在连接本身，而在 Agent 的编排模式。连接存在不等于 Agent 一定会自动调用 MCP 工具。</p>
+                        <ul class="challenge-list">
+                          <li><strong>回查位置</strong> — Agent → Overview。</li>
+                          <li><strong>正确状态</strong> — <em>Generative orchestration</em> 已开启。</li>
+                          <li><strong>常见误区</strong> — Classic 模式下连接和工具都在，但编排器不会自动调度。</li>
+                        </ul>
+                      </article>
+                      <aside class="comparison-card next phase-step-visual">
+                        <span class="comparison-label">Root Cause</span>
+                        <h4>这不是权限错，是编排模式错</h4>
+                        <dl class="phase-step-facts">
+                          <div><dt>Fix</dt><dd>切回 Generative orchestration。</dd></div>
+                          <div><dt>Signal</dt><dd>切换后再次测试，Agent 才会真正发起 MCP 调用。</dd></div>
+                        </dl>
+                      </aside>
+                    </div>
+                  </div>
+
+                  <div class="phase-step-card" data-present-substep data-step-title="Phase 4 · Error 6 · Schema 异常" data-step-title-en="Phase 4 · Error 6 · Schema Validation Errors" data-step-label="03 / 操作 Runbook · Phase 4" data-step-label-en="03 / Runbook · Phase 4">
+                    <div class="comparison-grid phase-step-grid">
+                      <article class="comparison-card phase-step-copy">
+                        <span class="comparison-label">Error 6 / Schema</span>
+                        <h3>Schema 异常，不是门户配置项问题</h3>
+                        <p>如果你看到的是 schema 层异常，通常已经不是租户、权限、allow-list 的问题，而是 MCP server 实现对 schema 有已知限制。</p>
+                        <ul class="challenge-list">
+                          <li><strong>已知限制</strong> — <code>exclusiveMinimum</code> 必须是 boolean；type 必须单一类型。</li>
+                          <li><strong>不支持项</strong> — reference type / enum type。</li>
+                          <li><strong>处理方式</strong> — 回到 MCP schema 本身做裁剪，不要继续在 Azure / Copilot Studio 门户里找开关。</li>
+                        </ul>
+                      </article>
+                      <aside class="comparison-card next phase-step-visual">
+                        <span class="comparison-label">Root Cause</span>
+                        <h4>这是 MCP 实现边界，不是配置漏项</h4>
+                        <dl class="phase-step-facts">
+                          <div><dt>Fix</dt><dd>按官方已知约束收窄 schema 定义。</dd></div>
+                          <div><dt>Do Not Do</dt><dd>不要反复重建 app registration 或重新授权，这里不会解决。</dd></div>
+                        </dl>
+                      </aside>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span>3.6 字段速查表（OAuth Manual 6 项）</span></button>
+              <div class="subsection-content">
+                <p>来源方在 §3.3 Step 3 复制以下值。占位符替换为 §3.2 Step 1 拿到的实际值。</p>
+                <div class="simple-table-wrap">
+                  <table class="simple-table cheat-table">
+                    <thead>
+                      <tr><th>字段</th><th>值</th><th>来源</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td>Server URL</td><td><code>https://{target-org}.crm.dynamics.com/api/mcp</code></td><td>目标 Org URL + <code>/api/mcp</code></td></tr>
+                      <tr><td>Client ID</td><td><code>{Application (client) ID}</code></td><td>§3.2 Step 1</td></tr>
+                      <tr><td>Client secret</td><td><code>{Secret Value}</code></td><td>§3.2 Step 3</td></tr>
+                      <tr><td>Authorization URL</td><td><code>https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/authorize</code></td><td>{tenant-id} = 目标 Tenant ID</td></tr>
+                      <tr><td>Token URL</td><td><code>https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token</code></td><td>同上</td></tr>
+                      <tr><td>Refresh URL</td><td>同 Token URL</td><td>—</td></tr>
+                      <tr><td>Scopes</td><td><code>https://{target-org}.crm.dynamics.com/.default offline_access</code></td><td><code>offline_access</code> 不可省</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p><strong>跨云 sovereign 差异</strong>：21Vianet 的 Authority 是 <code>https://login.partner.microsoftonline.cn/{tenant-id}/oauth2/v2.0/{authorize|token}</code>，资源端是 <code>*.crm.dynamics.cn</code>，Scopes 直接套 <code>https://{target-org}.crm.dynamics.cn/.default offline_access</code>（21V Common Data Service 不发布 <code>mcp.tools</code>，但 <code>/api/mcp</code> 不要求该 claim，<code>.default</code> 已涵盖 <code>user_impersonation</code> 即可放行）；GCC High 同理换 <code>login.microsoftonline.us</code> + <code>*.crm.microsoftdynamics.us</code>。Global → 21V 实测可通，详见 §4.4。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="cross-cloud" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / Cross-Cloud Boundary</p>
+            <h2>跨云跨租户：Global → 21V 实测可通与三项差异</h2>
+            <p>Global Commercial × 21Vianet 在 §3 同云路径之外有三项差异：Authority 在 partner 云、Common Data Service 只暴露 <code>user_impersonation</code>、allow-list 在 Dataverse <code>allowedmcpclient</code> 表里手建。本节给出可复现的完整路径与 2026-05 实测证据。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span>4.1 三个差异层、三个应对动作</span></button>
+              <div class="subsection-content">
+                <p>跨云不只是「换个域名」，三个层面均与同云不同，但每一层都有对应的可执行动作。</p>
+                <div class="insight-grid">
+                  <article class="insight-card">
+                    <span class="card-index">01</span>
+                    <h3>Authority 不同</h3>
+                    <p>21Vianet 的 Entra 授权端点是 <code>login.partner.microsoftonline.cn</code>，与 Commercial 的 <code>login.microsoftonline.com</code> 是两套独立目录。实测动作：在 21V 租户独立注册 Entra 应用，OAuth Manual 填 sovereign authority。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">02</span>
+                    <h3>资源端点不同</h3>
+                    <p>21Vianet Dataverse 走 <code>*.crm.dynamics.cn</code>，只接受由 partner authority 颁发、audience 为该 China org 的 token。实测动作：Scopes 填 <code>https://{org}.crm.dynamics.cn/.default offline_access</code>。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">03</span>
+                    <h3>Allow-list 入口不同</h3>
+                    <p>PPAC Features 上的「Advanced Settings」跳转到模型驱动表 <code>allowedmcpclient</code>，需手建记录并填调用方 client ID，Unique Name 必须带 publisher prefix（如 <code>crf5c_</code>）。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span>4.2 实现路径与记在案的风险</span></button>
+              <div class="subsection-content">
+                <p>上面三个差异叠加后，实际走通需严格按以下顺序。任一项错位都会表现为「连接看起来建好了但 <code>/api/mcp</code> 报 401/403」。</p>
+                <ol class="flow-list">
+                  <li class="flow-step"><div class="flow-copy"><strong>21V 侧先完成身份与允许</strong><p>在 21V 租户注册多租户 Entra 应用 + Common Data Service / <code>user_impersonation</code> + client secret；以 publisher prefix 在 21V Dataverse <code>allowedmcpclient</code> 表里建一条 Is Enabled = Yes 的记录，填上该 app ID。</p></div></li>
+                  <li class="flow-step"><div class="flow-copy"><strong>Commercial CS 填 sovereign OAuth Manual</strong><p>Authority 填 <code>login.partner.microsoftonline.cn/{21V-tenant-id}</code>，Scopes 填 <code>https://{org}.crm.dynamics.cn/.default offline_access</code>，Client ID/secret 用 21V 侧发过来的值。名称需符合后台正则（仅字母数字 / <code>-</code> / <code>_</code>，首字符为字母数字）。</p></div></li>
+                  <li class="flow-step"><div class="flow-copy"><strong>Redirect 回填后再点 Create connection</strong><p>CS Create connector 后生成 <code>https://global.consent.azure-apim.net/redirect/{hash}</code>，必须先作为 Web Redirect URI 保存到 21V 应用注册，再点 Create connection。浏览器弹窗需放行 <code>copilotstudio.preview.microsoft.com</code>。</p></div></li>
+                </ol>
+                <p><strong>记在案的风险</strong>：跨云 OAuth 回跳跳出 sovereign 云，打到 Commercial APIM 域，Conditional Access 严格或企业出口网关拦截 sovereign authority 回跳时仍会失败；调用以用户委托身份发生，跨云数据交互需自行评估 PIPL / 数据出境、跨境传输合规。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span>4.3 GCC / GCC High / DoD 未实测</span></button>
+              <div class="subsection-content">
+                <p>本文仅实测了 Commercial → 21Vianet 路径。类推到 GCC / GCC High / DoD 需同时满足三个条件：目标云提供对应的 sovereign authority（如 <code>login.microsoftonline.us</code>）、目标 Dataverse 环境启用 Dataverse MCP 且 <code>allowedmcpclient</code> 表可写入、企业 CA 及出口网关放行 Commercial APIM 回跳。未实验证之前不作成败断言。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span>4.4 实测：Global → 21V 在 Copilot Studio 中走通的完整路径（2026-05）</span></button>
+              <div class="subsection-content">
+                <p>2026-05 实测：Commercial Copilot Studio Preview（环境 <code>Wells Dev</code>）调用 21Vianet 租户 <code>illusion615.com</code> 下 <code>https://coe.crm.dynamics.cn/api/mcp</code>，全链路走通、Agent Tools 列表出现 <em>Model Context Protocol (1)</em>。同云路径以外需额外完成三件事：<strong>(a)</strong> 在 21V 侧采用 Common Data Service / <code>user_impersonation</code> + <code>.default</code> scope；<strong>(b)</strong> 在 21V Dataverse <code>allowedmcpclient</code> 表里手建一条带 publisher prefix 的允许记录；<strong>(c)</strong> 把 CS 生成的 Commercial APIM 回跳 URL 回填到 21V 应用注册。</p>
+
+                <div class="phase-step-stack" data-gap-managed>
+
+                <p><strong>7 项与同云路径不同的实测发现</strong>：</p>
+                <ol class="flow-list">
+                  <li class="flow-step"><div class="flow-copy"><strong>F1 · CS 向导不校验 sovereign host</strong><p>Commercial Copilot Studio「Add MCP」向导对 Server URL 主机不做云校验，<code>https://*.crm.dynamics.cn</code> 直接通过，Create 按钮可点。</p></div></li>
+                  <li class="flow-step"><div class="flow-copy"><strong>F2 · OAuth 现暴露 3 个子类型</strong><p>OAuth 2.0 下拉新增 <em>Dynamic discovery</em> / <em>Dynamic</em> / <em>Manual</em>。前两者要求 server 公开 metadata 端点；跨租户/跨云只有 <em>Manual</em> 能填全 sovereign 端点。</p></div></li>
+                  <li class="flow-step"><div class="flow-copy"><strong>F3 · 21V SP 名称不同</strong><p>Azure China 门户里对应服务名是 <em>Common Data Service</em>（well-known appId <code>00000007-0000-0000-c000-000000000000</code>），不是 Commercial 的 <em>Dynamics CRM</em>。在 21V 找不到 Dynamics CRM 时去搜 Common Data Service。</p></div></li>
+                  <li class="flow-step"><div class="flow-copy"><strong>F4 · 21V 不发布 mcp.tools，但端点不要求</strong><p>21V Common Data Service 的 Delegated permissions 列表里<strong>只有 <code>user_impersonation</code></strong>，没有 <code>mcp.tools</code>（见 step-05）。实测表明 21V <code>/api/mcp</code> 不要求 token 携带 <code>mcp.tools</code> claim：Scopes 填 <code>https://{org}.crm.dynamics.cn/.default offline_access</code> 后即可放行（<code>.default</code> 涵盖 <code>user_impersonation</code>）。这是 21V Dataverse 侧的实现差异，与同云 Commercial 路径需要 <code>mcp.tools</code> 不同。</p></div></li>
+                  <li class="flow-step"><div class="flow-copy"><strong>F5 · CS 连接器命名正则</strong><p>CS Manual OAuth Create 后台对 connector 名做正则校验：<em>alphanumeric / <code>-</code> / <code>_</code>，必须以字母数字开头</em>。空格、括号、中文都会触发 HTTP 400。本次名称填 <code>21V Dataverse MCP</code>，后台生成的 connector 唯一名为 <code>crf5c-5f21v-20dataverse-20mcp-5f...</code>（空格被转义）。</p></div></li>
+                  <li class="flow-step"><div class="flow-copy"><strong>F6 · Redirect URL 在 Commercial APIM 域</strong><p>CS Create 后自动生成的 Redirect URL 形如 <code>https://global.consent.azure-apim.net/redirect/{connector-hash}</code>，是 Commercial APIM 同意域。需在点 Create connection <strong>之前</strong>回填到 21V 应用注册的「Authentication → Web → Redirect URIs」（step-12），否则 OAuth 弹窗以 <code>redirect_uri_mismatch</code> 拒绝。</p></div></li>
+                  <li class="flow-step"><div class="flow-copy"><strong>F7 · 浏览器同意弹窗易被拦</strong><p>CS Create connection 触发的是 <code>window.open</code> 子窗口；浏览器需放行 <code>copilotstudio.preview.microsoft.com</code> 的弹窗才能完成握手，自动化/身份托管场景无法代走这一步。</p></div></li>
+                </ol>
+
+                <p><strong>F8 · 环境级 Allow-List 需手建带 publisher prefix 的记录</strong>：21V Dataverse <code>allowedmcpclient</code> 表里默认只有 Microsoft first-party 三条；要让自定义 multitenant app 调用 <code>/api/mcp</code>，必须在该表 + New 一条记录，填 Name、Unique Name（必须带 publisher prefix 如 <code>crf5c_</code>，否则保存报 <em>must start with a valid customization prefix</em>）、Application Id、Is Enabled = Yes。本次实测记录 <code>crf5c_21vdataversemcptest</code> / app <code>5581c024-...</code> / Yes 保存成功后，<code>/api/mcp</code> 立即接受调用。</p>
+
+                <p><strong>实测证据截图</strong>（来源租户 / 用户身份均已打码）：</p>
+
+                <div class="phase-step-card" data-present-substep data-step-title="实测 1 · 21V Common Data Service 只发布 user_impersonation" data-step-title-en="Empirical 1 · 21V CDS exposes only user_impersonation" data-step-label="04 / 跨云差异 · 实测" data-step-label-en="04 / Cross-Cloud · Empirical">
+                  <div class="comparison-grid phase-step-grid">
+                    <article class="comparison-card phase-step-copy">
+                      <span class="comparison-label">Evidence 05 · Scope Inventory</span>
+                      <h3>21V Common Data Service 的 Delegated 权限列表只暴露 user_impersonation</h3>
+                      <p>这是 21V 与 Commercial 同云路径的关键差异。Commercial 同云租户里 Dynamics CRM 的 Delegated 权限有 <code>user_impersonation</code> 与 <code>mcp.tools</code> 两项；21V 这边筛选框输入 <em>mcp</em> 后无任何匹配，目录里彻底没有 <code>mcp.tools</code>。</p>
+                      <ul class="challenge-list">
+                        <li><strong>资源服务</strong> — Common Data Service（appId <code>00000007-0000-0000-c000-000000000000</code>）。</li>
+                        <li><strong>暴露范围</strong> — 仅 <code>user_impersonation</code>（Access Dynamics 365 as organization users）。</li>
+                        <li><strong>应对</strong> — Copilot Studio Scopes 填 <code>https://{org}.crm.dynamics.cn/.default offline_access</code>；<code>.default</code> 已涵盖 <code>user_impersonation</code>，不需也无法补 <code>mcp.tools</code>。实测表明 21V <code>/api/mcp</code> 不要求 <code>mcp.tools</code> claim。</li>
+                      </ul>
+                    </article>
+                    <figure class="comparison-card phase-step-visual">
+                      <span class="comparison-label">Portal Screen 05</span>
+                      <h4>21V Request API permissions · Common Data Service</h4>
+                      <img class="portal-shot" src="./step-05-user-impersonation-only.png" alt="21V 门户 Request API permissions 侧栏，Common Data Service 下 Delegated permissions 仅 user_impersonation 一项" loading="eager" />
+                      <p>对照 §3.2 Step 2B：Commercial 同云会有 mcp.tools，21V 只有 user_impersonation。实测中 <code>.default</code> scope 已足以让 <code>/api/mcp</code> 放行。</p>
+                    </figure>
+                  </div>
+                </div>
+
+                <div class="phase-step-card" data-present-substep data-step-title="实测 2 · 已配权限 + 管理员同意" data-step-title-en="Empirical 2 · Permission configured and consented" data-step-label="04 / 跨云边界 · 实测" data-step-label-en="04 / Cross-Cloud · Empirical">
+                  <div class="comparison-grid phase-step-grid">
+                    <article class="comparison-card phase-step-copy">
+                      <span class="comparison-label">Evidence 06–07 · Configured + Consent</span>
+                      <h3>把唯一可选的 user_impersonation 加上、并完成 admin consent</h3>
+                      <p>21V 侧在创建应用后把 <em>Common Data Service / user_impersonation</em> 加进配置权限，并由租户管理员 <em>Grant admin consent for {tenant}</em>，状态列全绿勾。这是 OAuth 能颁发 token 的前提。</p>
+                    </article>
+                    <figure class="comparison-card phase-step-visual">
+                      <span class="comparison-label">Portal Screen 06 · 07</span>
+                      <h4>Configured permissions / Successfully granted</h4>
+                      <img class="portal-shot" src="./step-06-configured-permissions.png" alt="21V 门户 API permissions 主页，新增 Common Data Service user_impersonation 一行" loading="eager" />
+                      <img class="portal-shot" src="./step-07-consent-granted.png" alt="21V 门户 API permissions 状态列全部为绿色对勾，标识 Successfully granted admin consent" loading="eager" style="margin-top:12px;" />
+                    </figure>
+                  </div>
+                </div>
+
+                <div class="phase-step-card" data-present-substep data-step-title="实测 3 · 在 21V 创建 Client Secret" data-step-title-en="Empirical 3 · Client secret created in 21V" data-step-label="04 / 跨云边界 · 实测" data-step-label-en="04 / Cross-Cloud · Empirical">
+                  <div class="comparison-grid phase-step-grid">
+                    <article class="comparison-card phase-step-copy">
+                      <span class="comparison-label">Evidence 08–09 · Client Secret</span>
+                      <h3>给 21V 应用建一个 Client Secret，并当场记录 Value</h3>
+                      <p>OAuth Manual 在 Commercial CS 端要填 client_secret value。21V 端的 Certificates &amp; secrets → New client secret 流程与 Commercial 一致；生成后 Value 列只显示一次。本次实测以 Description <code>cs-to-21v-dataverse-mcp</code> 创建，过期日按企业最短可接受周期设置。</p>
+                    </article>
+                    <figure class="comparison-card phase-step-visual">
+                      <span class="comparison-label">Portal Screen 08 · 09</span>
+                      <h4>New client secret / Secret value masked</h4>
+                      <img class="portal-shot" src="./step-08-new-secret-pane.png" alt="21V 门户 Add a client secret 侧栏，填写 Description 和 Expires" loading="eager" />
+                      <img class="portal-shot" src="./step-09-secret-created.png" alt="21V 门户 Client secrets 列表，Value 与 Secret ID 列均已打码" loading="eager" style="margin-top:12px;" />
+                    </figure>
+                  </div>
+                </div>
+
+                <div class="phase-step-card" data-present-substep data-step-title="实测 4 · Commercial CS 填 Manual OAuth + 命名规则" data-step-title-en="Empirical 4 · Commercial CS Manual OAuth + name regex" data-step-label="04 / 跨云边界 · 实测" data-step-label-en="04 / Cross-Cloud · Empirical">
+                  <div class="comparison-grid phase-step-grid">
+                    <article class="comparison-card phase-step-copy">
+                      <span class="comparison-label">Evidence 10–11 · CS Wizard</span>
+                      <h3>CS 向导接受 sovereign URL，向导后台对名称做正则校验</h3>
+                      <p>Server URL 填 <code>https://coe.crm.dynamics.cn/api/mcp</code>、Authority 填 <code>https://login.partner.microsoftonline.cn/{21V-tenant-id}</code>、Scope 填 <code>https://coe.crm.dynamics.cn/.default offline_access</code>，向导 Create 直通。名称填中文或含空格会被 HTTP 400 拒绝（F5）；本次填 <code>21V Dataverse MCP</code> 后后台生成的 connector 唯一名为 <code>crf5c-5f21v-20dataverse-20mcp-5f...</code>，对应的 Redirect URL 在 <code>global.consent.azure-apim.net</code> 域。</p>
+                    </article>
+                    <figure class="comparison-card phase-step-visual">
+                      <span class="comparison-label">CS Screen 10 · 11</span>
+                      <h4>Manual OAuth form filled / Connector created with Redirect URL</h4>
+                      <img class="portal-shot" src="./step-10-cs-wizard-filled.png" alt="Copilot Studio Manual OAuth 表单，Client ID / Client secret 字段已打码" loading="eager" />
+                      <img class="portal-shot" src="./step-11-connector-created-redirect.png" alt="Copilot Studio 自动生成的 Redirect URL 面板，hash 部分已打码" loading="eager" style="margin-top:12px;" />
+                    </figure>
+                  </div>
+                </div>
+
+                <div class="phase-step-card" data-present-substep data-step-title="实测 5 · 21V 应用注册 Commercial APIM 回跳 URI" data-step-title-en="Empirical 5 · 21V app registers Commercial APIM redirect URI" data-step-label="04 / 跨云差异 · 实测" data-step-label-en="04 / Cross-Cloud · Empirical">
+                  <div class="comparison-grid phase-step-grid">
+                    <article class="comparison-card phase-step-copy">
+                      <span class="comparison-label">Evidence 12 · Redirect URI</span>
+                      <h3>跨云 callback 域要在 sovereign 租户里登记</h3>
+                      <p>把 CS 自动生成的 <code>https://global.consent.azure-apim.net/redirect/{hash}</code> 回填到 21V 应用 <em>Authentication → Add a platform → Web → Redirect URIs</em>。这一步是为了让 21V 授权服务在用户同意后允许把 code 跳回 Commercial APIM。<strong>必须在 CS Create connection 之前完成保存</strong>，否则同意弹窗会以 <code>redirect_uri_mismatch</code> 拒绝。</p>
+                      <ul class="challenge-list">
+                        <li><strong>记录顺序</strong> — CS 侧 Create connector → 复制 Redirect URL → 21V 侧应用保存 Web Redirect URI → CS 侧点 Create connection 跳 OAuth 同意。</li>
+                        <li><strong>风险</strong> — 跨云 DNS / TLS 回跳不在文档 SLA 范围内，严格 CA 或企业出口网关可能拦截 Commercial APIM 域的回跳。</li>
+                      </ul>
+                    </article>
+                    <figure class="comparison-card phase-step-visual">
+                      <span class="comparison-label">Portal Screen 12</span>
+                      <h4>21V Authentication → Web → Redirect URIs</h4>
+                      <img class="portal-shot" src="./step-12-redirect-uri-registered.png" alt="21V 门户应用 Authentication 页，Web 平台下登记了一条 https://global.consent.azure-apim.net/redirect/... 的 URI，URI 后半段已打码" loading="eager" />
+                    </figure>
+                  </div>
+                </div>
+
+                </div>
+
+                <p><strong>综合判定</strong>：Global → 21V 在 Copilot Studio Preview 中可复现走通。需同时满足：(1) 21V 应用注册走 Common Data Service / <code>user_impersonation</code> + admin consent + client secret；(2) 21V Dataverse <code>allowedmcpclient</code> 表里存在带 publisher prefix、填入调用方 client ID 且 Is Enabled = Yes 的记录；(3) CS 生成的 Commercial APIM Redirect URL 在 Create connection 之前已写入 21V 应用 Authentication；(4) 浏览器与企业 CA 放行 <code>copilotstudio.preview.microsoft.com</code> 弹窗与 <code>global.consent.azure-apim.net</code> 回跳。Scope 使用 <code>.default offline_access</code> 即可被 21V <code>/api/mcp</code> 接受，无需 <code>mcp.tools</code>。跨境数据交互的 PIPL / 数据出境合规需自行评估，详见 §06 治理层。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="alternatives" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / Alternative Paths</p>
+            <h2>跨云场景的替代路径</h2>
+            <p>§04 的实测路径技术上可走通，但跨境数据交互、CA 放行 sovereign 回跳、弹窗策略都不属于文档 SLA。生产承诺前可考虑以下三条替代路径，按「合规优先 → 工程量低 → 用户体验」依次列出，选哪条取决于谁是主使用者、数据是否允许离开 sovereign 云。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span>5.1 路径 A：在目标云内建 Agent（推荐）</span></button>
+              <div class="subsection-content">
+                <p>把 Copilot Studio Agent 直接在 21Vianet 或 GCC 的 Power Platform 实例里构建，使用本云内置 Dataverse MCP 连接器，再通过本云原生的发布渠道触达用户。这是合规与稳定性的默认解。</p>
+                <ul class="challenge-list">
+                  <li><strong>身份</strong> — 用户必须在目标云租户内有原生或 B2B guest 身份。</li>
+                  <li><strong>许可</strong> — 需要在目标云分别采购 Copilot Studio 许可（China 价目独立、由 21Vianet 销售）。</li>
+                  <li><strong>渠道</strong> — Teams、Web 渠道在 China 云独立提供；跨云分享 Agent 链接需要再走 cross-cloud B2B。</li>
+                  <li><strong>合规收益</strong> — 数据始终留在 sovereign 云，符合「Customer data is stored at rest within the geography」承诺。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span>5.2 路径 B：自托管 MCP 代理（条件性可行）</span></button>
+              <div class="subsection-content">
+                <p>在客户自己的网络部署一个标准 MCP server（如基于 Microsoft 官方 SDK），由它在后台以 21Vianet 租户的服务主体身份调 Dataverse Web API，再通过公网把 MCP 协议暴露给 Commercial Copilot Studio。</p>
+                <ol class="flow-list">
+                  <li class="flow-step"><div class="flow-copy"><strong>身份</strong><p>在 21Vianet 注册 daemon 应用 + Application user，由代理用 client credentials 直接拉 Dataverse。注意此时所有调用以服务身份发生，丢失 per-user 审计。</p></div></li>
+                  <li class="flow-step"><div class="flow-copy"><strong>协议</strong><p>代理对外发布 Streamable HTTP transport（Copilot Studio 2025-08 起仅支持 Streamable），URL 公网可达且具备 TLS 证书。</p></div></li>
+                  <li class="flow-step"><div class="flow-copy"><strong>认证</strong><p>对 Commercial Copilot Studio 暴露 OAuth 2.0 或 API key 鉴权，由代理决定谁能进。这一层与 21V 内部身份完全脱钩，等于绕过了 Dataverse MCP allow-list 的天然管控。</p></div></li>
+                  <li class="flow-step"><div class="flow-copy"><strong>风险</strong><p>需要专门评估：跨境数据传输合规、服务身份的权限最小化、代理本身的审计与告警、TOS 是否允许这种二次分发。中国法律层面对跨境数据出境（PIPL / 数据出境安全评估）有硬约束，必须先合规再实施。</p></div></li>
+                </ol>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span>5.3 路径 C：用户侧统一在 Commercial 集中查询</span></button>
+              <div class="subsection-content">
+                <p>对「集中分析」类需求，可以把跨云数据先按合规要求 ETL 到 Commercial 侧的 Dataverse / Fabric / SQL，由 Commercial Copilot Studio 走本租户内置 MCP 访问。这条路径不解决「实时跨云调用」，但解决「跨云洞察」。</p>
+                <ul class="challenge-list">
+                  <li><strong>定位</strong> — 用于报表、跨地区合并分析、Agent 问答历史快照；不适合写操作或需要实时一致性的场景。</li>
+                  <li><strong>合规</strong> — 出境数据范围需提前过合规、签 SCC、做数据出境安全评估；Sensitive 字段需脱敏。</li>
+                  <li><strong>工程</strong> — 用 Dataverse 长轮询、Synapse Link、Fabric Mirroring 等已成熟的同步路径，不要自己造轮子。</li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="governance" class="section" data-reveal>
+          <div class="section-head">
+            <span class="layer-banner layer-gov">Layer 2 · 治理层 · 管理员 / 安全合规关注</span>
+            <p class="section-kicker">06 / Governance Layer</p>
+            <h2>治理层：管理员发布前对齐清单</h2>
+            <p>本节面向 Power Platform 管理员、安全与合规角色。Maker 配通（§03）后，<strong>发布到生产前</strong>必须由管理员把以下三个治理位逐条对齐，避免 PoC 通过后被合规审核拦截。如果只是开发测试，可以先跳过本节回到 §03。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span>6.1 DLP 与连接器策略</span></button>
+              <div class="subsection-content">
+                <p>MCP server 通过 Power Platform connectors 接入，意味着 DLP（数据丢失防护）策略对 MCP 工具同样生效。规划时必须把 MCP 的 connector 单独放入策略组评估。</p>
+                <ul class="challenge-list">
+                  <li><strong>分组</strong> — 自定义连接器（包含 §03 注册的 OAuth Manual MCP 连接器）默认为 non-business；明确归入 business 或 blocked 之前不要发布。</li>
+                  <li><strong>跨组流</strong> — DLP 默认禁止 business 与 non-business 数据在同一 Agent 中流转；MCP 工具与其他 connector（如 Mail Send、SharePoint）混用时会被拦截。</li>
+                  <li><strong>环境作用域</strong> — DLP 策略可按环境授予，跨租户场景下两侧管理员都要确认自家策略不会拒绝该 connector。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span>6.2 身份与权限最小化</span></button>
+              <div class="subsection-content">
+                <p>跨租户场景下，「外部应用 + 委托权限」叠加「目标环境安全角色」共同决定可见数据范围，任何一层失控都会放大风险。</p>
+                <ul class="challenge-list">
+                  <li><strong>应用权限范围</strong> — 仅授予 <code>Dynamics CRM/mcp.tools</code> delegated 权限；不要顺手开启 <code>user_impersonation</code> 等高权限 scope。</li>
+                  <li><strong>Admin consent</strong> — 由目标租户管理员显式 Grant admin consent，避免每个用户都跳出同意页。</li>
+                  <li><strong>安全角色</strong> — 在目标 Dataverse 环境内单独建一个最小权限的 Security Role 绑给跨租户用户，不要复用 System Customizer 之类的高权限角色。</li>
+                  <li><strong>Secret 轮换</strong> — Client secret 必须按企业策略轮换；建议改用 Certificate credential，统一通过 Entra 应用 manifest 管理。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span>6.3 审计与可观测</span></button>
+              <div class="subsection-content">
+                <p>跨租户调用要能在事后被追溯到某次具体的用户会话、某个 MCP 工具调用、某条 Dataverse 修改记录。</p>
+                <ul class="challenge-list">
+                  <li><strong>Copilot Studio 侧</strong> — Agent 的 Analytics + Conversation transcripts 能看到 MCP 工具调用次数与参数，留存期取决于环境配置。</li>
+                  <li><strong>Dataverse 侧</strong> — 启用 Auditing on entities；对 <code>create_record</code>/<code>update_record</code>/<code>delete_record</code> 工具，目标环境的 audit log 会记录 Modified By（guest 用户）和具体字段变更。</li>
+                  <li><strong>Entra 侧</strong> — Sign-in logs 显示自定义应用的 OAuth 授权与 token 颁发，可用于异常 token 使用追溯。</li>
+                  <li><strong>跨云路径 B 额外</strong> — 自托管代理要自带 request/response 日志、调用方身份映射，并按法律保存期归档。</li>
+                </ul>
+              </div>
+            </article>
+
+          </div>
+        </section>
+
+        <section id="references" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">References</p>
+            <h2>参考来源</h2>
+          </div>
+          <ol class="bib-list">
+            <li id="ref-1"><span class="bib-id">[1]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/agent-extend-action-mcp" target="_blank" rel="noopener noreferrer">"Extend your agent with Model Context Protocol,"</a> <em>Microsoft Learn,</em> 2026-04-18.<span class="bib-note">Copilot Studio MCP 集成总览、generative orchestration 强制启用要求；§01 / §03 引用基础。</span></li>
+            <li id="ref-2"><span class="bib-id">[2]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/mcp-add-existing-server-to-agent" target="_blank" rel="noopener noreferrer">"Connect your agent to an existing MCP server,"</a> <em>Microsoft Learn,</em> 2026-05-15.<span class="bib-note">MCP onboarding wizard 中 OAuth 2.0 Dynamic discovery / Dynamic / Manual 三类配置；§03.2 步骤的官方源。</span></li>
+            <li id="ref-3"><span class="bib-id">[3]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/power-apps/maker/data-platform/data-platform-mcp" target="_blank" rel="noopener noreferrer">"Connect to Dataverse with Model Context Protocol,"</a> <em>Microsoft Learn,</em> 2026-03-30.<span class="bib-note">Dataverse MCP 端点格式 <code>/api/mcp</code>、内置工具清单（list_tables / read_query 等）、计费起算日；§01.1、§03.3 验收的来源。</span></li>
+            <li id="ref-4"><span class="bib-id">[4]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/power-apps/maker/data-platform/data-platform-mcp-other-clients" target="_blank" rel="noopener noreferrer">"Connect to Dataverse with MCP in non-Microsoft clients,"</a> <em>Microsoft Learn,</em> 2026-03-10.<span class="bib-note">自定义 Entra 应用注册流程、<code>Dynamics CRM/mcp.tools</code> 委托权限、Dataverse CLI client ID <code>0c412cc3-0dd6-449b-987f-05b053db9457</code>；§01.3、§03.1 直接引用。</span></li>
+            <li id="ref-5"><span class="bib-id">[5]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/power-apps/maker/data-platform/data-platform-mcp-copilot-studio" target="_blank" rel="noopener noreferrer">"Connect to Dataverse with MCP in Microsoft Copilot Studio,"</a> <em>Microsoft Learn,</em> 2025-11-14.<span class="bib-note">Copilot Studio 内置 Dataverse MCP Server 工具的添加流程；§01.2 Path A 描述来源。</span></li>
+            <li id="ref-6"><span class="bib-id">[6]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/power-apps/maker/data-platform/data-platform-mcp-disable" target="_blank" rel="noopener noreferrer">"Configure the Dataverse MCP server for an environment,"</a> <em>Microsoft Learn,</em> 2026-05-04.<span class="bib-note">PPAC 中 Dataverse Model Context Protocol → Advanced Settings 的 allow-list 配置；Managed Environment 前置条件；§01.3 来源。</span></li>
+            <li id="ref-7"><span class="bib-id">[7]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/mcp-troubleshooting" target="_blank" rel="noopener noreferrer">"Troubleshooting Model Context Protocol integration,"</a> <em>Microsoft Learn,</em> 2025-10-23.<span class="bib-note">MCP 集成已知问题（exclusiveMinimum / 多类型数组 / reference type / enum type）；§06.4 列表的官方源。</span></li>
+            <li id="ref-8"><span class="bib-id">[8]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/entra/external-id/cross-tenant-access-overview" target="_blank" rel="noopener noreferrer">"Cross-tenant access overview,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">Microsoft cloud settings 跨云 B2B 支持范围；B2B Direct Connect 在跨云不支持；§02.2、§04.1 引用。</span></li>
+            <li id="ref-9"><span class="bib-id">[9]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/entra/external-id/cross-cloud-settings" target="_blank" rel="noopener noreferrer">"Enable B2B collaboration across Microsoft clouds,"</a> <em>Microsoft Learn,</em> 2026-03-27.<span class="bib-note">明确列出 Commercial × Government、Commercial × 21Vianet 两对跨云 B2B；UPN 登录强制；§02.1、§04 引用。</span></li>
+            <li id="ref-10"><span class="bib-id">[10]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/power-platform/admin/about-microsoft-cloud-china" target="_blank" rel="noopener noreferrer">"Power Platform and Dynamics 365 apps operated by 21Vianet in China,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">21Vianet 为「physically separated environment」、Shanghai Blue Cloud 本地运营、China 3 数据中心切换；§04.1、§05.1 的合规与隔离表述来源。</span></li>
+          </ol>
+        </section>
+      </main>
+
+      <footer>
+         © 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>
