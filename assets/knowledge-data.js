@@ -993,12 +993,12 @@ var knowledgeTree = [
     parentId: 'copilot-studio',
     type: 'article',
     title: {
-      zh: 'Copilot Studio 跨租户 MCP 连接：以 Global 调用 21Vianet Dataverse MCP 为例',
-      en: 'Cross-Tenant MCP in Copilot Studio: Global to 21Vianet Dataverse MCP'
+      zh: 'Copilot Studio 跨租户 MCP：Global 调通 21Vianet',
+      en: 'Cross-Tenant MCP: Global Copilot Studio Reaches 21Vianet'
     },
     summary: {
-      zh: '同云跨租户经 OAuth Manual + 环境 allow-list 可配通。Global→21V 实测可通：21V 用 .default+offline_access scope，在 allowedmcpclient 表加调用方 app ID。',
-      en: 'In-cloud cross-tenant works via OAuth Manual + env allow-list. Empirical: Global→21V works using .default+offline_access scope plus an allowedmcpclient record for the calling app.'
+      zh: 'Global Copilot Studio 实测调通 21Vianet Dataverse MCP，跨云边界存在可行路径。',
+      en: 'Global Copilot Studio verified reaching 21Vianet Dataverse MCP — a workable path across the cloud boundary.'
     },
     tags: ['Copilot Studio', 'MCP', 'Dataverse', 'Cross-Tenant', 'Sovereign Cloud'],
     date: '2026-05-28',

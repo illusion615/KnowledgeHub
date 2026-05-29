@@ -171,6 +171,47 @@ Boss 只关心**内容与业务**。技术问题（CSS 选择器范围、是否�
 3. 若是模式问题，立刻把修复固化到 `assets/article.css` / `.github/instructions/` / `tests/validate.js` / repo memory；
 4. 输出"做了什么 + 边界"一句话总结，不需 boss 批准。
 
+### 0.10 双语覆盖契约 — Full-Body Bilingual Wrapping
+
+> 默认所有新文章按本规范产出**全文双语**；旧文章在被 boss 显式重访时升级。
+> 参考实现：[posts/agentic-sales-mobile-proposal/index.html](../../posts/agentic-sales-mobile-proposal/index.html)（495+ `data-en` 覆盖 hero/段落/列表/卡片/Eyebrow/Metric label/Accordion 标题/Step 标题/参考列表）。
+
+**覆盖范围（必须全包）**：
+
+| 元素类型 | 包装策略 | 示例 |
+|---|---|---|
+| Hero `<h1>` / `<h2>` / 副标题 `<p>` / eyebrow / button | 元素本身加 `data-zh` / `data-en` | `<h1 data-zh="..." data-en="...">` |
+| Section `<h2>` + `.section-kicker` | 元素本身加 | `<h2 data-zh="..." data-en="...">` |
+| `.subsection-toggle > span`（accordion 标题，**= present slide 标题**）| 在 `<span>` 上加 | `<span data-zh="..." data-en="...">` |
+| Step 卡片 `<h3>` / `<h4>` / `.comparison-label` / `.metric-label` | 元素本身加 | `<h3 data-zh="..." data-en="...">` |
+| 段落 `<p>`、列表项 `<li>`、`<dt>` / `<dd>` | 元素本身加；如内含 `<strong><code>` 等子标签，整段连同子标签一起翻译进 `data-en` 字符串 | `<p data-zh="..." data-en="...">` |
+| Figure `<figcaption>`、`<img alt>`、`<button aria-label>` | 同上；`alt` 与 `aria-label` 直接写英文字符串而非 `data-en`（无切换需求） | `alt="English description"` |
+| 表格 `<th>` / `<td>` 文本 | 元素本身加；表格结构稳定不变 | `<th data-zh="..." data-en="...">` |
+| 参考列表条目 | 链接文本与说明文字都加 | `<a ... data-zh="..." data-en="...">` |
+
+**翻译质量规范**：
+
+- 英文采用 §0.1 已定义的 **paper-grade 语域**：陈述句、可证伪、无空话；禁用 colloquialism（"kill", "lock down", "the OG", "no one can…"）。
+- 专有名词与产品名保持原文（Copilot Studio、Dataverse、Microsoft Entra、21Vianet、PPAC、APIM、OAuth 2.0 等）。
+- 中文括号 `（）` 在英文里换成空格 + `(` + 内容 + `)`；中文逗号 `，` 换成 `, `；中文句号 `。` 换成 `.`；中文分号 `；` 换成 `; `；中文冒号 `：` 换成 `: `。
+- 长破折号 `——` 译为 ` — `（spaced em dash）；中文顿号 `、` 译为 `, `。
+- 引用文档命名保留官方英文名（不要把 "Microsoft Learn" 译成 "Microsoft 学习中心"）。
+- Title case 规则与 §0.1 一致；正文与卡片说明用 sentence case。
+
+**HTML 安全（详见 §"data-zh/data-en quote safety"）**：
+
+- `data-zh` / `data-en` 属性值内禁止裸 ASCII `"`；如必须出现引号，用 `&quot;` 或 `'`。
+- 属性值内可含 HTML 标签（`<code>`、`<strong>`、`<em>`），但所有标签必须闭合且不含 `"` 属性。
+- 中文标点 `「」` `『』` 是合法字符可直接写；英文版改用 `"`（注意是 `&quot;`）或不带引号的直陈写法。
+
+**验证**：
+
+- 新文章在 PR 前 `grep -c 'data-en=' posts/{slug}/index.html` 应 ≥ 该文章 `grep -c 'data-zh='` 的 95%（允许极少数 navbar 中两者相同时不重复计）。
+- `node tests/validate.js` 的 quote safety 检查必须 pass。
+- 浏览器实测：进入文章 → 顶部语言切换到 EN → 滚到底部，目视无中文残留（专有名词、数字、代码块除外）。
+
+**升级旧文章**：当 boss 让你 review 或扩展一篇旧文章时，把"补齐双语"作为本次工作的强制 sub-task；不允许只翻一半。
+
 ---
 
 ## Script & CSS Loading
