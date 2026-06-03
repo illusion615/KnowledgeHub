@@ -1792,12 +1792,12 @@ var knowledgeTree = [
     parentId: 'shanghai-zhongkao',
     type: 'article',
     title: {
-      zh: '上海中考政策解读与四校录取数据分析（2022–2025）',
-      en: 'Shanghai Zhongkao Policy Analysis & Top 4 Schools Admission Data (2022–2025)'
+      zh: '上海中考政策解读与四校录取数据分析（2022–2026）',
+      en: 'Shanghai Zhongkao Policy Analysis & Top 4 Schools Admission Data (2022–2026)'
     },
     summary: {
-      zh: '梳理 2022 新中考改革后招录制度，汇总四校 2022–2025 各批次分数线与浦东名额分配数据，提供量化决策依据。',
-      en: 'Reviews post-2022 reformed admission system with Top 4 schools score data (2022–2025) and Pudong quota statistics.'
+      zh: '梳理新中考招录制度，汇总四校 2022–2025 各批次分数线，并补充 2026 浦东名额分配到区与到校计划数及年度趋势，提供量化决策依据。',
+      en: 'Reviews reformed admission system, Top 4 score data (2022–2025), plus 2026 Pudong quota allocation counts and year-over-year trends.'
     },
     tags: ['中考', '四校', '录取数据', '政策分析'],
     date: '2026-04-12',
