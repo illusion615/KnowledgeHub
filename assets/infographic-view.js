@@ -33,10 +33,11 @@ function renderInfographicViewModule(ctx) {
   // ═══════════════════════════════════════════════════════════
 
   var W = window.innerWidth, H = window.innerHeight;
-  var cx = -W * 0.08;
+  var cxBase = -W * 0.08;
+  var cx = cxBase;
   var cy = H / 2;
-  var baseRadius = W * 0.28;
-  var arcGap = W * 0.18;
+  var baseRadius = Math.max(420, W * 0.28);
+  var arcGap = Math.max(280, W * 0.18);
 
   // ── Per-level state (dynamic array, grows/shrinks as user navigates) ──
   // Each entry: { angle, targetAngle, selectedIdx, visible, timer }
@@ -48,7 +49,9 @@ function renderInfographicViewModule(ctx) {
   var arcState = {
     focusArc: 0,
     animFrame: null,
-    isAnimating: false
+    isAnimating: false,
+    panX: 0,
+    targetPanX: 0
   };
   var arcTouch = { active: false, moved: false, startX: 0, startY: 0, focusArc: 0, axis: '' };
   var arcTouchStartHandler = null;
@@ -140,8 +143,8 @@ function renderInfographicViewModule(ctx) {
 
   // ── Progressive level widths: level 0 thin, deeper levels wider ──
   function arcLevelWidth(d) {
-    if (d === 0) return Math.max(250, arcGap * 0.72);
-    return arcGap * Math.min(1.30, 0.80 + 0.18 * d);
+    if (d === 0) return Math.max(300, arcGap * 0.72);
+    return arcGap * Math.min(1.60, 1.15 + 0.18 * d);
   }
   function arcOuterR(d) {
     var r = baseRadius;
@@ -151,6 +154,28 @@ function renderInfographicViewModule(ctx) {
   function arcInnerR(d) {
     if (d === 0) return baseRadius - arcLevelWidth(0);
     return arcOuterR(d - 1);
+  }
+
+  // ── Horizontal pan: keep the focused arc band within the viewport ──
+  // The arc center sits off-screen to the left and each deeper level grows in
+  // radius, so deep focus would push the active band past the right edge.
+  // Track the deepest visible level (the focused topic plus any auto-expanded
+  // children) and shift the whole fan left (never right) just enough to reveal it.
+  function computeTargetPanX() {
+    var deepest = arcState.focusArc;
+    if (deepest < 0) deepest = 0;
+    if (deepest > arcLevels.length - 1) deepest = arcLevels.length - 1;
+    for (var d = arcLevels.length - 1; d > deepest; d--) {
+      if (arcLevels[d] && arcLevels[d].visible && !arcLevels[d].collapsing &&
+          getItemsForLevel(d).length > 0) {
+        deepest = d;
+        break;
+      }
+    }
+    var rightMargin = Math.max(140, W * 0.16);
+    var rightEdge = cxBase + arcOuterR(deepest);
+    var pan = (W - rightMargin) - rightEdge;
+    return pan < 0 ? pan : 0;
   }
 
   // ── Geometry helpers ──
@@ -334,11 +359,14 @@ function renderInfographicViewModule(ctx) {
     glowFocusedDepth = depth;
     glowSvg.innerHTML = '';
 
+    // Glow geometry is built in un-panned (base) coordinates; the whole glow
+    // overlay is shifted by arcState.panX via a transform in render(), so it
+    // always tracks the arcs regardless of the current horizontal pan.
     var r = arcOuterR(depth);
     var span = Math.PI * 0.85;
     var startA = -span / 2, endA = span / 2;
-    var x1 = cx + r * Math.cos(startA), y1 = cy + r * Math.sin(startA);
-    var x2 = cx + r * Math.cos(endA),   y2 = cy + r * Math.sin(endA);
+    var x1 = cxBase + r * Math.cos(startA), y1 = cy + r * Math.sin(startA);
+    var x2 = cxBase + r * Math.cos(endA),   y2 = cy + r * Math.sin(endA);
     var la = span > Math.PI ? 1 : 0;
     var d = 'M ' + x1 + ' ' + y1 + ' A ' + r + ' ' + r + ' 0 ' + la + ' 1 ' + x2 + ' ' + y2;
 
@@ -351,8 +379,8 @@ function renderInfographicViewModule(ctx) {
     var grad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
     grad.setAttribute('id', gradId);
     grad.setAttribute('gradientUnits', 'userSpaceOnUse');
-    grad.setAttribute('x1', cx - r); grad.setAttribute('y1', cy - r);
-    grad.setAttribute('x2', cx + r); grad.setAttribute('y2', cy + r);
+    grad.setAttribute('x1', cxBase - r); grad.setAttribute('y1', cy - r);
+    grad.setAttribute('x2', cxBase + r); grad.setAttribute('y2', cy + r);
 
     var stops = [
       { off: '0%',   color: glowColor, op: '0' },
@@ -376,8 +404,8 @@ function renderInfographicViewModule(ctx) {
     var anim = document.createElementNS('http://www.w3.org/2000/svg', 'animateTransform');
     anim.setAttribute('attributeName', 'gradientTransform');
     anim.setAttribute('type', 'rotate');
-    anim.setAttribute('from', '0 ' + cx + ' ' + cy);
-    anim.setAttribute('to', '360 ' + cx + ' ' + cy);
+    anim.setAttribute('from', '0 ' + cxBase + ' ' + cy);
+    anim.setAttribute('to', '360 ' + cxBase + ' ' + cy);
     anim.setAttribute('dur', '12s');
     anim.setAttribute('repeatCount', 'indefinite');
     grad.appendChild(anim);
@@ -395,6 +423,48 @@ function renderInfographicViewModule(ctx) {
     glowInner.setAttribute('class', 'arc-ring-glow arc-ring-glow-inner');
     glowInner.setAttribute('stroke', 'url(#' + gradId + ')');
     glowSvg.appendChild(glowInner);
+  }
+
+  // ── HSL helpers (light-mode harmonious tinting) ──
+  function clampNum(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+  function hexToHsl(hex) {
+    var r = parseInt(hex.slice(1, 3), 16) / 255;
+    var g = parseInt(hex.slice(3, 5), 16) / 255;
+    var b = parseInt(hex.slice(5, 7), 16) / 255;
+    var max = Math.max(r, g, b), min = Math.min(r, g, b);
+    var h = 0, s = 0, l = (max + min) / 2;
+    if (max !== min) {
+      var dd = max - min;
+      s = l > 0.5 ? dd / (2 - max - min) : dd / (max + min);
+      if (max === r) h = (g - b) / dd + (g < b ? 6 : 0);
+      else if (max === g) h = (b - r) / dd + 2;
+      else h = (r - g) / dd + 4;
+      h /= 6;
+    }
+    return { h: h, s: s, l: l };
+  }
+  function hslToHex(h, s, l) {
+    var r, g, b;
+    if (s === 0) {
+      r = g = b = l;
+    } else {
+      var hue2rgb = function (p, q, t) {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1 / 6) return p + (q - p) * 6 * t;
+        if (t < 1 / 2) return q;
+        if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+        return p;
+      };
+      var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      var p = 2 * l - q;
+      r = hue2rgb(p, q, h + 1 / 3);
+      g = hue2rgb(p, q, h);
+      b = hue2rgb(p, q, h - 1 / 3);
+    }
+    return '#' + [r, g, b].map(function (c) {
+      return Math.max(0, Math.min(255, Math.round(c * 255))).toString(16).padStart(2, '0');
+    }).join('');
   }
 
   function drawArcSpokes(arcIdx, nodeAngles, nodeColors, selectedIdx, items) {
@@ -438,17 +508,26 @@ function renderInfographicViewModule(ctx) {
         var isSel = (i === selectedIdx);
         var parity = i % 2;
         var nc = (nodeColors && nodeColors[i]) ? nodeColors[i] : '#888';
-        var tintRatio = isSel ? 0.55 : 0.40;
-        var baseInner, baseOuter;
+        var innerColor, outerColor;
         if (isDark) {
-          baseInner = isSel ? '#1a2030' : (parity ? '#161a26' : '#131720');
-          baseOuter = isSel ? '#283040' : (parity ? '#222a36' : '#1e2630');
+          var tintRatio = isSel ? 0.55 : 0.40;
+          var baseInner = isSel ? '#1a2030' : (parity ? '#161a26' : '#131720');
+          var baseOuter = isSel ? '#283040' : (parity ? '#222a36' : '#1e2630');
+          innerColor = mixColor(baseInner, nc, tintRatio);
+          outerColor = mixColor(baseOuter, nc, tintRatio);
         } else {
-          baseInner = isSel ? '#e0e2ea' : (parity ? '#e8eaef' : '#e4e6ec');
-          baseOuter = isSel ? '#eceef4' : (parity ? '#f0f1f5' : '#eceeF2');
+          // Light mode: build a harmonious soft tint in HSL space. Preserve the
+          // scheme hue, compress lightness into an airy band (so dark anchor
+          // colors like navy never become heavy dark slabs), and let the
+          // selected wedge pop via higher chroma rather than going darker.
+          var hsl = hexToHsl(nc);
+          var chroma = Math.min(0.40, hsl.s) * (isSel ? 1.0 : 0.62);
+          var bandL = 0.82 + hsl.l * 0.12;          // ~0.82–0.94, order preserved
+          var ripple = parity ? 0.012 : -0.012;     // subtle alternating relief
+          var L = clampNum(bandL + ripple, 0.78, 0.95);
+          innerColor = hslToHex(hsl.h, chroma, clampNum(L - 0.035, 0.74, 0.96));
+          outerColor = hslToHex(hsl.h, chroma * 0.88, clampNum(L + 0.02, 0.74, 0.97));
         }
-        var innerColor = mixColor(baseInner, nc, tintRatio);
-        var outerColor = mixColor(baseOuter, nc, tintRatio);
 
         var gradId = 'spoke-grad-' + arcIdx + '-' + i;
         var rg = document.createElementNS('http://www.w3.org/2000/svg', 'radialGradient');
@@ -691,6 +770,12 @@ function renderInfographicViewModule(ctx) {
     descendantCache = {};
     hideDetail();
 
+    // Pan the focused arc into view before drawing deep levels.
+    arcState.targetPanX = computeTargetPanX();
+    cx = cxBase + arcState.panX;
+    // Keep the persistent glow overlay aligned with the panned arcs.
+    glowSvg.setAttribute('transform', 'translate(' + arcState.panX + ',0)');
+
     for (var depth = 0; depth < arcLevels.length; depth++) {
       var lvl = arcLevels[depth];
       var items = getItemsForLevel(depth);
@@ -808,6 +893,9 @@ function renderInfographicViewModule(ctx) {
 
     // Update glow on persistent overlay (only rebuilds when focus depth changes)
     updateGlow();
+
+    // Keep panning when the focused arc has not yet reached its target offset.
+    if (Math.abs(arcState.targetPanX - arcState.panX) > 0.5) startAnim();
   }
 
   // ── Animation engine (dynamic levels) ──
@@ -835,6 +923,13 @@ function renderInfographicViewModule(ctx) {
       } else {
         lvl.angle = lvl.targetAngle;
       }
+    }
+    var panDiff = arcState.targetPanX - arcState.panX;
+    if (Math.abs(panDiff) > 0.5) {
+      arcState.panX += panDiff * 0.18;
+      moving = true;
+    } else {
+      arcState.panX = arcState.targetPanX;
     }
     render();
     if (moving) {
@@ -1150,8 +1245,8 @@ function renderInfographicViewModule(ctx) {
     W = window.innerWidth; H = window.innerHeight;
     cx = -W * 0.08;
     cy = H / 2;
-    baseRadius = W * 0.28;
-    arcGap = W * 0.18;
+    baseRadius = Math.max(420, W * 0.28);
+    arcGap = Math.max(280, W * 0.18);
     glowFocusedDepth = -1; // force glow rebuild on resize
     render();
   };

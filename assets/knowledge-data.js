@@ -834,7 +834,7 @@ var knowledgeTree = [
   },
   {
     id: 'power-platform-pricing-quote-tool',
-    parentId: 'power-apps',
+    parentId: 'microsoft-ai',
     type: 'article',
     title: {
       zh: 'Power Platform 报价体系与互动估算器：从需求到产品配置',
@@ -1547,6 +1547,19 @@ var knowledgeTree = [
     phase: 3.0, speed: 0.84,
     relations: ['work-energy']
   },
+  {
+    id: 'buoyancy-principle',
+    parentId: 'physics-mechanics',
+    type: 'article',
+    title: { zh: '浮力：从液体压强到阿基米德原理', en: 'Buoyancy: From Liquid Pressure to Archimedes' },
+    summary: { zh: '用称重、沉浮、盐水、潜艇四个可调实验，把液体压强、阿基米德原理与浮沉条件连成一条因果链，覆盖中考与自招。', en: 'Four adjustable labs link liquid pressure, the Archimedes principle, and float-sink conditions into one causal chain for exam prep.' },
+    tags: ['Physics', 'Buoyancy', 'Archimedes', 'Pressure'],
+    date: '2026-06-07',
+    url: 'posts/buoyancy-principle/index.html',
+    color: '#0284c7',
+    phase: 3.4, speed: 0.82,
+    relations: ['forces-equilibrium', 'work-energy']
+  },
 
   // ── 二级分组 — 热学 ──
   {
@@ -1692,6 +1705,19 @@ var knowledgeTree = [
     url: 'posts/wave-optics/index.html',
     color: '#0d9488',
     phase: 1.8, speed: 0.88,
+    relations: ['geometric-optics']
+  },
+  {
+    id: 'convex-lens-imaging',
+    parentId: 'physics-optics',
+    type: 'article',
+    title: { zh: '凸透镜成像规律：物距决定像的性质', en: 'Convex Lens Imaging: How Object Distance Sets the Image' },
+    summary: { zh: '用一张可拖动的光路图把物距、像距与像的虚实、正倒、大小连成连续规律，覆盖照相机、投影仪、放大镜与眼睛。', en: 'A draggable ray diagram links object distance, image distance, and the image\'s nature into one rule, covering camera, projector, magnifier and the eye.' },
+    tags: ['Physics', 'Optics', 'Convex Lens', 'Imaging'],
+    date: '2026-06-07',
+    url: 'posts/convex-lens-imaging/index.html',
+    color: '#0d9488',
+    phase: 3.0, speed: 0.86,
     relations: ['geometric-optics']
   },
 
