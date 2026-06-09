@@ -367,6 +367,25 @@ var knowledgeTree = [
     relations: ['copilot-deep-dive', 'claw-code-analysis', 'copilot-harness-eng']
   },
   {
+    id: 'generative-ui-landscape',
+    parentId: 'ai-research-vibe-coding',
+    type: 'article',
+    title: {
+      zh: '生成式 UI 全景：从设计时生成到运行时界面',
+      en: 'The Generative UI Landscape: From Design-Time Generation to Runtime Interfaces'
+    },
+    summary: {
+      zh: '用三层范式（设计时生成 / 运行时组件 / 运行时界面）梳理 Generative UI，覆盖 v0、Claude Artifacts、Gemini 3 等代表产品与一张定位象限图。',
+      en: 'Maps generative UI in three paradigms (design-time, runtime components, runtime interfaces), with v0, Claude Artifacts, Gemini 3, and a positioning map.'
+    },
+    tags: ['Generative UI', 'AI UX', 'Vibe Coding', 'Product Landscape', 'Design Systems'],
+    date: '2026-06-10',
+    url: 'posts/generative-ui-landscape/index.html',
+    color: '#8b5cf6',
+    phase: 4.7, speed: 0.83,
+    relations: ['open-design-research', 'copilot-deep-dive', 'ai-era-app-evolution']
+  },
+  {
     id: 'text-to-image-prompting',
     parentId: 'ai-research-model',
     type: 'article',
