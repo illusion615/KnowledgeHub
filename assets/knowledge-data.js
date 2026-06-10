@@ -71,6 +71,14 @@ var knowledgeTree = [
     phase: 1.4, speed: 0.88
   },
   {
+    id: 'ai-industry-watch',
+    parentId: 'ai-engineering-practice',
+    type: 'topic',
+    label: { zh: '行业观察', en: 'Industry Watch' },
+    color: '#38bdf8',
+    phase: 2.0, speed: 0.87
+  },
+  {
     id: 'ai-research-agent',
     parentId: 'ai-engineering-practice',
     type: 'topic',
@@ -327,6 +335,25 @@ var knowledgeTree = [
     color: '#12b5b2',
     phase: 1.2, speed: 0.9,
     relations: ['enterprise-agent-arch', 'ai-mud-retro']
+  },
+  {
+    id: 'ai-industry-watch-2026-06-10',
+    parentId: 'ai-industry-watch',
+    type: 'article',
+    title: {
+      zh: 'AI 行业趋势速览：模型家族、Agent 入口与企业产品化',
+      en: 'AI Industry Trend Brief: Model Families, Agent Entry Points, and Enterprise Productization'
+    },
+    summary: {
+      zh: '日更示例：以公开官方博客为锚点，提炼模型、Agent 与企业化三类信号，作为后续每日 AI 观察的稳定模板。',
+      en: 'Daily brief sample: using public official blogs as anchors, extracting model, agentic, and enterprise signals as a stable template for future AI watch notes.'
+    },
+    tags: ['AI Industry', 'Trend Brief', 'Agent', 'Model', 'Enterprise'],
+    date: '2026-06-10',
+    url: 'posts/ai-industry-watch-2026-06-10/index.html',
+    color: '#38bdf8',
+    phase: 0.55, speed: 0.9,
+    relations: ['copilot-harness-eng', 'enterprise-agent-arch', 'fc-landscape']
   },
   {
     id: 'copilot-deep-dive',
