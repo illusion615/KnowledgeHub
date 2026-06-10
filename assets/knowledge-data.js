@@ -341,14 +341,14 @@ var knowledgeTree = [
     parentId: 'ai-industry-watch',
     type: 'article',
     title: {
-      zh: 'AI 行业观察：模型运行时、工具接口与 Agent 评估',
-      en: 'AI Industry Watch: Model Runtime, Tool Interfaces, and Agent Evaluation'
+      zh: 'AI 行业观察：Agent 应用、AI 编码代理与算力基础设施',
+      en: 'AI Industry Watch: Agentic Apps, AI Coding Agents, and Infrastructure Scale'
     },
     summary: {
-      zh: '观察 6 月上旬 AI 工程化事件：运行时修复、工具调用契约与连续任务流 Agent 评估。',
-      en: 'Observes early-June AI engineering events: runtime fixes, tool-call contracts, and agent evaluation under continuous task streams.'
+      zh: 'Newsletter 式观察：Google Agentic Gemini、GitHub Copilot custom agents、Anthropic 企业分发与 NVIDIA 算力平台。',
+      en: 'Newsletter-style watch: Google Agentic Gemini, GitHub Copilot custom agents, Anthropic enterprise distribution, and NVIDIA infrastructure.'
     },
-    tags: ['AI Industry', 'Runtime', 'Agent', 'Tool Use', 'Enterprise'],
+    tags: ['AI Industry', 'Agentic Apps', 'AI Coding', 'Enterprise AI', 'Infrastructure'],
     date: '2026-06-10',
     url: 'posts/ai-industry-watch-2026-06-10/index.html',
     color: '#38bdf8',
