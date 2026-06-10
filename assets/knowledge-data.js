@@ -341,12 +341,12 @@ var knowledgeTree = [
     parentId: 'ai-industry-watch',
     type: 'article',
     title: {
-      zh: 'AI 行业观察 2026-06-10：模型运行时、Agent 工具接口与企业编排框架',
-      en: 'AI Industry Watch 2026-06-10: Model Runtime, Agent Tool Interfaces, and Enterprise Orchestration Frameworks'
+      zh: 'AI 行业观察：模型运行时、工具接口与 Agent 评估',
+      en: 'AI Industry Watch: Model Runtime, Tool Interfaces, and Agent Evaluation'
     },
     summary: {
-      zh: '基于 8 条公开来源，观察模型运行时、Agent 工具接口与企业编排框架的近期工程信号。',
-      en: 'Uses 8 public sources to examine recent engineering signals in model runtimes, agent tool interfaces, and enterprise orchestration frameworks.'
+      zh: '观察 6 月上旬 AI 工程化事件：运行时修复、工具调用契约与连续任务流 Agent 评估。',
+      en: 'Observes early-June AI engineering events: runtime fixes, tool-call contracts, and agent evaluation under continuous task streams.'
     },
     tags: ['AI Industry', 'Runtime', 'Agent', 'Tool Use', 'Enterprise'],
     date: '2026-06-10',
