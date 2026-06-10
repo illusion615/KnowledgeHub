@@ -74,7 +74,7 @@ var knowledgeTree = [
     id: 'ai-industry-watch',
     parentId: 'ai-engineering-practice',
     type: 'topic',
-    label: { zh: '行业观察', en: 'Industry Watch' },
+    label: { zh: 'AI 时事雷达', en: 'AI News Radar' },
     color: '#38bdf8',
     phase: 2.0, speed: 0.87
   },
@@ -341,12 +341,12 @@ var knowledgeTree = [
     parentId: 'ai-industry-watch',
     type: 'article',
     title: {
-      zh: 'AI 行业观察：Agent 应用、AI 编码代理与算力基础设施',
-      en: 'AI Industry Watch: Agentic Apps, AI Coding Agents, and Infrastructure Scale'
+      zh: 'AI 时事雷达：Agent 应用、AI 编码代理与算力基础设施',
+      en: 'AI News Radar: Agentic Apps, AI Coding Agents, and Infrastructure Scale'
     },
     summary: {
-      zh: 'Newsletter 式观察：Google Agentic Gemini、GitHub Copilot custom agents、Anthropic 企业分发与 NVIDIA 算力平台。',
-      en: 'Newsletter-style watch: Google Agentic Gemini, GitHub Copilot custom agents, Anthropic enterprise distribution, and NVIDIA infrastructure.'
+      zh: 'AI 时事雷达：Google Agentic Gemini、GitHub Copilot custom agents、Anthropic 企业分发与 NVIDIA 算力平台。',
+      en: 'AI news radar: Google Agentic Gemini, GitHub Copilot custom agents, Anthropic enterprise distribution, and NVIDIA infrastructure.'
     },
     tags: ['AI Industry', 'Agentic Apps', 'AI Coding', 'Enterprise AI', 'Infrastructure'],
     date: '2026-06-10',
