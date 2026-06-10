@@ -341,14 +341,14 @@ var knowledgeTree = [
     parentId: 'ai-industry-watch',
     type: 'article',
     title: {
-      zh: 'AI 行业趋势速览：模型家族、Agent 入口与企业产品化',
-      en: 'AI Industry Trend Brief: Model Families, Agent Entry Points, and Enterprise Productization'
+      zh: 'AI 行业观察 2026-06-10：模型运行时、Agent 工具接口与企业编排框架',
+      en: 'AI Industry Watch 2026-06-10: Model Runtime, Agent Tool Interfaces, and Enterprise Orchestration Frameworks'
     },
     summary: {
-      zh: '日更示例：以公开官方博客为锚点，提炼模型、Agent 与企业化三类信号，作为后续每日 AI 观察的稳定模板。',
-      en: 'Daily brief sample: using public official blogs as anchors, extracting model, agentic, and enterprise signals as a stable template for future AI watch notes.'
+      zh: '基于 8 条公开来源，观察模型运行时、Agent 工具接口与企业编排框架的近期工程信号。',
+      en: 'Uses 8 public sources to examine recent engineering signals in model runtimes, agent tool interfaces, and enterprise orchestration frameworks.'
     },
-    tags: ['AI Industry', 'Trend Brief', 'Agent', 'Model', 'Enterprise'],
+    tags: ['AI Industry', 'Runtime', 'Agent', 'Tool Use', 'Enterprise'],
     date: '2026-06-10',
     url: 'posts/ai-industry-watch-2026-06-10/index.html',
     color: '#38bdf8',
