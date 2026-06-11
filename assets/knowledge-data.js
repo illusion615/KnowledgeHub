@@ -1916,6 +1916,25 @@ var knowledgeTree = [
     phase: 5.2, speed: 0.80,
     relations: ['four-schools-profile', 'zhongkao-policy-data', 'zhongkao-volunteer-strategy']
   },
+  {
+    id: 'shanghai-zizhao-2026',
+    parentId: 'shanghai-zhongkao',
+    type: 'article',
+    title: {
+      zh: '2026 上海四校・四校分校・八大自主招生指南：名额、报名、流程与材料',
+      en: 'Shanghai 2026 Self-Admission Guide: Top 4, Branches & Eight Schools'
+    },
+    summary: {
+      zh: '汇总 2026 上海四校、四校分校与八大共 21 校自主招生名额（合计 1580），并逐校列出报名时间、材料投递系统与综合测试日期（6/23 填报、材料 6/21 起投、测试 7/1–3、7/5 签约）。',
+      en: '2026 self-admission quotas for 21 top Shanghai high schools (1580 total) plus per-school registration dates, submission systems, and test dates.'
+    },
+    tags: ['中考', '自主招生', '四校', '八大', '名额'],
+    date: '2026-06-10',
+    url: 'posts/shanghai-zizhao-2026/index.html',
+    color: '#9f1239',
+    phase: 3.4, speed: 0.84,
+    relations: ['four-schools-profile', 'zhongkao-policy-data', 'zhongkao-volunteer-strategy']
+  },
 
   {
     id: 'ai-radar-2026w15',
