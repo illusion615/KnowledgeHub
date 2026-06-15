@@ -1210,17 +1210,23 @@
     }
   }
 
-  gameBtn.addEventListener('click', function () {
-    if (gameActive) {
-      stopGame();
-    } else {
+  // Public API for the game launcher (chooser menu).
+  window.CellGame = {
+    start: function () {
       restoreTargets();
       overEl.classList.remove('active');
       round = 1;
       totalScore = 0;
       if (document.body.getAttribute('data-layout') === 'cell') startGame();
+    },
+    stop: function () {
+      restoreTargets();
+      stopGame();
+    },
+    isActive: function () {
+      return canvas.classList.contains('active') || overEl.classList.contains('active');
     }
-  });
+  };
 
   restartBtn.addEventListener('click', function () {
     overEl.classList.remove('active');
