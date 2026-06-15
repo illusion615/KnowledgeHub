@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>数据为基，目标为向 — Agentic Sales Mobile 的 Purpose-Driven CRM 功能设计</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 { font-size: clamp(1.9rem, 4.4vw, 3.1rem); line-height: 1.12; letter-spacing: -0.02em; max-width: 24ch; }
+    .mono { font-family: "Space Grotesk", ui-monospace, monospace; font-size: 0.9em; }
+    .usecase-list { display: grid; gap: 14px; }
+    .usecase-card {
+      display: grid;
+      grid-template-columns: 96px 1fr;
+      gap: 18px;
+      align-items: start;
+      padding: 18px 20px;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.04);
+    }
+    [data-theme="light"] .usecase-card { background: rgba(0,0,0,0.025); border-color: rgba(0,0,0,0.08); }
+    .usecase-time { font-family: "Space Grotesk", ui-monospace, monospace; font-weight: 700; color: #7dd3fc; }
+    [data-theme="light"] .usecase-time { color: #0369a1; }
+    .usecase-card h3 { margin: 0 0 8px; font-size: 1.02rem; }
+    .usecase-card p { margin: 0 0 10px; font-size: 0.92rem; line-height: 1.65; opacity: 0.85; }
+    .usecase-quote { margin: 10px 0; padding: 10px 12px; border-left: 3px solid #3468c7; background: rgba(52,104,199,0.08); border-radius: 0 10px 10px 0; font-size: 0.9rem; line-height: 1.6; }
+    .usecase-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .usecase-tag { display: inline-flex; align-items: center; padding: 4px 9px; border-radius: 999px; background: rgba(52,104,199,0.12); color: #93c5fd; font-size: 0.76rem; font-weight: 700; }
+    [data-theme="light"] .usecase-tag { color: #1d4ed8; }
+    .usecase-output { display: grid; gap: 6px; margin-top: 10px; font-size: 0.86rem; opacity: 0.86; }
+    .usecase-output span::before { content: "→ "; color: #34d399; font-weight: 700; }
+    .hero-layer-list { margin-top: 18px; }
+    .callout-note { margin-top: 14px; padding: 12px 16px; border-left: 3px solid #3468c7; background: rgba(52,104,199,0.07); border-radius: 0 12px 12px 0; }
+    .callout-note p { margin: 0; font-size: 0.9rem; }
+    .callout-green { border-left-color: #2d7a4d; background: rgba(45,122,77,0.08); }
+    .callout-red { border-left-color: #b53c24; background: rgba(181,60,36,0.08); }
+    .callout-amber { border-left-color: #a15d11; background: rgba(161,93,17,0.08); }
+    @media (max-width: 720px) { .usecase-card { grid-template-columns: 1fr; gap: 8px; } }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            <span data-zh="Agentic Sales Mobile" data-en="Agentic Sales Mobile">Agentic Sales Mobile</span>
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#philosophy" data-zh="设计哲学" data-en="Philosophy">设计哲学</a>
+            <a href="#overview" data-zh="功能全景" data-en="Overview">功能全景</a>
+            <a href="#activity" data-zh="记录活动" data-en="Log Activity">记录活动</a>
+            <a href="#account" data-zh="客户联系人" data-en="Accounts">客户联系人</a>
+            <a href="#opportunity" data-zh="商机管理" data-en="Opportunities">商机管理</a>
+            <a href="#query" data-zh="查询规划" data-en="Query &amp; Plan">查询规划</a>
+            <a href="#present" data-zh="主动呈现" data-en="Surfacing">主动呈现</a>
+            <a href="#foundation" data-zh="跨切底座" data-en="Foundation">跨切底座</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow" data-zh="功能设计 · 业务视角" data-en="Functional Design · Business View">功能设计 · 业务视角</span>
+            <h1 data-zh="数据为基，目标为向：一套 Purpose-Driven 的销售 CRM" data-en="Data as Foundation, Purpose as Direction: A Purpose-Driven Sales CRM">数据为基，目标为向：一套 Purpose-Driven 的销售 CRM</h1>
+            <p data-zh="这是本应用的功能设计文档。第一章先定义所有功能必须遵循的设计哲学，后续章节再从业务视角说明应用提供哪些功能域、每个域的触发场景、输入与产出、以及必须遵守的业务规则。它与「架构设计文档」从技术视角讲 Frame + Orchestrator 如何实现，构成业务 / 技术一对。" data-en="This is the app's functional design document. Chapter 1 first defines the design philosophy every feature must follow; the later chapters then explain, from a business view, each functional domain, when it triggers, what goes in and comes out, and the business rules it must follow. It pairs with the architecture design document, which from a technical view explains how Frame + Orchestrator implements it.">
+              这是本应用的功能设计文档。第一章先定义所有功能必须遵循的设计哲学，后续章节再从业务视角说明应用提供哪些功能域、每个域的触发场景、输入与产出、以及必须遵守的业务规则。它与「架构设计文档」从技术视角讲 Frame + Orchestrator 如何实现，构成业务 / 技术一对。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#philosophy" data-zh="先看设计哲学" data-en="Start with Philosophy">先看设计哲学</a>
+              <a class="button button-secondary" href="#foundation" data-zh="看跨切底座" data-en="See the Foundation">看跨切底座</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label" data-zh="核心观点" data-en="Core Thesis">核心观点</span>
+            <h2 data-zh="在数据驱动的 CRM 里，录入成本落在一线销售，而分析价值多半需要额外查询、且偏于事后复盘；Purpose-Driven 让 AI 从两头缩短这段距离——录入端把一句话变成结构化记录、省掉填表，产出端在数据之上即时给出对目标的判断。销售因此成为数据的即时受益人。" data-en="In a data-driven CRM, the logging cost falls on the front-line rep, while much of the analytic value needs extra querying and tends to serve after-the-fact review; Purpose-Driven shortens that distance from both ends — the input end turns one sentence into a structured record and spares the form-filling, while the output end produces, on top of the data and in the moment, judgments toward the goal. The rep thus becomes an immediate beneficiary of the data.">在数据驱动的 CRM 里，录入成本落在一线销售，而分析价值多半需要额外查询、且偏于事后复盘；Purpose-Driven 让 AI 从两头缩短这段距离——录入端把一句话变成结构化记录、省掉填表，产出端在数据之上即时给出对目标的判断。销售因此成为数据的即时受益人。</h2>
+            <p data-zh="这一转变不取代数据，而是给数据装上方向：输入侧把录入成本压到一句话、一段语音，输出侧让每条记录当下回流成离成交更近的下一步。" data-en="This shift does not replace data; it gives data a direction — the input side compresses logging cost down to one sentence or one voice clip, and the output side makes every record flow back, in the moment, into a step closer to the deal.">
+              这一转变不取代数据，而是给数据装上方向：输入侧把录入成本压到一句话、一段语音，输出侧让每条记录当下回流成离成交更近的下一步。
+            </p>
+            <ul class="layer-list hero-layer-list">
+              <li><span class="layer-number">1</span><span data-zh="数据退回手段，目标成为主线：CRM 不再以攒数据为目的。" data-en="Data steps back to a means, the goal becomes the spine: CRM no longer exists to amass data.">数据退回手段，目标成为主线：CRM 不再以攒数据为目的。</span></li>
+              <li><span class="layer-number">2</span><span data-zh="两头都让销售获益：录入端一句话代替填表省力，产出端录入即回报。" data-en="Both ends pay the rep back: the input end replaces form-filling with one sentence, the output end returns value the moment you log.">两头都让销售获益：录入端一句话代替填表省力，产出端录入即回报。</span></li>
+              <li><span class="layer-number">3</span><span data-zh="AI 只说增量、且可信赖：给销售没注意到的信号，并且有据可查。" data-en="AI speaks only the incremental, and is trustworthy: it surfaces signals the rep missed, grounded in checkable facts.">AI 只说增量、且可信赖：给销售没注意到的信号，并且有据可查。</span></li>
+            </ul>
+          </aside>
+        </div>
+      </header>
+
+      <main>
+        <!-- Section 01: Design philosophy -->
+        <section id="philosophy" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="01 / 设计哲学" data-en="01 / Design Philosophy">01 / Design Philosophy</p>
+            <h2 data-zh="Beyond Data-Driven，迈向 Purpose-Driven CRM：数据为基，目标为向" data-en="Beyond Data-Driven, Toward Purpose-Driven CRM">Beyond Data-Driven，迈向 Purpose-Driven CRM：数据为基，目标为向</h2>
+            <p data-zh="数据驱动是 CRM 的地基，它让客户关系第一次变得可存、可查、可分析——这一步不可或缺，也从未过时。只是在实践中存在一个不对等：录入发生在拜访现场、成本由一线销售承担，而数据的分析价值多半需要额外查询才能取出、且往往偏于事后复盘。AI 不是取代数据驱动，而是让它进化——在这块地基上，把数据在录入的当下就翻译成对目标的判断：谁该被关注、为什么、下一步做什么。以下原则分两组：输入侧让数据更轻松地沉淀，输出侧让数据回流成离成交更近的一步；它们是后续所有功能域的共同约束。" data-en="Data-driven is the foundation of CRM: it made customer relationships storable, queryable, and analyzable for the first time — a step that is indispensable and has never gone out of date. In practice, though, there is an asymmetry: logging happens in the field and its cost is borne by the front-line rep, while much of the data's analytic value takes extra querying to retrieve and tends to serve after-the-fact review. AI does not replace data-driven; it evolves it — on that foundation, translating data into judgments about the goal at the moment of capture: who deserves attention, why, and what to do next. The principles below come in two groups: the input side makes data easier to capture, the output side makes data flow back into a step closer to the deal. Together they are the shared constraints for every functional domain that follows.">
+              数据驱动是 CRM 的地基，它让客户关系第一次变得可存、可查、可分析——这一步不可或缺，也从未过时。只是在实践中存在一个不对等：录入发生在拜访现场、成本由一线销售承担，而数据的分析价值多半需要额外查询才能取出、且往往偏于事后复盘。AI 不是取代数据驱动，而是让它进化——在这块地基上，把数据在录入的当下就翻译成对目标的判断：谁该被关注、为什么、下一步做什么。以下原则分两组：输入侧让数据更轻松地沉淀，输出侧让数据回流成离成交更近的一步；它们是后续所有功能域的共同约束。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="一句话内核" data-step-title-en="The Core in One Line" data-step-label="01 / CORE">
+            <div class="comparison-grid">
+              <div class="comparison-card">
+                <span class="comparison-label" data-zh="过去 · Data-Driven" data-en="Before · Data-Driven">过去 · Data-Driven</span>
+                <p data-zh="CRM 以数据为中心：销售把客户关系拆成字段填进系统，是主要的数据贡献者；而数据变成判断需要额外查询与汇总，价值兑现偏晚、多服务于管理复盘。" data-en="CRM is data-centric: reps break customer relationships into fields and feed the system, as the main data contributors; turning that data into judgment takes extra querying and aggregation, so value lands late and largely serves management review.">
+                  CRM 以数据为中心：销售把客户关系拆成字段填进系统，是主要的数据贡献者；而数据变成判断需要额外查询与汇总，价值兑现偏晚、多服务于管理复盘。
+                </p>
+              </div>
+              <div class="comparison-card next">
+                <span class="comparison-label" data-zh="进化 · Purpose-Driven" data-en="Evolved · Purpose-Driven">进化 · Purpose-Driven</span>
+                <p data-zh="CRM 以目标为向：数据退回手段的位置，AI 在数据之上即时产出对目标的判断与下一步建议。销售录入的每一条，都在当下回流成对自己有用的行动——他从数据的贡献者，同时成为数据的即时受益人。" data-en="CRM is goal-steered: data returns to being a means, and AI produces, on top of the data and in the moment, judgments and next-step advice toward the goal. Every entry a rep makes flows back, right away, into useful action — so the rep, beyond being a data contributor, is also an immediate beneficiary of the data.">
+                  CRM 以目标为向：数据退回手段的位置，AI 在数据之上即时产出对目标的判断与下一步建议。销售录入的每一条，都在当下回流成对自己有用的行动——他从数据的贡献者，同时成为数据的即时受益人。
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="输入侧原则：让数据更轻松地沉淀" data-step-title-en="Input-Side Principles: Make Data Easier to Capture" data-step-label="01 / INPUT">
+            <div class="insight-grid">
+              <div class="insight-card">
+                <span class="card-index">01</span>
+                <h3 data-zh="Mobile-First，不是桌面缩小版" data-en="Mobile-First, Not a Shrunk Desktop">Mobile-First，不是桌面缩小版</h3>
+                <p data-zh="设计起点是单手、户外光线、30 秒内完成。长表单不能成为主路径，超过三屏的录入必须由对话、草稿或分步确认承接。" data-en="Design starts from one hand, outdoor light, and completion within 30 seconds. Long forms must not be the main path; any entry longer than three screens must move into conversation, draft, or stepwise confirmation.">
+                  设计起点是单手、户外光线、30 秒内完成。长表单不能成为主路径，超过三屏的录入必须由对话、草稿或分步确认承接。
+                </p>
+              </div>
+              <div class="insight-card">
+                <span class="card-index">02</span>
+                <h3 data-zh="Voice-First，键盘是 fallback" data-en="Voice-First, Keyboard as Fallback">Voice-First，键盘是 fallback</h3>
+                <p data-zh="拜访间隙最自然的输入是语音。功能必须允许用户用一句话表达意图；键盘用于修正、补充与语音失败后的兜底，而不是第一入口。" data-en="Between visits, the natural input is voice. Features must let the user express intent in one sentence; the keyboard is for correction, completion, and fallback after voice fails — not the first entry.">
+                  拜访间隙最自然的输入是语音。功能必须允许用户用一句话表达意图；键盘用于修正、补充与语音失败后的兜底，而不是第一入口。
+                </p>
+              </div>
+              <div class="insight-card">
+                <span class="card-index">03</span>
+                <h3 data-zh="Confirm，Don't Configure" data-en="Confirm, Don't Configure">Confirm，Don't Configure</h3>
+                <p data-zh="AI 负责把自然语言塑成草稿，用户负责确认、微调或拒绝。所有写入型功能必须先展示可核对草稿，不能把配置项和字段选择推回给销售。" data-en="AI turns natural language into a draft; the user confirms, tweaks, or rejects. Every write feature must show a checkable draft first, instead of pushing field selection and configuration back to the rep.">
+                  AI 负责把自然语言塑成草稿，用户负责确认、微调或拒绝。所有写入型功能必须先展示可核对草稿，不能把配置项和字段选择推回给销售。
+                </p>
+              </div>
+              <div class="insight-card">
+                <span class="card-index">04</span>
+                <h3 data-zh="意图编排，不是菜单导航" data-en="Intent Orchestration, Not Menu Navigation">意图编排，不是菜单导航</h3>
+                <p data-zh="用户说业务意图，系统决定落到哪个功能域；新增能力应通过注册新的意图/技能扩展，而不是不断增加菜单层级。" data-en="The user states the business intent; the system decides which functional domain handles it. New capability should be added by registering a new intent/skill, not by growing menu depth.">
+                  用户说业务意图，系统决定落到哪个功能域；新增能力应通过注册新的意图/技能扩展，而不是不断增加菜单层级。
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="输出侧原则：让数据回流成对目标的判断" data-step-title-en="Output-Side Principles: Turn Data into Judgment Toward the Goal" data-step-label="01 / OUTPUT">
+            <div class="insight-grid">
+              <div class="insight-card">
+                <span class="card-index">05</span>
+                <h3 data-zh="即时闭环：录入即回报" data-en="Instant Loop: Logging Earns a Return">即时闭环：录入即回报</h3>
+                <p data-zh="数据与行动必须接成闭环，且足够及时。销售刚录入，下一步建议就要在当下回到眼前，而不是隔天报表。反馈越快，销售越认这个系统的价值；慢一拍，价值就流失。" data-en="Data and action must close into a loop, and quickly. The moment a rep logs, the next step must come back in the moment — not as tomorrow's report. The faster the feedback, the more the rep values the system; a beat too slow and the value leaks away.">
+                  数据与行动必须接成闭环，且足够及时。销售刚录入，下一步建议就要在当下回到眼前，而不是隔天报表。反馈越快，销售越认这个系统的价值；慢一拍，价值就流失。
+                </p>
+              </div>
+              <div class="insight-card">
+                <span class="card-index">06</span>
+                <h3 data-zh="增量价值：说他不知道的" data-en="Incremental Value: Tell What They Don't Know">增量价值：说他不知道的</h3>
+                <p data-zh="输出必须是销售自己没注意到的信息——久未联系、信心下滑、被忽略的机会——而不是把他刚说的话复述一遍。只有产出增量判断，AI 才不会沦为可有可无的参考。" data-en="The output must be what the rep has not noticed — accounts gone cold, confidence slipping, overlooked opportunities — not a paraphrase of what they just said. Only by producing incremental judgment does AI avoid becoming an optional footnote.">
+                  输出必须是销售自己没注意到的信息——久未联系、信心下滑、被忽略的机会——而不是把他刚说的话复述一遍。只有产出增量判断，AI 才不会沦为可有可无的参考。
+                </p>
+              </div>
+              <div class="insight-card">
+                <span class="card-index">07</span>
+                <h3 data-zh="可信赖：有据可查，宁缺毋编" data-en="Trustworthy: Grounded, Never Fabricated">可信赖：有据可查，宁缺毋编</h3>
+                <p data-zh="每条 AI 输出都应基于真实字段事实、可追溯来源、可被销售核对推翻；低置信时显式降级，而不是硬编一个看似确定的答案。这是把「参考」变成「可依赖」的唯一办法。" data-en="Every AI output should rest on real field facts, a traceable source, and be checkable and refutable by the rep; on low confidence it should degrade explicitly rather than hard-code a confident-looking answer. This is the only way 'reference' becomes 'dependable'.">
+                  每条 AI 输出都应基于真实字段事实、可追溯来源、可被销售核对推翻；低置信时显式降级，而不是硬编一个看似确定的答案。这是把「参考」变成「可依赖」的唯一办法。
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="原则如何约束后续章节" data-step-title-en="How the Principles Constrain Later Sections" data-step-label="01 / CONSTRAINTS">
+            <table class="simple-table">
+              <thead>
+                <tr>
+                  <th data-zh="原则" data-en="Principle">原则</th>
+                  <th data-zh="对后续功能的硬约束" data-en="Hard Constraint on Later Features">对后续功能的硬约束</th>
+                  <th data-zh="落点" data-en="Where It Lands">落点</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td data-zh="输入 · Mobile-First" data-en="Input · Mobile-First">输入 · Mobile-First</td><td data-zh="每个功能域都必须能在移动现场快速完成，避免长表单和多层菜单。" data-en="Every domain must complete quickly in the field, avoiding long forms and deep menus.">每个功能域都必须能在移动现场快速完成，避免长表单和多层菜单。</td><td data-zh="活动、客户、商机、查询" data-en="Activities, accounts, opportunities, queries">活动、客户、商机、查询</td></tr>
+                <tr><td data-zh="输入 · Voice-First" data-en="Input · Voice-First">输入 · Voice-First</td><td data-zh="功能入口优先支持一句话触发，键盘只做补充。" data-en="Feature entry should support one-sentence triggers first; keyboard only supplements.">功能入口优先支持一句话触发，键盘只做补充。</td><td data-zh="所有写入与查询域" data-en="All write and query domains">所有写入与查询域</td></tr>
+                <tr><td data-zh="输入 · Confirm" data-en="Input · Confirm">输入 · Confirm</td><td data-zh="任何写入 Dataverse 或日历的动作，必须先展示草稿并等待确认。" data-en="Any write to Dataverse or calendar must show a draft and wait for confirmation first.">任何写入 Dataverse 或日历的动作，必须先展示草稿并等待确认。</td><td data-zh="记录活动、客户联系人、商机、排程" data-en="Activities, accounts/contacts, opportunities, scheduling">记录活动、客户联系人、商机、排程</td></tr>
+                <tr><td data-zh="输入 · 意图编排" data-en="Input · Intent orchestration">输入 · 意图编排</td><td data-zh="一句话可拆成多个意图，但每个意图必须落到清晰的功能域和可核对卡片。" data-en="One sentence may split into multiple intents, but each intent must land in a clear functional domain and a checkable card.">一句话可拆成多个意图，但每个意图必须落到清晰的功能域和可核对卡片。</td><td data-zh="功能全景、活动+商机组合场景" data-en="Functional overview, activity+opportunity combined scenarios">功能全景、活动+商机组合场景</td></tr>
+                <tr><td data-zh="输出 · 即时闭环" data-en="Output · Instant loop">输出 · 即时闭环</td><td data-zh="读写域产出的判断要当下回流，不依赖隔日批处理。" data-en="Judgments from read/write domains must flow back in the moment, not wait for next-day batch.">读写域产出的判断要当下回流，不依赖隔日批处理。</td><td data-zh="查询报表、规划推荐、主动呈现" data-en="Query/report, plan, proactive surfacing">查询报表、规划推荐、主动呈现</td></tr>
+                <tr><td data-zh="输出 · 增量价值" data-en="Output · Incremental value">输出 · 增量价值</td><td data-zh="洞察与建议必须给出销售未注意到的信号，而非复述输入。" data-en="Insights and advice must surface signals the rep missed, not echo the input.">洞察与建议必须给出销售未注意到的信号，而非复述输入。</td><td data-zh="主动呈现、规划推荐" data-en="Proactive surfacing, plan">主动呈现、规划推荐</td></tr>
+                <tr><td data-zh="输出 · 可信赖" data-en="Output · Trustworthy">输出 · 可信赖</td><td data-zh="每条 AI 输出都基于真实字段事实、可溯源、可核对，低置信时显式降级。" data-en="Every AI output rests on real field facts, is traceable and checkable, and degrades explicitly on low confidence.">每条 AI 输出都基于真实字段事实、可溯源、可核对，低置信时显式降级。</td><td data-zh="主动呈现、查询报表" data-en="Proactive surfacing, query/report">主动呈现、查询报表</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Section 02: Functional overview -->
+        <section id="overview" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="02 / 功能全景" data-en="02 / Functional Overview">02 / Functional Overview</p>
+            <h2 data-zh="六个功能域 + 一个跨切底座" data-en="Six Functional Domains + One Cross-Cutting Foundation">六个功能域 + 一个跨切底座</h2>
+            <p data-zh="应用的全部能力归为六个功能域：四个「写」域负责把销售口述变成 CRM 记录（记录活动、客户联系人、商机、规划推荐里的排程），两个「读 / 呈现」域负责把数据变成判断（查询报表、主动呈现）。所有域共用一套跨切底座。下图先给出全貌，后续逐域展开，每域统一按「场景 → 输入 → 产物 → 业务规则」四要素说明。" data-en="The app's capabilities fall into six functional domains: four 'write' domains turn the rep's words into CRM records (log activity, accounts & contacts, opportunities, and scheduling under plan-and-recommend), and two 'read / surface' domains turn data into judgment (query & report, proactive surfacing). All share one cross-cutting foundation. The diagram gives the whole picture; each domain then unfolds under a uniform four-element frame: scenario → input → output → business rules.">
+              应用的全部能力归为六个功能域：四个「写」域负责把销售口述变成 CRM 记录（记录活动、客户联系人、商机、规划推荐里的排程），两个「读 / 呈现」域负责把数据变成判断（查询报表、主动呈现）。所有域共用一套跨切底座。下图先给出全貌，后续逐域展开，每域统一按「场景 → 输入 → 产物 → 业务规则」四要素说明。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="业务场景全景：销售 Maria 的一天" data-step-title-en="Business Scenario Panorama: Maria's Day" data-step-label="02 / JOURNEY">
+            <p data-zh="先从业务看边界：下面是一名医疗器械销售 Maria 普通一天的 6 个高频场景。每张卡都写明用户话术或业务事实、系统响应、以及支撑它的功能域；读者不需要先理解架构，也能知道功能设计覆盖到哪、不覆盖什么。" data-en="Start from the business boundary: below are six high-frequency scenes from an ordinary day for Maria, a medical-device sales rep. Each card states the user utterance or business fact, the system response, and the functional domain behind it; readers do not need to understand architecture first to see what the design covers and what it does not.">
+              先从业务看边界：下面是一名医疗器械销售 Maria 普通一天的 6 个高频场景。每张卡都写明用户话术或业务事实、系统响应、以及支撑它的功能域；读者不需要先理解架构，也能知道功能设计覆盖到哪、不覆盖什么。
+            </p>
+            <div class="usecase-list">
+              <article class="usecase-card">
+                <div class="usecase-time">07:55<br/>通勤</div>
+                <div>
+                  <h3>路上先听，不先看屏幕</h3>
+                  <p>Maria 开车去第一家医院，无法低头翻列表。她需要在 90 秒内知道今天最该盯的客户、商机和待办。</p>
+                  <div class="usecase-quote">用户动作：打开每日简报，播放今日要点。</div>
+                  <div class="usecase-output"><span>系统逐卡朗读业务洞察，读到哪张，界面跟到哪张。</span><span>支撑功能：主动呈现 · 语音简报。</span></div>
+                  <div class="usecase-tags"><span class="usecase-tag">§07 主动呈现</span><span class="usecase-tag">语音简报</span></div>
+                </div>
+              </article>
+
+              <article class="usecase-card">
+                <div class="usecase-time">08:35<br/>到院前</div>
+                <div>
+                  <h3>新遇到联系人，先挂到正确客户</h3>
+                  <p>拜访前，Maria 得知张主任刚成为心内科负责人，需要把联系人补进 Royal London 账户下，而不是散落成一个孤立姓名。</p>
+                  <div class="usecase-quote">用户话术：张主任是 Royal London 新来的心内科主任，电话 020-7188-7188。</div>
+                  <div class="usecase-output"><span>系统先解析父客户，若歧义则追问；确认后写 contact 并绑定 parentcustomerid。</span><span>支撑功能：客户与联系人。</span></div>
+                  <div class="usecase-tags"><span class="usecase-tag">§04 客户与联系人</span><span class="usecase-tag">父客户解析</span></div>
+                </div>
+              </article>
+
+              <article class="usecase-card">
+                <div class="usecase-time">10:30<br/>拜访后</div>
+                <div>
+                  <h3>一句话同时沉淀活动与商机</h3>
+                  <p>拜访刚结束，信息还新鲜。Maria 不想回车里再填表，也不想自己判断哪些句子该变成活动、哪些该变成商机。</p>
+                  <div class="usecase-quote">用户话术：刚拜访了张主任，演示过 N22；ICU 升级监护仪算一个新机会，估 25 万，7 月底关。</div>
+                  <div class="usecase-output"><span>系统拆成两张确认卡：已完成活动 + 新商机；活动按过去时落历史时间线，商机写金额、阶段、预计关单日期并关联客户。</span><span>支撑功能：记录活动 · 商机管理。</span></div>
+                  <div class="usecase-tags"><span class="usecase-tag">§03 记录活动</span><span class="usecase-tag">§05 商机管理</span><span class="usecase-tag">写前确认</span></div>
+                </div>
+              </article>
+
+              <article class="usecase-card">
+                <div class="usecase-time">12:10<br/>午间</div>
+                <div>
+                  <h3>空隙里问管线，不打开报表</h3>
+                  <p>Maria 只有十分钟午餐时间，想知道哪些单有风险，以及本月还有多少金额要关，不想逐个点开商机列表。</p>
+                  <div class="usecase-quote">用户话术：哪些单有风险？这个月要关的总额是多少？</div>
+                  <div class="usecase-output"><span>系统按当前用户范围查询，先报数量和总额，再给紧凑列表与一行建议；不臆造工具未返回的数据。</span><span>支撑功能：查询报表。</span></div>
+                  <div class="usecase-tags"><span class="usecase-tag">§06 查询报表</span><span class="usecase-tag">数字优先</span></div>
+                </div>
+              </article>
+
+              <article class="usecase-card">
+                <div class="usecase-time">15:40<br/>回程</div>
+                <div>
+                  <h3>把建议变成排好期的行动</h3>
+                  <p>系统提示某大单信心下降且久未联系。Maria 同意跟进，但需要避开自己和客户的忙碌时间。</p>
+                  <div class="usecase-quote">用户话术：帮我下周安排一次和采购主任的复盘会。</div>
+                  <div class="usecase-output"><span>系统读取 Work IQ 日历，推荐 2–3 个可用时段；用户选择后，同时写 Dataverse 未来活动和日历事件。</span><span>支撑功能：规划推荐 · 记录活动。</span></div>
+                  <div class="usecase-tags"><span class="usecase-tag">§06 规划推荐</span><span class="usecase-tag">§03 记录活动</span><span class="usecase-tag">日历集成</span></div>
+                </div>
+              </article>
+
+              <article class="usecase-card">
+                <div class="usecase-time">18:20<br/>收尾</div>
+                <div>
+                  <h3>团队里上线，靠底座避免串号</h3>
+                  <p>同一个应用给代表和经理用。代表只看自己的客户和活动，经理能看团队范围；这不能靠客户端开关伪装。</p>
+                  <div class="usecase-quote">业务事实：读取列表由 Dataverse 安全角色裁剪；写入前均展示草稿；个人 UI 偏好留本地，跨设备配置进 Dataverse。</div>
+                  <div class="usecase-output"><span>系统不在客户端加 owner 过滤当安全；创建记录默认当前用户；删除/重生成只删本人范围。</span><span>支撑功能：跨切底座。</span></div>
+                  <div class="usecase-tags"><span class="usecase-tag">§08 跨切底座</span><span class="usecase-tag">委派身份</span><span class="usecase-tag">个性化</span></div>
+                </div>
+              </article>
+            </div>
+            <div class="callout-note">
+              <p data-zh="边界说明：应用覆盖「销售一天里围绕客户 / 联系人 / 商机 / 活动的记录、查询、规划与呈现」。它不做报价单 / 合同 / 订单履约（属 SAP Commerce 等后端），也不做团队级 KPI 考核管理——这些超出本应用的功能边界。" data-en="Boundary note: the app covers 'logging, querying, planning and surfacing around accounts / contacts / opportunities / activities in a rep's day'. It does not do quotes / contracts / order fulfillment (that belongs to SAP Commerce and other back ends), nor team-level KPI management — these are outside this app's functional boundary.">
+                边界说明：应用覆盖「销售一天里围绕客户 / 联系人 / 商机 / 活动的记录、查询、规划与呈现」。它不做报价单 / 合同 / 订单履约（属 SAP Commerce 等后端），也不做团队级 KPI 考核管理——这些超出本应用的功能边界。
+              </p>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="功能全景图" data-step-title-en="Functional Map" data-step-label="02 / MAP">
+            <div class="mermaid-diagram">
+              <pre class="mermaid">
+graph TD
+    U([销售一句话 / 一次点击])
+    U --> W{意图}
+    W -->|写| A[记录活动<br/>appointment·phonecall·email]
+    W -->|写| C[客户与联系人<br/>account·contact]
+    W -->|写| O[商机管理<br/>crf5c_opportunity1]
+    W -->|读| Q[查询报表 / 规划推荐<br/>按当前用户过滤]
+    W -->|呈现| P[主动呈现<br/>洞察卡片·语音简报]
+    A & C & O --> F
+    Q & P --> F
+    F[[跨切底座<br/>草稿确认 · 委派安全 · 日历集成]]
+              </pre>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="读懂每一节：四要素框架" data-step-title-en="Reading Each Section: the Four-Element Frame" data-step-label="02 / FRAME">
+            <div class="insight-grid">
+              <div class="insight-card"><span class="card-index">①</span><h3 data-zh="场景 / 触发" data-en="Scenario / Trigger">场景 / 触发</h3><p data-zh="销售在什么情形下、说什么话或点什么，会进入这个功能域。" data-en="In what situation, and with what utterance or tap, the rep enters this domain.">销售在什么情形下、说什么话或点什么，会进入这个功能域。</p></div>
+              <div class="insight-card"><span class="card-index">②</span><h3 data-zh="输入" data-en="Input">输入</h3><p data-zh="从口述里抽取哪些字段，需要解析或换算什么（金额、日期、关联记录）。" data-en="Which fields are extracted from the utterance, and what must be parsed or converted (amount, date, linked record).">从口述里抽取哪些字段，需要解析或换算什么（金额、日期、关联记录）。</p></div>
+              <div class="insight-card"><span class="card-index">③</span><h3 data-zh="产物 / 去向" data-en="Output / Destination">产物 / 去向</h3><p data-zh="写入哪张 Dataverse 表的哪些字段，或返回什么样的读结果，进哪个视图。" data-en="Which Dataverse table and fields are written, or what read result is returned, and which view it lands in.">写入哪张 Dataverse 表的哪些字段，或返回什么样的读结果，进哪个视图。</p></div>
+              <div class="insight-card"><span class="card-index">④</span><h3 data-zh="业务规则" data-en="Business Rules">业务规则</h3><p data-zh="该域必须遵守的判定与边界（状态判定、解析歧义处理、所有权、范围）。" data-en="The decisions and boundaries the domain must obey (status rules, ambiguity handling, ownership, scope).">该域必须遵守的判定与边界（状态判定、解析歧义处理、所有权、范围）。</p></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 03: Log activity -->
+        <section id="activity" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="03 / 写 · 记录销售活动" data-en="03 / Write · Log Sales Activity">03 / Write · Log Sales Activity</p>
+            <h2 data-zh="说一句话，代替填一张活动表" data-en="One Sentence Replaces an Activity Form">说一句话，代替填一张活动表</h2>
+            <p data-zh="拜访、电话、会议、邮件——销售一天里最高频的动作就是记录这些触点。本域把一句口述变成一条正确归类、正确归档、（对未来活动）正确排程的活动记录，用户不必手选类型与状态。" data-en="Visits, calls, meetings, emails — logging these touchpoints is the rep's most frequent action all day. This domain turns one utterance into an activity record that is correctly typed, filed, and (for future activities) scheduled — with no manual type or status selection.">
+              拜访、电话、会议、邮件——销售一天里最高频的动作就是记录这些触点。本域把一句口述变成一条正确归类、正确归档、（对未来活动）正确排程的活动记录，用户不必手选类型与状态。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="场景 · 输入 · 产物 · 规则" data-step-title-en="Scenario · Input · Output · Rules" data-step-label="03 / SPEC">
+            <table class="simple-table">
+              <thead><tr><th data-zh="要素" data-en="Element">要素</th><th data-zh="说明" data-en="Detail">说明</th></tr></thead>
+              <tbody>
+                <tr><td data-zh="① 场景" data-en="① Scenario">① 场景</td><td data-zh="销售描述一次客户触点：「我拜访了……」「给张主任打了电话」「下周三约……」。" data-en="The rep describes a touchpoint: 'I visited…', 'called Director Zhang', 'meet next Wednesday…'.">销售描述一次客户触点：「我拜访了……」「给张主任打了电话」「下周三约……」。</td></tr>
+                <tr><td data-zh="② 输入" data-en="② Input">② 输入</td><td data-zh="类型（拜访/会议→appointment，电话→phonecall，邮件→email）、具体标题（客户+主题+产品）、日期（解析「昨天/下周三」）、备注、关联的客户或商机。" data-en="Type (visit/meeting→appointment, call→phonecall, email→email), a specific subject (customer+topic+product), date (resolve 'yesterday/next Wed'), notes, and the regarding account or opportunity.">类型（拜访/会议→appointment，电话→phonecall，邮件→email）、具体标题（客户+主题+产品）、日期（解析「昨天/下周三」）、备注、关联的客户或商机。</td></tr>
+                <tr><td data-zh="③ 产物" data-en="③ Output">③ 产物</td><td data-zh="写入对应活动表，通过 regarding 绑定客户或商机；未来活动额外创建一条 Work IQ 日历事件。" data-en="Writes to the matching activity table, binds the account or opportunity via regarding; a future activity also creates a Work IQ calendar event.">写入对应活动表，通过 regarding 绑定客户或商机；未来活动额外创建一条 Work IQ 日历事件。</td></tr>
+                <tr><td data-zh="④ 规则" data-en="④ Rules">④ 规则</td><td data-zh="标题必须具体、绝不用通用名；客户名解析歧义则追问、无则问是否新建；所有权默认当前用户。" data-en="The subject must be specific, never generic; ambiguous customer name → ask, none → offer to create; ownership defaults to the current user.">标题必须具体、绝不用通用名；客户名解析歧义则追问、无则问是否新建；所有权默认当前用户。</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div data-present-step data-step-title="核心规则一：时态决定状态与去向" data-step-title-en="Rule 1: Tense Decides Status and Destination" data-step-label="03 / TENSE">
+            <div class="mermaid-diagram">
+              <pre class="mermaid">
+sequenceDiagram
+    actor U as 销售
+    participant AI as 意图识别
+    participant DV as Dataverse
+    participant CAL as Work IQ 日历
+    Note over AI: 提示词注入今天的 ISO 日期与星期
+    U->>AI: 「我刚拜访了张主任」
+    AI->>AI: 时态 = 过去 → statecode 1
+    AI->>DV: 已完成 · 记录实际时间
+    DV-->>U: 进客户/商机历史时间线（不建日历）
+    U->>AI: 「下周三约张主任复盘」
+    AI->>AI: 时态 = 将来 → statecode 0 · 换算日期
+    AI->>CAL: 查可用时段（忙则给替代）
+    AI->>DV: 已计划 · 填入计划时间
+    AI->>CAL: 创建日历事件（同主题/时间/与会者）
+    DV-->>U: 进待办与日历
+              </pre>
+            </div>
+            <div class="callout-note callout-red">
+              <p data-zh="日期锚点是命门。模型必须知道「今天」才能把「下周三」换成具体日期。早期缺锚点时，标为「今天」的活动被臆造成错误年份、在当周视图里消失。当前在意图识别的提示词里显式注入今天的 ISO 日期与星期，并给出换算规则。" data-en="The date anchor is the crux. The model must know 'today' to turn 'next Wednesday' into a date. Without the anchor, a 'today' activity was once fabricated into the wrong year and vanished from the week view. The prompt now injects today's ISO date and weekday with explicit resolution rules.">
+                日期锚点是命门。模型必须知道「今天」才能把「下周三」换成具体日期。早期缺锚点时，标为「今天」的活动被臆造成错误年份、在当周视图里消失。当前在意图识别的提示词里显式注入今天的 ISO 日期与星期，并给出换算规则。
+              </p>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="核心规则二：未来活动必查日历" data-step-title-en="Rule 2: Future Activities Always Check the Calendar" data-step-label="03 / CALENDAR">
+            <div class="comparison-grid">
+              <div class="comparison-card">
+                <span class="comparison-label" data-zh="过去活动（statecode 1）" data-en="Past activity (statecode 1)">过去活动（statecode 1）</span>
+                <p data-zh="只写 Dataverse 记录，绝不创建日历事件——已经发生的事不该出现在未来日程里。" data-en="Writes only the Dataverse record, never a calendar event — something that already happened should not appear on the future calendar.">只写 Dataverse 记录，绝不创建日历事件——已经发生的事不该出现在未来日程里。</p>
+              </div>
+              <div class="comparison-card next">
+                <span class="comparison-label" data-zh="未来活动（statecode 0）" data-en="Future activity (statecode 0)">未来活动（statecode 0）</span>
+                <p data-zh="先用 Work IQ 日历查用户（及与会者）可用性：有时间则确认，冲突则提示并给最近空档；没给具体时间则推荐 2–3 个最佳时段让用户选。确认后同时写 Dataverse 记录与日历事件。" data-en="First checks the user's (and attendees') availability via Work IQ Calendar: confirm if free, flag conflicts with nearest openings, or recommend 2–3 best slots when no time is given. On confirm, writes both the Dataverse record and the calendar event.">先用 Work IQ 日历查用户（及与会者）可用性：有时间则确认，冲突则提示并给最近空档；没给具体时间则推荐 2–3 个最佳时段让用户选。确认后同时写 Dataverse 记录与日历事件。</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 04: Accounts & contacts -->
+        <section id="account" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="04 / 写 · 客户与联系人" data-en="04 / Write · Accounts and Contacts">04 / Write · Accounts and Contacts</p>
+            <h2 data-zh="建客户、加联系人、挂到正确的客户名下" data-en="Create Accounts, Add Contacts, Link Them Correctly">建客户、加联系人、挂到正确的客户名下</h2>
+            <p data-zh="CRM 的根是客户主数据与人脉。本域处理客户组织与联系人的新建与更新，并保证每个联系人都挂到正确的父客户下——这是后续商机、活动能正确归集的前提。" data-en="The root of any CRM is account master data and relationships. This domain creates and updates customer organizations and contact people, ensuring every contact is linked to the right parent account — the precondition for opportunities and activities to aggregate correctly.">
+              CRM 的根是客户主数据与人脉。本域处理客户组织与联系人的新建与更新，并保证每个联系人都挂到正确的父客户下——这是后续商机、活动能正确归集的前提。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="场景 · 输入 · 产物 · 规则" data-step-title-en="Scenario · Input · Output · Rules" data-step-label="04 / SPEC">
+            <table class="simple-table">
+              <thead><tr><th data-zh="要素" data-en="Element">要素</th><th data-zh="说明" data-en="Detail">说明</th></tr></thead>
+              <tbody>
+                <tr><td data-zh="① 场景" data-en="① Scenario">① 场景</td><td data-zh="「新增一个客户：上海瑞金医院」「张主任是新来的心内科主任，挂到 Royal London 下」「更新某客户电话」。" data-en="'Add a hospital account: Shanghai Ruijin', 'Dr. Lisa is the new cardiology head under Royal London', 'update the phone for…'.">「新增一个客户：上海瑞金医院」「张主任是新来的心内科主任，挂到 Royal London 下」「更新某客户电话」。</td></tr>
+                <tr><td data-zh="② 输入" data-en="② Input">② 输入</td><td data-zh="先判断是「客户（组织）」还是「联系人（个人）」、是新建还是更新；客户取名称/电话/邮箱/行业/地址/备注，联系人取姓名/职务/电话/邮箱+父客户。" data-en="First decide account (org) vs contact (person), and create vs update; account takes name/phone/email/industry/address/notes, contact takes name/title/phone/email + parent account.">先判断是「客户（组织）」还是「联系人（个人）」、是新建还是更新；客户取名称/电话/邮箱/行业/地址/备注，联系人取姓名/职务/电话/邮箱+父客户。</td></tr>
+                <tr><td data-zh="③ 产物" data-en="③ Output">③ 产物</td><td data-zh="客户写标准表 account；联系人写 contact 并用 parentcustomerid 绑定到父客户。" data-en="Accounts write to the standard account table; contacts write to contact and bind to the parent via parentcustomerid.">客户写标准表 account；联系人写 contact 并用 parentcustomerid 绑定到父客户。</td></tr>
+                <tr><td data-zh="④ 规则" data-en="④ Rules">④ 规则</td><td data-zh="联系人必先解析父客户：歧义则追问、不存在则先建客户；更新只发改动字段、先按名匹配现有记录；所有权默认当前用户。" data-en="A contact must resolve its parent account first: ambiguous → ask, missing → create the account first; updates send only changed fields after matching by name; ownership defaults to the current user.">联系人必先解析父客户：歧义则追问、不存在则先建客户；更新只发改动字段、先按名匹配现有记录；所有权默认当前用户。</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Section 05: Opportunities -->
+        <section id="opportunity" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="05 / 写 · 商机管理" data-en="05 / Write · Opportunity Management">05 / Write · Opportunity Management</p>
+            <h2 data-zh="开单、推进阶段、调整金额与信心" data-en="Open Deals, Advance Stages, Adjust Amount and Confidence">开单、推进阶段、调整金额与信心</h2>
+            <p data-zh="商机是销售管线的核心对象。本域负责开新单、推进阶段、改金额/信心、记阻塞点，并把口语里的金额与日期换算成结构化字段，关联到正确客户。" data-en="The opportunity is the core object of the sales pipeline. This domain opens deals, advances stages, edits amount/confidence, notes blockers, and converts spoken amounts and dates into structured fields linked to the right account.">
+              商机是销售管线的核心对象。本域负责开新单、推进阶段、改金额/信心、记阻塞点，并把口语里的金额与日期换算成结构化字段，关联到正确客户。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="场景 · 输入 · 产物 · 规则" data-step-title-en="Scenario · Input · Output · Rules" data-step-label="05 / SPEC">
+            <table class="simple-table">
+              <thead><tr><th data-zh="要素" data-en="Element">要素</th><th data-zh="说明" data-en="Detail">说明</th></tr></thead>
+              <tbody>
+                <tr><td data-zh="① 场景" data-en="① Scenario">① 场景</td><td data-zh="「开一个 25 万的单，7 月底关」「把协和的单子推进到谈判阶段，信心降到 60」。" data-en="'Open a 250k deal closing end of July', 'move the Xiehe deal to negotiation, drop confidence to 60'.">「开一个 25 万的单，7 月底关」「把协和的单子推进到谈判阶段，信心降到 60」。</td></tr>
+                <tr><td data-zh="② 输入" data-en="② Input">② 输入</td><td data-zh="deal 名称（客户+产品）、金额（25万→500000、250k→250000）、阶段（prospecting/qualification/proposal/negotiation/won/lost 六选一）、信心 0–100、预计关单日期（ISO）、最近动作、阻塞点。" data-en="Deal name (customer+product), amount (250k→250000, 50万→500000), stage (one of prospecting/qualification/proposal/negotiation/won/lost), confidence 0–100, expected close date (ISO), last action, blocker.">deal 名称（客户+产品）、金额（25万→500000、250k→250000）、阶段（prospecting/qualification/proposal/negotiation/won/lost 六选一）、信心 0–100、预计关单日期（ISO）、最近动作、阻塞点。</td></tr>
+                <tr><td data-zh="③ 产物" data-en="③ Output">③ 产物</td><td data-zh="写自定义表 crf5c_opportunity1，用 biz_Account 绑定到关联客户。" data-en="Writes the custom crf5c_opportunity1 table, binding the linked account via biz_Account.">写自定义表 crf5c_opportunity1，用 biz_Account 绑定到关联客户。</td></tr>
+                <tr><td data-zh="④ 规则" data-en="④ Rules">④ 规则</td><td data-zh="命名已有单则更新、否则新建；更新只发改动字段；紧接活动而来的单复用该活动的客户、不再追问；「at risk」=信心 0–49，「active/pipeline」=阶段非 won/lost。" data-en="Name an existing deal → update, else create; updates send only changed fields; a deal following a just-logged activity reuses that account; 'at risk' = confidence 0–49, 'active/pipeline' = stage not won/lost.">命名已有单则更新、否则新建；更新只发改动字段；紧接活动而来的单复用该活动的客户、不再追问；「at risk」=信心 0–49，「active/pipeline」=阶段非 won/lost。</td></tr>
+              </tbody>
+            </table>
+            <div class="callout-note callout-green">
+              <p data-zh="一句话两意图：当用户「新增客户 + 同一句里开单」时，按两个独立意图处理——先建客户，再把商机交给本域；这正是架构文档里 Frame 阶段拆意图的业务来源。" data-en="One sentence, two intents: when the user 'adds a customer and opens a deal' in the same breath, it is handled as two separate intents — create the account first, then hand the deal here; this is the business origin of the Frame stage's intent-splitting in the architecture doc.">
+                一句话两意图：当用户「新增客户 + 同一句里开单」时，按两个独立意图处理——先建客户，再把商机交给本域；这正是架构文档里 Frame 阶段拆意图的业务来源。
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 06: Query, report & plan -->
+        <section id="query" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="06 / 读 · 查询报表与规划推荐" data-en="06 / Read · Query, Report and Plan">06 / Read · Query, Report and Plan</p>
+            <h2 data-zh="把数据变成判断：先报数字，再给清单或计划" data-en="Turn Data into Judgment: Numbers First, Then List or Plan">把数据变成判断：先报数字，再给清单或计划</h2>
+            <p data-zh="光能写还不够，销售要随时问数、要被告知该做什么。本域覆盖两类「读」：查询报表回答「现在怎么样」，规划推荐回答「接下来做什么」——后者还能把建议直接转成排好期的活动。" data-en="Writing alone is not enough; the rep needs to ask the numbers and be told what to do. This domain covers two kinds of read: query & report answers 'how are things now', plan-and-recommend answers 'what next' — and the latter can turn advice into scheduled activities.">
+              光能写还不够，销售要随时问数、要被告知该做什么。本域覆盖两类「读」：查询报表回答「现在怎么样」，规划推荐回答「接下来做什么」——后者还能把建议直接转成排好期的活动。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="查询与报表" data-step-title-en="Query and Report" data-step-label="06 / QUERY">
+            <table class="simple-table">
+              <thead><tr><th data-zh="要素" data-en="Element">要素</th><th data-zh="说明" data-en="Detail">说明</th></tr></thead>
+              <tbody>
+                <tr><td data-zh="① 场景" data-en="① Scenario">① 场景</td><td data-zh="「这个月要关的单」「哪些单有风险」「今天的拜访」「我的管线怎么样」。" data-en="'Deals closing this month', 'which deals are at risk', 'today's visits', 'how is my pipeline'.">「这个月要关的单」「哪些单有风险」「今天的拜访」「我的管线怎么样」。</td></tr>
+                <tr><td data-zh="② 输入" data-en="② Input">② 输入</td><td data-zh="从问题里识别目标实体与过滤条件（关单日期区间、信心<50、阶段、本周日期、completed=statecode 1）。" data-en="Identify target entity and filters from the question (close-date range, confidence<50, stage, this-week date, completed=statecode 1).">从问题里识别目标实体与过滤条件（关单日期区间、信心<50、阶段、本周日期、completed=statecode 1）。</td></tr>
+                <tr><td data-zh="③ 产物" data-en="③ Output">③ 产物</td><td data-zh="先给标题数字（条数/总额），再给紧凑列表或简短分析；活动查询合并 appointment+phonecall+email 按时间倒序。" data-en="A headline number (count/total) first, then a compact list or brief analysis; activity queries merge appointment+phonecall+email sorted by time desc.">先给标题数字（条数/总额），再给紧凑列表或简短分析；活动查询合并 appointment+phonecall+email 按时间倒序。</td></tr>
+                <tr><td data-zh="④ 规则" data-en="④ Rules">④ 规则</td><td data-zh="一律按当前用户过滤；多段报表是一个意图、合并作答；同会话可复用上次查询结果；绝不臆造记录或总额，只报工具返回的真实数据。" data-en="Always filter to the current user; a multi-section report is one intent, answered together; reuse prior query results in the same conversation; never fabricate records or totals — report only what the tool returns.">一律按当前用户过滤；多段报表是一个意图、合并作答；同会话可复用上次查询结果；绝不臆造记录或总额，只报工具返回的真实数据。</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div data-present-step data-step-title="规划与推荐" data-step-title-en="Plan and Recommend" data-step-label="06 / PLAN">
+            <div class="flow-list">
+              <div class="flow-step"><div class="flow-copy">
+                <strong data-zh="按信号排优先级" data-en="Prioritize by Signal">按信号排优先级</strong>
+                <p data-zh="读当前用户的开放商机与近期活动，按「将到期、金额高、信心低/下滑、久无联系、有阻塞点」排序，产出当天/本周的少数高影响事项，每项=做谁、为何现在、建议动作。" data-en="Reads the user's open opportunities and recent activities, ranks by 'closing soon, high amount, low/declining confidence, no recent contact, named blocker', and produces a few high-impact items for today/this week — each item = who, why now, suggested action.">读当前用户的开放商机与近期活动，按「将到期、金额高、信心低/下滑、久无联系、有阻塞点」排序，产出当天/本周的少数高影响事项，每项=做谁、为何现在、建议动作。</p>
+              </div></div>
+              <div class="flow-step"><div class="flow-copy">
+                <strong data-zh="建议可一键转排程" data-en="Turn Advice into a Scheduled Item">建议可一键转排程</strong>
+                <p data-zh="用户接受某条建议时，用 Work IQ 日历读取空闲、推荐 2–3 个最佳时段，再交给「记录活动」域写入 Dataverse 记录与日历事件。" data-en="When the user accepts an item, it reads free/busy via Work IQ Calendar, recommends 2–3 best slots, then hands it to the log-activity domain to write the Dataverse record and calendar event.">用户接受某条建议时，用 Work IQ 日历读取空闲、推荐 2–3 个最佳时段，再交给「记录活动」域写入 Dataverse 记录与日历事件。</p>
+              </div></div>
+              <div class="flow-step"><div class="flow-copy">
+                <strong data-zh="规划只建议，不改单" data-en="Planning Only Advises, Never Edits Deals">规划只建议，不改单</strong>
+                <p data-zh="规划推荐自身从不修改或关闭商机字段——那属于商机管理域；规划过程不写任何记录，只有用户确认某事项时才落库。" data-en="Plan-and-recommend never modifies or closes deal fields itself — that belongs to opportunity management; planning writes nothing until the user confirms an item.">规划推荐自身从不修改或关闭商机字段——那属于商机管理域；规划过程不写任何记录，只有用户确认某事项时才落库。</p>
+              </div></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 07: Proactive surfacing -->
+        <section id="present" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="07 / 呈现 · 主动洞察与语音简报" data-en="07 / Surface · Insights and Voice Briefing">07 / Surface · Insights and Voice Briefing</p>
+            <h2 data-zh="不等用户问，应用主动把要点送上门" data-en="Without Being Asked, the App Pushes the Highlights">不等用户问，应用主动把要点送上门</h2>
+            <p data-zh="前面的查询规划要用户开口。本域是「呈现层」：把每日要点主动推到眼前，并在不便看屏幕时用语音读出来——让判断与提醒无需用户发起。" data-en="Query and planning need the user to ask. This domain is the surfacing layer: it pushes the day's highlights to the front, and reads them aloud when the screen is inconvenient — judgment and reminders without the user initiating.">
+              前面的查询规划要用户开口。本域是「呈现层」：把每日要点主动推到眼前，并在不便看屏幕时用语音读出来——让判断与提醒无需用户发起。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="业务洞察：生成与未读跟踪" data-step-title-en="Business Insights: Generation and Unread Tracking" data-step-label="07 / INSIGHT">
+            <div class="flow-list">
+              <div class="flow-step">
+                <div class="flow-copy">
+                  <strong data-zh="按现象→原因→行动结构生成" data-en="Generated as Observation → Reason → Action">按现象→原因→行动结构生成</strong>
+                  <p data-zh="洞察由 LLM 生成，输入汇集高风险客户（附「上次联系天数」等事实）与管线数据，用资深销售教练的系统提示词，要求输出遵循「现象 → 原因 → 行动建议」三段结构，让每条洞察都可执行。" data-en="Insights are LLM-generated; input aggregates at-risk accounts (with facts like days-since-last-contact) and pipeline data, using a senior sales-coach system prompt that requires an Observation → Reason → Action structure so every insight is actionable.">
+                    洞察由 LLM 生成，输入汇集高风险客户（附「上次联系天数」等事实）与管线数据，用资深销售教练的系统提示词，要求输出遵循「现象 → 原因 → 行动建议」三段结构，让每条洞察都可执行。
+                  </p>
+                </div>
+              </div>
+              <div class="flow-step">
+                <div class="flow-copy">
+                  <strong data-zh="重新生成 = 先删本人旧、再批量建新" data-en="Regenerate = Delete Own Old, Then Batch-Create">重新生成 = 先删本人旧、再批量建新</strong>
+                  <p data-zh="点「重新生成」时，先删除当前用户自己的旧洞察（所有者范围限定，不碰他人），再批量建新。删除按本人范围是数据保护，不是安全边界——安全由平台裁剪保证（见第 08 节）。" data-en="On 'regenerate', the app first deletes the current user's own old insights (owner-scoped, never touching others), then batch-creates new ones. Owner-scoped deletion is data protection, not a security boundary — security is guaranteed by platform trimming (see §08).">
+                    点「重新生成」时，先删除当前用户自己的旧洞察（所有者范围限定，不碰他人），再批量建新。删除按本人范围是数据保护，不是安全边界——安全由平台裁剪保证（见第 08 节）。
+                  </p>
+                </div>
+              </div>
+              <div class="flow-step">
+                <div class="flow-copy">
+                  <strong data-zh="未读铃铛：浏览即标记" data-en="Unread Bell: Mark on View">未读铃铛：浏览即标记</strong>
+                  <p data-zh="已读集合持久化在本地存储，未读数驱动铃铛角标。洞察被实际查看时触发回调写入已读，角标随之递减——已读状态是纯客户端 UI 偏好，不占数据库。" data-en="The read set is persisted in local storage and the unread count drives the bell badge. When an insight is actually viewed, a callback writes it as read and the badge decrements — read state is a pure client-side UI preference, taking no database space.">
+                    已读集合持久化在本地存储，未读数驱动铃铛角标。洞察被实际查看时触发回调写入已读，角标随之递减——已读状态是纯客户端 UI 偏好，不占数据库。
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="语音简报：听一遍掌握全天" data-step-title-en="Voice Briefing: Grasp the Day in One Listen" data-step-label="07 / BRIEF">
+            <div class="insight-grid">
+              <div class="insight-card">
+                <span class="card-index">01</span>
+                <h3 data-zh="逐卡重建播报文本" data-en="Rebuild Narration per Card">逐卡重建播报文本</h3>
+                <p data-zh="播报文本按卡片从当前业务洞察逐条重建，确保朗读内容与屏幕卡片一一对应，而非读一段与界面无关的长文。" data-en="Narration text is rebuilt card by card from the current business insights, ensuring the spoken content maps one-to-one to the on-screen cards rather than a long passage unrelated to the view.">
+                  播报文本按卡片从当前业务洞察逐条重建，确保朗读内容与屏幕卡片一一对应，而非读一段与界面无关的长文。
+                </p>
+              </div>
+              <div class="insight-card">
+                <span class="card-index">02</span>
+                <h3 data-zh="朗读进度双向对齐" data-en="Two-Way Progress Alignment">朗读进度双向对齐</h3>
+                <p data-zh="朗读到的卡片下标与详情面板的当前页通过同步逻辑双向对齐：语音前进会翻页，手动翻页也会跳读对应卡片。" data-en="The narrated card index and the detail panel's current page are kept two-way aligned: voice progress turns the page, and manual paging also jumps narration to that card.">
+                  朗读到的卡片下标与详情面板的当前页通过同步逻辑双向对齐：语音前进会翻页，手动翻页也会跳读对应卡片。
+                </p>
+              </div>
+              <div class="insight-card">
+                <span class="card-index">03</span>
+                <h3 data-zh="富播放控制集中在详情面板" data-en="Rich Controls in the Detail Panel">富播放控制集中在详情面板</h3>
+                <p data-zh="播放控制统一集中在洞察详情面板，减少漂浮元素、统一交互入口。" data-en="Playback controls are unified in the insight detail panel, cutting floating elements and consolidating the interaction entry.">
+                  播放控制统一集中在洞察详情面板，减少漂浮元素、统一交互入口。
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 08: Cross-cutting foundation -->
+        <section id="foundation" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="08 / 跨切底座 · 确认 · 个性化 · 安全" data-en="08 / Foundation · Confirm · Personalize · Secure">08 / Foundation · Confirm · Personalize · Secure</p>
+            <h2 data-zh="贯穿全部六域的三条共同规则" data-en="Three Shared Rules Running Through All Six Domains">贯穿全部六域的三条共同规则</h2>
+            <p data-zh="前六域各管一件事，但它们共享同一套底座：任何写入前先出草稿等用户确认、每个人只动自己的数据与偏好、安全交给平台而非客户端。这三条不属于某一个功能，而是所有功能成立的前提。" data-en="The six domains each own one job, but share one foundation: any write produces a draft for confirmation first, each person touches only their own data and preferences, and security is the platform's job, not the client's. These three are not any single feature — they are the precondition for all features to hold.">
+              前六域各管一件事，但它们共享同一套底座：任何写入前先出草稿等用户确认、每个人只动自己的数据与偏好、安全交给平台而非客户端。这三条不属于某一个功能，而是所有功能成立的前提。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="规则一：写入前必出草稿、必经确认" data-step-title-en="Rule 1: Always Draft, Always Confirm Before Write" data-step-label="08 / CONFIRM">
+            <p data-zh="无论建客户、开单还是记活动，应用都先给一行草稿（写什么、关联谁），等用户确认后才落库。这让 AI 的解析结果在写入前可核对，是「可核对的销售动作」这一架构主张在每个功能里的落点。" data-en="Whether creating an account, opening a deal, or logging an activity, the app first shows a one-line draft (what will be written, linked to whom) and persists only after the user confirms. This makes the AI's parse checkable before write — the per-feature landing of the architecture thesis of 'checkable sales actions'.">
+              无论建客户、开单还是记活动，应用都先给一行草稿（写什么、关联谁），等用户确认后才落库。这让 AI 的解析结果在写入前可核对，是「可核对的销售动作」这一架构主张在每个功能里的落点。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="规则二：个性化两层存储" data-step-title-en="Rule 2: Two-Tier Personalization Storage" data-step-label="08 / SETTINGS">
+            <p data-zh="不是所有设置都该跨设备同步。应用按作用范围把设置分两层：纯界面偏好留在本地，需要持久化或跨设备的应用级配置写进 Dataverse。" data-en="Not every setting should sync across devices. The app splits settings by scope into two tiers: pure UI preferences stay local, while app-level config needing persistence or cross-device sync goes into Dataverse.">
+              不是所有设置都该跨设备同步。应用按作用范围把设置分两层：纯界面偏好留在本地，需要持久化或跨设备的应用级配置写进 Dataverse。
+            </p>
+            <table class="simple-table">
+              <thead>
+                <tr>
+                  <th data-zh="层" data-en="Tier">层</th>
+                  <th data-zh="存储" data-en="Storage">存储</th>
+                  <th data-zh="用途" data-en="Use">用途</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td data-zh="本地偏好" data-en="Local Preference">本地偏好</td>
+                  <td class="mono">localStorage</td>
+                  <td data-zh="纯客户端 UI 偏好，无需跨设备（如列表默认视图、Top-N 截断）。写入即派发事件，订阅组件即时刷新。" data-en="Pure client UI preferences, no cross-device need (list default view, Top-N truncation). Writing dispatches an event so subscribers refresh instantly.">纯客户端 UI 偏好，无需跨设备（如列表默认视图、Top-N 截断）。写入即派发事件，订阅组件即时刷新。</td>
+                </tr>
+                <tr>
+                  <td data-zh="共享配置" data-en="Shared Config">共享配置</td>
+                  <td class="mono">crf5c_settings</td>
+                  <td data-zh="需持久化/跨设备的应用级配置（如 Power Automate Flow URL、Copilot Studio Agent 名称），以键值 upsert 写入 Dataverse 设置表。" data-en="App-level config needing persistence/cross-device sync (Power Automate Flow URL, Copilot Studio agent name), written as key-value upserts into the Dataverse settings table.">需持久化/跨设备的应用级配置（如 Power Automate Flow URL、Copilot Studio Agent 名称），以键值 upsert 写入 Dataverse 设置表。</td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="callout-note callout-amber">
+              <p data-zh="已移除的设置：失效的「卡片化组织数据」开关，以及与平台安全模型冲突的 adminMode 开关——后者是可被绕过的客户端标志，不构成真实安全，已整体删除。" data-en="Removed settings: the defunct 'organize data in cards' toggle, and the adminMode toggle that conflicted with the platform security model — the latter was a bypassable client-side flag, not real security, and was removed entirely.">
+                已移除的设置：失效的「卡片化组织数据」开关，以及与平台安全模型冲突的 adminMode 开关——后者是可被绕过的客户端标志，不构成真实安全，已整体删除。
+              </p>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="规则三：多用户安全交给平台" data-step-title-en="Rule 3: Multi-User Security Is the Platform's Job" data-step-label="08 / SECURITY">
+            <p data-zh="代表看自己的、经理看团队的——这种差异不是靠界面开关实现的，而是平台按安全角色裁剪的结果。应用以直连绑定 + 委派用户身份运行，每个用户用自己的凭据访问数据，隔离归属一目了然。" data-en="A rep sees their own, a manager sees the team's — that difference is not a UI toggle but the result of platform trimming by security role. The app runs with direct binding and delegated user identity; each user accesses data with their own credentials, and isolation ownership is clear.">
+              代表看自己的、经理看团队的——这种差异不是靠界面开关实现的，而是平台按安全角色裁剪的结果。应用以直连绑定 + 委派用户身份运行，每个用户用自己的凭据访问数据，隔离归属一目了然。
+            </p>
+            <table class="simple-table">
+              <thead>
+                <tr>
+                  <th data-zh="操作" data-en="Operation">操作</th>
+                  <th data-zh="谁负责隔离" data-en="Who Isolates">谁负责隔离</th>
+                  <th data-zh="客户端动作" data-en="Client Action">客户端动作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td data-zh="读取列表" data-en="Read list">读取列表</td><td data-zh="平台（安全角色裁剪）" data-en="Platform (security-role trimming)">平台（安全角色裁剪）</td><td data-zh="不加任何 owner 过滤" data-en="No owner filter at all">不加任何 owner 过滤</td></tr>
+                <tr><td data-zh="创建" data-en="Create">创建</td><td data-zh="客户端" data-en="Client">客户端</td><td data-zh="落章写入所有者，保证归属正确" data-en="Stamp the owner so ownership is correct">落章写入所有者，保证归属正确</td></tr>
+                <tr><td data-zh="删除 / 重生成" data-en="Delete / Regenerate">删除 / 重生成</td><td data-zh="客户端" data-en="Client">客户端</td><td data-zh="仅删本人行（范围保护，非安全边界）" data-en="Delete own rows only (scope guard, not a security boundary)">仅删本人行（范围保护，非安全边界）</td></tr>
+              </tbody>
+            </table>
+            <div class="callout-note callout-green">
+              <p data-zh="一条硬规则：严禁在客户端加「ownerid 等于当前用户」之类的过滤当作安全。数据已在浏览器里，客户端过滤不是安全；它还会在经理（团队/组织级可见）场景下错误隐藏本应可见的数据。差异化可见性靠 Dataverse 安全角色的访问级别（用户级 / 业务部门级 / 组织级）实现。" data-en="A hard rule: never add an 'ownerid equals current user' filter on the client as security. The data is already in the browser, so a client filter is not security; it would also wrongly hide data a manager (team/org-level visibility) should see. Differentiated visibility comes from Dataverse security-role access levels (user / business-unit / organization).">
+                一条硬规则：严禁在客户端加「ownerid 等于当前用户」之类的过滤当作安全。数据已在浏览器里，客户端过滤不是安全；它还会在经理（团队/组织级可见）场景下错误隐藏本应可见的数据。差异化可见性靠 Dataverse 安全角色的访问级别（用户级 / 业务部门级 / 组织级）实现。
+              </p>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <p data-zh="&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。" data-en="&copy; 2026 illusion615's Knowledge Hub | Interactive HTML page.">&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。</p>
+      </footer>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    (function () {
+      function themeIsDark() { return document.documentElement.classList.contains('dark') || document.documentElement.getAttribute('data-theme') === 'dark'; }
+      if (window.mermaid) {
+        window.mermaid.initialize({ startOnLoad: true, theme: themeIsDark() ? 'dark' : 'neutral', securityLevel: 'loose', sequence: { useMaxWidth: true } });
+      }
+    })();
+  </script>
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

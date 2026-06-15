@@ -191,6 +191,66 @@ var knowledgeTree = [
   },
 
   {
+    id: 'agentic-sales-mobile-architecture',
+    parentId: 'agentic-crm',
+    type: 'article',
+    title: {
+      zh: 'Agentic Sales Mobile 架构设计：Frame + Orchestrator 双阶段流水线',
+      en: 'Agentic Sales Mobile Architecture: The Frame + Orchestrator Pipeline'
+    },
+    summary: {
+      zh: '上线版本的真实运行时架构：意图分类（Frame）、计划编排（Orchestrator）、意图队列执行、Dataverse 适配四段流水线与契约校验。',
+      en: 'The live runtime architecture: a four-stage pipeline of intent framing, plan orchestration, queue execution and Dataverse adaptation, guarded by contracts.'
+    },
+    tags: ['Architecture', 'LLM Pipeline', 'Agent', 'Power Apps', 'Dataverse'],
+    date: '2026-06-13',
+    url: 'posts/agentic-sales-mobile-architecture/index.html',
+    color: '#fb923c',
+    phase: 0.58, speed: 0.87,
+    relations: ['agentic-sales-mobile-design', 'agentic-sales-mobile-proposal']
+  },
+
+  {
+    id: 'agentic-sales-mobile-data-model',
+    parentId: 'agentic-crm',
+    type: 'article',
+    title: {
+      zh: 'Agentic Sales Mobile 数据模型：18 张 Dataverse 表的取舍',
+      en: 'Agentic Sales Mobile Data Model: 18 Dataverse Tables'
+    },
+    summary: {
+      zh: '当前注册的真实数据源：标准表复用（account/contact/活动族）、自定义 crf5c 业务表、活动多态结构与适配层选项集/查找字段处理。',
+      en: 'The real registered data sources: standard-table reuse, custom crf5c business tables, the polymorphic activity model, and adapter handling of choices and lookups.'
+    },
+    tags: ['Data Model', 'Dataverse', 'Schema', 'Power Apps', 'CRM'],
+    date: '2026-06-13',
+    url: 'posts/agentic-sales-mobile-data-model/index.html',
+    color: '#38bdf8',
+    phase: 0.6, speed: 0.86,
+    relations: ['agentic-sales-mobile-architecture', 'agentic-sales-mobile-design']
+  },
+
+  {
+    id: 'agentic-sales-mobile-features',
+    parentId: 'agentic-crm',
+    type: 'article',
+    title: {
+      zh: 'Agentic Sales Mobile 功能特性：时态活动、洞察简报与数据安全',
+      en: 'Agentic Sales Mobile Features: Tense Activities, Insights, Briefings, Security'
+    },
+    summary: {
+      zh: '五项上线功能：时态感知活动、业务洞察与未读铃铛、每日简报语音播报、设置两层存储、多用户数据安全（平台裁剪）。',
+      en: 'Five live features: tense-aware activities, insights with an unread bell, daily voice briefings, two-tier settings, and multi-user security via platform trimming.'
+    },
+    tags: ['Features', 'Voice', 'Insights', 'Security', 'CRM'],
+    date: '2026-06-13',
+    url: 'posts/agentic-sales-mobile-features/index.html',
+    color: '#2dd4bf',
+    phase: 0.62, speed: 0.85,
+    relations: ['agentic-sales-mobile-architecture', 'agentic-sales-mobile-data-model']
+  },
+
+  {
     id: 'agentic-sales-mobile-design',
     parentId: 'agentic-crm',
     type: 'article',
@@ -215,12 +275,12 @@ var knowledgeTree = [
     parentId: 'agentic-crm',
     type: 'article',
     title: {
-      zh: '销售 Agentic CRM 可演示原型：五屏 iPhone 拟真界面',
-      en: 'Sales Agentic CRM Interactive Prototype: 5-Screen iPhone Mockup'
+      zh: 'Sales Copilot Mobile 原型设计：Code App 动态基线',
+      en: 'Sales Copilot Mobile Prototype: Code App Baseline'
     },
     summary: {
-      zh: '可演示原型：左侧 iPhone 拟真界面（主页 / 播报 / 录入 / Copilot / 商机），右侧同步功能卡片，5 个 tab 切换。',
-      en: 'Interactive prototype: iPhone mockup on the left (Home / Brief / Capture / Copilot / Opp), synced feature cards on the right, 5 tabs.'
+      zh: '原型基线：Code App 工作台、全局 Copilot、语音播报、确认卡片、Dataverse 详情页与开发导入入口。',
+      en: 'Prototype baseline for the Code App workspace, global Copilot, voice briefing, confirmation cards, Dataverse detail pages, and dev-only import.'
     },
     tags: ['Prototype', 'Mobile UI', 'Demo', 'Power Apps', 'CRM'],
     date: '2026-05-02',

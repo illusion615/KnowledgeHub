@@ -103,7 +103,56 @@
     .template-sample-grid {
       margin-top: var(--rhythm-inline);
     }
+
+    /* Practice card: 问题 / 根因分析 / 解决方案 三段式 */
+    .practice {
+      border: 1px solid rgba(15, 23, 42, 0.1);
+      border-radius: 14px;
+      overflow: hidden;
+      margin: 16px 0;
+      background: rgba(15, 23, 42, 0.015);
+    }
+    [data-theme="dark"] .practice {
+      border-color: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .practice > .practice-title {
+      padding: 13px 18px;
+      font-weight: 700;
+      font-size: 1rem;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      letter-spacing: -0.01em;
+    }
+    .practice-row {
+      display: grid;
+      grid-template-columns: 80px 1fr;
+      gap: 14px;
+      padding: 13px 18px;
+      border-top: 1px solid rgba(15, 23, 42, 0.07);
+      align-items: start;
+    }
+    [data-theme="dark"] .practice-row { border-top-color: rgba(255, 255, 255, 0.07); }
+    .practice-tag {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      padding: 4px 0;
+      border-radius: 8px;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .pt-problem { background: rgba(181, 60, 36, 0.12); color: #b53c24; }
+    .pt-cause   { background: rgba(161, 93, 17, 0.14); color: #a15d11; }
+    .pt-fix     { background: rgba(45, 122, 77, 0.14); color: #2d7a4d; }
+    [data-theme="dark"] .pt-problem { background: rgba(255, 134, 104, 0.16); color: #ff8668; }
+    [data-theme="dark"] .pt-cause   { background: rgba(255, 203, 111, 0.16); color: #ffcb6f; }
+    [data-theme="dark"] .pt-fix     { background: rgba(111, 221, 151, 0.16); color: #6fdd97; }
+    .practice-row p { margin: 0; line-height: 1.7; }
+    .practice-row .cmd-block { margin: 10px 0 0; }
+    /* cmd-block 在 <p> 内会被浏览器提升为 practice-row 的直接 grid 子项；让它横跨整行而非掉进首列 */
+    .practice-row > .cmd-block { grid-column: 1 / -1; width: 100%; }
   </style>
+
 </head>
 <body>
   <div class="page-shell">
@@ -415,7 +464,7 @@ npx power-apps --help   # 应列出 init / run / push / add-data-source 等命�
             <div class="flow-step">
               <div class="flow-copy">
                 <strong>Step 4: 获取目标环境 ID</strong>
-                <p>初始化需要环境 ID（一个 GUID）。两种获取方式任选其一：在 <strong>make.powerapps.com → 右上角设置齿轮 → 会话详细信息（Session details）</strong> 中复制 Environment ID；或先用 PAC CLI 认证后列出环境。<b>预期产物：</b>一个形如 <code>Default-xxxxxxxx-...</code> 或 GUID 的环境标识。</p>
+                <p>初始化需要环境 ID（一个 GUID）。两种获取方式任选其一：在 <strong>make.powerapps.com → 右上角设置齿轮 → 会话详细信息（Session details）</strong> 中复制 Environment ID；或先用 PAC CLI 认证后列出环境。<b>预期产物：</b>一个形如 <code>Default-xxxxxxxx-...</code> 或 GUID 的环境标识。21Vianet 环境需参考下方「21Vianet / Mooncake 实测验证」：npm CLI 接受的是去掉连字符后的 compact environment ID。</p>
                 <div class="cmd-block"># 方式 B：用 PAC CLI 登录并列出环境，从输出中复制 Environment ID
 pac auth create
 pac env list</div>
@@ -424,7 +473,7 @@ pac env list</div>
             <div class="flow-step">
               <div class="flow-copy">
                 <strong>Step 5: 初始化 Code App</strong>
-                <p>把普通 Vite 项目转为 Code App。<code>--display-name</code> 是应用在 Power Platform 中的显示名，<code>--environment-id</code> 填 Step 4 拿到的 GUID。首次运行会弹出登录，用你的 Power Platform 账号完成认证。<b>预期产物：</b>生成 <code>power.config.json</code>（记录环境与连接器配置），并在 <code>vite.config.ts</code> 注册 <code>powerApps()</code> 插件。省略参数则进入交互式问答。</p>
+                <p>把普通 Vite 项目转为 Code App。<code>--display-name</code> 是应用在 Power Platform 中的显示名，<code>--environment-id</code> 填 Step 4 拿到的环境标识。首次运行会弹出登录，用你的 Power Platform 账号完成认证。<b>预期产物：</b>生成 <code>power.config.json</code>（记录环境与连接器配置），并在 <code>vite.config.ts</code> 注册 <code>powerApps()</code> 插件。省略参数则进入交互式问答。</p>
                 <div class="cmd-block">npx power-apps init --display-name "My Code App" --environment-id &lt;env-id&gt;
 # 或交互式：npx power-apps init</div>
               </div>
@@ -500,6 +549,111 @@ npm run dev
 
 # 6. 构建并发布
 npm run build &amp;&amp; npx power-apps push</div>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>21Vianet / Mooncake 实测验证</span>
+              </button>
+              <div class="subsection-content">
+                <p>2026-06-11 在 Power Apps operated by 21Vianet 环境中验证：Code App npm CLI 可连接 21V 环境、初始化 Code App，并可通过 Dataverse 表数据源生成 TypeScript Model / Service。验证使用 <code>@microsoft/power-apps</code> v1.1.9（内含 <code>@microsoft/power-apps-cli</code> v0.11.6）。</p>
+
+                <div class="flow-list">
+                  <div class="flow-step">
+                    <div class="flow-copy">
+                      <strong>流程节点 1（环境路由）→ 验证结论：✅ 可行（仅当 cloud 参数正确）</strong>
+                      <p>在 21V 中，Code Apps 必须走 <code>mooncake</code> 路由。实测 <code>mooncake</code> 可命中 21V endpoint；<code>china</code> 或大小写错误的 <code>Mooncake</code> 会落到无效地址并 DNS 失败。</p>
+                      <div class="cmd-block"># 验证 CLI 版本
+npm view @microsoft/power-apps version dependencies --json
+
+# 验证 21V endpoint 映射（包源码检查）
+npm pack @microsoft/power-apps-cli@0.11.6
+tar -xf microsoft-power-apps-cli-0.11.6.tgz
+grep -RIn "mooncake\|apps.powerapps.cn\|login.partner.microsoftonline.cn" package/dist</div>
+                    </div>
+                  </div>
+
+                  <div class="flow-step">
+                    <div class="flow-copy">
+                      <strong>流程节点 2（定位环境）→ 验证结论：⚠️ 条件可行（必须使用 compact environment ID）</strong>
+                      <p>21V 门户显示的是带连字符 GUID；npm CLI 在该链路实际要求去连字符的 compact ID。带连字符 GUID 会报环境不存在。</p>
+                      <div class="cmd-block"># 门户值（带连字符）
+# 8fe483ba-61a6-4bbe-b87f-439d38a25fa0
+
+# CLI 用值（compact）
+npx power-apps list-codeapps \
+  --cloud mooncake \
+  --environment-id 8fe483ba61a64bbeb87f439d38a25fa0 \
+  --json --no-color --non-interactive
+
+# 预期：环境可达且尚无应用时返回 []</div>
+                    </div>
+                  </div>
+
+                  <div class="flow-step">
+                    <div class="flow-copy">
+                      <strong>流程节点 3（初始化项目）→ 验证结论：✅ 可行</strong>
+                      <p><code>init</code> 可成功写入 <code>power.config.json</code>（<code>region: "mooncake"</code> + compact environment ID）。后续命令应复用配置文件，不建议重复传 <code>--cloud</code>。</p>
+                      <div class="cmd-block">npx power-apps init \
+  --cloud mooncake \
+  --environment-id 8fe483ba61a64bbeb87f439d38a25fa0 \
+  --display-name "CoE Data Dashboard" \
+  --description "Code app dashboard for CoE Starter Kit Dataverse data." \
+  --build-path ./dist \
+  --file-entry-point index.html \
+  --app-url http://127.0.0.1:3000 \
+  --non-interactive --no-color
+
+# 成功标志：Created power.config.json for CoE Data Dashboard.</div>
+                    </div>
+                  </div>
+
+                  <div class="flow-step">
+                    <div class="flow-copy">
+                      <strong>流程节点 4（接 Dataverse 数据源）→ 验证结论：✅ 可行</strong>
+                      <p>在同一 21V 环境，Dataverse 表数据源可正常添加并生成完整类型文件（<code>Schema.json</code>、<code>dataSourcesInfo.ts</code>、<code>Model.ts</code>、<code>Service.ts</code>）。</p>
+                      <div class="cmd-block">npx power-apps add-data-source --api-id dataverse --resource-name admin_flow \
+  --org-url https://coe.crm.dynamics.cn/ --non-interactive --no-color
+npx power-apps add-data-source --api-id dataverse --resource-name admin_environment \
+  --org-url https://coe.crm.dynamics.cn/ --non-interactive --no-color
+npx power-apps add-data-source --api-id dataverse --resource-name admin_maker \
+  --org-url https://coe.crm.dynamics.cn/ --non-interactive --no-color
+npx power-apps add-data-source --api-id dataverse --resource-name admin_connector \
+  --org-url https://coe.crm.dynamics.cn/ --non-interactive --no-color
+npx power-apps add-data-source --api-id dataverse --resource-name admin_app \
+  --org-url https://coe.crm.dynamics.cn/ --non-interactive --no-color
+
+# 成功标志：Data source added successfully.</div>
+                    </div>
+                  </div>
+
+                  <div class="flow-step">
+                    <div class="flow-copy">
+                      <strong>流程节点 5（构建）→ 验证结论：✅ 可行</strong>
+                      <p><code>npm run build</code> 可正常生成 <code>dist/</code> 产物，前端打包链路无阻塞。</p>
+                    </div>
+                  </div>
+
+                  <div class="flow-step">
+                    <div class="flow-copy">
+                      <strong>流程节点 6（push 发布）→ 验证结论：❌ 当前不可行（卡在 create-app 权限/策略层）</strong>
+                      <p>调用 <code>npx power-apps push</code> 时，请求已到达目标 21V 环境，但 create-app API 返回 <code>CodeAppOperationNotAllowedInEnvironment</code>。即使 PPAC 中目标环境 <strong>Enable code apps = On</strong>，仍返回同错。</p>
+                      <div class="cmd-block">npm run build
+npx power-apps push --no-color
+
+# 返回：CodeAppOperationNotAllowedInEnvironment
+# The environment ... does not allow this operation for this Code app ...</div>
+                      <p>排除项（已验证）：<code>list-codeapps</code>、<code>list-connections</code>、<code>list-environment-variables</code> 均可访问目标环境；环境组为空、租户设置无显式 Code Apps 开关；追加 <code>--solution-id</code> 不改变该错误。结论是：当前阻塞点仅在 <strong>Code App create operation</strong>（后端策略/开关传播层），不是 DNS、环境 ID、账号缓存或前端构建问题。</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="quote-block">
+                  <p><strong>认证缓存注意：</strong>若 macOS 上的 npm CLI 同时读到多个账号并报 <code>Multiple accounts found</code>，<code>npx power-apps logout</code> 可能只清理文件缓存，未清掉 Keychain 中的 MSAL 持久缓存。可只删除 Code Apps CLI 专用的 Keychain 项（service/account 均为 <code>power-apps</code>）后重新登录，避免误用公有云账号访问 21V 环境。</p>
+                </div>
+                <div class="quote-block">
+                  <p><strong>21V push 元数据注意：</strong>当前 npm CLI 的 endpoint 路由需要 compact environment ID，但 create-app 请求体中的 environment metadata 在 21V 中会按带连字符的 Environment ID 校验。若 push 阶段出现 <code>EnvironmentNotFound</code>，而 <code>list-codeapps</code> 和 <code>add-data-source</code> 已能访问同一环境，应检查 CLI 是否把 compact ID 原样写入 app metadata。实测将 metadata 中的 <code>environment.name</code> / <code>environment.id</code> 改为带连字符 GUID 后，错误从 <code>EnvironmentNotFound</code> 变为环境功能开关层面的 <code>CodeAppOperationNotAllowedInEnvironment</code>。这表明 21V push 链路还存在环境 ID 表示不一致的问题，建议在产品修复前记录该现象并通过官方支持渠道确认。</p>
+                </div>
               </div>
             </article>
             <article class="subsection-item" data-accordion>
@@ -906,6 +1060,144 @@ npm run build &amp;&amp; npx power-apps push   # 构建并发布</div>
                 </div>
                 <div class="quote-block">
                   <p><strong>程序化改 schema（超出 Code App 范围）：</strong>若需在管线中自动化创建表/列，可走 Dataverse Web API / Organization Service 的 metadata 操作（如 <code>CreateEntityRequest</code>、<code>CreateAttributeRequest</code>）。但 Code App 本身是浏览器端 SPA，不直接执行 metadata 写操作；schema 由 maker portal 或后端管线维护，Code App 侧只负责删除并重新生成类型文件。<a href="https://learn.microsoft.com/en-us/power-apps/maker/data-platform/create-edit-entities" target="_blank" rel="noopener noreferrer">[14]</a></p>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>数据层接入实战（Dataverse SDK 适配）</span>
+              </button>
+              <div class="subsection-content">
+                <p>以下经验来自实际项目（React + Vite + Dataverse Code App），是官方文档未充分说明、但接入 Dataverse 时几乎必然踩到的细节。每条按「问题 → 根因 → 解决方案」组织。</p>
+
+                <div class="practice">
+                  <div class="practice-title">手动迁移项目必须补 @microsoft/power-apps-vite 插件</div>
+                  <div class="practice-row"><span class="practice-tag pt-problem">问题</span><p>把一个已有的 Vite 项目手动改造成 Code App 后，本地能跑，push 到平台却无法加载、或数据 SDK 调用全部失效。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-cause">根因</span><p>Code App 依赖 <code>@microsoft/power-apps-vite</code> 在构建期注入平台运行时与数据通道。<code>pac code init</code> / <code>npx power-apps init</code> 脚手架会自动配置，手动迁移的项目缺这一步。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-fix">解决方案</span><p>在 <code>vite.config.ts</code> 中 <code>import { powerApps } from '@microsoft/power-apps-vite'</code>，并把 <code>powerApps()</code> 加入 <code>plugins</code> 数组。</p></div>
+                </div>
+
+                <div class="practice">
+                  <div class="practice-title">理解 power.config.json 的三级结构</div>
+                  <div class="practice-row"><span class="practice-tag pt-problem">问题</span><p>想手动登记或排查一个数据源，却找不到该写在配置文件的哪一层，误以为有一个顶层 <code>dataSources</code> 键。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-cause">根因</span><p>Dataverse 表与非 Dataverse 连接器注册在两个不同位置，配置结构是三级嵌套，没有扁平的顶层数据源清单。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-fix">解决方案</span><p>Dataverse 表注册在 <code>databaseReferences.default.cds.dataSources</code> 下，每个 key 是 entitySetName（如 <code>accounts</code>、<code>contacts</code>、<code>crf5c_opportunity1s</code>）；非 Dataverse 连接器（Flow、Copilot Studio 等）注册在顶层 <code>connectionReferences</code> 下。</p></div>
+                </div>
+
+                <div class="practice">
+                  <div class="practice-title">生成的 Model 使用 Dataverse 原生列名</div>
+                  <div class="practice-row"><span class="practice-tag pt-problem">问题</span><p>按业务友好名（Email、Phone、Address）读字段，结果全是 <code>undefined</code>；读选项集拿到的是数字而非标签。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-cause">根因</span><p>CLI 生成的 Model 字段名是 Dataverse API 列名，不是显示名；Lookup 以 <code>_xxx_value</code> 暴露；Choice 返回整数码，SDK 不投影标签。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-fix">解决方案</span><p>用真实列名读取：<code>emailaddress1</code>（非 Email）、<code>telephone1</code>（非 Phone）、<code>address1_composite</code>（非 Address）；Lookup 用 <code>_parentcustomerid_value</code> / <code>_ownerid_value</code>；Choice（如 <code>industrycode</code> 返回 <code>1</code>）需手动映射成标签。</p></div>
+                </div>
+
+                <div class="practice">
+                  <div class="practice-title">Service 表名必须与 dataSourcesInfo 的 key 一致</div>
+                  <div class="practice-row"><span class="practice-tag pt-problem">问题</span><p>手写数据访问代码后，查询返回空数据或抛运行时错误，但表里确实有数据。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-cause">根因</span><p>生成的 Service 通过 <code>getClient(dataSourcesInfo)</code> 获取 client，其 key 就是 <code>power.config.json</code> 里 <code>databaseReferences.default.cds.dataSources</code> 的 key（即 entitySetName）。传入友好名（如 <code>'Account'</code>）而非 entitySetName（如 <code>'accounts'</code>）会让 SDK 查找失败。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-fix">解决方案</span><p>所有数据访问一律用 entitySetName 作表名；优先直接调用 CLI 生成的 Service，不要手拼表名字符串。</p></div>
+                </div>
+
+                <div class="practice">
+                  <div class="practice-title">推荐架构：生成 Service + 手写 Adapter</div>
+                  <div class="practice-row"><span class="practice-tag pt-problem">问题</span><p>业务代码直接调用生成的 Service，散落着 <code>emailaddress1</code> 这类原生列名，且 Model 携带数百个系统列，难读难维护。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-cause">根因</span><p>生成的 Service 面向 Dataverse 物理模型，不面向业务；让它直接渗透进业务层会把数据库的命名怪异扩散到全应用。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-fix">解决方案</span><p>在 <code>src/generated/services/</code> 放一层手写 adapter，负责：(1) 物理列名 → 业务友好名（<code>emailaddress1 → email</code>）；(2) 只暴露业务需要的字段子集；(3) 封装多表聚合（如 Activity 同时查 appointment + phonecall + email）。业务代码只调 adapter，生成的 Service 仅被 adapter 引用。<div class="cmd-block">// adapter 示例：account-service.ts
+import { AccountsService } from './AccountsService';  // CLI 生成
+
+const FIELD_MAP = { id: 'accountid', email: 'emailaddress1', phone: 'telephone1' };
+
+function fromDv(dv) {
+  return { id: dv.accountid, email: dv.emailaddress1, phone: dv.telephone1 };
+}
+
+export async function getAll() {
+  const result = await AccountsService.getAll({ select: Object.values(FIELD_MAP) });
+  return result.data.map(fromDv);
+}</div></p></div>
+                </div>
+
+                <div class="practice">
+                  <div class="practice-title">不要手动编辑 .power/schemas/ 下的生成文件</div>
+                  <div class="practice-row"><span class="practice-tag pt-problem">问题</span><p>改了 <code>dataSourcesInfo.ts</code> 的 primaryKey 后，App 启动直接报平台 500，即使 push 显示成功。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-cause">根因</span><p><code>.power/schemas/dataverse/*.Schema.json</code> 与 <code>dataSourcesInfo.ts</code> 由 CLI 生成并互相约束，手改一处会与另一处不同步。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-fix">解决方案</span><p>始终通过 <code>npx power-apps delete-data-source</code> + <code>add-data-source</code>（或 <code>refresh-data-source</code>）重新生成，绝不手改生成文件。</p></div>
+                </div>
+
+                <div class="practice">
+                  <div class="practice-title">创建记录后拿不到主键（204 无响应体）</div>
+                  <div class="practice-row"><span class="practice-tag pt-problem">问题</span><p>调用 create 写入新记录后，返回值里没有新记录的主键，导致后续无法引用刚建的记录（如建客户后再挂商机）。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-cause">根因</span><p>托管环境下 Dataverse 的 create 常返回 <code>204 No Content</code>，响应体为空，SDK 拿不到生成的主键。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-fix">解决方案</span><p>在 adapter 里封装一个「创建后回读」：先尝试从响应体取主键，为空则按调用方提供的过滤条件（如 <code>name eq '...'</code>）回源查询补全主键，必要时带重试应对最终一致性。</p></div>
+                </div>
+
+                <div class="practice">
+                  <div class="practice-title">多与会者活动：与会者经 activityparty 深插入，不可直建</div>
+                  <div class="practice-row"><span class="practice-tag pt-problem">问题</span><p>给会议（<code>appointment</code>）加多个联系人时，直接对 <code>activityparty</code> 表 create 会静默失败；即便建上了，读出来也没有联系人名、还混着系统自动加的 Owner。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-cause">根因</span><p><code>activityparty</code> 是受限表，必须随父活动一起写，不能独立创建；它不暴露联系人显示名，且系统会把活动 Owner 也作为一个 party 写入。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-fix">解决方案</span><p><strong>写：</strong>在父 <code>appointment</code> 上通过集合导航属性一次性深插入与会者数组，每项指向一个联系人并带参与类型掩码（必选 / 可选 / 组织者）；对父活动 PATCH 该数组会整体替换与会者集合，适合同步。<strong>读：</strong>按参与类型掩码过滤掉 Owner，只保留真实与会者，再用联系人服务解析显示名。</p></div>
+                </div>
+
+                <div class="practice">
+                  <div class="practice-title">活动附件用 activitymimeattachment，不要混用 annotation</div>
+                  <div class="practice-row"><span class="practice-tag pt-problem">问题</span><p>上传的附件不出现在活动表单的 ATTACHMENTS 子网格里。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-cause">根因</span><p>活动附件表 <code>activitymimeattachment</code> 与时间线备注表 <code>annotation</code> 用途不同，放错表就不会显示在对应位置。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-fix">解决方案</span><p>活动附件写 <code>activitymimeattachment</code>（进 ATTACHMENTS 子网格）；<code>annotation</code> 仅用于时间线备注。两者不可混用。</p></div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>用户身份与记录所有权</span>
+              </button>
+              <div class="subsection-content">
+                <p>身份相关的两个坑会直接导致「用户看到空白数据」，且现象极具迷惑性。</p>
+
+                <div class="practice">
+                  <div class="practice-title">objectId ≠ systemuserid</div>
+                  <div class="practice-row"><span class="practice-tag pt-problem">问题</span><p>用 <code>getContext().user.objectId</code> 做 <code>o.ownerid === userId</code> 过滤，结果所有数据被滤掉，用户看到空白 pipeline。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-cause">根因</span><p>SDK 的 <code>objectId</code> 是 <strong>Azure AD objectId</strong>（Entra ID），而 Dataverse 的 <code>_ownerid_value</code> 存的是 <strong>systemuserid</strong>（Dataverse 内部用户 GUID）。这两个 GUID 永远不同。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-fix">解决方案</span><p>把 <code>systemusers</code> 加为数据源，在 <code>useUser</code> hook 里用 <code>user.userPrincipalName</code>（email）查 <code>systemusers</code> 的 <code>windowsliveid</code> 字段拿到 <code>systemuserid</code>，并覆盖到返回值的 <code>objectId</code>，下游代码无需改动即自动使用正确的 Dataverse 用户 ID。用 <code>windowsliveid</code> 而非 <code>azureactivedirectoryobjectid</code> 匹配 UPN（后者在部分环境为空）；TanStack Query 缓存保证此查询只在首次加载执行一次。<div class="cmd-block">// hooks/use-user.ts — 完整实现
+import { useQuery } from '@tanstack/react-query';
+import { getContext } from '@microsoft/power-apps/app';
+import { getClient } from '@microsoft/power-apps/data';
+import { dataSourcesInfo } from '../../.power/schemas/appschemas/dataSourcesInfo';
+
+const dvClient = getClient(dataSourcesInfo);
+
+async function resolveSystemUserId(email: string): Promise&lt;string&gt; {
+  const result = await dvClient.retrieveMultipleRecordsAsync&lt;{
+    systemuserid: string;
+  }&gt;('systemusers', {
+    filter: `windowsliveid eq '${email}'`,
+    select: ['systemuserid'],
+    top: 1,
+  });
+  if (result.success &amp;&amp; result.data?.[0]?.systemuserid) {
+    return result.data[0].systemuserid.toLowerCase();
+  }
+  return '';
+}
+
+export const useUser = () =&gt; useQuery({
+  queryKey: ['user'],
+  queryFn: async () =&gt; {
+    const { user } = await getContext();
+    const systemUserId = user.userPrincipalName
+      ? await resolveSystemUserId(user.userPrincipalName)
+      : undefined;
+    return { ...user, objectId: systemUserId };
+  },
+});</div></p></div>
+                </div>
+
+                <div class="practice">
+                  <div class="practice-title">Owner 字段用原生系统列，不要冗余自建</div>
+                  <div class="practice-row"><span class="practice-tag pt-problem">问题</span><p>为「记录归属」自建了 <code>crf5c_ownerid</code> 文本列冗余存储 owner，导致与平台 owner 双份维护、易不一致。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-cause">根因</span><p>Dataverse 原生用 <code>_ownerid_value</code> 系统字段记录所有者，创建时自动把 calling user 设为 owner，无需也不应另建列。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-fix">解决方案</span><p>adapter 的 <code>fromDv</code> 读 <code>_ownerid_value</code> 并 <code>.toLowerCase()</code> 归一化（GUID 大小写不定），<code>toDv</code> 不写 ownerid；删除任何自建 owner 列。</p></div>
                 </div>
               </div>
             </article>
@@ -1355,6 +1647,8 @@ frame-src    'self'                          ← 禁止 iframe 外部页面</div
               </div>
             </article>
             <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>已具备的平台治理能力（DLP / Conditional Access）</span>
               </button>
               <div class="subsection-content">
                 <p>尽管有上述限制，Code App 已获得以下平台治理能力支持。</p>
@@ -1480,232 +1774,151 @@ frame-src    'self'                          ← 禁止 iframe 外部页面</div
             </article>
             <article class="subsection-item" data-accordion>
               <button class="subsection-toggle">
-                <span>实战经验与常见陷阱</span>
+                <span>AI Builder 结构化输出陷阱（用 text + Zod 兜底）</span>
               </button>
               <div class="subsection-content">
-                <p>以下经验来自实际项目（React + Vite + Dataverse Code App），涵盖官方文档未提及的关键细节。</p>
+                <p>Code App 可通过 AI Builder 自定义提示（Custom Prompt）服务直接调用 LLM。接入时最容易踩的是「结构化输出」的坑。</p>
 
-                <h4>Vite 插件配置</h4>
-                <div class="flow-list">
-                  <div class="flow-step">
-                    <div class="flow-copy">
-                      <strong>必须添加 @microsoft/power-apps-vite 插件</strong>
-                      <p>在 <code>vite.config.ts</code> 中 <code>import { powerApps } from '@microsoft/power-apps-vite'</code>，并将 <code>powerApps()</code> 加到 <code>plugins</code> 数组。<code>pac code init</code> 或 <code>npx power-apps init</code> 会自动配置，但手动迁移现有项目时必须手动添加。</p>
-                    </div>
-                  </div>
+                <div class="practice">
+                  <div class="practice-title">AI Builder 结构化 JSON 输出对嵌套 schema 不可用</div>
+                  <div class="practice-row"><span class="practice-tag pt-problem">问题</span><p>把自定义提示的输出设为结构化 JSON、期望直接拿到自定义结构，结果模型返回的是平台内置样板 schema，解析必然失败，每次调用都退回文本重试，调用次数翻倍。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-cause">根因</span><p>AI Builder 的结构化 JSON 输出是 example-based 且只支持扁平结构；对嵌套 schema 它会套用内置样板而非你定义的结构，模型被锁死在错误 schema 上。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-fix">解决方案</span><p>统一用 <strong>text 模式</strong>传输 + <strong>客户端 Zod 校验</strong>：提示词要求模型输出目标 JSON 文本，客户端用 <code>JSON.parse</code> + 正则兜底提取 <code>{...}</code>，再用 Zod schema 校验与标准化。把类型安全收在自己手里，不依赖平台 JSON 机制。</p></div>
+                </div>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>构建与编译纪律</span>
+              </button>
+              <div class="subsection-content">
+                <p>标准构建脚本为 <code>tsc -b &amp;&amp; vite build</code>（TypeScript 类型检查 → Vite 打包）。这一段的坑几乎都源于一个事实：<strong>冷编译会长时间零输出</strong>，极易被误判为卡死。</p>
+
+                <div class="practice">
+                  <div class="practice-title">冷编译 10–25 分钟属正常，不是卡死</div>
+                  <div class="practice-row"><span class="practice-tag pt-problem">问题</span><p><code>pnpm build</code> 启动后长时间无任何输出、CPU 接近 0%，看起来像彻底卡住。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-cause">根因</span><p><code>tsc -b</code> 在冷编译（无 <code>.tsbuildinfo</code> 缓存）时要读取全部 <code>node_modules</code> 类型定义，这是 I/O 受限过程。实测中型项目（280 源文件 + date-fns 1,230 个 .d.ts + lucide-react 200KB 单文件类型）冷编译 10–25 分钟，期间零输出。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-fix">解决方案</span><p>给足耐心，把 build 超时设到 20+ 分钟。增量编译（有缓存）仅需 &lt;1 分钟，慢的只是首次。</p></div>
                 </div>
 
-                <h4>power.config.json 结构</h4>
-                <div class="flow-list">
-                  <div class="flow-step">
-                    <div class="flow-copy">
-                      <strong>理解配置文件的三级结构</strong>
-                      <p>Dataverse 表注册在 <code>databaseReferences.default.cds.dataSources</code> 下，每个 key 是 entitySetName（如 <code>accounts</code>、<code>contacts</code>、<code>crf5c_opportunity1s</code>）。非 Dataverse 连接器（Flow、Copilot Studio 等）注册在顶层 <code>connectionReferences</code> 下。没有顶层 <code>dataSources</code> 键。</p>
-                    </div>
-                  </div>
+                <div class="practice">
+                  <div class="practice-title">绝不中断 tsc -b 编译</div>
+                  <div class="practice-row"><span class="practice-tag pt-problem">问题</span><p>中途 kill 编译进程后，下次 build 又从零开始冷编译，陷入「越急越慢」的恶性循环。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-cause">根因</span><p><code>tsc -b</code> 用 <code>.tsbuildinfo</code> 做增量缓存。中途 kill（Ctrl+C / 关终端 / agent 超时杀进程）会损坏缓存，导致下次必须全量重建：冷编译 → 误判卡死 → kill → 缓存损坏 → 又冷编译。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-fix">解决方案</span><p>编译期间绝不中断。若缓存已损坏，删除 <code>tsconfig.*.tsbuildinfo</code> 后重新 build 并耐心等待 20+ 分钟一次性重建。</p></div>
                 </div>
 
-                <h4>Dataverse 字段命名约定</h4>
-                <div class="flow-list">
-                  <div class="flow-step">
-                    <div class="flow-copy">
-                      <strong>生成的 Model 使用 Dataverse 原生列名</strong>
-                      <p>字段名不是友好名而是 API 列名：如 <code>emailaddress1</code>（非 Email）、<code>telephone1</code>（非 Phone）、<code>address1_composite</code>（非 Address）。Lookup 字段以 <code>_xxx_value</code> 格式读取（如 <code>_parentcustomerid_value</code>、<code>_ownerid_value</code>）。Choice 字段返回数字值（如 industrycode 返回 <code>1</code> 而非 <code>"Accounting"</code>），需要手动映射标签。</p>
-                    </div>
-                  </div>
+                <div class="practice">
+                  <div class="practice-title">必须使用 Node.js LTS，并用 .nvmrc 锁定</div>
+                  <div class="practice-row"><span class="practice-tag pt-problem">问题</span><p>Vite 构建和 tsc 进程空转（0% CPU + 0 输出），换了机器/Node 版本后才正常。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-cause">根因</span><p>Node 23（Current）的 <code>esbuild-wasm</code> 有已知挂起问题（esbuild#3951），且 <code>fsevents</code> 可能缺预编译 binary。实测 Node 23.7.0 在 macOS ARM64 上必现空转。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-fix">解决方案</span><p>使用 Node.js LTS（22.x 或 20.x）。在项目根放 <code>.nvmrc</code> 写入 <code>22</code>，团队与 CI 通过 <code>nvm use</code> / <code>fnm use</code> 自动匹配；Homebrew 多版本可用 <code>PATH="/opt/homebrew/opt/node@22/bin:$PATH"</code> 临时切换。</p></div>
                 </div>
 
-                <h4>DATA_SOURCE_NAME 匹配规则</h4>
-                <div class="flow-list">
-                  <div class="flow-step">
-                    <div class="flow-copy">
-                      <strong>Service 中的表名必须与 dataSourcesInfo 的 key 一致</strong>
-                      <p>生成的 Service 通过 <code>getClient(dataSourcesInfo)</code> 获取 client，<code>dataSourcesInfo</code> 的 key 就是 <code>power.config.json</code> 中 <code>databaseReferences.default.cds.dataSources</code> 的 key（即 entitySetName）。如果手写代码传入友好名（如 <code>'Account'</code>）而非 entitySetName（如 <code>'accounts'</code>），SDK 查找失败，表现为无数据或运行时错误。</p>
-                    </div>
-                  </div>
+                <div class="practice">
+                  <div class="practice-title">不要让 AI 编码 agent 管理 build</div>
+                  <div class="practice-row"><span class="practice-tag pt-problem">问题</span><p>GitHub Copilot、Cursor 等 agent 在终端跑 <code>pnpm build</code> 时，因 30–60 秒无输出而把进程移后台或直接 kill，导致编译永远完不成。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-cause">根因</span><p>agent 用「无输出 = 卡死」的启发式判断，而 <code>tsc -b</code> 冷编译恰恰长期零输出，于是反复 kill → 缓存损坏 → 每次从零开始。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-fix">解决方案</span><p>在 agent 的记忆/指令里写明：build 超时设 &gt;1200 秒、不要杀 tsc 进程；或改用 <code>tsc -b &amp;&amp; vite build &gt; /tmp/build.log 2&gt;&amp;1 &amp;</code> 后台运行 + 定期 <code>cat /tmp/build.log</code> 检查；必要时让开发者在独立终端手动 build。</p></div>
+                </div>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>部署纪律</span>
+              </button>
+              <div class="subsection-content">
+                <p>部署阶段的核心纪律是：<strong>push 不构建</strong>，所以完整流程永远是 build → 验证 dist 时间戳 → push → 浏览器验证。</p>
+
+                <div class="practice">
+                  <div class="practice-title">push 不会自动 build</div>
+                  <div class="practice-row"><span class="practice-tag pt-problem">问题</span><p>改了代码、push 显示成功，用户却仍看到旧界面。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-cause">根因</span><p><code>npx power-apps push</code> 和兼容的 <code>pac code push</code> 都只上传 <code>dist/</code>，不触发 <code>vite build</code>。跳过 build 直接 push 就上传了旧产物；push 后 sourcetime 会更新，造成「成功」假象。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-fix">解决方案</span><p>每次 push 前先 build，并用 <code>stat dist/index.html</code> 核对产物时间戳为当前时间，再 push。</p></div>
                 </div>
 
-                <h4>推荐架构：生成 Service + 手写 Adapter</h4>
-                <div class="flow-list">
-                  <div class="flow-step">
-                    <div class="flow-copy">
-                      <strong>不要让业务代码直接调用生成的 Service</strong>
-                      <p>生成的 Service 使用 Dataverse 原生列名（如 <code>emailaddress1</code>），且 Model 包含数百个系统列。推荐在 <code>src/generated/services/</code> 目录放置手写的 adapter service，负责：(1) 将 Dataverse 列名映射为业务友好名（<code>emailaddress1 → email</code>）；(2) 只暴露业务需要的字段子集；(3) 封装多表聚合逻辑（如 Activity 同时查 appointment + phonecall + email 三张表）。业务代码只调用 adapter，生成的 Service 仅被 adapter 引用。</p>
-                      <div class="cmd-block">// adapter 示例：account-service.ts
-import { AccountsService } from './AccountsService';  // CLI 生成
-
-const FIELD_MAP = { id: 'accountid', email: 'emailaddress1', phone: 'telephone1' };
-
-function fromDv(dv) {
-  return { id: dv.accountid, email: dv.emailaddress1, phone: dv.telephone1 };
-}
-
-export async function getAll() {
-  const result = await AccountsService.getAll({ select: Object.values(FIELD_MAP) });
-  return result.data.map(fromDv);
-}</div>
-                    </div>
-                  </div>
+                <div class="practice">
+                  <div class="practice-title">优先使用 npm CLI 而非 PAC CLI</div>
+                  <div class="practice-row"><span class="practice-tag pt-problem">问题</span><p>用 <code>pac code add-data-source</code> 添加 Dataverse 表时报 <code>Invalid URI format</code>。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-cause">根因</span><p>旧版 PAC CLI 对 Dataverse 表的该命令存在 bug（PAC v1.52.1 确认），而 <code>pac code</code> 系列命令未来会被弃用。</p></div>
+                  <div class="practice-row"><span class="practice-tag pt-fix">解决方案</span><p>从 SDK v1.0.4 起改用 npm CLI（<code>npx power-apps</code>），无此 bug，且是官方推荐的长期路径。</p></div>
                 </div>
 
-                <h4>.power/schemas/ 目录纪律</h4>
-                <div class="flow-list">
-                  <div class="flow-step">
-                    <div class="flow-copy">
-                      <strong>不要手动编辑 CLI 生成的文件</strong>
-                      <p><code>.power/schemas/dataverse/*.Schema.json</code> 和 <code>.power/schemas/appschemas/dataSourcesInfo.ts</code> 由 CLI 生成和维护。手动修改 <code>dataSourcesInfo.ts</code> 的 primaryKey 会导致与 Schema.json 不同步，引发 App 启动时 500 错误。需要变更时，始终通过 <code>npx power-apps delete-data-source</code> + <code>add-data-source</code>（或 <code>refresh-data-source</code>）重新生成。</p>
-                    </div>
-                  </div>
-                </div>
-
-                <h4>用户身份解析：objectId ≠ systemuserid</h4>
-                <div class="flow-list">
-                  <div class="flow-step">
-                    <div class="flow-copy">
-                      <strong>问题：SDK 用户 ID 与 Dataverse Owner ID 是两个不同的 GUID</strong>
-                      <p>Power Apps SDK 的 <code>getContext().user.objectId</code> 返回的是 <strong>Azure AD objectId</strong>（Entra ID），而 Dataverse 记录的 <code>_ownerid_value</code> 存储的是 <strong>systemuserid</strong>（Dataverse 内部用户 GUID）。这两个值永远不同，直接用 <code>objectId</code> 做 <code>o.ownerid === userId</code> 过滤会导致所有数据被过滤掉——用户看到空白 pipeline。</p>
-                    </div>
-                  </div>
-                  <div class="flow-step">
-                    <div class="flow-copy">
-                      <strong>解决方案：在 useUser hook 中一次性解析 systemuserid</strong>
-                      <p>将 <code>systemusers</code> 表添加为数据源，在 <code>useUser</code> hook 中用 <code>user.userPrincipalName</code>（email）查询 <code>systemusers</code> 表的 <code>windowsliveid</code> 字段，获取对应的 <code>systemuserid</code>。将解析后的 systemuserid 覆盖到返回值的 <code>objectId</code> 字段，这样所有下游代码（owner 过滤、create 写入、agent context）无需任何改动，自动使用正确的 Dataverse 用户 ID。</p>
-                    </div>
-                  </div>
-                  <div class="flow-step">
-                    <div class="flow-copy">
-                      <strong>查询字段选择</strong>
-                      <p>用 <code>windowsliveid</code> 匹配 UPN（而非 <code>azureactivedirectoryobjectid</code>），因为 <code>azureactivedirectoryobjectid</code> 在部分环境可能为空，而 <code>windowsliveid</code> 与 UPN 一致且一定有值。TanStack Query 的默认缓存机制保证此查询只在首次加载时执行一次。</p>
-                      <div class="cmd-block">// hooks/use-user.ts — 完整实现
-import { useQuery } from '@tanstack/react-query';
-import { getContext } from '@microsoft/power-apps/app';
-import { getClient } from '@microsoft/power-apps/data';
-import { dataSourcesInfo } from '../../.power/schemas/appschemas/dataSourcesInfo';
-
-const dvClient = getClient(dataSourcesInfo);
-
-async function resolveSystemUserId(email: string): Promise&lt;string&gt; {
-  const result = await dvClient.retrieveMultipleRecordsAsync&lt;{
-    systemuserid: string;
-  }&gt;('systemusers', {
-    filter: `windowsliveid eq '${email}'`,
-    select: ['systemuserid'],
-    top: 1,
-  });
-  if (result.success &amp;&amp; result.data?.[0]?.systemuserid) {
-    return result.data[0].systemuserid.toLowerCase();
-  }
-  return '';
-}
-
-export const useUser = () =&gt; useQuery({
-  queryKey: ['user'],
-  queryFn: async () =&gt; {
-    const { user } = await getContext();
-    const systemUserId = user.userPrincipalName
-      ? await resolveSystemUserId(user.userPrincipalName)
-      : undefined;
-    return { ...user, objectId: systemUserId };
-  },
-});</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="quote-block">
-                  <p><strong>Owner 字段纪律：</strong>Dataverse 记录的 owner 应通过原生 <code>_ownerid_value</code> 系统字段读取，不要创建自定义的 <code>crf5c_ownerid</code> 文本列来冗余存储。写入时也不需要手动设置 owner——Dataverse 会自动将 calling user 设为新记录的 owner。Adapter service 的 <code>fromDv</code> 读取 <code>_ownerid_value</code> 并 <code>.toLowerCase()</code> 归一化（Dataverse 返回的 GUID 大小写不确定），<code>toDv</code> 不写 ownerid。</p>
-                </div>
-
-                <h4 data-zh="构建与部署全流程" data-en="Build &amp; Deploy Pipeline">构建与部署全流程</h4>
-
-                <div class="quote-block">
-                  <p data-zh="标准构建脚本为 &lt;code&gt;tsc -b &amp;amp;&amp;amp; vite build&lt;/code&gt;（TypeScript 类型检查 → Vite 打包）。push 命令仅上传 &lt;code&gt;dist/&lt;/code&gt; 目录。完整部署流程始终是：&lt;strong&gt;build → 验证 dist 时间戳 → push → 浏览器验证&lt;/strong&gt;。" data-en="The standard build script is &lt;code&gt;tsc -b &amp;amp;&amp;amp; vite build&lt;/code&gt; (TypeScript type-check → Vite bundle). The push command only uploads &lt;code&gt;dist/&lt;/code&gt;. The full deploy flow is always: &lt;strong&gt;build → verify dist timestamp → push → browser verify&lt;/strong&gt;."><strong>标准构建脚本</strong>为 <code>tsc -b &amp;&amp; vite build</code>（TypeScript 类型检查 → Vite 打包）。push 命令仅上传 <code>dist/</code> 目录。完整部署流程始终是：<strong>build → 验证 dist 时间戳 → push → 浏览器验证</strong>。</p>
-                </div>
-
-                <div class="flow-list">
-                  <div class="flow-step">
-                    <div class="flow-copy">
-                      <strong data-zh="冷编译时间预期：10–25 分钟属正常" data-en="Cold build time: 10–25 min is normal">冷编译时间预期：10–25 分钟属正常</strong>
-                      <p data-zh="&lt;code&gt;tsc -b&lt;/code&gt; 在冷编译（无 &lt;code&gt;.tsbuildinfo&lt;/code&gt; 缓存）时需读取全部 &lt;code&gt;node_modules&lt;/code&gt; 类型定义。实测一个中型项目（280 源文件 + date-fns 1230 个 .d.ts + lucide-react 200KB 单文件类型）冷编译 10–25 分钟，期间 CPU 接近 0%（I/O bound），终端无任何输出——这不是卡死，不要杀进程。增量编译（有缓存）仅需 &lt;1 分钟。" data-en="&lt;code&gt;tsc -b&lt;/code&gt; in cold mode (no &lt;code&gt;.tsbuildinfo&lt;/code&gt; cache) reads ALL type definitions from &lt;code&gt;node_modules&lt;/code&gt;. A medium project (280 source files + date-fns 1,230 .d.ts + lucide-react 200KB type file) takes 10–25 min cold; CPU near 0% (I/O bound) with zero terminal output — this is NOT a hang. Incremental builds with cache take &lt;1 min."><code>tsc -b</code> 在冷编译（无 <code>.tsbuildinfo</code> 缓存）时需读取全部 <code>node_modules</code> 类型定义。实测一个中型项目（280 源文件 + date-fns 1,230 个 .d.ts + lucide-react 200KB 单文件类型）冷编译 10–25 分钟，期间 CPU 接近 0%（I/O bound），终端无任何输出——<strong>这不是卡死，不要杀进程</strong>。增量编译（有缓存）仅需 &lt;1 分钟。</p>
-                    </div>
-                  </div>
-                  <div class="flow-step">
-                    <div class="flow-copy">
-                      <strong data-zh="绝不中断 tsc -b 编译" data-en="NEVER kill tsc -b mid-compilation">绝不中断 tsc -b 编译</strong>
-                      <p data-zh="&lt;code&gt;tsc -b&lt;/code&gt; 使用 &lt;code&gt;.tsbuildinfo&lt;/code&gt; 增量缓存文件。编译中途 kill 进程（Ctrl+C / 关闭终端 / AI 编码 agent 超时杀进程）会损坏缓存文件，导致下次编译必须全量重建。陷入恶性循环：冷编译 → 误判为卡死 → kill → 缓存损坏 → 又冷编译 → 反复失败。修复方法：删除 &lt;code&gt;tsconfig.*.tsbuildinfo&lt;/code&gt; 后重新 build 并&lt;strong&gt;耐心等待 20+ 分钟&lt;/strong&gt;。" data-en="&lt;code&gt;tsc -b&lt;/code&gt; uses &lt;code&gt;.tsbuildinfo&lt;/code&gt; for incremental cache. Killing the process mid-compilation (Ctrl+C / closing terminal / AI coding agent timeout) corrupts the cache, forcing a full cold rebuild next time. This creates a vicious cycle: cold build → mistaken for hang → kill → cache corrupted → cold build again. Fix: delete &lt;code&gt;tsconfig.*.tsbuildinfo&lt;/code&gt; and rebuild with &lt;strong&gt;patience (20+ min)&lt;/strong&gt;."><code>tsc -b</code> 使用 <code>.tsbuildinfo</code> 增量缓存文件。编译中途 kill 进程（Ctrl+C / 关闭终端 / AI 编码 agent 超时杀进程）会损坏缓存文件，导致下次编译必须全量重建。陷入恶性循环：冷编译 → 误判为卡死 → kill → 缓存损坏 → 又冷编译 → 反复失败。修复方法：删除 <code>tsconfig.*.tsbuildinfo</code> 后重新 build 并<strong>耐心等待 20+ 分钟</strong>。</p>
-                    </div>
-                  </div>
-                  <div class="flow-step">
-                    <div class="flow-copy">
-                      <strong data-zh="push 不会自动 build" data-en="Push does NOT auto-build">push 不会自动 build</strong>
-                      <p data-zh="&lt;code&gt;npx power-apps push&lt;/code&gt; 和兼容性的 &lt;code&gt;pac code push&lt;/code&gt; 都只上传 &lt;code&gt;dist/&lt;/code&gt; 内容，不触发 &lt;code&gt;vite build&lt;/code&gt;。跳过 build 直接 push 会上传旧版本代码。push 后 sourcetime 会更新，UI 看似成功但内容不变。" data-en="&lt;code&gt;npx power-apps push&lt;/code&gt; and the compatible &lt;code&gt;pac code push&lt;/code&gt; path only upload &lt;code&gt;dist/&lt;/code&gt; contents without triggering &lt;code&gt;vite build&lt;/code&gt;. Skipping the build step pushes stale code. The sourcetime advances, so it looks successful, but the bundle is unchanged."><code>npx power-apps push</code> 和兼容性的 <code>pac code push</code> 都只上传 <code>dist/</code> 内容，不触发 <code>vite build</code>。跳过 build 直接 push 会上传旧版本代码。push 后 sourcetime 会更新，UI 看似成功但内容不变。</p>
-                    </div>
-                  </div>
-                  <div class="flow-step">
-                    <div class="flow-copy">
-                      <strong data-zh="必须使用 Node.js LTS 版本" data-en="Must use Node.js LTS version">必须使用 Node.js LTS 版本</strong>
-                      <p data-zh="Power Apps 官方要求 Node.js LTS（当前为 22.x 或 20.x）。Node 23（Current 版）的 &lt;code&gt;esbuild-wasm&lt;/code&gt; 存在已知挂起问题（esbuild#3951），且 &lt;code&gt;fsevents&lt;/code&gt; 可能缺少预编译 binary 需要 node-gyp 现场编译。实测 Node 23.7.0 在 macOS ARM64 上 Vite 构建和 tsc 都出现进程空转（0% CPU + 0 输出），切换到 Node 22 后正常。" data-en="Power Apps officially requires Node.js LTS (currently 22.x or 20.x). Node 23 (Current) has a known &lt;code&gt;esbuild-wasm&lt;/code&gt; hang (esbuild#3951), and &lt;code&gt;fsevents&lt;/code&gt; may lack pre-built binaries. Tested: Node 23.7.0 on macOS ARM64 caused Vite builds and tsc to idle at 0% CPU with 0 output; switching to Node 22 resolved it.">Power Apps 官方要求 Node.js LTS（当前为 22.x 或 20.x）。Node 23（Current 版）的 <code>esbuild-wasm</code> 存在已知挂起问题（esbuild#3951），且 <code>fsevents</code> 可能缺少预编译 binary 需要 node-gyp 现场编译。实测 Node 23.7.0 在 macOS ARM64 上 Vite 构建和 tsc 都出现进程空转（0% CPU + 0 输出），切换到 Node 22 后正常。</p>
-                    </div>
-                  </div>
-                  <div class="flow-step">
-                    <div class="flow-copy">
-                      <strong data-zh="用 .nvmrc 锁定 Node 版本" data-en="Pin Node version with .nvmrc">用 .nvmrc 锁定 Node 版本</strong>
-                      <p data-zh="在项目根目录创建 &lt;code&gt;.nvmrc&lt;/code&gt; 文件写入 &lt;code&gt;22&lt;/code&gt;。团队成员和 CI/CD 环境通过 &lt;code&gt;nvm use&lt;/code&gt; 或 &lt;code&gt;fnm use&lt;/code&gt; 自动匹配。如果使用 Homebrew 安装了多版本 Node，通过 &lt;code&gt;PATH=&amp;quot;/opt/homebrew/opt/node@22/bin:$PATH&amp;quot;&lt;/code&gt; 临时切换。" data-en="Create a &lt;code&gt;.nvmrc&lt;/code&gt; file at the project root containing &lt;code&gt;22&lt;/code&gt;. Team members and CI/CD pick it up via &lt;code&gt;nvm use&lt;/code&gt; or &lt;code&gt;fnm use&lt;/code&gt;. If Homebrew installed multiple Node versions, switch temporarily with &lt;code&gt;PATH=&amp;quot;/opt/homebrew/opt/node@22/bin:$PATH&amp;quot;&lt;/code&gt;.">在项目根目录创建 <code>.nvmrc</code> 文件写入 <code>22</code>。团队成员和 CI/CD 环境通过 <code>nvm use</code> 或 <code>fnm use</code> 自动匹配。如果使用 Homebrew 安装了多版本 Node，通过 <code>PATH="/opt/homebrew/opt/node@22/bin:$PATH"</code> 临时切换。</p>
-                    </div>
-                  </div>
-                  <div class="flow-step">
-                    <div class="flow-copy">
-                      <strong data-zh="优先使用 npm CLI 而非 PAC CLI" data-en="Prefer npm CLI over PAC CLI">优先使用 npm CLI 而非 PAC CLI</strong>
-                      <p data-zh="从 SDK v1.0.4 起，Power Apps 提供了基于 npm 的 CLI（&lt;code&gt;npx power-apps&lt;/code&gt;），用于替代未来会被弃用的 &lt;code&gt;pac code&lt;/code&gt; 命令。旧版 PAC CLI 的 &lt;code&gt;pac code add-data-source&lt;/code&gt; 对 Dataverse 表存在 &lt;code&gt;Invalid URI format&lt;/code&gt; bug（PAC v1.52.1 确认）。npm CLI 无此问题。" data-en="Since SDK v1.0.4, Power Apps provides an npm-based CLI (&lt;code&gt;npx power-apps&lt;/code&gt;) to replace the &lt;code&gt;pac code&lt;/code&gt; commands that will be deprecated in a future release. The legacy PAC CLI's &lt;code&gt;pac code add-data-source&lt;/code&gt; has an &lt;code&gt;Invalid URI format&lt;/code&gt; bug for Dataverse tables (confirmed in PAC v1.52.1). The npm CLI has no such issue.">从 SDK v1.0.4 起，Power Apps 提供了基于 npm 的 CLI（<code>npx power-apps</code>），用于替代未来会被弃用的 <code>pac code</code> 命令。旧版 PAC CLI 的 <code>pac code add-data-source</code> 对 Dataverse 表存在 <code>Invalid URI format</code> bug（PAC v1.52.1 确认）。npm CLI 无此问题。</p>
-                    </div>
-                  </div>
-                  <div class="flow-step">
-                    <div class="flow-copy">
-                      <strong data-zh="推荐部署命令序列" data-en="Recommended deploy command sequence">推荐部署命令序列</strong>
-                      <div class="cmd-block"># 完整部署流程（不要跳过任何一步）
+                <div class="practice">
+                  <div class="practice-title">推荐部署命令序列</div>
+                  <div class="practice-row"><span class="practice-tag pt-fix">照此执行</span><p>不要跳过任何一步；push 后用无痕窗口验证以避免缓存旧版本。<div class="cmd-block"># 完整部署流程（不要跳过任何一步）
 pnpm build                     # tsc -b &amp;&amp; vite build（冷编译可能需 20 分钟）
 stat dist/index.html           # 确认 dist 时间戳已更新
 npx power-apps push            # Code App 专用 npm CLI（推荐，必须用于 Flow 集成）
 # 或: ~/.dotnet/tools/pac code push   # 兼容路径（不支持 Flow 的 workflowDetails schema）
 
-# push 后：打开浏览器验证（建议用无痕窗口避免缓存旧版本）
+# push 后：打开浏览器（无痕窗口）验证
 # 1) App 正常加载
 # 2) 发送消息 → 得到响应
 # 3) 控制台无错误
-# 4) 改动功能正常工作</div>
-                    </div>
-                  </div>
-                </div>
-
-                <h4 data-zh="AI 编码 Agent 与构建的交互陷阱" data-en="AI Coding Agent vs Build Pitfalls">AI 编码 Agent 与构建的交互陷阱</h4>
-                <div class="flow-list">
-                  <div class="flow-step">
-                    <div class="flow-copy">
-                      <strong data-zh="Agent 会误判 build 为挂起" data-en="Agents misidentify builds as hangs">Agent 会误判 build 为挂起</strong>
-                      <p data-zh="GitHub Copilot、Cursor 等 AI 编码 agent 在终端执行 &lt;code&gt;pnpm build&lt;/code&gt; 时，会因 30–60 秒无输出而将进程移入后台或直接 kill。但 &lt;code&gt;tsc -b&lt;/code&gt; 冷编译期间完全不输出任何内容（只做磁盘 I/O），这导致 agent 反复杀进程 → 缓存损坏 → 每次都从零开始 → 永远完不成。" data-en="AI coding agents (GitHub Copilot, Cursor, etc.) move terminal processes to background or kill them after 30–60 seconds of no output. But &lt;code&gt;tsc -b&lt;/code&gt; cold compilation produces ZERO output (purely I/O-bound), causing agents to repeatedly kill → corrupt cache → restart from zero → never finish.">GitHub Copilot、Cursor 等 AI 编码 agent 在终端执行 <code>pnpm build</code> 时，会因 30–60 秒无输出而将进程移入后台或直接 kill。但 <code>tsc -b</code> 冷编译期间完全不输出任何内容（只做磁盘 I/O），这导致 agent 反复杀进程 → 缓存损坏 → 每次都从零开始 → 永远完不成。</p>
-                    </div>
-                  </div>
-                  <div class="flow-step">
-                    <div class="flow-copy">
-                      <strong data-zh="解决方案：agent 不应管理 build" data-en="Solution: agents should not manage builds">解决方案：agent 不应管理 build</strong>
-                      <p data-zh="在 agent 的记忆/指令中明确写入：(1) &lt;code&gt;pnpm build&lt;/code&gt; 的 timeout 设为 &gt;1200 秒；(2) 不要杀 tsc 进程；(3) 如果 agent 无法等待，让开发者在独立终端手动运行 build。或者改用 &lt;code&gt;tsc -b &amp;amp;&amp;amp; vite build &amp;gt; /tmp/build.log 2&amp;gt;&amp;amp;1 &amp;amp;&lt;/code&gt; 后台运行 + 定期 &lt;code&gt;cat /tmp/build.log&lt;/code&gt; 检查。" data-en="Add to agent memory/instructions: (1) set &lt;code&gt;pnpm build&lt;/code&gt; timeout to &gt;1200s; (2) never kill tsc processes; (3) if the agent cannot wait, have the developer run build manually in a separate terminal. Or use &lt;code&gt;tsc -b &amp;amp;&amp;amp; vite build &amp;gt; /tmp/build.log 2&amp;gt;&amp;amp;1 &amp;amp;&lt;/code&gt; in background + periodic &lt;code&gt;cat /tmp/build.log&lt;/code&gt;.">在 agent 的记忆/指令中明确写入：(1) <code>pnpm build</code> 的 timeout 设为 &gt;1200 秒；(2) 不要杀 tsc 进程；(3) 如果 agent 无法等待，让开发者在独立终端手动运行 build。或者改用 <code>tsc -b &amp;&amp; vite build &gt; /tmp/build.log 2&gt;&amp;1 &amp;</code> 后台运行 + 定期 <code>cat /tmp/build.log</code> 检查。</p>
-                    </div>
-                  </div>
+# 4) 改动功能正常工作</div></p></div>
                 </div>
               </div>
             </article>
             <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>用 AI 编码助手加速开发</span>
               </button>
               <div class="subsection-content">
-                <p>利用 AI 编码助手加速 Code App 开发。</p>
+                <p>利用 AI 编码助手加速 Code App 开发。两条路径互补：日常写业务代码用 VS Code 里的 GitHub Copilot；而项目搭建、接数据源、部署这类「平台操作」可以用微软官方的 Power Platform Skills 插件把整套 <code>npx power-apps</code> 流程交给 AI 一键完成。</p>
                 <div class="comparison-grid">
                   <div class="comparison-card">
-                    <h4>GitHub Copilot 集成</h4>
-                    <p>添加数据源后，可以使用 VS Code 中的 GitHub Copilot Agent Mode 自动更新代码以调用生成的 Model 和 Service。微软官方文档明确推荐这一工作流。</p>
+                    <h4>GitHub Copilot（VS Code）</h4>
+                    <p>添加数据源后，用 VS Code 中的 GitHub Copilot Agent Mode 自动更新代码以调用生成的 Model 和 Service。适合<strong>日常写业务逻辑、改 UI、补类型</strong>。微软官方文档明确推荐这一工作流。</p>
                   </div>
                   <div class="comparison-card">
-                    <h4>Power Platform Skills 插件</h4>
-                    <p>微软在 <a href="https://github.com/microsoft/power-platform-skills" target="_blank" rel="noopener noreferrer">microsoft/power-platform-skills</a> 仓库提供了 AI 编码助手插件（支持 Claude 和 GitHub Copilot），专门针对 Code App 开发场景优化。</p>
+                    <h4>Power Platform Skills（Claude Code / Copilot CLI）</h4>
+                    <p>微软官方维护的<strong>插件市场</strong>（<a href="https://github.com/microsoft/power-platform-skills" target="_blank" rel="noopener noreferrer">microsoft/power-platform-skills</a>），把 Code App 的「平台操作」封装成 AI 能一键调用的标准 skill。适合<strong>项目启动、接新数据源、部署</strong>这类与 Power Platform CLI 打交道的环节。</p>
                   </div>
+                </div>
+
+                <h4>Power Platform Skills 提供哪些能力</h4>
+                <p>仓库是一个面向 <strong>Claude Code</strong> 和 <strong>GitHub Copilot CLI（命令行版）</strong> 的插件市场，含 Power Pages / Model Apps / Canvas Apps / <strong>Code Apps</strong> 四个插件。其中 <code>code-apps</code> 插件提供的 skill 按开发阶段划分如下：</p>
+                <div class="simple-table-wrap">
+                <table class="simple-table">
+                  <thead>
+                    <tr><th>阶段</th><th>Skill</th><th>作用</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td rowspan="2">启动</td><td><code>/create-code-app</code></td><td>用官方模板脚手架建项目、初始化、构建并首次部署一个新 Code App</td></tr>
+                    <tr><td><code>/list-connections</code></td><td>列出 Power Platform 连接，拿到 Connection ID</td></tr>
+                    <tr><td rowspan="3">接数据源</td><td><code>/add-datasource</code></td><td>路由器：问清需求后自动分派到下面对应的 add-* skill</td></tr>
+                    <tr><td><code>/add-dataverse</code></td><td>添加 Dataverse 表，生成类型安全的 Model 与 Service</td></tr>
+                    <tr><td><code>/add-sharepoint</code> 等</td><td>SharePoint / Teams / Excel / OneDrive / Office 365 / Azure DevOps / Copilot Studio 各连接器，外加 <code>/add-connector</code> 兜底任意连接器</td></tr>
+                    <tr><td>部署</td><td><code>/deploy</code></td><td>构建并部署一个已有 Code App</td></tr>
+                  </tbody>
+                </table>
+                </div>
+                <p>除 skill 外，插件还附带一个 <code>code-app-architect</code> 架构决策角色、连接器参考文档，以及一套「connector-first 守则」——在沙箱里强制走连接器、禁止直接 <code>fetch</code>，从源头规避运行时报错。</p>
+
+                <h4>怎么装 · 适合谁 · 前提与取舍</h4>
+                <div class="flow-list">
+                  <div class="flow-step">
+                    <div class="flow-copy">
+                      <strong>安装方式</strong>
+                      <p>在 Claude Code 或 GitHub Copilot CLI 会话中执行 <code>/plugin marketplace add microsoft/power-platform-skills</code>，再 <code>/plugin install code-apps@power-platform-skills</code>；或用官方 <code>install.js</code> 一键脚本（自动装 <code>pac</code> CLI、注册市场、开启自动更新）。</p>
+                    </div>
+                  </div>
+                  <div class="flow-step">
+                    <div class="flow-copy">
+                      <strong>最适合的场景</strong>
+                      <p><strong>项目从 0 到 1</strong>、或<strong>临时要接一个不熟悉的新连接器</strong>时收益最大——把查 CLI 文档、拼参数、核对三文件同步的活交给官方 skill。它由微软持续维护，能跟上 <code>npx power-apps</code> 的新命令与新连接器。</p>
+                    </div>
+                  </div>
+                  <div class="flow-step">
+                    <div class="flow-copy">
+                      <strong>前提与取舍（判断要不要用）</strong>
+                      <p>(1) <strong>环境要匹配</strong>：它装在 Claude Code / Copilot CLI 上，<strong>不能直接 <code>/plugin install</code> 进 VS Code 版 Copilot</strong>；若团队只用 VS Code，需把 SKILL.md 内容手动落成自己的 instructions，或切到命令行版。(2) <strong>偏启动期</strong>：最值钱的 skill 集中在脚手架与接数据源，<strong>成熟项目（数据源已接全）日常收益有限</strong>。(3) <strong>通用而非项目级</strong>：给的是平台标准流程，<strong>替代不了你自己沉淀的项目特定坑位与解法</strong>（字段映射、204 兜底、activityparty 等仍需本地知识库）。</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="quote-block">
+                  <p><strong>一句话判断：</strong>新建项目或接陌生连接器 → 值得装，省查文档的功夫；成熟项目日常迭代且只用 VS Code → 收益有限，把官方 <code>add-*</code> 流程摘成自己的 instruction 即可「白嫖」其维护成果，无需切换工作流。</p>
                 </div>
               </div>
             </article>

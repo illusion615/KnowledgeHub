@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agentic Sales Mobile 架构设计 — Frame + Orchestrator 双阶段对话流水线</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 { font-size: clamp(1.9rem, 4.4vw, 3.1rem); line-height: 1.12; letter-spacing: -0.02em; max-width: 24ch; }
+    .mono { font-family: "Space Grotesk", ui-monospace, monospace; font-size: 0.9em; }
+    /* Component: .layer-stack
+       Reading mode: own grid gap via --rhythm-card; data-gap-managed disables global step margin.
+       Presentation mode: each .layer-row becomes one slide via data-present-step. */
+    .layer-stack { display: grid; gap: var(--rhythm-card); }
+    .layer-row { padding: 16px 20px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); }
+    [data-theme="light"] .layer-row { background: rgba(0,0,0,0.025); border-color: rgba(0,0,0,0.08); }
+    .layer-row .ltag { display: inline-block; padding: 2px 9px; border-radius: 11px; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px; }
+    .lt-ui { background: rgba(168,85,247,0.18); color: #c084fc; }
+    .lt-orch { background: rgba(249,115,22,0.18); color: #fb923c; }
+    .lt-exec { background: rgba(20,184,166,0.18); color: #2dd4bf; }
+    .lt-data { background: rgba(14,165,233,0.18); color: #38bdf8; }
+    .layer-row h3 { margin: 0 0 5px; font-size: 1.02rem; }
+    .layer-row p { margin: 0; font-size: 0.9rem; opacity: 0.84; line-height: 1.6; }
+    .layer-row .files { margin-top: 8px; font-size: 0.78rem; opacity: 0.7; }
+    .hero-layer-list { margin-top: 18px; }
+    .grid-spaced { margin-top: 16px; }
+    .layer-row-plain { border: none; background: transparent; padding: 0; }
+    .frame-contract-lead { opacity: 0.85; margin-bottom: 12px; }
+    .callout-note { margin-top: 14px; padding: 12px 16px; border-left: 3px solid #3468c7; background: rgba(52,104,199,0.07); border-radius: 0 12px 12px 0; }
+    .callout-note p { margin: 0; font-size: 0.9rem; }
+    .callout-warm { border-left-color: #fb923c; background: rgba(249,115,22,0.07); }
+    .callout-green { border-left-color: #2d7a4d; background: rgba(45,122,77,0.08); }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            <span data-zh="Agentic Sales Mobile" data-en="Agentic Sales Mobile">Agentic Sales Mobile</span>
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#problem" data-zh="问题" data-en="Problem">问题</a>
+            <a href="#dataflow" data-zh="数据流" data-en="Data Flow">数据流</a>
+            <a href="#frame" data-zh="Frame 阶段" data-en="Frame">Frame</a>
+            <a href="#orchestrator" data-zh="Orchestrator" data-en="Orchestrator">Orchestrator</a>
+            <a href="#queue" data-zh="意图队列" data-en="Queue">意图队列</a>
+            <a href="#contracts" data-zh="契约" data-en="Contracts">契约</a>
+            <a href="#observability" data-zh="可观测性" data-en="Observability">可观测性</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow" data-zh="架构设计 · 实现纪实" data-en="Architecture · As-Built">架构设计 · 实现纪实</span>
+            <h1 data-zh="Frame + Orchestrator：把一句话拆成可核对、可落库的销售动作" data-en="Frame + Orchestrator: Turning One Sentence into Verifiable, Persistable Sales Actions">Frame + Orchestrator：把一句话拆成可核对、可落库的销售动作</h1>
+            <p data-zh="本文描述应用的运行时架构——一条由意图分类（Frame）、计划编排（Orchestrator）、队列执行、数据适配四段构成的对话流水线。" data-en="This document describes the app's runtime architecture: a conversational pipeline of intent framing (Frame), plan orchestration (Orchestrator), queue execution, and data adaptation.">
+              本文描述应用的运行时架构——一条由意图分类（Frame）、计划编排（Orchestrator）、队列执行、数据适配四段构成的对话流水线。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#dataflow" data-zh="看端到端数据流" data-en="See the Data Flow">看端到端数据流</a>
+              <a class="button button-secondary" href="#frame" data-zh="从 Frame 讲起" data-en="Start with Frame">从 Frame 讲起</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label" data-zh="一句话架构" data-en="In One Sentence">一句话架构</span>
+            <h2 data-zh="两阶段 LLM 流水线 + 客户端 Zod 契约校验。" data-en="A two-stage LLM pipeline guarded by client-side Zod contracts.">两阶段 LLM 流水线 + 客户端 Zod 契约校验。</h2>
+            <p data-zh="Frame 负责「拆」——把一句话切成多个独立意图；Orchestrator 负责「排」——把每个意图映射到技能函数并建立依赖图。两段都用自由文本输出 + 客户端 Zod 校验，而非依赖平台的结构化 JSON 模式。" data-en="Frame splits one sentence into independent intents; Orchestrator maps each intent to a skill function and builds a dependency graph. Both stages emit free text validated client-side by Zod, rather than relying on the platform's structured-JSON mode.">
+              Frame 负责「拆」——把一句话切成多个独立意图；Orchestrator 负责「排」——把每个意图映射到技能函数并建立依赖图。两段都用自由文本输出 + 客户端 Zod 校验。
+            </p>
+            <ul class="layer-list hero-layer-list">
+              <li><span class="layer-number">1</span><span data-zh="Frame — 多意图分类（拆）" data-en="Frame — multi-intent classification">Frame — 多意图分类（拆）</span></li>
+              <li><span class="layer-number">2</span><span data-zh="Orchestrator — 技能映射与 DAG（排）" data-en="Orchestrator — skill mapping and DAG">Orchestrator — 技能映射与 DAG（排）</span></li>
+              <li><span class="layer-number">3</span><span data-zh="意图队列 — 串联确认与执行" data-en="Intent Queue — chained confirm and execute">意图队列 — 串联确认与执行</span></li>
+              <li><span class="layer-number">4</span><span data-zh="适配层 — 落库 Dataverse" data-en="Adapter — persist to Dataverse">适配层 — 落库 Dataverse</span></li>
+            </ul>
+          </aside>
+        </div>
+      </header>
+
+      <main>
+        <!-- Section 01: Problem -->
+        <section id="problem" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="01 / 问题" data-en="01 / The Problem">01 / The Problem</p>
+            <h2 data-zh="为什么不能用一次 LLM 调用直接落库" data-en="Why a Single LLM Call Cannot Just Write to the Database">为什么不能用一次 LLM 调用直接落库</h2>
+            <p data-zh="销售口述往往一句话裹挟多件事，且彼此有依赖。直接把整句丢给一次 LLM 调用让它「自由发挥」地写数据库，会在三个地方失控：意图边界、执行顺序、数据正确性。" data-en="A rep's dictation often bundles several things with dependencies. Handing the whole sentence to a single free-form LLM call that writes the database directly loses control in three places: intent boundaries, execution order, and data correctness.">
+              销售口述往往一句话裹挟多件事，且彼此有依赖。直接把整句丢给一次 LLM 调用让它「自由发挥」地写数据库，会在三个地方失控：意图边界、执行顺序、数据正确性。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="一句话里的三重失控风险" data-step-title-en="Three Failure Modes in One Sentence" data-step-label="01 / PROBLEM">
+            <div class="quote-block">
+              <p data-zh="「我刚拜访了协和医院的张主任，他们对新款监护仪很感兴趣，建一个商机，金额大概 150 万，下周三再约他复盘。」" data-en="I just visited Director Zhang at Union Hospital — they are keen on the new monitor. Create an opportunity, around 1.5M, and book a review with him next Wednesday.">「我刚拜访了协和医院的张主任，他们对新款监护仪很感兴趣，建一个商机，金额大概 150 万，下周三再约他复盘。」</p>
+            </div>
+            <div class="insight-grid grid-spaced">
+              <div class="insight-card">
+                <span class="card-index">01</span>
+                <h3 data-zh="意图边界" data-en="Intent Boundaries">意图边界</h3>
+                <p data-zh="这句话里有三件事：记一次已发生的拜访、建一个新商机、约一个未来的会议。时态不同、对象不同、动作不同，必须先切开。" data-en="Three things are bundled: log a past visit, create a new opportunity, book a future meeting. Different tenses, objects and actions — they must be split first.">
+                  这句话里有三件事：记一次已发生的拜访、建一个新商机、约一个未来的会议。时态不同、对象不同、动作不同，必须先切开。
+                </p>
+              </div>
+              <div class="insight-card">
+                <span class="card-index">02</span>
+                <h3 data-zh="执行顺序" data-en="Execution Order">执行顺序</h3>
+                <p data-zh="商机要挂在「协和医院」这个客户下，会议要关联「张主任」这个联系人。客户、联系人必须先解析出来，商机和会议才能引用——这是依赖关系。" data-en="The opportunity must hang off the 'Union Hospital' account; the meeting must link to contact 'Director Zhang'. Account and contact must resolve first — that is a dependency.">
+                  商机要挂在「协和医院」这个客户下，会议要关联「张主任」这个联系人。客户、联系人必须先解析出来，商机和会议才能引用——这是依赖关系。
+                </p>
+              </div>
+              <div class="insight-card">
+                <span class="card-index">03</span>
+                <h3 data-zh="数据正确性" data-en="Data Correctness">数据正确性</h3>
+                <p data-zh="「下周三」要换算成具体日期，「150 万」要落成数字金额，「协和医院」要匹配到 Dataverse 里真实存在的客户记录——任一步出错就是脏数据。" data-en="'Next Wednesday' must resolve to a date, '1.5M' to a numeric amount, 'Union Hospital' must match a real Dataverse account. Any slip produces dirty data.">
+                  「下周三」要换算成具体日期，「150 万」要落成数字金额，「协和医院」要匹配到 Dataverse 里真实存在的客户记录——任一步出错就是脏数据。
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 02: Data Flow -->
+        <section id="dataflow" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="02 / 端到端数据流" data-en="02 / End-to-End Data Flow">02 / End-to-End Data Flow</p>
+            <h2 data-zh="一句话从输入框到 Dataverse 的完整路径" data-en="The Full Path from Input Box to Dataverse">一句话从输入框到 Dataverse 的完整路径</h2>
+            <p data-zh="请求严格自上而下穿过四个责任层，不允许跨层直调。下面的时序图是当前代码的真实主路径，起点是 CopilotProvider 的 sendMessage。" data-en="A request flows strictly top-down through four responsibility layers, with no cross-layer shortcuts. The sequence below is the real main path in the current code, starting at CopilotProvider's sendMessage.">
+              请求严格自上而下穿过四个责任层，不允许跨层直调。下面的时序图是当前代码的真实主路径，起点是 CopilotProvider 的 sendMessage。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="四层责任分工" data-step-title-en="Four Responsibility Layers" data-step-label="02 / LAYERS">
+            <div class="layer-stack" data-gap-managed>
+              <div class="layer-row" data-present-step>
+                <span class="ltag lt-ui" data-zh="表现层" data-en="Presentation">表现层</span>
+                <h3 data-zh="Pages + CopilotProvider" data-en="Pages + CopilotProvider">Pages + CopilotProvider</h3>
+                <p data-zh="页面采集输入并设置页面上下文；CopilotProvider 的 sendMessage 是对话主入口，负责澄清门控、消息持久化、查询失效与队列协调。" data-en="Pages capture input and set page context; CopilotProvider's sendMessage is the conversational entry point, owning clarification gating, message persistence, query invalidation and queue coordination.">
+                  页面采集输入并设置页面上下文；CopilotProvider 的 sendMessage 是对话主入口，负责澄清门控、消息持久化、查询失效与队列协调。
+                </p>
+                <p class="files mono">contexts/copilot-context.tsx · pages/*-detail.tsx</p>
+              </div>
+              <div class="layer-row" data-present-step>
+                <span class="ltag lt-orch" data-zh="认知层" data-en="Cognition">认知层</span>
+                <h3 data-zh="Frame + Orchestrator" data-en="Frame + Orchestrator">Frame + Orchestrator</h3>
+                <p data-zh="Frame 把一句话拆成多意图数组；Orchestrator 把每个意图映射到技能函数、填充参数、建立 DAG 依赖。两段共同产出一个 PipelineResult。" data-en="Frame splits the sentence into an intent array; Orchestrator maps each intent to a skill function, fills arguments and builds the DAG dependencies. Together they produce a PipelineResult.">
+                  Frame 把一句话拆成多意图数组；Orchestrator 把每个意图映射到技能函数、填充参数、建立 DAG 依赖。两段共同产出一个 PipelineResult。
+                </p>
+                <p class="files mono">lib/frame.ts · lib/orchestrator.ts · lib/dag-schema.ts</p>
+              </div>
+              <div class="layer-row" data-present-step>
+                <span class="ltag lt-exec" data-zh="执行层" data-en="Execution">执行层</span>
+                <h3 data-zh="意图队列 + 函数执行" data-en="Intent Queue + Function Execution">意图队列 + 函数执行</h3>
+                <p data-zh="意图队列把多意图串成一条带游标的状态机；运行时逐个执行，draft/update 渲染确认卡片，query 立即返回结果。函数执行器按注册表分派到对应 handler。" data-en="The intent queue chains intents into a cursor-driven state machine; the runtime executes them one by one — draft/update render a confirm card, query returns results immediately. The executor dispatches to handlers via the registry.">
+                  意图队列把多意图串成一条带游标的状态机；运行时逐个执行，draft/update 渲染确认卡片，query 立即返回结果。函数执行器按注册表分派到对应 handler。
+                </p>
+                <p class="files mono">lib/intent-queue.ts · lib/intent-queue-runtime.ts · lib/function-executor.ts · lib/functions/*-handlers.ts</p>
+              </div>
+              <div class="layer-row" data-present-step>
+                <span class="ltag lt-data" data-zh="数据层" data-en="Data">数据层</span>
+                <h3 data-zh="服务适配器 + Dataverse" data-en="Service Adapters + Dataverse">服务适配器 + Dataverse</h3>
+                <p data-zh="每张表一个适配器，用 toDv / fromDv + FIELD_MAP 在应用模型与 Dataverse 列名之间转换，再经 Power Apps SDK 读写 Dataverse。" data-en="One adapter per table converts between app model and Dataverse column names via toDv / fromDv + FIELD_MAP, then reads/writes Dataverse through the Power Apps SDK.">
+                  每张表一个适配器，用 toDv / fromDv + FIELD_MAP 在应用模型与 Dataverse 列名之间转换，再经 Power Apps SDK 读写 Dataverse。
+                </p>
+                <p class="files mono">generated/services/*-service.ts · _adapter-utils.ts</p>
+              </div>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="主路径时序图" data-step-title-en="Main-Path Sequence Diagram" data-step-label="02 / SEQUENCE">
+            <div class="mermaid-diagram">
+              <pre class="mermaid">
+sequenceDiagram
+    autonumber
+    participant U as 用户 / UI
+    participant C as CopilotProvider<br/>sendMessage
+    participant F as Frame<br/>意图分类
+    participant O as Orchestrator<br/>DAG 规划
+    participant Q as 意图队列<br/>运行时
+    participant X as 函数执行器<br/>+ Handlers
+    participant D as 适配器<br/>→ Dataverse
+    U->>C: 输入一句话
+    C->>C: 澄清门控检查
+    C->>F: 拆分意图
+    F-->>C: intents[] + 依赖
+    C->>O: 规划每个意图
+    O-->>C: PipelineResult (DAG)
+    C->>Q: 构建意图队列
+    loop 逐个意图
+        Q->>X: 执行 / 解析引用
+        alt draft / update
+            X-->>U: 渲染确认卡片
+            U->>X: Save 确认
+        else query
+            X-->>U: 直接返回结果
+        end
+        X->>D: 写入 / 读取
+        D-->>X: 落库结果
+    end
+    Q-->>C: 失效相关查询
+    C-->>U: 刷新页面 + 回执
+              </pre>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 03: Frame -->
+        <section id="frame" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="03 / Frame 阶段" data-en="03 / The Frame Stage">03 / The Frame Stage</p>
+            <h2 data-zh="把一句话切成多个独立意图" data-en="Splitting One Sentence into Independent Intents">把一句话切成多个独立意图</h2>
+            <p data-zh="Frame 是流水线的第一段，唯一职责是「拆」。它读入用户原句加页面上下文，输出一个意图数组，每个意图标注销售对象、认知任务、时态，以及它依赖哪些兄弟意图。Frame 一旦定下拆分，下游不再重新分类。" data-en="Frame is the first stage, and its only job is to split. It reads the raw sentence plus page context and outputs an intent array, each tagged with sales object, cognitive task, tense, and which sibling intents it depends on. Once Frame fixes the split, downstream never re-classifies.">
+              Frame 是流水线的第一段，唯一职责是「拆」。它读入用户原句加页面上下文，输出一个意图数组，每个意图标注销售对象、认知任务、时态，以及它依赖哪些兄弟意图。Frame 一旦定下拆分，下游不再重新分类。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="Frame 的输出契约" data-step-title-en="The Frame Output Contract" data-step-label="03 / FRAME">
+            <div class="layer-list">
+              <div class="layer-row layer-row-plain">
+                <p class="frame-contract-lead" data-zh="每个意图（IntentItem）携带四个判定维度，下游据此选技能、定顺序、解时态：" data-en="Each IntentItem carries four decision dimensions used downstream to pick skills, set order and resolve tense:">每个意图（IntentItem）携带四个判定维度，下游据此选技能、定顺序、解时态：</p>
+              </div>
+            </div>
+            <table class="simple-table">
+              <thead>
+                <tr>
+                  <th data-zh="维度" data-en="Dimension">维度</th>
+                  <th data-zh="取值" data-en="Values">取值</th>
+                  <th data-zh="作用" data-en="Purpose">作用</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="mono">salesObject</td>
+                  <td data-zh="Account / Contact / Opportunity / Activity / Product / None" data-en="Account / Contact / Opportunity / Activity / Product / None">Account / Contact / Opportunity / Activity / Product / None</td>
+                  <td data-zh="意图操作的业务对象" data-en="The business object the intent acts on">意图操作的业务对象</td>
+                </tr>
+                <tr>
+                  <td class="mono">cognitiveTask</td>
+                  <td data-zh="Log / Plan / Find / Update / Recommend / Analyze / Knowledge / Report / Chat" data-en="Log / Plan / Find / Update / Recommend / Analyze / Knowledge / Report / Chat">Log / Plan / Find / Update / Recommend / Analyze / Knowledge / Report / Chat</td>
+                  <td data-zh="意图的动作类型，决定映射到哪类技能" data-en="The action type, deciding which skill class to map to">意图的动作类型，决定映射到哪类技能</td>
+                </tr>
+                <tr>
+                  <td class="mono">temporal</td>
+                  <td data-zh="past / future / none" data-en="past / future / none">past / future / none</td>
+                  <td data-zh="时态，决定活动是已完成还是已计划" data-en="Tense, deciding whether an activity is completed or planned">时态，决定活动是已完成还是已计划</td>
+                </tr>
+                <tr>
+                  <td class="mono">relatesTo</td>
+                  <td data-zh="[0, 2] 等兄弟意图下标" data-en="Sibling intent indices like [0, 2]">[0, 2] 等兄弟意图下标</td>
+                  <td data-zh="依赖编码，下游据此建 DAG 顺序" data-en="Dependency encoding, used downstream to build DAG order">依赖编码，下游据此建 DAG 顺序</td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="callout-note callout-warm">
+              <p data-zh="时态错点：Frame 在意图分类的提示词里显式注入今天的日期与星期，模型据此把「下周三」这类相对时间换算成具体日期。" data-en="Date anchor: Frame's intent-classification prompt explicitly injects today's date and weekday, so the model resolves relative times like 'next Wednesday' into a concrete date.">时态错点：Frame 在意图分类的提示词里显式注入今天的日期与星期，模型据此把「下周三」这类相对时间换算成具体日期。</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 04: Orchestrator -->
+        <section id="orchestrator" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="04 / Orchestrator 阶段" data-en="04 / The Orchestrator Stage">04 / The Orchestrator Stage</p>
+            <h2 data-zh="把意图排成有依赖的执行计划" data-en="Arranging Intents into a Dependency-Ordered Plan">把意图排成有依赖的执行计划</h2>
+            <p data-zh="Orchestrator 是第二段，职责是「排」——不重新分类、不拆并意图，只把 Frame 给定的每个意图映射到一个技能函数、填充参数、用 $ref 占位符表达跨步依赖，产出一张 DAG。它是一个受约束的「填空」任务。" data-en="Orchestrator is the second stage; its job is to arrange. It never re-classifies or merges intents — it maps each Frame-given intent to a skill function, fills arguments, expresses cross-step dependencies with $ref placeholders, and emits a DAG. It is a constrained fill-in-the-blanks task.">
+              Orchestrator 是第二段，职责是「排」——不重新分类、不拆并意图，只把 Frame 给定的每个意图映射到一个技能函数、填充参数、用 $ref 占位符表达跨步依赖，产出一张 DAG。它是一个受约束的「填空」任务。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="DAG 步骤的结构" data-step-title-en="The Shape of a DAG Step" data-step-label="04 / DAG">
+            <div class="comparison-grid">
+              <div class="insight-card">
+                <span class="card-index">↹</span>
+                <h3 data-zh="一步一函数" data-en="One Step, One Function">一步一函数</h3>
+                <p data-zh="每个 DagStep 含 seq 执行序号、function 技能名、arguments 参数；同一 seq 可并行。Orchestrator 只填这些，不碰意图边界。" data-en="Each DagStep has a seq order number, a function (skill) name and arguments; same seq can run in parallel. Orchestrator fills only these, never touching intent boundaries.">
+                  每个 DagStep 含 seq 执行序号、function 技能名、arguments 参数；同一 seq 可并行。Orchestrator 只填这些，不碰意图边界。
+                </p>
+              </div>
+              <div class="insight-card">
+                <span class="card-index">$</span>
+                <h3 data-zh="$ref 表达依赖" data-en="$ref Expresses Dependency">$ref 表达依赖</h3>
+                <p data-zh="一步的产出用 outputRef 命名（如 $opp），后续步骤在 arguments 里用 $opp.id 引用；执行时 resolveRefs() 展开占位符。这把「先建客户再挂商机」的顺序固化进结构。" data-en="A step names its output via outputRef (e.g. $opp); later steps reference $opp.id in arguments; resolveRefs() expands placeholders at execution. This bakes 'account before opportunity' ordering into the structure.">
+                  一步的产出用 outputRef 命名（如 $opp），后续步骤在 arguments 里用 $opp.id 引用；执行时 resolveRefs() 展开占位符。这把「先建客户再挂商机」的顺序固化进结构。
+                </p>
+              </div>
+            </div>
+            <div class="callout-note">
+              <p data-zh="页面绑定实体：当对话发生在某个客户/商机详情页时,Orchestrator 接收页面已解析的实体,无需让 LLM 重新查询或猜测,既省一次解析也避免错挂。" data-en="Page-bound entities: when the conversation happens on an account/opportunity detail page, Orchestrator receives the page's already-resolved entities, so the LLM need not re-query or guess — saving a resolution and avoiding mis-attachment.">页面绑定实体：当对话发生在某个客户/商机详情页时，Orchestrator 接收页面已解析的实体，无需让 LLM 重新查询或猜测，既省一次解析也避免错挂。</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 05: Queue -->
+        <section id="queue" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="05 / 意图队列" data-en="05 / The Intent Queue">05 / The Intent Queue</p>
+            <h2 data-zh="多意图如何串成可核对的卡片流" data-en="How Multiple Intents Become a Verifiable Card Flow">多意图如何串成可核对的卡片流</h2>
+            <p data-zh="规划出的多意图不会一次性闷头写库,而是进入一条带游标的意图队列,逐个推进。队列把「纯状态」与「纯副作用」分开:意图队列本身是一个纯函数 reducer,所有 I/O(消息推送、服务调用、提示)集中在运行时。" data-en="Planned intents are not blindly written all at once; they enter a cursor-driven intent queue and advance one by one. The queue separates pure state from pure side effects: the queue itself is a pure-function reducer, while all I/O (message push, service calls, toasts) lives in the runtime.">
+              规划出的多意图不会一次性闷头写库，而是进入一条带游标的意图队列，逐个推进。队列把「纯状态」与「纯副作用」分开：意图队列本身是一个纯函数 reducer，所有 I/O 集中在运行时。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="三类函数,三种执行行为" data-step-title-en="Three Function Classes, Three Behaviors" data-step-label="05 / QUEUE">
+            <div class="insight-grid">
+              <div class="insight-card">
+                <span class="card-index">draft</span>
+                <h3 data-zh="草稿类 — 阻塞确认" data-en="Draft — Blocking Confirm">草稿类 — 阻塞确认</h3>
+                <p data-zh="draftActivity / draftOpportunity 等先把数据整形成预填表单卡片,等用户 Save 才真正 create()。写库前必有人核对。" data-en="draftActivity / draftOpportunity shape data into a pre-filled form card; only on user Save does create() run. A human verifies before any write.">
+                  draftActivity / draftOpportunity 等先把数据整形成预填表单卡片，等用户 Save 才真正 create()。写库前必有人核对。
+                </p>
+              </div>
+              <div class="insight-card">
+                <span class="card-index">update</span>
+                <h3 data-zh="更新类 — 阻塞确认" data-en="Update — Blocking Confirm">更新类 — 阻塞确认</h3>
+                <p data-zh="updateActivity / updateOpportunity 等把现有记录预填进卡片,用户改完 Save 才 update()。与草稿类同样需要核对。" data-en="updateActivity / updateOpportunity pre-fill the existing record into a card; update() runs only after the user edits and saves. Like drafts, it requires verification.">
+                  updateActivity / updateOpportunity 等把现有记录预填进卡片，用户改完 Save 才 update()。与草稿类同样需要核对。
+                </p>
+              </div>
+              <div class="insight-card">
+                <span class="card-index">query</span>
+                <h3 data-zh="查询类 — 直接返回" data-en="Query — Immediate Return">查询类 — 直接返回</h3>
+                <p data-zh="queryAccounts / queryActivities 等是只读的,立即执行并展示结果列表,不渲染阻塞卡片——读不需要确认。" data-en="queryAccounts / queryActivities are read-only; they execute immediately and show a result list, with no blocking card — reads need no confirmation.">
+                  queryAccounts / queryActivities 等是只读的，立即执行并展示结果列表，不渲染阻塞卡片——读不需要确认。
+                </p>
+              </div>
+            </div>
+            <div class="callout-note callout-green">
+              <p data-zh="模糊匹配级联:当意图引用了「协和医院」这类名字,队列先插入一个匹配选择卡片,让用户在候选中确认或跳过;选定的实体 ID 累积进 resolvedContext,供后续兄弟意图自动引用。" data-en="Fuzzy-match cascade: when an intent references a name like 'Union Hospital', the queue first inserts a match-selection card for the user to confirm or skip; the chosen entity ID accumulates into resolvedContext for sibling intents to auto-reference.">模糊匹配级联：当意图引用了「协和医院」这类名字，队列先插入一个匹配选择卡片，让用户在候选中确认或跳过；选定的实体 ID 累积进 resolvedContext，供后续兄弟意图自动引用。</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 06: Contracts -->
+        <section id="contracts" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="06 / 契约与适配" data-en="06 / Contracts and Adaptation">06 / Contracts and Adaptation</p>
+            <h2 data-zh="两道防线:注册表契约 与 适配器" data-en="Two Guardrails: the Registry Contract and the Adapter">两道防线：注册表契约 与 适配器</h2>
+            <p data-zh="LLM 的输出是不可信的,数据库的列名是反直觉的。架构在这两处各设一道防线:函数注册表用 Zod 校验每个技能的输入输出;服务适配器把应用模型翻译成 Dataverse 的真实列名。" data-en="LLM output is untrusted; database column names are counter-intuitive. The architecture sets a guardrail at each: the function registry validates every skill's I/O with Zod; the service adapter translates the app model into Dataverse's real column names.">
+              LLM 的输出是不可信的，数据库的列名是反直觉的。架构在这两处各设一道防线：函数注册表用 Zod 校验每个技能的输入输出；服务适配器把应用模型翻译成 Dataverse 的真实列名。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="两道防线：输出校验 与 数据适配" data-step-title-en="Two Guardrails: Output Validation and Data Adaptation" data-step-label="06 / GUARDRAILS">
+            <div class="flow-list">
+              <div class="flow-step">
+                <div class="flow-copy">
+                  <strong data-zh="第一道：输出必须过契约校验" data-en="First: Every Output Must Pass a Contract Check">第一道：输出必须过契约校验</strong>
+                  <p data-zh="每个技能在注册表里声明自己的输入输出契约。模型回复必须先过这道校验才能进入业务流程；校验失败就返回一个明确的错误，绝不静默放行、也不允许调用方自行猜测或强转。这是让不可信的 LLM 输出变可用的架构手段。" data-en="Each skill declares its input/output contract in the registry. A model reply must pass this check before entering the business flow; on failure it returns an explicit error, never silently passing and never letting callers guess or re-cast shapes. This is the architectural means of turning untrusted LLM output into something usable.">
+                    每个技能在注册表里声明自己的输入输出契约。模型回复必须先过这道校验才能进入业务流程；校验失败就返回一个明确的错误，绝不静默放行、也不允许调用方自行猜测或强转。这是让不可信的 LLM 输出变可用的架构手段。
+                  </p>
+                </div>
+              </div>
+              <div class="flow-step">
+                <div class="flow-copy">
+                  <strong data-zh="第二道：适配层隔离数据库细节" data-en="Second: The Adapter Isolates Database Details">第二道：适配层隔离数据库细节</strong>
+                  <p data-zh="每张表一个适配器，把 Dataverse 的物理字段翻译成业务模型、反向再翻译回去，业务代码只面对干净的业务字段，不被平台的选项集、查找字段、创建回读等细节渗透。这些 Dataverse SDK 层面的具体适配机制见 Power Apps Code App 技术文章。" data-en="Each table has one adapter that translates Dataverse's physical fields into the business model and back, so business code faces only clean business fields, unpolluted by platform choice sets, lookup fields, create read-back and so on. The concrete Dataverse SDK adaptation mechanisms are covered in the Power Apps Code App technical article.">
+                    每张表一个适配器，把 Dataverse 的物理字段翻译成业务模型、反向再翻译回去，业务代码只面对干净的业务字段，不被平台的选项集、查找字段、创建回读等细节渗透。这些 Dataverse SDK 层面的具体适配机制见 Power Apps Code App 技术文章。
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 07: Observability -->
+        <section id="observability" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="07 / 可观测性" data-en="07 / Observability">07 / Observability</p>
+            <h2 data-zh="任何静默降级都必须留下痕迹" data-en="Every Silent Degradation Must Leave a Trace">任何静默降级都必须留下痕迹</h2>
+            <p data-zh="LLM 流水线天然有不确定性:某次调用可能畸形需重试,某个字段可能缺失被补默认。架构的硬规则是:任何重试、补值、回退都不能「看起来像一次干净的运行」,必须在控制台告警、在 PipelineResult 里带上布尔与原因、并在 Frame Inspector 里显示一枚标记。" data-en="An LLM pipeline is inherently nondeterministic: a call may be malformed and retried, a field may be missing and defaulted. The hard rule: any retry, default or fallback must never look like a clean run — it must warn in the console, carry a boolean and reason on PipelineResult, and show a chip in the Frame Inspector.">
+              LLM 流水线天然有不确定性：某次调用可能畸形需重试，某个字段可能缺失被补默认。架构的硬规则是：任何重试、补值、回退都不能「看起来像一次干净的运行」，必须在控制台告警、在 PipelineResult 里带上布尔与原因、并在 Frame Inspector 里显示一枚标记。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="Frame Inspector:让流水线透明" data-step-title-en="Frame Inspector: Making the Pipeline Transparent" data-step-label="07 / INSPECTOR">
+            <div class="comparison-grid">
+              <div class="insight-card">
+                <span class="card-index">▤</span>
+                <h3 data-zh="可回放的运行记录" data-en="Replayable Run Records">可回放的运行记录</h3>
+                <p data-zh="Inspector 保留最近若干次运行的 Frame 结果(意图、推理、置信度)、Orchestrator 延迟,以及发送给 LLM 的精确 prompt 文本与原始响应,可直接复制到 playground 复现。" data-en="The Inspector retains recent runs' Frame results (intents, reasoning, confidence), Orchestrator latency, plus the exact prompt text sent to the LLM and the raw response, copyable into a playground to reproduce.">
+                  Inspector 保留最近若干次运行的 Frame 结果（意图、推理、置信度）、Orchestrator 延迟，以及发送给 LLM 的精确 prompt 文本与原始响应，可直接复制到 playground 复现。
+                </p>
+              </div>
+              <div class="insight-card">
+                <span class="card-index">⟳</span>
+                <h3 data-zh="重试与补值高亮" data-en="Retries and Patches Highlighted">重试与补值高亮</h3>
+                <p data-zh="当 Frame 或 Orchestrator 因畸形输出重试,运行记录带上 frameRetried / planRetried 与原因,Inspector 用醒目标记呈现;字段补值同样以列表形式标出,绝不静默。" data-en="When Frame or Orchestrator retries on malformed output, the record carries frameRetried / planRetried plus reasons, surfaced by the Inspector with a visible chip; field patches are likewise listed, never silent.">
+                  当 Frame 或 Orchestrator 因畸形输出重试，运行记录带上 frameRetried / planRetried 与原因，Inspector 用醒目标记呈现；字段补值同样以列表形式标出，绝不静默。
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <p data-zh="&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。" data-en="&copy; 2026 illusion615's Knowledge Hub | Interactive HTML page.">&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。</p>
+      </footer>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    (function () {
+      function themeIsDark() { return document.documentElement.classList.contains('dark') || document.documentElement.getAttribute('data-theme') === 'dark'; }
+      if (window.mermaid) {
+        window.mermaid.initialize({ startOnLoad: true, theme: themeIsDark() ? 'dark' : 'neutral', securityLevel: 'loose', flowchart: { curve: 'basis' } });
+      }
+    })();
+  </script>
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

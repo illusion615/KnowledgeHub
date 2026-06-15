@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agentic Sales Mobile 数据模型 — Dataverse 表结构与关系设计</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 { font-size: clamp(1.9rem, 4.4vw, 3.1rem); line-height: 1.12; letter-spacing: -0.02em; max-width: 24ch; }
+    .mono { font-family: "Space Grotesk", ui-monospace, monospace; font-size: 0.9em; }
+    .simple-table td .mono { font-size: 0.84em; }
+    .badge { display:inline-block; padding:2px 9px; border-radius:11px; font-size:0.68rem; font-weight:700; letter-spacing:0.04em; }
+    .b-oob { background: rgba(45,122,77,0.16); color:#34d399; }
+    .b-custom { background: rgba(249,115,22,0.16); color:#fb923c; }
+    [data-theme="light"] .b-oob { color:#15803d; }
+    [data-theme="light"] .b-custom { color:#c2410c; }
+    .hero-layer-list { margin-top: 18px; }
+    .callout-note { margin-top: 14px; padding: 12px 16px; border-left: 3px solid #3468c7; background: rgba(52,104,199,0.07); border-radius: 0 12px 12px 0; }
+    .callout-note p { margin: 0; font-size: 0.9rem; }
+    .callout-warm { border-left-color: #fb923c; background: rgba(249,115,22,0.07); }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            <span data-zh="Agentic Sales Mobile" data-en="Agentic Sales Mobile">Agentic Sales Mobile</span>
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#principle" data-zh="选型原则" data-en="Strategy">选型原则</a>
+            <a href="#tables" data-zh="表清单" data-en="Tables">表清单</a>
+            <a href="#relations" data-zh="关系图" data-en="Relations">关系图</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow" data-zh="数据模型 · 实现纪实" data-en="Data Model · As-Built">数据模型 · 实现纪实</span>
+            <h1 data-zh="十八张 Dataverse 表：标准复用与自定义扩展的取舍" data-en="Eighteen Dataverse Tables: Reuse Standard, Extend Custom">十八张 Dataverse 表：标准复用与自定义扩展的取舍</h1>
+            <p data-zh="本文记录应用当前在 Dataverse 上注册的真实数据源——哪些直接复用标准表、哪些落成自定义表、活动如何用原生多态结构承载，以及它们如何围绕客户组成关系拓扑。内容以 power.config.json 为准。" data-en="This documents the data sources the app actually registers on Dataverse: which reuse standard tables, which become custom tables, how activities ride the native polymorphic structure, and how they organize into an account-centric relationship topology. It reflects power.config.json.">
+              本文记录应用当前在 Dataverse 上注册的真实数据源——哪些直接复用标准表、哪些落成自定义表、活动如何用原生多态结构承载，以及它们如何围绕客户组成关系拓扑。内容以 power.config.json 为准。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#tables" data-zh="看十八张表" data-en="See the Tables">看十八张表</a>
+              <a class="button button-secondary" href="#relations" data-zh="看关系图" data-en="See Relations">看关系图</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label" data-zh="一句话数据层" data-en="In One Sentence">一句话数据层</span>
+            <h2 data-zh="能复用标准表就复用，业务实体才落自定义表。" data-en="Reuse standard tables wherever possible; only business entities become custom tables.">能复用标准表就复用，业务实体才落自定义表。</h2>
+            <p data-zh="客户、联系人、活动直接复用 Dataverse 标准表，零搭建成本、天然接入 Timeline 与日历；商机、产品、洞察、会话日志等业务实体落成 crf5c 前缀的自定义表。两类表在同一套数据模型下统一组织。" data-en="Accounts, contacts and activities reuse Dataverse standard tables — zero setup, native Timeline and calendar integration; opportunities, products, insights and conversation logs become crf5c-prefixed custom tables. Both classes live under one unified data model.">
+              客户、联系人、活动直接复用 Dataverse 标准表，零搭建成本、天然接入 Timeline 与日历；商机、产品、洞察、会话日志等业务实体落成 crf5c 前缀的自定义表。两类表在同一套数据模型下统一组织。
+            </p>
+            <ul class="layer-list hero-layer-list">
+              <li><span class="layer-number">3</span><span data-zh="标准表 — account / contact / 活动族" data-en="Standard — account / contact / activities">标准表 — account / contact / 活动族</span></li>
+              <li><span class="layer-number">9</span><span data-zh="自定义表 — crf5c_ 业务实体" data-en="Custom — crf5c_ business entities">自定义表 — crf5c_ 业务实体</span></li>
+              <li><span class="layer-number">6</span><span data-zh="支撑表 — 与会者 / 附件 / 用户等" data-en="Support — parties / attachments / users">支撑表 — 与会者 / 附件 / 用户等</span></li>
+            </ul>
+          </aside>
+        </div>
+      </header>
+
+      <main>
+        <!-- Section 01: Principle -->
+        <section id="principle" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="01 / 选型原则" data-en="01 / Table Strategy">01 / Table Strategy</p>
+            <h2 data-zh="先问标准表够不够，再决定要不要自建" data-en="Ask Whether a Standard Table Suffices Before Building One">先问标准表够不够，再决定要不要自建</h2>
+            <p data-zh="Dataverse 自带四百多张标准表。盲目自建会丢掉平台天然能力——Timeline 时间线、Outlook 日历同步、安全角色裁剪都是绑在标准表上的。因此每张表先做一次取舍判断。" data-en="Dataverse ships 400+ standard tables. Building custom blindly throws away native platform capabilities — Timeline, Outlook calendar sync and security-role trimming are all tied to standard tables. So each table goes through one reuse-or-build decision.">
+              Dataverse 自带四百多张标准表。盲目自建会丢掉平台天然能力——Timeline 时间线、Outlook 日历同步、安全角色裁剪都是绑在标准表上的。因此每张表先做一次取舍判断。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="复用标准表 与 自建表的判据" data-step-title-en="Reuse vs Build Criteria" data-step-label="01 / STRATEGY">
+            <div class="comparison-grid">
+              <div class="comparison-card">
+                <span class="comparison-label" data-zh="复用标准表" data-en="Reuse Standard">复用标准表</span>
+                <p data-zh="当标准表的 schema 已覆盖业务字段，且需要平台天然能力时复用。客户用 account、联系人用 contact、活动用 appointment / phonecall / email——它们让活动自动出现在客户与商机的 Timeline 上，并可同步日历。" data-en="Reuse when a standard table's schema already covers the fields and native platform capability is needed. Account uses account, contact uses contact, activities use appointment / phonecall / email — they make activities appear on account and opportunity Timelines automatically and can sync to calendars.">
+                  当标准表的 schema 已覆盖业务字段，且需要平台天然能力时复用。客户用 account、联系人用 contact、活动用 appointment / phonecall / email——它们让活动自动出现在客户与商机的 Timeline 上，并可同步日历。
+                </p>
+              </div>
+              <div class="comparison-card next">
+                <span class="comparison-label" data-zh="落自定义表" data-en="Build Custom">落自定义表</span>
+                <p data-zh="当业务实体在标准表里无对应物、或需要专属字段集时自建,用 crf5c 发布者前缀。商机用 crf5c_opportunity1、产品 crf5c_product、洞察 crf5c_businessinsight、会话日志 crf5c_copilotconversation、设置 crf5c_setting 等都属此类。" data-en="Build custom (crf5c publisher prefix) when a business entity has no standard counterpart or needs a bespoke field set. Opportunity uses crf5c_opportunity1, plus crf5c_product, crf5c_businessinsight, crf5c_copilotconversation, crf5c_setting and others.">
+                  当业务实体在标准表里无对应物、或需要专属字段集时自建，用 crf5c 发布者前缀。商机用 crf5c_opportunity1、产品 crf5c_product、洞察 crf5c_businessinsight、会话日志 crf5c_copilotconversation、设置 crf5c_setting 等都属此类。
+                </p>
+              </div>
+            </div>
+            <div class="callout-note callout-warm">
+              <p data-zh="一个关键事实：商机是自定义表 crf5c_opportunity1，不是标准 opportunity 表。因此活动要挂到商机上，需要该自定义表开启「启用活动」，并把活动的 regarding 关联指向该自定义表。" data-en="One key fact: opportunity is the custom table crf5c_opportunity1, not the standard opportunity. So for activities to attach to an opportunity, that custom table must have 'Enable activities' turned on and an activity's regarding link must target it.">一个关键事实：商机是自定义表 crf5c_opportunity1，不是标准 opportunity 表。因此活动要挂到商机上，需要该自定义表开启「启用活动」，并把活动的 regarding 关联指向该自定义表。</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 02: Tables -->
+        <section id="tables" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="02 / 表清单" data-en="02 / Table Inventory">02 / Table Inventory</p>
+            <h2 data-zh="当前注册的全部数据源" data-en="All Currently Registered Data Sources">当前注册的全部数据源</h2>
+            <p data-zh="下表是应用真实注册在 Dataverse 上的数据源,按用途分组。标准表标 OOB,自定义表标 crf5c。这份清单以 power.config.json 为准。" data-en="The table below lists the data sources the app actually registers on Dataverse, grouped by purpose. Standard tables are marked OOB, custom tables crf5c. This inventory follows power.config.json.">
+              下表是应用真实注册在 Dataverse 上的数据源，按用途分组。标准表标 OOB，自定义表标 crf5c。这份清单以 power.config.json 为准。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="核心业务表" data-step-title-en="Core Business Tables" data-step-label="02 / CORE">
+            <table class="simple-table">
+              <thead>
+                <tr>
+                  <th data-zh="业务对象" data-en="Object">业务对象</th>
+                  <th data-zh="逻辑名" data-en="Logical Name">逻辑名</th>
+                  <th data-zh="类型" data-en="Type">类型</th>
+                  <th data-zh="职责" data-en="Role">职责</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td data-zh="客户" data-en="Account">客户</td><td class="mono">account</td><td><span class="badge b-oob">OOB</span></td><td data-zh="客户主数据，分层、行业、负责人" data-en="Account master: tier, industry, owner">客户主数据，分层、行业、负责人</td></tr>
+                <tr><td data-zh="联系人" data-en="Contact">联系人</td><td class="mono">contact</td><td><span class="badge b-oob">OOB</span></td><td data-zh="联系人，归属客户" data-en="Contacts, belonging to an account">联系人，归属客户</td></tr>
+                <tr><td data-zh="商机" data-en="Opportunity">商机</td><td class="mono">crf5c_opportunity1</td><td><span class="badge b-custom">crf5c</span></td><td data-zh="销售商机，阶段、金额、置信度" data-en="Sales opportunity: stage, amount, confidence">销售商机，阶段、金额、置信度</td></tr>
+                <tr><td data-zh="产品" data-en="Product">产品</td><td class="mono">crf5c_product</td><td><span class="badge b-custom">crf5c</span></td><td data-zh="产品目录" data-en="Product catalog">产品目录</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div data-present-step data-step-title="活动族（标准多态）" data-step-title-en="Activity Family (Native Polymorphic)" data-step-label="02 / ACTIVITY">
+            <table class="simple-table">
+              <thead>
+                <tr>
+                  <th data-zh="活动类型" data-en="Activity Type">活动类型</th>
+                  <th data-zh="逻辑名" data-en="Logical Name">逻辑名</th>
+                  <th data-zh="类型" data-en="Type">类型</th>
+                  <th data-zh="用途" data-en="Use">用途</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td data-zh="会议 / 拜访" data-en="Meeting / Visit">会议 / 拜访</td><td class="mono">appointment</td><td><span class="badge b-oob">OOB</span></td><td data-zh="多与会者，可同步日历" data-en="Multi-attendee, calendar-syncable">多与会者，可同步日历</td></tr>
+                <tr><td data-zh="电话" data-en="Call">电话</td><td class="mono">phonecall</td><td><span class="badge b-oob">OOB</span></td><td data-zh="通话记录" data-en="Call logs">通话记录</td></tr>
+                <tr><td data-zh="邮件" data-en="Email">邮件</td><td class="mono">email</td><td><span class="badge b-oob">OOB</span></td><td data-zh="邮件往来" data-en="Email correspondence">邮件往来</td></tr>
+                <tr><td data-zh="与会者" data-en="Parties">与会者</td><td class="mono">activityparty</td><td><span class="badge b-oob">OOB</span></td><td data-zh="活动的多联系人关联" data-en="Multi-contact links on an activity">活动的多联系人关联</td></tr>
+                <tr><td data-zh="附件" data-en="Attachments">附件</td><td class="mono">activitymimeattachment</td><td><span class="badge b-oob">OOB</span></td><td data-zh="活动附件，进 ATTACHMENTS 子网格" data-en="Activity attachments in the ATTACHMENTS subgrid">活动附件，进 ATTACHMENTS 子网格</td></tr>
+                <tr><td data-zh="备注" data-en="Notes">备注</td><td class="mono">annotation</td><td><span class="badge b-oob">OOB</span></td><td data-zh="时间线备注" data-en="Timeline notes">时间线备注</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div data-present-step data-step-title="AI 与支撑表" data-step-title-en="AI and Support Tables" data-step-label="02 / SUPPORT">
+            <table class="simple-table">
+              <thead>
+                <tr>
+                  <th data-zh="对象" data-en="Object">对象</th>
+                  <th data-zh="逻辑名" data-en="Logical Name">逻辑名</th>
+                  <th data-zh="类型" data-en="Type">类型</th>
+                  <th data-zh="职责" data-en="Role">职责</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td data-zh="业务洞察" data-en="Business Insight">业务洞察</td><td class="mono">crf5c_businessinsight</td><td><span class="badge b-custom">crf5c</span></td><td data-zh="AI 生成的洞察卡片数据" data-en="AI-generated insight card data">AI 生成的洞察卡片数据</td></tr>
+                <tr><td data-zh="每日简报" data-en="Briefing">每日简报</td><td class="mono">crf5c_briefing</td><td><span class="badge b-custom">crf5c</span></td><td data-zh="每日播报内容" data-en="Daily briefing content">每日播报内容</td></tr>
+                <tr><td data-zh="会话日志" data-en="Conversation Log">会话日志</td><td class="mono">crf5c_copilotconversation</td><td><span class="badge b-custom">crf5c</span></td><td data-zh="Copilot 对话历史" data-en="Copilot conversation history">Copilot 对话历史</td></tr>
+                <tr><td data-zh="AI 摘要" data-en="AI Summary">AI 摘要</td><td class="mono">crf5c_aisummary</td><td><span class="badge b-custom">crf5c</span></td><td data-zh="AI 生成的摘要缓存" data-en="Cached AI-generated summaries">AI 生成的摘要缓存</td></tr>
+                <tr><td data-zh="智能体日志" data-en="Agent Log">智能体日志</td><td class="mono">crf5c_agentlog</td><td><span class="badge b-custom">crf5c</span></td><td data-zh="智能体动作日志" data-en="Agent action log">智能体动作日志</td></tr>
+                <tr><td data-zh="设置" data-en="Settings">设置</td><td class="mono">crf5c_setting</td><td><span class="badge b-custom">crf5c</span></td><td data-zh="用户个性化设置" data-en="User personalization settings">用户个性化设置</td></tr>
+                <tr><td data-zh="系统用户" data-en="System User">系统用户</td><td class="mono">systemuser</td><td><span class="badge b-oob">OOB</span></td><td data-zh="负责人解析，owner 名称来源" data-en="Owner resolution and name source">负责人解析，owner 名称来源</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Section 03: Relations -->
+        <section id="relations" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="03 / 关系图" data-en="03 / Entity Relations">03 / Entity Relations</p>
+            <h2 data-zh="客户为中心的关系拓扑" data-en="An Account-Centric Relationship Topology">客户为中心的关系拓扑</h2>
+            <p data-zh="所有业务对象最终都挂到客户上。联系人归属客户;商机指向客户;活动通过 regarding 指向商机(优先)或客户。下图是当前数据模型的实体关系。" data-en="Every business object ultimately hangs off the account. Contacts belong to accounts; opportunities point to accounts; activities point via regarding to an opportunity (preferred) or an account. The diagram shows the current entity relationships.">
+              所有业务对象最终都挂到客户上。联系人归属客户；商机指向客户；活动通过 regarding 指向商机（优先）或客户。下图是当前数据模型的实体关系。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="实体关系图" data-step-title-en="Entity Relationship Diagram" data-step-label="03 / ERD">
+            <div class="mermaid-diagram">
+              <pre class="mermaid">
+graph TD
+    A[account 客户<br/>OOB]
+    C[contact 联系人<br/>OOB]
+    O[crf5c_opportunity1 商机<br/>custom]
+    P[crf5c_product 产品<br/>custom]
+    ACT[appointment / phonecall / email<br/>活动 OOB]
+    AP[activityparty 与会者<br/>OOB]
+    ATT[activitymimeattachment 附件<br/>OOB]
+    BI[crf5c_businessinsight 洞察<br/>custom]
+    U[systemuser 负责人<br/>OOB]
+
+    C -->|parentcustomerid| A
+    O -->|regarding account| A
+    ACT -->|regarding 优先| O
+    ACT -->|regarding 兜底| A
+    AP -->|partyid| C
+    ATT -->|objectid| ACT
+    BI -->|reference| O
+    A -->|ownerid| U
+    O -->|ownerid| U
+              </pre>
+            </div>
+            <div class="callout-note">
+              <p data-zh="regarding 的优先级规则:活动优先关联商机,无商机时兜底关联客户。联系人不放在 regarding,而是放进 activityparty(会议与会者)或电话/邮件的收发方。这样活动能正确出现在商机与客户的 Timeline 上。" data-en="The regarding priority rule: an activity links to an opportunity first, falling back to an account when no opportunity is present. Contacts go not into regarding but into activityparty (meeting attendees) or the to/from party of a call/email. This makes activities surface correctly on opportunity and account Timelines.">
+                regarding 的优先级规则：活动优先关联商机，无商机时兜底关联客户。联系人不放在 regarding，而是放进 activityparty（会议与会者）或电话/邮件的收发方。这样活动能正确出现在商机与客户的 Timeline 上。
+              </p>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+      <footer>
+        <p data-zh="&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。" data-en="&copy; 2026 illusion615's Knowledge Hub | Interactive HTML page.">&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。</p>
+      </footer>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    (function () {
+      function themeIsDark() { return document.documentElement.classList.contains('dark') || document.documentElement.getAttribute('data-theme') === 'dark'; }
+      if (window.mermaid) {
+        window.mermaid.initialize({ startOnLoad: true, theme: themeIsDark() ? 'dark' : 'neutral', securityLevel: 'loose', flowchart: { curve: 'basis' } });
+      }
+    })();
+  </script>
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>
