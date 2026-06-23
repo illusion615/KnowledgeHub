@@ -415,6 +415,20 @@
       white-space: nowrap;
       color: var(--muted);
     }
+    .rate-row-locked {
+      opacity: 0.42;
+    }
+    .rate-row-locked .rate-qty {
+      cursor: not-allowed;
+      background: var(--surface-alt, #f0f4f8);
+    }
+    .ai-dim-note {
+      color: #b45309;
+      margin-top: 6px;
+    }
+    [data-theme="dark"] .ai-dim-note {
+      color: #fbbf24;
+    }
     .ai-dim-group {
       display: flex;
       gap: 8px;
@@ -557,6 +571,103 @@
         grid-template-columns: 1fr;
       }
     }
+
+    /* Component: .roi-result-panel
+       Reading mode: paired with .quote-layout, using local KPI rows and canonical table/card styles.
+       Presentation mode: calculator inputs and outputs remain inside one section without extra step margins. */
+    .roi-result-panel {
+      display: grid;
+      gap: 12px;
+    }
+    .roi-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .roi-kpi {
+      border-radius: 12px;
+      border: 1px solid var(--card-border);
+      background: rgba(126, 34, 206, 0.06);
+      padding: 12px;
+    }
+    [data-theme="dark"] .roi-kpi {
+      background: rgba(126, 34, 206, 0.16);
+    }
+    .roi-kpi strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 1.16rem;
+      color: var(--heading, #1b1f24);
+    }
+    [data-theme="dark"] .roi-kpi strong {
+      color: #f8fafc;
+    }
+    .roi-verdict {
+      border-radius: 12px;
+      border: 1px dashed rgba(8, 145, 178, 0.55);
+      background: rgba(8, 145, 178, 0.08);
+      padding: 12px;
+      line-height: 1.65;
+    }
+    [data-theme="dark"] .roi-verdict {
+      background: rgba(8, 145, 178, 0.16);
+    }
+    .roi-verdict strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+    .roi-input-note {
+      margin: 10px 0 0;
+      font-size: .79rem;
+      opacity: .76;
+      line-height: 1.55;
+    }
+    #options .comparison-label {
+      max-width: 100%;
+      white-space: normal;
+      line-height: 1.25;
+    }
+    #options .simple-table {
+      table-layout: fixed;
+    }
+    #options .simple-table th,
+    #options .simple-table td {
+      overflow-wrap: anywhere;
+    }
+    @media (max-width: 720px) {
+      #roi .quote-layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      #roi .roi-result-panel {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      #roi .quote-panel,
+      #roi .field,
+      #roi .field label,
+      #roi .field input,
+      #roi .roi-kpi-grid,
+      #roi .roi-kpi,
+      #roi .cost-table,
+      #roi .cost-table th,
+      #roi .cost-table td {
+        min-width: 0;
+      }
+      #roi .cost-table {
+        table-layout: fixed;
+      }
+      #roi .cost-table th,
+      #roi .cost-table td {
+        overflow-wrap: anywhere;
+      }
+      .roi-kpi-grid {
+        grid-template-columns: 1fr;
+      }
+      #options .simple-table th,
+      #options .simple-table td {
+        padding: 10px 8px;
+        font-size: .82rem;
+      }
+    }
   </style>
 </head>
 <body>
@@ -580,7 +691,9 @@
               <a href="#framework">报价框架</a>
               <a href="#rules">计费规则</a>
               <a href="#ai-rates">AI 试算</a>
+              <a href="#options">方案对比</a>
               <a href="#calculator">报价器</a>
+              <a href="#roi">ROI 测算</a>
               <a href="#playbook">配置策略</a>
             </nav>
           </div>
@@ -591,7 +704,7 @@
             <span class="eyebrow">Power Platform Pricing Estimator</span>
             <h1>Power Platform 交互式报价估算器</h1>
             <p>
-              输入用户数和 AI 用量，自动计算阶梯价格、生成产品配置建议，并一键导出 CSV 报价单。覆盖 Power Apps、Power Automate、Power Pages、Copilot Studio、AI Builder、Power BI 全产品线。
+              输入用户数和 AI 用量，自动计算阶梯价格、生成产品配置建议、对比替代方案，并用 BVM 维度估算 ROI。覆盖 Power Apps、Power Automate、Power Pages、Copilot Studio、AI Builder、Power BI 全产品线。
             </p>
             <div class="hero-actions">
               <a class="button button-primary" href="#ai-rates">AI 试算</a>
@@ -603,10 +716,10 @@
             <span class="panel-label">核心能力</span>
             <h2>从需求参数到可执行报价单</h2>
             <ul class="layer-list">
-              <li><span class="layer-number">1</span>AI 能力试算：19 项能力逐项填入用量自动折算 Credits</li>
+              <li><span class="layer-number">1</span>AI 能力试算：43 项能力逐项填入用量自动折算 Credits</li>
               <li><span class="layer-number">2</span>阶梯定价：Power Apps / Pages / AI Builder 自动应用最优价格</li>
               <li><span class="layer-number">3</span>Dataverse 容量池化：基于许可自动计算附带容量</li>
-              <li><span class="layer-number">4</span>一键导出 CSV 报价单，含明细 + 建议 + 免责声明</li>
+              <li><span class="layer-number">4</span>可选方案与 ROI：对比自开发、友商方案，并输出回收期与三年净收益</li>
             </ul>
           </aside>
         </div>
@@ -619,13 +732,13 @@
           </div>
           <div class="metric">
             <div class="metric-label">AI 能力</div>
-            <strong>19 项</strong>
-            <span>文档识别 / Prompt / Agent 动作 / AI Tools 全覆盖</span>
+            <strong>43 项</strong>
+            <span>文档识别 / Prompt / Agent 动作 / AI Tools / Dynamics 365 一方 Agent 全覆盖</span>
           </div>
           <div class="metric">
             <div class="metric-label">输出</div>
-            <strong>CSV 报价单</strong>
-            <span>含月度 + 年度成本、配置建议、Dataverse 容量</span>
+            <strong>报价 + ROI</strong>
+            <span>含月度 + 年度成本、配置建议、Dataverse 容量、回收期</span>
           </div>
         </div>
       </header>
@@ -1011,6 +1124,7 @@
               <label><input type="radio" name="aiDimension" value="aibuilder" /><span>AI Builder Credit</span></label>
             </div>
             <p class="tiny">先选择本次试算按 Copilot Credit 还是 AI Builder Credit 进入报价器，再填写下方各能力月用量。</p>
+            <p class="tiny ai-dim-note">注意：Copilot Studio Agent 与 Dynamics 365 一方 Agent 仅消耗 Copilot Credit，无法用 AI Builder Credit 结算。切换到「AI Builder Credit」维度时，这些行会自动锁定（置灰并禁用输入）。</p>
           </div>
 
           <table class="ai-rate-table" id="aiRateCalcTable">
@@ -1053,11 +1167,75 @@
               <tr data-rate="15"><td>AI Tools — 文本/生成式（标准）</td><td>10 次</td><td><input class="rate-qty" type="number" min="0" value="0" title="月用量 / Monthly usage" /></td><td>15</td><td class="rate-subtotal">0</td><td>-</td><td class="rate-subtotal-aib">-</td></tr>
               <tr data-rate="100"><td>AI Tools — 文本/生成式（高级推理）</td><td>10 次</td><td><input class="rate-qty" type="number" min="0" value="0" title="月用量 / Monthly usage" /></td><td>100</td><td class="rate-subtotal">0</td><td>-</td><td class="rate-subtotal-aib">-</td></tr>
               <tr data-rate="8"><td>内容处理工具</td><td>1 页</td><td><input class="rate-qty" type="number" min="0" value="0" title="月用量 / Monthly usage" /></td><td>8</td><td class="rate-subtotal">0</td><td>-</td><td class="rate-subtotal-aib">-</td></tr>
+
+              <tr><td colspan="7" class="group-header">Dynamics 365 Sales 一方 Agent（仅 Copilot Credit）</td></tr>
+              <tr data-rate="349"><td title="研究模式">SQA · 研究高复杂度线索</td><td>1 线索</td><td><input class="rate-qty" type="number" min="0" value="0" title="月用量 / Monthly usage" /></td><td>349</td><td class="rate-subtotal">0</td><td>-</td><td class="rate-subtotal-aib">-</td></tr>
+              <tr data-rate="209"><td title="研究模式">SQA · 研究中复杂度线索</td><td>1 线索</td><td><input class="rate-qty" type="number" min="0" value="0" title="月用量 / Monthly usage" /></td><td>209</td><td class="rate-subtotal">0</td><td>-</td><td class="rate-subtotal-aib">-</td></tr>
+              <tr data-rate="174"><td title="研究模式">SQA · 研究低复杂度线索</td><td>1 线索</td><td><input class="rate-qty" type="number" min="0" value="0" title="月用量 / Monthly usage" /></td><td>174</td><td class="rate-subtotal">0</td><td>-</td><td class="rate-subtotal-aib">-</td></tr>
+              <tr data-rate="142"><td title="在研究费用之上叠加">SQA · Engage 线索有回复</td><td>1 线索</td><td><input class="rate-qty" type="number" min="0" value="0" title="月用量 / Monthly usage" /></td><td>142</td><td class="rate-subtotal">0</td><td>-</td><td class="rate-subtotal-aib">-</td></tr>
+              <tr data-rate="9"><td title="在研究费用之上叠加">SQA · Engage 线索无回复</td><td>1 线索</td><td><input class="rate-qty" type="number" min="0" value="0" title="月用量 / Monthly usage" /></td><td>9</td><td class="rate-subtotal">0</td><td>-</td><td class="rate-subtotal-aib">-</td></tr>
+              <tr data-rate="154"><td title="账户研究 138 + 商机研究 12 + 干系人 2 + 推理链 2，另加竞品/自定义研究">Sales Opportunity · 每商机每刷新</td><td>1 商机·刷新</td><td><input class="rate-qty" type="number" min="0" value="0" title="月用量 / Monthly usage" /></td><td>154</td><td class="rate-subtotal">0</td><td>-</td><td class="rate-subtotal-aib">-</td></tr>
+              <tr data-rate="2"><td>Sales Order · 解析来件邮件</td><td>1 封邮件</td><td><input class="rate-qty" type="number" min="0" value="0" title="月用量 / Monthly usage" /></td><td>2</td><td class="rate-subtotal">0</td><td>-</td><td class="rate-subtotal-aib">-</td></tr>
+              <tr data-rate="5"><td title="含相关附件时">Sales Order · 库存可用性核对</td><td>1 个附件</td><td><input class="rate-qty" type="number" min="0" value="0" title="月用量 / Monthly usage" /></td><td>5</td><td class="rate-subtotal">0</td><td>-</td><td class="rate-subtotal-aib">-</td></tr>
+              <tr data-rate="5"><td>Sales Order · 创建/更新报价或订单</td><td>1 封邮件</td><td><input class="rate-qty" type="number" min="0" value="0" title="月用量 / Monthly usage" /></td><td>5</td><td class="rate-subtotal">0</td><td>-</td><td class="rate-subtotal-aib">-</td></tr>
+              <tr data-rate="7"><td>Sales Order · 完整报价工作流</td><td>1 封邮件</td><td><input class="rate-qty" type="number" min="0" value="0" title="月用量 / Monthly usage" /></td><td>7</td><td class="rate-subtotal">0</td><td>-</td><td class="rate-subtotal-aib">-</td></tr>
+              <tr data-rate="9"><td title="按报价转订单比例">Sales Order · 完整订单工作流</td><td>1 个订单</td><td><input class="rate-qty" type="number" min="0" value="0" title="月用量 / Monthly usage" /></td><td>9</td><td class="rate-subtotal">0</td><td>-</td><td class="rate-subtotal-aib">-</td></tr>
+
+              <tr><td colspan="7" class="group-header">Dynamics 365 Customer Service / Contact Center 一方 Agent（仅 Copilot Credit）</td></tr>
+              <tr data-rate="2"><td title="知识接地按 ×3 加权">Customer Intent · 生成式回答</td><td>1 次</td><td><input class="rate-qty" type="number" min="0" value="0" title="月用量 / Monthly usage" /></td><td>2</td><td class="rate-subtotal">0</td><td>-</td><td class="rate-subtotal-aib">-</td></tr>
+              <tr data-rate="2"><td>Quality · 已结束对话评估</td><td>1 次</td><td><input class="rate-qty" type="number" min="0" value="0" title="月用量 / Monthly usage" /></td><td>2</td><td class="rate-subtotal">0</td><td>-</td><td class="rate-subtotal-aib">-</td></tr>
+              <tr data-rate="2"><td>Quality · 实时对话评估</td><td>1 次</td><td><input class="rate-qty" type="number" min="0" value="0" title="月用量 / Monthly usage" /></td><td>2</td><td class="rate-subtotal">0</td><td>-</td><td class="rate-subtotal-aib">-</td></tr>
+              <tr data-rate="2"><td>Quality · 实时辅导</td><td>1 次输入</td><td><input class="rate-qty" type="number" min="0" value="0" title="月用量 / Monthly usage" /></td><td>2</td><td class="rate-subtotal">0</td><td>-</td><td class="rate-subtotal-aib">-</td></tr>
+              <tr data-rate="2"><td>Knowledge Mgmt · 生成式答案</td><td>1 次</td><td><input class="rate-qty" type="number" min="0" value="0" title="月用量 / Monthly usage" /></td><td>2</td><td class="rate-subtotal">0</td><td>-</td><td class="rate-subtotal-aib">-</td></tr>
+              <tr data-rate="1"><td>Knowledge Mgmt · 经典答案</td><td>1 次</td><td><input class="rate-qty" type="number" min="0" value="0" title="月用量 / Monthly usage" /></td><td>1</td><td class="rate-subtotal">0</td><td>-</td><td class="rate-subtotal-aib">-</td></tr>
+              <tr data-rate="75"><td>Customer Assist · Premium GenAI Voice</td><td>1 分钟</td><td><input class="rate-qty" type="number" min="0" value="0" title="月用量 / Monthly usage" /></td><td>75</td><td class="rate-subtotal">0</td><td>-</td><td class="rate-subtotal-aib">-</td></tr>
+              <tr data-rate="10"><td title="叠加项">Customer Assist · Tenant Graph Grounding</td><td>1 次</td><td><input class="rate-qty" type="number" min="0" value="0" title="月用量 / Monthly usage" /></td><td>10</td><td class="rate-subtotal">0</td><td>-</td><td class="rate-subtotal-aib">-</td></tr>
+              <tr data-rate="0.13"><td title="叠加项：13 / 100 动作">Customer Assist · Agent Flow 动作</td><td>1 个动作</td><td><input class="rate-qty" type="number" min="0" value="0" title="月用量 / Monthly usage" /></td><td>0.13</td><td class="rate-subtotal">0</td><td>-</td><td class="rate-subtotal-aib">-</td></tr>
+
+              <tr><td colspan="7" class="group-header">Dynamics 365 Finance / Supply Chain 一方 Agent（仅 Copilot Credit）</td></tr>
+              <tr data-rate="7.25"><td title="金额不符 / 仅总账 / 仅子账三类例外同价">Account Reconciliation · 对账例外</td><td>1 个例外</td><td><input class="rate-qty" type="number" min="0" value="0" title="月用量 / Monthly usage" /></td><td>7.25</td><td class="rate-subtotal">0</td><td>-</td><td class="rate-subtotal-aib">-</td></tr>
+              <tr data-rate="20"><td title="变更 / 确认 / 取消请求">Supplier Comms · 来件邮件（无附件）</td><td>1 封邮件</td><td><input class="rate-qty" type="number" min="0" value="0" title="月用量 / Monthly usage" /></td><td>20</td><td class="rate-subtotal">0</td><td>-</td><td class="rate-subtotal-aib">-</td></tr>
+              <tr data-rate="30"><td title="含附件解析">Supplier Comms · 来件邮件（含附件）</td><td>1 封邮件</td><td><input class="rate-qty" type="number" min="0" value="0" title="月用量 / Monthly usage" /></td><td>30</td><td class="rate-subtotal">0</td><td>-</td><td class="rate-subtotal-aib">-</td></tr>
+              <tr data-rate="5"><td title="未确认 / 延迟 PO 跟进">Supplier Comms · 跟进（去件）邮件</td><td>1 封邮件</td><td><input class="rate-qty" type="number" min="0" value="0" title="月用量 / Monthly usage" /></td><td>5</td><td class="rate-subtotal">0</td><td>-</td><td class="rate-subtotal-aib">-</td></tr>
             </tbody>
             <tfoot>
               <tr class="rate-total-row"><td colspan="3">Credits 月度合计</td><td></td><td id="rateCalcTotal">0</td><td></td><td id="rateCalcTotalAib">0</td></tr>
             </tfoot>
           </table>
+
+          <div class="event-field d365-inline-notes">
+            <div class="event-field-label">Dynamics 365 一方 Agent 计费说明</div>
+            <p>上表中 Dynamics 365 一方（first-party）Agent 仅消耗 Copilot Credit、不能用 AI Builder Credit 结算，费率由基础计费原子组合而成。展开下方查看计费归集、费率构成与估算示例。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" aria-expanded="true">计费归集与 AI Builder 限制</button>
+              <div class="subsection-content">
+                <p>一方 Agent 不单独计费，而是从租户共享的 Copilot Credit 池扣减：预付容量包优先消耗，耗尽后按 Pay-as-you-go 计量（1 Credit = $0.01）。每个一方 Agent 采用专用计算结构，把基础计费原子（生成式回答 2、Agent 动作 5、Tenant Graph Grounding 10、Premium GenAI Voice 75 / 分钟等）组合成按业务对象计量的复合速率。</p>
+                <p>一方 Agent 与自定义 Copilot Studio Agent 共用同一租户 Credit 池。由 Microsoft 365 Copilot 已授权用户、以该用户身份触发的场景，按公平使用纳入 M365 Copilot 权益、不额外扣减预付容量；其余场景照常计量。</p>
+                <p>一方 Agent 与 Copilot Studio Agent 的消耗只能由 Copilot Credit（或其 Pay-as-you-go 等价）结算，无法使用 AI Builder Credit 抵扣。因此在上表切换到「AI Builder Credit」维度时，这些行会被自动锁定（置灰并禁用输入）。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">费率构成与口径</button>
+              <div class="subsection-content">
+                <p><strong>Sales Qualification Agent</strong>：研究模式按线索复杂度计费 &#8212; 高 349 / 中 209 / 低 174（每条线索）；Engage 模式在研究费用之上叠加 &#8212; 有回复 +142 / 无回复 +9。</p>
+                <p><strong>Sales Opportunity Agent</strong>：154 / 商机·刷新 = 账户研究 138 + 商机研究 12 + 干系人 2 + 推理链 2，另加竞品 / 自定义研究（按配置）。</p>
+                <p><strong>Sales Order Agent</strong>：解析来件 2 + 库存核对 5（含相关附件）+ 创建 / 更新报价或订单 5 + 完整报价工作流 7 + 完整订单工作流 9（按报价转订单比例）。</p>
+                <p><strong>Customer Service / Contact Center</strong>：Customer Intent / Quality / Knowledge Management 按生成式答案 2、经典答案 1 计，知识接地按 &#215;3 加权；Customer Assist 语音 = Premium GenAI Voice 75 / 分钟 + Tenant Graph Grounding 10 + Agent Flow 0.13 / 动作。</p>
+                <p><strong>Account Reconciliation Agent</strong>：7.25 / 例外（金额不符 / 仅总账 / 仅子账三类例外同价）。</p>
+                <p><strong>Supplier Communications Agent</strong>：来件无附件 20 / 含附件 30 / 跟进去件 5（每封邮件）。</p>
+                <p class="tiny">数值取自 Microsoft 官方 Agent Usage Estimator [R8] / Copilot Credit Estimator [R9]，仅供预算估算。定时巡检、Microsoft 365 回填等内部项已从面向客户的估算中剔除；这些一方 Agent 仅汇入 Credit 总额，不进入按功能拆分的明细。速率随产品演进可能调整，采购前以官方估算器和 Power Platform 授权指南实时值为准，建议预留 10&#8211;20% 缓冲。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" aria-expanded="false">估算示例</button>
+              <div class="subsection-content">
+                <p>以线索资格 Agent 为例：每月 1,000 条线索、均为中复杂度、仅研究模式：1,000 &#215; 209 = 209,000 Credits / 月 &#8776; $2,090。若启用 Engage 且 30% 回复：研究 209,000 + 回复 300 &#215; 142 + 未回复 700 &#215; 9 = 257,900 Credits / 月 &#8776; $2,579。在上表「SQA · 研究中复杂度线索」等行填入对应月用量即可自动汇入报价。</p>
+              </div>
+            </article>
+          </div>
 
           <div class="action-box">
             <div class="event-field-label">换算提示</div>
@@ -1089,9 +1267,68 @@
           </div>
         </section>
 
+        <section id="options" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / Option Analysis</p>
+            <h2>三类可选方案的业务价值边界</h2>
+            <p>
+              价格测算前先明确选型边界：Power Platform 适合以治理和集成为中心的企业级低代码交付，自开发适合高度差异化核心系统，友商方案适合已有生态绑定或单点 SaaS 深度场景。
+            </p>
+          </div>
+
+          <div class="comparison-grid">
+            <article class="comparison-card next">
+              <span class="comparison-label">Power Platform</span>
+              <h3>治理前置的低代码平台路径</h3>
+              <p>适合 Microsoft 365、Dynamics 365、Azure 与 Dataverse 已在企业架构内的组织。投资重点是授权、治理、数据模型与交付体系，价值来自缩短上线周期和降低长期维护分散度。</p>
+              <ul class="plan-features">
+                <li>适配多部门流程、门户、自动化、智能体与报表组合场景</li>
+                <li>依赖环境策略、DLP、ALM、容量与许可治理成熟度</li>
+                <li>对复杂前端体验和深度底层控制的自由度低于自开发</li>
+              </ul>
+            </article>
+            <article class="comparison-card">
+              <span class="comparison-label">自开发</span>
+              <h3>完全控制的工程化路径</h3>
+              <p>适合产品体验、算法逻辑、数据主权或专有流程构成核心竞争力的系统。成本不只包括开发人力，还包括云资源、DevOps、安全审计、长期运维和人员连续性。</p>
+              <ul class="plan-features">
+                <li>适配核心交易系统、强定制 UI、复杂领域模型与高并发服务</li>
+                <li>需要承担需求变更、人员替换、技术债和安全合规的全生命周期成本</li>
+                <li>ROI 依赖交付速度和复用率，短周期内部应用通常回收慢</li>
+              </ul>
+            </article>
+            <article class="comparison-card">
+              <span class="comparison-label">友商类似方案</span>
+              <h3>生态绑定或单点能力路径</h3>
+              <p>适合企业已在 Salesforce、ServiceNow、OutSystems、Mendix、UiPath 或其他 SaaS / iPaaS 生态形成标准化流程的场景。评估重点是集成深度、许可叠加和数据边界。</p>
+              <ul class="plan-features">
+                <li>既有 CRM / ITSM / RPA 生态沉淀较深时迁移成本较低</li>
+                <li>跨 Microsoft 365、Teams、SharePoint、Dataverse 的原生联动通常需要额外集成层</li>
+                <li>需核算连接器、API 调用、外部身份、运行容量与专业服务费用</li>
+              </ul>
+            </article>
+          </div>
+
+          <div class="action-box">
+            <div class="event-field-label">BVM 选型判据</div>
+            <table class="simple-table">
+              <thead>
+                <tr><th>维度</th><th>Power Platform</th><th>自开发</th><th>友商方案</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Time to Value</td><td>适合 4-12 周交付可用版本</td><td>适合 3-9 个月沉淀核心系统</td><td>取决于既有生态和实施伙伴</td></tr>
+                <tr><td>TCO</td><td>许可透明，治理不到位会产生容量和连接器外溢</td><td>前期现金支出低估概率高，长期维护占比高</td><td>订阅费清晰，集成和专业服务需单列</td></tr>
+                <tr><td>Governance</td><td>与 Entra、DLP、环境策略、审计体系结合紧密</td><td>治理能力取决于工程团队自建程度</td><td>取决于平台原生管控与企业身份集成深度</td></tr>
+                <tr><td>Integration</td><td>Microsoft 365 / Dynamics / Azure 优势明显</td><td>可按企业架构完全定制</td><td>在其原生业务域内优势明显，跨域需补集成</td></tr>
+                <tr><td>Risk</td><td>平台锁定风险中等，可通过 ALM 和数据模型治理降低</td><td>交付延期、人员连续性和安全审计风险更高</td><td>供应商锁定和数据流转边界需前置评估</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
         <section id="calculator" class="section" data-reveal>
           <div class="section-head">
-            <p class="section-kicker">04 / Interactive Estimator</p>
+            <p class="section-kicker">05 / Interactive Estimator</p>
             <h2>综合报价器：基础授权 + AI 场景一站估算</h2>
             <p>
               上方试算表的 Credits 合计会自动生成 Copilot Studio 和 AI Builder 行项。你也可以直接修改任何参数。
@@ -1198,12 +1435,104 @@
           </div>
         </section>
 
+        <section id="roi" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / BVM ROI Calculator</p>
+            <h2>BVM 视角下的投资回报测算</h2>
+            <p>
+              ROI 不只看许可费，而要把效率提升、收入加速、成本规避、风险折减和平台复用放进同一张账。下方模型默认读取综合报价器的年度成本，也支持手动输入实施与运营参数。
+            </p>
+          </div>
+
+          <div class="quote-layout">
+            <div class="quote-panel quote-panel-left">
+              <h3>ROI 参数</h3>
+
+              <h4 class="input-group-title">采用范围</h4>
+              <div class="input-grid input-grid-single">
+                <div class="field"><label for="roiUsers">目标用户数</label><input id="roiUsers" type="number" min="0" value="200" /></div>
+                <div class="field"><label for="roiAdoption">采用率 (%)</label><input id="roiAdoption" type="number" min="0" max="100" value="70" /></div>
+                <div class="field"><label for="roiWorkdays">年工作日</label><input id="roiWorkdays" type="number" min="0" value="220" /></div>
+              </div>
+
+              <h4 class="input-group-title">效率收益</h4>
+              <div class="input-grid input-grid-single">
+                <div class="field"><label for="roiMinutesSaved">人均节省分钟/日</label><input id="roiMinutesSaved" type="number" min="0" value="18" /></div>
+                <div class="field"><label for="roiHourlyCost">综合人力成本 ($/小时)</label><input id="roiHourlyCost" type="number" min="0" value="45" /></div>
+                <div class="field"><label for="roiRealization">收益兑现率 (%)</label><input id="roiRealization" type="number" min="0" max="100" value="60" /></div>
+              </div>
+
+              <h4 class="input-group-title">业务价值</h4>
+              <div class="input-grid input-grid-single">
+                <div class="field"><label for="roiRevenueBase">受影响年收入 ($)</label><input id="roiRevenueBase" type="number" min="0" value="1000000" /></div>
+                <div class="field"><label for="roiRevenueLift">收入提升率 (%)</label><input id="roiRevenueLift" type="number" min="0" value="1.5" step="0.1" /></div>
+                <div class="field"><label for="roiMargin">毛利率 (%)</label><input id="roiMargin" type="number" min="0" max="100" value="35" /></div>
+                <div class="field"><label for="roiLegacyMonthly">替代系统月成本 ($)</label><input id="roiLegacyMonthly" type="number" min="0" value="3000" /></div>
+                <div class="field"><label for="roiDevFte">规避开发 FTE</label><input id="roiDevFte" type="number" min="0" value="1" step="0.1" /></div>
+                <div class="field"><label for="roiFteCost">单 FTE 年成本 ($)</label><input id="roiFteCost" type="number" min="0" value="140000" /></div>
+              </div>
+
+              <h4 class="input-group-title">风险与平台复用</h4>
+              <div class="input-grid input-grid-single">
+                <div class="field"><label for="roiRiskExposure">年风险暴露额 ($)</label><input id="roiRiskExposure" type="number" min="0" value="250000" /></div>
+                <div class="field"><label for="roiRiskReduction">风险折减率 (%)</label><input id="roiRiskReduction" type="number" min="0" max="100" value="8" /></div>
+                <div class="field"><label for="roiReusableAssets">可复用资产数</label><input id="roiReusableAssets" type="number" min="0" value="4" /></div>
+                <div class="field"><label for="roiReuseValue">单资产复用价值 ($)</label><input id="roiReuseValue" type="number" min="0" value="8000" /></div>
+              </div>
+
+              <h4 class="input-group-title">投资成本</h4>
+              <div class="input-grid input-grid-single">
+                <div class="field"><label for="roiLicenseAnnual">年许可与容量成本 ($)</label><input id="roiLicenseAnnual" type="number" min="0" value="0" /></div>
+                <div class="field"><label for="roiImplementation">一次性实施成本 ($)</label><input id="roiImplementation" type="number" min="0" value="120000" /></div>
+                <div class="field"><label for="roiChange">培训与变革成本 ($)</label><input id="roiChange" type="number" min="0" value="30000" /></div>
+                <div class="field"><label for="roiSupportAnnual">年运营支持成本 ($)</label><input id="roiSupportAnnual" type="number" min="0" value="36000" /></div>
+              </div>
+
+              <p class="roi-input-note">许可成本会跟随上方报价器自动更新；如需采用企业协议价，可直接覆盖该输入框。</p>
+            </div>
+
+            <div class="quote-panel roi-result-panel">
+              <div class="roi-kpi-grid">
+                <div class="roi-kpi"><div class="tiny">年化收益</div><strong id="roiAnnualBenefit">$0</strong></div>
+                <div class="roi-kpi"><div class="tiny">首年投资</div><strong id="roiFirstYearCost">$0</strong></div>
+                <div class="roi-kpi"><div class="tiny">首年 ROI</div><strong id="roiPercent">0%</strong></div>
+                <div class="roi-kpi"><div class="tiny">回收期</div><strong id="roiPayback">-</strong></div>
+              </div>
+
+              <table class="cost-table" aria-label="ROI 价值拆分">
+                <thead>
+                  <tr><th>价值维度</th><th>年化金额</th><th>口径</th></tr>
+                </thead>
+                <tbody id="roiBreakdownBody"></tbody>
+              </table>
+
+              <div class="result-kpi">
+                <div class="kpi">
+                  <div class="tiny">三年净收益</div>
+                  <strong id="roiThreeYearNet">$0</strong>
+                </div>
+                <div class="kpi">
+                  <div class="tiny">三年收益/成本比</div>
+                  <strong id="roiBenefitCostRatio">0.0x</strong>
+                </div>
+              </div>
+
+              <div class="roi-verdict" id="roiVerdict">
+                <strong>投资判断</strong>
+                <span>输入参数后生成判断。</span>
+              </div>
+
+              <p class="note-strip">说明：该 ROI 模型用于商业价值管理（BVM）预算测算，不替代正式财务审计；收入提升与风险折减需由业务负责人确认假设。</p>
+            </div>
+          </div>
+        </section>
+
         <section id="playbook" class="section" data-reveal>
           <div class="section-head">
-            <p class="section-kicker">05 / Configuration Playbook</p>
+            <p class="section-kicker">07 / Configuration Playbook</p>
             <h2>从试点到规模化的配置路径</h2>
             <p>
-              报价不是一次性动作，建议按阶段滚动：先用最小可行组合验证业务价值，再沿着使用量增长曲线替换授权模型。
+              方案对比、报价和 ROI 测算完成后，采购策略应按阶段滚动：先用最小可行组合验证业务价值，再沿着使用量增长曲线替换授权模型。
             </p>
           </div>
 
@@ -1234,7 +1563,7 @@
 
         <section id="references" class="section" data-reveal>
           <div class="section-head">
-            <p class="section-kicker">07 / References</p>
+            <p class="section-kicker">08 / References</p>
             <h2>参考与价格校验锚点</h2>
             <p>以下链接用于规则追溯和后续价格更新。建议每月校验一次，遇到大促或协议更新需即时刷新参数。</p>
           </div>
@@ -1275,6 +1604,16 @@
               <span class="bib-author">Microsoft Learn</span>
               <span class="bib-note">Copilot Studio Billing Rates and Management<a href="https://learn.microsoft.com/microsoft-copilot-studio/requirements-messages-management" target="_blank" rel="noopener noreferrer">https://learn.microsoft.com/microsoft-copilot-studio/requirements-messages-management</a></span>
             </li>
+            <li>
+              <span class="bib-id">[R8]</span>
+              <span class="bib-author">Microsoft Learn</span>
+              <span class="bib-note">Agent usage estimator（一方 Agent Credit 消耗速率口径）<a href="https://learn.microsoft.com/microsoft-copilot-studio/agent-usage-estimator" target="_blank" rel="noopener noreferrer">https://learn.microsoft.com/microsoft-copilot-studio/agent-usage-estimator</a></span>
+            </li>
+            <li>
+              <span class="bib-id">[R9]</span>
+              <span class="bib-author">Microsoft</span>
+              <span class="bib-note">Copilot Credit Estimator（在线工具，含 SQA / ARA / SCA 等一方 Agent 速率）<a href="https://microsoft.github.io/copilot-studio-estimator/" target="_blank" rel="noopener noreferrer">https://microsoft.github.io/copilot-studio-estimator/</a></span>
+            </li>
           </ul>
         </section>
       </main>
@@ -1292,6 +1631,8 @@
       var i;
       var calcButton;
       var resetButton;
+      var lastQuoteAnnual = 0;
+      var roiIds;
 
       function currentLang() {
         return localStorage.getItem('lang') === 'en' ? 'en' : 'zh';
@@ -1325,20 +1666,22 @@
         setBilingual('.nav-links a[href="#framework"]', '报价框架', 'Framework');
         setBilingual('.nav-links a[href="#rules"]', '计费规则', 'Licensing Rules');
         setBilingual('.nav-links a[href="#ai-rates"]', 'AI 试算', 'AI Calculator');
+        setBilingual('.nav-links a[href="#options"]', '方案对比', 'Options');
         setBilingual('.nav-links a[href="#calculator"]', '报价器', 'Estimator');
+        setBilingual('.nav-links a[href="#roi"]', 'ROI 测算', 'ROI');
         setBilingual('.nav-links a[href="#playbook"]', '配置策略', 'Playbook');
         setBilingual('.hero-copy .eyebrow', 'Power Platform Pricing Estimator', 'Power Platform Pricing Estimator');
         setBilingual('.hero-copy h1', 'Power Platform 交互式报价估算器', 'Power Platform Interactive Pricing Estimator');
-        setBilingual('.hero-copy > p', '输入用户数和 AI 用量，自动计算阶梯价格、生成产品配置建议，并一键导出 CSV 报价单。覆盖 Power Apps、Power Automate、Power Pages、Copilot Studio、AI Builder、Power BI 全产品线。', 'Enter user counts and AI usage to calculate tiered pricing, generate product configuration guidance, and export a CSV quote. The estimator covers Power Apps, Power Automate, Power Pages, Copilot Studio, AI Builder, and Power BI.');
+        setBilingual('.hero-copy > p', '输入用户数和 AI 用量，自动计算阶梯价格、生成产品配置建议、对比替代方案，并用 BVM 维度估算 ROI。覆盖 Power Apps、Power Automate、Power Pages、Copilot Studio、AI Builder、Power BI 全产品线。', 'Enter user counts and AI usage to calculate tiered pricing, generate product configuration guidance, compare alternatives, and estimate ROI through BVM dimensions. The estimator covers Power Apps, Power Automate, Power Pages, Copilot Studio, AI Builder, and Power BI.');
         setBilingual('.hero-actions .button-primary', 'AI 试算', 'AI Calculator');
         setBilingual('.hero-actions .button-secondary', '综合报价', 'Full Quote');
         setBilingual('.hero-panel .panel-label', '核心能力', 'Core Capabilities');
         setBilingual('.hero-panel h2', '从需求参数到可执行报价单', 'From Requirement Inputs to an Executable Quote');
         setBilingualAll('.hero-panel .layer-list li', [
-          { zh: '<span class="layer-number">1</span>AI 能力试算：19 项能力逐项填入用量自动折算 Credits', en: '<span class="layer-number">1</span>AI capability calculator: enter usage for 19 capabilities and convert it into credits automatically.' },
+          { zh: '<span class="layer-number">1</span>AI 能力试算：43 项能力逐项填入用量自动折算 Credits', en: '<span class="layer-number">1</span>AI capability calculator: enter usage for 43 capabilities and convert it into credits automatically.' },
           { zh: '<span class="layer-number">2</span>阶梯定价：Power Apps / Pages / AI Builder 自动应用最优价格', en: '<span class="layer-number">2</span>Tiered pricing: Power Apps, Pages, and AI Builder use the lowest applicable tier automatically.' },
           { zh: '<span class="layer-number">3</span>Dataverse 容量池化：基于许可自动计算附带容量', en: '<span class="layer-number">3</span>Dataverse pooled capacity: included capacity is calculated from selected licenses.' },
-          { zh: '<span class="layer-number">4</span>一键导出 CSV 报价单，含明细 + 建议 + 免责声明', en: '<span class="layer-number">4</span>One-click CSV quote export with line items, recommendations, and disclaimer.' }
+          { zh: '<span class="layer-number">4</span>可选方案与 ROI：对比自开发、友商方案，并输出回收期与三年净收益', en: '<span class="layer-number">4</span>Option and ROI analysis: compare custom development and peer solutions, then output payback and three-year net benefit.' }
         ]);
         setBilingualAll('.hero-metrics .metric-label', [
           { zh: '覆盖产品', en: 'Products Covered' },
@@ -1347,13 +1690,13 @@
         ]);
         setBilingualAll('.hero-metrics .metric strong', [
           { zh: '6', en: '6' },
-          { zh: '19 项', en: '19' },
-          { zh: 'CSV 报价单', en: 'CSV Quote' }
+          { zh: '43 项', en: '43' },
+          { zh: '报价 + ROI', en: 'Quote + ROI' }
         ]);
         setBilingualAll('.hero-metrics .metric span', [
           { zh: 'Apps / Automate / Pages / Copilot Studio / AI Builder / Power BI', en: 'Apps / Automate / Pages / Copilot Studio / AI Builder / Power BI' },
-          { zh: '文档识别 / Prompt / Agent 动作 / AI Tools 全覆盖', en: 'Document recognition / prompts / agent actions / AI tools' },
-          { zh: '含月度 + 年度成本、配置建议、Dataverse 容量', en: 'Monthly and annual cost, configuration guidance, and Dataverse capacity' }
+          { zh: '文档识别 / Prompt / Agent 动作 / AI Tools / Dynamics 365 一方 Agent 全覆盖', en: 'Document recognition / prompts / agent actions / AI tools / Dynamics 365 first-party agents' },
+          { zh: '含月度 + 年度成本、配置建议、Dataverse 容量、回收期', en: 'Monthly and annual cost, configuration guidance, Dataverse capacity, and payback period' }
         ]);
         setBilingual('#framework .section-kicker', '01 / Pricing Framework', '01 / Pricing Framework');
         setBilingual('#framework .section-head h2', 'Power Platform 的 3 种计费模式', 'The Three Power Platform Billing Models');
@@ -1620,7 +1963,65 @@
           { zh: '含大纲、资料摘要与全文输出；复杂推理改用高级推理模型行', en: 'Includes outline, source summarization, and full output; use the advanced reasoning model row for complex reasoning.' }
         ]);
         setBilingual('.scenario-credit-reference .tiny', '示例：每月处理 2,000 封邮件做摘要分类，按均值 1.2k tokens/封估算，在「Prompt（标准模型）」行填入 2,400（= 2,000 &#215; 1.2）。若按 Copilot Credit 计费，约 3,600 Credits/月；若按 AI Builder Credit 计费，约 57,600 Credits/月。', 'Example: processing 2,000 emails per month for summarization and classification at an average of 1.2k tokens/email means entering 2,400 (= 2,000 &#215; 1.2) in Prompt (standard model). If billed with Copilot Credits, this is about 3,600 credits/month; if billed with AI Builder Credits, this is about 57,600 credits/month.');
-        setBilingual('#calculator .section-kicker', '04 / Interactive Estimator', '04 / Interactive Estimator');
+        setBilingual('#options .section-kicker', '04 / Option Analysis', '04 / Option Analysis');
+        setBilingual('#options .section-head h2', '三类可选方案的业务价值边界', 'Business Value Boundaries Across Three Options');
+        setBilingual('#options .section-head p:last-child', '价格测算前先明确选型边界：Power Platform 适合以治理和集成为中心的企业级低代码交付，自开发适合高度差异化核心系统，友商方案适合已有生态绑定或单点 SaaS 深度场景。', 'Clarify the selection boundary before pricing. Power Platform fits governance-centered enterprise low-code delivery, custom development fits highly differentiated core systems, and peer solutions fit existing ecosystem commitments or deep single-domain SaaS scenarios.');
+        setBilingualAll('#options .comparison-label', [
+          { zh: 'Power Platform', en: 'Power Platform' },
+          { zh: '自开发', en: 'Custom Development' },
+          { zh: '友商类似方案', en: 'Peer Solutions' }
+        ]);
+        setBilingualAll('#options .comparison-card h3', [
+          { zh: '治理前置的低代码平台路径', en: 'Governance-First Low-Code Platform Path' },
+          { zh: '完全控制的工程化路径', en: 'Full-Control Engineering Path' },
+          { zh: '生态绑定或单点能力路径', en: 'Ecosystem-Led or Single-Domain Path' }
+        ]);
+        setBilingualAll('#options .comparison-card p', [
+          { zh: '适合 Microsoft 365、Dynamics 365、Azure 与 Dataverse 已在企业架构内的组织。投资重点是授权、治理、数据模型与交付体系，价值来自缩短上线周期和降低长期维护分散度。', en: 'Fits organizations where Microsoft 365, Dynamics 365, Azure, and Dataverse already sit inside the enterprise architecture. Investment concentrates on licensing, governance, data model, and delivery discipline; value comes from shorter release cycles and lower long-term maintenance fragmentation.' },
+          { zh: '适合产品体验、算法逻辑、数据主权或专有流程构成核心竞争力的系统。成本不只包括开发人力，还包括云资源、DevOps、安全审计、长期运维和人员连续性。', en: 'Fits systems where product experience, algorithmic logic, data sovereignty, or proprietary processes define competitive advantage. Cost includes not only development labor, but also cloud resources, DevOps, security review, long-term operations, and staff continuity.' },
+          { zh: '适合企业已在 Salesforce、ServiceNow、OutSystems、Mendix、UiPath 或其他 SaaS / iPaaS 生态形成标准化流程的场景。评估重点是集成深度、许可叠加和数据边界。', en: 'Fits scenarios where standardized processes already exist in Salesforce, ServiceNow, OutSystems, Mendix, UiPath, or another SaaS / iPaaS ecosystem. Evaluation should focus on integration depth, licensing overlays, and data boundaries.' }
+        ]);
+        setBilingualAll('#options .plan-features li', [
+          { zh: '适配多部门流程、门户、自动化、智能体与报表组合场景', en: 'Fits combined scenarios across departmental processes, portals, automation, agents, and reports.' },
+          { zh: '依赖环境策略、DLP、ALM、容量与许可治理成熟度', en: 'Depends on maturity in environment strategy, DLP, ALM, capacity, and license governance.' },
+          { zh: '对复杂前端体验和深度底层控制的自由度低于自开发', en: 'Provides less freedom than custom development for complex front-end experience and deep platform control.' },
+          { zh: '适配核心交易系统、强定制 UI、复杂领域模型与高并发服务', en: 'Fits core transaction systems, highly customized UI, complex domain models, and high-concurrency services.' },
+          { zh: '需要承担需求变更、人员替换、技术债和安全合规的全生命周期成本', en: 'Carries full lifecycle cost for requirement changes, staff replacement, technical debt, security, and compliance.' },
+          { zh: 'ROI 依赖交付速度和复用率，短周期内部应用通常回收慢', en: 'ROI depends on delivery speed and reuse rate; short-cycle internal apps usually recover investment more slowly.' },
+          { zh: '既有 CRM / ITSM / RPA 生态沉淀较深时迁移成本较低', en: 'Migration cost is lower when the existing CRM / ITSM / RPA ecosystem is already deeply established.' },
+          { zh: '跨 Microsoft 365、Teams、SharePoint、Dataverse 的原生联动通常需要额外集成层', en: 'Native interaction across Microsoft 365, Teams, SharePoint, and Dataverse usually requires an additional integration layer.' },
+          { zh: '需核算连接器、API 调用、外部身份、运行容量与专业服务费用', en: 'Connector, API call, external identity, runtime capacity, and professional service fees must be calculated explicitly.' }
+        ]);
+        setBilingual('#options .action-box .event-field-label', 'BVM 选型判据', 'BVM Selection Criteria');
+        setBilingualAll('#options .simple-table th', [
+          { zh: '维度', en: 'Dimension' },
+          { zh: 'Power Platform', en: 'Power Platform' },
+          { zh: '自开发', en: 'Custom Development' },
+          { zh: '友商方案', en: 'Peer Solutions' }
+        ]);
+        setBilingualAll('#options .simple-table td', [
+          { zh: 'Time to Value', en: 'Time to Value' },
+          { zh: '适合 4-12 周交付可用版本', en: 'Fits a usable release in 4-12 weeks.' },
+          { zh: '适合 3-9 个月沉淀核心系统', en: 'Fits core systems built over 3-9 months.' },
+          { zh: '取决于既有生态和实施伙伴', en: 'Depends on the existing ecosystem and implementation partner.' },
+          { zh: 'TCO', en: 'TCO' },
+          { zh: '许可透明，治理不到位会产生容量和连接器外溢', en: 'Licensing is transparent, while weak governance can cause capacity and connector overrun.' },
+          { zh: '前期现金支出低估概率高，长期维护占比高', en: 'Initial cash outlay is often underestimated, and long-term maintenance becomes a large share.' },
+          { zh: '订阅费清晰，集成和专业服务需单列', en: 'Subscription fees are clear; integration and professional services need separate lines.' },
+          { zh: 'Governance', en: 'Governance' },
+          { zh: '与 Entra、DLP、环境策略、审计体系结合紧密', en: 'Closely aligned with Entra, DLP, environment strategy, and audit controls.' },
+          { zh: '治理能力取决于工程团队自建程度', en: 'Governance capability depends on how much the engineering team builds.' },
+          { zh: '取决于平台原生管控与企业身份集成深度', en: 'Depends on native platform controls and enterprise identity integration depth.' },
+          { zh: 'Integration', en: 'Integration' },
+          { zh: 'Microsoft 365 / Dynamics / Azure 优势明显', en: 'Strong advantage across Microsoft 365 / Dynamics / Azure.' },
+          { zh: '可按企业架构完全定制', en: 'Can be fully tailored to the enterprise architecture.' },
+          { zh: '在其原生业务域内优势明显，跨域需补集成', en: 'Strong inside its native business domain; cross-domain use needs additional integration.' },
+          { zh: 'Risk', en: 'Risk' },
+          { zh: '平台锁定风险中等，可通过 ALM 和数据模型治理降低', en: 'Platform lock-in risk is moderate and can be reduced through ALM and data model governance.' },
+          { zh: '交付延期、人员连续性和安全审计风险更高', en: 'Higher risk around delivery delay, staff continuity, and security review.' },
+          { zh: '供应商锁定和数据流转边界需前置评估', en: 'Vendor lock-in and data movement boundaries require early assessment.' }
+        ]);
+        setBilingual('#calculator .section-kicker', '05 / Interactive Estimator', '05 / Interactive Estimator');
         setBilingual('#calculator .section-head h2', '综合报价器：基础授权 + AI 场景一站估算', 'Full Estimator: Base Licenses and AI Scenarios in One Quote');
         setBilingual('#calculator .section-head p:last-child', '上方试算表的 Credits 合计会自动生成 Copilot Studio 和 AI Builder 行项。你也可以直接修改任何参数。', 'Credit totals from the calculator above automatically create Copilot Studio and AI Builder line items. You can also edit any input directly.');
         setBilingual('.quote-panel-left h3', '需求参数', 'Requirement Inputs');
@@ -1670,9 +2071,60 @@
         ]);
         setBilingual('#recommendBox strong', '产品配置建议', 'Product Configuration Recommendations');
         setBilingual('.quote-panel > .note-strip', '说明：单价列可直接编辑以匹配企业协议价。', 'Note: unit prices can be edited directly to match enterprise agreement pricing.');
-        setBilingual('#playbook .section-kicker', '05 / Configuration Playbook', '05 / Configuration Playbook');
+        setBilingual('#roi .section-kicker', '06 / BVM ROI Calculator', '06 / BVM ROI Calculator');
+        setBilingual('#roi .section-head h2', 'BVM 视角下的投资回报测算', 'ROI Estimation from a BVM Perspective');
+        setBilingual('#roi .section-head p:last-child', 'ROI 不只看许可费，而要把效率提升、收入加速、成本规避、风险折减和平台复用放进同一张账。下方模型默认读取综合报价器的年度成本，也支持手动输入实施与运营参数。', 'ROI should not look only at license fees. A BVM model brings productivity gain, revenue acceleration, cost avoidance, risk reduction, and platform reuse into one financial view. The model below reads the annual cost from the quote estimator by default and also supports manual implementation and operations inputs.');
+        setBilingual('#roi .quote-panel-left h3', 'ROI 参数', 'ROI Inputs');
+        setBilingualAll('#roi .input-group-title', [
+          { zh: '采用范围', en: 'Adoption Scope' },
+          { zh: '效率收益', en: 'Productivity Benefit' },
+          { zh: '业务价值', en: 'Business Value' },
+          { zh: '风险与平台复用', en: 'Risk and Platform Reuse' },
+          { zh: '投资成本', en: 'Investment Cost' }
+        ]);
+        setBilingualAll('#roi label[for]', [
+          { zh: '目标用户数', en: 'Target users' },
+          { zh: '采用率 (%)', en: 'Adoption rate (%)' },
+          { zh: '年工作日', en: 'Workdays/year' },
+          { zh: '人均节省分钟/日', en: 'Minutes saved/user/day' },
+          { zh: '综合人力成本 ($/小时)', en: 'Loaded labor cost ($/hour)' },
+          { zh: '收益兑现率 (%)', en: 'Benefit realization (%)' },
+          { zh: '受影响年收入 ($)', en: 'Influenced annual revenue ($)' },
+          { zh: '收入提升率 (%)', en: 'Revenue lift (%)' },
+          { zh: '毛利率 (%)', en: 'Gross margin (%)' },
+          { zh: '替代系统月成本 ($)', en: 'Replaced system monthly cost ($)' },
+          { zh: '规避开发 FTE', en: 'Avoided development FTE' },
+          { zh: '单 FTE 年成本 ($)', en: 'Annual cost per FTE ($)' },
+          { zh: '年风险暴露额 ($)', en: 'Annual risk exposure ($)' },
+          { zh: '风险折减率 (%)', en: 'Risk reduction (%)' },
+          { zh: '可复用资产数', en: 'Reusable assets' },
+          { zh: '单资产复用价值 ($)', en: 'Reuse value per asset ($)' },
+          { zh: '年许可与容量成本 ($)', en: 'Annual license and capacity cost ($)' },
+          { zh: '一次性实施成本 ($)', en: 'One-time implementation cost ($)' },
+          { zh: '培训与变革成本 ($)', en: 'Training and change cost ($)' },
+          { zh: '年运营支持成本 ($)', en: 'Annual operations support cost ($)' }
+        ]);
+        setBilingual('.roi-input-note', '许可成本会跟随上方报价器自动更新；如需采用企业协议价，可直接覆盖该输入框。', 'License cost follows the quote estimator above automatically. Override this input directly when using enterprise agreement pricing.');
+        setBilingualAll('#roi .roi-kpi .tiny', [
+          { zh: '年化收益', en: 'Annual Benefit' },
+          { zh: '首年投资', en: 'First-Year Investment' },
+          { zh: '首年 ROI', en: 'First-Year ROI' },
+          { zh: '回收期', en: 'Payback Period' }
+        ]);
+        setBilingualAll('#roi .cost-table thead th', [
+          { zh: '价值维度', en: 'Value Dimension' },
+          { zh: '年化金额', en: 'Annual Amount' },
+          { zh: '口径', en: 'Basis' }
+        ]);
+        setBilingualAll('#roi .result-kpi .tiny', [
+          { zh: '三年净收益', en: 'Three-Year Net Benefit' },
+          { zh: '三年收益/成本比', en: 'Three-Year Benefit/Cost Ratio' }
+        ]);
+        setBilingual('#roiVerdict strong', '投资判断', 'Investment View');
+        setBilingual('#roi .note-strip', '说明：该 ROI 模型用于商业价值管理（BVM）预算测算，不替代正式财务审计；收入提升与风险折减需由业务负责人确认假设。', 'Note: this ROI model is for Business Value Management (BVM) budget estimation and does not replace formal financial audit. Revenue lift and risk reduction assumptions should be confirmed by business owners.');
+        setBilingual('#playbook .section-kicker', '07 / Configuration Playbook', '07 / Configuration Playbook');
         setBilingual('#playbook .section-head h2', '从试点到规模化的配置路径', 'Configuration Path from Pilot to Scale');
-        setBilingual('#playbook .section-head p:last-child', '报价不是一次性动作，建议按阶段滚动：先用最小可行组合验证业务价值，再沿着使用量增长曲线替换授权模型。', 'Quoting is not a one-time action. Use a staged approach: validate business value with the minimum viable bundle, then replace license models as usage grows.');
+        setBilingual('#playbook .section-head p:last-child', '方案对比、报价和 ROI 测算完成后，采购策略应按阶段滚动：先用最小可行组合验证业务价值，再沿着使用量增长曲线替换授权模型。', 'After option comparison, quote estimation, and ROI analysis, procurement strategy should move in stages: validate business value with the minimum viable bundle, then replace license models as usage grows.');
         setBilingualAll('#playbook .flow-copy strong', [
           { zh: '试点期（1-2 个场景）', en: 'Pilot Stage (1-2 Scenarios)' },
           { zh: '放大期（跨部门推广）', en: 'Scale-Out Stage (Cross-Department Rollout)' },
@@ -1683,7 +2135,7 @@
           { zh: '按实际活跃用户扩展 Premium 许可；无人值守流程独立购买 Process；门户按月峰值重算容量包。', en: 'Expand Premium licenses by actual active users, purchase Process separately for unattended flows, and recalculate portal capacity packs from monthly peaks.' },
           { zh: '把 Copilot Credits 预算、Power Platform Requests、Dataverse 容量拉进同一看板，用阈值预警驱动采购节奏。', en: 'Put Copilot Credits budget, Power Platform Requests, and Dataverse capacity on one dashboard, then use threshold alerts to drive procurement timing.' }
         ]);
-        setBilingual('#references .section-kicker', '07 / References', '07 / References');
+        setBilingual('#references .section-kicker', '08 / References', '08 / References');
         setBilingual('#references .section-head h2', '参考与价格校验锚点', 'References and Price Validation Anchors');
         setBilingual('#references .section-head p:last-child', '以下链接用于规则追溯和后续价格更新。建议每月校验一次，遇到大促或协议更新需即时刷新参数。', 'Use the links below for rule traceability and future price updates. Validate monthly, and refresh parameters immediately after promotions or agreement changes.');
         setBilingualAll('#references .bib-note', [
@@ -1728,8 +2180,30 @@
         }
       }
 
+      // Copilot Studio agent actions and Dynamics 365 first-party agents draw
+      // only from the Copilot Credit pool — AI Builder Credits cannot settle
+      // them. When the AI Builder dimension is selected, lock those rows so the
+      // estimate can't mistakenly attribute their usage to AI Builder Credits.
+      function applyAibLock() {
+        var aibMode = getAiDimension() === 'aibuilder';
+        var rows = document.querySelectorAll('#aiRateCalcTable tbody tr[data-rate]');
+        rows.forEach(function (tr) {
+          var aibRate = parseFloat(tr.getAttribute('data-aib')) || 0;
+          var copilotOnly = !(aibRate > 0);
+          var input = tr.querySelector('.rate-qty');
+          if (copilotOnly && aibMode) {
+            tr.classList.add('rate-row-locked');
+            if (input) { input.disabled = true; }
+          } else {
+            tr.classList.remove('rate-row-locked');
+            if (input) { input.disabled = false; }
+          }
+        });
+      }
+
       function calcRateTable() {
         var dim = getAiDimension();
+        applyAibLock();
         var copilotTotal = 0;
         var aibTotal = 0;
         var rows = document.querySelectorAll('#aiRateCalcTable tbody tr[data-rate]');
@@ -1770,6 +2244,8 @@
       document.querySelectorAll('input[name="aiDimension"]').forEach(function (radio) {
         radio.addEventListener('change', calcRateTable);
       });
+
+      applyAibLock();
 
       function byId(id) {
         return document.getElementById(id);
@@ -1860,6 +2336,136 @@
         if (box) {
           box.style.display = lines.length > 0 ? '' : 'none';
         }
+      }
+
+      function percent(num) {
+        return num.toLocaleString('en-US', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0
+        }) + '%';
+      }
+
+      function roiValue(id) {
+        return toNumber(id);
+      }
+
+      function renderRoiBreakdown(rows) {
+        var body = byId('roiBreakdownBody');
+        var html = '';
+        if (!body) return;
+        rows.forEach(function (row) {
+          html += '<tr><td>' + row.name + '</td><td>' + usd(row.amount) + '</td><td>' + row.basis + '</td></tr>';
+        });
+        body.innerHTML = html;
+      }
+
+      function syncRoiLicenseCost() {
+        var input = byId('roiLicenseAnnual');
+        if (!input) return;
+        if (input.getAttribute('data-manual') === 'true') return;
+        input.value = Math.round(lastQuoteAnnual);
+      }
+
+      function updateRoiCalculator() {
+        var users;
+        var adoption;
+        var workdays;
+        var minutesSaved;
+        var hourlyCost;
+        var realization;
+        var revenueBase;
+        var revenueLift;
+        var margin;
+        var legacyMonthly;
+        var devFte;
+        var fteCost;
+        var riskExposure;
+        var riskReduction;
+        var reusableAssets;
+        var reuseValue;
+        var licenseAnnual;
+        var implementation;
+        var changeCost;
+        var supportAnnual;
+        var effectiveUsers;
+        var productivity;
+        var revenue;
+        var costAvoidance;
+        var risk;
+        var reuse;
+        var annualBenefit;
+        var firstYearCost;
+        var threeYearCost;
+        var threeYearBenefit;
+        var threeYearNet;
+        var roi;
+        var monthlyBenefit;
+        var payback;
+        var benefitCostRatio;
+        var verdict;
+
+        if (!byId('roiAnnualBenefit')) return;
+
+        users = roiValue('roiUsers');
+        adoption = roiValue('roiAdoption') / 100;
+        workdays = roiValue('roiWorkdays');
+        minutesSaved = roiValue('roiMinutesSaved');
+        hourlyCost = roiValue('roiHourlyCost');
+        realization = roiValue('roiRealization') / 100;
+        revenueBase = roiValue('roiRevenueBase');
+        revenueLift = roiValue('roiRevenueLift') / 100;
+        margin = roiValue('roiMargin') / 100;
+        legacyMonthly = roiValue('roiLegacyMonthly');
+        devFte = roiValue('roiDevFte');
+        fteCost = roiValue('roiFteCost');
+        riskExposure = roiValue('roiRiskExposure');
+        riskReduction = roiValue('roiRiskReduction') / 100;
+        reusableAssets = roiValue('roiReusableAssets');
+        reuseValue = roiValue('roiReuseValue');
+        licenseAnnual = roiValue('roiLicenseAnnual');
+        implementation = roiValue('roiImplementation');
+        changeCost = roiValue('roiChange');
+        supportAnnual = roiValue('roiSupportAnnual');
+
+        effectiveUsers = users * adoption;
+        productivity = effectiveUsers * (minutesSaved / 60) * workdays * hourlyCost * realization;
+        revenue = revenueBase * revenueLift * margin;
+        costAvoidance = (legacyMonthly * 12) + (devFte * fteCost);
+        risk = riskExposure * riskReduction;
+        reuse = reusableAssets * reuseValue;
+        annualBenefit = productivity + revenue + costAvoidance + risk + reuse;
+        firstYearCost = licenseAnnual + implementation + changeCost + supportAnnual;
+        threeYearCost = (licenseAnnual * 3) + implementation + changeCost + (supportAnnual * 3);
+        threeYearBenefit = annualBenefit * 3;
+        threeYearNet = threeYearBenefit - threeYearCost;
+        roi = firstYearCost > 0 ? ((annualBenefit - firstYearCost) / firstYearCost) * 100 : 0;
+        monthlyBenefit = annualBenefit / 12;
+        payback = monthlyBenefit > 0 ? firstYearCost / monthlyBenefit : 0;
+        benefitCostRatio = threeYearCost > 0 ? threeYearBenefit / threeYearCost : 0;
+
+        byId('roiAnnualBenefit').textContent = usd(annualBenefit);
+        byId('roiFirstYearCost').textContent = usd(firstYearCost);
+        byId('roiPercent').textContent = percent(roi);
+        byId('roiPayback').textContent = payback > 0 ? payback.toFixed(1) + pick(' 个月', ' months') : '-';
+        byId('roiThreeYearNet').textContent = usd(threeYearNet);
+        byId('roiBenefitCostRatio').textContent = benefitCostRatio.toFixed(1) + 'x';
+
+        renderRoiBreakdown([
+          { name: pick('效率提升', 'Productivity Gain'), amount: productivity, basis: pick('有效用户 × 节省时间 × 人力成本 × 兑现率', 'effective users x saved time x labor cost x realization rate') },
+          { name: pick('收入加速', 'Revenue Acceleration'), amount: revenue, basis: pick('受影响收入 × 提升率 × 毛利率', 'influenced revenue x lift rate x gross margin') },
+          { name: pick('成本规避', 'Cost Avoidance'), amount: costAvoidance, basis: pick('替代系统成本 + 规避开发 FTE', 'replaced system cost + avoided development FTE') },
+          { name: pick('风险折减', 'Risk Reduction'), amount: risk, basis: pick('年风险暴露额 × 风险折减率', 'annual risk exposure x reduction rate') },
+          { name: pick('平台复用', 'Platform Reuse'), amount: reuse, basis: pick('可复用资产数 × 单资产复用价值', 'reusable assets x reuse value per asset') }
+        ]);
+
+        if (benefitCostRatio >= 2 && payback <= 12) {
+          verdict = pick('当前假设下，项目具备明确投资吸引力：回收期低于 12 个月，三年收益/成本比达到 ' + benefitCostRatio.toFixed(1) + 'x。下一步应校验采用率、收益兑现率和许可企业协议价。', 'Under the current assumptions, the project has clear investment attractiveness: payback is under 12 months and the three-year benefit/cost ratio reaches ' + benefitCostRatio.toFixed(1) + 'x. Next, validate adoption rate, realization rate, and enterprise agreement pricing.');
+        } else if (benefitCostRatio >= 1) {
+          verdict = pick('当前假设下，项目可进入受控试点：三年收益覆盖成本，但需要压实施范围、提高复用率或降低实施成本来缩短回收期。', 'Under the current assumptions, the project can enter a controlled pilot: three-year benefits cover cost, but scope control, higher reuse, or lower implementation cost is needed to shorten payback.');
+        } else {
+          verdict = pick('当前假设下，投资回报不足：建议缩小首期范围、提高可量化收益口径，或重新比较自开发与友商方案的总拥有成本。', 'Under the current assumptions, return is insufficient: reduce first-phase scope, strengthen measurable benefit assumptions, or recompare total ownership cost against custom development and peer solutions.');
+        }
+        byId('roiVerdict').querySelector('span').textContent = verdict;
       }
 
       function updateIncludedCapacity() {
@@ -2031,6 +2637,12 @@
         renderRecommendations(recs);
         lastRows = rows;
         lastRecs = recs;
+        lastQuoteAnnual = 0;
+        rows.forEach(function (row) {
+          lastQuoteAnnual += row.cost * 12;
+        });
+        syncRoiLicenseCost();
+        updateRoiCalculator();
       }
 
       function csvCell(val) {
@@ -2172,6 +2784,27 @@
         byId(ids[i]).addEventListener('change', calculate);
       }
 
+      roiIds = [
+        'roiUsers', 'roiAdoption', 'roiWorkdays', 'roiMinutesSaved', 'roiHourlyCost', 'roiRealization',
+        'roiRevenueBase', 'roiRevenueLift', 'roiMargin', 'roiLegacyMonthly', 'roiDevFte', 'roiFteCost',
+        'roiRiskExposure', 'roiRiskReduction', 'roiReusableAssets', 'roiReuseValue', 'roiImplementation',
+        'roiChange', 'roiSupportAnnual'
+      ];
+      roiIds.forEach(function (id) {
+        var el = byId(id);
+        if (el) {
+          el.addEventListener('input', updateRoiCalculator);
+          el.addEventListener('change', updateRoiCalculator);
+        }
+      });
+      if (byId('roiLicenseAnnual')) {
+        byId('roiLicenseAnnual').addEventListener('input', function () {
+          byId('roiLicenseAnnual').setAttribute('data-manual', 'true');
+          updateRoiCalculator();
+        });
+        byId('roiLicenseAnnual').addEventListener('change', updateRoiCalculator);
+      }
+
       ['internalUsers', 'automationUsers'].forEach(function (fid) {
         byId(fid).addEventListener('input', updateIncludedCapacity);
       });
@@ -2181,11 +2814,13 @@
         updateAiEstimateSummary();
         calculate();
         updateIncludedCapacity();
+        updateRoiCalculator();
       });
 
       updateIncludedCapacity();
       updateAiEstimateSummary();
       calculate();
+      updateRoiCalculator();
     });
   </script>
   <script src="../../assets/article-common.js"></script>

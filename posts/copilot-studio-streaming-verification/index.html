@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>验证 Copilot Studio 流式输出：从 Direct Line 到 Direct Engine 的实测</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(2.0rem, 4.5vw, 3.4rem);
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+      max-width: 26ch;
+    }
+
+    .hero-metrics {
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+
+    /* ── 对比表格 ── */
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      margin-top: 10px;
+    }
+
+    .compare-table th {
+      text-align: left;
+      padding: 10px 14px;
+      background: rgba(15, 23, 42, 0.04);
+      border-bottom: 2px solid rgba(15, 23, 42, 0.1);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-weight: 700;
+      font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .compare-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+      line-height: 1.65;
+      color: var(--ink);
+      vertical-align: top;
+    }
+
+    [data-theme="dark"] .compare-table th {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    [data-theme="dark"] .compare-table td {
+      border-color: rgba(255, 255, 255, 0.06);
+    }
+
+    /* ── 状态徽标 ── */
+    .status-badge {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      white-space: nowrap;
+    }
+
+    .badge-ok {
+      background: rgba(20, 184, 166, 0.12);
+      color: rgba(13, 143, 140, 0.95);
+    }
+
+    .badge-fail {
+      background: rgba(239, 68, 68, 0.12);
+      color: rgba(220, 38, 38, 0.95);
+    }
+
+    .badge-warn {
+      background: rgba(249, 115, 22, 0.12);
+      color: rgba(234, 88, 12, 0.95);
+    }
+
+    [data-theme="dark"] .badge-ok { background: rgba(20, 184, 166, 0.2); }
+    [data-theme="dark"] .badge-fail { background: rgba(239, 68, 68, 0.2); }
+    [data-theme="dark"] .badge-warn { background: rgba(249, 115, 22, 0.2); }
+
+    /* ── 协议流程块 ── */
+    .arch-flow {
+      display: grid;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .arch-flow-5col {
+      grid-template-columns: repeat(5, 1fr);
+      max-width: 720px;
+      margin-left: auto;
+      margin-right: auto;
+      align-items: center;
+    }
+
+    .arch-block {
+      text-align: center;
+      padding: 16px 10px;
+      border-radius: 14px;
+      font-size: 0.82rem;
+      line-height: 1.5;
+      font-weight: 600;
+    }
+
+    .arch-block-purple {
+      background: rgba(124, 58, 237, 0.08);
+      color: rgba(124, 58, 237, 0.9);
+      border: 1px solid rgba(124, 58, 237, 0.15);
+    }
+
+    .arch-block-blue {
+      background: rgba(14, 165, 233, 0.08);
+      color: rgba(14, 165, 233, 0.9);
+      border: 1px solid rgba(14, 165, 233, 0.15);
+    }
+
+    .arch-block-teal {
+      background: rgba(20, 184, 166, 0.08);
+      color: rgba(20, 184, 166, 0.9);
+      border: 1px solid rgba(20, 184, 166, 0.15);
+    }
+
+    .arch-block-orange {
+      background: rgba(249, 115, 22, 0.08);
+      color: rgba(249, 115, 22, 0.9);
+      border: 1px solid rgba(249, 115, 22, 0.15);
+    }
+
+    .arch-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      color: var(--muted);
+    }
+
+    .arch-hint {
+      font-size: 0.74rem;
+      opacity: 0.72;
+    }
+
+    [data-theme="dark"] .arch-block-purple { background: rgba(124, 58, 237, 0.15); }
+    [data-theme="dark"] .arch-block-blue { background: rgba(14, 165, 233, 0.15); }
+    [data-theme="dark"] .arch-block-teal { background: rgba(20, 184, 166, 0.15); }
+    [data-theme="dark"] .arch-block-orange { background: rgba(249, 115, 22, 0.15); }
+
+    /* ── 决策/步骤列表 ── */
+    .decision-list {
+      list-style: none;
+      padding: 0;
+      margin: 14px 0 0;
+      counter-reset: decision;
+    }
+
+    .decision-list li {
+      counter-increment: decision;
+      padding: 14px 18px 14px 54px;
+      position: relative;
+      border-radius: 14px;
+      margin-bottom: 8px;
+      background: var(--card-bg);
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      font-size: 0.92rem;
+      line-height: 1.72;
+      color: var(--ink);
+    }
+
+    .decision-list li::before {
+      content: counter(decision);
+      position: absolute;
+      left: 16px;
+      top: 14px;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: rgba(14, 165, 233, 0.1);
+      color: rgba(14, 165, 233, 0.9);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    /* ── 代码块 ── */
+    .code-block {
+      background: rgba(15, 23, 42, 0.04);
+      border-radius: 12px;
+      padding: 16px;
+      overflow-x: auto;
+      font-size: 0.8rem;
+      line-height: 1.6;
+      color: var(--ink);
+      font-family: "SF Mono", "Consolas", monospace;
+      margin-top: 12px;
+      white-space: pre;
+    }
+
+    [data-theme="dark"] .code-block {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .caption-muted {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .mt-14 { margin-top: 14px; }
+
+    /* ── 关键发现 callout ── */
+    .finding {
+      margin-top: 14px;
+      padding: 16px 18px;
+      border-radius: 14px;
+      border-left: 4px solid rgba(14, 165, 233, 0.6);
+      background: rgba(14, 165, 233, 0.06);
+      font-size: 0.92rem;
+      line-height: 1.72;
+    }
+
+    .finding-warn {
+      border-left-color: rgba(249, 115, 22, 0.7);
+      background: rgba(249, 115, 22, 0.06);
+    }
+
+    [data-theme="dark"] .finding { background: rgba(14, 165, 233, 0.1); }
+    [data-theme="dark"] .finding-warn { background: rgba(249, 115, 22, 0.1); }
+
+    /* ── Runbook 步骤：左文右图 ── */
+    .runbook-grid {
+      display: grid;
+      grid-template-columns: 1.12fr 0.88fr;
+      gap: 20px;
+      align-items: start;
+      margin-top: 6px;
+    }
+
+    @media (max-width: 820px) {
+      .runbook-grid { grid-template-columns: 1fr; }
+    }
+
+    .runbook-grid .challenge-list { margin-top: 4px; }
+
+    .portal-shot {
+      display: block;
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      box-shadow: 0 18px 34px rgba(15, 23, 42, 0.12);
+      cursor: zoom-in;
+    }
+
+    [data-theme="dark"] .portal-shot {
+      border-color: rgba(148, 163, 184, 0.22);
+      box-shadow: 0 18px 34px rgba(2, 6, 23, 0.4);
+    }
+
+    .figure-caption {
+      margin: 8px 2px 0;
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* 截图待补占位 */
+    .shot-pending {
+      border: 1.5px dashed rgba(15, 23, 42, 0.22);
+      border-radius: 14px;
+      padding: 22px 18px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.83rem;
+      line-height: 1.66;
+      background: rgba(15, 23, 42, 0.02);
+    }
+
+    [data-theme="dark"] .shot-pending {
+      border-color: rgba(148, 163, 184, 0.3);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .shot-pending .shot-tag {
+      display: inline-block;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 2px 9px;
+      border-radius: 999px;
+      background: rgba(249, 115, 22, 0.12);
+      color: rgba(234, 88, 12, 0.95);
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero" data-present-step data-step-title="文章总览">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            Copilot Studio
+          </div>
+          <div class="topbar-actions">
+            <nav class="nav-links" aria-label="页面章节导航">
+              <a href="#problem">问题</a>
+              <a href="#protocol">协议</a>
+              <a href="#method">路径</a>
+              <a href="#directline">实测</a>
+              <a href="#directengine">转机</a>
+              <a href="#poc">PoC</a>
+              <a href="#runbook">配置</a>
+              <a href="#conclusion">结论</a>
+              <a href="#references">参考</a>
+            </nav>
+          </div>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Engineering Investigation Log</span>
+            <h1>验证 Copilot Studio 流式输出：从 Direct Line 到 Direct Engine 的实测</h1>
+            <p>
+              一个自定义 Web 前端（MCSChat）希望逐字显示 Copilot Studio 的回答。本文记录一次完整的工程验证：先在 Direct Line 通道上抓取原始 activity 证明流式片段并未到达，再发现 Microsoft 365 Agents SDK 的 Direct Engine 客户端源码原生处理流式、端点可从浏览器直连。Direct Engine 在本环境是否真正下发流式尚未实测；PoC 用 az CLI 捷径 token 调用触发的 403，揭示了正规路径所需的 .Invoke scope。全程以 Direct Line 原始 JSON 与服务器响应为依据。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#directline">Direct Line 实测</a>
+              <a class="button button-secondary" href="#directengine">Direct Engine 发现</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">三句话结论</span>
+            <h2>协议成立，环境未下发，通道有别</h2>
+            <ul class="layer-list section-grid-spaced">
+              <li><span class="layer-number">1</span>WebChat livestreaming 协议真实存在，元数据是 <code>streamType</code>（informative / streaming / final），不是新的 activity type。</li>
+              <li><span class="layer-number">2</span>当前 Direct Line 通道上，三类 agent 实测均未收到任何流式片段——服务端没有下发。</li>
+              <li><span class="layer-number">3</span>Agents SDK 的 Direct Engine（SSE）客户端源码原生处理流式，端点可直连；本环境是否真正下发流式尚未实测。捷径 token 调用触发的 403 揭示了正规路径需 <code>CopilotStudio.Copilots.Invoke</code> scope。</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">Direct Line 实测</div>
+            <strong>0 流式片段</strong>
+            <span>3 类 agent · 最长 34s / 19149 字一次性返回</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Direct Engine 端点</div>
+            <strong>可直连</strong>
+            <span>SSE · CORS 放行 · 原生 streaminfo 处理</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">流式下发</div>
+            <strong>待实测</strong>
+            <span>源码支持，本环境尚未实测到片段</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- 01 / 问题 -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <section id="problem" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">01 / Problem</p>
+            <h2>为什么要验证「流式」</h2>
+            <p>大语言模型回答较长时，一次性等待整段返回的体验很差。逐字渐进显示（livestreaming）是 LLM 聊天的标准体验。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>1.1 现状断裂：用户盯着空白等几十秒</span>
+              </button>
+              <div class="subsection-content">
+                <p>MCSChat 是一个对接 Copilot Studio 的自定义 Web 聊天前端，通过 Direct Line 3.0（WebSocket）与 agent 通信。它已实现一套「模拟流式」——把收到的完整消息按字符切片播放。但这只是视觉障眼法，无法降低真实的首字延迟（TTFT）：用户依然要等服务端把整段答案生成完，才看到第一个字。</p>
+                <p>真正的 livestreaming 要求服务端在生成过程中就把片段推送过来。问题随之而来：<strong>Copilot Studio 到底支不支持把回答一段段推给 Direct Line 客户端？如果支持，片段长什么样？</strong></p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>1.2 一个需要分清的区别</span>
+              </button>
+              <div class="subsection-content">
+                <p>验证开始前，必须先厘清两个常被混淆的命题：</p>
+                <ul>
+                  <li><strong>「能力是否支持」</strong>——这是平台层面的声明。微软官方文档明确 Copilot Studio 可以做 livestreaming。</li>
+                  <li><strong>「能力是否下发」</strong>——这是某个具体租户 / 区域 / 部署环（ring）的运行时是否实际产生流式片段。</li>
+                </ul>
+                <p>「支持」不等于「下发」。本文的验证目标，正是用原始数据把这两件事分开，而不是停留在文档措辞上。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- 02 / 协议 -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <section id="protocol" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">02 / Protocol</p>
+            <h2>WebChat Livestreaming 协议拆解</h2>
+            <p>判断「有没有流式」之前，必须先知道流式片段在协议里长什么样。依据是 BotFramework-WebChat 官方文档与源码。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>2.1 核心机制：复用 typing 活动承载增量</span>
+              </button>
+              <div class="subsection-content">
+                <p>livestreaming 不引入新的传输协议，而是复用既有的 <code>typing</code> 活动来携带渐进正文，最后用一条 <code>message</code> 封口。整个会话用 <code>streamId</code> 标识，<code>streamSequence</code> 递增用于丢弃乱序片段。</p>
+                <div class="arch-flow arch-flow-5col">
+                  <div class="arch-block arch-block-orange">informative<br/><span class="arch-hint">typing · "正在搜索…"</span></div>
+                  <div class="arch-arrow">→</div>
+                  <div class="arch-block arch-block-blue">streaming<br/><span class="arch-hint">typing · 累积正文片段</span></div>
+                  <div class="arch-arrow">→</div>
+                  <div class="arch-block arch-block-teal">final<br/><span class="arch-hint">message · 完整封口</span></div>
+                </div>
+                <p class="caption-muted">片段的 <code>text</code> 携带「截至当前的累积全文」，后一条整体替换前一条；这让客户端即使丢包或中途加入也能追上。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>2.2 关键澄清：informative / streaming 是 streamType 的值，不是 activity type</span>
+              </button>
+              <div class="subsection-content">
+                <p>这是最容易被误传的一点。「informative」「streaming」「final」<strong>不是</strong> activity 的 <code>type</code>，而是流式元数据对象里 <code>streamType</code> 字段的取值。底层 activity 的 <code>type</code> 仍然是 <code>typing</code>（中间态）或 <code>message</code>（最终态）。</p>
+                <p>元数据可放在 <code>channelData</code>，也可放在 <code>entities</code> 数组里类型为 <code>streaminfo</code> 的对象中，两者等价。一个 streaming 片段的真实形态：</p>
+                <div class="code-block">{
+  "type": "typing",
+  "text": "A quick brown fox",
+  "channelData": {
+    "streamType": "streaming",
+    "streamId": "a-00001",
+    "streamSequence": 2
+  }
+}</div>
+                <p class="mt-14">或者元数据放在 entities：</p>
+                <div class="code-block">{
+  "type": "typing",
+  "text": "A quick brown fox",
+  "entities": [
+    { "type": "streaminfo", "streamType": "streaming", "streamSequence": 2 }
+  ]
+}</div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>2.3 通道前提：必须 WebSocket</span>
+              </button>
+              <div class="subsection-content">
+                <p>官方明确 livestreaming 的通道要求，这决定了客户端这边能不能收到：</p>
+                <table class="compare-table">
+                  <thead>
+                    <tr><th>通道</th><th>是否支持</th><th>原因</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td><strong>Direct Line（WebSocket）</strong></td><td><span class="status-badge badge-ok">支持</span></td><td>支持 typing 活动且返回 activity ID</td></tr>
+                    <tr><td>Direct Line（REST）</td><td><span class="status-badge badge-fail">不支持</span></td><td>忽略 typing 活动</td></tr>
+                    <tr><td>Direct Line Speech / ASE</td><td><span class="status-badge badge-fail">不支持</span></td><td>不返回 activity ID</td></tr>
+                    <tr><td>Teams</td><td><span class="status-badge badge-ok">支持</span></td><td>原生支持</td></tr>
+                  </tbody>
+                </table>
+                <p class="caption-muted">MCSChat 已使用 <code>webSocket: true</code> 的 Direct Line，满足客户端前提——所以「收不到流式」不能归因于通道选错。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- 03 / 方法 -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <section id="method" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">03 / Roadmap</p>
+            <h2>可行路径总览：先对比，再钻进验证</h2>
+            <p>进入具体测试前，先把「在 Web Chat 上拿到逐字体验」的可行路径摆出来对比，随后交代本次验证采用的方法。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>3.1 术语与三条路径对比</span>
+              </button>
+              <div class="subsection-content">
+                <div class="finding">
+                  <strong>术语：</strong>官方把「服务端边生成边推送、客户端渐进渲染」这一能力称为 <strong>livestreaming</strong>（亦称 <em>streaming response</em>），见 BotFramework-WebChat 文档 [1]。它不是新协议，而是一套约定：复用 typing 活动承载增量、用 <code>streamType</code> / <code>streaminfo</code> 元数据标记（§2）。下面三条路<strong>共用 Web Chat 作渲染层，但数据来源 / 协议各不相同</strong>——并非「同一个 streaming 协议」；其中 Direct Engine 是与 livestreaming 无关的另一套传输协议（SSE）。
+                </div>
+                <table class="compare-table">
+                  <thead>
+                    <tr><th>路径</th><th>数据来源 / 协议</th><th>真实降 TTFT</th><th>需要登录</th><th>改造量</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>① 原生 livestreaming</td><td>Direct Line（WebSocket）· typing + streaminfo</td><td><span class="status-badge badge-ok">是</span> · 须服务端下发</td><td>取决于通道</td><td>无</td></tr>
+                    <tr><td>② Direct Engine 桥接</td><td>Direct Engine · SSE（适配为 livestreaming activity）</td><td><span class="status-badge badge-ok">是</span></td><td>是 · <code>.Invoke</code></td><td>中</td></tr>
+                    <tr><td>③ 客户端模拟（打字机）</td><td>无协议 · 本地动画</td><td><span class="status-badge badge-fail">否</span> · 纯视觉</td><td>否</td><td>小</td></tr>
+                  </tbody>
+                </table>
+
+                <p class="mt-14"><strong>① 原生 livestreaming</strong> — 用 agent 的 Direct Line token 端点 <code>createDirectLine({ domain, token })</code> 接 WebSocket，再 <code>renderWebChat</code>；Web Chat 按 <code>streamType</code> 自动渲染。<strong>优</strong>：零改造、官方原生。<strong>劣</strong>：完全取决于服务端是否下发——本环境实测见 §4。</p>
+
+                <p class="mt-14"><strong>② Direct Engine 桥接</strong> — 用 Agents SDK 的 <code>startConversationStreaming()</code> 取 SSE 片段，封装成 Web Chat 可消费的 <code>typing</code> + <code>streaminfo</code> activity 注入渲染。<strong>优</strong>：真原生流式、TTFT 真实下降，UI 仍复用 Web Chat。<strong>劣</strong>：需 Entra 应用 + <code>CopilotStudio.Copilots.Invoke</code> 委托权限 + 登录，并自写 SSE→activity 适配层——配置详见 §5–§7。</p>
+
+                <p class="mt-14"><strong>③ 客户端模拟（打字机）</strong> — 在 Web Chat 的 activity middleware 拦截最终 <code>message</code>，按字符切片逐步更新气泡。<strong>优</strong>：不依赖服务端下发、不需登录、改动最小。<strong>劣</strong>：不降低真实 TTFT，纯视觉效果；即 MCSChat 现状。</p>
+
+                <div class="finding">
+                  <strong>选型：</strong>服务端已下发流式 → ①（最省）；要真降低 TTFT 且可接受登录 → ②；只要视觉效果、不改后端 → ③。
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>3.2 验证方法：只信 Direct Line 原始 activity</span>
+              </button>
+              <div class="subsection-content">
+                <p>为避免「是不是客户端解析错了」的争议，验证直接订阅 Direct Line 的原始活动流，绕过应用自身的所有解析逻辑——在浏览器中直接订阅 SDK 暴露的原始 observable，把每条 bot 活动的完整 JSON（含 <code>channelData</code> 与 <code>entities</code>）原样记录下来：</p>
+                <div class="code-block">directLineService._directLine.activity$.subscribe(activity =&gt; {
+  if (activity.from?.id === 'user') return;
+  rawActivities.push(JSON.parse(JSON.stringify(activity)));
+});</div>
+                <p class="mt-14">随后发送一条会触发长回答的问题，等最终 <code>message</code> 到达后，对全部活动做递归扫描，检查是否存在 <code>streamType</code> / <code>streamId</code> / <code>streamSequence</code> 字段或 <code>streaminfo</code> 实体。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- 04 / Direct Line 实测 -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <section id="directline" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">04 / Direct Line 实测</p>
+            <h2>三类 agent，零流式片段</h2>
+            <p>为排除「agent 类型」这个变量，在同一环境用三种不同编排方式的 agent 各测一遍。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>4.1 三轮实测汇总</span>
+              </button>
+              <div class="subsection-content">
+                <table class="compare-table">
+                  <thead>
+                    <tr><th>Agent</th><th>编排方式</th><th>观测结果</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>IVA</td><td>Topic 驱动</td><td>1 条完整 message；typing 无元数据</td></tr>
+                    <tr><td>Storyteller</td><td>纯 instructions 生成式</td><td>501 字一次性返回；typing 无元数据</td></tr>
+                    <tr><td>UniversalStudio Campus</td><td>生成式回答 + 知识库（RAG）</td><td>~34s 后 19149 字一次性返回；typing 无元数据</td></tr>
+                  </tbody>
+                </table>
+                <p class="caption-muted">三种最该出现流式的场景全部覆盖，原始活动流中从未出现流式标记。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>4.2 原始 activity 证据（RAG 长回答这一轮）</span>
+              </button>
+              <div class="subsection-content">
+                <p>对 1000 字以上的 RAG 长回答，Direct Line 共返回 17 条活动：16 条 <code>typing</code> + 1 条 <code>message</code>。typing 全部无文本、无元数据，message 文本长度 19149。</p>
+                <div class="code-block">// 典型 typing（keep-alive，无任何流式字段）
+{
+  "type": "typing",
+  "id": "1zYR...|3eYh8Lrcsbk",
+  "entities": [],
+  "IsKeepAliveSignal": true,
+  "TypingIndicatorActivationTime": "2026-06-15T13:21:13Z"
+  // 无 channelData，无 streamType / streamId / streamSequence
+}
+
+// 最终 message（一次性完整正文）
+{
+  "type": "message",
+  "textLength": 19149,
+  "textFormat": "markdown",
+  "channelData": { "feedbackLoop": { "type": "default" } },
+  "entities": [
+    { "type": "https://schema.org/Message", "citation": [ /* 5 条 */ ] },
+    { "type": "thought" }
+  ]
+  // entities 里没有 type === "streaminfo"
+}</div>
+                <div class="finding finding-warn">
+                  <strong>递归扫描结果：</strong>对全部 17 条活动搜索 <code>stream / streaming / informative / streaminfo</code>，唯一命中是最终 message 正文里自然出现的英文单词。没有任何元数据字段或 <code>streaminfo</code> 实体命中。
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>4.3 后台设置核对：没有「streaming 开关」</span>
+              </button>
+              <div class="subsection-content">
+                <p>逐项检查了 agent 的「生成式 AI」设置页：编排、深度推理、模型、回复格式、内容审核、用户反馈、允许无依据回答、Web 搜索、文件上传、代码解释器、增强搜索、租户图谱——<strong>没有任何一项与 streaming / 流式相关</strong>。这佐证了一个判断：流式不是用户可点的开关，而是平台运行时的能力，满足条件时自动产生片段。</p>
+              </div>
+            </article>
+
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- 05 / Direct Engine -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <section id="directengine" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">05 / 转机</p>
+            <h2>Direct Engine：另一条原生支持流式的通道</h2>
+            <p>对接 Copilot Studio 不止 Direct Line 一条路。Microsoft 365 Agents SDK 的 Copilot Studio Client 使用的是另一套协议，源码里就内置了流式处理。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>5.1 对接方式总览</span>
+              </button>
+              <div class="subsection-content">
+                <table class="compare-table">
+                  <thead>
+                    <tr><th>方式</th><th>协议 / 传输</th><th>原生流式</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>Direct Line 3.0（当前）</td><td>WebSocket / 轮询</td><td><span class="status-badge badge-warn">取决于服务端下发</span></td></tr>
+                    <tr><td>iframe 嵌入（demo / live 站点）</td><td>内部仍是 Direct Line + WebChat</td><td><span class="status-badge badge-warn">同上</span></td></tr>
+                    <tr><td>Direct Line REST（C# SDK）</td><td>HTTP 轮询</td><td><span class="status-badge badge-fail">否</span></td></tr>
+                    <tr><td><strong>Agents SDK — Copilot Studio Client</strong></td><td><strong>Direct Engine（SSE）</strong></td><td><span class="status-badge badge-ok">原生支持</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>5.2 源码证据：客户端内置 streaminfo 累积</span>
+              </button>
+              <div class="subsection-content">
+                <p><code>@microsoft/agents-copilotstudio-client</code> 通过 <code>text/event-stream</code>（SSE）逐条 yield 活动，并主动识别流式实体、按 <code>streamId</code> + <code>streamSequence</code> 累积文本——新老两种格式（entities 与 channelData）都兼容：</p>
+                <div class="code-block">const streamingEntity = activity.entities?.find(
+  e =&gt; e.type === 'streaminfo' &amp;&amp; e.streamType === 'streaming'
+)
+
+case ActivityTypes.Typing:
+  if (streamingEntity || activity.channelData?.streamType === 'streaming') {
+    const id = streamingEntity?.streamId ?? activity.channelData?.streamId
+    const sequence = streamingEntity?.streamSequence ?? activity.channelData?.streamSequence
+    // 按 streamId + sequence 累积片段，排序后拼接
+  }</div>
+                <p class="mt-14">它还提供一组 <code>AsyncGenerator</code> 流式 API：<code>startConversationStreaming()</code>、<code>sendActivityStreaming()</code>、<code>executeStreaming()</code>、<code>subscribeAsync()</code>——正是为渐进输出设计的接口形态。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- 06 / PoC -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <section id="poc" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">06 / PoC</p>
+            <h2>在 MCSChat 中实测 Direct Engine</h2>
+            <p>不只看文档——在项目自身的浏览器环境里逐项验证：SDK 可加载、暴露流式 API、端点可直连、能取到 token；而用 az CLI 捷径 token 发起的调用返回 403，揭示了正规路径所需的 scope。真正的流式下发尚未走到。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>6.1 五步验证与结果</span>
+              </button>
+              <div class="subsection-content">
+                <table class="compare-table">
+                  <thead>
+                    <tr><th>#</th><th>验证项</th><th>结果</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>1</td><td>SDK 能否在无构建工具的浏览器环境加载</td><td><span class="status-badge badge-ok">是</span> · 直接 import() esm.sh ESM 包</td></tr>
+                    <tr><td>2</td><td>是否暴露原生 streaming API</td><td><span class="status-badge badge-ok">是</span> · 四个 *Streaming 方法齐全</td></tr>
+                    <tr><td>3</td><td>Direct Engine 端点能否从页面直连（CORS）</td><td><span class="status-badge badge-ok">是</span> · access-control-allow-origin: *</td></tr>
+                    <tr><td>4</td><td>能否取到 Power Platform token</td><td><span class="status-badge badge-ok">是</span> · audience 正确</td></tr>
+                    <tr><td>5</td><td>用 az CLI 捷径 token 发起调用</td><td><span class="status-badge badge-fail">403</span> · token scope 是 .Test，揭示端点需 .Invoke</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>6.2 403 服务器原文：揭示所需 scope</span>
+              </button>
+              <div class="subsection-content">
+                <p>用 az CLI 取到的 token，scope 是 <code>CopilotStudio.Copilots.Test</code>，而端点要求 <code>.Invoke</code>。服务器明确告知缺哪个权限：</p>
+                <div class="code-block">{
+  "code": "Forbidden",
+  "innererror": {
+    "code": "InsufficientDelegatedPermissions",
+    "message": "Authorization denied: Application missing required
+                delegated permissions:
+                [CopilotStudio.Copilots.Invoke, All.All.ReadWrite]"
+  }
+}</div>
+                <div class="finding">
+                  <strong>403 在这里是诊断，不是阻塞：</strong>它不是模糊的「不支持」，而是精确告知端点需要 <code>CopilotStudio.Copilots.Invoke</code> scope。这个 403 是捷径测试的产物——用了只带 <code>.Test</code> 的 az CLI token；若照 §7 正规流程从一开始就配 <code>.Invoke</code>，根本不会遇到它。端点活着、能直连、客户端源码支持流式——但本环境是否真正下发流式，这次 PoC 还没走到。
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>6.3 端点与认证参数（已确认）</span>
+              </button>
+              <div class="subsection-content">
+                <table class="compare-table">
+                  <thead><tr><th>项</th><th>值</th></tr></thead>
+                  <tbody>
+                    <tr><td>连接 URL 模式</td><td><code>https://{env}.environment.api.powerplatform.com/copilotstudio/dataverse-backed/authenticated/bots/{schemaName}/conversations?api-version=2022-03-01-preview</code></td></tr>
+                    <tr><td>Token audience</td><td><code>https://api.powerplatform.com/.default</code></td></tr>
+                    <tr><td>所需委托权限</td><td><code>CopilotStudio.Copilots.Invoke</code></td></tr>
+                    <tr><td>传输</td><td>SSE（<code>Accept: text/event-stream</code>）</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- 07 / Runbook -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <section id="runbook" class="section" data-reveal data-present-step data-step-title="Direct Engine 配置实操">
+          <div class="section-head">
+            <p class="section-kicker">07 / Runbook</p>
+            <h2>Direct Engine 配置实操：从 App 注册到流式调用</h2>
+            <p>§6 已证明端点可达；其捷径测试触发的 403 揭示了正规路径需 <code>CopilotStudio.Copilots.Invoke</code> 委托权限。本节把 §8.2 的高层路径展开为可照做的步骤：前四步在 Azure / Entra 完成应用注册与委托授权，后两步在前端取 token 并发起 SSE 流式调用。下文截图均在 Entra 管理中心实拍（账户与具体 ID 已打码）。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>7.0 前置条件与角色</span>
+              </button>
+              <div class="subsection-content">
+                <table class="compare-table">
+                  <thead><tr><th>项</th><th>要求</th></tr></thead>
+                  <tbody>
+                    <tr><td>注册应用权限</td><td>目标租户的 <code>Application Developer</code> 或更高，可创建 App Registration</td></tr>
+                    <tr><td>授予同意权限</td><td><code>Privileged Role Administrator</code> / <code>Global Administrator</code>，用于 Grant admin consent</td></tr>
+                    <tr><td>目标 agent 信息</td><td>Copilot Studio agent 所在 Power Platform 环境的 <em>Environment ID</em> 与 agent 的 <em>schema name</em></td></tr>
+                    <tr><td>前端依赖</td><td><code>@microsoft/agents-copilotstudio-client</code>、<code>@azure/msal-browser</code>（浏览器 PKCE 取 token）</td></tr>
+                  </tbody>
+                </table>
+                <div class="finding">
+                  <strong>一句话定位：</strong>整套配置的目的，是让前端能拿到一个 audience 为 <code>api.powerplatform.com</code>、且携带 <code>CopilotStudio.Copilots.Invoke</code> 委托权限的 token——这正是 §6 捷径测试触发 403 所揭示的那一项。
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>7.1 步骤一 · 注册 Entra 应用</span>
+              </button>
+              <div class="subsection-content">
+                <div class="runbook-grid">
+                  <div>
+                    <p>在目标租户创建一个用于 Direct Engine 调用的应用注册。同租户内调用自己的 agent，账户类型选单租户即可。</p>
+                    <ul class="challenge-list">
+                      <li><strong>入口</strong> — Entra 管理中心 → Identity → Applications → App registrations → <em>New registration</em>。</li>
+                      <li><strong>Name</strong> — 取可识别的名字，如 <code>Copilot Studio Direct Engine Client</code>。</li>
+                      <li><strong>账户类型</strong> — <em>Accounts in this organizational directory only（Single tenant）</em>。</li>
+                      <li><strong>Redirect URI</strong> — 此处先留空，重定向在步骤四按调用形态单独配置。</li>
+                      <li><strong>完成判据</strong> — 点击 Register 后落到应用详情页（Overview）。</li>
+                    </ul>
+                  </div>
+                  <figure>
+                    <img class="portal-shot" src="./de-step-01-register.png" alt="Azure 门户 Register an application 页，Name 填 Copilot Studio Direct Engine Client，Supported account types 选 Single tenant only" loading="lazy" />
+                    <figcaption class="figure-caption">Register an application：Name 填可识别的专用名，账户类型选 <em>Single tenant only</em>，Redirect URI 先留空（步骤四再配）。</figcaption>
+                  </figure>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>7.2 步骤二 · 记录 Client ID 与 Tenant ID</span>
+              </button>
+              <div class="subsection-content">
+                <div class="runbook-grid">
+                  <div>
+                    <p>应用一建好就在 Overview 里记录两个 ID，后面取 token 的 <code>clientId</code> 与 <code>authority</code> 都要用。</p>
+                    <ul class="challenge-list">
+                      <li><strong>入口</strong> — 应用注册完成后默认落在 <em>Overview</em>。</li>
+                      <li><strong>必须记录</strong> — <em>Application (client) ID</em> 与 <em>Directory (tenant) ID</em>。</li>
+                      <li><strong>注意</strong> — 对外发布截图时遮挡真实 ID，公开版不暴露具体值。</li>
+                    </ul>
+                  </div>
+                  <figure>
+                    <img class="portal-shot" src="./de-step-02-overview.png" alt="App registration Overview 页 Essentials 区，Application client ID 与 Directory tenant ID 已打码" loading="lazy" />
+                    <figcaption class="figure-caption">Overview → Essentials：复制 <em>Application (client) ID</em> 与 <em>Directory (tenant) ID</em>（图中已打码，位置不变）。</figcaption>
+                  </figure>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>7.3 步骤三 · 加 Power Platform API 委托权限并管理员同意</span>
+              </button>
+              <div class="subsection-content">
+                <div class="runbook-grid">
+                  <div>
+                    <p>这是整条链路的关键一步——补上 §6 里缺失的 <code>CopilotStudio.Copilots.Invoke</code>。</p>
+                    <ul class="challenge-list">
+                      <li><strong>入口</strong> — 左侧 <em>API permissions</em> → <em>Add a permission</em>。</li>
+                      <li><strong>选 API</strong> — 切到 <em>APIs my organization uses</em> tab，搜索 <code>Power Platform API</code>。</li>
+                      <li><strong>API 不在列表？</strong> — 该租户尚未注册其服务主体，先执行 <code>az ad sp create --id 8578e004-a5c6-46e7-913e-12f58912df43</code> 后再搜。</li>
+                      <li><strong>权限类型</strong> — <em>Delegated permissions</em> → 展开 <code>CopilotStudio</code> → 勾选 <code>CopilotStudio.Copilots.Invoke</code> → Add permissions。</li>
+                      <li><strong>管理员同意</strong> — 回到权限主页点 <em>Grant admin consent for {tenant}</em>，Status 列变绿勾。</li>
+                      <li><strong>完成判据</strong> — Configured permissions 中出现 <code>CopilotStudio.Copilots.Invoke</code>（Delegated）且 Status = Granted。</li>
+                    </ul>
+                    <div class="finding finding-warn">
+                      <strong>对照 §6.2：</strong>当时 az CLI token 的 scope 只是 <code>.Test</code>，服务器返回 <code>InsufficientDelegatedPermissions: [CopilotStudio.Copilots.Invoke]</code>。本步骤补的正是这一项；漏掉 Grant admin consent 同样会复现该 403。
+                    </div>
+                  </div>
+                  <figure>
+                    <img class="portal-shot" src="./de-step-03a-invoke.png" alt="Request API permissions 面板，Power Platform API 的 CopilotStudio 分组下勾选 CopilotStudio.Copilots.Invoke" loading="lazy" />
+                    <figcaption class="figure-caption">① Delegated permissions → 展开 <code>CopilotStudio</code> → 勾选 <code>CopilotStudio.Copilots.Invoke</code>（“Allows Invoking Copilots”）。</figcaption>
+                    <img class="portal-shot" src="./de-step-03b-granted.png" alt="Configured permissions 列表，Power Platform API 的 CopilotStudio.Copilots.Invoke 状态显示 Granted for Contoso" loading="lazy" style="margin-top:12px;" />
+                    <figcaption class="figure-caption">② Add permissions 后点 Grant admin consent；Status 列出现绿勾 <em>Granted for {tenant}</em> 即生效。</figcaption>
+                  </figure>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>7.4 步骤四 · 配置 Authentication（重定向 / public client）</span>
+              </button>
+              <div class="subsection-content">
+                <div class="runbook-grid">
+                  <div>
+                    <p>按调用形态二选一配置重定向。MCSChat 这类浏览器前端走 SPA + PKCE；命令行或桌面工具走 public client。</p>
+                    <ul class="challenge-list">
+                      <li><strong>浏览器（SPA + PKCE）</strong> — Authentication → <em>Add a platform</em>（新版为 <em>Add Redirect URI</em>）→ <em>Single-page application</em> → Redirect URI 填前端 origin，如 <code>http://localhost:5173</code>。</li>
+                      <li><strong>命令行 / 桌面</strong> — Authentication → 勾选 <em>Allow public client flows = Yes</em>，并按需添加 <code>http://localhost</code> 重定向。</li>
+                      <li><strong>注意</strong> — SPA 平台默认启用 PKCE，无需 client secret；Direct Engine 浏览器直连场景不应下发机密。</li>
+                      <li><strong>完成判据</strong> — 重定向 URI 与前端实际回调地址逐字一致（含端口、是否带尾斜杠）。</li>
+                    </ul>
+                  </div>
+                  <figure>
+                    <img class="portal-shot" src="./de-step-04-auth.png" alt="Authentication 页添加 Single-page application 平台，Redirect URI 填 http://localhost:5173" loading="lazy" />
+                    <figcaption class="figure-caption">Add Redirect URI → <em>Single-page application</em> 平台，Redirect URI 填前端 origin（例 <code>http://localhost:5173</code>）→ Configure。新 Authentication 体验下“Add a platform”即“Add Redirect URI”。</figcaption>
+                  </figure>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>7.5 步骤五 · 取齐连接参数</span>
+              </button>
+              <div class="subsection-content">
+                <p>SDK 的 <code>ConnectionSettings</code> 与连接 URL 依赖以下值，建议先集中收齐：</p>
+                <table class="compare-table">
+                  <thead><tr><th>参数</th><th>来源</th><th>用途</th></tr></thead>
+                  <tbody>
+                    <tr><td><code>appClientId</code></td><td>步骤二 Overview</td><td>MSAL <code>clientId</code></td></tr>
+                    <tr><td><code>tenantId</code></td><td>步骤二 Overview</td><td>MSAL <code>authority</code></td></tr>
+                    <tr><td><code>environmentId</code></td><td>PPAC → 目标环境 → Environment ID</td><td>连接 URL 的 <code>{env}</code> 段</td></tr>
+                    <tr><td><code>agentIdentifier</code></td><td>Copilot Studio → agent → Settings → schema name</td><td>连接 URL 的 <code>{schemaName}</code> 段</td></tr>
+                  </tbody>
+                </table>
+                <p class="mt-14">连接 URL 模式（已在 §6.3 确认）：</p>
+                <div class="code-block">https://{env}.environment.api.powerplatform.com
+  /copilotstudio/dataverse-backed/authenticated
+  /bots/{schemaName}/conversations?api-version=2022-03-01-preview</div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>7.6 步骤六 · 取 token 并发起流式调用</span>
+              </button>
+              <div class="subsection-content">
+                <p>浏览器侧用 MSAL 走 PKCE 取一个带 <code>.Invoke</code> 的 token，再交给 Copilot Studio Client 发起 SSE 流式会话。scope 必须指向 Power Platform API 的 Invoke 权限：</p>
+                <div class="code-block">import { PublicClientApplication } from '@azure/msal-browser'
+import { CopilotStudioClient, ConnectionSettings }
+  from '@microsoft/agents-copilotstudio-client'
+
+const pca = new PublicClientApplication({
+  auth: {
+    clientId,                         // 步骤二
+    authority: `https://login.microsoftonline.com/${tenantId}`,
+    redirectUri,                      // 步骤四
+  },
+})
+await pca.initialize()
+
+// 关键：scope 指向 Power Platform API 的 Invoke 权限
+const { accessToken } = await pca.acquireTokenPopup({
+  scopes: ['https://api.powerplatform.com/CopilotStudio.Copilots.Invoke'],
+})
+
+const settings = new ConnectionSettings({
+  appClientId: clientId,
+  tenantId,
+  environmentId,                      // 步骤五
+  agentIdentifier,                    // 步骤五（schema name）
+})
+
+const client = new CopilotStudioClient(settings, accessToken)
+
+// SSE 流式：逐条 yield activity，typing 段携带 streaminfo 片段
+for await (const activity of client.startConversationStreaming()) {
+  if (activity.type === 'typing') {
+    // 按 streamId + streamSequence 累积片段（见 §5.2）
+  }
+}</div>
+                <div class="finding">
+                  <strong>冒烟验证：</strong>临时核对 token 可用 <code>az account get-access-token --scope https://api.powerplatform.com/CopilotStudio.Copilots.Invoke</code>；但 az CLI 第一方客户端未必持有 <code>.Invoke</code>（这正是 §6.2 拿到 <code>.Test</code> 的原因），正式链路应走本应用的 MSAL token。
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>7.7 验证清单与常见错误</span>
+              </button>
+              <div class="subsection-content">
+                <table class="compare-table">
+                  <thead><tr><th>现象</th><th>原因</th><th>处理</th></tr></thead>
+                  <tbody>
+                    <tr><td><span class="status-badge badge-fail">403</span> InsufficientDelegatedPermissions</td><td>漏加 <code>.Invoke</code> 或未 Grant admin consent</td><td>回步骤三补权限并完成管理员同意</td></tr>
+                    <tr><td><span class="status-badge badge-fail">401</span> Unauthorized</td><td>token audience / scope 不对</td><td>scope 用 <code>api.powerplatform.com/CopilotStudio.Copilots.Invoke</code></td></tr>
+                    <tr><td>搜不到 Power Platform API</td><td>租户未注册其服务主体</td><td><code>az ad sp create --id 8578e004-a5c6-46e7-913e-12f58912df43</code></td></tr>
+                    <tr><td>MSAL 重定向报错</td><td>Redirect URI 与前端回调不一致</td><td>步骤四逐字核对端口与尾斜杠</td></tr>
+                    <tr><td>连接 404 / 环境不符</td><td><code>environmentId</code> 或 schema name 取错</td><td>回步骤五从 PPAC / agent Settings 复核</td></tr>
+                  </tbody>
+                </table>
+                <p class="caption-muted">走通后观察 SSE 流是否出现 <code>streamType: "streaming"</code> 的逐段 typing 片段——这能判定「协议可用」与「环境未下发」（§8.2 第 4 条）。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>7.8 进阶：静默登录与「匿名 agent」的收尾</span>
+              </button>
+              <div class="subsection-content">
+                <p>前面六步配通后，常见的下一个诉求是：<strong>agent 本身是匿名的，能不能让用户连登录这一步都省掉？</strong>这里要先拆开一个被反复混淆的点。</p>
+
+                <div class="finding finding-warn">
+                  <strong>结构性事实：Direct Engine 没有「匿名版」。</strong>看 §6.3 的连接 URL，路径里写死了 <code>/authenticated/</code>；而本文授的 <code>CopilotStudio.Copilots.Invoke</code> 是 <em>Delegated（委托）</em> 权限——即「以某个登录用户的身份调用」，<strong>它没有 Application（应用级）版本</strong>。所以无法用「纯后端、零用户」的方式调用 Direct Engine。
+                </div>
+
+                <p class="mt-14">因此「agent 匿名」和「Direct Engine 调用需要用户 token」是两件不冲突、但必须分开的事：agent 匿名指它不校验<em>对话者</em>身份；而 Direct Engine 这个<em>传输通道</em>仍要求<em>调用方</em>持有一个用户 token。先按你的真实诉求选路线：</p>
+
+                <table class="compare-table">
+                  <thead><tr><th>真实诉求</th><th>方案</th><th>原生流式</th></tr></thead>
+                  <tbody>
+                    <tr><td><strong>A · 真·匿名</strong>：公网任何人都能用，根本没有账号</td><td>回到 Direct Line + 后端发匿名 token</td><td><span class="status-badge badge-fail">否</span> · 回到 §4 模拟流式</td></tr>
+                    <tr><td><strong>B · 静默 SSO</strong>：用户其实是公司内已登录的人，只是不想再弹登录框</td><td>MSAL 静默取 token</td><td><span class="status-badge badge-ok">保留</span></td></tr>
+                    <tr><td><strong>C · 公网匿名感 + 要流式</strong>：对外不弹登录，底层借一个固定身份</td><td>后端服务账号代取 token + SSE 代理</td><td><span class="status-badge badge-ok">保留</span></td></tr>
+                  </tbody>
+                </table>
+
+                <p class="mt-14"><strong>路线 B · MSAL 静默 SSO</strong>——把 §7.6 的 <code>acquireTokenPopup</code> 换成「先试静默、失败再兜底」。对<em>已登录</em>的公司用户完全无感；对没有 Entra 会话的公网访客，静默必然失败、仍要兜底交互。</p>
+                <div class="code-block">const req = { scopes: ['https://api.powerplatform.com/CopilotStudio.Copilots.Invoke'] }
+let result
+try {
+  // 用户在本租户已有 Entra 会话 → 完全无感、不弹框
+  result = await pca.ssoSilent({ ...req, loginHint })   // 或对已缓存 account 用 acquireTokenSilent
+} catch (e) {
+  // 纯公网访客、无现成会话 → 只能兜底交互
+  result = await pca.acquireTokenPopup(req)
+}</div>
+                <p class="caption-muted">这条路解决的是「少弹一次框」，不是「匿名」——它对已登录用户免提示，但无法让无账号访客零登录。</p>
+
+                <p class="mt-14"><strong>路线 C · 后端服务账号代取 token</strong>——用一个专用服务账号（confidential client，存 secret/证书 + 该账号的 refresh token）放后端静默续 token；浏览器<em>不直接拿 token</em>，改走你的后端代理转发 SSE。所有访客共用这一个身份，对匿名 agent 正合适。</p>
+                <div class="code-block">浏览器 ──(无需登录)──▶ 你的后端 ──(服务账号 token)──▶ Direct Engine SSE</div>
+                <ul class="challenge-list mt-14">
+                  <li><strong>优点</strong> — 前端零登录、token 不下发浏览器，更安全。</li>
+                  <li><strong>代价</strong> — 平台侧看到的都是同一个身份，限流/防滥用要后端自己扛；首个 refresh token 仍需该服务账号登录一次。</li>
+                  <li><strong>避坑</strong> — 别用 ROPC（username/password 流）图省事，它与 MFA / 条件访问不兼容且正被弃用。</li>
+                </ul>
+
+                <p class="mt-14"><strong>路线 A · 回到 Direct Line 匿名 token</strong>——若诉求就是「公网谁都能用、绝不登录」，Direct Engine 不适合：后端用 Direct Line secret 换一个匿名会话 token 给前端，用户全程零登录。代价正是 §4 已证明的——该环境 Direct Line 不下发流式，只能继续模拟流式。</p>
+
+                <div class="finding">
+                  <strong>选型建议：</strong>对外公网无账号 → 选 <strong>A</strong>，接受模拟流式（即 MCSChat 现状，最省事）；公司内部、用户本就登了 Entra → 选 <strong>B</strong>，几行代码免提示且保留真流式；既要对外不弹登录又要真流式 → 只能上 <strong>C</strong>，但需承担后端代理与防滥用的工程量。
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- 08 / 结论 -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <section id="conclusion" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker">08 / Conclusion</p>
+            <h2>结论与后续路径</h2>
+            <p>把「支持」与「下发」分开后，事实链条清晰了。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span>8.1 事实结论</span>
+              </button>
+              <div class="subsection-content">
+                <ul>
+                  <li><strong>协议层成立</strong>：livestreaming 协议真实存在，微软自家 SDK 就在用 <code>streaminfo</code> / <code>streamType</code>，与 WebChat 文档一致。</li>
+                  <li><strong>Direct Line 通道未下发</strong>：当前环境三类 agent 实测均无流式片段，原始 payload 本身不含协议字段——不是客户端解析问题。</li>
+                  <li><strong>Web Chat 是渲染层，有三条通路</strong>：原生 livestreaming 取决于服务端下发；要真降低 TTFT 可走 Direct Engine（SSE）桥接；只要视觉效果可走客户端模拟（§3.1）。</li>
+                  <li><strong>Direct Engine 通道可达</strong>：端点能从浏览器直连、客户端源码原生处理流式；本环境是否真正下发流式尚未实测。捷径 token 调用触发的 403 揭示了正规路径需 <code>.Invoke</code> 权限。</li>
+                  <li><strong>不是开关问题</strong>：后台没有 streaming 开关；流式是平台运行时能力。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>8.2 下一步路径</span>
+              </button>
+              <div class="subsection-content">
+                <ol class="decision-list">
+                  <li><strong>建 Entra 应用注册</strong>：在目标租户创建（或复用）App Registration。</li>
+                  <li><strong>授权委托权限</strong>：API permissions → Power Platform API → CopilotStudio → <code>CopilotStudio.Copilots.Invoke</code>（Delegated），并完成管理员同意。</li>
+                  <li><strong>走 MSAL / PKCE 取 token</strong>：audience 仍为 <code>api.powerplatform.com</code>，拿到带 <code>.Invoke</code> 的 token。</li>
+                  <li><strong>用 startConversationStreaming() 实测</strong>：观察 SSE 流是否出现 <code>streamType: "streaming"</code> 的逐段片段——这能判定「协议可用」与「环境未下发」。</li>
+                </ol>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>8.3 方法论沉淀</span>
+              </button>
+              <div class="subsection-content">
+                <ul>
+                  <li><strong>抓地面真相</strong>：争议「是不是解析错了」时，直接订阅最底层的原始数据流，绕过自己的代码。</li>
+                  <li><strong>把声明和事实分开</strong>：文档说「支持」与某环境「实际下发」是两件事，只有原始 payload 能裁决。</li>
+                  <li><strong>读官方源码而非文档措辞</strong>：informative / streaming 到底是 type 还是 streamType，源码里的 schema 一看便知。</li>
+                  <li><strong>403 比 401 信息量大</strong>：精确的权限缺失提示，往往比模糊的「不支持」更接近可执行的下一步。</li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- 参考来源 -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <section id="references" class="section" data-reveal data-present-step data-step-title="参考来源">
+          <div class="section-head">
+            <p class="section-kicker">References</p>
+            <h2>参考来源</h2>
+          </div>
+          <ol class="bib-list">
+            <li id="ref-1"><span class="bib-id">[1]</span> <span class="bib-author">Microsoft.</span> <a href="https://github.com/microsoft/BotFramework-WebChat/blob/main/docs/LIVESTREAMING.md" target="_blank" rel="noopener noreferrer">"Livestreaming,"</a> <em>BotFramework-WebChat docs,</em> 2025.<span class="bib-note">livestreaming 术语、bot 实现的三种场景（informative / streaming / final）、通道支持矩阵与设计决策。</span></li>
+            <li id="ref-2"><span class="bib-id">[2]</span> <span class="bib-author">Microsoft.</span> <a href="https://github.com/microsoft/BotFramework-WebChat/blob/main/packages/core/src/utils/getActivityLivestreamingMetadata.ts" target="_blank" rel="noopener noreferrer">"getActivityLivestreamingMetadata.ts,"</a> <em>BotFramework-WebChat source,</em> 2025.<span class="bib-note">流式元数据的权威 schema：channelData 或 entities[type=streaminfo] 等价、streamType 取值、streamSequence 约束。</span></li>
+            <li id="ref-3"><span class="bib-id">[3]</span> <span class="bib-author">Microsoft.</span> <a href="https://www.npmjs.com/package/@microsoft/agents-copilotstudio-client" target="_blank" rel="noopener noreferrer">"@microsoft/agents-copilotstudio-client,"</a> <em>npm,</em> 2026.<span class="bib-note">Direct Engine Protocol 客户端；ConnectionSettings、JWT 认证、CopilotStudio.Copilots.Invoke 权限要求。</span></li>
+            <li id="ref-4"><span class="bib-id">[4]</span> <span class="bib-author">Microsoft.</span> <a href="https://github.com/microsoft/Agents-for-js/blob/main/packages/agents-copilotstudio-client/src/copilotStudioClient.ts" target="_blank" rel="noopener noreferrer">"copilotStudioClient.ts,"</a> <em>Agents-for-js source,</em> 2026.<span class="bib-note">SSE 流式实现、streaminfo 累积逻辑、*Streaming 系列 AsyncGenerator API。</span></li>
+            <li id="ref-5"><span class="bib-id">[5]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/publication-connect-bot-to-custom-application" target="_blank" rel="noopener noreferrer">"Publish an agent to mobile or custom apps,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">自定义应用对接路径，Direct Line token 获取与 Activity 负载解析。</span></li>
+            <li id="ref-6"><span class="bib-id">[6]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/advanced-generative-actions" target="_blank" rel="noopener noreferrer">"Orchestrate agent behavior with generative AI,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">生成式编排设置项核对，佐证后台无独立 streaming 开关。</span></li>
+            <li id="ref-7"><span class="bib-id">[7]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/customize-default-canvas" target="_blank" rel="noopener noreferrer">"Customize the look and feel of an agent,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">官方 Web Chat 嵌入路径：createDirectLine + renderWebChat 走 Direct Line token 端点（§3.1 路径对比依据）。</span></li>
+          </ol>
+        </section>
+      </main>
+
+      <footer>
+         &copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

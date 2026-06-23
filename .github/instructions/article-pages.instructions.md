@@ -35,6 +35,7 @@ applyTo: "posts/**/*.html"
 - 一次只问一个，挤牙膏。一次性列全。
 
 ### 0.1 写作纪律（详见 `/memories/writing-rigor.md`）
+> 自检本节时，连带过一遍两条易漏的强约束：**事实导向、非心路历程**（删除"我最初设想 / 经过一次重设计 / 这是同步点"等过程叙事，移进备注；详见 writing-rigor.md「Fact-Led」）与 **总览先于细节**（§0.7-B-2）。
 - 禁用空话：「不是 X 而是 Y」「真正的…」「最关键的…」「全方位」「极致」「赋能」等。每个论断必须可量化或可证伪。
 - **措辞体例 = 论文体陈述句**。文章正文（含 hero、editorial stance、frontier-callout、stream lead、quote-block、principles 正例/反例、open-question 描述、decision 列表项）一律使用陈述式专业表达，禁止以下口语化比喻与自造术语：
   - **口语化禁用词**：钉死 / 写死 / 锁死 / 活体 / 祖师爷 / 最热 / 试水 / 噩梦 / 笔墨 / 住址 / 栖息 / 大脑+手脚 / 有人觉得X有人觉得Y / 没人讲清楚 / 没人攻 / 不要再争 / 认真做 / 代码乱炖 / 它记得我。
@@ -44,6 +45,12 @@ applyTo: "posts/**/*.html"
   - **stance bullet 不得伪装大纲**：editorial-stance / decision 等"立场列表"的每一条必须是可证伪论断，不是目录条目。
 - 量化数据必须带测量条件或显式声明缺失，不要用模糊比较代替绝对数。
 - 引用必须给到具体来源（arxiv ID、Microsoft Learn URL、官方 doc URL），并说明每条来源支撑文中哪句论断。
+- **术语纪律（Terminology Rigor）**——论文写作底线，违反一次即视为硬伤：
+  - **先核实再使用**：用任何领域术语前，先确认它是不是官方 / 通行术语（查文档原文）。不确定就不要当既定术语用。例：`livestreaming`（亦称 *streaming response*）是 BotFramework-WebChat 官方术语；"webchat streaming 协议"不是——不得当通行术语使用。
+  - **首次出现必须定义**：每个非通识术语在全文第一次出现处给一句话定义 + 来源标注（`[n]`）。
+  - **近义不等价必须区分**：不得把多个不同机制混称为同一术语。例：Direct Line 的 livestreaming 约定与 Direct Engine 的 SSE 传输是两套东西，不能合称"同一个 streaming 协议"。
+  - **自造术语显式标注**：确需自造词时写明"本文称之为 X"并说明它对应的已有概念；优先复用学术 / 官方既有词汇。
+  - **全文一致**：同一概念全程用同一术语，不在中途换称呼。
 - **排印**：英文撇号/引号一律用 ASCII `'` `"`，禁止 `&rsquo;` `&lsquo;` `&rdquo;` `&ldquo;` 及裸 U+2018/2019/201C/201D 字符。弯引号在中英混排回退到中文字体后会被渲染得偏宽不紧凑，且容易被误认为全角标点。中文标点（，。：；「」）正常使用，仅约束英文。
 - **大小写**：英文 section `<h2>` 与 hero `<h2>` 一律用 **Title Case**（每个实词首字母大写）。冠词 `a/an/the`、并列连词 `and/but/or/nor/for/so/yet`、介词（不论长度，如 `of/in/on/at/to/from/with/into`）小写；首词与末词无论词性一律大写；连字符复合词（`One-Shot`、`ALM-Ready`、`Per-Environment`、`Pay-as-You-Go`）每段都大写；缩写（DLP、ALM、IT、PPAC、URL）保持全大写。`section-kicker`（"01 / Section Label"）同样 Title Case。**演示模式所有"页标题"也必须 Title Case**：包括 `data-step-title` 属性、`[data-accordion]` 内 `.subsection-toggle > span` 文本（accordion 既是阅读分节也是 present slide 标题）、以及 `[data-present-step]` slide 顶部直接出现的 `<h3>` 分组标题。正文段落与卡片说明仍用 sentence case。
 
@@ -101,9 +108,10 @@ applyTo: "posts/**/*.html"
 
 **B. 章节顺序原则**（按优先级排列；冲突时上层胜出）
 1. **认知顺序优先**：零基础读者先要 *what / who*，再要 *why*，最后要 *how*。术语、许可、规格不许放在主线之前。
-2. **主线唯一**：全文只允许一条主线（流程 / 对比 / 决策 / 角色×阶段 / 时间轴 / 案例 / FAQ 之一）。其余信息是支线，进 accordion。
-3. **承接成链**：每章的"产出"应是下一章的"输入"。intro 段显式说一句"上一章我们 X，本章把 X 变成 Y"。
-4. **References 永远在最后**。
+2. **总览先于细节（general-to-specific）**：凡涉及"多条路径 / 多个方案 / 多种机制"，必须先给一节**对比总览**（一张对比表 + 每条一句话取舍），再分节展开各条详情。禁止从概论直接跳进某一条的实测 / 配置细节而不先铺总览——这是 boss 两次纠正过的结构硬伤。总览节同时承担"协议/背景 → 实操"的过渡。
+3. **主线唯一**：全文只允许一条主线（流程 / 对比 / 决策 / 角色×阶段 / 时间轴 / 案例 / FAQ 之一）。其余信息是支线，进 accordion。
+4. **承接成链**：每章的"产出"应是下一章的"输入"。intro 段显式说一句"上一章我们 X，本章把 X 变成 Y"。
+5. **References 永远在最后**。
 
 **C. 单章节三件套契约**
 每个 `<section>` 的 `.section-head` 必须能回答：

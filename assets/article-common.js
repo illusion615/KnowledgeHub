@@ -7,16 +7,29 @@
   'use strict';
 
   // ── Scroll-reveal (load-in + data-reveal) ──
+  // Content must remain readable even if IntersectionObserver misses a section
+  // during reload, hash navigation, or long-page screenshot capture. The observer
+  // adds the animation class when possible; the fallback reveals any remaining
+  // targets after initial load so CSS opacity never leaves real content hidden.
   var revealTargets = document.querySelectorAll('.load-in, [data-reveal]');
-  var revealObserver = new IntersectionObserver(function (entries, observer) {
-    entries.forEach(function (entry) {
-      if (!entry.isIntersecting) return;
-      entry.target.classList.add('is-visible');
-      observer.unobserve(entry.target);
-    });
-  }, { threshold: 0, rootMargin: '0px 0px -60px 0px' });
+  var revealAllTargets = function () {
+    revealTargets.forEach(function (target) { target.classList.add('is-visible'); });
+  };
 
-  revealTargets.forEach(function (target) { revealObserver.observe(target); });
+  if ('IntersectionObserver' in window) {
+    var revealObserver = new IntersectionObserver(function (entries, observer) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('is-visible');
+        observer.unobserve(entry.target);
+      });
+    }, { threshold: 0, rootMargin: '0px 0px -60px 0px' });
+
+    revealTargets.forEach(function (target) { revealObserver.observe(target); });
+    window.addEventListener('load', function () { window.setTimeout(revealAllTargets, 300); });
+  } else {
+    revealAllTargets();
+  }
 
   // ── Nav link active highlighting ──
   var sectionTargets = document.querySelectorAll('main section[id]');

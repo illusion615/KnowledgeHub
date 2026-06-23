@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Agentic Sales Mobile 数据模型 — Dataverse 表结构与关系设计</title>
+  <title>Agentic Sales Mobile 数据模型 — 17 张 Dataverse 表结构与关系</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
@@ -24,6 +24,19 @@
     .callout-note { margin-top: 14px; padding: 12px 16px; border-left: 3px solid #3468c7; background: rgba(52,104,199,0.07); border-radius: 0 12px 12px 0; }
     .callout-note p { margin: 0; font-size: 0.9rem; }
     .callout-warm { border-left-color: #fb923c; background: rgba(249,115,22,0.07); }
+    /* Field details accordion */
+    .field-details { margin-top: 16px; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; overflow: hidden; }
+    .field-details summary { padding: 10px 16px; font-size: 0.85rem; font-weight: 600; cursor: pointer; background: rgba(255,255,255,0.03); transition: background 0.15s; }
+    .field-details summary:hover { background: rgba(255,255,255,0.06); }
+    .field-details[open] summary { border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .field-details .field-table { margin: 0; border-radius: 0; }
+    .field-details .field-table th { font-size: 0.72rem; padding: 8px 12px; }
+    .field-details .field-table td { font-size: 0.78rem; padding: 6px 12px; }
+    .field-note { padding: 10px 16px 0; font-size: 0.8rem; color: var(--text-muted); margin: 0; }
+    [data-theme="light"] .field-details { border-color: rgba(0,0,0,0.08); }
+    [data-theme="light"] .field-details summary { background: rgba(0,0,0,0.02); }
+    [data-theme="light"] .field-details summary:hover { background: rgba(0,0,0,0.04); }
+    [data-theme="light"] .field-details[open] summary { border-bottom-color: rgba(0,0,0,0.06); }
   </style>
 </head>
 <body>
@@ -52,13 +65,13 @@
         <div class="hero-grid">
           <div class="hero-copy load-in">
             <span class="eyebrow" data-zh="数据模型 · 实现纪实" data-en="Data Model · As-Built">数据模型 · 实现纪实</span>
-            <h1 data-zh="十八张 Dataverse 表：标准复用与自定义扩展的取舍" data-en="Eighteen Dataverse Tables: Reuse Standard, Extend Custom">十八张 Dataverse 表：标准复用与自定义扩展的取舍</h1>
+            <h1 data-zh="17 张 Dataverse 表：9 标准 + 8 自定义" data-en="17 Dataverse Tables: 9 Standard + 8 Custom">17 张 Dataverse 表：9 标准 + 8 自定义</h1>
             <p data-zh="本文记录应用当前在 Dataverse 上注册的真实数据源——哪些直接复用标准表、哪些落成自定义表、活动如何用原生多态结构承载，以及它们如何围绕客户组成关系拓扑。内容以 power.config.json 为准。" data-en="This documents the data sources the app actually registers on Dataverse: which reuse standard tables, which become custom tables, how activities ride the native polymorphic structure, and how they organize into an account-centric relationship topology. It reflects power.config.json.">
               本文记录应用当前在 Dataverse 上注册的真实数据源——哪些直接复用标准表、哪些落成自定义表、活动如何用原生多态结构承载，以及它们如何围绕客户组成关系拓扑。内容以 power.config.json 为准。
             </p>
             <div class="hero-actions">
-              <a class="button button-primary" href="#tables" data-zh="看十八张表" data-en="See the Tables">看十八张表</a>
-              <a class="button button-secondary" href="#relations" data-zh="看关系图" data-en="See Relations">看关系图</a>
+              <a class="button button-primary" href="#tables" data-zh="查看表清单" data-en="See Tables">查看表清单</a>
+              <a class="button button-secondary" href="#relations" data-zh="查看关系图" data-en="See Relations">查看关系图</a>
             </div>
           </div>
 
@@ -69,9 +82,8 @@
               客户、联系人、活动直接复用 Dataverse 标准表，零搭建成本、天然接入 Timeline 与日历；商机、产品、洞察、会话日志等业务实体落成 crf5c 前缀的自定义表。两类表在同一套数据模型下统一组织。
             </p>
             <ul class="layer-list hero-layer-list">
-              <li><span class="layer-number">3</span><span data-zh="标准表 — account / contact / 活动族" data-en="Standard — account / contact / activities">标准表 — account / contact / 活动族</span></li>
-              <li><span class="layer-number">9</span><span data-zh="自定义表 — crf5c_ 业务实体" data-en="Custom — crf5c_ business entities">自定义表 — crf5c_ 业务实体</span></li>
-              <li><span class="layer-number">6</span><span data-zh="支撑表 — 与会者 / 附件 / 用户等" data-en="Support — parties / attachments / users">支撑表 — 与会者 / 附件 / 用户等</span></li>
+              <li><span class="layer-number">9</span><span data-zh="标准表 OOB — account / contact / 活动族 / systemuser 等" data-en="Standard OOB — account / contact / activities / systemuser etc.">标准表 OOB — account / contact / 活动族 / systemuser 等</span></li>
+              <li><span class="layer-number">8</span><span data-zh="自定义表 — crf5c_ 前缀业务实体" data-en="Custom — crf5c_ prefixed business entities">自定义表 — crf5c_ 前缀业务实体</span></li>
             </ul>
           </aside>
         </div>
@@ -136,6 +148,84 @@
                 <tr><td data-zh="产品" data-en="Product">产品</td><td class="mono">crf5c_product</td><td><span class="badge b-custom">crf5c</span></td><td data-zh="产品目录" data-en="Product catalog">产品目录</td></tr>
               </tbody>
             </table>
+
+            <!-- Account Fields -->
+            <details class="field-details">
+              <summary data-zh="account 字段详情" data-en="account Field Details">account 字段详情</summary>
+              <table class="simple-table field-table">
+                <thead><tr><th>App 字段</th><th>Dataverse 列</th><th data-zh="类型" data-en="Type">类型</th><th data-zh="说明" data-en="Description">说明</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">id</td><td class="mono">accountid</td><td>GUID</td><td data-zh="主键" data-en="Primary key">主键</td></tr>
+                  <tr><td class="mono">name1</td><td class="mono">name</td><td>string</td><td data-zh="客户名称" data-en="Account name">客户名称</td></tr>
+                  <tr><td class="mono">address</td><td class="mono">address1_composite</td><td>string?</td><td data-zh="地址" data-en="Address">地址</td></tr>
+                  <tr><td class="mono">email</td><td class="mono">emailaddress1</td><td>string?</td><td data-zh="邮箱" data-en="Email">邮箱</td></tr>
+                  <tr><td class="mono">industry</td><td class="mono">industrycode</td><td>string?</td><td data-zh="行业" data-en="Industry">行业</td></tr>
+                  <tr><td class="mono">latitude</td><td class="mono">address1_latitude</td><td>number?</td><td data-zh="纬度" data-en="Latitude">纬度</td></tr>
+                  <tr><td class="mono">longitude</td><td class="mono">address1_longitude</td><td>number?</td><td data-zh="经度" data-en="Longitude">经度</td></tr>
+                  <tr><td class="mono">notes</td><td class="mono">description</td><td>string?</td><td data-zh="备注" data-en="Notes">备注</td></tr>
+                  <tr><td class="mono">ownerid</td><td class="mono">_ownerid_value</td><td>GUID</td><td data-zh="负责人 ID" data-en="Owner ID">负责人 ID</td></tr>
+                  <tr><td class="mono">phone</td><td class="mono">telephone1</td><td>string?</td><td data-zh="电话" data-en="Phone">电话</td></tr>
+                </tbody>
+              </table>
+            </details>
+
+            <!-- Contact Fields -->
+            <details class="field-details">
+              <summary data-zh="contact 字段详情" data-en="contact Field Details">contact 字段详情</summary>
+              <table class="simple-table field-table">
+                <thead><tr><th>App 字段</th><th>Dataverse 列</th><th data-zh="类型" data-en="Type">类型</th><th data-zh="说明" data-en="Description">说明</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">id</td><td class="mono">contactid</td><td>GUID</td><td data-zh="主键" data-en="Primary key">主键</td></tr>
+                  <tr><td class="mono">fullname</td><td class="mono">fullname</td><td>string</td><td data-zh="姓名" data-en="Full name">姓名</td></tr>
+                  <tr><td class="mono">account</td><td class="mono">_parentcustomerid_value</td><td>Lookup</td><td data-zh="归属客户" data-en="Parent account">归属客户</td></tr>
+                  <tr><td class="mono">email</td><td class="mono">emailaddress1</td><td>string?</td><td data-zh="邮箱" data-en="Email">邮箱</td></tr>
+                  <tr><td class="mono">phone</td><td class="mono">telephone1</td><td>string?</td><td data-zh="电话" data-en="Phone">电话</td></tr>
+                  <tr><td class="mono">title</td><td class="mono">jobtitle</td><td>string?</td><td data-zh="职位" data-en="Job title">职位</td></tr>
+                </tbody>
+              </table>
+            </details>
+
+            <!-- Opportunity Fields -->
+            <details class="field-details">
+              <summary data-zh="crf5c_opportunity1 字段详情" data-en="crf5c_opportunity1 Field Details">crf5c_opportunity1 字段详情</summary>
+              <table class="simple-table field-table">
+                <thead><tr><th>App 字段</th><th>Dataverse 列</th><th data-zh="类型" data-en="Type">类型</th><th data-zh="说明" data-en="Description">说明</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">id</td><td class="mono">crf5c_opportunity1id</td><td>GUID</td><td data-zh="主键" data-en="Primary key">主键</td></tr>
+                  <tr><td class="mono">name1</td><td class="mono">crf5c_name</td><td>string</td><td data-zh="商机名称" data-en="Opportunity name">商机名称</td></tr>
+                  <tr><td class="mono">account</td><td class="mono">_biz_account_value</td><td>Lookup</td><td data-zh="关联客户" data-en="Related account">关联客户</td></tr>
+                  <tr><td class="mono">stage</td><td class="mono">crf5c_stage</td><td>Choice</td><td data-zh="阶段: prospecting/qualification/proposal/negotiation/won/lost" data-en="Stage: prospecting/qualification/proposal/negotiation/won/lost">阶段</td></tr>
+                  <tr><td class="mono">totalamount</td><td class="mono">crf5c_totalamount</td><td>number</td><td data-zh="金额" data-en="Amount">金额</td></tr>
+                  <tr><td class="mono">confidence</td><td class="mono">crf5c_confidence</td><td>number?</td><td data-zh="置信度 (0-100)" data-en="Confidence (0-100)">置信度</td></tr>
+                  <tr><td class="mono">confidenceTrend</td><td class="mono">crf5c_confidencetrend</td><td>Choice?</td><td data-zh="趋势: up/down/flat" data-en="Trend: up/down/flat">趋势</td></tr>
+                  <tr><td class="mono">expectedclosedate</td><td class="mono">crf5c_expectedclosedate</td><td>date?</td><td data-zh="预计成交日" data-en="Expected close date">预计成交日</td></tr>
+                  <tr><td class="mono">closedon</td><td class="mono">crf5c_closedon</td><td>date?</td><td data-zh="实际成交日" data-en="Closed on">实际成交日</td></tr>
+                  <tr><td class="mono">blocker</td><td class="mono">crf5c_blocker</td><td>string?</td><td data-zh="阻碍项" data-en="Blocker">阻碍项</td></tr>
+                  <tr><td class="mono">lastaction</td><td class="mono">crf5c_lastaction</td><td>string?</td><td data-zh="上次动作" data-en="Last action">上次动作</td></tr>
+                  <tr><td class="mono">ownerid</td><td class="mono">crf5c_ownerid</td><td>GUID</td><td data-zh="负责人 ID" data-en="Owner ID">负责人 ID</td></tr>
+                  <tr><td class="mono">createdon</td><td class="mono">crf5c_createdon</td><td>date?</td><td data-zh="创建时间" data-en="Created on">创建时间</td></tr>
+                </tbody>
+              </table>
+            </details>
+
+            <!-- Product Fields -->
+            <details class="field-details">
+              <summary data-zh="crf5c_product 字段详情" data-en="crf5c_product Field Details">crf5c_product 字段详情</summary>
+              <table class="simple-table field-table">
+                <thead><tr><th>App 字段</th><th>Dataverse 列</th><th data-zh="类型" data-en="Type">类型</th><th data-zh="说明" data-en="Description">说明</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">id</td><td class="mono">crf5c_productid</td><td>GUID</td><td data-zh="主键" data-en="Primary key">主键</td></tr>
+                  <tr><td class="mono">productName</td><td class="mono">crf5c_productname</td><td>string</td><td data-zh="产品名称" data-en="Product name">产品名称</td></tr>
+                  <tr><td class="mono">category</td><td class="mono">crf5c_category</td><td>string</td><td data-zh="分类" data-en="Category">分类</td></tr>
+                  <tr><td class="mono">summary</td><td class="mono">crf5c_summary</td><td>string</td><td data-zh="简介" data-en="Summary">简介</td></tr>
+                  <tr><td class="mono">featureHighlight</td><td class="mono">crf5c_featurehighlight</td><td>string</td><td data-zh="亮点" data-en="Feature highlight">亮点</td></tr>
+                  <tr><td class="mono">specification</td><td class="mono">crf5c_specification</td><td>string</td><td data-zh="规格参数" data-en="Specification">规格参数</td></tr>
+                  <tr><td class="mono">imageURL</td><td class="mono">crf5c_imageurl</td><td>string</td><td data-zh="图片 URL" data-en="Image URL">图片 URL</td></tr>
+                  <tr><td class="mono">productURL</td><td class="mono">crf5c_producturl</td><td>string</td><td data-zh="产品链接" data-en="Product URL">产品链接</td></tr>
+                  <tr><td class="mono">sortOrder</td><td class="mono">crf5c_sortorder</td><td>number</td><td data-zh="排序" data-en="Sort order">排序</td></tr>
+                </tbody>
+              </table>
+            </details>
           </div>
 
           <div data-present-step data-step-title="活动族（标准多态）" data-step-title-en="Activity Family (Native Polymorphic)" data-step-label="02 / ACTIVITY">
@@ -157,6 +247,31 @@
                 <tr><td data-zh="备注" data-en="Notes">备注</td><td class="mono">annotation</td><td><span class="badge b-oob">OOB</span></td><td data-zh="时间线备注" data-en="Timeline notes">时间线备注</td></tr>
               </tbody>
             </table>
+
+            <!-- Activity Fields (unified model) -->
+            <details class="field-details">
+              <summary data-zh="Activity 统一模型字段详情" data-en="Activity Unified Model Field Details">Activity 统一模型字段详情</summary>
+              <p class="field-note" data-zh="应用层将 appointment/phonecall/email 抽象为统一的 Activity 模型，通过 type 字段区分，service 层自动路由到对应表。" data-en="The app layer abstracts appointment/phonecall/email into a unified Activity model, distinguished by the type field, with the service layer routing to the correct table.">
+                应用层将 appointment/phonecall/email 抽象为统一的 Activity 模型，通过 type 字段区分，service 层自动路由到对应表。
+              </p>
+              <table class="simple-table field-table">
+                <thead><tr><th>App 字段</th><th>Dataverse 列</th><th data-zh="类型" data-en="Type">类型</th><th data-zh="说明" data-en="Description">说明</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">id</td><td class="mono">activityid</td><td>GUID</td><td data-zh="主键" data-en="Primary key">主键</td></tr>
+                  <tr><td class="mono">title</td><td class="mono">subject</td><td>string</td><td data-zh="主题" data-en="Subject">主题</td></tr>
+                  <tr><td class="mono">type</td><td class="mono">—</td><td>enum</td><td data-zh="类型: visit/call/meeting/email → 路由到对应表" data-en="Type: visit/call/meeting/email → routes to corresponding table">类型，路由到对应表</td></tr>
+                  <tr><td class="mono">account</td><td class="mono">_regardingobjectid_value</td><td>Lookup?</td><td data-zh="关联客户（从 regarding 或商机推导）" data-en="Related account (from regarding or via opportunity)">关联客户</td></tr>
+                  <tr><td class="mono">opportunity</td><td class="mono">_regardingobjectid_value</td><td>Lookup?</td><td data-zh="关联商机（regarding 优先指向商机）" data-en="Related opportunity (regarding points here first)">关联商机</td></tr>
+                  <tr><td class="mono">contact</td><td class="mono">—</td><td>Derived</td><td data-zh="主联系人（从 contacts[0] 推导）" data-en="Primary contact (derived from contacts[0])">主联系人</td></tr>
+                  <tr><td class="mono">contacts</td><td class="mono">activityparty</td><td>Array</td><td data-zh="与会者列表（懒加载）" data-en="Attendee list (lazy-loaded)">与会者列表</td></tr>
+                  <tr><td class="mono">notes</td><td class="mono">description</td><td>string?</td><td data-zh="备注 / 描述" data-en="Notes / description">备注</td></tr>
+                  <tr><td class="mono">scheduleddate</td><td class="mono">scheduledstart</td><td>date</td><td data-zh="计划日期" data-en="Scheduled date">计划日期</td></tr>
+                  <tr><td class="mono">status</td><td class="mono">statecode</td><td>enum</td><td data-zh="状态: open(0)/completed(1)/canceled(2)" data-en="Status: open(0)/completed(1)/canceled(2)">状态</td></tr>
+                  <tr><td class="mono">ownerid</td><td class="mono">_ownerid_value</td><td>GUID</td><td data-zh="负责人 ID" data-en="Owner ID">负责人 ID</td></tr>
+                  <tr><td class="mono">createdon</td><td class="mono">createdon</td><td>date?</td><td data-zh="创建时间" data-en="Created on">创建时间</td></tr>
+                </tbody>
+              </table>
+            </details>
           </div>
 
           <div data-present-step data-step-title="AI 与支撑表" data-step-title-en="AI and Support Tables" data-step-label="02 / SUPPORT">
@@ -179,6 +294,111 @@
                 <tr><td data-zh="系统用户" data-en="System User">系统用户</td><td class="mono">systemuser</td><td><span class="badge b-oob">OOB</span></td><td data-zh="负责人解析，owner 名称来源" data-en="Owner resolution and name source">负责人解析，owner 名称来源</td></tr>
               </tbody>
             </table>
+
+            <!-- BusinessInsight Fields -->
+            <details class="field-details">
+              <summary data-zh="crf5c_businessinsight 字段详情" data-en="crf5c_businessinsight Field Details">crf5c_businessinsight 字段详情</summary>
+              <table class="simple-table field-table">
+                <thead><tr><th>App 字段</th><th>Dataverse 列</th><th data-zh="类型" data-en="Type">类型</th><th data-zh="说明" data-en="Description">说明</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">id</td><td class="mono">crf5c_businessinsightid</td><td>GUID</td><td data-zh="主键" data-en="Primary key">主键</td></tr>
+                  <tr><td class="mono">title</td><td class="mono">crf5c_title</td><td>string</td><td data-zh="洞察标题" data-en="Insight title">洞察标题</td></tr>
+                  <tr><td class="mono">summary</td><td class="mono">crf5c_summary</td><td>string</td><td data-zh="摘要" data-en="Summary">摘要</td></tr>
+                  <tr><td class="mono">rationale</td><td class="mono">crf5c_rationale</td><td>string</td><td data-zh="AI 推理依据" data-en="AI rationale">AI 推理依据</td></tr>
+                  <tr><td class="mono">type</td><td class="mono">crf5c_type</td><td>Choice</td><td data-zh="类型: warning/info/success" data-en="Type: warning/info/success">类型</td></tr>
+                  <tr><td class="mono">referenceType</td><td class="mono">crf5c_referencetype</td><td>Choice</td><td data-zh="引用类型: client/opportunity" data-en="Reference type: client/opportunity">引用类型</td></tr>
+                  <tr><td class="mono">referenceidsjson</td><td class="mono">crf5c_referenceidsjson</td><td>string</td><td data-zh="引用 ID 列表 (JSON)" data-en="Reference IDs (JSON)">引用 ID 列表</td></tr>
+                  <tr><td class="mono">detailsjson</td><td class="mono">crf5c_detailsjson</td><td>string</td><td data-zh="详情数据 (JSON)" data-en="Details data (JSON)">详情数据</td></tr>
+                  <tr><td class="mono">displayorder</td><td class="mono">crf5c_displayorder</td><td>number</td><td data-zh="显示顺序" data-en="Display order">显示顺序</td></tr>
+                  <tr><td class="mono">isactive</td><td class="mono">crf5c_isactive</td><td>boolean</td><td data-zh="是否有效" data-en="Is active">是否有效</td></tr>
+                  <tr><td class="mono">generatedon</td><td class="mono">crf5c_generatedon</td><td>date</td><td data-zh="生成时间" data-en="Generated on">生成时间</td></tr>
+                  <tr><td class="mono">validuntil</td><td class="mono">crf5c_validuntil</td><td>date</td><td data-zh="有效期至" data-en="Valid until">有效期至</td></tr>
+                  <tr><td class="mono">ownerid</td><td class="mono">_ownerid_value</td><td>GUID</td><td data-zh="负责人 ID" data-en="Owner ID">负责人 ID</td></tr>
+                </tbody>
+              </table>
+            </details>
+
+            <!-- Briefing Fields -->
+            <details class="field-details">
+              <summary data-zh="crf5c_briefing 字段详情" data-en="crf5c_briefing Field Details">crf5c_briefing 字段详情</summary>
+              <table class="simple-table field-table">
+                <thead><tr><th>App 字段</th><th>Dataverse 列</th><th data-zh="类型" data-en="Type">类型</th><th data-zh="说明" data-en="Description">说明</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">id</td><td class="mono">crf5c_briefingid</td><td>GUID</td><td data-zh="主键" data-en="Primary key">主键</td></tr>
+                  <tr><td class="mono">ownerid</td><td class="mono">_ownerid_value</td><td>GUID</td><td data-zh="负责人 ID" data-en="Owner ID">负责人 ID</td></tr>
+                  <tr><td class="mono">payloadjson</td><td class="mono">crf5c_payloadjson</td><td>string</td><td data-zh="简报内容 (JSON)" data-en="Briefing content (JSON)">简报内容</td></tr>
+                  <tr><td class="mono">generatedon</td><td class="mono">crf5c_generatedon</td><td>date</td><td data-zh="生成时间" data-en="Generated on">生成时间</td></tr>
+                  <tr><td class="mono">audiourl</td><td class="mono">crf5c_audiourl</td><td>string?</td><td data-zh="音频 URL" data-en="Audio URL">音频 URL</td></tr>
+                  <tr><td class="mono">lastposition</td><td class="mono">crf5c_lastposition</td><td>number?</td><td data-zh="上次播放位置" data-en="Last playback position">上次播放位置</td></tr>
+                </tbody>
+              </table>
+            </details>
+
+            <!-- CopilotConversation Fields -->
+            <details class="field-details">
+              <summary data-zh="crf5c_copilotconversation 字段详情" data-en="crf5c_copilotconversation Field Details">crf5c_copilotconversation 字段详情</summary>
+              <table class="simple-table field-table">
+                <thead><tr><th>App 字段</th><th>Dataverse 列</th><th data-zh="类型" data-en="Type">类型</th><th data-zh="说明" data-en="Description">说明</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">id</td><td class="mono">crf5c_copilotconversationid</td><td>GUID</td><td data-zh="主键" data-en="Primary key">主键</td></tr>
+                  <tr><td class="mono">ownerid</td><td class="mono">_ownerid_value</td><td>GUID</td><td data-zh="负责人 ID" data-en="Owner ID">负责人 ID</td></tr>
+                  <tr><td class="mono">messagesjson</td><td class="mono">crf5c_messagesjson</td><td>string</td><td data-zh="消息列表 (JSON)" data-en="Messages (JSON)">消息列表</td></tr>
+                  <tr><td class="mono">startedon</td><td class="mono">crf5c_startedon</td><td>date</td><td data-zh="开始时间" data-en="Started on">开始时间</td></tr>
+                  <tr><td class="mono">lastactiveon</td><td class="mono">crf5c_lastactiveon</td><td>date</td><td data-zh="最后活跃时间" data-en="Last active on">最后活跃时间</td></tr>
+                </tbody>
+              </table>
+            </details>
+
+            <!-- AISummary Fields -->
+            <details class="field-details">
+              <summary data-zh="crf5c_aisummary 字段详情" data-en="crf5c_aisummary Field Details">crf5c_aisummary 字段详情</summary>
+              <table class="simple-table field-table">
+                <thead><tr><th>App 字段</th><th>Dataverse 列</th><th data-zh="类型" data-en="Type">类型</th><th data-zh="说明" data-en="Description">说明</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">id</td><td class="mono">crf5c_aisummaryid</td><td>GUID</td><td data-zh="主键" data-en="Primary key">主键</td></tr>
+                  <tr><td class="mono">entityID</td><td class="mono">crf5c_entityid</td><td>string</td><td data-zh="被摘要的实体 ID" data-en="Summarized entity ID">被摘要的实体 ID</td></tr>
+                  <tr><td class="mono">entityType</td><td class="mono">crf5c_entitytype</td><td>Choice</td><td data-zh="实体类型: account/opportunity/contact/activity" data-en="Entity type">实体类型</td></tr>
+                  <tr><td class="mono">summary</td><td class="mono">crf5c_summary</td><td>string</td><td data-zh="摘要内容" data-en="Summary content">摘要内容</td></tr>
+                  <tr><td class="mono">actionItems</td><td class="mono">crf5c_actionitems</td><td>string?</td><td data-zh="行动项" data-en="Action items">行动项</td></tr>
+                  <tr><td class="mono">status</td><td class="mono">crf5c_status</td><td>Choice</td><td data-zh="状态: pending/generating/completed/failed" data-en="Status">状态</td></tr>
+                  <tr><td class="mono">generatedOn</td><td class="mono">crf5c_generatedon</td><td>date?</td><td data-zh="生成时间" data-en="Generated on">生成时间</td></tr>
+                  <tr><td class="mono">expiresOn</td><td class="mono">crf5c_expireson</td><td>date?</td><td data-zh="过期时间" data-en="Expires on">过期时间</td></tr>
+                </tbody>
+              </table>
+            </details>
+
+            <!-- AgentLog Fields -->
+            <details class="field-details">
+              <summary data-zh="crf5c_agentlog 字段详情" data-en="crf5c_agentlog Field Details">crf5c_agentlog 字段详情</summary>
+              <table class="simple-table field-table">
+                <thead><tr><th>App 字段</th><th>Dataverse 列</th><th data-zh="类型" data-en="Type">类型</th><th data-zh="说明" data-en="Description">说明</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">id</td><td class="mono">crf5c_agentlogid</td><td>GUID</td><td data-zh="主键" data-en="Primary key">主键</td></tr>
+                  <tr><td class="mono">logName</td><td class="mono">crf5c_logname</td><td>string</td><td data-zh="日志名称" data-en="Log name">日志名称</td></tr>
+                  <tr><td class="mono">agentName</td><td class="mono">crf5c_agentname</td><td>string</td><td data-zh="智能体名称" data-en="Agent name">智能体名称</td></tr>
+                  <tr><td class="mono">queryText</td><td class="mono">crf5c_querytext</td><td>string</td><td data-zh="用户输入" data-en="User query">用户输入</td></tr>
+                  <tr><td class="mono">responseText</td><td class="mono">crf5c_responsetext</td><td>string?</td><td data-zh="智能体响应" data-en="Agent response">智能体响应</td></tr>
+                  <tr><td class="mono">sessionID</td><td class="mono">crf5c_sessionid</td><td>string?</td><td data-zh="会话 ID" data-en="Session ID">会话 ID</td></tr>
+                  <tr><td class="mono">sourceDescription</td><td class="mono">crf5c_sourcedescription</td><td>string?</td><td data-zh="来源描述" data-en="Source description">来源描述</td></tr>
+                  <tr><td class="mono">timestamp</td><td class="mono">crf5c_timestamp</td><td>date</td><td data-zh="时间戳" data-en="Timestamp">时间戳</td></tr>
+                </tbody>
+              </table>
+            </details>
+
+            <!-- Setting Fields -->
+            <details class="field-details">
+              <summary data-zh="crf5c_setting 字段详情" data-en="crf5c_setting Field Details">crf5c_setting 字段详情</summary>
+              <table class="simple-table field-table">
+                <thead><tr><th>App 字段</th><th>Dataverse 列</th><th data-zh="类型" data-en="Type">类型</th><th data-zh="说明" data-en="Description">说明</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">id</td><td class="mono">crf5c_settingid</td><td>GUID</td><td data-zh="主键" data-en="Primary key">主键</td></tr>
+                  <tr><td class="mono">settingKey</td><td class="mono">crf5c_settingkey</td><td>string</td><td data-zh="设置键" data-en="Setting key">设置键</td></tr>
+                  <tr><td class="mono">settingValue</td><td class="mono">crf5c_settingvalue</td><td>string</td><td data-zh="设置值" data-en="Setting value">设置值</td></tr>
+                  <tr><td class="mono">description</td><td class="mono">crf5c_description</td><td>string?</td><td data-zh="描述" data-en="Description">描述</td></tr>
+                  <tr><td class="mono">updatedOn</td><td class="mono">crf5c_updatedon</td><td>date?</td><td data-zh="更新时间" data-en="Updated on">更新时间</td></tr>
+                </tbody>
+              </table>
+            </details>
           </div>
         </section>
 

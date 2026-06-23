@@ -179,10 +179,10 @@ var knowledgeTree = [
       en: 'Sales CRM Mobile AI Agent Proposal: Built on Power Platform'
     },
     summary: {
-      zh: '为一线销售设计的移动优先 · 语音驱动 · Agent 编排 CRM 方案，与 SAP Commerce 共生，6 个月四阶段交付。',
-      en: 'Mobile-first, voice-driven, agent-orchestrated CRM solution for field sales teams, coexisting with SAP Commerce, delivered in four phases over six months.'
+      zh: '为一线销售设计的移动优先 · 语音驱动 · Agent 编排 CRM 方案，与既有 CRM 共生，6 个月四阶段交付。',
+      en: 'Mobile-first, voice-driven, agent-orchestrated CRM solution for field sales teams, coexisting with the legacy CRM, delivered in four phases over six months.'
     },
-    tags: ['Power Platform', 'Copilot Studio', 'CRM', 'Mobile AI', 'SAP Integration'],
+    tags: ['Power Platform', 'Copilot Studio', 'CRM', 'Mobile AI', 'Legacy CRM Integration'],
     date: '2026-04-30',
     url: 'posts/agentic-sales-mobile-proposal/index.html',
     color: '#c084fc',
@@ -947,10 +947,10 @@ var knowledgeTree = [
       en: 'Power Platform Pricing System & Interactive Estimator: From Requirements to Product Configuration'
     },
     summary: {
-      zh: '梳理 Power Apps、Automate、Pages、Copilot Studio 与 Power BI 的计费规则，并提供可交互报价器生成月度预算与配置建议。',
-      en: 'Maps licensing rules across Apps, Automate, Pages, Copilot Studio, and Power BI, with an interactive estimator for monthly budget and SKU recommendations.'
+      zh: '梳理 Power Platform 计费规则，含 AI Credit、方案对比、交互式报价器与 BVM ROI 自助测算。',
+      en: 'Power Platform pricing with AI credits, option comparison, an interactive quote estimator, and BVM ROI calculator.'
     },
-    tags: ['Power Platform', 'Pricing', 'Licensing', 'Estimator'],
+    tags: ['Power Platform', 'Pricing', 'Licensing', 'Estimator', 'ROI'],
     date: '2026-04-17',
     url: 'posts/power-platform-pricing-quote-tool/index.html',
     color: '#7e22ce',
@@ -1017,6 +1017,25 @@ var knowledgeTree = [
     color: '#7c3aed',
     phase: 0, speed: 0.88,
     relations: ['enterprise-agent-arch', 'agentic-ai-adoption']
+  },
+  {
+    id: 'copilot-studio-streaming-verification',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: '验证 Copilot Studio 流式输出：从 Direct Line 到 Direct Engine 的实测',
+      en: 'Verifying Copilot Studio Streaming: From Direct Line to Direct Engine'
+    },
+    summary: {
+      zh: '一次完整的工程验证：抓取 Direct Line 原始 activity 证明流式片段未下发，再发现 Agents SDK 的 Direct Engine（SSE）原生支持流式，实测唯一阻塞点是缺 CopilotStudio.Copilots.Invoke 权限。',
+      en: 'A full engineering investigation: raw Direct Line activities prove no streaming chunks arrive, then the Agents SDK Direct Engine (SSE) is found to natively support streaming — with the sole blocker being a missing CopilotStudio.Copilots.Invoke permission.'
+    },
+    tags: ['Copilot Studio', 'Livestreaming', 'Direct Line', 'Direct Engine'],
+    date: '2026-06-15',
+    url: 'posts/copilot-studio-streaming-verification/index.html',
+    color: '#0ea5e9',
+    phase: 1.6, speed: 0.85,
+    relations: ['copilot-studio-constraints', 'copilot-studio-vs-agent-sdk']
   },
   {
     id: 'copilot-studio-memory',
@@ -1112,6 +1131,25 @@ var knowledgeTree = [
     color: '#8b5cf6',
     phase: 5.4, speed: 0.81,
     relations: ['copilot-studio-overview', 'dataverse-security-roles', 'copilot-studio-constraints']
+  },
+  {
+    id: 'copilot-studio-new-agent-knowledge-query',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Copilot Studio New Agent 知识问答迁移：Dataverse 检索与答案规范',
+      en: 'Copilot Studio New Agent Knowledge QA: Dataverse Retrieval And Answer Rules'
+    },
+    summary: {
+      zh: '复刻经典 Knowledge Agent：用 faq_topic 列域、faq_article 检索、unbound action 参数契约和答案规范控制 New Agent。',
+      en: 'Reproduces classic Knowledge Agent behavior with faq_topic domains, faq_article retrieval, unbound action contracts, and answer rules.'
+    },
+    tags: ['Copilot Studio', 'New Agent', 'Dataverse', 'Knowledge QA', 'Adaptive Cards'],
+    date: '2026-06-15',
+    url: 'posts/copilot-studio-new-agent-knowledge-query/index.html',
+    color: '#8b5cf6',
+    phase: 5.8, speed: 0.82,
+    relations: ['copilot-studio-mcp-cross-tenant', 'copilot-studio-constraints', 'dataverse-security-roles']
   },
   {
     id: 'zava-claims-360-solution',
@@ -1311,6 +1349,25 @@ var knowledgeTree = [
     color: '#0d8f8c',
     phase: 1.5, speed: 0.80,
     relations: ['study-room-review-2026q2', 'homepage-architecture-review', 'study-room-standards']
+  },
+  {
+    id: 'study-room-code-architecture-review-2026-06-15',
+    parentId: 'knowledge-hub-reviews',
+    type: 'article',
+    title: {
+      zh: 'Knowledge Hub 代码与架构审查报告（2026-06-15）',
+      en: 'Knowledge Hub Code and Architecture Review (2026-06-15)'
+    },
+    summary: {
+      zh: '第三次代码与架构审查：111 篇公开文章、3 篇暂不公开页面、145 个知识节点，识别平台化重构窗口。',
+      en: 'Third code and architecture review: 111 public articles, 3 intentionally private pages, 145 knowledge nodes, and a platform refactor roadmap.'
+    },
+    tags: ['Architecture Review', 'Code Review', 'Knowledge Hub', 'Quality Audit'],
+    date: '2026-06-15',
+    url: 'posts/study-room-code-architecture-review-2026-06-15/index.html',
+    color: '#0d8f8c',
+    phase: 2.2, speed: 0.79,
+    relations: ['architecture-review-2026-0415', 'homepage-architecture-review', 'study-room-standards']
   },
   {
     id: 'knowledge-graph-org',
@@ -1945,15 +2002,15 @@ var knowledgeTree = [
       en: 'Shanghai Zhongkao Volunteer Strategy: Path Planning for Jianping Dijie Students Targeting Top 4 Schools'
     },
     summary: {
-      zh: '基于建平地杰年级前 20 考生情况，分析四条录取路径策略，提供分数预测、志愿排列和风险对冲建议。',
-      en: 'Analyzes four admission pathways for a top-20 Jianping Dijie student, with score predictions, volunteer planning, and risk hedging.'
+      zh: '基于建平地杰考生二模与考后估分，校准到区、到校、统一批次志愿策略与安全链。',
+      en: 'Updates quota, school-quota, and unified-batch choices using second-mock data plus post-exam score estimates.'
     },
     tags: ['中考', '志愿填报', '四校', '策略规划'],
-    date: '2026-04-12',
+    date: '2026-06-23',
     url: 'posts/zhongkao-volunteer-strategy/index.html',
     color: '#dc2626',
     phase: 0.4, speed: 0.9,
-    relations: ['zhongkao-policy-data']
+    relations: ['zhongkao-policy-data', 'zhongkao-scoreline-2026-forecast']
   },
   {
     id: 'zhongkao-policy-data',
@@ -2030,6 +2087,45 @@ var knowledgeTree = [
     color: '#9f1239',
     phase: 3.4, speed: 0.84,
     relations: ['four-schools-profile', 'zhongkao-policy-data', 'zhongkao-volunteer-strategy']
+  },
+  {
+    id: 'zhongkao-quota-2025-analysis',
+    parentId: 'shanghai-zhongkao',
+    type: 'article',
+    title: {
+      zh: '2025 上海中考名额分配数据分析：浦东初中到校录取分与到区线对比',
+      en: 'Shanghai 2025 Quota Admission Analysis: Pudong School-Quota Scores vs District Lines'
+    },
+    summary: {
+      zh: '基于官方两份分数线，提取浦东 138 所初中在 14 所目标高中的到校最低分并与到区线对比，配可交互的高中排名与初中横向对比工具。',
+      en: 'Extracts Pudong 138 junior-high school-quota floors at 14 target high schools vs district lines, with interactive ranking and comparison tools.'
+    },
+    tags: ['中考', '名额分配', '浦东', '录取数据', '交互工具'],
+    date: '2026-06-20',
+    url: 'posts/zhongkao-quota-2025-analysis/index.html',
+    color: '#e11d48',
+    phase: 1.6, speed: 0.83,
+    relations: ['zhongkao-policy-data', 'four-schools-profile', 'shanghai-zizhao-2026']
+  },
+
+  {
+    id: 'zhongkao-scoreline-2026-forecast',
+    parentId: 'shanghai-zhongkao',
+    type: 'article',
+    title: {
+      zh: '2026 上海中考分数线预测：浦东到区、统一批次与控分线区间',
+      en: 'Shanghai 2026 Zhongkao Scoreline Forecast: Pudong Quota and Unified Batch'
+    },
+    summary: {
+      zh: '交叉核验官方专家点评、2023-2025 分数与 2026 计划，预测浦东控分线 / 到区 / 统招区间，并核查「偏易上浮」给出上升区间。',
+      en: 'Cross-checks expert reviews, 2023-2025 scores and 2026 seats to forecast Pudong cutoffs, and tests the easier-2026 claim with upward ranges.'
+    },
+    tags: ['中考', '分数线预测', '浦东', '名额分配', '试卷难度'],
+    date: '2026-06-22',
+    url: 'posts/zhongkao-scoreline-2026-forecast/index.html',
+    color: '#dc2626',
+    phase: 2.1, speed: 0.82,
+    relations: ['zhongkao-policy-data', 'zhongkao-quota-2025-analysis', 'shanghai-zizhao-2026']
   },
 
   {

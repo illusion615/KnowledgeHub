@@ -1304,6 +1304,12 @@ const response = await MicrosoftCopilotStudioService.ExecuteCopilotAsyncV2(
                 <div class="quote-block">
                   <p><strong>注意：</strong>必须使用 <code>ExecuteCopilotAsyncV2</code>（<code>/proactivecopilot/executeAsyncV2</code>）端点。<code>ExecuteCopilot</code>（<code>/execute</code>）只返回 ConversationId 不返回响应内容；<code>ExecuteCopilotAsync</code>（<code>/executeAsync</code>）可能返回 502 错误。响应属性大小写可能不一致（<code>conversationId</code> / <code>ConversationId</code>），建议使用可选链处理。<a href="https://learn.microsoft.com/en-us/power-apps/developer/code-apps/how-to/connect-to-copilot-studio" target="_blank" rel="noopener noreferrer">[10]</a></p>
                 </div>
+                <div class="quote-block">
+                  <p><strong>多轮续接（实战补充）：</strong><code>x-ms-conversation-id</code> 参数标注为可选，但要让 Agent 在多轮对话中保留上下文，必须回传——首次调用后保存返回的 <code>conversationId</code>，后续每次调用把它作为第三个参数传入；否则每轮都是全新会话，Agent 侧没有记忆。此处与上面的大小写陷阱叠加：保存会话 ID 时必须 <code>conversationId ?? ConversationId</code> 两者都读，只读小写会在平台返回大写时丢失 ID，导致多轮续接静默失效（调用成功、但每轮都被当成新会话）。</p>
+                </div>
+                <div class="quote-block">
+                  <p><strong>同步限制 · 无 token 级流式：</strong>此连接器路径是 request/response 模型，<code>ExecuteCopilotAsyncV2</code> 会等 Agent 全部算完后才一次性返回 <code>lastResponse</code>，没有 SSE 或 WebSocket 增量推送；连接器本身也未暴露任何 streaming 动作。因此前端的「逐字打字」效果只能由客户端在拿到完整文本后用 <code>setInterval</code> 本地模拟，首字延迟等于 Agent 全程计算时间。需要真正的 token 级流式时，唯一路径是 Bot Framework Direct Line（Channels &gt; Mobile app 取 Token Endpoint，换 Direct Line token 后用 watermark 轮询或 WebSocket <code>streamUrl</code> 增量收 activity），代价是要自行管理 token 获取与刷新，且 Code App 环境的 CSP <code>connect-src</code> 需放行 Direct Line 域名。</p>
+                </div>
               </div>
             </article>
 
