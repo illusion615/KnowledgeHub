@@ -1540,6 +1540,42 @@ var knowledgeTree = [
     phase: 2.2, speed: 0.88
   },
 
+  // ── 二级分组 — 四校自招冲刺 ──
+  {
+    id: 'physics-zizhao-sprint',
+    parentId: 'edu-physics',
+    type: 'topic',
+    label: { zh: '四校自招冲刺', en: 'Selective-Exam Sprint' },
+    color: '#f43f5e',
+    phase: 5.6, speed: 0.80
+  },
+  {
+    id: 'physics-sprint-mechanics',
+    parentId: 'physics-zizhao-sprint',
+    type: 'article',
+    title: { zh: '力学冲刺：正交分解、匀变速、重力加速度与功能关系', en: 'Mechanics Sprint: Decomposition, Kinematics, g, and Energy' },
+    summary: { zh: '为四校联考自招冲刺整理：力的正交分解、匀变速直线运动、重力加速度与功能关系，每个考点配方法、推导、详解例题与易错清单。', en: 'Sprint prep for selective exams: force decomposition, uniform acceleration, gravity g, and energy theorems, each with worked examples and pitfalls.' },
+    tags: ['Physics', 'Mechanics', 'Exam Prep', 'Kinematics'],
+    date: '2026-06-23',
+    url: 'posts/physics-sprint-mechanics/index.html',
+    color: '#0284c7',
+    phase: 0.3, speed: 0.90,
+    relations: ['forces-equilibrium', 'uniform-acceleration', 'work-energy', 'physics-sprint-circuits']
+  },
+  {
+    id: 'physics-sprint-circuits',
+    parentId: 'physics-zizhao-sprint',
+    type: 'article',
+    title: { zh: '电路混联：识别结构、等效电阻、电流电压分配与功率', en: 'Series-Parallel Circuits: Structure, Equivalent R, I/U Sharing, and Power' },
+    summary: { zh: '用一个贯穿全文的例题，把电路混联的识别结构、等效电阻、电流电压分配、电功率与电表动态分析串成一条解题流程。', en: 'One running example threads series-parallel circuits: reading structure, equivalent resistance, current and voltage sharing, power, and dynamic meter analysis.' },
+    tags: ['Physics', 'Circuits', 'Exam Prep', 'Ohm'],
+    date: '2026-06-23',
+    url: 'posts/physics-sprint-circuits/index.html',
+    color: '#7c3aed',
+    phase: 1.0, speed: 0.88,
+    relations: ['dc-circuits', 'physics-sprint-mechanics']
+  },
+
   // ── 二级分组 — 力学 ──
   {
     id: 'physics-mechanics',
