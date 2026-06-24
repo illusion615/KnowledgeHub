@@ -172,7 +172,9 @@
   if (savedFont) root.style.setProperty('--reading-font', savedFont);
 
   // ── Hide home-link when articles are opened in new tab ──
-  var openMode = localStorage.getItem('openMode') || 'same';
+  // Default to 'new' so a directly-shared single-article link (visitor never
+  // set openMode on the homepage) renders its header in "new page" mode.
+  var openMode = localStorage.getItem('openMode') || 'new';
   if (openMode === 'new') {
     var homeLink = document.querySelector('.home-link');
     if (homeLink) homeLink.style.display = 'none';
