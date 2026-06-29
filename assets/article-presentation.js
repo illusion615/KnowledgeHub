@@ -27,6 +27,9 @@ document.addEventListener('DOMContentLoaded', function () {
   var presentationNext;
   var presentationDeckLabel;
   var presentationDeckTitle;
+  var presentationStatus;
+  var presentationPagerToggle;
+  var presentationPagerMenu;
   var presentationCounter;
   var presentationTitle;
   var presentationTip;
@@ -111,6 +114,7 @@ document.addEventListener('DOMContentLoaded', function () {
       emailCopied: '内容已复制到剪贴板，请粘贴到邮件正文',
       prev: '上一页',
       next: '下一页',
+      pagePicker: '选择页面',
       tip: '键盘 ← → 切换 · Esc 退出',
       fallbackHero: '文章总览',
       fallbackStep: '内容页',
@@ -150,6 +154,7 @@ document.addEventListener('DOMContentLoaded', function () {
       emailCopied: 'Content copied to clipboard — paste into your email body',
       prev: 'Previous',
       next: 'Next',
+      pagePicker: 'Select slide',
       tip: 'Use ← → to navigate · Esc to exit',
       fallbackHero: 'Overview',
       fallbackStep: 'Step',
@@ -1638,10 +1643,29 @@ document.addEventListener('DOMContentLoaded', function () {
     return button;
   };
 
+  var closePresentationPager = function () {
+    if (!presentationStatus || !presentationPagerToggle || !presentationPagerMenu) return;
+    presentationStatus.classList.remove('is-page-menu-open');
+    presentationPagerToggle.setAttribute('aria-expanded', 'false');
+    presentationPagerMenu.setAttribute('aria-hidden', 'true');
+  };
+
+  var setPresentationPagerOpen = function (isOpen) {
+    if (!presentationStatus || !presentationPagerToggle || !presentationPagerMenu) return;
+    presentationStatus.classList.toggle('is-page-menu-open', isOpen);
+    presentationPagerToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    presentationPagerMenu.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+    if (isOpen && renderPresentationPageMenu) {
+      renderPresentationPageMenu(state.index);
+    }
+  };
+
   var ensureFloating = function () {
     var floating = document.querySelector('.present-floating');
     var deck;
     var status;
+    var counterButton;
+    var pagerMenu;
 
     if (floating) {
       return floating;
@@ -1681,11 +1705,47 @@ document.addEventListener('DOMContentLoaded', function () {
 
     status = document.createElement('div');
     status.className = 'present-status';
+    presentationStatus = status;
+
+    counterButton = document.createElement('button');
+    counterButton.className = 'present-counter-button';
+    counterButton.type = 'button';
+    counterButton.setAttribute('aria-haspopup', 'menu');
+    counterButton.setAttribute('aria-expanded', 'false');
+    counterButton.setAttribute('aria-controls', 'present-page-menu');
+    counterButton.setAttribute('aria-label', getLabel('pagePicker'));
+    counterButton.setAttribute('title', getLabel('pagePicker'));
+    presentationPagerToggle = counterButton;
 
     presentationCounter = document.createElement('span');
     presentationCounter.className = 'present-counter';
     presentationCounter.setAttribute('data-present-counter', '');
-    status.appendChild(presentationCounter);
+    counterButton.appendChild(presentationCounter);
+    status.appendChild(counterButton);
+
+    pagerMenu = document.createElement('div');
+    pagerMenu.id = 'present-page-menu';
+    pagerMenu.className = 'present-page-menu';
+    pagerMenu.setAttribute('aria-hidden', 'true');
+    presentationPagerMenu = pagerMenu;
+    status.appendChild(pagerMenu);
+
+    counterButton.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!state.enabled) return;
+      setPresentationPagerOpen(!status.classList.contains('is-page-menu-open'));
+    });
+
+    pagerMenu.addEventListener('click', function (e) {
+      e.stopPropagation();
+    });
+
+    document.addEventListener('click', function (e) {
+      if (status && !status.contains(e.target)) {
+        closePresentationPager();
+      }
+    });
 
     presentationTitle = document.createElement('strong');
     presentationTitle.className = 'present-status-title';
@@ -3064,6 +3124,70 @@ document.addEventListener('DOMContentLoaded', function () {
     return getLabel('fallbackStep') + ' ' + String(index + 1);
   };
 
+  var renderPresentationPageMenu = function (activeIndex) {
+    var head;
+    var list;
+
+    if (!presentationPagerMenu) return;
+
+    while (presentationPagerMenu.firstChild) {
+      presentationPagerMenu.removeChild(presentationPagerMenu.firstChild);
+    }
+
+    head = document.createElement('div');
+    head.className = 'present-page-menu-head';
+    head.textContent = getLabel('pagePicker');
+    presentationPagerMenu.appendChild(head);
+
+    list = document.createElement('div');
+    list.className = 'present-page-menu-list';
+    list.setAttribute('role', 'menu');
+
+    presentSteps.forEach(function (step, index) {
+      var item = document.createElement('button');
+      var number = document.createElement('span');
+      var title = document.createElement('span');
+      var pageNumber = String(index + 1);
+      var pageTitle = deriveStepTitle(step, index) || getLabel('fallbackStep') + ' ' + String(index + 1);
+
+      if (index + 1 < 10) {
+        pageNumber = '0' + pageNumber;
+      }
+
+      item.className = 'present-page-menu-item';
+      item.type = 'button';
+      item.setAttribute('role', 'menuitem');
+      item.setAttribute('aria-label', getLabel('pagePicker') + ' ' + String(index + 1) + ': ' + pageTitle);
+
+      if (index === activeIndex) {
+        item.classList.add('is-active');
+        item.setAttribute('aria-current', 'page');
+      }
+
+      number.className = 'present-page-number';
+      number.textContent = pageNumber;
+      item.appendChild(number);
+
+      title.className = 'present-page-title';
+      title.textContent = pageTitle;
+      item.appendChild(title);
+
+      item.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        goToStep(index);
+        closePresentationPager();
+        if (presentationPagerToggle) {
+          presentationPagerToggle.focus();
+        }
+      });
+
+      list.appendChild(item);
+    });
+
+    presentationPagerMenu.appendChild(list);
+  };
+
   var getNestedStepCandidates = function (container) {
     var result = [];
     var candidates = container.querySelectorAll('[data-present-step]');
@@ -3381,6 +3505,15 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
 
+    if (presentationPagerToggle) {
+      presentationPagerToggle.setAttribute('aria-label', getLabel('pagePicker'));
+      presentationPagerToggle.setAttribute('title', getLabel('pagePicker'));
+    }
+
+    if (presentationStatus && presentationStatus.classList.contains('is-page-menu-open') && renderPresentationPageMenu) {
+      renderPresentationPageMenu(state.index);
+    }
+
     if (presentationTip) {
       presentationTip.textContent = getLabel('tip');
     }
@@ -3579,6 +3712,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (presentationCounter) {
       presentationCounter.textContent = String(safeIndex + 1) + ' / ' + String(presentSteps.length);
+    }
+
+    if (presentationPagerMenu) {
+      renderPresentationPageMenu(safeIndex);
     }
 
     if (presentationDeckLabel) {
@@ -4213,6 +4350,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var exitPresentation = function () {
     var activeStep = presentSteps[state.index];
 
+    closePresentationPager();
     stopNarration();
     if (isRecording()) stopRecording();
 
@@ -4252,20 +4390,23 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   };
 
-  var goToPreviousStep = function () {
-    if (!state.enabled || state.index <= 0) return;
-    setPresentationStep(state.index - 1);
+  var goToStep = function (index) {
+    if (!state.enabled) return;
+    if (index < 0 || index >= presentSteps.length) return;
+    setPresentationStep(index);
     if (narrationController && narrationController.isActive()) {
       narrationController.syncToSlide(state.index);
     }
   };
 
+  var goToPreviousStep = function () {
+    if (!state.enabled || state.index <= 0) return;
+    goToStep(state.index - 1);
+  };
+
   var goToNextStep = function () {
     if (!state.enabled || state.index >= presentSteps.length - 1) return;
-    setPresentationStep(state.index + 1);
-    if (narrationController && narrationController.isActive()) {
-      narrationController.syncToSlide(state.index);
-    }
+    goToStep(state.index + 1);
   };
 
   var scheduleStepScrollingClear = function (step, delay) {
@@ -4320,6 +4461,9 @@ document.addEventListener('DOMContentLoaded', function () {
   presentationNext = presentationFloating.querySelector('[data-present-next]');
   presentationDeckLabel = presentationFloating.querySelector('[data-present-deck-label]');
   presentationDeckTitle = presentationFloating.querySelector('[data-present-deck-title]');
+  presentationStatus = presentationFloating.querySelector('.present-status');
+  presentationPagerToggle = presentationFloating.querySelector('.present-counter-button');
+  presentationPagerMenu = presentationFloating.querySelector('.present-page-menu');
   presentationCounter = presentationFloating.querySelector('[data-present-counter]');
   presentationTitle = presentationFloating.querySelector('[data-present-title]');
   presentationTip = presentationFloating.querySelector('.present-status-tip');
