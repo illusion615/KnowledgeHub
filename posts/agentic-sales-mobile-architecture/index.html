@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Agentic Sales Mobile 架构设计 — Frame + Orchestrator 双阶段对话流水线</title>
+  <title>Agentic Sales Mobile 架构设计 — 从一句话到正确工具调用的端到端操作流</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
@@ -55,11 +55,12 @@
             <span data-zh="Agentic Sales Mobile" data-en="Agentic Sales Mobile">Agentic Sales Mobile</span>
           </div>
           <nav class="nav-links" aria-label="页面章节导航">
-            <a href="#problem" data-zh="问题" data-en="Problem">问题</a>
-            <a href="#dataflow" data-zh="数据流" data-en="Data Flow">数据流</a>
-            <a href="#frame" data-zh="Frame 阶段" data-en="Frame">Frame</a>
-            <a href="#orchestrator" data-zh="Orchestrator" data-en="Orchestrator">Orchestrator</a>
+            <a href="#requirements" data-zh="需求" data-en="Requirements">需求</a>
+            <a href="#dataflow" data-zh="操作流" data-en="Operation Flow">操作流</a>
+            <a href="#frame" data-zh="理解" data-en="Understand">理解</a>
+            <a href="#orchestrator" data-zh="计划" data-en="Plan">计划</a>
             <a href="#queue" data-zh="意图队列" data-en="Queue">意图队列</a>
+            <a href="#intelligence" data-zh="智能读路径" data-en="Read Path">智能读路径</a>
             <a href="#contracts" data-zh="契约" data-en="Contracts">契约</a>
             <a href="#observability" data-zh="可观测性" data-en="Observability">可观测性</a>
           </nav>
@@ -67,68 +68,75 @@
 
         <div class="hero-grid">
           <div class="hero-copy load-in">
-            <span class="eyebrow" data-zh="架构设计 · 实现纪实" data-en="Architecture · As-Built">架构设计 · 实现纪实</span>
-            <h1 data-zh="Frame + Orchestrator：把一句话拆成可核对、可落库的销售动作" data-en="Frame + Orchestrator: Turning One Sentence into Verifiable, Persistable Sales Actions">Frame + Orchestrator：把一句话拆成可核对、可落库的销售动作</h1>
-            <p data-zh="本文描述应用的运行时架构——一条由意图分类（Frame）、计划编排（Orchestrator）、队列执行、数据适配四段构成的对话流水线。" data-en="This document describes the app's runtime architecture: a conversational pipeline of intent framing (Frame), plan orchestration (Orchestrator), queue execution, and data adaptation.">
-              本文描述应用的运行时架构——一条由意图分类（Frame）、计划编排（Orchestrator）、队列执行、数据适配四段构成的对话流水线。
+            <span class="eyebrow" data-zh="运行时架构 · 端到端操作流" data-en="Runtime Architecture · End-to-End Operation Flow">运行时架构 · 端到端操作流</span>
+            <h1 data-zh="让一句话可靠地变成正确的工具调用" data-en="Turning One Sentence Reliably into the Correct Tool Calls">让一句话可靠地变成正确的工具调用</h1>
+            <p data-zh="本文描述应用的运行时架构：一条把销售口语翻译成工具调用的端到端操作流——理解一句话说了什么、计划该调哪些工具及其顺序、带人工确认与接地地执行、再把每次调用落到其后端（CRM 写操作落 Dataverse，读操作返回记录与答案）。" data-en="This document describes the app's runtime architecture: an end-to-end operation flow that translates a rep's speech into tool calls — understanding what a sentence says, planning which tools to call and in what order, executing with human confirmation and grounding, and landing each call on its backend (CRM writes go to Dataverse; reads return records and answers).">
+              本文描述应用的运行时架构：一条把销售口语翻译成工具调用的端到端操作流——理解一句话说了什么、计划该调哪些工具及其顺序、带人工确认与接地地执行、再把每次调用落到其后端（CRM 写操作落 Dataverse，读操作返回记录与答案）。
             </p>
             <div class="hero-actions">
-              <a class="button button-primary" href="#dataflow" data-zh="看端到端数据流" data-en="See the Data Flow">看端到端数据流</a>
-              <a class="button button-secondary" href="#frame" data-zh="从 Frame 讲起" data-en="Start with Frame">从 Frame 讲起</a>
+              <a class="button button-primary" href="#dataflow" data-zh="看端到端操作流" data-en="See the Operation Flow">看端到端操作流</a>
+              <a class="button button-secondary" href="#requirements" data-zh="从业务需求讲起" data-en="Start with the Requirements">从业务需求讲起</a>
             </div>
           </div>
 
           <aside class="hero-panel load-in">
             <span class="panel-label" data-zh="一句话架构" data-en="In One Sentence">一句话架构</span>
-            <h2 data-zh="两阶段 LLM 流水线 + 客户端 Zod 契约校验。" data-en="A two-stage LLM pipeline guarded by client-side Zod contracts.">两阶段 LLM 流水线 + 客户端 Zod 契约校验。</h2>
-            <p data-zh="Frame 负责「拆」——把一句话切成多个独立意图；Orchestrator 负责「排」——把每个意图映射到技能函数并建立依赖图。两段都用自由文本输出 + 客户端 Zod 校验，而非依赖平台的结构化 JSON 模式。" data-en="Frame splits one sentence into independent intents; Orchestrator maps each intent to a skill function and builds a dependency graph. Both stages emit free text validated client-side by Zod, rather than relying on the platform's structured-JSON mode.">
-              Frame 负责「拆」——把一句话切成多个独立意图；Orchestrator 负责「排」——把每个意图映射到技能函数并建立依赖图。两段都用自由文本输出 + 客户端 Zod 校验。
+            <h2 data-zh="把一句话翻译成经过校验的工具调用——理解、计划、执行、落地四段。" data-en="Turning one sentence into validated tool calls — understand, plan, execute, land.">把一句话翻译成经过校验的工具调用——理解、计划、执行、落地四段。</h2>
+            <p data-zh="先理解——把一句话拆成多个独立意图；再计划——把每个意图映射到一个技能函数（工具）并建立依赖图。这两次 LLM 调用（代码中称 Frame 与 Orchestrator）都用自由文本输出 + 客户端 Zod 校验，而非依赖平台的结构化 JSON 模式。" data-en="First understand — split one sentence into independent intents; then plan — map each intent to a skill function (a tool) and build a dependency graph. These two LLM calls (named Frame and Orchestrator in code) emit free text validated client-side by Zod, rather than the platform's structured-JSON mode.">
+              先理解——把一句话拆成多个独立意图；再计划——把每个意图映射到一个技能函数（工具）并建立依赖图。这两次 LLM 调用（代码中称 Frame 与 Orchestrator）都用自由文本输出 + 客户端 Zod 校验。
             </p>
             <ul class="layer-list hero-layer-list">
-              <li><span class="layer-number">1</span><span data-zh="Frame — 多意图分类（拆）" data-en="Frame — multi-intent classification">Frame — 多意图分类（拆）</span></li>
-              <li><span class="layer-number">2</span><span data-zh="Orchestrator — 技能映射与 DAG（排）" data-en="Orchestrator — skill mapping and DAG">Orchestrator — 技能映射与 DAG（排）</span></li>
-              <li><span class="layer-number">3</span><span data-zh="意图队列 — 串联确认与执行" data-en="Intent Queue — chained confirm and execute">意图队列 — 串联确认与执行</span></li>
-              <li><span class="layer-number">4</span><span data-zh="适配层 — 落库 Dataverse" data-en="Adapter — persist to Dataverse">适配层 — 落库 Dataverse</span></li>
+              <li><span class="layer-number">1</span><span data-zh="理解 — 把一句话拆成多意图" data-en="Understand — split into intents">理解 — 把一句话拆成多意图</span></li>
+              <li><span class="layer-number">2</span><span data-zh="计划 — 意图映射到工具、定序" data-en="Plan — map intents to tools, order them">计划 — 意图映射到工具、定序</span></li>
+              <li><span class="layer-number">3</span><span data-zh="执行 — 带确认与接地地调用" data-en="Execute — call with confirmation and grounding">执行 — 带确认与接地地调用</span></li>
+              <li><span class="layer-number">4</span><span data-zh="落地 — 校验并适配到后端" data-en="Land — validate and adapt to the backend">落地 — 校验并适配到后端</span></li>
             </ul>
           </aside>
         </div>
       </header>
 
       <main>
-        <!-- Section 01: Problem -->
-        <section id="problem" class="section" data-reveal>
+        <!-- Section 01: Requirements -->
+        <section id="requirements" class="section" data-reveal>
           <div class="section-head">
-            <p class="section-kicker" data-zh="01 / 问题" data-en="01 / The Problem">01 / The Problem</p>
-            <h2 data-zh="为什么不能用一次 LLM 调用直接落库" data-en="Why a Single LLM Call Cannot Just Write to the Database">为什么不能用一次 LLM 调用直接落库</h2>
-            <p data-zh="销售口述往往一句话裹挟多件事，且彼此有依赖。直接把整句丢给一次 LLM 调用让它「自由发挥」地写数据库，会在三个地方失控：意图边界、执行顺序、数据正确性。" data-en="A rep's dictation often bundles several things with dependencies. Handing the whole sentence to a single free-form LLM call that writes the database directly loses control in three places: intent boundaries, execution order, and data correctness.">
-              销售口述往往一句话裹挟多件事，且彼此有依赖。直接把整句丢给一次 LLM 调用让它「自由发挥」地写数据库，会在三个地方失控：意图边界、执行顺序、数据正确性。
+            <p class="section-kicker" data-zh="01 / 业务需求与架构判据" data-en="01 / Business Need and Architectural Requirements">01 / Business Need and Architectural Requirements</p>
+            <h2 data-zh="把销售口述可靠地变成 CRM 里的记录与判断" data-en="Reliably Turning a Rep's Dictation into CRM Records and Judgments">把销售口述可靠地变成 CRM 里的记录与判断</h2>
+            <p data-zh="现场销售在两次拜访之间用口语与系统交互：一句话既要落成 CRM 记录，也要问出对自己业务盘子的判断。一句自然表达往往裹挟多件有依赖的事，而销售不会按系统的字段边界说话。要把这种输入稳定地变成正确的记录与可信的回答，架构必须同时满足四条属性。" data-en="A field rep interacts by voice between visits: one sentence must both become CRM records and surface judgments about their book of business. A natural utterance often bundles several dependent actions, and reps do not speak in the system's field boundaries. To turn such input reliably into correct records and trustworthy answers, the architecture must satisfy four properties at once.">
+              现场销售在两次拜访之间用口语与系统交互：一句话既要落成 CRM 记录，也要问出对自己业务盘子的判断。一句自然表达往往裹挟多件有依赖的事，而销售不会按系统的字段边界说话。要把这种输入稳定地变成正确的记录与可信的回答，架构必须同时满足四条属性。
             </p>
           </div>
 
-          <div data-present-step data-step-title="一句话里的三重失控风险" data-step-title-en="Three Failure Modes in One Sentence" data-step-label="01 / PROBLEM">
+          <div data-present-step data-step-title="四条架构判据" data-step-title-en="Four Architectural Requirements" data-step-label="01 / REQUIREMENTS">
             <div class="quote-block">
-              <p data-zh="「我刚拜访了协和医院的张主任，他们对新款监护仪很感兴趣，建一个商机，金额大概 150 万，下周三再约他复盘。」" data-en="I just visited Director Zhang at Union Hospital — they are keen on the new monitor. Create an opportunity, around 1.5M, and book a review with him next Wednesday.">「我刚拜访了协和医院的张主任，他们对新款监护仪很感兴趣，建一个商机，金额大概 150 万，下周三再约他复盘。」</p>
+              <p data-zh="「我刚拜访了协和医院的张主任，他们对新款监护仪很感兴趣，建一个商机，金额大概 150 万，下周三再约他复盘。」——一句代表性的销售口述，下面四条属性都要从它这样的输入里成立。" data-en="I just visited Director Zhang at Union Hospital — they are keen on the new monitor. Create an opportunity, around 1.5M, and book a review with him next Wednesday. — a representative rep utterance; each property below must hold for inputs like it.">「我刚拜访了协和医院的张主任，他们对新款监护仪很感兴趣，建一个商机，金额大概 150 万，下周三再约他复盘。」——一句代表性的销售口述，下面四条属性都要从它这样的输入里成立。</p>
             </div>
             <div class="insight-grid grid-spaced">
               <div class="insight-card">
                 <span class="card-index">01</span>
-                <h3 data-zh="意图边界" data-en="Intent Boundaries">意图边界</h3>
-                <p data-zh="这句话里有三件事：记一次已发生的拜访、建一个新商机、约一个未来的会议。时态不同、对象不同、动作不同，必须先切开。" data-en="Three things are bundled: log a past visit, create a new opportunity, book a future meeting. Different tenses, objects and actions — they must be split first.">
-                  这句话里有三件事：记一次已发生的拜访、建一个新商机、约一个未来的会议。时态不同、对象不同、动作不同，必须先切开。
+                <h3 data-zh="可拆分与定序" data-en="Decomposable and Ordered">可拆分与定序</h3>
+                <p data-zh="上句含三件事：记一次已发生的拜访、建一个新商机、约一个未来的会议——对象、时态、动作各不同，且商机与会议要挂在先解析出的客户与联系人下。架构必须先拆分、再定依赖顺序，才能动手。" data-en="That sentence holds three things: log a past visit, create an opportunity, book a future meeting — different objects, tenses and actions, and the opportunity and meeting must hang off an account and contact resolved first. The architecture must split, then order by dependency, before acting.">
+                  上句含三件事：记一次已发生的拜访、建一个新商机、约一个未来的会议——对象、时态、动作各不同，且商机与会议要挂在先解析出的客户与联系人下。架构必须先拆分、再定依赖顺序，才能动手。
                 </p>
               </div>
               <div class="insight-card">
                 <span class="card-index">02</span>
-                <h3 data-zh="执行顺序" data-en="Execution Order">执行顺序</h3>
-                <p data-zh="商机要挂在「协和医院」这个客户下，会议要关联「张主任」这个联系人。客户、联系人必须先解析出来，商机和会议才能引用——这是依赖关系。" data-en="The opportunity must hang off the 'Union Hospital' account; the meeting must link to contact 'Director Zhang'. Account and contact must resolve first — that is a dependency.">
-                  商机要挂在「协和医院」这个客户下，会议要关联「张主任」这个联系人。客户、联系人必须先解析出来，商机和会议才能引用——这是依赖关系。
+                <h3 data-zh="写前可核对" data-en="Verifiable Before Write">写前可核对</h3>
+                <p data-zh="每一次写库（建商机、记活动、改字段）都要在触及 Dataverse 之前由人确认。销售对着系统说话不等于授权入库，模型输出更不能静默落库——写操作必须先呈现为可核对的草稿。" data-en="Every write (create opportunity, log activity, edit a field) must be human-confirmed before it touches Dataverse. Speaking to the system is not authorization to persist, and model output must never write silently — a write must first appear as a verifiable draft.">
+                  每一次写库（建商机、记活动、改字段）都要在触及 Dataverse 之前由人确认。销售对着系统说话不等于授权入库，模型输出更不能静默落库——写操作必须先呈现为可核对的草稿。
                 </p>
               </div>
               <div class="insight-card">
                 <span class="card-index">03</span>
-                <h3 data-zh="数据正确性" data-en="Data Correctness">数据正确性</h3>
-                <p data-zh="「下周三」要换算成具体日期，「150 万」要落成数字金额，「协和医院」要匹配到 Dataverse 里真实存在的客户记录——任一步出错就是脏数据。" data-en="'Next Wednesday' must resolve to a date, '1.5M' to a numeric amount, 'Union Hospital' must match a real Dataverse account. Any slip produces dirty data.">
-                  「下周三」要换算成具体日期，「150 万」要落成数字金额，「协和医院」要匹配到 Dataverse 里真实存在的客户记录——任一步出错就是脏数据。
+                <h3 data-zh="读必接地" data-en="Reads Must Be Grounded">读必接地</h3>
+                <p data-zh="销售也要问「这周该盯哪些商机」「这个客户还能不能救」。这类查询与分析的答案必须严格来自真实记录，不允许模型编造名称、金额或趋势——读路径要接地，判断才可信。" data-en="Reps also ask 'which deals should I chase this week' or 'can this account still be saved'. Answers to such queries and analysis must come strictly from real records; the model may not invent a name, amount or trend — the read path must be grounded for its judgments to be trusted.">
+                  销售也要问「这周该盯哪些商机」「这个客户还能不能救」。这类查询与分析的答案必须严格来自真实记录，不允许模型编造名称、金额或趋势——读路径要接地，判断才可信。
+                </p>
+              </div>
+              <div class="insight-card">
+                <span class="card-index">04</span>
+                <h3 data-zh="落库正确" data-en="Correct Persistence">落库正确</h3>
+                <p data-zh="「下周三」要换算成具体日期、「150 万」要落成数字金额、「协和医院」要匹配到 Dataverse 里真实存在的客户记录。任一步错就是脏数据，而底层模型不可信、有不确定性，架构要在其之上保证正确。" data-en="'Next Wednesday' must resolve to a date, '1.5M' to a numeric amount, 'Union Hospital' to a real Dataverse account. Any slip is dirty data — and the underlying model is untrusted and nondeterministic, so the architecture must guarantee correctness on top of it.">
+                  「下周三」要换算成具体日期、「150 万」要落成数字金额、「协和医院」要匹配到 Dataverse 里真实存在的客户记录。任一步错就是脏数据，而底层模型不可信、有不确定性，架构要在其之上保证正确。
                 </p>
               </div>
             </div>
@@ -138,10 +146,10 @@
         <!-- Section 02: Data Flow -->
         <section id="dataflow" class="section" data-reveal>
           <div class="section-head">
-            <p class="section-kicker" data-zh="02 / 端到端数据流" data-en="02 / End-to-End Data Flow">02 / End-to-End Data Flow</p>
-            <h2 data-zh="一句话从输入框到 Dataverse 的完整路径" data-en="The Full Path from Input Box to Dataverse">一句话从输入框到 Dataverse 的完整路径</h2>
-            <p data-zh="请求严格自上而下穿过四个责任层，不允许跨层直调。下面的时序图是当前代码的真实主路径，起点是 CopilotProvider 的 sendMessage。" data-en="A request flows strictly top-down through four responsibility layers, with no cross-layer shortcuts. The sequence below is the real main path in the current code, starting at CopilotProvider's sendMessage.">
-              请求严格自上而下穿过四个责任层，不允许跨层直调。下面的时序图是当前代码的真实主路径，起点是 CopilotProvider 的 sendMessage。
+            <p class="section-kicker" data-zh="02 / 端到端操作流" data-en="02 / End-to-End Operation Flow">02 / End-to-End Operation Flow</p>
+            <h2 data-zh="从一句话到被执行的工具调用的完整路径" data-en="The Full Path from One Sentence to Executed Tool Calls">从一句话到被执行的工具调用的完整路径</h2>
+            <p data-zh="一句话严格自上而下穿过四个责任层变成工具调用：表现层接收、认知层理解与计划、执行层执行、数据层落地，不允许跨层直调；写操作落 Dataverse，读操作返回记录与答案。下面的时序图是当前代码的真实主路径，起点是 CopilotProvider 的 sendMessage。" data-en="One sentence flows strictly top-down through four responsibility layers to become tool calls — presentation receives, cognition understands and plans, execution executes, data lands — with no cross-layer shortcuts; writes go to Dataverse, reads return records and answers. The sequence below is the real main path in the current code, starting at CopilotProvider's sendMessage.">
+              一句话严格自上而下穿过四个责任层变成工具调用：表现层接收、认知层理解与计划、执行层执行、数据层落地，不允许跨层直调；写操作落 Dataverse，读操作返回记录与答案。下面的时序图是当前代码的真实主路径，起点是 CopilotProvider 的 sendMessage。
             </p>
           </div>
 
@@ -157,19 +165,20 @@
               </div>
               <div class="layer-row" data-present-step>
                 <span class="ltag lt-orch" data-zh="认知层" data-en="Cognition">认知层</span>
-                <h3 data-zh="Frame + Orchestrator" data-en="Frame + Orchestrator">Frame + Orchestrator</h3>
-                <p data-zh="Frame 把一句话拆成多意图数组；Orchestrator 把每个意图映射到技能函数、填充参数、建立 DAG 依赖。两段共同产出一个 PipelineResult。" data-en="Frame splits the sentence into an intent array; Orchestrator maps each intent to a skill function, fills arguments and builds the DAG dependencies. Together they produce a PipelineResult.">
-                  Frame 把一句话拆成多意图数组；Orchestrator 把每个意图映射到技能函数、填充参数、建立 DAG 依赖。两段共同产出一个 PipelineResult。
+                <h3 data-zh="理解 + 计划" data-en="Understand + Plan">理解 + 计划</h3>
+                <p data-zh="理解把一句话拆成多意图数组；计划把每个意图映射到技能函数（工具）、填充参数、建立 DAG 依赖。两段共同产出一个 PipelineResult。" data-en="Understanding splits the sentence into an intent array; planning maps each intent to a skill function (a tool), fills arguments and builds the DAG dependencies. Together they produce a PipelineResult.">
+                  理解把一句话拆成多意图数组；计划把每个意图映射到技能函数（工具）、填充参数、建立 DAG 依赖。两段共同产出一个 PipelineResult。
+                </p>
                 </p>
                 <p class="files mono">lib/frame.ts · lib/orchestrator.ts · lib/dag-schema.ts</p>
               </div>
               <div class="layer-row" data-present-step>
                 <span class="ltag lt-exec" data-zh="执行层" data-en="Execution">执行层</span>
                 <h3 data-zh="意图队列 + 函数执行" data-en="Intent Queue + Function Execution">意图队列 + 函数执行</h3>
-                <p data-zh="意图队列把多意图串成一条带游标的状态机；运行时逐个执行，draft/update 渲染确认卡片，query 立即返回结果。函数执行器按注册表分派到对应 handler。" data-en="The intent queue chains intents into a cursor-driven state machine; the runtime executes them one by one — draft/update render a confirm card, query returns results immediately. The executor dispatches to handlers via the registry.">
-                  意图队列把多意图串成一条带游标的状态机；运行时逐个执行，draft/update 渲染确认卡片，query 立即返回结果。函数执行器按注册表分派到对应 handler。
+                <p data-zh="意图队列把多意图串成一条带游标的状态机；运行时逐个执行，draft/update 渲染确认卡片，query 立即返回结果，Analyze/Report 读意图在查询后追加接地分析、必要时再补一次查询并可生成可下钻图表。函数执行器按注册表分派到对应 handler。" data-en="The intent queue chains intents into a cursor-driven state machine; the runtime executes them one by one — draft/update render a confirm card, query returns results immediately, and Analyze/Report reads append a grounded analysis after the query, fetch one more query when needed, and can emit a drill-down chart. The executor dispatches to handlers via the registry.">
+                  意图队列把多意图串成一条带游标的状态机；运行时逐个执行，draft/update 渲染确认卡片，query 立即返回结果，Analyze/Report 读意图在查询后追加接地分析、必要时再补一次查询并可生成可下钻图表。函数执行器按注册表分派到对应 handler。
                 </p>
-                <p class="files mono">lib/intent-queue.ts · lib/intent-queue-runtime.ts · lib/function-executor.ts · lib/functions/*-handlers.ts</p>
+                <p class="files mono">lib/intent-queue.ts · lib/intent-queue-runtime.ts · lib/function-executor.ts · lib/functions/*-handlers.ts · lib/chart-aggregation.ts</p>
               </div>
               <div class="layer-row" data-present-step>
                 <span class="ltag lt-data" data-zh="数据层" data-en="Data">数据层</span>
@@ -189,8 +198,8 @@ sequenceDiagram
     autonumber
     participant U as 用户 / UI
     participant C as CopilotProvider<br/>sendMessage
-    participant F as Frame<br/>意图分类
-    participant O as Orchestrator<br/>DAG 规划
+    participant F as 理解<br/>意图分类
+    participant O as 计划<br/>DAG 规划
     participant Q as 意图队列<br/>运行时
     participant X as 函数执行器<br/>+ Handlers
     participant D as 适配器<br/>→ Dataverse
@@ -222,14 +231,14 @@ sequenceDiagram
         <!-- Section 03: Frame -->
         <section id="frame" class="section" data-reveal>
           <div class="section-head">
-            <p class="section-kicker" data-zh="03 / Frame 阶段" data-en="03 / The Frame Stage">03 / The Frame Stage</p>
+            <p class="section-kicker" data-zh="03 / 理解阶段" data-en="03 / The Understanding Stage">03 / The Understanding Stage</p>
             <h2 data-zh="把一句话切成多个独立意图" data-en="Splitting One Sentence into Independent Intents">把一句话切成多个独立意图</h2>
-            <p data-zh="Frame 是流水线的第一段，唯一职责是「拆」。它读入用户原句加页面上下文，输出一个意图数组，每个意图标注销售对象、认知任务、时态，以及它依赖哪些兄弟意图。Frame 一旦定下拆分，下游不再重新分类。" data-en="Frame is the first stage, and its only job is to split. It reads the raw sentence plus page context and outputs an intent array, each tagged with sales object, cognitive task, tense, and which sibling intents it depends on. Once Frame fixes the split, downstream never re-classifies.">
-              Frame 是流水线的第一段，唯一职责是「拆」。它读入用户原句加页面上下文，输出一个意图数组，每个意图标注销售对象、认知任务、时态，以及它依赖哪些兄弟意图。Frame 一旦定下拆分，下游不再重新分类。
+            <p data-zh="理解阶段（代码中称 Frame）是流水线的第一段，唯一职责是「拆」。它读入用户原句加页面上下文，输出一个意图数组，每个意图标注销售对象、认知任务、时态，以及它依赖哪些兄弟意图。拆分一旦定下，下游不再重新分类。" data-en="The understanding stage (named Frame in code) is the pipeline's first stage, with the sole job of splitting. It reads the raw sentence plus page context and outputs an intent array, each tagged with sales object, cognitive task, tense, and which sibling intents it depends on. Once the split is fixed, downstream never re-classifies.">
+              理解阶段（代码中称 Frame）是流水线的第一段，唯一职责是「拆」。它读入用户原句加页面上下文，输出一个意图数组，每个意图标注销售对象、认知任务、时态，以及它依赖哪些兄弟意图。拆分一旦定下，下游不再重新分类。
             </p>
           </div>
 
-          <div data-present-step data-step-title="Frame 的输出契约" data-step-title-en="The Frame Output Contract" data-step-label="03 / FRAME">
+          <div data-present-step data-step-title="理解阶段的输出契约" data-step-title-en="The Understanding-Stage Output Contract" data-step-label="03 / 理解">
             <div class="layer-list">
               <div class="layer-row layer-row-plain">
                 <p class="frame-contract-lead" data-zh="每个意图（IntentItem）携带四个判定维度，下游据此选技能、定顺序、解时态：" data-en="Each IntentItem carries four decision dimensions used downstream to pick skills, set order and resolve tense:">每个意图（IntentItem）携带四个判定维度，下游据此选技能、定顺序、解时态：</p>
@@ -267,7 +276,7 @@ sequenceDiagram
               </tbody>
             </table>
             <div class="callout-note callout-warm">
-              <p data-zh="时态错点：Frame 在意图分类的提示词里显式注入今天的日期与星期，模型据此把「下周三」这类相对时间换算成具体日期。" data-en="Date anchor: Frame's intent-classification prompt explicitly injects today's date and weekday, so the model resolves relative times like 'next Wednesday' into a concrete date.">时态错点：Frame 在意图分类的提示词里显式注入今天的日期与星期，模型据此把「下周三」这类相对时间换算成具体日期。</p>
+              <p data-zh="时态错点：理解阶段在意图分类的提示词里显式注入今天的日期与星期，模型据此把「下周三」这类相对时间换算成具体日期。" data-en="Date anchor: the understanding stage's intent-classification prompt explicitly injects today's date and weekday, so the model resolves relative times like 'next Wednesday' into a concrete date.">时态错点：理解阶段在意图分类的提示词里显式注入今天的日期与星期，模型据此把「下周三」这类相对时间换算成具体日期。</p>
             </div>
           </div>
         </section>
@@ -275,10 +284,10 @@ sequenceDiagram
         <!-- Section 04: Orchestrator -->
         <section id="orchestrator" class="section" data-reveal>
           <div class="section-head">
-            <p class="section-kicker" data-zh="04 / Orchestrator 阶段" data-en="04 / The Orchestrator Stage">04 / The Orchestrator Stage</p>
+            <p class="section-kicker" data-zh="04 / 计划阶段" data-en="04 / The Planning Stage">04 / The Planning Stage</p>
             <h2 data-zh="把意图排成有依赖的执行计划" data-en="Arranging Intents into a Dependency-Ordered Plan">把意图排成有依赖的执行计划</h2>
-            <p data-zh="Orchestrator 是第二段，职责是「排」——不重新分类、不拆并意图，只把 Frame 给定的每个意图映射到一个技能函数、填充参数、用 $ref 占位符表达跨步依赖，产出一张 DAG。它是一个受约束的「填空」任务。" data-en="Orchestrator is the second stage; its job is to arrange. It never re-classifies or merges intents — it maps each Frame-given intent to a skill function, fills arguments, expresses cross-step dependencies with $ref placeholders, and emits a DAG. It is a constrained fill-in-the-blanks task.">
-              Orchestrator 是第二段，职责是「排」——不重新分类、不拆并意图，只把 Frame 给定的每个意图映射到一个技能函数、填充参数、用 $ref 占位符表达跨步依赖，产出一张 DAG。它是一个受约束的「填空」任务。
+            <p data-zh="计划阶段（代码中称 Orchestrator）是第二段，职责是「排」——不重新分类、不拆并意图，只把上一段给定的每个意图映射到一个技能函数（工具）、填充参数、用 $ref 占位符表达跨步依赖，产出一张 DAG。它是一个受约束的「填空」任务。" data-en="The planning stage (named Orchestrator in code) is the second stage; its job is to arrange. It never re-classifies or merges intents — it maps each given intent to a skill function (a tool), fills arguments, expresses cross-step dependencies with $ref placeholders, and emits a DAG. It is a constrained fill-in-the-blanks task.">
+              计划阶段（代码中称 Orchestrator）是第二段，职责是「排」——不重新分类、不拆并意图，只把上一段给定的每个意图映射到一个技能函数（工具）、填充参数、用 $ref 占位符表达跨步依赖，产出一张 DAG。它是一个受约束的「填空」任务。
             </p>
           </div>
 
@@ -345,17 +354,129 @@ sequenceDiagram
           </div>
         </section>
 
-        <!-- Section 06: Contracts -->
+        <!-- Section 06: The Intelligent Read Path -->
+        <section id="intelligence" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="06 / 智能读路径" data-en="06 / The Intelligent Read Path">06 / The Intelligent Read Path</p>
+            <h2 data-zh="读路径只在真实记录上作答，并把定量拆解交给可回溯的图表" data-en="The Read Path Answers Only From Real Records and Hands Quantitative Breakdowns to Traceable Charts">读路径只在真实记录上作答，并把定量拆解交给可回溯的图表</h2>
+            <p data-zh="第 01 节的「读必接地」由本节兑现。标注为 Analyze / Report 的读意图不直接让模型作答，而是先查询、再交给一个接地分析步（analyzeResults）在取回的真实记录上推理。本节分四层展开：如何决策、由谁算数、如何渲染与回到记录、以及文字与图表如何分工与其边界。" data-en="Section 01's 'reads must be grounded' is honored here. A read intent tagged Analyze / Report does not let the model answer directly; it queries first, then hands the fetched records to a grounded analysis step (analyzeResults). This section unfolds in four layers: how it decides, who computes the numbers, how it renders and returns to records, and how text and chart divide labor within their limits.">
+              第 01 节的「读必接地」由本节兑现。标注为 Analyze / Report 的读意图不直接让模型作答，而是先查询、再交给一个接地分析步（analyzeResults）在取回的真实记录上推理。本节分四层展开：如何决策、由谁算数、如何渲染与回到记录、以及文字与图表如何分工与其边界。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="决策：作答、补查一次、或出图" data-step-title-en="The Decision: Answer, Fetch Once More, or Visualize" data-step-label="06 / DECISION">
+            <p class="lead-note" data-zh="分析步返回一个结构化结果 { answer? | followupQuery? , chart? }，运行时按出现了哪个字段分派：" data-en="The analysis step returns a structured result { answer? | followupQuery? , chart? }; the runtime dispatches on which field is present:">分析步返回一个结构化结果 { answer? | followupQuery? , chart? }，运行时按出现了哪个字段分派：</p>
+            <table class="simple-table">
+              <thead>
+                <tr>
+                  <th data-zh="结构字段" data-en="Structured Field">结构字段</th>
+                  <th data-zh="运行时动作" data-en="Runtime Action">运行时动作</th>
+                  <th data-zh="终止保证" data-en="Termination Guarantee">终止保证</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="mono">answer</td>
+                  <td data-zh="当前记录足以回答，直接给出接地答案。" data-en="The current records suffice; emit the grounded answer.">当前记录足以回答，直接给出接地答案。</td>
+                  <td data-zh="终态。" data-en="Terminal.">终态。</td>
+                </tr>
+                <tr>
+                  <td class="mono">followupQuery</td>
+                  <td data-zh="当前记录不足，补一次相关查询（如账户 → 其活动），在合并记录上重分析。" data-en="Records insufficient; run one related query (e.g. account then its activities) and re-analyze over the merged set.">当前记录不足，补一次相关查询（如账户 → 其活动），在合并记录上重分析。</td>
+                  <td data-zh="补查上限 MAX_HOPS = 1；末跳被强制只能返回 answer，回路不可能递归。" data-en="Follow-ups capped at MAX_HOPS = 1; on the final hop the step may return only answer, so the loop cannot recur.">补查上限 MAX_HOPS = 1；末跳被强制只能返回 answer，回路不可能递归。</td>
+                </tr>
+                <tr>
+                  <td class="mono">chart</td>
+                  <td data-zh="答案是定量拆解，附一张图表规格（见第二、三层）。" data-en="The answer is a quantitative breakdown; attach a chart spec (see layers 2 and 3).">答案是定量拆解，附一张图表规格（见第二、三层）。</td>
+                  <td data-zh="与 answer 并存，非独立分支。" data-en="Coexists with answer; not a separate branch.">与 answer 并存，非独立分支。</td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="callout-note callout-warm">
+              <p data-zh="失败样例走查：问「Rush 客户还能不能救」，账户记录里没有商机与近期活动 → 触发一次 followupQuery 补查其活动与商机 → 仍为空 → 末跳强制作答，如实回复「以现有记录无法评估其健康度」，而非编造一个乐观结论。" data-en="Failure walkthrough: asked whether the Rush account can still be saved, the account row carries no opportunities or recent activity, so one followupQuery fetches its activities and deals; still empty, the final hop must answer and honestly replies that it cannot assess the account's health from the current records, rather than fabricating an optimistic verdict.">失败样例走查：问「Rush 客户还能不能救」，账户记录里没有商机与近期活动 → 触发一次 followupQuery 补查其活动与商机 → 仍为空 → 末跳强制作答，如实回复「以现有记录无法评估其健康度」，而非编造一个乐观结论。</p>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="接地契约：模型出规格，代码出数字" data-step-title-en="The Grounding Contract: the Model Emits a Spec, Code Computes the Numbers" data-step-label="06 / GROUNDING">
+            <p class="lead-note" data-zh="要让「读必接地」可证，数值的产出权必须离开模型。模型只输出一个图表规格 { type, dimension, metric }——按什么分、用哪种图、看金额还是数量；代码据此对真实记录分组并计算每一个数字。" data-en="For 'reads must be grounded' to be provable, authorship of the numbers must leave the model. The model emits only a chart spec { type, dimension, metric } — what to group by, which chart, amount or count; code then groups the real records and computes every value.">要让「读必接地」可证，数值的产出权必须离开模型。模型只输出一个图表规格 { type, dimension, metric }——按什么分、用哪种图、看金额还是数量；代码据此对真实记录分组并计算每一个数字。</p>
+            <div class="comparison-grid">
+              <div class="insight-card">
+                <span class="card-index">模型</span>
+                <h3 data-zh="模型负责选择" data-en="The Model Chooses">模型负责选择</h3>
+                <p data-zh="判断该不该出图、按哪个维度（阶段 / 客户 / 月份 / 负责人）、用柱 / 环 / 折线、度量取金额还是数量。它只碰「怎么看」，不碰「是多少」，也从不产出 HTML 或 SVG。" data-en="Whether to chart at all, along which dimension (stage / account / month / owner), which of bar / donut / line, and whether the metric is amount or count. It touches only how to view, never what the value is, and never emits HTML or SVG.">
+                  判断该不该出图、按哪个维度（阶段 / 客户 / 月份 / 负责人）、用柱 / 环 / 折线、度量取金额还是数量。它只碰「怎么看」，不碰「是多少」，也从不产出 HTML 或 SVG。
+                </p>
+              </div>
+              <div class="insight-card">
+                <span class="card-index">代码</span>
+                <h3 data-zh="代码负责算数" data-en="Code Computes">代码负责算数</h3>
+                <p data-zh="按 dimension 把取回的记录分组，逐组累加 metric，并在每组内保留成员记录的指针。每个柱高、每个占比都能追溯到具体记录，数值可证。" data-en="Groups the fetched records by dimension, sums the metric per group, and keeps pointers to each group's member records. Every bar height and every share traces to concrete records, so the numbers are provable.">
+                  按 dimension 把取回的记录分组，逐组累加 metric，并在每组内保留成员记录的指针。每个柱高、每个占比都能追溯到具体记录，数值可证。
+                </p>
+              </div>
+            </div>
+            <div class="callout-note">
+              <p data-zh="被否掉的替代方案：让模型直接输出聚合后的数字或一张渲染好的表。否决依据——模型会误算或编造，违反「读必接地」，且产出无法与记录对账；只让它出规格，才能把每个数字钉在真实记录上。" data-en="Rejected alternative: letting the model output the aggregated numbers or a rendered table directly. Rejected because the model would miscount or fabricate, violating 'reads must be grounded', and its output could not be reconciled against the records; emitting only a spec is what pins every number to real records.">被否掉的替代方案：让模型直接输出聚合后的数字或一张渲染好的表。否决依据——模型会误算或编造，违反「读必接地」，且产出无法与记录对账；只让它出规格，才能把每个数字钉在真实记录上。</p>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="固定渲染器与回到记录的闭环" data-step-title-en="The Fixed Renderer and the Loop Back to Records" data-step-label="06 / RENDER">
+            <div class="flow-list">
+              <div class="flow-step">
+                <div class="flow-copy">
+                  <strong data-zh="选型由数据形状决定" data-en="Shape Decides the Chart Form">选型由数据形状决定</strong>
+                  <p data-zh="固定渲染器据规格选型：排名比较用柱状，占比且组数 ≤ 6 用环形，时间维度用折线；类别名过长自动转横向柱；类别超过 Top-N（上限 10）时，尾部折叠成一个可展开的「其它」，其内再按子组下钻。" data-en="The fixed renderer picks the form from the spec: bar for ranking, donut for share with 6 or fewer groups, line for a time dimension; long category names switch to horizontal bars; beyond a Top-N cap (10) the tail folds into an expandable 'Other' that itself drills into its sub-groups.">固定渲染器据规格选型：排名比较用柱状，占比且组数 ≤ 6 用环形，时间维度用折线；类别名过长自动转横向柱；类别超过 Top-N（上限 10）时，尾部折叠成一个可展开的「其它」，其内再按子组下钻。</p>
+                </div>
+              </div>
+              <div class="flow-step">
+                <div class="flow-copy">
+                  <strong data-zh="三级兜底保证该出图就出图" data-en="A Three-Tier Fallback Makes Charts Reliable">三级兜底保证该出图就出图</strong>
+                  <p data-zh="有模型规格就用模型的；模型未给时，从用户原话推断维度（「按客户」「按月」）；仍无则回退到阶段管道拆解。因此定量拆解请求即便模型漏给规格，也稳定出图。" data-en="Use the model's spec when present; when the model omits it, infer the dimension from the user's own words ('by account', 'by month'); failing that, fall back to the pipeline-stage breakdown. So a breakdown request charts reliably even if the model drops the spec.">有模型规格就用模型的；模型未给时，从用户原话推断维度（「按客户」「按月」）；仍无则回退到阶段管道拆解。因此定量拆解请求即便模型漏给规格，也稳定出图。</p>
+                </div>
+              </div>
+              <div class="flow-step">
+                <div class="flow-copy">
+                  <strong data-zh="下钻闭环回到同一批记录" data-en="Drill-Down Closes the Loop on the Same Records">下钻闭环回到同一批记录</strong>
+                  <p data-zh="点一段 → 就地展开它的成员记录 → 点一条 → 按实体类型（商机 / 客户 / 活动 / 联系人四种路由）进入详情页。图表、下钻清单、详情页是同一批取回记录的三个视图：柱上的数字与详情页里的金额是同一个值。" data-en="Tap a segment, inline-expand its member records, tap one, and open its detail page (routed by entity kind across four routes: opportunity / account / activity / contact). Chart, drill-down list and detail page are three views of the same fetched records: the number on a bar equals the amount on the detail page.">点一段 → 就地展开它的成员记录 → 点一条 → 按实体类型（商机 / 客户 / 活动 / 联系人四种路由）进入详情页。图表、下钻清单、详情页是同一批取回记录的三个视图：柱上的数字与详情页里的金额是同一个值。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="文字与图表的分工，及其边界" data-step-title-en="The Text and Chart Division of Labor, and Its Limits" data-step-label="06 / LIMITS">
+            <div class="comparison-grid">
+              <div class="insight-card">
+                <span class="card-index">文字</span>
+                <h3 data-zh="文字只担洞察" data-en="Text Carries Only Insight">文字只担洞察</h3>
+                <p data-zh="有图表时，文字被约束为洞察——集中度、异常、风险、下一步动作；代码会剥掉模型答案里的分组罗列与小标题，使文字不复述图表已呈现的分组明细。" data-en="When a chart is present, the text is constrained to insight: concentration, outliers, risk, next action; code strips any per-group enumeration and headings from the model's answer so the text never restates the breakdown the chart already shows.">
+                  有图表时，文字被约束为洞察——集中度、异常、风险、下一步动作；代码会剥掉模型答案里的分组罗列与小标题，使文字不复述图表已呈现的分组明细。
+                </p>
+              </div>
+              <div class="insight-card">
+                <span class="card-index">图表</span>
+                <h3 data-zh="图表只担明细" data-en="Chart Carries Only the Breakdown">图表只担明细</h3>
+                <p data-zh="每组的数值与成员记录由图表及其下钻承担。文字答「为什么重要」，图表答「具体是多少、由哪些记录构成」，两者不重叠。" data-en="Each group's value and member records are carried by the chart and its drill-down. Text answers why it matters; the chart answers what the numbers are and which records make them up. The two do not overlap.">
+                  每组的数值与成员记录由图表及其下钻承担。文字答「为什么重要」，图表答「具体是多少、由哪些记录构成」，两者不重叠。
+                </p>
+              </div>
+            </div>
+            <div class="callout-note callout-warm">
+              <p data-zh="边界与代价：图表仅在「定量拆解且组数 ≥ 2」时出现，单个数值仍走文字；金额不带统一货币符号，因为同一盘子可能混币种；接地读路径比裸查询多一次模型往返，遇 followupQuery 再多一次——这是用延迟换正确性的取舍。" data-en="Limits and cost: a chart appears only for a quantitative breakdown with 2 or more groups — a single value stays text; amounts carry no unified currency symbol because a book may mix currencies; the grounded read path costs one extra model round-trip over a bare query, and one more on a followupQuery — a deliberate latency-for-correctness trade.">边界与代价：图表仅在「定量拆解且组数 ≥ 2」时出现，单个数值仍走文字；金额不带统一货币符号，因为同一盘子可能混币种；接地读路径比裸查询多一次模型往返，遇 followupQuery 再多一次——这是用延迟换正确性的取舍。</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 07: Contracts -->
         <section id="contracts" class="section" data-reveal>
           <div class="section-head">
-            <p class="section-kicker" data-zh="06 / 契约与适配" data-en="06 / Contracts and Adaptation">06 / Contracts and Adaptation</p>
+            <p class="section-kicker" data-zh="07 / 契约与适配" data-en="07 / Contracts and Adaptation">07 / Contracts and Adaptation</p>
             <h2 data-zh="两道防线:注册表契约 与 适配器" data-en="Two Guardrails: the Registry Contract and the Adapter">两道防线：注册表契约 与 适配器</h2>
             <p data-zh="LLM 的输出是不可信的,数据库的列名是反直觉的。架构在这两处各设一道防线:函数注册表用 Zod 校验每个技能的输入输出;服务适配器把应用模型翻译成 Dataverse 的真实列名。" data-en="LLM output is untrusted; database column names are counter-intuitive. The architecture sets a guardrail at each: the function registry validates every skill's I/O with Zod; the service adapter translates the app model into Dataverse's real column names.">
               LLM 的输出是不可信的，数据库的列名是反直觉的。架构在这两处各设一道防线：函数注册表用 Zod 校验每个技能的输入输出；服务适配器把应用模型翻译成 Dataverse 的真实列名。
             </p>
           </div>
 
-          <div data-present-step data-step-title="两道防线：输出校验 与 数据适配" data-step-title-en="Two Guardrails: Output Validation and Data Adaptation" data-step-label="06 / GUARDRAILS">
+          <div data-present-step data-step-title="两道防线：输出校验 与 数据适配" data-step-title-en="Two Guardrails: Output Validation and Data Adaptation" data-step-label="07 / GUARDRAILS">
             <div class="flow-list">
               <div class="flow-step">
                 <div class="flow-copy">
@@ -380,14 +501,14 @@ sequenceDiagram
         <!-- Section 07: Observability -->
         <section id="observability" class="section" data-reveal>
           <div class="section-head">
-            <p class="section-kicker" data-zh="07 / 可观测性" data-en="07 / Observability">07 / Observability</p>
+            <p class="section-kicker" data-zh="08 / 可观测性" data-en="08 / Observability">08 / Observability</p>
             <h2 data-zh="任何静默降级都必须留下痕迹" data-en="Every Silent Degradation Must Leave a Trace">任何静默降级都必须留下痕迹</h2>
             <p data-zh="LLM 流水线天然有不确定性:某次调用可能畸形需重试,某个字段可能缺失被补默认。架构的硬规则是:任何重试、补值、回退都不能「看起来像一次干净的运行」,必须在控制台告警、在 PipelineResult 里带上布尔与原因、并在 Frame Inspector 里显示一枚标记。" data-en="An LLM pipeline is inherently nondeterministic: a call may be malformed and retried, a field may be missing and defaulted. The hard rule: any retry, default or fallback must never look like a clean run — it must warn in the console, carry a boolean and reason on PipelineResult, and show a chip in the Frame Inspector.">
               LLM 流水线天然有不确定性：某次调用可能畸形需重试，某个字段可能缺失被补默认。架构的硬规则是：任何重试、补值、回退都不能「看起来像一次干净的运行」，必须在控制台告警、在 PipelineResult 里带上布尔与原因、并在 Frame Inspector 里显示一枚标记。
             </p>
           </div>
 
-          <div data-present-step data-step-title="Frame Inspector:让流水线透明" data-step-title-en="Frame Inspector: Making the Pipeline Transparent" data-step-label="07 / INSPECTOR">
+          <div data-present-step data-step-title="Frame Inspector：让流水线透明" data-step-title-en="Frame Inspector: Making the Pipeline Transparent" data-step-label="08 / INSPECTOR">
             <div class="comparison-grid">
               <div class="insight-card">
                 <span class="card-index">▤</span>

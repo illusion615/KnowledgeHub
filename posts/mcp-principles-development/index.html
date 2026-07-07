@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MCP 原理与开发指南：协议解剖与 TypeScript 落地实操</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(1.8rem, 4.5vw, 3.2rem);
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+      max-width: 24ch;
+    }
+
+    .hero-metrics {
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+
+    .code-caption {
+      margin: 16px 0 0;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .code-block {
+      margin-top: 10px;
+      padding: 18px 20px;
+      border-radius: 16px;
+      background: rgba(15, 23, 42, 0.045);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      font-family: "Space Grotesk", ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      white-space: pre;
+      color: var(--ink);
+    }
+
+    [data-theme="dark"] .code-block {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    @media (max-width: 640px) {
+      .code-block {
+        font-size: 0.72rem;
+        padding: 14px 14px;
+      }
+    }
+
+    .mcp-arch {
+      margin-top: 12px;
+      display: grid;
+      gap: 0;
+    }
+
+    .arch-band {
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      border-radius: 18px;
+      padding: 16px 18px;
+      box-shadow: var(--card-shadow);
+    }
+
+    .arch-band-build {
+      border-color: rgba(79, 70, 229, 0.5);
+      background: rgba(79, 70, 229, 0.07);
+      box-shadow: 0 16px 34px rgba(79, 70, 229, 0.13);
+    }
+
+    .arch-band-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .arch-band-title {
+      margin: 0;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-weight: 700;
+      font-size: 0.98rem;
+      color: var(--ink);
+    }
+
+    .arch-tag {
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .arch-tag-host { background: rgba(56, 189, 248, 0.16); color: #0369a1; }
+    .arch-tag-sdk { background: rgba(100, 116, 139, 0.16); color: #475569; }
+    .arch-tag-build { background: rgba(79, 70, 229, 0.16); color: #4338ca; }
+    .arch-tag-data { background: rgba(234, 179, 8, 0.18); color: #a16207; }
+
+    .arch-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .arch-chip {
+      flex: 1 1 150px;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 9px 12px;
+      background: rgba(15, 23, 42, 0.02);
+    }
+
+    .arch-chip-lead { border-color: rgba(56, 189, 248, 0.5); }
+
+    .arch-band-build .arch-chip {
+      background: rgba(79, 70, 229, 0.05);
+      border-color: rgba(79, 70, 229, 0.28);
+    }
+
+    .arch-chip strong {
+      display: block;
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .arch-chip span {
+      display: block;
+      margin-top: 2px;
+      font-size: 0.74rem;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .arch-note {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.6;
+    }
+
+    .arch-conn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 9px 0;
+    }
+
+    .arch-conn::before {
+      content: "\25BC";
+      color: var(--muted);
+      font-size: 0.66rem;
+      opacity: 0.7;
+    }
+
+    .arch-conn-label {
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: 0.74rem;
+      color: var(--muted);
+    }
+
+    [data-theme="dark"] .arch-chip { background: rgba(255, 255, 255, 0.04); }
+    [data-theme="dark"] .arch-band-build { background: rgba(129, 140, 248, 0.1); border-color: rgba(129, 140, 248, 0.4); }
+    [data-theme="dark"] .arch-band-build .arch-chip { background: rgba(129, 140, 248, 0.08); border-color: rgba(129, 140, 248, 0.28); }
+    [data-theme="dark"] .arch-tag-host { background: rgba(56, 189, 248, 0.22); color: #7dd3fc; }
+    [data-theme="dark"] .arch-tag-sdk { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; }
+    [data-theme="dark"] .arch-tag-build { background: rgba(129, 140, 248, 0.24); color: #c7d2fe; }
+    [data-theme="dark"] .arch-tag-data { background: rgba(234, 179, 8, 0.22); color: #fde68a; }
+
+    @media (max-width: 640px) {
+      .arch-band { padding: 14px 14px; }
+      .arch-chip { flex-basis: 120px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero" data-present-step data-step-title="Overview">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            <span data-zh="Function Calling &amp; Agentic" data-en="Function Calling &amp; Agentic">Function Calling &amp; Agentic</span>
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航" data-nav-pager>
+            <a href="#why" data-zh="定位" data-en="Why">定位</a>
+            <a href="#architecture" data-zh="架构" data-en="Architecture">架构</a>
+            <a href="#primitives" data-zh="原语" data-en="Primitives">原语</a>
+            <a href="#lifecycle" data-zh="生命周期" data-en="Lifecycle">生命周期</a>
+            <a href="#transports" data-zh="传输" data-en="Transports">传输</a>
+            <a href="#build-server" data-zh="构建 Server" data-en="Build Server">构建 Server</a>
+            <a href="#client" data-zh="客户端" data-en="Client">客户端</a>
+            <a href="#security" data-zh="安全" data-en="Security">安全</a>
+            <a href="#adoption" data-zh="选型" data-en="Adoption">选型</a>
+            <a href="#references" data-zh="参考" data-en="References">参考</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Model Context Protocol</span>
+            <h1 data-zh="MCP 原理与开发指南：协议解剖与 TypeScript 落地实操" data-en="MCP Principles and Development Guide: Protocol Anatomy and TypeScript Delivery">MCP 原理与开发指南：协议解剖与 TypeScript 落地实操</h1>
+            <p data-zh="Model Context Protocol（MCP）是一套开放协议，用统一的 JSON-RPC 通道把 LLM 应用与外部数据、工具、工作流连接起来。本文面向架构师与技术决策者，先解剖协议原理——参与方、原语、生命周期、传输——再用 TypeScript 演示如何从零构建一个可运行的 MCP server，并给出安全加固与选型判据。" data-en="The Model Context Protocol (MCP) is an open protocol that connects LLM applications to external data, tools, and workflows over one JSON-RPC channel. Written for architects and technical decision-makers, this guide first dissects the protocol - participants, primitives, lifecycle, transports - then builds a running MCP server from scratch in TypeScript, and closes with security hardening and adoption criteria.">Model Context Protocol（MCP）是一套开放协议，用统一的 JSON-RPC 通道把 LLM 应用与外部数据、工具、工作流连接起来。本文面向架构师与技术决策者，先解剖协议原理——参与方、原语、生命周期、传输——再用 TypeScript 演示如何从零构建一个可运行的 MCP server，并给出安全加固与选型判据。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#architecture" data-zh="从架构看起" data-en="Start with Architecture">从架构看起</a>
+              <a class="button button-secondary" href="#build-server" data-zh="直接上手开发" data-en="Jump to the Build">直接上手开发</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label" data-zh="核心主张" data-en="Core Thesis">核心主张</span>
+            <h2 data-zh="MCP 用一套 JSON-RPC 协议，把「模型 × 工具」的集成从 M×N 收敛为 M+N，并划定清晰的安全边界。" data-en="MCP uses one JSON-RPC protocol to collapse model-to-tool integration from M×N to M+N, with explicit security boundaries.">MCP 用一套 JSON-RPC 协议，把「模型 × 工具」的集成从 M×N 收敛为 M+N，并划定清晰的安全边界。</h2>
+            <ul class="layer-list section-grid-spaced">
+              <li data-zh="<span class='layer-number'>1</span>读完能解释 Host / Client / Server 各自的职责与信任边界。" data-en="<span class='layer-number'>1</span>You can explain the responsibilities and trust boundaries of Host, Client, and Server."><span class="layer-number">1</span>读完能解释 Host / Client / Server 各自的职责与信任边界。</li>
+              <li data-zh="<span class='layer-number'>2</span>能说清六个原语与能力协商如何决定一次会话能做什么。" data-en="<span class='layer-number'>2</span>You can articulate how the six primitives and capability negotiation define what a session can do."><span class="layer-number">2</span>能说清六个原语与能力协商如何决定一次会话能做什么。</li>
+              <li data-zh="<span class='layer-number'>3</span>能用 TypeScript 从零构建并运行一个 MCP server。" data-en="<span class='layer-number'>3</span>You can build and run an MCP server from scratch in TypeScript."><span class="layer-number">3</span>能用 TypeScript 从零构建并运行一个 MCP server。</li>
+              <li data-zh="<span class='layer-number'>4</span>能判断某场景该用 MCP、还是直接 function calling 或私有 API。" data-en="<span class='layer-number'>4</span>You can judge whether a scenario calls for MCP, plain function calling, or a private API."><span class="layer-number">4</span>能判断某场景该用 MCP、还是直接 function calling 或私有 API。</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label" data-zh="协议基座" data-en="Protocol Base">协议基座</div>
+            <strong>JSON-RPC 2.0</strong>
+            <span data-zh="有状态会话 + 能力协商" data-en="Stateful sessions + capability negotiation">有状态会话 + 能力协商</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="参与方" data-en="Participants">参与方</div>
+            <strong data-zh="3 类" data-en="3 roles">3 类</strong>
+            <span data-zh="Host · Client · Server（Client 与 Server 一对一）" data-en="Host · Client · Server (Client-to-Server is 1:1)">Host · Client · Server（Client 与 Server 一对一）</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="原语" data-en="Primitives">原语</div>
+            <strong data-zh="3 + 3" data-en="3 + 3">3 + 3</strong>
+            <span data-zh="服务器 Tools·Resources·Prompts / 客户端 Sampling·Roots·Elicitation" data-en="Server Tools·Resources·Prompts / Client Sampling·Roots·Elicitation">服务器 Tools·Resources·Prompts / 客户端 Sampling·Roots·Elicitation</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="标准传输" data-en="Standard Transports">标准传输</div>
+            <strong data-zh="2 种" data-en="2 kinds">2 种</strong>
+            <span data-zh="stdio · Streamable HTTP（当前修订 2025-11-25）" data-en="stdio · Streamable HTTP (current revision 2025-11-25)">stdio · Streamable HTTP（当前修订 2025-11-25）</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- Section 1: Why It Exists -->
+        <section id="why" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="01 / Why It Exists" data-en="01 / Why It Exists">01 / Why It Exists</p>
+            <h2 data-zh="为什么需要 MCP：把 M×N 集成收敛为 M+N" data-en="Why MCP Exists: Collapsing M×N Integrations into M+N">为什么需要 MCP：把 M×N 集成收敛为 M+N</h2>
+            <p data-zh="每个 AI 应用要接每个工具时，若各写各的胶水层，M 个应用 × N 个工具就是 M×N 套私有集成。MCP 借鉴 Language Server Protocol（LSP）的思路，把这层协议标准化：工具只实现一次 server，应用只实现一次 client，集成成本降为 M+N。官方把它类比为「AI 应用的 USB-C 接口」。" data-en="When every AI application wires up every tool with bespoke glue, M applications times N tools means M×N private integrations. Borrowing from the Language Server Protocol (LSP), MCP standardizes this layer: a tool implements a server once, an application implements a client once, and integration cost drops to M+N. The official analogy calls it a USB-C port for AI applications.">每个 AI 应用要接每个工具时，若各写各的胶水层，M 个应用 × N 个工具就是 M×N 套私有集成。MCP 借鉴 Language Server Protocol（LSP）的思路，把这层协议标准化：工具只实现一次 server，应用只实现一次 client，集成成本降为 M+N。官方把它类比为「AI 应用的 USB-C 接口」。</p>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="1.1 集成问题：从私有胶水到共享协议" data-en="1.1 The Integration Problem: From Private Glue to a Shared Protocol">1.1 集成问题：从私有胶水到共享协议</span></button>
+              <div class="subsection-content">
+                <p data-zh="MCP 解决的是「重复集成」而非「模型能力」。同一份工具接入代码，过去要为每个宿主重写一遍；有了协议约定，一次实现即可被所有兼容宿主复用。" data-en="MCP addresses duplicated integration, not model capability. The same tool-integration code that used to be rewritten for every host can, under a shared protocol, be implemented once and reused by every compatible host.">MCP 解决的是「重复集成」而非「模型能力」。同一份工具接入代码，过去要为每个宿主重写一遍；有了协议约定，一次实现即可被所有兼容宿主复用。</p>
+                <div class="comparison-grid">
+                  <article class="comparison-card">
+                    <span class="comparison-label" data-zh="无协议 · M×N" data-en="No Protocol · M×N">无协议 · M×N</span>
+                    <h3 data-zh="每个应用为每个工具单独适配" data-en="Each App Adapts to Each Tool Separately">每个应用为每个工具单独适配</h3>
+                    <ul class="challenge-list">
+                      <li data-zh="工具方要为不同宿主分别维护接入逻辑与鉴权。" data-en="Tool authors maintain separate integration and auth logic per host.">工具方要为不同宿主分别维护接入逻辑与鉴权。</li>
+                      <li data-zh="应用方每接一个新工具，都要理解一套新接口。" data-en="Each new tool forces the application to learn yet another interface.">应用方每接一个新工具，都要理解一套新接口。</li>
+                      <li data-zh="接口无版本约定，任一端升级都可能打断对方。" data-en="With no versioning contract, either side's upgrade can break the other.">接口无版本约定，任一端升级都可能打断对方。</li>
+                    </ul>
+                  </article>
+                  <article class="comparison-card next">
+                    <span class="comparison-label" data-zh="有协议 · M+N" data-en="With Protocol · M+N">有协议 · M+N</span>
+                    <h3 data-zh="工具实现一次 server，应用实现一次 client" data-en="A Tool Ships One Server, an App Ships One Client">工具实现一次 server，应用实现一次 client</h3>
+                    <ul class="challenge-list">
+                      <li data-zh="任意 MCP 兼容宿主都能发现并调用同一个 server。" data-en="Any MCP-compatible host can discover and call the same server.">任意 MCP 兼容宿主都能发现并调用同一个 server。</li>
+                      <li data-zh="能力通过协商声明，双方只使用彼此支持的功能。" data-en="Capabilities are declared via negotiation; each side uses only what the other supports.">能力通过协商声明，双方只使用彼此支持的功能。</li>
+                      <li data-zh="版本以日期串标识，向后兼容变更不打断既有会话。" data-en="Versions are date-stamped; backward-compatible changes do not break existing sessions.">版本以日期串标识，向后兼容变更不打断既有会话。</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="1.2 三类受益者" data-en="1.2 Three Groups That Benefit">1.2 三类受益者</span></button>
+              <div class="subsection-content">
+                <p data-zh="从生态位置看，MCP 对三类角色各有收益，构成它被广泛采纳的动力。" data-en="Viewed by ecosystem position, MCP yields distinct benefits for three roles - the force behind its broad adoption.">从生态位置看，MCP 对三类角色各有收益，构成它被广泛采纳的动力。</p>
+                <div class="insight-grid">
+                  <article class="insight-card">
+                    <span class="card-index">01</span>
+                    <h3 data-zh="开发者" data-en="Developers">开发者</h3>
+                    <p data-zh="构建或接入 AI 应用时，减少集成的开发时间与复杂度——一次实现，处处可用。" data-en="Building or integrating an AI application takes less development time and complexity - build once, integrate everywhere.">构建或接入 AI 应用时，减少集成的开发时间与复杂度——一次实现，处处可用。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">02</span>
+                    <h3 data-zh="AI 应用与智能体" data-en="AI Apps and Agents">AI 应用与智能体</h3>
+                    <p data-zh="即时接入一整套数据源、工具与工作流生态，扩展模型能力、改善端到端体验。" data-en="Gain immediate access to an ecosystem of data sources, tools, and workflows that extend model capability and improve the end-to-end experience.">即时接入一整套数据源、工具与工作流生态，扩展模型能力、改善端到端体验。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">03</span>
+                    <h3 data-zh="最终用户" data-en="End Users">最终用户</h3>
+                    <p data-zh="获得更有能力的助手：在获得授权时，能访问自己的数据并代为执行操作。" data-en="Get more capable assistants that, once authorized, can access their data and act on their behalf.">获得更有能力的助手：在获得授权时，能访问自己的数据并代为执行操作。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="1.3 与 Function Calling 的关系" data-en="1.3 Relationship to Function Calling">1.3 与 Function Calling 的关系</span></button>
+              <div class="subsection-content">
+                <p data-zh="MCP 不是 function calling 的替代品，而是它的传输与发现层：function calling 决定「模型如何表达要调用某个工具」，MCP 决定「工具如何被发现、连接、鉴权与复用」。" data-en="MCP does not replace function calling; it is the transport and discovery layer around it. Function calling governs how a model expresses a tool call; MCP governs how tools are discovered, connected, authorized, and reused.">MCP 不是 function calling 的替代品，而是它的传输与发现层：function calling 决定「模型如何表达要调用某个工具」，MCP 决定「工具如何被发现、连接、鉴权与复用」。</p>
+                <ul class="challenge-list">
+                  <li data-zh="<strong>互补关系</strong> — 宿主把 MCP server 暴露的 tools 转成模型的 function/tool 声明；模型仍用 function calling 决定调用哪个、传什么参数。" data-en="<strong>Complementary</strong> - The host turns tools exposed by an MCP server into the model's function/tool declarations; the model still uses function calling to decide which to call and with what arguments."><strong>互补关系</strong> — 宿主把 MCP server 暴露的 tools 转成模型的 function/tool 声明；模型仍用 function calling 决定调用哪个、传什么参数。</li>
+                  <li data-zh="<strong>MCP 多做的事</strong> — 连接生命周期、能力协商、资源与提示原语、双向请求（sampling）、传输与会话管理，这些都超出裸 function calling 的范畴。" data-en="<strong>What MCP adds</strong> - Connection lifecycle, capability negotiation, the resource and prompt primitives, bidirectional requests (sampling), and transport and session management - all beyond bare function calling."><strong>MCP 多做的事</strong> — 连接生命周期、能力协商、资源与提示原语、双向请求（sampling）、传输与会话管理，这些都超出裸 function calling 的范畴。</li>
+                  <li data-zh="<strong>选择判据</strong> — 单一应用内的少量工具，直接 function calling 更轻；要把工具做成可跨宿主复用的产品，MCP 更合适（详见选型一节）。" data-en="<strong>Decision cue</strong> - For a few tools inside a single app, bare function calling is lighter; to ship tools as a cross-host reusable product, MCP fits better (see the adoption section)."><strong>选择判据</strong> — 单一应用内的少量工具，直接 function calling 更轻；要把工具做成可跨宿主复用的产品，MCP 更合适（详见选型一节）。</li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 2: Architecture -->
+        <section id="architecture" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="02 / Architecture" data-en="02 / Architecture">02 / Architecture</p>
+            <h2 data-zh="架构总览：Host / Client / Server 三参与方" data-en="Architecture Overview: The Host / Client / Server Model">架构总览：Host / Client / Server 三参与方</h2>
+            <p data-zh="MCP 采用 client-host-server 架构：一个 host 进程可运行多个 client，每个 client 与一个 server 维持一对一的有状态会话。架构建立在 JSON-RPC 2.0 之上，专注于上下文交换与 sampling 协调，同时用 host 隔离各 server、维护安全边界。" data-en="MCP follows a client-host-server architecture: one host process can run multiple clients, and each client maintains a 1:1 stateful session with one server. Built on JSON-RPC 2.0, it focuses on context exchange and sampling coordination while the host isolates servers and maintains security boundaries.">MCP 采用 client-host-server 架构：一个 host 进程可运行多个 client，每个 client 与一个 server 维持一对一的有状态会话。架构建立在 JSON-RPC 2.0 之上，专注于上下文交换与 sampling 协调，同时用 host 隔离各 server、维护安全边界。</p>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="2.1 架构全景图：开发时你要建什么" data-en="2.1 Architecture Panorama: What You Build">2.1 架构全景图：开发时你要建什么</span></button>
+              <div class="subsection-content">
+                <p data-zh="这张全景图把 MCP 的运行拓扑与「开发责任」叠在一起：分三层看谁在跑、谁提供、你要写哪一层。" data-en="This panorama overlays MCP's runtime topology with development responsibility: three layers showing who runs, who provides, and which layer you write.">这张全景图把 MCP 的运行拓扑与「开发责任」叠在一起：分三层看谁在跑、谁提供、你要写哪一层。</p>
+                <div class="mcp-arch">
+                  <div class="arch-band">
+                    <div class="arch-band-head">
+                      <p class="arch-band-title" data-zh="宿主进程 Application Host Process" data-en="Application Host Process">宿主进程 Application Host Process</p>
+                      <span class="arch-tag arch-tag-host" data-zh="宿主提供" data-en="Host-provided">宿主提供</span>
+                    </div>
+                    <div class="arch-chips">
+                      <div class="arch-chip arch-chip-lead"><strong data-zh="Host" data-en="Host">Host</strong><span data-zh="LLM 应用 · 协调与授权" data-en="LLM app · orchestration and consent">LLM 应用 · 协调与授权</span></div>
+                      <div class="arch-chip"><strong data-zh="Client 1" data-en="Client 1">Client 1</strong><span data-zh="一对一连一个 Server" data-en="1:1 with one server">一对一连一个 Server</span></div>
+                      <div class="arch-chip"><strong data-zh="Client 2" data-en="Client 2">Client 2</strong><span data-zh="一对一连一个 Server" data-en="1:1 with one server">一对一连一个 Server</span></div>
+                      <div class="arch-chip"><strong data-zh="Client 3" data-en="Client 3">Client 3</strong><span data-zh="一对一连一个 Server" data-en="1:1 with one server">一对一连一个 Server</span></div>
+                    </div>
+                    <p class="arch-note" data-zh="宿主是 Claude、VS Code、ChatGPT 等现成产品；除非你在做自己的宿主，这一层不用你写。" data-en="Hosts are ready-made products such as Claude, VS Code, and ChatGPT; unless you are building your own host, you do not write this layer.">宿主是 Claude、VS Code、ChatGPT 等现成产品；除非你在做自己的宿主，这一层不用你写。</p>
+                  </div>
+
+                  <div class="arch-conn">
+                    <span class="arch-conn-label" data-zh="传输：stdio / Streamable HTTP · JSON-RPC 2.0 · 生命周期握手" data-en="Transport: stdio / Streamable HTTP · JSON-RPC 2.0 · lifecycle handshake">传输：stdio / Streamable HTTP · JSON-RPC 2.0 · 生命周期握手</span>
+                    <span class="arch-tag arch-tag-sdk" data-zh="SDK 提供" data-en="SDK-provided">SDK 提供</span>
+                  </div>
+
+                  <div class="arch-band arch-band-build">
+                    <div class="arch-band-head">
+                      <p class="arch-band-title" data-zh="MCP Server（开发主体）" data-en="MCP Server (Your Main Build)">MCP Server（开发主体）</p>
+                      <span class="arch-tag arch-tag-build" data-zh="你实现" data-en="You build">你实现</span>
+                    </div>
+                    <div class="arch-chips">
+                      <div class="arch-chip"><strong data-zh="Tools" data-en="Tools">Tools</strong><span data-zh="模型可调用的函数处理器" data-en="Model-callable function handlers">模型可调用的函数处理器</span></div>
+                      <div class="arch-chip"><strong data-zh="Resources" data-en="Resources">Resources</strong><span data-zh="只读上下文数据 provider" data-en="Read-only context providers">只读上下文数据 provider</span></div>
+                      <div class="arch-chip"><strong data-zh="Prompts" data-en="Prompts">Prompts</strong><span data-zh="模板化工作流" data-en="Templated workflows">模板化工作流</span></div>
+                    </div>
+                    <p class="arch-note" data-zh="开发主要落在这一层：为上面三种原语写处理器、声明 capabilities、选择传输（stdio 或 Streamable HTTP），其余协议细节由 SDK 兜底。" data-en="Development mostly lands here: write handlers for the three primitives above, declare capabilities, and pick a transport (stdio or Streamable HTTP); the SDK covers the rest of the protocol.">开发主要落在这一层：为上面三种原语写处理器、声明 capabilities、选择传输（stdio 或 Streamable HTTP），其余协议细节由 SDK 兜底。</p>
+                  </div>
+
+                  <div class="arch-conn"></div>
+
+                  <div class="arch-band">
+                    <div class="arch-band-head">
+                      <p class="arch-band-title" data-zh="后端系统 Backing Systems" data-en="Backing Systems">后端系统 Backing Systems</p>
+                      <span class="arch-tag arch-tag-data" data-zh="你接入" data-en="You connect">你接入</span>
+                    </div>
+                    <div class="arch-chips">
+                      <div class="arch-chip"><strong data-zh="本地文件 / Git" data-en="Local files / Git">本地文件 / Git</strong></div>
+                      <div class="arch-chip"><strong data-zh="数据库" data-en="Databases">数据库</strong></div>
+                      <div class="arch-chip"><strong data-zh="外部 API" data-en="External APIs">外部 API</strong></div>
+                    </div>
+                    <p class="arch-note" data-zh="Server 内部调用你真实的数据与服务；MCP 不规定后端形态，可本地也可远程。" data-en="Inside the server you call your real data and services; MCP does not prescribe the backend - local or remote.">Server 内部调用你真实的数据与服务；MCP 不规定后端形态，可本地也可远程。</p>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="2.2 三个参与方的职责" data-en="2.2 What Each Participant Does">2.2 三个参与方的职责</span></button>
+              <div class="subsection-content">
+                <p data-zh="三者职责边界清晰：host 是容器与协调者，client 是隔离的连接器，server 是聚焦的能力提供者。" data-en="The three roles have clean boundaries: the host is the container and coordinator, the client is an isolated connector, and the server is a focused capability provider.">三者职责边界清晰：host 是容器与协调者，client 是隔离的连接器，server 是聚焦的能力提供者。</p>
+                <div class="insight-grid">
+                  <article class="insight-card">
+                    <span class="card-index">01</span>
+                    <h3 data-zh="Host（宿主）" data-en="Host">Host（宿主）</h3>
+                    <p data-zh="发起连接的 LLM 应用。创建并管理多个 client，控制连接权限与生命周期，执行安全策略与用户授权，协调 LLM 与 sampling，并跨 client 聚合上下文。" data-en="The LLM application that initiates connections. It creates and manages clients, controls connection permissions and lifecycle, enforces security policy and user authorization, coordinates the LLM and sampling, and aggregates context across clients.">发起连接的 LLM 应用。创建并管理多个 client，控制连接权限与生命周期，执行安全策略与用户授权，协调 LLM 与 sampling，并跨 client 聚合上下文。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">02</span>
+                    <h3 data-zh="Client（客户端）" data-en="Client">Client（客户端）</h3>
+                    <p data-zh="由 host 创建、与单个 server 保持一对一会话的连接器。负责协议协商与能力交换，双向路由消息，管理订阅与通知，并维护各 server 之间的安全隔离。" data-en="A connector created by the host that keeps a 1:1 session with a single server. It handles protocol negotiation and capability exchange, routes messages bidirectionally, manages subscriptions and notifications, and preserves isolation between servers.">由 host 创建、与单个 server 保持一对一会话的连接器。负责协议协商与能力交换，双向路由消息，管理订阅与通知，并维护各 server 之间的安全隔离。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">03</span>
+                    <h3 data-zh="Server（服务器）" data-en="Server">Server（服务器）</h3>
+                    <p data-zh="提供专门上下文与能力的服务。通过原语暴露 resources、tools、prompts，职责聚焦、独立运行；可发起 sampling 请求；必须遵守安全约束。可以是本地进程或远程服务。" data-en="A service that provides specialized context and capabilities. It exposes resources, tools, and prompts via primitives, operates independently with focused responsibilities, may request sampling, and must respect security constraints. It can be a local process or a remote service.">提供专门上下文与能力的服务。通过原语暴露 resources、tools、prompts，职责聚焦、独立运行；可发起 sampling 请求；必须遵守安全约束。可以是本地进程或远程服务。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="2.3 一次工具调用的消息路径" data-en="2.3 The Message Path of a Tool Call">2.3 一次工具调用的消息路径</span></button>
+              <div class="subsection-content">
+                <p data-zh="一次典型的工具调用是「用户/模型意图 → client 请求 → server 执行 → 结果回到宿主与模型」的闭环。" data-en="A typical tool call is a loop: user/model intent to a client request, server execution, and results back to the host and model.">一次典型的工具调用是「用户/模型意图 → client 请求 → server 执行 → 结果回到宿主与模型」的闭环。</p>
+                <ul class="flow-list">
+                  <li>
+                    <span class="flow-step">1</span>
+                    <div class="flow-copy">
+                      <strong data-zh="宿主发起动作" data-en="Host initiates an action">宿主发起动作</strong>
+                      <p data-zh="用户或模型触发一个需要工具的动作；host 让对应的 client 准备一次请求。" data-en="A user or model triggers an action that needs a tool; the host asks the relevant client to prepare a request.">用户或模型触发一个需要工具的动作；host 让对应的 client 准备一次请求。</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">2</span>
+                    <div class="flow-copy">
+                      <strong data-zh="Client 向 Server 请求" data-en="Client requests the server">Client 向 Server 请求</strong>
+                      <p data-zh="client 用 JSON-RPC 发送 tools/call 等请求；请求只携带该 server 所需的最小上下文。" data-en="The client sends a JSON-RPC request such as tools/call, carrying only the minimal context that server needs.">client 用 JSON-RPC 发送 tools/call 等请求；请求只携带该 server 所需的最小上下文。</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">3</span>
+                    <div class="flow-copy">
+                      <strong data-zh="Server 执行并返回" data-en="Server executes and responds">Server 执行并返回</strong>
+                      <p data-zh="server 执行工具逻辑，返回结构化结果（如文本、图片等 content 数组）。" data-en="The server runs the tool logic and returns a structured result, such as a content array of text or images.">server 执行工具逻辑，返回结构化结果（如文本、图片等 content 数组）。</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">4</span>
+                    <div class="flow-copy">
+                      <strong data-zh="宿主更新模型上下文" data-en="Host updates the model context">宿主更新模型上下文</strong>
+                      <p data-zh="client 把结果回传 host；host 更新 UI 或把结果并入模型上下文，进入下一步推理。" data-en="The client returns the result to the host; the host updates the UI or folds the result into the model context for the next reasoning step.">client 把结果回传 host；host 更新 UI 或把结果并入模型上下文，进入下一步推理。</p>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="2.4 四条设计原则" data-en="2.4 Four Design Principles">2.4 四条设计原则</span></button>
+              <div class="subsection-content">
+                <p data-zh="协议的取舍围绕四条设计原则展开，它们直接解释了为什么 server 被设计得如此轻量、隔离。" data-en="The protocol's trade-offs follow four design principles that explain why servers are deliberately lightweight and isolated.">协议的取舍围绕四条设计原则展开，它们直接解释了为什么 server 被设计得如此轻量、隔离。</p>
+                <ul class="layer-list">
+                  <li><span class="layer-number">1</span><span data-zh="<strong>Server 极易构建</strong> — 复杂的编排责任由 host 承担，server 只聚焦定义清晰的能力，接口简单，实现负担低。" data-en="<strong>Servers are easy to build</strong> - The host carries the complex orchestration; servers focus on well-defined capabilities with simple interfaces and low implementation overhead."><strong>Server 极易构建</strong> — 复杂的编排责任由 host 承担，server 只聚焦定义清晰的能力，接口简单，实现负担低。</span></li>
+                  <li><span class="layer-number">2</span><span data-zh="<strong>Server 高度可组合</strong> — 每个 server 独立提供聚焦功能，多个 server 可无缝组合，共享协议保证互操作。" data-en="<strong>Servers are highly composable</strong> - Each provides focused functionality in isolation; many servers combine seamlessly, and the shared protocol guarantees interoperability."><strong>Server 高度可组合</strong> — 每个 server 独立提供聚焦功能，多个 server 可无缝组合，共享协议保证互操作。</span></li>
+                  <li><span class="layer-number">3</span><span data-zh="<strong>Server 受隔离约束</strong> — server 读不到完整对话，也「看不进」其它 server；完整会话历史留在 host，跨 server 交互由 host 管控。" data-en="<strong>Servers are isolated</strong> - A server cannot read the full conversation or see into other servers; the complete history stays with the host, which controls cross-server interaction."><strong>Server 受隔离约束</strong> — server 读不到完整对话，也「看不进」其它 server；完整会话历史留在 host，跨 server 交互由 host 管控。</span></li>
+                  <li><span class="layer-number">4</span><span data-zh="<strong>能力渐进增加</strong> — 核心协议只保留最小功能，额外能力按需协商；client 与 server 各自独立演进，保持向后兼容。" data-en="<strong>Capabilities grow progressively</strong> - The core keeps a minimal feature set and negotiates extras as needed; clients and servers evolve independently while staying backward-compatible."><strong>能力渐进增加</strong> — 核心协议只保留最小功能，额外能力按需协商；client 与 server 各自独立演进，保持向后兼容。</span></li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 3: Primitives -->
+        <section id="primitives" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="03 / Primitives" data-en="03 / Primitives">03 / Primitives</p>
+            <h2 data-zh="协议原语：六个原语与控制权归属" data-en="Protocol Primitives: Six Primitives and Where Control Lives">协议原语：六个原语与控制权归属</h2>
+            <p data-zh="MCP 的功能由原语承载：server 向 client 提供 Tools、Resources、Prompts；client 向 server 提供 Sampling、Roots、Elicitation。理解每个原语「由谁提供、由谁控制」，是判断一次会话能做什么、以及安全边界在哪的关键。" data-en="MCP's features are carried by primitives: servers offer Tools, Resources, and Prompts to clients; clients offer Sampling, Roots, and Elicitation to servers. Knowing who provides and who controls each primitive is the key to what a session can do and where the security boundary sits.">MCP 的功能由原语承载：server 向 client 提供 Tools、Resources、Prompts；client 向 server 提供 Sampling、Roots、Elicitation。理解每个原语「由谁提供、由谁控制」，是判断一次会话能做什么、以及安全边界在哪的关键。</p>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="3.1 六原语总览" data-en="3.1 The Six Primitives at a Glance">3.1 六原语总览</span></button>
+              <div class="subsection-content">
+                <p data-zh="下表给出六个原语的提供方、控制方与作用；控制方决定了谁能触发它、需要谁同意。" data-en="The table lists each primitive's provider, controller, and purpose; the controller determines who can trigger it and whose consent it needs.">下表给出六个原语的提供方、控制方与作用；控制方决定了谁能触发它、需要谁同意。</p>
+                <div class="simple-table-wrap">
+                  <table class="simple-table">
+                    <thead>
+                      <tr>
+                        <th data-zh="原语" data-en="Primitive">原语</th>
+                        <th data-zh="提供方" data-en="Provided By">提供方</th>
+                        <th data-zh="控制方" data-en="Controlled By">控制方</th>
+                        <th data-zh="作用" data-en="Purpose">作用</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><strong>Tools</strong></td>
+                        <td data-zh="Server" data-en="Server">Server</td>
+                        <td data-zh="模型" data-en="Model">模型</td>
+                        <td data-zh="可被模型调用的函数，用于执行动作或获取数据（需用户授权）。" data-en="Functions the model can invoke to act or fetch data (with user approval).">可被模型调用的函数，用于执行动作或获取数据（需用户授权）。</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Resources</strong></td>
+                        <td data-zh="Server" data-en="Server">Server</td>
+                        <td data-zh="宿主应用" data-en="Application">宿主应用</td>
+                        <td data-zh="类文件的只读上下文数据，由宿主决定何时注入模型。" data-en="File-like, read-only context data the host decides when to inject.">类文件的只读上下文数据，由宿主决定何时注入模型。</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Prompts</strong></td>
+                        <td data-zh="Server" data-en="Server">Server</td>
+                        <td data-zh="用户" data-en="User">用户</td>
+                        <td data-zh="预置的模板化消息与工作流，由用户显式选择触发。" data-en="Templated messages and workflows the user explicitly selects.">预置的模板化消息与工作流，由用户显式选择触发。</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Sampling</strong></td>
+                        <td data-zh="Client" data-en="Client">Client</td>
+                        <td data-zh="Server 发起" data-en="Server-initiated">Server 发起</td>
+                        <td data-zh="让 server 借用宿主的 LLM 完成子任务（每次需用户批准）。" data-en="Lets a server borrow the host's LLM for a subtask (each requires user approval).">让 server 借用宿主的 LLM 完成子任务（每次需用户批准）。</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Roots</strong></td>
+                        <td data-zh="Client" data-en="Client">Client</td>
+                        <td data-zh="Server 发起" data-en="Server-initiated">Server 发起</td>
+                        <td data-zh="向 server 声明其可操作的文件系统或 URI 边界。" data-en="Declares the filesystem or URI boundaries a server may operate in.">向 server 声明其可操作的文件系统或 URI 边界。</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Elicitation</strong></td>
+                        <td data-zh="Client" data-en="Client">Client</td>
+                        <td data-zh="Server 发起" data-en="Server-initiated">Server 发起</td>
+                        <td data-zh="运行时向用户请求补充的结构化输入（2025-06-18 修订引入）。" data-en="Requests additional structured input from the user at runtime (added in the 2025-06-18 revision).">运行时向用户请求补充的结构化输入（2025-06-18 修订引入）。</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="3.2 Server 原语：Tools / Resources / Prompts" data-en="3.2 Server Primitives: Tools / Resources / Prompts">3.2 Server 原语：Tools / Resources / Prompts</span></button>
+              <div class="subsection-content">
+                <p data-zh="Server 侧的三个原语覆盖「能做什么、能读什么、按什么模板做」，是 MCP 最常用的部分。" data-en="The three server-side primitives cover what can be done, what can be read, and by which template - the most-used part of MCP.">Server 侧的三个原语覆盖「能做什么、能读什么、按什么模板做」，是 MCP 最常用的部分。</p>
+                <div class="insight-grid">
+                  <article class="insight-card">
+                    <span class="card-index">01</span>
+                    <h3 data-zh="Tools（工具）" data-en="Tools">Tools（工具）</h3>
+                    <p data-zh="模型可执行的函数，带 JSON Schema 描述的输入。是产生副作用（下单、写库、调用 API）的入口，宿主在调用前应取得用户同意。" data-en="Functions the model can execute, with JSON Schema-typed inputs. They are the entry point for side effects (ordering, writing, calling APIs); the host should obtain user consent before invoking.">模型可执行的函数，带 JSON Schema 描述的输入。是产生副作用（下单、写库、调用 API）的入口，宿主在调用前应取得用户同意。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">02</span>
+                    <h3 data-zh="Resources（资源）" data-en="Resources">Resources（资源）</h3>
+                    <p data-zh="由 URI 标识的只读数据（文件、API 响应、数据库行）。宿主决定何时把哪些资源纳入上下文，可订阅变更通知。" data-en="Read-only data identified by URI (files, API responses, database rows). The host decides when to bring which resources into context and can subscribe to change notifications.">由 URI 标识的只读数据（文件、API 响应、数据库行）。宿主决定何时把哪些资源纳入上下文，可订阅变更通知。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">03</span>
+                    <h3 data-zh="Prompts（提示）" data-en="Prompts">Prompts（提示）</h3>
+                    <p data-zh="服务器预置的参数化提示模板与工作流，通常呈现为用户可选的斜杠命令或菜单项，由用户显式触发。" data-en="Parameterized prompt templates and workflows the server ships, usually surfaced as user-selectable slash commands or menu items, triggered explicitly by the user.">服务器预置的参数化提示模板与工作流，通常呈现为用户可选的斜杠命令或菜单项，由用户显式触发。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="3.3 Client 原语：Sampling / Roots / Elicitation" data-en="3.3 Client Primitives: Sampling / Roots / Elicitation">3.3 Client 原语：Sampling / Roots / Elicitation</span></button>
+              <div class="subsection-content">
+                <p data-zh="Client 侧原语让 server 能反向请求宿主的能力，把简单的「工具服务器」升级为可参与推理的协作方。" data-en="Client-side primitives let a server call back into the host, upgrading a simple tool server into a collaborator that can take part in reasoning.">Client 侧原语让 server 能反向请求宿主的能力，把简单的「工具服务器」升级为可参与推理的协作方。</p>
+                <div class="insight-grid">
+                  <article class="insight-card">
+                    <span class="card-index">01</span>
+                    <h3 data-zh="Sampling（借用推理）" data-en="Sampling">Sampling（借用推理）</h3>
+                    <p data-zh="server 请求宿主用其 LLM 生成一段补全，实现 server 侧的智能子步骤。协议刻意限制 server 对提示的可见性，每次调用需用户批准。" data-en="A server asks the host to produce a completion with its LLM, enabling intelligent sub-steps on the server side. The protocol deliberately limits the server's visibility into prompts, and each call needs user approval.">server 请求宿主用其 LLM 生成一段补全，实现 server 侧的智能子步骤。协议刻意限制 server 对提示的可见性，每次调用需用户批准。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">02</span>
+                    <h3 data-zh="Roots（根边界）" data-en="Roots">Roots（根边界）</h3>
+                    <p data-zh="client 向 server 声明一组文件系统或 URI 根，界定 server 允许操作的范围，是本地文件类 server 的作用域约束。" data-en="The client declares a set of filesystem or URI roots to the server, bounding where the server may operate - the scope constraint for filesystem-style servers.">client 向 server 声明一组文件系统或 URI 根，界定 server 允许操作的范围，是本地文件类 server 的作用域约束。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">03</span>
+                    <h3 data-zh="Elicitation（信息征询）" data-en="Elicitation">Elicitation（信息征询）</h3>
+                    <p data-zh="server 运行中向用户请求补充信息（如确认参数、填一个字段），由 client 呈现表单并回传，2025-06-18 修订引入。" data-en="Mid-run, a server requests additional information from the user (confirming a parameter, filling a field); the client renders a form and returns the input. Added in the 2025-06-18 revision.">server 运行中向用户请求补充信息（如确认参数、填一个字段），由 client 呈现表单并回传，2025-06-18 修订引入。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="3.4 控制权模型：谁触发、谁同意" data-en="3.4 The Control Model: Who Triggers, Who Consents">3.4 控制权模型：谁触发、谁同意</span></button>
+              <div class="subsection-content">
+                <p data-zh="MCP 用「控制权归属」把三类 server 原语区分开，这直接决定 UI 应把哪种操作交给谁决定。" data-en="MCP separates the three server primitives by who controls them, which directly decides who the UI should let make each kind of decision.">MCP 用「控制权归属」把三类 server 原语区分开，这直接决定 UI 应把哪种操作交给谁决定。</p>
+                <ul class="layer-list">
+                  <li><span class="layer-number">1</span><span data-zh="<strong>模型控制（Tools）</strong> — 由模型在推理中决定是否调用；因为可能产生副作用，宿主应在执行前插入用户确认。" data-en="<strong>Model-controlled (Tools)</strong> - The model decides whether to call during reasoning; because side effects are possible, the host should insert user confirmation before execution."><strong>模型控制（Tools）</strong> — 由模型在推理中决定是否调用；因为可能产生副作用，宿主应在执行前插入用户确认。</span></li>
+                  <li><span class="layer-number">2</span><span data-zh="<strong>应用控制（Resources）</strong> — 由宿主应用决定何时、把哪些资源注入上下文；模型不能自行拉取任意资源。" data-en="<strong>Application-controlled (Resources)</strong> - The host application decides when and which resources enter context; the model cannot pull arbitrary resources on its own."><strong>应用控制（Resources）</strong> — 由宿主应用决定何时、把哪些资源注入上下文；模型不能自行拉取任意资源。</span></li>
+                  <li><span class="layer-number">3</span><span data-zh="<strong>用户控制（Prompts）</strong> — 由用户显式选择模板化工作流；适合把「组织沉淀的标准流程」暴露为可复用命令。" data-en="<strong>User-controlled (Prompts)</strong> - The user explicitly selects a templated workflow; ideal for exposing an organization's standard procedures as reusable commands."><strong>用户控制（Prompts）</strong> — 由用户显式选择模板化工作流；适合把「组织沉淀的标准流程」暴露为可复用命令。</span></li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 4: Lifecycle -->
+        <section id="lifecycle" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="04 / Lifecycle" data-en="04 / Lifecycle">04 / Lifecycle</p>
+            <h2 data-zh="会话生命周期：初始化、能力协商与关闭" data-en="Session Lifecycle: Initialization, Capability Negotiation, and Shutdown">会话生命周期：初始化、能力协商与关闭</h2>
+            <p data-zh="MCP 会话有严格的三阶段生命周期：初始化（版本与能力协商）、运行（按协商结果交换消息）、关闭（在传输层优雅终止）。理解握手顺序，是排查「连不上、能力缺失、超时」类问题的前提。" data-en="An MCP session has a strict three-phase lifecycle: initialization (version and capability negotiation), operation (messages exchanged per the negotiated result), and shutdown (graceful termination at the transport layer). Understanding the handshake is the prerequisite for debugging connection, missing-capability, and timeout issues.">MCP 会话有严格的三阶段生命周期：初始化（版本与能力协商）、运行（按协商结果交换消息）、关闭（在传输层优雅终止）。理解握手顺序，是排查「连不上、能力缺失、超时」类问题的前提。</p>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="4.1 初始化握手" data-en="4.1 The Initialization Handshake">4.1 初始化握手</span></button>
+              <div class="subsection-content">
+                <p data-zh="初始化必须是第一次交互：client 发 initialize，server 回自身能力，client 再发 initialized 通知，之后才进入正常操作。" data-en="Initialization must be the first interaction: the client sends initialize, the server replies with its capabilities, the client sends an initialized notification, and only then does normal operation begin.">初始化必须是第一次交互：client 发 initialize，server 回自身能力，client 再发 initialized 通知，之后才进入正常操作。</p>
+                <ul class="flow-list">
+                  <li>
+                    <span class="flow-step">1</span>
+                    <div class="flow-copy">
+                      <strong data-zh="Client → Server：initialize" data-en="Client to Server: initialize">Client → Server：initialize</strong>
+                      <p data-zh="携带支持的协议版本、client 能力（roots / sampling / elicitation）与客户端信息。" data-en="Carries the supported protocol version, client capabilities (roots / sampling / elicitation), and client info.">携带支持的协议版本、client 能力（roots / sampling / elicitation）与客户端信息。</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">2</span>
+                    <div class="flow-copy">
+                      <strong data-zh="Server → Client：能力响应" data-en="Server to Client: capability response">Server → Client：能力响应</strong>
+                      <p data-zh="回同一或自身支持的版本，声明 server 能力（prompts / resources / tools / logging 等）与可选 instructions。" data-en="Replies with the same or its own supported version, declaring server capabilities (prompts / resources / tools / logging) and optional instructions.">回同一或自身支持的版本，声明 server 能力（prompts / resources / tools / logging 等）与可选 instructions。</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">3</span>
+                    <div class="flow-copy">
+                      <strong data-zh="Client → Server：initialized 通知" data-en="Client to Server: initialized notification">Client → Server：initialized 通知</strong>
+                      <p data-zh="client 发 notifications/initialized 表示就绪；此前双方除 ping / logging 外不应发其它请求。" data-en="The client sends notifications/initialized to signal readiness; before this, neither side should send requests other than ping / logging.">client 发 notifications/initialized 表示就绪；此前双方除 ping / logging 外不应发其它请求。</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">4</span>
+                    <div class="flow-copy">
+                      <strong data-zh="进入运行阶段" data-en="Enter the operation phase">进入运行阶段</strong>
+                      <p data-zh="双方只使用协商成功的能力，按协商版本交换 tools/list、tools/call、resources/read 等消息。" data-en="Both sides use only successfully negotiated capabilities and exchange tools/list, tools/call, resources/read, and other messages at the negotiated version.">双方只使用协商成功的能力，按协商版本交换 tools/list、tools/call、resources/read 等消息。</p>
+                    </div>
+                  </li>
+                </ul>
+                <p class="code-caption" data-zh="initialize 请求（JSON-RPC 2.0）" data-en="initialize request (JSON-RPC 2.0)">initialize 请求（JSON-RPC 2.0）</p>
+                <pre class="code-block">{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "initialize",
+  "params": {
+    "protocolVersion": "2025-11-25",
+    "capabilities": {
+      "roots": { "listChanged": true },
+      "sampling": {},
+      "elicitation": {}
+    },
+    "clientInfo": { "name": "ExampleClient", "version": "1.0.0" }
+  }
+}
+
+// 就绪后 / after ready:
+{ "jsonrpc": "2.0", "method": "notifications/initialized" }</pre>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="4.2 版本协商" data-en="4.2 Version Negotiation">4.2 版本协商</span></button>
+              <div class="subsection-content">
+                <p data-zh="MCP 用 YYYY-MM-DD 日期串标识版本，只在发生不向后兼容变更时才推进；当前修订为 2025-11-25。" data-en="MCP identifies versions with a YYYY-MM-DD date string and advances only on backward-incompatible changes; the current revision is 2025-11-25.">MCP 用 YYYY-MM-DD 日期串标识版本，只在发生不向后兼容变更时才推进；当前修订为 2025-11-25。</p>
+                <ul class="challenge-list">
+                  <li data-zh="<strong>协商规则</strong> — client 发它支持的最新版本；server 支持则原样返回，否则返回自身支持的（通常是最新）版本；client 不支持则应断开。" data-en="<strong>Negotiation rule</strong> - The client sends its latest supported version; if the server supports it, it echoes it back, otherwise it returns its own (usually latest) version; if the client cannot support that, it should disconnect."><strong>协商规则</strong> — client 发它支持的最新版本；server 支持则原样返回，否则返回自身支持的（通常是最新）版本；client 不支持则应断开。</li>
+                  <li data-zh="<strong>HTTP 头</strong> — 走 HTTP 时，后续每个请求必须带 MCP-Protocol-Version 头（例：MCP-Protocol-Version: 2025-11-25）；缺失时 server 按 2025-03-26 处理。" data-en="<strong>HTTP header</strong> - Over HTTP, every subsequent request must carry the MCP-Protocol-Version header (e.g., MCP-Protocol-Version: 2025-11-25); if absent, the server assumes 2025-03-26."><strong>HTTP 头</strong> — 走 HTTP 时，后续每个请求必须带 MCP-Protocol-Version 头（例：MCP-Protocol-Version: 2025-11-25）；缺失时 server 按 2025-03-26 处理。</li>
+                  <li data-zh="<strong>错误形态</strong> — 版本不受支持时返回 JSON-RPC 错误（如 code -32602），data 中列出 supported 与 requested，便于客户端降级。" data-en="<strong>Error shape</strong> - An unsupported version returns a JSON-RPC error (such as code -32602) whose data lists supported and requested, helping the client fall back."><strong>错误形态</strong> — 版本不受支持时返回 JSON-RPC 错误（如 code -32602），data 中列出 supported 与 requested，便于客户端降级。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="4.3 能力协商" data-en="4.3 Capability Negotiation">4.3 能力协商</span></button>
+              <div class="subsection-content">
+                <p data-zh="能力协商决定这次会话有哪些功能可用：某功能未在初始化时声明，整场会话就不能使用它。" data-en="Capability negotiation decides which features are available for the session: a feature not declared at initialization cannot be used for the whole session.">能力协商决定这次会话有哪些功能可用：某功能未在初始化时声明，整场会话就不能使用它。</p>
+                <ul class="challenge-list">
+                  <li data-zh="<strong>Server 声明</strong> — prompts、resources、tools、logging、completions 等；子能力如 listChanged（列表变更通知）与 subscribe（仅 resources 支持单项订阅）。" data-en="<strong>Servers declare</strong> - prompts, resources, tools, logging, completions; sub-capabilities such as listChanged (list-change notifications) and subscribe (per-item subscriptions, resources only)."><strong>Server 声明</strong> — prompts、resources、tools、logging、completions 等；子能力如 listChanged（列表变更通知）与 subscribe（仅 resources 支持单项订阅）。</li>
+                  <li data-zh="<strong>Client 声明</strong> — roots、sampling、elicitation，以及 experimental（非标准实验特性）。" data-en="<strong>Clients declare</strong> - roots, sampling, elicitation, and experimental (non-standard experimental features)."><strong>Client 声明</strong> — roots、sampling、elicitation，以及 experimental（非标准实验特性）。</li>
+                  <li data-zh="<strong>使用约束</strong> — 触发 resources 订阅通知要求 server 声明了 subscribe；调用 tools 要求声明了 tools 能力；发起 sampling 要求 client 声明了 sampling。" data-en="<strong>Usage constraints</strong> - Emitting resource-subscription notifications requires the server to declare subscribe; invoking tools requires the tools capability; requesting sampling requires the client to declare sampling."><strong>使用约束</strong> — 触发 resources 订阅通知要求 server 声明了 subscribe；调用 tools 要求声明了 tools 能力；发起 sampling 要求 client 声明了 sampling。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="4.4 关闭与超时" data-en="4.4 Shutdown and Timeouts">4.4 关闭与超时</span></button>
+              <div class="subsection-content">
+                <p data-zh="MCP 不定义专门的关闭消息，而是由传输层发信号；超时与取消则由实现方按请求管理。" data-en="MCP defines no dedicated shutdown message; the transport signals termination, while timeouts and cancellation are managed per request by the implementation.">MCP 不定义专门的关闭消息，而是由传输层发信号；超时与取消则由实现方按请求管理。</p>
+                <ul class="challenge-list">
+                  <li data-zh="<strong>stdio 关闭</strong> — client 先关闭子进程的输入流，等待退出；超时后发 SIGTERM，仍不退再发 SIGKILL。server 也可关闭自身输出流并退出。" data-en="<strong>stdio shutdown</strong> - The client first closes the child process's input stream and waits for exit; on timeout it sends SIGTERM, then SIGKILL if it still will not exit. The server may also close its output stream and exit."><strong>stdio 关闭</strong> — client 先关闭子进程的输入流，等待退出；超时后发 SIGTERM，仍不退再发 SIGKILL。server 也可关闭自身输出流并退出。</li>
+                  <li data-zh="<strong>HTTP 关闭</strong> — 直接关闭相关 HTTP 连接即视为关闭；带会话时可用 DELETE 显式终止会话。" data-en="<strong>HTTP shutdown</strong> - Closing the associated HTTP connection(s) signals shutdown; with a session, a DELETE can explicitly terminate it."><strong>HTTP 关闭</strong> — 直接关闭相关 HTTP 连接即视为关闭；带会话时可用 DELETE 显式终止会话。</li>
+                  <li data-zh="<strong>超时</strong> — 每个请求都应设超时，超时应发取消通知并停止等待；收到进度通知可重置计时，但必须设一个最大上限，防止被拖住。" data-en="<strong>Timeouts</strong> - Every request should have a timeout; on timeout, send a cancellation notification and stop waiting. A progress notification may reset the clock, but a hard maximum must be enforced to avoid being stalled."><strong>超时</strong> — 每个请求都应设超时，超时应发取消通知并停止等待；收到进度通知可重置计时，但必须设一个最大上限，防止被拖住。</li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 5: Transports -->
+        <section id="transports" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="05 / Transports" data-en="05 / Transports">05 / Transports</p>
+            <h2 data-zh="传输层选型：stdio 与 Streamable HTTP" data-en="Transport Selection: stdio and Streamable HTTP">传输层选型：stdio 与 Streamable HTTP</h2>
+            <p data-zh="MCP 消息一律用 JSON-RPC 编码（UTF-8），协议定义两种标准传输：stdio 与 Streamable HTTP；官方建议客户端尽可能支持 stdio。协议本身与传输无关，也允许自定义传输。选传输，本质是在「本地进程」与「远程多客户端服务」之间做部署决策。" data-en="MCP messages are always JSON-RPC encoded (UTF-8), and the protocol defines two standard transports: stdio and Streamable HTTP; clients are advised to support stdio whenever possible. The protocol is transport-agnostic and permits custom transports. Choosing a transport is essentially a deployment decision between a local process and a remote multi-client service.">MCP 消息一律用 JSON-RPC 编码（UTF-8），协议定义两种标准传输：stdio 与 Streamable HTTP；官方建议客户端尽可能支持 stdio。协议本身与传输无关，也允许自定义传输。选传输，本质是在「本地进程」与「远程多客户端服务」之间做部署决策。</p>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="5.1 两种传输总览" data-en="5.1 The Two Transports at a Glance">5.1 两种传输总览</span></button>
+              <div class="subsection-content">
+                <p data-zh="先做取舍再看细节：本地、单宿主用 stdio；远程、多客户端、需托管用 Streamable HTTP。" data-en="Decide the trade-off before the details: use stdio for local, single-host; use Streamable HTTP for remote, multi-client, hosted.">先做取舍再看细节：本地、单宿主用 stdio；远程、多客户端、需托管用 Streamable HTTP。</p>
+                <div class="comparison-grid">
+                  <article class="comparison-card">
+                    <span class="comparison-label" data-zh="stdio · 本地首选" data-en="stdio · Local First">stdio · 本地首选</span>
+                    <h3 data-zh="以子进程方式在标准输入输出上通信" data-en="Communicate over stdin/stdout as a Subprocess">以子进程方式在标准输入输出上通信</h3>
+                    <ul class="challenge-list">
+                      <li data-zh="client 把 server 作为子进程启动，双方用换行分隔的 JSON-RPC 消息通信。" data-en="The client launches the server as a subprocess; both exchange newline-delimited JSON-RPC messages.">client 把 server 作为子进程启动，双方用换行分隔的 JSON-RPC 消息通信。</li>
+                      <li data-zh="适合本地工具、桌面宿主、开发调试；无网络暴露面，延迟低。" data-en="Fits local tools, desktop hosts, and development; no network exposure, low latency.">适合本地工具、桌面宿主、开发调试；无网络暴露面，延迟低。</li>
+                      <li data-zh="stdout 只能写合法 MCP 消息，日志走 stderr。" data-en="stdout may carry only valid MCP messages; logs go to stderr.">stdout 只能写合法 MCP 消息，日志走 stderr。</li>
+                    </ul>
+                  </article>
+                  <article class="comparison-card next">
+                    <span class="comparison-label" data-zh="Streamable HTTP · 远程/托管" data-en="Streamable HTTP · Remote/Hosted">Streamable HTTP · 远程/托管</span>
+                    <h3 data-zh="独立进程，单端点承载 POST 与 GET" data-en="An Independent Process on One POST/GET Endpoint">独立进程，单端点承载 POST 与 GET</h3>
+                    <ul class="challenge-list">
+                      <li data-zh="server 是独立进程，提供单个 MCP 端点，可选用 SSE 流式推送多条服务器消息。" data-en="The server is an independent process exposing a single MCP endpoint, optionally using SSE to stream multiple server messages.">server 是独立进程，提供单个 MCP 端点，可选用 SSE 流式推送多条服务器消息。</li>
+                      <li data-zh="适合远程服务、多客户端并发、需要托管与横向扩展的场景。" data-en="Fits remote services, concurrent multi-client access, and hosted or horizontally scaled deployments.">适合远程服务、多客户端并发、需要托管与横向扩展的场景。</li>
+                      <li data-zh="取代 2024-11-05 的旧版 HTTP+SSE 传输，向后兼容可并存。" data-en="Replaces the older HTTP+SSE transport from 2024-11-05, with backward-compatible coexistence.">取代 2024-11-05 的旧版 HTTP+SSE 传输，向后兼容可并存。</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="5.2 stdio 细节" data-en="5.2 stdio Details">5.2 stdio 细节</span></button>
+              <div class="subsection-content">
+                <p data-zh="stdio 的可靠性完全建立在「stdout 是协议专线」这条纪律上，违反它是新手最常见的破坏方式。" data-en="stdio's reliability rests entirely on one discipline - stdout is the protocol's dedicated line - and violating it is the most common way beginners break a server.">stdio 的可靠性完全建立在「stdout 是协议专线」这条纪律上，违反它是新手最常见的破坏方式。</p>
+                <ul class="challenge-list">
+                  <li data-zh="<strong>消息格式</strong> — 每条消息是单个 JSON-RPC 请求/通知/响应，以换行分隔，且不得含内嵌换行。" data-en="<strong>Message format</strong> - Each message is a single JSON-RPC request/notification/response, newline-delimited, with no embedded newlines."><strong>消息格式</strong> — 每条消息是单个 JSON-RPC 请求/通知/响应，以换行分隔，且不得含内嵌换行。</li>
+                  <li data-zh="<strong>通道纪律</strong> — server 不得向 stdout 写任何非 MCP 内容；可向 stderr 写 UTF-8 日志，client 可捕获、转发或忽略。" data-en="<strong>Channel discipline</strong> - The server must not write anything non-MCP to stdout; it may write UTF-8 logs to stderr, which the client may capture, forward, or ignore."><strong>通道纪律</strong> — server 不得向 stdout 写任何非 MCP 内容；可向 stderr 写 UTF-8 日志，client 可捕获、转发或忽略。</li>
+                  <li data-zh="<strong>启动方式</strong> — client 通过命令 + 参数启动 server 子进程（见开发一节的 host 配置）。" data-en="<strong>Startup</strong> - The client launches the server subprocess via a command plus arguments (see the host config in the build section)."><strong>启动方式</strong> — client 通过命令 + 参数启动 server 子进程（见开发一节的 host 配置）。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="5.3 Streamable HTTP 细节" data-en="5.3 Streamable HTTP Details">5.3 Streamable HTTP 细节</span></button>
+              <div class="subsection-content">
+                <p data-zh="Streamable HTTP 用一个端点同时承载「客户端 POST 请求」与「服务器经 GET/SSE 主动推送」，并可选带会话与断线续传。" data-en="Streamable HTTP carries both client POST requests and server-initiated pushes over GET/SSE on one endpoint, with optional sessions and resumability.">Streamable HTTP 用一个端点同时承载「客户端 POST 请求」与「服务器经 GET/SSE 主动推送」，并可选带会话与断线续传。</p>
+                <ul class="challenge-list">
+                  <li data-zh="<strong>发送</strong> — 每条 JSON-RPC 消息都是一次 HTTP POST；请求头 Accept 须同时列出 application/json 与 text/event-stream。" data-en="<strong>Sending</strong> - Every JSON-RPC message is one HTTP POST; the Accept header must list both application/json and text/event-stream."><strong>发送</strong> — 每条 JSON-RPC 消息都是一次 HTTP POST；请求头 Accept 须同时列出 application/json 与 text/event-stream。</li>
+                  <li data-zh="<strong>响应形态</strong> — 对一个请求，server 可返回单个 JSON 对象，或开一条 SSE 流分批推送直至给出该请求的响应。" data-en="<strong>Response shape</strong> - For a request, the server may return a single JSON object or open an SSE stream that pushes messages until it delivers the response to that request."><strong>响应形态</strong> — 对一个请求，server 可返回单个 JSON 对象，或开一条 SSE 流分批推送直至给出该请求的响应。</li>
+                  <li data-zh="<strong>会话</strong> — server 可在初始化响应里下发 Mcp-Session-Id 头；此后 client 每个请求都要带上，server 可随时终止会话（返回 404 触发重连）。" data-en="<strong>Sessions</strong> - The server may issue an Mcp-Session-Id header in the initialize response; the client must then include it on every request, and the server may terminate the session at any time (a 404 triggers reconnection)."><strong>会话</strong> — server 可在初始化响应里下发 Mcp-Session-Id 头；此后 client 每个请求都要带上，server 可随时终止会话（返回 404 触发重连）。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="5.4 传输选型判据" data-en="5.4 How to Choose a Transport">5.4 传输选型判据</span></button>
+              <div class="subsection-content">
+                <p data-zh="用三个问题决定传输：server 在哪跑、有几个客户端、要不要托管与扩展。" data-en="Three questions decide the transport: where the server runs, how many clients, and whether it needs hosting and scaling.">用三个问题决定传输：server 在哪跑、有几个客户端、要不要托管与扩展。</p>
+                <ul class="layer-list">
+                  <li><span class="layer-number">1</span><span data-zh="<strong>本地集成</strong> — server 与宿主同机、单用户（如 IDE 插件、桌面助手接本地文件/Git）→ 选 stdio。" data-en="<strong>Local integration</strong> - Server co-located with the host, single user (IDE plugin, desktop assistant over local files/Git) - choose stdio."><strong>本地集成</strong> — server 与宿主同机、单用户（如 IDE 插件、桌面助手接本地文件/Git）→ 选 stdio。</span></li>
+                  <li><span class="layer-number">2</span><span data-zh="<strong>远程/多租户</strong> — server 作为共享服务被多个客户端调用、需要鉴权与横向扩展 → 选 Streamable HTTP。" data-en="<strong>Remote/multi-tenant</strong> - Server is a shared service called by many clients, needing auth and horizontal scaling - choose Streamable HTTP."><strong>远程/多租户</strong> — server 作为共享服务被多个客户端调用、需要鉴权与横向扩展 → 选 Streamable HTTP。</span></li>
+                  <li><span class="layer-number">3</span><span data-zh="<strong>特殊通道</strong> — 需要走非标准信道（进程内、WebSocket 等）时可实现自定义传输，但必须保留 JSON-RPC 消息格式与生命周期契约。" data-en="<strong>Special channel</strong> - When a non-standard channel is needed (in-process, WebSocket), implement a custom transport, but preserve the JSON-RPC message format and lifecycle contract."><strong>特殊通道</strong> — 需要走非标准信道（进程内、WebSocket 等）时可实现自定义传输，但必须保留 JSON-RPC 消息格式与生命周期契约。</span></li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 6: Build a Server -->
+        <section id="build-server" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="06 / Build a Server" data-en="06 / Build a Server">06 / Build a Server</p>
+            <h2 data-zh="开发实操：用 TypeScript 从零构建一个 MCP Server" data-en="Hands-On: Build an MCP Server from Scratch in TypeScript">开发实操：用 TypeScript 从零构建一个 MCP Server</h2>
+            <p data-zh="下面用官方 TypeScript SDK 走一遍最小可运行路径：初始化项目 → 定义 server 并注册工具 → 连接 stdio 传输 → 构建并接入宿主。工具输入用 zod 声明 schema，SDK 会据此生成工具定义并做参数校验。" data-en="Here is the minimal runnable path with the official TypeScript SDK: initialize the project, define a server and register a tool, connect the stdio transport, then build and wire it into a host. Tool inputs are declared with zod schemas, from which the SDK generates tool definitions and validates arguments.">下面用官方 TypeScript SDK 走一遍最小可运行路径：初始化项目 → 定义 server 并注册工具 → 连接 stdio 传输 → 构建并接入宿主。工具输入用 zod 声明 schema，SDK 会据此生成工具定义并做参数校验。</p>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="6.1 项目初始化与依赖" data-en="6.1 Project Setup and Dependencies">6.1 项目初始化与依赖</span></button>
+              <div class="subsection-content">
+                <p data-zh="装 SDK 与 zod，并把 package.json 设为 ES module、加一条 build 脚本。" data-en="Install the SDK and zod, set package.json to an ES module, and add a build script.">装 SDK 与 zod，并把 package.json 设为 ES module、加一条 build 脚本。</p>
+                <pre class="code-block">mkdir weather-mcp &amp;&amp; cd weather-mcp
+npm init -y
+npm install @modelcontextprotocol/sdk zod@3
+npm install -D @types/node typescript
+mkdir src</pre>
+                <p class="code-caption" data-zh="package.json（关键字段）" data-en="package.json (key fields)">package.json（关键字段）</p>
+                <pre class="code-block">{
+  "type": "module",
+  "bin": { "weather": "./build/index.js" },
+  "scripts": { "build": "tsc &amp;&amp; chmod 755 build/index.js" }
+}</pre>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="6.2 定义 Server 并注册 Tool" data-en="6.2 Define the Server and Register a Tool">6.2 定义 Server 并注册 Tool</span></button>
+              <div class="subsection-content">
+                <p data-zh="创建 McpServer，用 registerTool 声明工具名、描述与 zod 输入 schema；处理函数返回一个 content 数组。" data-en="Create an McpServer, declare the tool name, description, and zod input schema with registerTool; the handler returns a content array.">创建 McpServer，用 registerTool 声明工具名、描述与 zod 输入 schema；处理函数返回一个 content 数组。</p>
+                <pre class="code-block">import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z } from "zod";
+
+const server = new McpServer({ name: "weather", version: "1.0.0" });
+
+server.registerTool(
+  "get_forecast",
+  {
+    description: "Get the weather forecast for a coordinate.",
+    inputSchema: {
+      latitude: z.number().min(-90).max(90).describe("Latitude"),
+      longitude: z.number().min(-180).max(180).describe("Longitude"),
+    },
+  },
+  async ({ latitude, longitude }) =&gt; {
+    const text = await fetchForecast(latitude, longitude);
+    return { content: [{ type: "text", text }] };
+  },
+);</pre>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="6.3 连接 stdio 并构建运行" data-en="6.3 Connect stdio, Build, and Run">6.3 连接 stdio 并构建运行</span></button>
+              <div class="subsection-content">
+                <p data-zh="用 StdioServerTransport 连接 server；日志一律走 stderr（console.error）。构建后即可被宿主以子进程方式启动。" data-en="Connect the server with StdioServerTransport; send logs to stderr (console.error). After building, a host can launch it as a subprocess.">用 StdioServerTransport 连接 server；日志一律走 stderr（console.error）。构建后即可被宿主以子进程方式启动。</p>
+                <pre class="code-block">async function main() {
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+  console.error("weather MCP server running on stdio");
+}
+
+main().catch((err) =&gt; {
+  console.error("fatal:", err);
+  process.exit(1);
+});</pre>
+                <pre class="code-block">npm run build   # tsc 编译到 build/ 目录 / compiles to build/</pre>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="6.4 接入宿主（Claude Desktop / VS Code）" data-en="6.4 Wire It into a Host (Claude Desktop / VS Code)">6.4 接入宿主（Claude Desktop / VS Code）</span></button>
+              <div class="subsection-content">
+                <p data-zh="在宿主的 MCP 配置里登记一条 server：给一个名字、一个可执行命令与参数（绝对路径）。多数宿主用同构的 mcpServers 结构。" data-en="Register one server in the host's MCP config: a name, an executable command, and arguments (absolute path). Most hosts use the same mcpServers structure.">在宿主的 MCP 配置里登记一条 server：给一个名字、一个可执行命令与参数（绝对路径）。多数宿主用同构的 mcpServers 结构。</p>
+                <pre class="code-block">{
+  "mcpServers": {
+    "weather": {
+      "command": "node",
+      "args": ["/ABSOLUTE/PATH/weather-mcp/build/index.js"]
+    }
+  }
+}</pre>
+                <p data-zh="保存后重启宿主；宿主会以该命令启动 server 子进程，完成 initialize 握手后即可在会话中调用 get_forecast。" data-en="Save and restart the host; it launches the server subprocess with that command, and after the initialize handshake, get_forecast is callable in the session.">保存后重启宿主；宿主会以该命令启动 server 子进程，完成 initialize 握手后即可在会话中调用 get_forecast。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="6.5 日志陷阱：stdout 保留给协议" data-en="6.5 The Logging Trap: stdout Is Reserved for the Protocol">6.5 日志陷阱：stdout 保留给协议</span></button>
+              <div class="subsection-content">
+                <p data-zh="stdio server 里最常见的致命错误，是往 stdout 打日志——它会污染 JSON-RPC 消息流，让 server 静默失效。" data-en="The most common fatal mistake in a stdio server is logging to stdout - it corrupts the JSON-RPC message stream and silently breaks the server.">stdio server 里最常见的致命错误，是往 stdout 打日志——它会污染 JSON-RPC 消息流，让 server 静默失效。</p>
+                <div class="comparison-grid">
+                  <article class="comparison-card">
+                    <span class="comparison-label" data-zh="反例" data-en="Wrong">反例</span>
+                    <h3 data-zh="向 stdout 写日志" data-en="Logging to stdout">向 stdout 写日志</h3>
+                    <pre class="code-block">// stdio server
+console.log("debug");
+// 污染协议流，server 失效
+// corrupts the stream</pre>
+                  </article>
+                  <article class="comparison-card next">
+                    <span class="comparison-label" data-zh="正例" data-en="Right">正例</span>
+                    <h3 data-zh="向 stderr 写日志" data-en="Logging to stderr">向 stderr 写日志</h3>
+                    <pre class="code-block">// stdio server
+console.error("debug");
+// stderr 安全，不干扰协议
+// stderr is safe</pre>
+                  </article>
+                </div>
+                <p data-zh="规则对所有语言一致：Python 用 print(..., file=sys.stderr) 或 logging；HTTP 传输的 server 则不受此限（stdout 不承载协议）。" data-en="The rule holds across languages: in Python use print(..., file=sys.stderr) or logging; HTTP-transport servers are exempt (stdout does not carry the protocol).">规则对所有语言一致：Python 用 print(..., file=sys.stderr) 或 logging；HTTP 传输的 server 则不受此限（stdout 不承载协议）。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="6.6 Python FastMCP 对照" data-en="6.6 The Python FastMCP Equivalent">6.6 Python FastMCP 对照</span></button>
+              <div class="subsection-content">
+                <p data-zh="Python 侧用 FastMCP：用装饰器把带类型标注与 docstring 的函数暴露为工具，SDK 自动生成工具定义。" data-en="On the Python side, FastMCP uses a decorator to expose a typed, docstring-annotated function as a tool, and the SDK generates the tool definition automatically.">Python 侧用 FastMCP：用装饰器把带类型标注与 docstring 的函数暴露为工具，SDK 自动生成工具定义。</p>
+                <pre class="code-block">from mcp.server.fastmcp import FastMCP
+
+mcp = FastMCP("weather")
+
+@mcp.tool()
+async def get_forecast(latitude: float, longitude: float) -&gt; str:
+    """Get the weather forecast for a coordinate."""
+    return await fetch_forecast(latitude, longitude)
+
+if __name__ == "__main__":
+    mcp.run(transport="stdio")</pre>
+                <p data-zh="依赖 mcp[cli]（Python 3.10+，MCP SDK 1.2.0+）；同样遵守「stdout 只给协议」的纪律。" data-en="Depends on mcp[cli] (Python 3.10+, MCP SDK 1.2.0+) and follows the same stdout-for-protocol-only discipline.">依赖 mcp[cli]（Python 3.10+，MCP SDK 1.2.0+）；同样遵守「stdout 只给协议」的纪律。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 7: Connect a Client -->
+        <section id="client" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="07 / Connect a Client" data-en="07 / Connect a Client">07 / Connect a Client</p>
+            <h2 data-zh="客户端集成：Host、模型与 Server 的调用回路" data-en="Client Integration: The Host, Model, and Server Loop">客户端集成：Host、模型与 Server 的调用回路</h2>
+            <p data-zh="从消费侧看，MCP 的运行时是一个回路：宿主列出 server 的工具 → 连同用户问题交给模型 → 模型决定调用哪些工具 → 宿主经 server 执行 → 结果回给模型 → 模型给出自然语言回答。理解这个回路，才能判断把哪些能力交给 MCP、把哪些留在宿主内。" data-en="From the consumer side, MCP's runtime is a loop: the host lists a server's tools, hands them plus the user's question to the model, the model decides which tools to call, the host executes them through the server, results return to the model, and the model produces a natural-language answer. Understanding this loop is what lets you decide which capabilities to delegate to MCP and which to keep inside the host.">从消费侧看，MCP 的运行时是一个回路：宿主列出 server 的工具 → 连同用户问题交给模型 → 模型决定调用哪些工具 → 宿主经 server 执行 → 结果回给模型 → 模型给出自然语言回答。理解这个回路，才能判断把哪些能力交给 MCP、把哪些留在宿主内。</p>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="7.1 运行时回路" data-en="7.1 The Runtime Loop">7.1 运行时回路</span></button>
+              <div class="subsection-content">
+                <p data-zh="宿主是模型与 server 之间的编排者；模型只表达「要调哪个工具」，真正的执行与鉴权都在宿主与 server。" data-en="The host orchestrates between the model and the server; the model only expresses which tool to call, while execution and authorization live in the host and server.">宿主是模型与 server 之间的编排者；模型只表达「要调哪个工具」，真正的执行与鉴权都在宿主与 server。</p>
+                <ul class="flow-list">
+                  <li>
+                    <span class="flow-step">1</span>
+                    <div class="flow-copy">
+                      <strong data-zh="列出工具" data-en="List tools">列出工具</strong>
+                      <p data-zh="client 连接 server 后调用 tools/list，把可用工具及其输入 schema 拿到手。" data-en="After connecting, the client calls tools/list to obtain the available tools and their input schemas.">client 连接 server 后调用 tools/list，把可用工具及其输入 schema 拿到手。</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">2</span>
+                    <div class="flow-copy">
+                      <strong data-zh="交给模型决策" data-en="Let the model decide">交给模型决策</strong>
+                      <p data-zh="宿主把用户问题 + 工具声明发给模型；模型用 function calling 决定调用哪个、传什么参数。" data-en="The host sends the user's question plus tool declarations to the model, which uses function calling to pick a tool and arguments.">宿主把用户问题 + 工具声明发给模型；模型用 function calling 决定调用哪个、传什么参数。</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">3</span>
+                    <div class="flow-copy">
+                      <strong data-zh="经 Server 执行" data-en="Execute via the server">经 Server 执行</strong>
+                      <p data-zh="宿主经 client 调用 tools/call 执行工具（必要时先请用户确认），拿到结构化结果。" data-en="The host calls tools/call through the client to run the tool (with user confirmation when needed) and gets a structured result.">宿主经 client 调用 tools/call 执行工具（必要时先请用户确认），拿到结构化结果。</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">4</span>
+                    <div class="flow-copy">
+                      <strong data-zh="回填并作答" data-en="Feed back and answer">回填并作答</strong>
+                      <p data-zh="结果回给模型，模型据此生成回答；如需多步，重复 2–4 直至完成。" data-en="Results go back to the model, which composes an answer; for multi-step tasks, repeat 2 to 4 until done.">结果回给模型，模型据此生成回答；如需多步，重复 2–4 直至完成。</p>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="7.2 用 SDK 连接并调用" data-en="7.2 Connect and Call with the SDK">7.2 用 SDK 连接并调用</span></button>
+              <div class="subsection-content">
+                <p data-zh="客户端侧同样用官方 SDK：创建 Client、连接传输、listTools 发现工具、callTool 执行。" data-en="The client side also uses the official SDK: create a Client, connect a transport, discover tools with listTools, and execute with callTool.">客户端侧同样用官方 SDK：创建 Client、连接传输、listTools 发现工具、callTool 执行。</p>
+                <pre class="code-block">import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+
+const client = new Client({ name: "host-app", version: "1.0.0" });
+await client.connect(new StdioClientTransport({
+  command: "node",
+  args: ["build/index.js"],
+}));
+
+const { tools } = await client.listTools();
+
+const result = await client.callTool({
+  name: "get_forecast",
+  arguments: { latitude: 47.6, longitude: -122.3 },
+});</pre>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="7.3 宿主生态：一次实现，多处接入" data-en="7.3 Host Ecosystem: Build Once, Integrate Everywhere">7.3 宿主生态：一次实现，多处接入</span></button>
+              <div class="subsection-content">
+                <p data-zh="MCP 已被广泛的宿主支持，同一个 server 可被多种客户端复用，这正是「一次实现，多处接入」的落地形态。" data-en="MCP is supported across a broad range of hosts, so one server is reusable by many clients - the practical form of build once, integrate everywhere.">MCP 已被广泛的宿主支持，同一个 server 可被多种客户端复用，这正是「一次实现，多处接入」的落地形态。</p>
+                <ul class="challenge-list">
+                  <li data-zh="<strong>AI 助手</strong> — Claude、ChatGPT 等对话产品可发现并调用 MCP 工具。" data-en="<strong>AI assistants</strong> - Conversational products such as Claude and ChatGPT can discover and call MCP tools."><strong>AI 助手</strong> — Claude、ChatGPT 等对话产品可发现并调用 MCP 工具。</li>
+                  <li data-zh="<strong>开发工具</strong> — Visual Studio Code、Cursor 等 IDE 内置 MCP 客户端，把工具接进编码工作流。" data-en="<strong>Dev tools</strong> - IDEs such as Visual Studio Code and Cursor embed an MCP client, bringing tools into the coding workflow."><strong>开发工具</strong> — Visual Studio Code、Cursor 等 IDE 内置 MCP 客户端，把工具接进编码工作流。</li>
+                  <li data-zh="<strong>可移植性</strong> — 因为协议一致，为一个宿主写的 server 通常无需改代码即可被其它宿主接入。" data-en="<strong>Portability</strong> - Because the protocol is shared, a server written for one host usually integrates with others without code changes."><strong>可移植性</strong> — 因为协议一致，为一个宿主写的 server 通常无需改代码即可被其它宿主接入。</li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 8: Security & Production -->
+        <section id="security" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="08 / Security &amp; Production" data-en="08 / Security &amp; Production">08 / Security &amp; Production</p>
+            <h2 data-zh="安全与生产化：四条信任原则与传输加固" data-en="Security and Production: Four Trust Principles and Transport Hardening">安全与生产化：四条信任原则与传输加固</h2>
+            <p data-zh="MCP 打开了「任意数据访问 + 任意代码执行」的能力面，因此安全不是可选项。协议本身无法在协议层强制这些原则，落地责任落在实现方：宿主必须建立同意与授权流程、访问控制与隐私保护。下面先给四条信任原则，再落到 Streamable HTTP 的具体加固与生产降级。" data-en="MCP opens a surface of arbitrary data access plus arbitrary code execution, so security is not optional. The protocol cannot enforce these principles at the protocol level; the responsibility falls on implementers - hosts must build consent and authorization flows, access controls, and privacy protections. Below are the four trust principles, then concrete Streamable HTTP hardening and production fallback.">MCP 打开了「任意数据访问 + 任意代码执行」的能力面，因此安全不是可选项。协议本身无法在协议层强制这些原则，落地责任落在实现方：宿主必须建立同意与授权流程、访问控制与隐私保护。下面先给四条信任原则，再落到 Streamable HTTP 的具体加固与生产降级。</p>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="8.1 四条信任原则" data-en="8.1 The Four Trust Principles">8.1 四条信任原则</span></button>
+              <div class="subsection-content">
+                <p data-zh="官方规范给出四条必须落实的信任与安全原则，覆盖同意、隐私、工具与推理四个面。" data-en="The specification names four trust and safety principles implementers must honor, covering consent, privacy, tools, and sampling.">官方规范给出四条必须落实的信任与安全原则，覆盖同意、隐私、工具与推理四个面。</p>
+                <div class="insight-grid">
+                  <article class="insight-card">
+                    <span class="card-index">01</span>
+                    <h3 data-zh="用户同意与控制" data-en="User Consent and Control">用户同意与控制</h3>
+                    <p data-zh="用户必须明确同意并理解所有数据访问与操作，保留对「共享什么、执行什么」的控制；宿主应提供清晰的审阅与授权界面。" data-en="Users must explicitly consent to and understand all data access and operations, retaining control over what is shared and done; hosts should provide clear review and authorization UIs.">用户必须明确同意并理解所有数据访问与操作，保留对「共享什么、执行什么」的控制；宿主应提供清晰的审阅与授权界面。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">02</span>
+                    <h3 data-zh="数据隐私" data-en="Data Privacy">数据隐私</h3>
+                    <p data-zh="宿主在把用户数据暴露给 server 前须取得明确同意，未经同意不得外传资源数据，并以适当访问控制保护数据。" data-en="Hosts must obtain explicit consent before exposing user data to servers, must not transmit resource data elsewhere without consent, and must protect data with appropriate access controls.">宿主在把用户数据暴露给 server 前须取得明确同意，未经同意不得外传资源数据，并以适当访问控制保护数据。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">03</span>
+                    <h3 data-zh="工具安全" data-en="Tool Safety">工具安全</h3>
+                    <p data-zh="工具等同任意代码执行；除非来自可信 server，工具的行为描述与注解应视为不可信。宿主必须在调用任何工具前取得用户同意。" data-en="Tools represent arbitrary code execution; unless from a trusted server, tool behavior descriptions and annotations should be treated as untrusted. Hosts must obtain user consent before invoking any tool.">工具等同任意代码执行；除非来自可信 server，工具的行为描述与注解应视为不可信。宿主必须在调用任何工具前取得用户同意。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">04</span>
+                    <h3 data-zh="Sampling 控制" data-en="Sampling Controls">Sampling 控制</h3>
+                    <p data-zh="用户必须显式批准任何 sampling 请求，并能控制是否发生、发送什么提示、server 能看到什么结果；协议刻意限制 server 对提示的可见性。" data-en="Users must explicitly approve any sampling request and control whether it happens, what prompt is sent, and what results the server sees; the protocol deliberately limits server visibility into prompts.">用户必须显式批准任何 sampling 请求，并能控制是否发生、发送什么提示、server 能看到什么结果；协议刻意限制 server 对提示的可见性。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="8.2 Streamable HTTP 传输加固" data-en="8.2 Streamable HTTP Transport Hardening">8.2 Streamable HTTP 传输加固</span></button>
+              <div class="subsection-content">
+                <p data-zh="把 server 暴露到 HTTP 上会引入 Web 攻击面；官方对 Streamable HTTP 给出三条强制加固。" data-en="Exposing a server over HTTP introduces a web attack surface; the spec mandates three hardening steps for Streamable HTTP.">把 server 暴露到 HTTP 上会引入 Web 攻击面；官方对 Streamable HTTP 给出三条强制加固。</p>
+                <ul class="challenge-list">
+                  <li data-zh="<strong>校验 Origin 头</strong> — 所有入站连接都必须校验 Origin，防止 DNS rebinding 攻击从远程网页控制本地 server。" data-en="<strong>Validate the Origin header</strong> - All incoming connections must validate Origin to prevent DNS rebinding attacks that let remote sites drive a local server."><strong>校验 Origin 头</strong> — 所有入站连接都必须校验 Origin，防止 DNS rebinding 攻击从远程网页控制本地 server。</li>
+                  <li data-zh="<strong>本地只绑 localhost</strong> — 本地运行时应只绑定 127.0.0.1，而非 0.0.0.0，避免暴露到所有网络接口。" data-en="<strong>Bind localhost when local</strong> - When running locally, bind only to 127.0.0.1 rather than 0.0.0.0 to avoid exposure on all interfaces."><strong>本地只绑 localhost</strong> — 本地运行时应只绑定 127.0.0.1，而非 0.0.0.0，避免暴露到所有网络接口。</li>
+                  <li data-zh="<strong>为所有连接鉴权</strong> — 为所有连接实现恰当的身份认证；无这些防护，攻击者可用 DNS rebinding 与本地 server 交互。" data-en="<strong>Authenticate every connection</strong> - Implement proper authentication for all connections; without these protections, attackers can use DNS rebinding to interact with a local server."><strong>为所有连接鉴权</strong> — 为所有连接实现恰当的身份认证；无这些防护，攻击者可用 DNS rebinding 与本地 server 交互。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="8.3 超时、取消与生产降级" data-en="8.3 Timeouts, Cancellation, and Production Fallback">8.3 超时、取消与生产降级</span></button>
+              <div class="subsection-content">
+                <p data-zh="生产系统里 server 会挂、工具会失败、连接会断；把这些当常态处理，才能得到稳定的 MCP 集成。" data-en="In production, servers hang, tools fail, and connections drop; treating these as normal is what yields a stable MCP integration.">生产系统里 server 会挂、工具会失败、连接会断；把这些当常态处理，才能得到稳定的 MCP 集成。</p>
+                <ul class="layer-list">
+                  <li><span class="layer-number">1</span><span data-zh="<strong>按请求设超时</strong> — 每个请求设超时，超时发取消通知并停止等待；对整条 agentic 回路设最大步数与总时限。" data-en="<strong>Timeout per request</strong> - Set a timeout on each request, send a cancellation notification and stop waiting on timeout, and cap the whole agentic loop with a max step count and total time budget."><strong>按请求设超时</strong> — 每个请求设超时，超时发取消通知并停止等待；对整条 agentic 回路设最大步数与总时限。</span></li>
+                  <li><span class="layer-number">2</span><span data-zh="<strong>结构化错误回传</strong> — 工具失败时回传清晰、可操作的错误文本（而非原始堆栈），让模型能修正参数或改走替代路径。" data-en="<strong>Return structured errors</strong> - On tool failure, return a clear, actionable error text (not a raw stack trace) so the model can fix arguments or take an alternative path."><strong>结构化错误回传</strong> — 工具失败时回传清晰、可操作的错误文本（而非原始堆栈），让模型能修正参数或改走替代路径。</span></li>
+                  <li><span class="layer-number">3</span><span data-zh="<strong>会话与重连</strong> — HTTP 传输下处理 404（会话失效即重新 initialize）、断线续传（Last-Event-ID）与显式 DELETE 释放会话。" data-en="<strong>Sessions and reconnection</strong> - Under HTTP, handle 404 (re-initialize when a session expires), resumability (Last-Event-ID), and explicit DELETE to release a session."><strong>会话与重连</strong> — HTTP 传输下处理 404（会话失效即重新 initialize）、断线续传（Last-Event-ID）与显式 DELETE 释放会话。</span></li>
+                  <li><span class="layer-number">4</span><span data-zh="<strong>最小权限</strong> — server 只暴露必要的工具与资源；把敏感操作放在需要显式用户确认的路径后面。" data-en="<strong>Least privilege</strong> - A server exposes only the tools and resources it needs; put sensitive operations behind an explicit user-confirmation path."><strong>最小权限</strong> — server 只暴露必要的工具与资源；把敏感操作放在需要显式用户确认的路径后面。</span></li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 9: Adoption Decisions -->
+        <section id="adoption" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="09 / Adoption Decisions" data-en="09 / Adoption Decisions">09 / Adoption Decisions</p>
+            <h2 data-zh="选型判断：何时用 MCP、如何落地" data-en="Adoption Decisions: When to Use MCP and How to Land It">选型判断：何时用 MCP、如何落地</h2>
+            <p data-zh="MCP 不是所有集成的默认答案。它的价值集中在「工具要被多个宿主复用、要有连接生命周期与统一鉴权」这类场景；单一应用内的少量固定工具，直接 function calling 往往更省。本节给出可落地的判据与一份落地清单。" data-en="MCP is not the default answer for every integration. Its value concentrates where tools must be reused across hosts and need a connection lifecycle and unified authorization; for a few fixed tools inside a single app, bare function calling is often cheaper. This section gives actionable criteria and a landing checklist.">MCP 不是所有集成的默认答案。它的价值集中在「工具要被多个宿主复用、要有连接生命周期与统一鉴权」这类场景；单一应用内的少量固定工具，直接 function calling 往往更省。本节给出可落地的判据与一份落地清单。</p>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="9.1 MCP vs Function Calling vs 私有 API" data-en="9.1 MCP vs Function Calling vs Private API">9.1 MCP vs Function Calling vs 私有 API</span></button>
+              <div class="subsection-content">
+                <p data-zh="三种做法解决的问题不同；按「复用范围、发现机制、生命周期」三维对照，即可选中合适的那一档。" data-en="The three approaches solve different problems; comparing them on reuse scope, discovery, and lifecycle points to the right tier.">三种做法解决的问题不同；按「复用范围、发现机制、生命周期」三维对照，即可选中合适的那一档。</p>
+                <div class="simple-table-wrap">
+                  <table class="simple-table">
+                    <thead>
+                      <tr>
+                        <th data-zh="维度" data-en="Dimension">维度</th>
+                        <th data-zh="直接 Function Calling" data-en="Bare Function Calling">直接 Function Calling</th>
+                        <th data-zh="MCP" data-en="MCP">MCP</th>
+                        <th data-zh="私有 API 集成" data-en="Private API Integration">私有 API 集成</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td data-zh="复用范围" data-en="Reuse scope">复用范围</td>
+                        <td data-zh="绑定单一应用" data-en="Bound to one app">绑定单一应用</td>
+                        <td class="cell-yes" data-zh="跨宿主复用" data-en="Reusable across hosts">跨宿主复用</td>
+                        <td data-zh="按对接双方定制" data-en="Custom per pair">按对接双方定制</td>
+                      </tr>
+                      <tr>
+                        <td data-zh="发现机制" data-en="Discovery">发现机制</td>
+                        <td data-zh="代码里硬编码工具集" data-en="Tools hard-coded in app">代码里硬编码工具集</td>
+                        <td class="cell-yes" data-zh="运行时 tools/list 动态发现" data-en="Dynamic via tools/list">运行时 tools/list 动态发现</td>
+                        <td data-zh="靠文档与手工约定" data-en="Docs and manual contract">靠文档与手工约定</td>
+                      </tr>
+                      <tr>
+                        <td data-zh="连接生命周期" data-en="Connection lifecycle">连接生命周期</td>
+                        <td data-zh="无（单次请求）" data-en="None (single request)">无（单次请求）</td>
+                        <td class="cell-yes" data-zh="初始化/能力协商/会话" data-en="Init / negotiation / session">初始化/能力协商/会话</td>
+                        <td data-zh="各自实现" data-en="Bespoke each time">各自实现</td>
+                      </tr>
+                      <tr>
+                        <td data-zh="最省场景" data-en="Cheapest when">最省场景</td>
+                        <td class="cell-yes" data-zh="少量固定工具、单应用" data-en="Few fixed tools, one app">少量固定工具、单应用</td>
+                        <td data-zh="工具产品化、多宿主接入" data-en="Productized tools, many hosts">工具产品化、多宿主接入</td>
+                        <td data-zh="强耦合、深度定制系统" data-en="Tightly coupled systems">强耦合、深度定制系统</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="9.2 MCP vs REST API：不同层，常叠用" data-en="9.2 MCP vs REST API: Different Layers, Often Stacked">9.2 MCP vs REST API：不同层，常叠用</span></button>
+              <div class="subsection-content">
+                <p data-zh="先厉清前提：MCP 与 REST API 不在同一层，也并非二选一。REST 是供代码调用的通用 API 风格，MCP 是供模型发现与调用的协议；且 MCP Server 内部往往正是在调用 REST。" data-en="First, a premise: MCP and REST API sit at different layers and are not either/or. REST is a general API style for code to call; MCP is a protocol for models to discover and call; and an MCP server internally often calls REST.">先厉清前提：MCP 与 REST API 不在同一层，也并非二选一。REST 是供代码调用的通用 API 风格，MCP 是供模型发现与调用的协议；且 MCP Server 内部往往正是在调用 REST。</p>
+                <div class="simple-table-wrap">
+                  <table class="simple-table">
+                    <thead>
+                      <tr>
+                        <th data-zh="维度" data-en="Dimension">维度</th>
+                        <th data-zh="REST API" data-en="REST API">REST API</th>
+                        <th data-zh="MCP" data-en="MCP">MCP</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td data-zh="调用方" data-en="Caller">调用方</td>
+                        <td data-zh="确定性代码" data-en="Deterministic code">确定性代码</td>
+                        <td data-zh="LLM / Agent" data-en="LLM / Agent">LLM / Agent</td>
+                      </tr>
+                      <tr>
+                        <td data-zh="发现方式" data-en="Discovery">发现方式</td>
+                        <td data-zh="带外文档（OpenAPI），集成写死" data-en="Out-of-band docs (OpenAPI), hardcoded">带外文档（OpenAPI），集成写死</td>
+                        <td data-zh="运行时 tools/list 自描述" data-en="Runtime tools/list self-description">运行时 tools/list 自描述</td>
+                      </tr>
+                      <tr>
+                        <td data-zh="接口形态" data-en="Interface">接口形态</td>
+                        <td data-zh="每个 API 各异，逐个适配" data-en="Per-API, adapt each one">每个 API 各异，逐个适配</td>
+                        <td data-zh="统一 JSON-RPC，一个客户端对接所有 server" data-en="Uniform JSON-RPC, one client for all servers">统一 JSON-RPC，一个客户端对接所有 server</td>
+                      </tr>
+                      <tr>
+                        <td data-zh="状态" data-en="State">状态</td>
+                        <td data-zh="通常无状态" data-en="Typically stateless">通常无状态</td>
+                        <td data-zh="有状态会话 + 能力协商" data-en="Stateful session + negotiation">有状态会话 + 能力协商</td>
+                      </tr>
+                      <tr>
+                        <td data-zh="方向" data-en="Direction">方向</td>
+                        <td data-zh="单向 client→server" data-en="One-way, client to server">单向 client→server</td>
+                        <td data-zh="双向（sampling / elicitation）" data-en="Bidirectional (sampling / elicitation)">双向（sampling / elicitation）</td>
+                      </tr>
+                      <tr>
+                        <td data-zh="复用成本" data-en="Reuse cost">复用成本</td>
+                        <td data-zh="每个 AI 宿主各写一遍 = M×N" data-en="Per AI host = M×N">每个 AI 宿主各写一遍 = M×N</td>
+                        <td data-zh="写一次，处处可用 = M+N" data-en="Build once = M+N">写一次，处处可用 = M+N</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p data-zh="选择判据：调用方是否为 LLM、以及工具是否需要跨多个 AI 宿主复用。二者成立时用 MCP；若只是代码间的确定性集成，REST 更轻、更省。根本原因在于 REST 的契约在开发期固定、面向已知双方，而 MCP 的契约在运行期协商并自描述、面向被模型动态发现。实践中最常见的是两者叠用：底层 REST，外面包一层 MCP 供 Agent 使用。" data-en="Decision criteria: whether the caller is an LLM, and whether the tool must be reused across multiple AI hosts. When both hold, use MCP; for deterministic code-to-code integration, REST is lighter and cheaper. The root reason: REST fixes its contract at development time for known parties, while MCP negotiates and self-describes its contract at runtime for dynamic discovery by a model. In practice the two are most often stacked: REST underneath, an MCP layer on top for agents.">选择判据：调用方是否为 LLM、以及工具是否需要跨多个 AI 宿主复用。二者成立时用 MCP；若只是代码间的确定性集成，REST 更轻、更省。根本原因在于 REST 的契约在开发期固定、面向已知双方，而 MCP 的契约在运行期协商并自描述、面向被模型动态发现。实践中最常见的是两者叠用：底层 REST，外面包一层 MCP 供 Agent 使用。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="9.3 本地 stdio 还是远程 HTTP" data-en="9.3 Local stdio or Remote HTTP">9.3 本地 stdio 还是远程 HTTP</span></button>
+              <div class="subsection-content">
+                <p data-zh="决定用 MCP 之后，第二个决策是部署形态；它同时影响鉴权、可扩展性与运维复杂度。" data-en="Once MCP is chosen, the second decision is deployment shape, which drives auth, scalability, and operational complexity.">决定用 MCP 之后，第二个决策是部署形态；它同时影响鉴权、可扩展性与运维复杂度。</p>
+                <div class="comparison-grid">
+                  <article class="comparison-card">
+                    <span class="comparison-label" data-zh="本地 stdio" data-en="Local stdio">本地 stdio</span>
+                    <h3 data-zh="随宿主分发、按用户机器运行" data-en="Ships with the Host, Runs per User Machine">随宿主分发、按用户机器运行</h3>
+                    <ul class="challenge-list">
+                      <li data-zh="无网络暴露面，鉴权由本机进程与文件权限承担。" data-en="No network exposure; auth relies on local process and file permissions.">无网络暴露面，鉴权由本机进程与文件权限承担。</li>
+                      <li data-zh="适合个人生产力工具、访问本地文件/Git、开发调试。" data-en="Fits personal productivity tools, local file/Git access, and development.">适合个人生产力工具、访问本地文件/Git、开发调试。</li>
+                      <li data-zh="更新需随宿主或包分发，集中运维弱。" data-en="Updates ship with the host or package; centralized ops are weak.">更新需随宿主或包分发，集中运维弱。</li>
+                    </ul>
+                  </article>
+                  <article class="comparison-card next">
+                    <span class="comparison-label" data-zh="远程 Streamable HTTP" data-en="Remote Streamable HTTP">远程 Streamable HTTP</span>
+                    <h3 data-zh="集中托管、多客户端共享" data-en="Centrally Hosted, Shared by Many Clients">集中托管、多客户端共享</h3>
+                    <ul class="challenge-list">
+                      <li data-zh="集中更新与监控，一处修复所有客户端受益。" data-en="Centralized updates and monitoring; one fix benefits all clients.">集中更新与监控，一处修复所有客户端受益。</li>
+                      <li data-zh="必须做传输加固（Origin 校验、鉴权）与会话管理。" data-en="Requires transport hardening (Origin validation, auth) and session management.">必须做传输加固（Origin 校验、鉴权）与会话管理。</li>
+                      <li data-zh="适合企业共享工具、多租户、需横向扩展的场景。" data-en="Fits enterprise shared tools, multi-tenant, and horizontally scaled use.">适合企业共享工具、多租户、需横向扩展的场景。</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="9.4 何时不该用 MCP" data-en="9.4 When Not to Use MCP">9.4 何时不该用 MCP</span></button>
+              <div class="subsection-content">
+                <p data-zh="以下判断可证伪：若命中，直接 function calling 或私有集成通常成本更低、控制更强。" data-en="The following judgments are falsifiable: when they hold, bare function calling or a private integration is usually cheaper and more controllable.">以下判断可证伪：若命中，直接 function calling 或私有集成通常成本更低、控制更强。</p>
+                <ul class="challenge-list">
+                  <li data-zh="<strong>工具不跨宿主复用</strong> — 只有一个应用会用这批工具，引入 MCP 只增加进程与协议开销。" data-en="<strong>Tools are not reused across hosts</strong> - If only one app will use them, MCP only adds process and protocol overhead."><strong>工具不跨宿主复用</strong> — 只有一个应用会用这批工具，引入 MCP 只增加进程与协议开销。</li>
+                  <li data-zh="<strong>工具集小且稳定</strong> — 三五个固定工具，硬编码到 function calling 声明里维护更简单。" data-en="<strong>The tool set is small and stable</strong> - For a handful of fixed tools, hard-coding them into function-calling declarations is simpler to maintain."><strong>工具集小且稳定</strong> — 三五个固定工具，硬编码到 function calling 声明里维护更简单。</li>
+                  <li data-zh="<strong>需要极致低延迟或强耦合语义</strong> — 进程内直调或专用 API 能省掉一层序列化与传输，控制更细。" data-en="<strong>You need extreme low latency or tightly coupled semantics</strong> - In-process calls or a dedicated API remove a serialization and transport layer and give finer control."><strong>需要极致低延迟或强耦合语义</strong> — 进程内直调或专用 API 能省掉一层序列化与传输，控制更细。</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="9.5 落地清单" data-en="9.5 Landing Checklist">9.5 落地清单</span></button>
+              <div class="subsection-content">
+                <p data-zh="确定用 MCP 后，按此清单推进，可覆盖从原型到生产的主要关口。" data-en="Once MCP is chosen, this checklist covers the main gates from prototype to production.">确定用 MCP 后，按此清单推进，可覆盖从原型到生产的主要关口。</p>
+                <ul class="layer-list">
+                  <li><span class="layer-number">1</span><span data-zh="<strong>划边界</strong> — 明确哪些能力做成 server，粒度按「可独立复用、职责聚焦」切分。" data-en="<strong>Draw boundaries</strong> - Decide which capabilities become servers, sliced for independent reuse and focused responsibility."><strong>划边界</strong> — 明确哪些能力做成 server，粒度按「可独立复用、职责聚焦」切分。</span></li>
+                  <li><span class="layer-number">2</span><span data-zh="<strong>选传输</strong> — 本地单用户用 stdio，远程多客户端用 Streamable HTTP，并据此规划鉴权。" data-en="<strong>Pick a transport</strong> - stdio for local single-user, Streamable HTTP for remote multi-client, and plan auth accordingly."><strong>选传输</strong> — 本地单用户用 stdio，远程多客户端用 Streamable HTTP，并据此规划鉴权。</span></li>
+                  <li><span class="layer-number">3</span><span data-zh="<strong>设计 schema</strong> — 用清晰的工具名、描述与强类型输入 schema，减少模型误调用。" data-en="<strong>Design schemas</strong> - Use clear tool names, descriptions, and strongly typed input schemas to reduce mis-calls."><strong>设计 schema</strong> — 用清晰的工具名、描述与强类型输入 schema，减少模型误调用。</span></li>
+                  <li><span class="layer-number">4</span><span data-zh="<strong>加同意与审计</strong> — 敏感工具走用户确认，记录每次调用的输入、输出与耗时，便于排障与合规。" data-en="<strong>Add consent and audit</strong> - Gate sensitive tools behind user confirmation and log each call's input, output, and latency for debugging and compliance."><strong>加同意与审计</strong> — 敏感工具走用户确认，记录每次调用的输入、输出与耗时，便于排障与合规。</span></li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 10: References -->
+        <section id="references" class="section" data-reveal data-present-step data-step-title="References">
+          <div class="section-head">
+            <p class="section-kicker" data-zh="10 / References" data-en="10 / References">10 / References</p>
+            <h2 data-zh="参考文献" data-en="References">参考文献</h2>
+          </div>
+
+          <ol class="bib-list section-grid-spaced">
+            <li>
+              <span class="bib-id">[1]</span>
+              <span class="bib-author">Anthropic / MCP, 2026.</span>
+              <em data-zh="什么是 Model Context Protocol（MCP）" data-en="What Is the Model Context Protocol (MCP)">什么是 Model Context Protocol（MCP）</em>
+              <a href="https://modelcontextprotocol.io/introduction" target="_blank" rel="noopener noreferrer">modelcontextprotocol.io/introduction</a>
+              <span class="bib-note" data-zh="MCP 概述与价值：USB-C 类比、三类受益者、广泛的宿主生态。" data-en="MCP overview and value: the USB-C analogy, three beneficiary groups, and the broad host ecosystem.">MCP 概述与价值：USB-C 类比、三类受益者、广泛的宿主生态。</span>
+            </li>
+            <li>
+              <span class="bib-id">[2]</span>
+              <span class="bib-author">MCP, 2025.</span>
+              <em data-zh="规范 · 架构" data-en="Specification · Architecture">规范 · 架构</em>
+              <a href="https://modelcontextprotocol.io/specification/2025-06-18/architecture" target="_blank" rel="noopener noreferrer">modelcontextprotocol.io/specification/2025-06-18/architecture</a>
+              <span class="bib-note" data-zh="client-host-server 架构、核心组件职责、四条设计原则与能力协商。" data-en="The client-host-server architecture, core component responsibilities, four design principles, and capability negotiation.">client-host-server 架构、核心组件职责、四条设计原则与能力协商。</span>
+            </li>
+            <li>
+              <span class="bib-id">[3]</span>
+              <span class="bib-author">MCP, 2025.</span>
+              <em data-zh="规范 · 生命周期" data-en="Specification · Lifecycle">规范 · 生命周期</em>
+              <a href="https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle" target="_blank" rel="noopener noreferrer">modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle</a>
+              <span class="bib-note" data-zh="初始化握手、版本与能力协商、关闭、超时与错误处理，含 initialize 请求示例。" data-en="Initialization handshake, version and capability negotiation, shutdown, timeouts, and error handling, with an initialize request example.">初始化握手、版本与能力协商、关闭、超时与错误处理，含 initialize 请求示例。</span>
+            </li>
+            <li>
+              <span class="bib-id">[4]</span>
+              <span class="bib-author">MCP, 2025.</span>
+              <em data-zh="规范 · 传输" data-en="Specification · Transports">规范 · 传输</em>
+              <a href="https://modelcontextprotocol.io/specification/2025-06-18/basic/transports" target="_blank" rel="noopener noreferrer">modelcontextprotocol.io/specification/2025-06-18/basic/transports</a>
+              <span class="bib-note" data-zh="stdio 与 Streamable HTTP 细节、会话管理、断线续传与传输层安全告警。" data-en="stdio and Streamable HTTP details, session management, resumability, and transport-layer security warnings.">stdio 与 Streamable HTTP 细节、会话管理、断线续传与传输层安全告警。</span>
+            </li>
+            <li>
+              <span class="bib-id">[5]</span>
+              <span class="bib-author">MCP, 2026.</span>
+              <em data-zh="规范 · 版本管理" data-en="Specification · Versioning">规范 · 版本管理</em>
+              <a href="https://modelcontextprotocol.io/specification/versioning" target="_blank" rel="noopener noreferrer">modelcontextprotocol.io/specification/versioning</a>
+              <span class="bib-note" data-zh="YYYY-MM-DD 日期串版本策略；当前修订 2025-11-25；协商与向后兼容规则。" data-en="The YYYY-MM-DD date-string versioning policy; current revision 2025-11-25; negotiation and backward-compatibility rules.">YYYY-MM-DD 日期串版本策略；当前修订 2025-11-25；协商与向后兼容规则。</span>
+            </li>
+            <li>
+              <span class="bib-id">[6]</span>
+              <span class="bib-author">MCP, 2026.</span>
+              <em data-zh="文档 · 构建一个 MCP Server" data-en="Docs · Build an MCP Server">文档 · 构建一个 MCP Server</em>
+              <a href="https://modelcontextprotocol.io/docs/develop/build-server" target="_blank" rel="noopener noreferrer">modelcontextprotocol.io/docs/develop/build-server</a>
+              <span class="bib-note" data-zh="多语言快速上手：TypeScript McpServer / registerTool、stdio 传输、stdout 日志陷阱与宿主配置。" data-en="Multi-language quickstart: TypeScript McpServer / registerTool, stdio transport, the stdout logging trap, and host configuration.">多语言快速上手：TypeScript McpServer / registerTool、stdio 传输、stdout 日志陷阱与宿主配置。</span>
+            </li>
+            <li>
+              <span class="bib-id">[7]</span>
+              <span class="bib-author">Model Context Protocol, 2026.</span>
+              <em data-zh="TypeScript SDK（开源仓库）" data-en="TypeScript SDK (Open-Source Repository)">TypeScript SDK（开源仓库）</em>
+              <a href="https://github.com/modelcontextprotocol/typescript-sdk" target="_blank" rel="noopener noreferrer">github.com/modelcontextprotocol/typescript-sdk</a>
+              <span class="bib-note" data-zh="官方 TypeScript SDK：McpServer、Client、Stdio 与 Streamable HTTP 传输的参考实现。" data-en="The official TypeScript SDK: reference implementation of McpServer, Client, and the Stdio and Streamable HTTP transports.">官方 TypeScript SDK：McpServer、Client、Stdio 与 Streamable HTTP 传输的参考实现。</span>
+            </li>
+          </ol>
+        </section>
+      </main>
+
+      <footer class="page-footer">
+        <p>&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。</p>
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

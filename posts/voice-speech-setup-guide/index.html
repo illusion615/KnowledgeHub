@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Azure 语音平台搭建指南</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 { font-size: clamp(1.9rem, 4.4vw, 3.1rem); line-height: 1.12; letter-spacing: -0.02em; max-width: 24ch; }
+    .hero-layer-list { margin-top: 18px; }
+    /* .cmd-block — copy-paste command block (matches the sibling articles). Not bilingual-swapped: shell is language-neutral, comments kept in English. */
+    .cmd-block { background: rgba(15,23,42,0.04); border: 1px solid rgba(15,23,42,0.08); border-radius: 12px; padding: 15px 18px; font-family: "Space Grotesk", "SF Mono", "Fira Code", Consolas, ui-monospace, monospace; font-size: 0.8rem; line-height: 1.75; overflow-x: auto; white-space: pre; color: var(--ink); margin: 12px 0 4px; }
+    [data-theme="dark"] .cmd-block { background: rgba(255,255,255,0.045); border-color: rgba(255,255,255,0.09); }
+    /* .shot — screenshot slot: a dashed placeholder that describes exactly what the portal screen shows and what to enter, so a redacted image can be dropped in later. */
+    .shot { margin: 14px 0 4px; padding: 15px 18px; border: 1.5px dashed rgba(52,104,199,0.4); border-radius: 14px; background: rgba(52,104,199,0.05); }
+    [data-theme="dark"] .shot { border-color: rgba(120,160,240,0.45); background: rgba(120,160,240,0.08); }
+    .shot .shot-tag { display: inline-block; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; opacity: 0.7; }
+    .shot .shot-cap { margin: 4px 0 0; font-size: 0.92rem; font-weight: 500; }
+    .shot .shot-hint { margin: 6px 0 0; font-size: 0.83rem; opacity: 0.78; line-height: 1.6; }
+    /* .fig — embedded (redacted) portal screenshot with caption. */
+    .fig { margin: 14px 0 4px; }
+    .fig img { width: 100%; max-width: 860px; display: block; border: 1px solid rgba(15,23,42,0.12); border-radius: 12px; box-shadow: 0 6px 22px rgba(15,23,42,0.10); }
+    [data-theme="dark"] .fig img { border-color: rgba(255,255,255,0.12); box-shadow: 0 6px 22px rgba(0,0,0,0.34); }
+    .fig figcaption { margin-top: 8px; font-size: 0.82rem; opacity: 0.78; }
+    .fig .fig-tag { display: inline-block; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; opacity: 0.7; margin-right: 7px; }
+    .callout-note { margin-top: 14px; padding: 12px 16px; border-left: 3px solid #3468c7; background: rgba(52,104,199,0.07); border-radius: 0 12px 12px 0; }
+    .callout-note p { margin: 0; font-size: 0.9rem; }
+    .callout-warm { border-left-color: #fb923c; background: rgba(249,115,22,0.07); }
+    .callout-green { border-left-color: #2d7a4d; background: rgba(45,122,77,0.08); }
+    .mono { font-family: "Space Grotesk", ui-monospace, monospace; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            <span data-zh="Agentic Sales Mobile" data-en="Agentic Sales Mobile">Agentic Sales Mobile</span>
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#overview" data-zh="概览" data-en="Overview">概览</a>
+            <a href="#resources" data-zh="建资源" data-en="Resources">建资源</a>
+            <a href="#deploy" data-zh="部署" data-en="Deploy">部署</a>
+            <a href="#verify" data-zh="验证" data-en="Verify">验证</a>
+            <a href="#import" data-zh="导入配置" data-en="Import &amp; Configure">导入配置</a>
+            <a href="#security" data-zh="安全" data-en="Security">安全</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow" data-zh="搭建指南 · 图文 step-by-step" data-en="Setup Guide · Illustrated, Step by Step">搭建指南 · 图文 step-by-step</span>
+            <h1 data-zh="Azure 语音平台搭建指南" data-en="Azure Voice Platform Setup Guide">Azure 语音平台搭建指南</h1>
+            <p data-zh="这份指南带你在自己的 Azure 订阅里从零建好语音后端（Azure Speech + 一个持有密钥的 Function 代理），再在 Power Platform 里把它接进应用。全程用通用命名，密钥只留在服务端，并带一把防滥用的共享密钥。每一步都标注了该在门户看到什么界面、填什么、点什么，截图可直接落位。" data-en="This guide walks you through standing up a voice backend from scratch in your own Azure subscription (Azure Speech plus a key-holding Function proxy), then wiring it into the app through Power Platform. It uses generic names throughout, keeps the key server-side, and adds an anti-abuse shared secret. Every step marks exactly which portal screen you should see, what to enter, and what to click, so screenshots drop straight in.">
+              这份指南带你在自己的 Azure 订阅里从零建好语音后端（Azure Speech + 一个持有密钥的 Function 代理），再在 Power Platform 里把它接进应用。全程用通用命名，密钥只留在服务端，并带一把防滥用的共享密钥。每一步都标注了该在门户看到什么界面、填什么、点什么，截图可直接落位。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#resources" data-zh="开始搭建" data-en="Start Building">开始搭建</a>
+              <a class="button button-secondary" href="#overview" data-zh="先看总览" data-en="See the Overview">先看总览</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label" data-zh="你将搭出什么" data-en="What You Will Build">你将搭出什么</span>
+            <h2 data-zh="一个只在服务端持密钥、带防滥用密钥、可被应用经连接器调用的语音代理。" data-en="A speech proxy that holds the key server-side, is protected by an anti-abuse key, and is callable by the app through a connector.">一个只在服务端持密钥、带防滥用密钥、可被应用经连接器调用的语音代理。</h2>
+            <p data-zh="应用运行在 connect-src 'none' 的沙箱里、不能直接对外发请求，所以语音统一走「应用 → 自定义连接器 → Function → Azure Speech」。Function 用订阅密钥调 Azure，只把音频/文字返回；一把独立的共享密钥挡住匿名滥用。" data-en="The app runs in a connect-src 'none' sandbox and cannot call out directly, so speech always flows app -> custom connector -> Function -> Azure Speech. The Function calls Azure with the subscription key and returns only audio/text; a separate shared secret blocks anonymous abuse.">
+              应用运行在 connect-src 'none' 的沙箱里、不能直接对外发请求，所以语音统一走「应用 → 自定义连接器 → Function → Azure Speech」。Function 用订阅密钥调 Azure，只把音频/文字返回；一把独立的共享密钥挡住匿名滥用。
+            </p>
+            <ul class="layer-list hero-layer-list">
+              <li><span class="layer-number">1</span><span data-zh="Azure Speech（F0 免费档起步）" data-en="Azure Speech (start on the F0 free tier)">Azure Speech（F0 免费档起步）</span></li>
+              <li><span class="layer-number">2</span><span data-zh="Function 代理 — 持订阅密钥、跑 /tts 与 /stt" data-en="Function proxy — holds the key, runs /tts and /stt">Function 代理 — 持订阅密钥、跑 /tts 与 /stt</span></li>
+              <li><span class="layer-number">3</span><span data-zh="防滥用共享密钥（x-api-key）" data-en="Anti-abuse shared secret (x-api-key)">防滥用共享密钥（x-api-key）</span></li>
+              <li><span class="layer-number">4</span><span data-zh="导入我们的 Solution（含连接器与连接引用）+ 建连接" data-en="Import our solution (connector + connection reference included) + create the connection">导入我们的 Solution（含连接器与连接引用）+ 建连接</span></li>
+            </ul>
+          </aside>
+        </div>
+      </header>
+
+      <main>
+        <!-- Section 01: Overview -->
+        <section id="overview" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="01 / 总览与前置条件" data-en="01 / Overview and Prerequisites">01 / Overview and Prerequisites</p>
+            <h2 data-zh="搭建路线：五种资源、两处门户、一把密钥" data-en="The Route: Five Resources, Two Portals, One Key">搭建路线：五种资源、两处门户、一把密钥</h2>
+            <p data-zh="这套流程分两半：先在 Azure 建好语音服务（第 2–4 章），再到 Power Platform 导入我们提供的 Solution 并填两个值（第 5 章）。你会用到两个网站——Azure 门户 portal.azure.com、Power Platform 门户 make.powerapps.com，外加电脑上一个「终端」窗口跑几条命令。每一步都配了截图，照着点、照着填即可。" data-en="This flow has two halves: first build the voice service in Azure (chapters 2–4), then import the solution we provide and enter two values in Power Platform (chapter 5). You will use two websites — the Azure portal (portal.azure.com) and the Power Platform portal (make.powerapps.com) — plus one terminal window on your computer for a few commands. Every step has a screenshot; just follow along, click, and type.">
+              这套流程分两半：先在 Azure 建好语音服务（第 2–4 章），再到 Power Platform 导入我们提供的 Solution 并填两个值（第 5 章）。你会用到两个网站——Azure 门户 portal.azure.com、Power Platform 门户 make.powerapps.com，外加电脑上一个「终端」窗口跑几条命令。每一步都配了截图，照着点、照着填即可。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="端到端拓扑" data-step-title-en="End-to-End Topology" data-step-label="01 / TOPOLOGY">
+            <div class="mermaid-diagram">
+              <pre class="mermaid">
+flowchart LR
+    A["应用<br/>(沙箱 connect-src none)"] -->|executeAsync| C["自定义连接器"]
+    C -->|x-api-key| F["Function 代理<br/>/tts /stt"]
+    F -->|订阅密钥| S["Azure Speech<br/>TTS + STT"]
+    S --> F --> C --> A
+              </pre>
+            </div>
+            <div class="callout-note">
+              <p data-zh="记住三条边界：① 订阅密钥只在 Function 应用设置里；② 共享密钥（x-api-key）由连接器发送、挡匿名滥用；③ 应用永远只认连接器逻辑名，从不直接见到 Function 地址或密钥。" data-en="Three boundaries to remember: (1) the subscription key lives only in the Function app settings; (2) the shared secret (x-api-key) is sent by the connector and blocks anonymous abuse; (3) the app only ever knows the connector logical name, never the Function URL or the keys.">
+                记住三条边界：① 订阅密钥只在 Function 应用设置里；② 共享密钥（x-api-key）由连接器发送、挡匿名滥用；③ 应用永远只认连接器逻辑名，从不直接见到 Function 地址或密钥。
+              </p>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="配置产出速览：2 个值 → 2 个去处" data-step-title-en="Outputs at a Glance: 2 Values → 2 Destinations" data-step-label="01 / KEY HAND-OFF">
+            <p data-zh="全篇最该记住的一张表。Azure 侧建好后，只有两个值要交到 Power Platform，各有唯一去处；Speech 订阅密钥留在 Function、绝不外传。后面的章节只是把这张表做实。" data-en="The one table to remember. Once the Azure side is built, only two values cross into Power Platform, each with a single destination; the Speech subscription key stays in the Function and never leaves. The rest of the guide just makes this table concrete.">全篇最该记住的一张表。Azure 侧建好后，只有两个值要交到 Power Platform，各有唯一去处；Speech 订阅密钥留在 Function、绝不外传。后面的章节只是把这张表做实。</p>
+            <table class="simple-table">
+              <thead>
+                <tr>
+                  <th data-zh="Azure 产出的值" data-en="Value Azure produces">Azure 产出的值</th>
+                  <th data-zh="从哪拿" data-en="Where to get it">从哪拿</th>
+                  <th data-zh="填到 Power Platform 的哪里" data-en="Where it goes in Power Platform">填到 Power Platform 的哪里</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td><span class="mono">https://&lt;func&gt;.azurewebsites.net</span><br/><span data-zh="Function 地址" data-en="Function URL">Function 地址</span></td><td data-zh="Function 概览页（§2 / §4）" data-en="The Function overview (§2 / §4)">Function 概览页（§2 / §4）</td><td data-zh="导入 Solution 时填环境变量 biz_VoiceFunctionHost；连接器 host 固定引用这个变量" data-en="Enter it into the biz_VoiceFunctionHost environment variable during solution import; the connector host always references that variable">导入 Solution 时填环境变量 <span class="mono">biz_VoiceFunctionHost</span>；连接器 <span class="mono">host</span> 固定引用这个变量</td></tr>
+                <tr><td><span class="mono">SPEECH_API_KEY</span> <span data-zh="的值" data-en="value">的值</span><br/><span data-zh="防滥用共享密钥" data-en="Anti-abuse shared secret">防滥用共享密钥</span></td><td data-zh="§3 用 openssl 生成的那串" data-en="The string minted with openssl in §3">§3 用 <span class="mono">openssl</span> 生成的那串</td><td data-zh="新建连接时的 x-api-key 输入框（§5 步骤 3）" data-en="The x-api-key box when creating the connection (§5 step 3)">新建连接时的 <span class="mono">x-api-key</span> 输入框（§5 步骤 3）</td></tr>
+                <tr><td><span data-zh="❌ Speech 订阅密钥 + 区域" data-en="❌ Speech subscription key + region">❌ Speech 订阅密钥 + 区域</span></td><td data-zh="§2 Keys and Endpoint" data-en="§2 Keys and Endpoint">§2 Keys and Endpoint</td><td data-zh="不给 PP——只写进 Function 应用设置 SPEECH_KEY / SPEECH_REGION（§3）" data-en="Not for PP — only into the Function app settings SPEECH_KEY / SPEECH_REGION (§3)">不给 PP——只写进 Function 应用设置 <span class="mono">SPEECH_KEY / SPEECH_REGION</span>（§3）</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div data-present-step data-step-title="前置条件" data-step-title-en="Prerequisites" data-step-label="01 / PREREQS">
+            <div class="insight-grid">
+              <div class="insight-card">
+                <span class="card-index">01</span>
+                <h3 data-zh="一个 Azure 订阅" data-en="An Azure subscription">一个 Azure 订阅</h3>
+                <p data-zh="能创建认知服务、Function、存储。免费额度足够起步（Speech F0）。" data-en="Able to create Cognitive Services, a Function, and storage. The free tier is enough to start (Speech F0).">能创建认知服务、Function、存储。免费额度足够起步（Speech F0）。</p>
+              </div>
+              <div class="insight-card">
+                <span class="card-index">02</span>
+                <h3 data-zh="命令行工具" data-en="Command-line tools">命令行工具</h3>
+                <p data-zh="Azure CLI（az）、Node.js、zip。装法：Mac 终端跑 brew install azure-cli node；Windows 到 aka.ms/installazurecliwindows 下载。装好后运行一次 az login 登录。第 3–4 章会用到。" data-en="Azure CLI (az), Node.js, zip. To install: on Mac run brew install azure-cli node; on Windows download from aka.ms/installazurecliwindows. After installing, run az login once to sign in. Used in chapters 3–4.">Azure CLI（az）、Node.js、zip。装法：Mac 终端跑 brew install azure-cli node；Windows 到 aka.ms/installazurecliwindows 下载。装好后运行一次 az login 登录。第 3–4 章会用到。</p>
+              </div>
+              <div class="insight-card">
+                <span class="card-index">03</span>
+                <h3 data-zh="一个 Power Platform 环境" data-en="A Power Platform environment">一个 Power Platform 环境</h3>
+                <p data-zh="含 Dataverse，且允许自定义连接器（未被 DLP 策略拦截）。用于导入我们的 Solution 并建连接。" data-en="With Dataverse, and where custom connectors are allowed (not blocked by a DLP policy). Used to import our solution and create the connection.">含 Dataverse，且允许自定义连接器（未被 DLP 策略拦截）。用于导入我们的 Solution 并建连接。</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 02: Azure resources -->
+        <section id="resources" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="02 / 在 Azure 门户建资源" data-en="02 / Create the Azure Resources">02 / Create the Azure Resources</p>
+            <h2 data-zh="资源组、Speech、存储、Function 四件套" data-en="Resource Group, Speech, Storage, Function — the Four Pieces">资源组、Speech、存储、Function 四件套</h2>
+            <p data-zh="先登录 Azure 门户：浏览器打开 portal.azure.com，用你的 Azure 账号登录。然后按顺序建 4 样东西（资源组、Speech、存储、Function）。每样都是同一套路：顶部搜索框搜名字 → 点 Create（新建） → 填几个框 → 点 Review + create。下面逐个照着做。" data-en="First sign in to the Azure portal: open portal.azure.com in a browser and sign in with your Azure account. Then create 4 things in order (resource group, Speech, storage, Function). Each follows the same pattern: search the name in the top box → click Create → fill a few fields → click Review + create. Follow along below.">
+              先登录 Azure 门户：浏览器打开 portal.azure.com，用你的 Azure 账号登录。然后按顺序建 4 样东西（资源组、Speech、存储、Function）。每样都是同一套路：顶部搜索框搜名字 → 点 Create（新建） → 填几个框 → 点 Review + create。下面逐个照着做。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="命名与区域约定" data-step-title-en="Naming and Region Convention" data-step-label="02 / NAMING">
+            <table class="simple-table">
+              <thead>
+                <tr>
+                  <th data-zh="资源" data-en="Resource">资源</th>
+                  <th data-zh="示例名（通用）" data-en="Example name (generic)">示例名（通用）</th>
+                  <th data-zh="档位 / 备注" data-en="Tier / note">档位 / 备注</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td data-zh="资源组" data-en="Resource group">资源组</td><td class="mono">rg-voice-speech</td><td data-zh="装本指南全部资源" data-en="Holds everything in this guide">装本指南全部资源</td></tr>
+                <tr><td data-zh="Speech 资源" data-en="Speech resource">Speech 资源</td><td class="mono">speech-voice</td><td data-zh="F0 免费（生产 S0）" data-en="F0 free (S0 for production)">F0 免费（生产 S0）</td></tr>
+                <tr><td data-zh="存储账户" data-en="Storage account">存储账户</td><td class="mono">voicespeechst&lt;唯一&gt;</td><td data-zh="全局唯一、全小写" data-en="Globally unique, all lowercase">全局唯一、全小写</td></tr>
+                <tr><td data-zh="Function App" data-en="Function App">Function App</td><td class="mono">voice-speech-fn-&lt;唯一&gt;</td><td data-zh="全局唯一 · Node 22" data-en="Globally unique · Node 22">全局唯一 · Node 22</td></tr>
+              </tbody>
+            </table>
+            <div class="callout-note">
+              <p data-zh="区域：示例用 East US。面向中国用户可选 East Asia 以降低延迟。Speech、Function、存储建议同区域。" data-en="Region: the example uses East US. For users in China, East Asia can lower latency. Keep Speech, the Function, and storage in the same region.">区域：示例用 East US。面向中国用户可选 East Asia 以降低延迟。Speech、Function、存储建议同区域。</p>
+            </div>
+            <div class="callout-note callout-warm">
+              <p data-zh="档位：F0 是免费档，仅供开发 / 试用——有硬性限制（并发与月度事务受限、每订阅每区域仅 1 个、部分功能不可用）。正式项目 / 生产必须用 S0（标准档、按量计费）才有完整配额与并发。建 Speech 时按用途选定价层：开发填 F0、生产填 S0；后续也可在 Speech 资源的 Pricing tier 里升档，无需改 Function 或 app。" data-en="Tier: F0 is the free tier, for development / trial only — it has hard limits (capped concurrency and monthly transactions, only one per region per subscription, some features unavailable). A real project / production must use S0 (Standard, pay-as-you-go) for full quota and concurrency. Pick the pricing tier by purpose when creating Speech: F0 for dev, S0 for production; you can also upgrade later in the Speech resource's Pricing tier, with no change to the Function or app.">档位：F0 是免费档，仅供开发 / 试用——有硬性限制（并发与月度事务受限、每订阅每区域仅 1 个、部分功能不可用）。正式项目 / 生产必须用 S0（标准档、按量计费）才有完整配额与并发。建 Speech 时按用途选定价层：开发填 F0、生产填 S0；后续也可在 Speech 资源的 Pricing tier 里升档，无需改 Function 或 app。</p>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="门户创建步骤" data-step-title-en="Portal Creation Steps" data-step-label="02 / STEPS">
+            <div class="flow-list">
+              <div class="flow-step">
+                <div class="flow-copy">
+                  <strong data-zh="1 · 新建资源组" data-en="1 · Create the resource group">1 · 新建资源组</strong>
+                  <p data-zh="门户搜索栏输入「Resource groups」→ Create → 选订阅 → 名称填 rg-voice-speech → 区域 East US → Review + create → Create。" data-en="In the portal search bar type 'Resource groups' -> Create -> pick your subscription -> Name rg-voice-speech -> Region East US -> Review + create -> Create.">门户搜索栏输入「Resource groups」→ Create → 选订阅 → 名称填 rg-voice-speech → 区域 East US → Review + create → Create。</p>
+                  <figure class="fig">
+                    <img src="media/az-01-rg.png" alt="Azure portal: Create a resource group Basics form with name rg-voice-speech and region East US" />
+                    <figcaption><span class="fig-tag">图 02-1</span><span data-zh="新建资源组的 Basics 表单：订阅、名称 rg-voice-speech、区域 (US) East US。" data-en="Create a resource group Basics form: subscription, name rg-voice-speech, region (US) East US.">新建资源组的 Basics 表单：订阅、名称 rg-voice-speech、区域 (US) East US。</span></figcaption>
+                  </figure>
+                </div>
+              </div>
+              <div class="flow-step">
+                <div class="flow-copy">
+                  <strong data-zh="2 · 新建 Speech 资源" data-en="2 · Create the Speech resource">2 · 新建 Speech 资源</strong>
+                  <p data-zh="搜索「Speech」（Azure AI services 下的 Speech service）→ Create → 资源组选 rg-voice-speech → 名称 speech-voice → 区域 East US → 定价层 Free F0 → Review + create。" data-en="Search 'Speech' (the Speech service under Azure AI services) -> Create -> Resource group rg-voice-speech -> Name speech-voice -> Region East US -> Pricing tier Free F0 -> Review + create.">搜索「Speech」（Azure AI services 下的 Speech service）→ Create → 资源组选 rg-voice-speech → 名称 speech-voice → 区域 East US → 定价层 Free F0 → Review + create。</p>
+                  <figure class="fig">
+                    <img src="media/az-02-speech.png" alt="Azure portal: Create Speech Services Basics form with name speech-voice and region East US" />
+                    <figcaption><span class="fig-tag">图 02-2</span><span data-zh="新建 Speech 资源：名称 speech-voice、区域 (US) East US、定价层选 Free F0（全新订阅会在下拉里出现 F0）。" data-en="Create the Speech resource: name speech-voice, region (US) East US, pricing tier Free F0 (a fresh subscription shows F0 in the dropdown).">新建 Speech 资源：名称 speech-voice、区域 (US) East US、定价层选 Free F0（全新订阅会在下拉里出现 F0）。</span></figcaption>
+                  </figure>
+                </div>
+              </div>
+              <div class="flow-step">
+                <div class="flow-copy">
+                  <strong data-zh="3 · 记下 Speech 的密钥与终结点" data-en="3 · Note the Speech key and endpoint">3 · 记下 Speech 的密钥与终结点</strong>
+                  <p data-zh="进入 speech-voice → 左侧「Keys and Endpoint」→ 复制 KEY 1 与 Location/Region。这两样只在下一步写进 Function、之后就不再需要手动接触。" data-en="Open speech-voice -> left menu 'Keys and Endpoint' -> copy KEY 1 and the Location/Region. You only need these to configure the Function in the next step; you never touch them by hand afterwards.">进入 speech-voice → 左侧「Keys and Endpoint」→ 复制 KEY 1 与 Location/Region。这两样只在下一步写进 Function、之后就不再需要手动接触。</p>
+                  <figure class="fig">
+                    <img src="media/az-03-keys.png" alt="Azure portal: the Speech resource Keys and Endpoint page with KEY 1 and KEY 2 masked, Location eastus and the regional endpoint" />
+                    <figcaption><span class="fig-tag">图 02-3</span><span data-zh="Keys and Endpoint 页：KEY 1/KEY 2 保持掩码（不要点 Show Keys），只需记下 Location=eastus 与终结点，下一步写进 Function。" data-en="The Keys and Endpoint page: KEY 1 / KEY 2 stay masked (do not click Show Keys); you only note Location=eastus and the endpoint, then write them into the Function next.">Keys and Endpoint 页：KEY 1/KEY 2 保持掩码（不要点 Show Keys），只需记下 Location=eastus 与终结点，下一步写进 Function。</span></figcaption>
+                  </figure>
+                </div>
+              </div>
+              <div class="flow-step">
+                <div class="flow-copy">
+                  <strong data-zh="4 · 新建存储账户" data-en="4 · Create the storage account">4 · 新建存储账户</strong>
+                  <p data-zh="搜索「Storage accounts」→ Create → 资源组 rg-voice-speech → 名称 voicespeechst<唯一>（全小写、全局唯一）→ 区域 East US → 冗余 LRS → Create。Function 运行需要它。" data-en="Search 'Storage accounts' -> Create -> Resource group rg-voice-speech -> Name voicespeechst<unique> (lowercase, globally unique) -> Region East US -> Redundancy LRS -> Create. The Function needs it to run.">搜索「Storage accounts」→ Create → 资源组 rg-voice-speech → 名称 voicespeechst&lt;唯一&gt;（全小写、全局唯一）→ 区域 East US → 冗余 LRS → Create。Function 运行需要它。</p>
+                </div>
+              </div>
+              <div class="flow-step">
+                <div class="flow-copy">
+                  <strong data-zh="5 · 新建 Function App（Node 22）" data-en="5 · Create the Function App (Node 22)">5 · 新建 Function App（Node 22）</strong>
+                  <p data-zh="搜索「Function App」→ Create → Consumption 计划 → 名称 voice-speech-fn-<唯一> → Runtime stack Node.js → 版本 22 LTS → 操作系统 Linux → 区域 East US → 存储选上一步的 voicespeechst<唯一>。⚠️ 不要选 Node 24（消费计划上起不来）。" data-en="Search 'Function App' -> Create -> Consumption plan -> Name voice-speech-fn-<unique> -> Runtime stack Node.js -> Version 22 LTS -> OS Linux -> Region East US -> Storage = the voicespeechst<unique> from the previous step. Do NOT pick Node 24 (it fails to start on Consumption).">搜索「Function App」→ Create → Consumption 计划 → 名称 voice-speech-fn-&lt;唯一&gt; → Runtime stack Node.js → 版本 22 LTS → 操作系统 Linux → 区域 East US → 存储选上一步的 voicespeechst&lt;唯一&gt;。⚠️ 不要选 Node 24（消费计划上起不来）。</p>
+                  <figure class="fig">
+                    <div class="cmd-block">$ az functionapp show -n voice-speech-fn-demo -g rg-voice-speech \
+    --query "{name:name, state:state, kind:kind, runtime:siteConfig.linuxFxVersion}" -o json
+{
+  "name": "voice-speech-fn-demo",
+  "state": "Running",
+  "kind": "functionapp,linux",
+  "runtime": "Node|22"
+}
+# App Service plan → EastUSLinuxDynamicPlan   (Dynamic = Consumption)</div>
+                    <figcaption><span class="fig-tag">图 02-4</span><span data-zh="建好后用 az 核对运行时：runtime=Node|22、kind=functionapp,linux、Dynamic（消费）计划、状态 Running——正是向导里该选的组合。" data-en="After creating it, verify the runtime with az: runtime=Node|22, kind=functionapp,linux, Dynamic (Consumption) plan, state Running — exactly the combination the wizard should produce.">建好后用 az 核对运行时：runtime=Node|22、kind=functionapp,linux、Dynamic（消费）计划、状态 Running——正是向导里该选的组合。</span></figcaption>
+                  </figure>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 03: Deploy -->
+        <section id="deploy" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="03 / 配置并部署 Function 代码" data-en="03 / Configure and Deploy the Function Code">03 / Configure and Deploy the Function Code</p>
+            <h2 data-zh="写入密钥、生成防滥用密钥、上传代码" data-en="Set the Keys, Mint the Anti-Abuse Secret, Upload the Code">写入密钥、生成防滥用密钥、上传代码</h2>
+            <p data-zh="资源建好后，这一步是命令行：把 Speech 密钥与区域写进 Function 应用设置，生成一把防滥用共享密钥，再用 run-from-package 把代理代码传上去。新建的 Linux 消费计划上 config-zip/OneDeploy 常报错，run-from-package 最稳。" data-en="With the resources in place, this step is command-line: write the Speech key and region into the Function app settings, mint an anti-abuse shared secret, and upload the proxy code with run-from-package. On a fresh Linux Consumption app, config-zip / OneDeploy often fail, so run-from-package is the reliable method.">
+              资源建好后，这一步在电脑的「终端」里做（Mac 打开「终端 Terminal」，Windows 打开 PowerShell）。作用：把 Speech 密钥写进 Function、生成一把防滥用密钥、再把代理代码传上去。把下面命令逐条复制、回车运行即可，命令里的名字换成你自己的。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="配置 + 部署命令" data-step-title-en="Configure + Deploy Commands" data-step-label="03 / COMMANDS">
+            <p class="grid-spaced" data-zh="下面有两个代码块，用法不同。第一个是部署本身：把整段复制到终端一次运行（它按注释 1→2→3 依次写密钥、用 run-from-package 传代码、放开 CORS，不是分三次输入）。图 03-1 的第二个代码块是可选核对，部署完单独跑一次即可（$ 开头那行是命令，其余是应看到的输出）。命令里的名称先换成你自己的：RG=rg-voice-speech、FUNC=你的 Function 名、STORAGE=你的存储名、REGION=eastus；代理代码来自仓库的 azure/speech-token-broker 目录。" data-en="There are two code blocks below with different uses. The first is the deployment itself: copy the whole block into the terminal and run it once (following comments 1→2→3 it writes the keys, uploads the code via run-from-package, and opens CORS — it is not three separate inputs). The second block (图 03-1) is an optional check you run once after deploying (the line starting with $ is the command, the rest is the expected output). Replace the names with your own first: RG=rg-voice-speech, FUNC=your Function name, STORAGE=your storage name, REGION=eastus; the proxy code is the repo's azure/speech-token-broker folder.">下面有两个代码块，用法不同。第一个是部署本身：把整段复制到终端一次运行（它按注释 1→2→3 依次写密钥、用 run-from-package 传代码、放开 CORS，不是分三次输入）。图 03-1 的第二个代码块是可选核对，部署完单独跑一次即可（$ 开头那行是命令，其余是应看到的输出）。命令里的名称先换成你自己的：RG=rg-voice-speech、FUNC=你的 Function 名、STORAGE=你的存储名、REGION=eastus；代理代码来自仓库的 azure/speech-token-broker 目录。</p>
+            <div class="cmd-block"># ---- 1. Speech key + region + anti-abuse key into Function app settings ----
+RG=rg-voice-speech
+FUNC=voice-speech-fn-XXXX          # your globally-unique Function name
+STORAGE=voicespeechstXXXX          # your globally-unique storage name
+REGION=eastus
+
+KEY=$(az cognitiveservices account keys list -n speech-voice -g $RG --query key1 -o tsv)
+APIKEY=$(openssl rand -hex 32)     # anti-abuse shared secret (write this down)
+az functionapp config appsettings set -n $FUNC -g $RG \
+  --settings SPEECH_KEY="$KEY" SPEECH_REGION=$REGION SPEECH_API_KEY="$APIKEY"
+
+# ---- 2. Deploy the proxy code via run-from-package (from azure/speech-token-broker) ----
+cd azure/speech-token-broker
+npm install --omit=dev
+zip -r -X /tmp/speech.zip host.json package.json src node_modules
+CONN=$(az storage account show-connection-string -n $STORAGE -g $RG --query connectionString -o tsv)
+az storage container create -n deploy --connection-string "$CONN"
+az storage blob upload -c deploy -n speech.zip -f /tmp/speech.zip --overwrite --connection-string "$CONN"
+EXPIRY=$(date -u -v+2y '+%Y-%m-%dT%H:%MZ')     # Linux: date -u -d '+2 years' '+%Y-%m-%dT%H:%MZ'
+SAS=$(az storage blob generate-sas -c deploy -n speech.zip --permissions r --expiry "$EXPIRY" --connection-string "$CONN" --full-uri -o tsv)
+az functionapp config appsettings set -n $FUNC -g $RG --settings WEBSITE_RUN_FROM_PACKAGE="$SAS"
+az functionapp restart -n $FUNC -g $RG
+
+# ---- 3. Allow the Power Apps player / localhost to call it (dev-permissive CORS) ----
+az functionapp cors add -n $FUNC -g $RG --allowed-origins "*"</div>
+            <figure class="fig">
+              <div class="cmd-block"># Verify the settings exist — names only, values are never printed
+$ az functionapp config appsettings list -n voice-speech-fn-demo -g rg-voice-speech \
+    --query "[].name" -o tsv | sort
+AzureWebJobsStorage
+FUNCTIONS_EXTENSION_VERSION
+FUNCTIONS_WORKER_RUNTIME
+SPEECH_API_KEY
+SPEECH_KEY
+SPEECH_REGION
+WEBSITE_CONTENTSHARE
+WEBSITE_RUN_FROM_PACKAGE</div>
+              <figcaption><span class="fig-tag">图 03-1</span><span data-zh="用 az 核对应用设置「存在」即可（只列名字、绝不打印值）：三个业务键 SPEECH_KEY / SPEECH_REGION / SPEECH_API_KEY，其余 FUNCTIONS_*、WEBSITE_RUN_FROM_PACKAGE 等是平台自带。" data-en="Verify the app settings exist with az (names only, values never printed): the three business keys SPEECH_KEY / SPEECH_REGION / SPEECH_API_KEY; the rest (FUNCTIONS_*, WEBSITE_RUN_FROM_PACKAGE, …) are platform-managed.">用 az 核对应用设置「存在」即可（只列名字、绝不打印值）：三个业务键 SPEECH_KEY / SPEECH_REGION / SPEECH_API_KEY，其余 FUNCTIONS_*、WEBSITE_RUN_FROM_PACKAGE 等是平台自带。</span></figcaption>
+            </figure>
+            <div class="callout-note callout-warm">
+              <p data-zh="坑：CLI 可能默认把 Function 建成 Node 24（称 20 已 EOL），但 Node 24 在 Linux 消费计划上起不来（持续 503）。用 Node 22 LTS；若已建在 24 上：az functionapp config set --linux-fx-version 'Node|22' 再重启。" data-en="Trap: the CLI may default the Function to Node 24 (claiming 20 is EOL), but Node 24 fails to start on Linux Consumption (persistent 503). Use Node 22 LTS; if you already created it on 24: az functionapp config set --linux-fx-version 'Node|22' and restart.">坑：CLI 可能默认把 Function 建成 Node 24（称 20 已 EOL），但 Node 24 在 Linux 消费计划上起不来（持续 503）。用 Node 22 LTS；若已建在 24 上：az functionapp config set --linux-fx-version 'Node|22' 再重启。</p>
+            </div>
+            <div class="callout-note callout-warm">
+              <p data-zh="坑 2（企业租户高发，比 Node 版本更隐蔽）：Function 的运行时状态与 run-from-package 代码包都要经「共享密钥 + 公网」读取存储账户。若贵司安全基线策略把该存储账户的 allowSharedKeyAccess 或 publicNetworkAccess 关掉，Function 连自己的存储都读不到 → 所有端点持续 503（重启无效）。排查：az storage account show -n $STORAGE -g $RG --query '{sharedKey:allowSharedKeyAccess,publicNet:publicNetworkAccess}'——两者须为 true / Enabled。恢复：az storage account update -n $STORAGE -g $RG --allow-shared-key-access true --public-network-access Enabled，再 az functionapp restart -n $FUNC -g $RG。若策略会自动重新锁定，需为该存储账户申请策略豁免，或改用 Elastic Premium 计划 + VNet 集成 + 私有终结点 + 托管标识 的合规架构。" data-en="Trap 2 (common in enterprise tenants, subtler than the Node version): the Function reads both its runtime state and the run-from-package code from the storage account over shared key + public network. If your security-baseline policy disables that account's allowSharedKeyAccess or publicNetworkAccess, the Function cannot reach its own storage, so every endpoint returns persistent 503 (a restart does not help). Diagnose: az storage account show -n $STORAGE -g $RG --query '{sharedKey:allowSharedKeyAccess,publicNet:publicNetworkAccess}' — both must be true / Enabled. Restore: az storage account update -n $STORAGE -g $RG --allow-shared-key-access true --public-network-access Enabled, then az functionapp restart -n $FUNC -g $RG. If the policy re-locks it automatically, request a policy exemption for this storage account, or move to a compliant architecture: Elastic Premium plan + VNet integration + private endpoint + managed identity.">坑 2（企业租户高发，比 Node 版本更隐蔽）：Function 的运行时状态与 run-from-package 代码包都要经「共享密钥 + 公网」读取存储账户。若贵司安全基线策略把该存储账户的 allowSharedKeyAccess 或 publicNetworkAccess 关掉，Function 连自己的存储都读不到 → 所有端点持续 503（重启无效）。排查：az storage account show -n $STORAGE -g $RG --query '{sharedKey:allowSharedKeyAccess,publicNet:publicNetworkAccess}'——两者须为 true / Enabled。恢复：az storage account update -n $STORAGE -g $RG --allow-shared-key-access true --public-network-access Enabled，再 az functionapp restart -n $FUNC -g $RG。若策略会自动重新锁定，需为该存储账户申请策略豁免，或改用 Elastic Premium 计划 + VNet 集成 + 私有终结点 + 托管标识 的合规架构。</p>
+            </div>
+            <div class="callout-note callout-green">
+              <p data-zh="换合规做法有什么影响？app 端：零影响——应用只经连接器调 Function 端点，不关心 Function 怎么托管、怎么访问存储，无需改代码或重建。Function 端：只换托管方式、不改代码——要让存储保持锁定，就把 Function 从消费计划迁到 Elastic Premium（支持 VNet 集成）、给存储加私有终结点、AzureWebJobsStorage 与 run-from-package 改用托管标识；/tts、/stt 业务代码原样不动。代价：Premium 计划无免费档、按常驻实例计费，比消费计划贵。" data-en="What does the compliant route affect? App side: zero impact — the app only calls the Function endpoint through the connector and does not care how the Function is hosted or how it reaches storage, so no code change or rebuild. Function side: hosting change only, no code change — to keep storage locked, move the Function from Consumption to Elastic Premium (which supports VNet integration), add a private endpoint to the storage, and switch AzureWebJobsStorage and run-from-package to managed identity; the /tts and /stt business code is unchanged. Cost: the Premium plan has no free tier and bills for always-on instances, so it is pricier than Consumption.">换合规做法有什么影响？app 端：零影响——应用只经连接器调 Function 端点，不关心 Function 怎么托管、怎么访问存储，无需改代码或重建。Function 端：只换托管方式、不改代码——要让存储保持锁定，就把 Function 从消费计划迁到 Elastic Premium（支持 VNet 集成）、给存储加私有终结点、AzureWebJobsStorage 与 run-from-package 改用托管标识；/tts、/stt 业务代码原样不动。代价：Premium 计划无免费档、按常驻实例计费，比消费计划贵。</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 04: Verify -->
+        <section id="verify" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="04 / 验证后端" data-en="04 / Verify the Backend">04 / Verify the Backend</p>
+            <h2 data-zh="带上 x-api-key 头，两个端点都要通" data-en="With the x-api-key Header, Both Endpoints Must Respond">带上 x-api-key 头，两个端点都要通</h2>
+            <p data-zh="部署完先用 curl 自测，确认「带密钥能调、不带密钥被挡」。这一步不进 Power Platform，纯验证 Function 本身。" data-en="After deploying, self-test with curl to confirm 'with the key it works, without the key it is blocked'. This step does not touch Power Platform — it verifies the Function itself.">
+              部署完先用 curl 自测，确认「带密钥能调、不带密钥被挡」。这一步不进 Power Platform，纯验证 Function 本身。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="自测命令" data-step-title-en="Self-Test Commands" data-step-label="04 / CURL">
+            <div class="cmd-block"># TTS with the key -> base64 mp3
+curl -s -X POST https://$FUNC.azurewebsites.net/api/tts \
+  -H "Content-Type: application/json" -H "x-api-key: $APIKEY" \
+  -d '{"text":"hello","locale":"en-US"}' | head -c 60
+# expect: {"audio":"&lt;base64 mp3&gt;", ...}
+
+# STT route is live (empty body -> audio_required)
+curl -s -X POST https://$FUNC.azurewebsites.net/api/stt \
+  -H "Content-Type: application/json" -H "x-api-key: $APIKEY" \
+  -d '{}' | head -c 80
+# expect: {"error":"audio_required", ...}
+
+# WITHOUT the key -> blocked
+curl -s -o /dev/null -w "%{http_code}\n" -X POST https://$FUNC.azurewebsites.net/api/tts \
+  -H "Content-Type: application/json" -d '{"text":"hi","locale":"en-US"}'
+# expect: 401</div>
+            <div class="callout-note callout-green">
+              <p data-zh="三条都符合预期，就说明：Function 通了、密钥生效了、匿名调用被挡了。可以进入 Power Platform 侧。" data-en="If all three match, the Function works, the key is in force, and anonymous calls are blocked. You are ready for the Power Platform side.">三条都符合预期，就说明：Function 通了、密钥生效了、匿名调用被挡了。可以进入 Power Platform 侧。</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 05: Import solution & configure -->
+        <section id="import" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="05 / 导入 Solution 并填两个值" data-en="05 / Import the Solution and Enter Two Values">05 / Import the Solution and Enter Two Values</p>
+            <h2 data-zh="连接器与应用随 Solution 一起进来，你只填 endpoint 和 api-key" data-en="The Connector and App Ship Inside the Solution; You Only Enter the Endpoint and api-key">连接器与应用随 Solution 一起进来，你只填 endpoint 和 api-key</h2>
+            <p data-zh="Azure 后端建好后（第 2–4 章），Power Platform 这一侧无需你手建连接器、也无需改应用代码。我们提供一个 Managed Solution，里面已打包好应用、自定义连接器（host 绑定环境变量 biz_VoiceFunctionHost、API Key 鉴权）以及连接引用 biz_SalesCopilotSpeech。你只需导入它，并交出两个值：Function 地址填进环境变量、api-key 填进新建的连接。" data-en="Once the Azure backend is built (chapters 2–4), the Power Platform side needs no hand-built connector and no app code change. We provide a Managed solution that already packages the app, the custom connector (host bound to the environment variable biz_VoiceFunctionHost, API-key auth), and the connection reference biz_SalesCopilotSpeech. You just import it and hand over two values: the Function URL into the environment variable, and the api-key into a new connection.">
+              Azure 后端建好后（第 2–4 章），Power Platform 这一侧无需你手建连接器、也无需改应用代码。我们提供一个 Managed Solution，里面已打包好应用、自定义连接器（host 绑定环境变量 biz_VoiceFunctionHost、API Key 鉴权）以及连接引用 biz_SalesCopilotSpeech。你只需导入它，并交出两个值：Function 地址填进环境变量、api-key 填进新建的连接。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="随包分发 vs 你要填的" data-step-title-en="What Ships vs What You Enter" data-step-label="05 / WHAT SHIPS">
+            <table class="simple-table">
+              <thead>
+                <tr>
+                  <th data-zh="随 Managed Solution 一起进来（无需你建）" data-en="Ships inside the Managed solution (you build nothing)">随 Managed Solution 一起进来（无需你建）</th>
+                  <th data-zh="你要提供 / 操作" data-en="You provide / do">你要提供 / 操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td data-zh="应用（已接好连接引用，无需重建）" data-en="The app (already wired to the connection reference, no rebuild)">应用（已接好连接引用，无需重建）</td><td data-zh="导入 Solution" data-en="Import the solution">导入 Solution</td></tr>
+                <tr><td data-zh="自定义连接器（host = 环境变量、API Key 鉴权）" data-en="The custom connector (host = env var, API-key auth)">自定义连接器（host = 环境变量、API Key 鉴权）</td><td data-zh="环境变量 biz_VoiceFunctionHost 填 Function 地址" data-en="Set biz_VoiceFunctionHost to the Function URL">环境变量 <span class="mono">biz_VoiceFunctionHost</span> 填 Function 地址</td></tr>
+                <tr><td data-zh="连接引用 biz_SalesCopilotSpeech" data-en="The connection reference biz_SalesCopilotSpeech">连接引用 <span class="mono">biz_SalesCopilotSpeech</span></td><td data-zh="新建 Speech 连接、填 api-key，再把连接引用指向它" data-en="Create the Speech connection with the api-key, then point the reference at it">新建 Speech 连接、填 api-key，再把连接引用指向它</td></tr>
+              </tbody>
+            </table>
+            <div class="callout-note">
+              <p data-zh="为什么连接要你自己建：连接器和连接引用是「定义」，随 Solution 分发；但「连接实例」持有 api-key 这类凭据、是环境专属的，绝不随包外传——所以每个环境都要自己新建一个连接、填自己的 api-key。" data-en="Why you create the connection: the connector and connection reference are definitions and ship with the solution; but a connection instance holds credentials like the api-key and is environment-specific, so it never travels inside a package — each environment creates its own connection with its own api-key.">为什么连接要你自己建：连接器和连接引用是「定义」，随 Solution 分发；但「连接实例」持有 api-key 这类凭据、是环境专属的，绝不随包外传——所以每个环境都要自己新建一个连接、填自己的 api-key。</p>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="导入与配置步骤" data-step-title-en="Import and Configure Steps" data-step-label="05 / STEPS">
+            <div class="flow-list">
+              <div class="flow-step">
+                <div class="flow-copy">
+                  <strong data-zh="1 · 导入 Managed Solution" data-en="1 · Import the Managed solution">1 · 导入 Managed Solution</strong>
+                  <p data-zh="make.powerapps.com → 选目标环境 → 左侧 Solutions → Import solution → 上传我们提供的 .zip → Next。向导会让你为标准连接器（Dataverse、Copilot Studio）登录授权，并进入环境变量一步。" data-en="make.powerapps.com -> pick the target environment -> Solutions -> Import solution -> upload the .zip we provide -> Next. The wizard asks you to sign in for the standard connectors (Dataverse, Copilot Studio) and then reaches the environment-variable step.">make.powerapps.com → 选目标环境 → 左侧 Solutions → Import solution → 上传我们提供的 .zip → Next。向导会让你为标准连接器（Dataverse、Copilot Studio）登录授权，并进入环境变量一步。</p>
+                </div>
+              </div>
+              <div class="flow-step">
+                <div class="flow-copy">
+                  <strong data-zh="2 · 环境变量 biz_VoiceFunctionHost 填 Function 地址" data-en="2 · Set biz_VoiceFunctionHost to the Function host">2 · 环境变量 biz_VoiceFunctionHost 填 Function 地址</strong>
+                  <p data-zh="在向导的环境变量一步，把 biz_VoiceFunctionHost 填成你的 Function 主机名（只填 &lt;func&gt;.azurewebsites.net，不带 https:// 和 /api）。连接器 host 固定引用这个变量，所以换环境只改这里、应用无需重建。" data-en="At the environment-variable step, set biz_VoiceFunctionHost to your Function hostname (just &lt;func&gt;.azurewebsites.net, no https:// and no /api). The connector host references this variable, so switching environments only changes this value and the app never needs a rebuild.">在向导的环境变量一步，把 <span class="mono">biz_VoiceFunctionHost</span> 填成你的 Function 主机名（只填 <span class="mono">&lt;func&gt;.azurewebsites.net</span>，不带 https:// 和 /api）。连接器 host 固定引用这个变量，所以换环境只改这里、应用无需重建。</p>
+                </div>
+              </div>
+              <div class="flow-step">
+                <div class="flow-copy">
+                  <strong data-zh="3 · 导入完成后新建 Speech 连接、填 api-key" data-en="3 · After import, create the Speech connection and enter the api-key">3 · 导入完成后新建 Speech 连接、填 api-key</strong>
+                  <p data-zh="自定义连接器随包导入、在导入完成前尚不存在，所以向导不会当场让你为它建连接。导入完成后：左侧 Connections → + New connection → 搜到 Sales Copilot Speech → 因是 API Key 鉴权会弹输入框 → 填第 3 章生成的 api-key → Create（状态应为 Connected）。" data-en="The custom connector ships inside the solution and does not exist until import finishes, so the wizard does not prompt you to create its connection during import. After import: Connections -> + New connection -> find Sales Copilot Speech -> because it uses API-key auth a box appears -> enter the api-key minted in chapter 3 -> Create (status should read Connected).">自定义连接器随包导入、在导入完成前尚不存在，所以向导不会当场让你为它建连接。导入完成后：左侧 Connections → + New connection → 搜到 Sales Copilot Speech → 因是 API Key 鉴权会弹输入框 → 填第 3 章生成的 api-key → Create（状态应为 Connected）。</p>
+                  <figure class="fig">
+                    <img src="media/pp-02-connection.png" alt="Power Platform Connections list showing the Sales Copilot Speech connection with Connected status" />
+                    <figcaption><span class="fig-tag">图 05-1</span><span data-zh="Connections 列表里 Sales Copilot Speech 连接显示 Connected（绿勾）；账号信息已打码。" data-en="The Connections list shows the Sales Copilot Speech connection as Connected (green check); account details are masked.">Connections 列表里 Sales Copilot Speech 连接显示 Connected（绿勾）；账号信息已打码。</span></figcaption>
+                  </figure>
+                </div>
+              </div>
+              <div class="flow-step">
+                <div class="flow-copy">
+                  <strong data-zh="4 · 把连接引用指向这个连接" data-en="4 · Point the connection reference at that connection">4 · 把连接引用指向这个连接</strong>
+                  <p data-zh="打开导入进来的 Solution → Connection references → biz_SalesCopilotSpeech → 右侧把 Connection 选成上一步新建的那个 → Save。至此应用语音即可用：应用早已接好这个连接引用，无需任何代码改动或重建。" data-en="Open the imported solution -> Connection references -> biz_SalesCopilotSpeech -> on the right, set Connection to the one you just created -> Save. Voice now works in the app: it is already wired to this connection reference, with no code change or rebuild.">打开导入进来的 Solution → Connection references → <span class="mono">biz_SalesCopilotSpeech</span> → 右侧把 Connection 选成上一步新建的那个 → Save。至此应用语音即可用：应用早已接好这个连接引用，无需任何代码改动或重建。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 08: Security & cleanup -->
+        <section id="security" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="06 / 安全与后续" data-en="06 / Security and Next Steps">06 / Security and Next Steps</p>
+            <h2 data-zh="密钥、CORS、清理" data-en="Keys, CORS, Cleanup">密钥、CORS、清理</h2>
+            <p data-zh="收尾三件事,首次部署都很快:护好防滥用密钥、上线前收紧 CORS、试用完删资源组。" data-en="Three wrap-up items, all quick on a first deployment: protect the anti-abuse key, tighten CORS before go-live, and delete the resource group when done trialing.">
+              收尾三件事,首次部署都很快:护好防滥用密钥、上线前收紧 CORS、试用完删资源组。
+            </p>
+          </div>
+
+          <div data-present-step data-step-title="安全要点" data-step-title-en="Security Essentials" data-step-label="08 / SECURITY">
+            <div class="insight-grid">
+              <div class="insight-card">
+                <span class="card-index">01</span>
+                <h3 data-zh="共享密钥挡匿名滥用" data-en="The shared secret blocks anonymous abuse">共享密钥挡匿名滥用</h3>
+                <p data-zh="端点匿名可达，但设了 SPEECH_API_KEY 后，每次调用必须带匹配的 x-api-key，否则 401。密钥只在服务端与连接里，不入前端、不入图。" data-en="The endpoint is anonymously reachable, but once SPEECH_API_KEY is set, every call must carry a matching x-api-key or gets 401. The key lives only server-side and in the connection — never in the front end, never in a screenshot.">端点匿名可达，但设了 SPEECH_API_KEY 后，每次调用必须带匹配的 x-api-key，否则 401。密钥只在服务端与连接里，不入前端、不入图。</p>
+              </div>
+              <div class="insight-card">
+                <span class="card-index">02</span>
+                <h3 data-zh="上线前收紧 CORS 与限流" data-en="Tighten CORS and add rate limiting before go-live">上线前收紧 CORS 与限流</h3>
+                <p data-zh="dev 期 CORS 用了 *；上线前收窄到具体 Power Apps 来源，并加每 IP/分钟限流。CORS 只挡浏览器，密钥才是真正的门。" data-en="CORS uses * during dev; before go-live, narrow it to the exact Power Apps origins and add a per-IP / per-minute rate limit. CORS only guards the browser — the key is the real gate.">dev 期 CORS 用了 *；上线前收窄到具体 Power Apps 来源，并加每 IP/分钟限流。CORS 只挡浏览器，密钥才是真正的门。</p>
+              </div>
+              <div class="insight-card">
+                <span class="card-index">03</span>
+                <h3 data-zh="试用完删资源组" data-en="Delete the resource group after trialing">试用完删资源组</h3>
+                <p data-zh="本指南所有资源都在 rg-voice-speech 里，删资源组即全清：az group delete -n rg-voice-speech --yes。免费档几乎无费用，但不用就删干净。" data-en="Everything in this guide sits in rg-voice-speech; delete the group to remove it all: az group delete -n rg-voice-speech --yes. The free tier costs almost nothing, but clean up when done.">试用完删资源组：本指南所有资源都在 rg-voice-speech 里，删资源组即全清：az group delete -n rg-voice-speech --yes。免费档几乎无费用，但不用就删干净。</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <p data-zh="&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。" data-en="&copy; 2026 illusion615's Knowledge Hub | Interactive HTML page.">&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。</p>
+      </footer>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    (function () {
+      function themeIsDark() { return document.documentElement.classList.contains('dark') || document.documentElement.getAttribute('data-theme') === 'dark'; }
+      if (window.mermaid) {
+        window.mermaid.initialize({ startOnLoad: true, theme: themeIsDark() ? 'dark' : 'neutral', securityLevel: 'loose', flowchart: { curve: 'basis' } });
+      }
+    })();
+  </script>
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

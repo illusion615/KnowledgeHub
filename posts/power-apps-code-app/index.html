@@ -389,7 +389,7 @@
               </tr>
               <tr>
                 <td>移动端</td>
-                <td>浏览器访问（含手机浏览器，不支持 Power Apps 移动 App）</td>
+                <td>浏览器访问（含手机浏览器）</td>
                 <td>Power Apps 移动 App</td>
                 <td>Power Apps 移动 App</td>
               </tr>
@@ -1564,8 +1564,8 @@ frame-src    'self'                          ← 禁止 iframe 外部页面</div
           <div class="insight-grid">
             <div class="insight-card">
               <span class="card-index">01</span>
-              <h3>移动端</h3>
-              <p>不支持 Power Apps 移动 App 和 Power Apps for Windows。用户只能通过浏览器访问 Code App。</p>
+              <h3>运行平台</h3>
+              <p>Code App 通过浏览器运行（apps.powerapps.com 播放地址），桌面与移动浏览器均可访问。官方限制清单中唯一的客户端例外是不支持 Power Apps for Windows 原生客户端；移动端不在官方限制之列。</p>
             </div>
             <div class="insight-card">
               <span class="card-index">02</span>
@@ -1597,18 +1597,43 @@ frame-src    'self'                          ← 禁止 iframe 外部页面</div
           <div class="subsection-accordion">
             <article class="subsection-item" data-accordion>
               <button class="subsection-toggle">
-                <span>ALM 层面的限制</span>
+                <span>离线能力：Code App 无法离线冷启动</span>
               </button>
               <div class="subsection-content">
-                <p>Code App 在应用生命周期管理方面有两个已知限制。</p>
+                <p>Code App 是浏览器托管的单页 web 应用。官方架构文档说明，应用运行时由 Power Apps host 负责 "end-user authentication, app loading"，即终端认证与应用加载均由它在运行时完成；系统配置文档进一步说明，编译后的应用资源 "hosted on a publicly accessible endpoint"，应用 "authenticate with Microsoft Entra ID"，内容在终端用户 "go through authentication and authorization checks" 之后才返回。据此，冷启动同时依赖两项在线操作：从公有端点拉取应用资源、经 Entra 完成登录。</p>
+                <p><strong>来源边界：</strong>官方 Code App 文档未把离线场景列入限制清单，官方 GitHub 仓库亦无离线支持声明。因此本节结论并非官方离线声明，而是基于上述已记录架构的推断，并以受控实测佐证。这一点须与 Canvas App 区分：Canvas App 是另一种应用类型，其离线文档不适用于 Code App。</p>
+                <div class="quote-block">
+                  <p><strong>受控实测（本应用）：</strong>将浏览器切换为离线后冷启动本 Code App——导航到 <code>apps.powerapps.com</code> 播放地址时，首个请求即以 <code>net::ERR_FAILED</code> 失败，应用外壳与 <code>#root</code> 从未渲染。离线状态下连播放器页面都无法获取，应用代码没有机会执行。</p>
+                </div>
+                <p>须区分两类离线场景，其可行性截然不同：</p>
                 <div class="comparison-grid">
-                  <div class="comparison-card">
-                    <h4>Solution Packager</h4>
-                    <p>不支持使用 Solution Packager 拆解和重组 Solution。Code App 的发布依赖 <code>npx power-apps push</code> 或兼容性的 <code>pac code push</code>，不走传统 Solution 打包流程。</p>
+                  <div class="comparison-card next">
+                    <h4>会话中断网（应用已打开）</h4>
+                    <p>应用代码已加载并运行，可在应用层实现降级：将查询结果持久化到 IndexedDB、启动时本地优先渲染、断网时禁用依赖后端的功能（AI 助手、写操作），使应用退化为基于本地缓存的只读查看器，重连后台自动同步。此场景可控。</p>
                   </div>
                   <div class="comparison-card">
-                    <h4>Source Code Integration</h4>
-                    <p>不支持 Power Platform 源代码集成功能。代码版本管理完全在外部 Git 仓库完成。</p>
+                    <h4>冷启动离线（关闭后重新打开）</h4>
+                    <p>如上实测，宿主需先拉取应用外壳、再经 Entra 完成认证；离线时二者均告失败，界面停在错误页或空白。此场景无解——与应用自身的加载逻辑无关，属平台托管模型的固有约束。</p>
+                  </div>
+                </div>
+                <p>若业务确需冷启动离线，可选路径有限：其一，接受限制，仅覆盖会话中断网场景；其二，改用另一种应用类型 Canvas App——其在原生 Power Apps Mobile 客户端上内置 Dataverse offline，但须以 Power Fx 重构并放弃自定义前端；其三，将 web 应用封装为脱离 Power Apps 播放器的独立 PWA 或原生壳，自建外壳缓存与 Entra 登录，代价是放弃托管平台的治理能力。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>Solution 打包与 ALM（两项工具级限制）</span>
+              </button>
+              <div class="subsection-content">
+                <p><strong>Code App 完全支持基于 Solution 的 ALM。</strong>官方 ALM 文档记载：<code>pac code push</code> 默认发布到环境的 Preferred Solution；也可用 <code>--solutionName</code> 指定目标 Solution，或在 make.powerapps.com 的 Solution → Add existing → App → Code app 手动加入。应用进入 Solution 后，可经 <strong>Power Platform Pipelines</strong> 在 Dev / Test / Prod 之间部署（带依赖与连接引用预检）。因此把 Code App 打包进 Solution 并经导出/导入或管道发布到客户环境，是官方支持的标准路径。</p>
+                <p>真正的 ALM 限制只有两项工具级例外（据官方 ALM 文档）：</p>
+                <div class="comparison-grid">
+                  <div class="comparison-card">
+                    <h4>Solution Packager 工具</h4>
+                    <p>不支持用 Solution Packager 工具把 Solution ZIP 拆解/重组为源码文件。这不影响 Solution 本身的导出、导入与管道部署，仅影响将 Solution 解包为源码并纳入版本库这一特定流程。</p>
+                  </div>
+                  <div class="comparison-card">
+                    <h4>源代码集成（Git）</h4>
+                    <p>不支持 Power Platform 源代码集成（把 Solution 组件同步到 Dataverse Git 的机制）。Code App 的前端代码在外部 Git 仓库管理即可。</p>
                   </div>
                 </div>
               </div>
@@ -1738,7 +1763,7 @@ frame-src    'self'                          ← 禁止 iframe 外部页面</div
                   <div class="flow-step">
                     <div class="flow-copy">
                       <strong>始终发布到 Solution</strong>
-                      <p>发布时指定目标 Solution 或配置 Preferred Solution，避免应用落入 Default Solution。若使用兼容路径，可通过 <code>pac code push --solutionName &lt;name&gt;</code> 指定 Solution；若 push 时未指定 Solution，也可以在 make.powerapps.com → Solution → Add existing → App → Canvas app 中手动将 Code App 添加到指定 Solution（Code App 在 Solution 中的组件类型与 Canvas App 相同，type 300）。</p>
+                      <p>发布时指定目标 Solution 或配置 Preferred Solution，避免应用落入 Default Solution。若使用兼容路径，可通过 <code>pac code push --solutionName &lt;name&gt;</code> 指定 Solution；若 push 时未指定 Solution，也可以在 make.powerapps.com → Solution → Add existing → App → Code app 中手动将 Code App 添加到指定 Solution（Code App 在 Solution 中的组件类型与 Canvas App 相同，type 300）。</p>
                     </div>
                   </div>
                   <div class="flow-step">
@@ -1954,6 +1979,7 @@ npx power-apps push            # Code App 专用 npm CLI（推荐，必须用于
             <li id="ref-14"><span class="bib-id">[14]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/power-apps/maker/data-platform/create-edit-entities" target="_blank" rel="noopener noreferrer">"Create and edit tables using Power Apps,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">Dataverse 建表权限前置、表类型（Standard/Activity/Virtual/Elastic）、所有权、可视化设计器限制及 schema 组件（列/关系/键）入口的官方说明。</span></li>
             <li id="ref-15"><span class="bib-id">[15]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/power-apps/maker/data-platform/types-of-fields" target="_blank" rel="noopener noreferrer">"Types of columns,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">Dataverse 列数据类型清单、对应 AttributeTypeDisplayName API 类型，以及可搜索/可排序约束。</span></li>
             <li id="ref-16"><span class="bib-id">[16]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/power-apps/maker/data-platform/create-edit-entity-relationships" target="_blank" rel="noopener noreferrer">"Microsoft Dataverse table relationships,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">1:N 与 N:N 关系类型、级联行为（Cascade All/Active/None/Remove Link/Restrict）、触发动作及父子关系限制的官方说明。</span></li>
+            <li id="ref-17"><span class="bib-id">[17]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/offline-apps" target="_blank" rel="noopener noreferrer">"Develop offline-capable canvas apps,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">Canvas App（另一种应用类型）的离线能力仅面向原生 Power Apps Mobile 客户端；本文仅将其作为 Code App 之外的替代方案引用，不作为 Code App 离线行为的依据。</span></li>
           </ol>
         </section>
       </main>

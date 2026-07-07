@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ideogram 4 开源模型解读与双机本地部署评估：M4 Max 64GB 与 RTX 3090 24GB</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(2rem, 4.6vw, 3.3rem);
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+      max-width: 19ch;
+    }
+
+    .hero-metrics {
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    }
+
+    .method-note {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.78;
+    }
+
+    .verdict-yes { color: #16a34a; font-weight: 700; }
+    .verdict-no { color: #dc2626; font-weight: 700; }
+    .verdict-warn { color: #d97706; font-weight: 700; }
+
+    [data-theme="dark"] .verdict-yes { color: #4ade80; }
+    [data-theme="dark"] .verdict-no { color: #f87171; }
+    [data-theme="dark"] .verdict-warn { color: #fbbf24; }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero" data-present-step data-step-title="文章总览">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            模型
+          </div>
+          <div class="topbar-actions">
+            <nav class="nav-links" aria-label="页面章节导航">
+              <a href="#model">模型</a>
+              <a href="#footprint">资源</a>
+              <a href="#verdict">总览</a>
+              <a href="#device-b">RTX 3090</a>
+              <a href="#device-a">M4 Max</a>
+              <a href="#setup">建议</a>
+              <a href="#references">参考</a>
+            </nav>
+          </div>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Ideogram 4 · Open-Weight Local Deployment</span>
+            <h1>Ideogram 4 开源模型解读与双机本地部署评估</h1>
+            <p>
+              Ideogram 于 2026-06-03 发布了其首个开源权重文生图模型 Ideogram 4<a href="#ref-1">[1]</a>。本文先解读它的架构与能力构成——9.3B 单流 DiT、以 Qwen3-VL-8B 作为文本编码器、flux2 VAE、结构化 JSON 提示接口；再据此评估两台目标设备能否本地运行：<strong>MacBook Pro M4 Max 64GB</strong>（Apple Silicon，仅 Metal/MPS）与 <strong>Intel PC + RTX 3090 24GB</strong>（Windows，CUDA）。评估按「能否装下、有无成熟运行栈、提示链路是否完整」三条判据展开。
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#model">先看模型解读</a>
+              <a class="button button-secondary" href="#verdict">直接看双机结论</a>
+            </div>
+            <p class="method-note">
+              说明：文中显存与内存数字均为基于参数量和量化精度的<strong>理论估算</strong>，并标注其计算依据；2048 分辨率峰值激活内存等指标未在本文环境中实测，不伪造本机生成速度。许可、gate 与提示链路等运行前提以官方模型卡为准。
+            </p>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label">核心结论</span>
+            <h2>两台设备都能本地运行 Ideogram 4，但路径不同：RTX 3090 走 CUDA 原生 nf4，M4 Max 走 fp8/bf16 的 MPS 路线。</h2>
+            <ul class="layer-list section-grid-spaced">
+              <li><span class="layer-number">1</span>RTX 3090 24GB 是更顺的路径：nf4 量化专为 CUDA 设计，文本编码器顺序加载并 offload 后，24GB 显存余量充足。</li>
+              <li><span class="layer-number">2</span>M4 Max 64GB 不缺内存——统一内存可同时容纳 DiT 与 Qwen3-VL；瓶颈在 MPS 运行栈成熟度，以及缺少 fp8/nf4 加速带来的速度折损。</li>
+              <li><span class="layer-number">3</span>nf4 版本限定 CUDA，M4 Max 不可用；两机的共同可用版本是 fp8。</li>
+              <li><span class="layer-number">4</span>共同约束：权重在 Hugging Face 受 gate、许可为非商业、提示词需结构化 JSON（magic-prompt 远程 API 免费，或本地 upsampling 额外占内存）。</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label">模型规模</div>
+            <strong>9.3B + 8B</strong>
+            <span>DiT 主干 9.3B + Qwen3-VL-8B 文本编码器</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">量化版本</div>
+            <strong>2 档</strong>
+            <span>nf4（CUDA 专用）/ fp8（全平台）</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">评估设备</div>
+            <strong>2 台</strong>
+            <span>M4 Max 64GB / RTX 3090 24GB</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label">许可</div>
+            <strong>非商业</strong>
+            <span>Ideogram 4 Non-Commercial，权重受 gate</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <section id="model" class="section" data-reveal data-present-step data-step-title="Ideogram 4 模型解读">
+          <div class="section-head">
+            <p class="section-kicker">01 / Model Breakdown</p>
+            <h2>1. 先看模型是什么：从零训练的单流 DiT，以视觉语言模型作文本编码器</h2>
+            <p>
+              评估能否本地运行之前，先确定要装进设备的到底是哪些组件。Ideogram 4 是一个从零训练（非微调、非蒸馏）的 flow-matching 文生图模型，采用全单流 Diffusion Transformer 架构<a href="#ref-1">[1]</a>。它与常见 SDXL/FLUX 路线最大的结构差异，是用一个完整的视觉语言模型替代了 CLIP/T5 文本编码器。下面四张卡给出它的关键构成。
+            </p>
+          </div>
+
+          <div class="insight-grid section-grid-spaced">
+            <article class="insight-card">
+              <span class="card-index">01</span>
+              <h3>单流 DiT 主干（9.3B）</h3>
+              <p>文本与图像 token 拼接为同一序列，经过同一个 34 层 Transformer 处理，没有独立的文本或图像分支，使跨模态交互在每一层都发生<a href="#ref-1">[1]</a>。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">02</span>
+              <h3>VLM 作文本编码器</h3>
+              <p>文本编码器为 Qwen3-VL-8B-Instruct，从其 13 个中间层提取隐藏状态并拼接，提供从表层 token 到深层组合理解的多尺度语义特征<a href="#ref-1">[1]</a><a href="#ref-6">[6]</a>。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">03</span>
+              <h3>结构化 JSON 提示</h3>
+              <p>模型只用结构化 JSON caption 训练，原生支持 bbox 布局坐标、十六进制色板（colour_palette）与构图分解；纯文本提示可用但效果次于 JSON<a href="#ref-1">[1]</a>。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">04</span>
+              <h3>VAE 与灵活分辨率</h3>
+              <p>VAE 为 flux2-vae；原生支持 256 到 2048（16 的倍数）任意分辨率，长宽比可达 6:1，噪声调度随分辨率自适应<a href="#ref-1">[1]</a><a href="#ref-3">[3]</a>。</p>
+            </article>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" type="button">
+                <span>双分支 CFG 与组件清单（影响显存预算）</span>
+              </button>
+              <div class="subsection-content">
+                <p>Ideogram 4 采用双分支 classifier-free guidance：条件（正）与无条件（负）分支可独立细化，分别控制提示遵循度与画质<a href="#ref-1">[1]</a>。ComfyUI 重打包版本据此给出了完整的组件文件清单，正是本地部署需要下载的内容<a href="#ref-3">[3]</a>：</p>
+                <ul class="reference-list">
+                  <li><code>diffusion_models/ideogram4_fp8_scaled.safetensors</code> — DiT 主干（条件分支）</li>
+                  <li><code>diffusion_models/ideogram4_unconditional_fp8_scaled.safetensors</code> — 无条件分支</li>
+                  <li><code>text_encoders/qwen3vl_8b_fp8_scaled.safetensors</code> — Qwen3-VL-8B 文本编码器</li>
+                  <li><code>vae/flux2-vae.safetensors</code> — VAE</li>
+                </ul>
+                <p>由此可知：本地运行不是只加载一个 9.3B 权重，而是 DiT 主干 + 无条件分支 + 8B 文本编码器 + VAE 四件套，显存/内存预算必须按四者叠加计算。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" type="button">
+                <span>核心能力：文字渲染、布局控制、色板条件</span>
+              </button>
+              <div class="subsection-content">
+                <p>在标准开源基准上，Ideogram 4 在文字渲染（X-Omni OCR）、布局控制（7Bench）、空间推理（SpatialGenEval）与提示对齐（Prism）上整体逼近闭源模型；官方称在 7Bench 布局控制上优于其所测的全部闭源模型，且以 9.3B 参数提供了其所测开源权重发布中最强的文字渲染——领先于 Qwen-Image（20B）、FLUX.2 dev（32B）、HunyuanImage 3.0（80B MoE）<a href="#ref-1">[1]</a>。</p>
+                <p>对本地部署的含义：Ideogram 4 的核心价值在「带文字的设计图、海报、版式」类任务；这类任务恰恰最依赖结构化 JSON 提示与高分辨率（2048），也因此对运行栈的内存与稳定性提出更高要求。以上排名来自官方模型卡所引第三方与内部评测，非本文实测。</p>
+              </div>
+            </article>
+          </div>
+
+          <div class="quote-block section-grid-spaced">
+            <p><strong>过渡：</strong>组件清单确定后，下一步是把四件套换算成显存/内存占用，并看清两档量化（nf4 / fp8）各自的平台限制——这决定了两台设备分别能用哪一条路径。</p>
+          </div>
+        </section>
+
+        <section id="footprint" class="section" data-reveal data-present-step data-step-title="资源占用与量化版本">
+          <div class="section-head">
+            <p class="section-kicker">02 / Resource Footprint</p>
+            <h2>2. 把四件套换算成内存：两档量化决定平台可用性</h2>
+            <p>
+              承上一章的组件清单，本章给出基于参数量的理论占用估算，并对照官方 Model Zoo 的两档量化。这张总览是后续设备判断的基础：先看清「每档版本有多重、限定什么平台」，再分机展开。
+            </p>
+          </div>
+
+          <div class="score-table-wrap section-grid-spaced" data-present-step data-step-title="nf4 与 fp8 版本对比">
+            <table class="simple-table">
+              <thead>
+                <tr>
+                  <th>量化版本</th>
+                  <th>精度</th>
+                  <th>支持平台</th>
+                  <th>DiT 权重（估算）</th>
+                  <th>文本编码器</th>
+                  <th>RTX 3090</th>
+                  <th>M4 Max</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Ideogram 4 (nf4)</td>
+                  <td>4-bit (NF4)</td>
+                  <td>仅 CUDA</td>
+                  <td>约 5–6 GB</td>
+                  <td>Qwen3-VL-8B</td>
+                  <td class="verdict-yes">可用</td>
+                  <td class="verdict-no">不可用</td>
+                </tr>
+                <tr>
+                  <td>Ideogram 4 (fp8)</td>
+                  <td>8-bit FP</td>
+                  <td>全平台（CUDA / MPS / CPU）</td>
+                  <td>约 9.3 GB</td>
+                  <td>Qwen3-VL-8B（fp8 约 8 GB / bf16 约 16 GB）</td>
+                  <td class="verdict-yes">可用</td>
+                  <td class="verdict-yes">可用</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="memory-math section-grid-spaced">
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span><strong>DiT 主干 9.3B。</strong>fp8 约 1 byte/参数 → 约 9.3 GB；nf4 约 0.5 byte/参数 → 理论约 4.65 GB，叠加量化元数据后约 5–6 GB。双分支 CFG 另有无条件分支文件，需额外计入。</li>
+              <li><span class="layer-number">2</span><strong>文本编码器 Qwen3-VL-8B。</strong>fp8 约 8 GB；若以 bf16 加载约 16 GB。它只在编码阶段需要常驻，可在编码后 offload，为 DiT 让出显存。</li>
+              <li><span class="layer-number">3</span><strong>VAE flux2-vae。</strong>体量较小，约数百 MB；解码阶段才介入，可用分块（tiled）解码降低 2048 分辨率下的峰值。</li>
+              <li><span class="layer-number">4</span><strong>激活与 latent。</strong>随分辨率上升显著增长，2048×2048 的峰值激活内存是显存压力的主要来源；本文未实测该峰值，按「1024 宽松、2048 需 offload/tiling」定性处理。</li>
+            </ul>
+          </div>
+
+          <div class="quote-block section-grid-spaced">
+            <p><strong>关键判据：</strong>nf4 是 4-bit 量化，依赖 bitsandbytes 的 CUDA 内核，因此<strong>仅 CUDA 平台可用</strong>——这一条直接把 M4 Max 推向 fp8 路线，而把 RTX 3090 留在显存最省的 nf4 路线上。两机的分歧由此确定。</p>
+          </div>
+        </section>
+
+        <section id="verdict" class="section" data-reveal data-present-step data-step-title="双机可运行性总览">
+          <div class="section-head">
+            <p class="section-kicker">03 / Two-Device Verdict</p>
+            <h2>3. 双机总览：先给结论，再分机展开</h2>
+            <p>
+              承上一章的占用与平台限制，本章把两台设备并排对照三条判据（能否装下、运行栈成熟度、提示链路），给出可运行性判定。结论是「都能跑、路径不同」；判定细节与操作路径在第 4、5 章逐机展开。
+            </p>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced">
+            <article class="comparison-card next">
+              <span class="comparison-label">Device B · 更顺路径</span>
+              <h3>Intel PC + RTX 3090 24GB（Windows / CUDA）</h3>
+              <p>具备 CUDA，可直接使用为之设计的 nf4 版本；24GB GDDR6X 在顺序加载文本编码器后足以容纳 DiT 与激活。是两机中运行栈最成熟、最省心的一台。</p>
+              <ul class="reference-list">
+                <li>能否装下：<span class="verdict-yes">充足</span>（nf4 DiT 约 6 GB + 编码器 offload）</li>
+                <li>运行栈：<span class="verdict-yes">成熟</span>（diffusers CUDA / ComfyUI 原生）</li>
+                <li>分辨率：1024 宽松；2048 需顺序 offload 或分块解码</li>
+              </ul>
+            </article>
+            <article class="comparison-card">
+              <span class="comparison-label">Device A · 内存够，栈待验证</span>
+              <h3>MacBook Pro M4 Max 64GB（macOS / MPS）</h3>
+              <p>无 CUDA，nf4 不可用，须走 fp8（计算时回退到 fp16/bf16）。64GB 统一内存远超需求，可同时容纳 DiT 与 Qwen3-VL；真正的不确定项是 MPS 上新管线的成熟度与速度。</p>
+              <ul class="reference-list">
+                <li>能否装下：<span class="verdict-yes">充足</span>（统一内存可同时常驻全部组件）</li>
+                <li>运行栈：<span class="verdict-warn">待验证</span>（MPS 路线较新，缺 fp8/nf4 加速）</li>
+                <li>分辨率：1024 可行；2048 取决于实现稳定性</li>
+              </ul>
+            </article>
+          </div>
+
+          <div class="score-table-wrap section-grid-spaced" data-present-step data-step-title="三判据对照表">
+            <table class="simple-table">
+              <thead>
+                <tr>
+                  <th>判据</th>
+                  <th>RTX 3090 24GB</th>
+                  <th>M4 Max 64GB</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>可用量化</td>
+                  <td>nf4（首选）或 fp8</td>
+                  <td>仅 fp8（计算回退 fp16/bf16）</td>
+                </tr>
+                <tr>
+                  <td>能否稳定装下</td>
+                  <td class="verdict-yes">能（24GB 显存，需顺序 offload 编码器）</td>
+                  <td class="verdict-yes">能（64GB 统一内存，余量大）</td>
+                </tr>
+                <tr>
+                  <td>运行栈成熟度</td>
+                  <td class="verdict-yes">高（CUDA 一等公民）</td>
+                  <td class="verdict-warn">中（MPS / 社区 Mac 应用）</td>
+                </tr>
+                <tr>
+                  <td>预期速度（定性）</td>
+                  <td>较快（CUDA + 4-bit 内核加速）</td>
+                  <td>较慢（无低精度算子加速）</td>
+                </tr>
+                <tr>
+                  <td>2048 高分辨率</td>
+                  <td class="verdict-yes">可行（需 offload/tiling）</td>
+                  <td class="verdict-warn">取决于实现稳定性</td>
+                </tr>
+                <tr>
+                  <td>总判定</td>
+                  <td class="verdict-yes">推荐，主力路径</td>
+                  <td class="verdict-yes">可行，作为补充/离线路径</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="device-b" class="section" data-reveal data-present-step data-step-title="RTX 3090 部署路径">
+          <div class="section-head">
+            <p class="section-kicker">04 / RTX 3090 Path</p>
+            <h2>4. RTX 3090 24GB：CUDA 原生 nf4，最省心的主力路径</h2>
+            <p>
+              承总览结论，本章给出 RTX 3090 上的具体落地路径。核心思路是利用 CUDA 的 4-bit 内核把显存压到最低，并让 8B 文本编码器「用完即让位」，从而把 24GB 显存留给 DiT 与高分辨率激活。
+            </p>
+          </div>
+
+          <ol class="flow-list section-grid-spaced">
+            <li><span class="flow-step">1</span><div class="flow-copy"><strong>接受 gate 并认证</strong><p>在 Hugging Face 打开 <code>ideogram-ai/ideogram-4-nf4</code> 接受非商业许可，创建 token 后 <code>hf auth login</code> 或导出 <code>HF_TOKEN</code>，否则下载报 GatedRepoError<a href="#ref-2">[2]</a>。</p></div></li>
+            <li><span class="flow-step">2</span><div class="flow-copy"><strong>选运行栈</strong><p>两条成熟路径：官方 <code>ideogram4</code> 仓库的 <code>run_inference.py</code>（<code>--quantization nf4</code>），或 ComfyUI + Comfy-Org 重打包文件（diffusion_models / text_encoders / vae 分目录放置）<a href="#ref-3">[3]</a><a href="#ref-5">[5]</a>。</p></div></li>
+            <li><span class="flow-step">3</span><div class="flow-copy"><strong>顺序加载省显存</strong><p>先加载 Qwen3-VL-8B 完成文本编码，再 offload 到内存/磁盘，腾出显存加载 nf4 DiT 与无条件分支。nf4 DiT 约 6 GB，编码器 offload 后 24GB 余量充足。</p></div></li>
+            <li><span class="flow-step">4</span><div class="flow-copy"><strong>提示链路</strong><p>用 magic-prompt 把口语提示扩成结构化 JSON：默认调用 Ideogram 免费托管 API（<code>IDEOGRAM_API_KEY</code>），也可改用本地 LLM 或自带 JSON<a href="#ref-1">[1]</a>。</p></div></li>
+            <li><span class="flow-step">5</span><div class="flow-copy"><strong>分辨率与采样</strong><p>1024 直接出图；追高质量按官方建议设 <code>--height 2048 --width 2048</code> 与 <code>V4_QUALITY_48</code> 预设，此时配合顺序 offload 与分块 VAE 解码以控峰值<a href="#ref-1">[1]</a>。</p></div></li>
+          </ol>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" type="button">
+                <span>为什么 24GB 足够：显存预算明细</span>
+              </button>
+              <div class="subsection-content">
+                <p>以 nf4 路径估算峰值（理论值，非实测）：编码阶段 Qwen3-VL-8B 约 8 GB（fp8）或 16 GB（bf16），此阶段 DiT 尚未加载；编码完成后 offload，进入扩散阶段时显存主要由 nf4 DiT（约 6 GB）+ 无条件分支 + 激活/latent 构成。1024 分辨率下激活开销适中，24GB 余量宽松；2048 分辨率激活显著上升，建议启用顺序 offload 与分块 VAE 解码。结论：在不追求一次性全程常驻所有组件的前提下，RTX 3090 24GB 是宽松而非临界。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" type="button">
+                <span>fp8 备选：何时改用 fp8 而非 nf4</span>
+              </button>
+              <div class="subsection-content">
+                <p>nf4 是 4-bit 量化，画质相对 fp8 可能有轻微损失。若对画质更敏感且愿意承担更高显存占用，可在 RTX 3090 上改用 fp8 版本：DiT 约 9.3 GB + 文本编码器顺序加载，24GB 仍可容纳，但 2048 高分辨率时显存更紧张，需更激进的 offload。日常迭代用 nf4、终稿用 fp8 是一种务实折中。该折中的画质差异未在本文环境量化。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="device-a" class="section" data-reveal data-present-step data-step-title="M4 Max 部署路径">
+          <div class="section-head">
+            <p class="section-kicker">05 / M4 Max Path</p>
+            <h2>5. M4 Max 64GB：内存不是问题，运行栈成熟度才是变量</h2>
+            <p>
+              承总览结论，本章给出 M4 Max 上的路径。与 RTX 3090 相反，这里内存极其宽裕、可同时常驻全部组件，真正需要验证的是 MPS 上的实现是否稳定、速度是否可接受。前文《M4 Max 64GB 本地模型部署选型》已确立 Apple Silicon 的通用判据：优先 Metal/MPS 一等公民栈、警惕 CUDA 专属优化的迁移折损<a href="#ref-8">[8]</a>。
+            </p>
+          </div>
+
+          <ol class="flow-list section-grid-spaced">
+            <li><span class="flow-step">1</span><div class="flow-copy"><strong>只能用 fp8</strong><p>nf4 依赖 CUDA 内核，在 MPS 不可用；M4 Max 须下载 fp8 版本。fp8 在 Apple GPU 上无原生算子加速，计算时回退到 fp16/bf16，权重以 fp8 存储节省内存但不提速。</p></div></li>
+            <li><span class="flow-step">2</span><div class="flow-copy"><strong>选 Mac 友好的运行栈</strong><p>两条路径：diffusers 的 <code>Ideogram4Pipeline</code> 走 <code>.to("mps")</code>；或社区 Mac 应用（HF 页面提供 Draw Things / DiffusionBee 的一键导入入口）。后者对 Apple Silicon 适配更省心，但是否已支持 Ideogram 4 取决于社区进度，需以应用内实际可用为准<a href="#ref-2">[2]</a><a href="#ref-7">[7]</a>。</p></div></li>
+            <li><span class="flow-step">3</span><div class="flow-copy"><strong>内存放置</strong><p>64GB 统一内存可同时容纳 DiT（bf16 约 18 GB）+ Qwen3-VL-8B（bf16 约 16 GB）+ VAE，合计约 35–40 GB，无需 offload 即可常驻，留有充足余量。内存不是 M4 Max 的约束项。</p></div></li>
+            <li><span class="flow-step">4</span><div class="flow-copy"><strong>提示链路二选一</strong><p>远程 magic-prompt（免费、不占本地内存、需 <code>IDEOGRAM_API_KEY</code>），或本地 upsampling（diffusers 提供 <code>Ideogram4PromptEnhancerHead</code> + Qwen3-VL-8B 头，完全离线但额外占内存、质量略降）<a href="#ref-2">[2]</a>。</p></div></li>
+            <li><span class="flow-step">5</span><div class="flow-copy"><strong>分辨率策略</strong><p>先以 1024 验证管线在 MPS 上是否稳定出图，确认后再尝试 2048。把 M4 Max 定位为「补充/离线创作」而非高频生产，与其速度特性匹配。</p></div></li>
+          </ol>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" type="button">
+                <span>真正的瓶颈：MPS 成熟度与速度，而非内存</span>
+              </button>
+              <div class="subsection-content">
+                <p>Ideogram4Pipeline 为新发布管线，官方示例以 <code>.to("cuda")</code> 给出；MPS 路径需把设备改为 <code>mps</code>，其稳定性取决于 diffusers 对该管线的 MPS 适配进度，发布初期可能存在算子缺失或回退到 CPU 的情况。即使跑通，由于缺少 fp8/nf4 低精度加速，单张生成时间预计明显长于 RTX 3090（本文不给具体秒数，避免伪造本机速度）。因此 M4 Max 的合理定位是「能跑、适合离线批量或验证」，而非「交互式高频迭代主力」。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" type="button">
+                <span>更省心的 Mac 路径：优先试社区原生应用</span>
+              </button>
+              <div class="subsection-content">
+                <p>相比手工配置 diffusers + MPS 环境，Draw Things 等 Apple Silicon 原生应用通常封装了 Metal 优化与模型管理，对非工程化使用更友好；HF 模型页直接提供了导入入口<a href="#ref-2">[2]</a>。务实建议：先试社区原生应用是否已支持 Ideogram 4 fp8，能用则省去环境搭建；若尚未支持，再回到 diffusers + MPS 的手工路径。该应用是否已支持以应用内实际可用为准，本文不替其背书。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="setup" class="section" data-reveal data-present-step data-step-title="部署建议与运行前提">
+          <div class="section-head">
+            <p class="section-kicker">06 / Setup &amp; Boundaries</p>
+            <h2>6. 落地建议：分机推荐配置与必须满足的运行前提</h2>
+            <p>
+              综合前五章，给出两台设备各自的推荐起步配置，并列出三条容易被忽略、却会直接阻断运行的前提条件。建议遵循「RTX 3090 主力、M4 Max 补充」的分工。
+            </p>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced">
+            <article class="comparison-card next">
+              <span class="comparison-label">主力 · RTX 3090</span>
+              <h3>推荐起步配置</h3>
+              <ul class="reference-list">
+                <li>版本：Ideogram 4 nf4（日常迭代）/ fp8（终稿）</li>
+                <li>运行栈：ComfyUI（Comfy-Org 重打包）或官方 run_inference.py</li>
+                <li>显存策略：编码器顺序加载 + offload</li>
+                <li>提示：远程 magic-prompt（免费）</li>
+                <li>分辨率：1024 迭代，2048 出终稿（开 tiling）</li>
+              </ul>
+            </article>
+            <article class="comparison-card">
+              <span class="comparison-label">补充 · M4 Max</span>
+              <h3>推荐起步配置</h3>
+              <ul class="reference-list">
+                <li>版本：Ideogram 4 fp8（唯一可用）</li>
+                <li>运行栈：先试社区原生应用，回退 diffusers + MPS</li>
+                <li>内存策略：全组件常驻，无需 offload</li>
+                <li>提示：远程 magic-prompt，或本地 upsampling（离线）</li>
+                <li>定位：离线/批量创作，先 1024 验证稳定性</li>
+              </ul>
+            </article>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" type="button">
+                <span>三条运行前提（缺一即阻断）</span>
+              </button>
+              <div class="subsection-content">
+                <ol class="flow-list">
+                  <li><span class="flow-step">1</span><div class="flow-copy"><strong>权重 gate 与许可</strong><p>权重在 HF 受 gate，须先接受 Ideogram 4 Non-Commercial 许可并用 token 认证；许可为<strong>非商业</strong>，任何商业用途不适用本地权重<a href="#ref-1">[1]</a><a href="#ref-2">[2]</a>。</p></div></li>
+                  <li><span class="flow-step">2</span><div class="flow-copy"><strong>提示链路</strong><p>模型只在 JSON caption 上训练。要拿到理想效果，要么接 magic-prompt（远程免费或本地 upsampling），要么自行按 schema 写 JSON；纯文本提示可用但效果次之<a href="#ref-1">[1]</a>。</p></div></li>
+                  <li><span class="flow-step">3</span><div class="flow-copy"><strong>安全筛查（仅 CLI 路径）</strong><p>官方 <code>run_inference.py</code> 的提示与产物安全筛查经由 Hive，需 <code>HIVE_TEXT_MODERATION_KEY</code> / <code>HIVE_VISUAL_MODERATION_KEY</code>；diffusers/ComfyUI 路径不强制此项<a href="#ref-1">[1]</a>。</p></div></li>
+                </ol>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" type="button">
+                <span>一句话回放：本文结论链</span>
+              </button>
+              <div class="subsection-content">
+                <p>Ideogram 4 = 9.3B 单流 DiT + Qwen3-VL-8B 文本编码器 + flux2 VAE + JSON 提示（第 1 章）→ 四件套换算后 nf4 约 5–6 GB、fp8 约 9.3 GB，nf4 限 CUDA（第 2 章）→ 故 RTX 3090 走 nf4、M4 Max 只能 fp8，两机皆可装下（第 3 章）→ RTX 3090 顺序 offload 后 24GB 宽松，是主力（第 4 章）→ M4 Max 内存充足但受 MPS 成熟度与速度限制，作补充（第 5 章）→ 落地时遵守 gate/许可、补全 JSON 提示链路、按需配置 Hive（第 6 章）。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="references" class="section" data-reveal data-present-step data-step-title="参考来源">
+          <div class="section-head">
+            <p class="section-kicker">References</p>
+            <h2>参考来源</h2>
+          </div>
+          <ol class="bib-list">
+            <li id="ref-1"><span class="bib-id">[1]</span> <span class="bib-author">Ideogram AI.</span> <a href="https://huggingface.co/ideogram-ai/ideogram-4-fp8" target="_blank" rel="noopener noreferrer">"ideogram-4-fp8 Model Card,"</a> <em>Hugging Face,</em> 2026.<span class="bib-note">官方模型卡：单流 34 层 DiT、flow-matching、Qwen3-VL-8B 文本编码器（取 13 中间层）、双分支 CFG、256–2048 灵活分辨率、JSON 提示与 magic-prompt、Hive 安全筛查、Model Zoo（nf4/fp8，9.3B）、第三方与内部评测结论。支撑本文架构、能力、量化与提示链路全部论断。</span></li>
+            <li id="ref-2"><span class="bib-id">[2]</span> <span class="bib-author">Ideogram AI.</span> <a href="https://huggingface.co/ideogram-ai/ideogram-4-nf4" target="_blank" rel="noopener noreferrer">"ideogram-4-nf4 Model Card,"</a> <em>Hugging Face,</em> 2026.<span class="bib-note">nf4（4-bit、CUDA、9.3B、非商业）版本说明、gate 与认证流程、diffusers 远程/本地 upsampling 示例、Draw Things / DiffusionBee 导入入口。支撑本文 nf4 平台限制、gate、提示链路与 Mac 应用路径。</span></li>
+            <li id="ref-3"><span class="bib-id">[3]</span> <span class="bib-author">Comfy Org.</span> <a href="https://huggingface.co/Comfy-Org/Ideogram-4" target="_blank" rel="noopener noreferrer">"Ideogram 4 (ComfyUI repackaged),"</a> <em>Hugging Face,</em> 2026.<span class="bib-note">ComfyUI 重打包文件清单：ideogram4_fp8_scaled / ideogram4_unconditional_fp8_scaled / qwen3vl_8b_fp8_scaled / flux2-vae，以及各自的放置目录。支撑本文四件套组件构成与显存预算。</span></li>
+            <li id="ref-4"><span class="bib-id">[4]</span> <span class="bib-author">Ideogram AI.</span> <a href="https://ideogram.ai/blog/ideogram-4.0/" target="_blank" rel="noopener noreferrer">"Ideogram 4.0,"</a> <em>ideogram.ai,</em> 2026.<span class="bib-note">官方技术博客与发布说明（2026-06-03 发布开源权重与推理代码）。支撑本文发布时间与开源定位。</span></li>
+            <li id="ref-5"><span class="bib-id">[5]</span> <span class="bib-author">Ideogram AI.</span> <a href="https://github.com/ideogram-oss/ideogram4" target="_blank" rel="noopener noreferrer">"ideogram4 inference code,"</a> <em>GitHub,</em> 2026.<span class="bib-note">官方推理仓库：run_inference.py、quantization 参数、sampler 预设、安装方式与文档（inference / prompting / model_architecture / safety）。支撑本文 CLI 部署路径与采样建议。</span></li>
+            <li id="ref-6"><span class="bib-id">[6]</span> <span class="bib-author">Qwen Team.</span> <a href="https://huggingface.co/Qwen/Qwen3-VL-8B-Instruct" target="_blank" rel="noopener noreferrer">"Qwen3-VL-8B-Instruct,"</a> <em>Hugging Face,</em> 2026.<span class="bib-note">Ideogram 4 所用文本编码器的原始模型卡，提供其作为视觉语言模型的规模与能力背景。支撑本文文本编码器内存估算。</span></li>
+            <li id="ref-7"><span class="bib-id">[7]</span> <span class="bib-author">Hugging Face.</span> <a href="https://huggingface.co/docs/diffusers/optimization/mps" target="_blank" rel="noopener noreferrer">"Metal Performance Shaders (MPS),"</a> <em>Diffusers Documentation,</em> 2026.<span class="bib-note">Apple Silicon 上 diffusers 的 MPS 支持、attention slicing 与 PyTorch 版本要求。支撑本文 M4 Max 走 MPS 路线及其成熟度警示。</span></li>
+            <li id="ref-8"><span class="bib-id">[8]</span> <span class="bib-author">illusion615.</span> <a href="../m4-max-local-models/index.html">"MacBook Pro M4 Max 64GB 本地模型部署选型,"</a> <em>Knowledge Hub,</em> 2026.<span class="bib-note">站内前置文章，确立 Apple Silicon 本地部署的通用判据（优先 Metal/MPS 一等公民栈、警惕 CUDA 专属优化迁移折损）。支撑本文对 M4 Max 运行栈的定位。</span></li>
+          </ol>
+        </section>
+      </main>
+
+      <footer>
+         © 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

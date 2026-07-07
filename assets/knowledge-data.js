@@ -195,15 +195,15 @@ var knowledgeTree = [
     parentId: 'agentic-crm',
     type: 'article',
     title: {
-      zh: 'Agentic Sales Mobile 架构设计：Frame + Orchestrator 双阶段流水线',
-      en: 'Agentic Sales Mobile Architecture: The Frame + Orchestrator Pipeline'
+      zh: 'Agentic Sales Mobile 架构：从一句话到正确的工具调用',
+      en: 'Agentic Sales Mobile Architecture: From One Sentence to the Right Tool Calls'
     },
     summary: {
-      zh: '上线版本的真实运行时架构：意图分类（Frame）、计划编排（Orchestrator）、意图队列执行、Dataverse 适配四段流水线与契约校验。',
-      en: 'The live runtime architecture: a four-stage pipeline of intent framing, plan orchestration, queue execution and Dataverse adaptation, guarded by contracts.'
+      zh: '把一句话翻译成正确工具调用的端到端操作流：理解、计划、带确认与接地执行、落地到后端；读路径接地作答并按需出可下钻图表。',
+      en: 'From one sentence to correct tool calls: understand, plan, execute with confirmation and grounding, land on the backend; reads stay grounded and can chart.'
     },
     tags: ['Architecture', 'LLM Pipeline', 'Agent', 'Power Apps', 'Dataverse'],
-    date: '2026-06-13',
+    date: '2026-07-04',
     url: 'posts/agentic-sales-mobile-architecture/index.html',
     color: '#fb923c',
     phase: 0.58, speed: 0.87,
@@ -239,11 +239,11 @@ var knowledgeTree = [
       en: 'Agentic Sales Mobile Features: Tense Activities, Insights, Briefings, Security'
     },
     summary: {
-      zh: '五项上线功能：时态感知活动、业务洞察与未读铃铛、每日简报语音播报、设置两层存储、多用户数据安全（平台裁剪）。',
-      en: 'Five live features: tense-aware activities, insights with an unread bell, daily voice briefings, two-tier settings, and multi-user security via platform trimming.'
+      zh: '六个功能域加跨切底座：活动、客户联系人、商机、查询规划、洞察语音简报；底座四条共同规则为确认、个性化、安全与新增的离线韧性。',
+      en: 'Six functional domains plus a foundation whose four shared rules are confirm, personalize, secure, and the newly added offline resilience.'
     },
-    tags: ['Features', 'Voice', 'Insights', 'Security', 'CRM'],
-    date: '2026-06-13',
+    tags: ['Features', 'Voice', 'Insights', 'Security', 'Offline', 'CRM'],
+    date: '2026-07-04',
     url: 'posts/agentic-sales-mobile-features/index.html',
     color: '#2dd4bf',
     phase: 0.62, speed: 0.85,
@@ -288,6 +288,66 @@ var knowledgeTree = [
     color: '#fb923c',
     phase: 0.7, speed: 0.88,
     relations: ['agentic-sales-mobile-proposal', 'agentic-sales-mobile-design']
+  },
+
+  {
+    id: 'agentic-sales-mobile-generative-ui',
+    parentId: 'agentic-crm',
+    type: 'article',
+    title: {
+      zh: '生成式数据界面可行性评估：元数据 + 技能驱动的动态控件',
+      en: 'Generative Data UI Feasibility: Metadata- and Skill-Driven Dynamic Controls'
+    },
+    summary: {
+      zh: '从「加实体零前端改动」到完整方案：实体描述符驱动通用渲染、运行时元数据支点、技能即数据（自建 Dataverse 表 + MDA 维护与测试）、三层护栏与分阶段路线。',
+      en: 'Front-end edits to a full solution: descriptor-driven rendering, a runtime-metadata linchpin, and skills-as-data in a Dataverse table maintained via an MDA.'
+    },
+    tags: ['Generative UI', 'Metadata-Driven', 'Dataverse', 'Feasibility', 'Architecture'],
+    date: '2026-06-25',
+    url: 'posts/agentic-sales-mobile-generative-ui/index.html',
+    color: '#818cf8',
+    phase: 0.72, speed: 0.86,
+    relations: ['agentic-sales-mobile-architecture', 'agentic-sales-mobile-data-model']
+  },
+
+  {
+    id: 'agentic-sales-mobile-voice',
+    parentId: 'agentic-crm',
+    type: 'article',
+    title: {
+      zh: 'Agentic Sales Mobile 语音架构：跨设备实时语音的 Azure Speech 方案',
+      en: 'Agentic Sales Mobile Voice Architecture: Cross-Device Real-Time Speech on Azure'
+    },
+    summary: {
+      zh: '把移动端语音从依赖设备能力变成跨设备一致与安全：Code App 沙箱禁止直连，改由自定义连接器经 SDK 调服务端 Azure 语音代理；朗读近实时、听写点按转写；含操作级部署命令。',
+      en: 'From device-dependent to cross-device voice: the Code App sandbox forbids direct egress, so a custom connector calls a server-side Azure speech proxy.'
+    },
+    tags: ['Voice', 'Azure Speech', 'Custom Connector', 'TTS', 'STT', 'Deployment', 'Architecture'],
+    date: '2026-07-06',
+    url: 'posts/agentic-sales-mobile-voice/index.html',
+    color: '#f472b6',
+    phase: 0.64, speed: 0.85,
+    relations: ['agentic-sales-mobile-architecture', 'agentic-sales-mobile-features']
+  },
+
+  {
+    id: 'voice-speech-setup-guide',
+    parentId: 'agentic-crm',
+    type: 'article',
+    title: {
+      zh: 'Azure 语音平台搭建指南',
+      en: 'Azure Voice Platform Setup Guide'
+    },
+    summary: {
+      zh: '在 Azure 建语音后端（Speech + 持密钥 Function 代理），导入含连接器与连接引用的 Managed Solution，填 endpoint 与 api-key 即可接入应用。',
+      en: 'Build a voice backend in Azure (Speech + a key-holding Function proxy), then import our Managed solution and enter only the endpoint and api-key.'
+    },
+    tags: ['Setup Guide', 'Azure Speech', 'Function', 'Custom Connector', 'API Key', 'Power Platform'],
+    date: '2026-07-06',
+    url: 'posts/voice-speech-setup-guide/index.html',
+    color: '#34d399',
+    phase: 0.68, speed: 0.8,
+    relations: ['agentic-sales-mobile-voice']
   },
 
   // ════════════════════════════════════════
@@ -585,6 +645,25 @@ var knowledgeTree = [
     color: '#6366f1',
     phase: 3.4, speed: 0.86,
     relations: ['fc-engineering-optimization', 'fc-best-practices', 'enterprise-agent-arch']
+  },
+  {
+    id: 'mcp-principles-development',
+    parentId: 'fc-agentic',
+    type: 'article',
+    title: {
+      zh: 'MCP 原理与开发指南：协议解剖与 TypeScript 落地实操',
+      en: 'MCP Principles & Development Guide: Protocol Anatomy and TypeScript Delivery'
+    },
+    summary: {
+      zh: '面向架构师的 MCP 全解：Host/Client/Server 架构、六原语、生命周期与两种传输，并用 TypeScript 实操 server 构建与安全落地。',
+      en: 'Architect\'s guide to the Model Context Protocol: Host/Client/Server model, six primitives, lifecycle, two transports, plus a hands-on TypeScript server build.'
+    },
+    tags: ['MCP', 'Model Context Protocol', 'AI Agent', 'Tool Use', 'TypeScript'],
+    date: '2026-07-01',
+    url: 'posts/mcp-principles-development/index.html',
+    color: '#4f46e5',
+    phase: 2.7, speed: 0.86,
+    relations: ['fc-landscape', 'fc-best-practices', 'enterprise-agent-arch']
   },
   {
     id: 'llm-literary-creation',
@@ -2248,6 +2327,25 @@ var knowledgeTree = [
     color: '#38bdf8',
     phase: 4.9, speed: 0.86,
     relations: ['mlx-optimization', 'llm-wiki', 'fc-landscape', 'text-to-image-prompting']
+  },
+  {
+    id: 'ideogram4-local-deployment',
+    parentId: 'ai-research-model',
+    type: 'article',
+    title: {
+      zh: 'Ideogram 4 开源模型解读与双机本地部署评估：M4 Max 64GB 与 RTX 3090 24GB',
+      en: 'Ideogram 4 Open-Weight Model: Architecture Breakdown and Local Deployment for M4 Max 64GB and RTX 3090 24GB'
+    },
+    summary: {
+      zh: '解读 Ideogram 4（9.3B 单流 DiT + Qwen3-VL-8B 文本编码器）架构与量化，评估 M4 Max 64GB 与 RTX 3090 24GB 的本地可运行性。',
+      en: 'Breaks down Ideogram 4 (9.3B single-stream DiT + Qwen3-VL-8B encoder) and assesses local feasibility on M4 Max 64GB and RTX 3090 24GB.'
+    },
+    tags: ['Ideogram 4', 'Text-to-Image', 'Local AI', 'Quantization', 'Apple Silicon'],
+    date: '2026-06-27',
+    url: 'posts/ideogram4-local-deployment/index.html',
+    color: '#a855f7',
+    phase: 5.1, speed: 0.85,
+    relations: ['m4-max-local-models', 'text-to-image-prompting']
   },
 
   // ════════════════════════════════════════
