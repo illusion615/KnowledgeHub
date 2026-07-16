@@ -149,6 +149,20 @@
 
   // ── Apply homepage preferences from localStorage ──
   var root = document.documentElement;
+
+  // Shared-link state: a copied share URL carries ?lang/?theme/?style so the
+  // reader opens in the sharer's selection; seed localStorage so the toggles
+  // and the load-time init below stay consistent.
+  try {
+    var shareParams = new URLSearchParams(window.location.search);
+    var pLang = shareParams.get('lang');
+    if (pLang === 'zh' || pLang === 'en') localStorage.setItem('lang', pLang);
+    var pTheme = shareParams.get('theme');
+    if (pTheme === 'dark' || pTheme === 'light') localStorage.setItem('theme', pTheme);
+    var pStyle = shareParams.get('style');
+    if (pStyle && ['clean', 'warm', 'academic', 'vivid'].indexOf(pStyle) !== -1) localStorage.setItem('article-style', pStyle);
+  } catch (e) {}
+
   var stored = localStorage.getItem('theme');
   var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   var theme = stored || (prefersDark ? 'dark' : 'light');

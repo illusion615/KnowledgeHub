@@ -46,9 +46,6 @@
     .engine-tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 700; }
     .et-azure { background: rgba(56,189,248,0.16); color: #38bdf8; }
     .et-local { background: rgba(148,163,184,0.18); color: #94a3b8; }
-    /* .cmd-block — copy-paste command block for the deployment guide (matches the sibling power-apps-code-app article). Not bilingual-swapped: shell is language-neutral, comments kept in English. */
-    .cmd-block { background: rgba(15,23,42,0.04); border: 1px solid rgba(15,23,42,0.08); border-radius: 12px; padding: 15px 18px; font-family: "Space Grotesk", "SF Mono", "Fira Code", Consolas, ui-monospace, monospace; font-size: 0.8rem; line-height: 1.75; overflow-x: auto; white-space: pre; color: var(--ink); margin: 12px 0 4px; }
-    [data-theme="dark"] .cmd-block { background: rgba(255,255,255,0.045); border-color: rgba(255,255,255,0.09); }
   </style>
 </head>
 <body>
@@ -77,7 +74,6 @@
             <a href="#degradation" data-zh="降级" data-en="Fallback">降级</a>
             <a href="#plan" data-zh="计划" data-en="Plan">计划</a>
             <a href="#economics" data-zh="成本" data-en="Cost">成本</a>
-            <a href="#provisioning" data-zh="开通" data-en="Setup">开通</a>
           </nav>
         </div>
 
@@ -563,8 +559,8 @@ sequenceDiagram
               </div>
             </div>
             <div class="callout-note callout-warm">
-              <p data-zh="构建纪律：本方案不在应用里引入客户端语音 SDK——语音在服务端 Function 完成，前端只多一个生成的连接器服务，增量构建即可、不触发冷编译。Function 侧改代码用 run-from-package 重新部署（见第 10 章）。" data-en="Build discipline: this design adds no client-side speech SDK to the app — speech runs in the server-side Function, and the front end only gains one generated connector service, so an incremental build suffices with no cold compile. Function code changes redeploy via run-from-package (see chapter 10).">
-                构建纪律：本方案不在应用里引入客户端语音 SDK——语音在服务端 Function 完成，前端只多一个生成的连接器服务，增量构建即可、不触发冷编译。Function 侧改代码用 run-from-package 重新部署（见第 10 章）。
+              <p data-zh="构建纪律：本方案不在应用里引入客户端语音 SDK——语音在服务端 Function 完成，前端只多一个生成的连接器服务，增量构建即可、不触发冷编译。Function 侧部署与 run-from-package 命令留在《Azure 语音平台搭建指南》中维护。" data-en="Build discipline: this design adds no client-side speech SDK to the app — speech runs in the server-side Function, and the front end only gains one generated connector service, so an incremental build suffices with no cold compile. Function deployment and run-from-package commands are maintained in the Azure Voice Platform Setup Guide.">
+                构建纪律：本方案不在应用里引入客户端语音 SDK——语音在服务端 Function 完成，前端只多一个生成的连接器服务，增量构建即可、不触发冷编译。Function 侧部署与 run-from-package 命令留在《Azure 语音平台搭建指南》中维护。
               </p>
             </div>
           </div>
@@ -661,184 +657,6 @@ sequenceDiagram
                 隐私：Azure 路径把音频送往本租户区域内的语音服务，可控且便于合规声明。相比之下，当前 Web Speech 的听写本就把音频发往浏览器厂商的云端服务——改用 Azure 反而缩小了数据出境面。
               </p>
             </div>
-          </div>
-        </section>
-
-        <!-- Section 10: Provisioning -->
-        <section id="provisioning" class="section" data-reveal>
-          <div class="section-head">
-            <p class="section-kicker" data-zh="10 / 资源要求与部署" data-en="10 / Resource Requirements and Deployment">10 / Resource Requirements and Deployment</p>
-            <h2 data-zh="从零部署：五种资源、一个脚本、两处手工" data-en="Deploy from Scratch: Five Resources, One Script, Two Manual Steps">从零部署：五种资源、一个脚本、两处手工</h2>
-            <p data-zh="本节给后来者一份可照做的部署清单：需要哪些资源、按什么顺序建、哪两处必须手工、以及两个不避开就会被卡住的坑。下方「端到端命令序列」是可整段复制、逐条执行的完整命令（把参考名称换成自己的即可）；仓库另带一个 provision.sh 把可脚本化的步骤 1–6 一键做完，剩下两处（建连接、接进应用）因平台限制需手工。密钥全程只在服务端。" data-en="This section is a follow-along deployment checklist: which resources are needed, in what order, which two steps must be manual, and two traps that would otherwise block you. The End-to-End Command Sequence below is the full, copy-and-run command set (swap the reference names for your own); the repo also ships a provision.sh that does the scriptable steps 1-6 in one shot, leaving the two manual steps (create a connection, wire it into the app) that platform limits require. The key stays server-side throughout.">
-              本节给后来者一份可照做的部署清单：需要哪些资源、按什么顺序建、哪两处必须手工、以及两个不避开就会被卡住的坑。下方「端到端命令序列」是可整段复制、逐条执行的完整命令（把参考名称换成自己的即可）；仓库另带一个 provision.sh 把可脚本化的步骤 1–6 一键做完，剩下两处（建连接、接进应用）因平台限制需手工。密钥全程只在服务端。
-            </p>
-          </div>
-
-          <div data-present-step data-step-title="所需资源" data-step-title-en="Required Resources" data-step-label="10 / RESOURCES">
-            <table class="simple-table">
-              <thead>
-                <tr>
-                  <th data-zh="资源" data-en="Resource">资源</th>
-                  <th data-zh="用途" data-en="Purpose">用途</th>
-                  <th data-zh="档位（dev）" data-en="Tier (dev)">档位（dev）</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td data-zh="Azure AI Speech（kind SpeechServices）" data-en="Azure AI Speech (kind SpeechServices)">Azure AI Speech（kind SpeechServices）</td>
-                  <td data-zh="语音转文字与 Neural 文字转语音" data-en="Speech-to-text and Neural text-to-speech">语音转文字与 Neural 文字转语音</td>
-                  <td data-zh="F0 免费（生产 S0）" data-en="F0 free (S0 for production)">F0 免费（生产 S0）</td>
-                </tr>
-                <tr>
-                  <td data-zh="Function App（Linux 消费计划）" data-en="Function App (Linux Consumption)">Function App（Linux 消费计划）</td>
-                  <td data-zh="服务端语音代理，持有密钥" data-en="Server-side speech proxy; holds the key">服务端语音代理，持有密钥</td>
-                  <td data-zh="消费计划 · Node 22" data-en="Consumption · Node 22">消费计划 · Node 22</td>
-                </tr>
-                <tr>
-                  <td data-zh="Storage account（Standard_LRS）" data-en="Storage account (Standard_LRS)">Storage account（Standard_LRS）</td>
-                  <td data-zh="Function App 运行依赖" data-en="Function App runtime dependency">Function App 运行依赖</td>
-                  <td data-zh="Standard_LRS" data-en="Standard_LRS">Standard_LRS</td>
-                </tr>
-                <tr>
-                  <td data-zh="自定义连接器" data-en="Custom connector">自定义连接器</td>
-                  <td data-zh="让 Code App 经 SDK 调 Function（绕过沙箱）" data-en="Lets the Code App call the Function via the SDK (bypasses the sandbox)">让 Code App 经 SDK 调 Function（绕过沙箱）</td>
-                  <td data-zh="pac connector create" data-en="pac connector create">pac connector create</td>
-                </tr>
-                <tr>
-                  <td data-zh="连接（NoAuth）" data-en="Connection (NoAuth)">连接（NoAuth）</td>
-                  <td data-zh="应用绑定的连接器实例" data-en="The connector instance the app binds to">应用绑定的连接器实例</td>
-                  <td data-zh="maker 门户手建" data-en="Maker portal (manual)">maker 门户手建</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div data-present-step data-step-title="开通步骤" data-step-title-en="Provisioning Steps" data-step-label="10 / STEPS">
-            <div class="flow-list">
-              <div class="flow-step">
-                <div class="flow-copy">
-                  <strong data-zh="1 · 建 Speech 资源（F0 免费）" data-en="1 · Create the Speech resource (F0 free)">1 · 建 Speech 资源（F0 免费）</strong>
-                  <p data-zh="先确认订阅已注册 Microsoft.CognitiveServices 提供程序，再用 az cognitiveservices account create 建一个 kind 为 SpeechServices、sku 为 F0 的资源。" data-en="Confirm the Microsoft.CognitiveServices provider is registered, then use az cognitiveservices account create to make one resource of kind SpeechServices and sku F0.">先确认订阅已注册 Microsoft.CognitiveServices 提供程序，再用 az cognitiveservices account create 建一个 kind 为 SpeechServices、sku 为 F0 的资源。</p>
-                </div>
-              </div>
-              <div class="flow-step">
-                <div class="flow-copy">
-                  <strong data-zh="2 · 建 storage 与 Function App（Node 22）" data-en="2 · Create the storage and Function App (Node 22)">2 · 建 storage 与 Function App（Node 22）</strong>
-                  <p data-zh="先建 Standard_LRS 存储账户，再用 az functionapp create 建 Linux 消费计划、运行时选 Node 22、Functions v4。" data-en="Create a Standard_LRS storage account first, then use az functionapp create for a Linux consumption plan with the Node 22 runtime and Functions v4.">先建 Standard_LRS 存储账户，再用 az functionapp create 建 Linux 消费计划、运行时选 Node 22、Functions v4。</p>
-                </div>
-              </div>
-              <div class="flow-step">
-                <div class="flow-copy">
-                  <strong data-zh="3 · 密钥写入应用设置（只在服务端）" data-en="3 · Put the key in app settings (server-side only)">3 · 密钥写入应用设置（只在服务端）</strong>
-                  <p data-zh="从 Speech 资源取 key，用 az functionapp config appsettings set 写入 SPEECH_KEY 与 SPEECH_REGION；密钥永不进前端。" data-en="Read the key from the Speech resource and write SPEECH_KEY and SPEECH_REGION via az functionapp config appsettings set; the key never reaches the front end.">从 Speech 资源取 key，用 az functionapp config appsettings set 写入 SPEECH_KEY 与 SPEECH_REGION；密钥永不进前端。</p>
-                </div>
-              </div>
-              <div class="flow-step">
-                <div class="flow-copy">
-                  <strong data-zh="4 · run-from-package 部署" data-en="4 · Deploy via run-from-package">4 · run-from-package 部署</strong>
-                  <p data-zh="本地 npm install 打包，上传到 blob 并生成 SAS，把 WEBSITE_RUN_FROM_PACKAGE 指向该 URL 后重启。完整命令见 README。" data-en="npm install and zip locally, upload to blob and generate a SAS, point WEBSITE_RUN_FROM_PACKAGE at that URL, and restart. Full commands are in the README.">本地 npm install 打包，上传到 blob 并生成 SAS，把 WEBSITE_RUN_FROM_PACKAGE 指向该 URL 后重启。完整命令见 README。</p>
-                </div>
-              </div>
-              <div class="flow-step">
-                <div class="flow-copy">
-                  <strong data-zh="5 · 开 CORS 并验证 Function" data-en="5 · Enable CORS and verify the Function">5 · 开 CORS 并验证 Function</strong>
-                  <p data-zh="用 az functionapp cors add 放开来源，再 curl POST /api/tts，应返回 200 与一段 base64 MP3。" data-en="Open CORS with az functionapp cors add, then curl POST /api/tts; it should return 200 with a base64 MP3.">用 az functionapp cors add 放开来源，再 curl POST /api/tts，应返回 200 与一段 base64 MP3。</p>
-                </div>
-              </div>
-              <div class="flow-step">
-                <div class="flow-copy">
-                  <strong data-zh="6 · 建自定义连接器" data-en="6 · Create the custom connector">6 · 建自定义连接器</strong>
-                  <p data-zh="用 pac connector create 从 azure/speech-connector 的 swagger 与 apiProperties（NoAuth）建连接器，让 Code App 能经 SDK 调 Function。" data-en="Use pac connector create from the swagger and apiProperties (NoAuth) in azure/speech-connector so the Code App can call the Function via the SDK.">用 pac connector create 从 azure/speech-connector 的 swagger 与 apiProperties（NoAuth）建连接器，让 Code App 能经 SDK 调 Function。</p>
-                </div>
-              </div>
-              <div class="flow-step">
-                <div class="flow-copy">
-                  <strong data-zh="7 · 建连接（门户手工）" data-en="7 · Create the connection (portal, manual)">7 · 建连接（门户手工）</strong>
-                  <p data-zh="NoAuth 连接无法脚本化：在 maker 门户 Connections → 新建 → 选该连接器 → Create（秒建）。再 pac connection list 取连接 id 与 apiId。" data-en="A NoAuth connection is not scriptable: in the maker portal go to Connections -> New -> pick the connector -> Create (instant). Then pac connection list for the connection id and apiId.">NoAuth 连接无法脚本化：在 maker 门户 Connections → 新建 → 选该连接器 → Create（秒建）。再 pac connection list 取连接 id 与 apiId。</p>
-                </div>
-              </div>
-              <div class="flow-step">
-                <div class="flow-copy">
-                  <strong data-zh="8 · 接进 Code App" data-en="8 · Wire it into the Code App">8 · 接进 Code App</strong>
-                  <p data-zh="用 npm 版 power-apps CLI 的 add-data-source（带 --api-id 与 --connection-id）接入，生成 SalesCopilotSpeechService；再 pnpm build 与 pac code push。" data-en="Use the npm power-apps CLI's add-data-source (with --api-id and --connection-id) to wire it in, generating SalesCopilotSpeechService; then pnpm build and pac code push.">用 npm 版 power-apps CLI 的 add-data-source（带 --api-id 与 --connection-id）接入，生成 SalesCopilotSpeechService；再 pnpm build 与 pac code push。</p>
-                </div>
-              </div>
-            </div>
-            <div class="callout-note callout-green">
-              <p data-zh="自助部署包：仓库的 azure/speech-token-broker/provision.sh 把步骤 1–6 一键做完（资源组、区域、名称可用环境变量覆盖），跑完打印步骤 7、8 的手工指引。未来若打成部署包交给客户，客户只需 az login + pac auth，跑 provision.sh，再照打印的两步在自己环境里建连接、接进应用即可。" data-en="Self-deploy package: the repo's azure/speech-token-broker/provision.sh runs steps 1-6 in one shot (resource group, region and names overridable via environment variables) and prints the manual steps 7 and 8 when done. If packaged for a customer later, they only need az login + pac auth, run provision.sh, then follow the two printed steps to create the connection and wire it into the app in their own environment.">自助部署包：仓库的 azure/speech-token-broker/provision.sh 把步骤 1–6 一键做完（资源组、区域、名称可用环境变量覆盖），跑完打印步骤 7、8 的手工指引。未来若打成部署包交给客户，客户只需 az login + pac auth，跑 provision.sh，再照打印的两步在自己环境里建连接、接进应用即可。</p>
-            </div>
-            <div class="callout-note callout-warm">
-              <p data-zh="坑一 · Node 版本：CLI 会推你用 Node 24（称 20 已 EOL），但 Node 24 目前在 Linux 消费计划上起不来（持续 503，function list 报 Bad Request）。用 Node 22 LTS；若已建在 24 上，把 linux-fx-version 改成 Node 22 再重启。" data-en="Trap 1 · Node version: the CLI pushes Node 24 (claiming 20 is end-of-life), but Node 24 currently fails to start on Linux Consumption (persistent 503, function list returns Bad Request). Use Node 22 LTS; if you already created it on 24, set the linux-fx-version to Node 22 and restart.">坑一 · Node 版本：CLI 会推你用 Node 24（称 20 已 EOL），但 Node 24 目前在 Linux 消费计划上起不来（持续 503，function list 报 Bad Request）。用 Node 22 LTS；若已建在 24 上，把 linux-fx-version 改成 Node 22 再重启。</p>
-            </div>
-            <div class="callout-note callout-warm">
-              <p data-zh="坑二 · 部署方式：新建的 Linux 消费计划 App 上，config-zip 与 OneDeploy 都会因 Kudu/SCM 未就绪返回 Bad Request / 503。改用 run-from-package（应用启动时从 blob SAS 拉包）绕开 Kudu。" data-en="Trap 2 · Deploy method: on a freshly created Linux Consumption app, both config-zip and OneDeploy fail with Bad Request / 503 because Kudu/SCM is not ready. Use run-from-package (the app pulls the zip from a blob SAS at startup) to bypass Kudu.">坑二 · 部署方式：新建的 Linux 消费计划 App 上，config-zip 与 OneDeploy 都会因 Kudu/SCM 未就绪返回 Bad Request / 503。改用 run-from-package（应用启动时从 blob SAS 拉包）绕开 Kudu。</p>
-            </div>
-            <div class="callout-note">
-              <p data-zh="安全：端点默认匿名；一旦在 Function 应用设置里配置 SPEECH_API_KEY，就启用共享密钥鉴权——连接器经 x-api-key 头在每次调用时发送该密钥，未带或不匹配即 401，挡住匿名滥用。provision.sh 会为新部署自动生成并配好这把密钥。上线前仍建议把 CORS 收紧到具体来源并加限流。订阅密钥只在服务端应用设置里、从不进前端；端点返回的是合成音频或转写文本、不含数据访问权。" data-en="Security: the endpoints are anonymous by default; once SPEECH_API_KEY is set in the Function app settings, a shared-secret gate turns on — the connector sends that key on every call via the x-api-key header, and a missing or wrong key returns 401, blocking anonymous abuse. provision.sh generates and configures this key for new deployments. Before go-live, still narrow CORS to the exact origins and add rate limiting. The subscription key lives only in server-side app settings and never reaches the front end; the endpoint returns synthesized audio or transcribed text with no data access.">安全：端点默认匿名；一旦在 Function 应用设置里配置 SPEECH_API_KEY，就启用共享密钥鉴权——连接器经 x-api-key 头在每次调用时发送该密钥，未带或不匹配即 401，挡住匿名滥用。provision.sh 会为新部署自动生成并配好这把密钥。上线前仍建议把 CORS 收紧到具体来源并加限流。订阅密钥只在服务端应用设置里、从不进前端；端点返回的是合成音频或转写文本、不含数据访问权。</p>
-            </div>
-          </div>
-
-          <div data-present-step data-step-title="端到端命令序列" data-step-title-en="End-to-End Command Sequence" data-step-label="10 / COMMANDS">
-            <p class="grid-spaced" data-zh="下面把步骤 1–8 串成一份可复制的命令序列。参考名称用的是本项目的部署（资源组 WellsRG、区域 eastus、Function sales-copilot-token）；换环境时替换这些名称与 &lt;尖括号&gt; 占位符即可。前置条件：az login、pac auth、Node/npm、zip。" data-en="This strings steps 1-8 into one copy-and-run sequence. The reference names are this project's deployment (resource group WellsRG, region eastus, Function sales-copilot-token); for a new environment, replace those names and the &lt;angle-bracket&gt; placeholders. Prerequisites: az login, pac auth, Node/npm, zip.">下面把步骤 1–8 串成一份可复制的命令序列。参考名称用的是本项目的部署（资源组 WellsRG、区域 eastus、Function sales-copilot-token）；换环境时替换这些名称与 &lt;尖括号&gt; 占位符即可。前置条件：az login、pac auth、Node/npm、zip。</p>
-            <div class="cmd-block"># ===== Sales Copilot voice backend: deploy from scratch =====
-
-# ---- 1. Speech resource (F0 free) ----
-az cognitiveservices account create -n sales-copilot-speech -g WellsRG \
-  --kind SpeechServices --sku F0 -l eastus --yes
-
-# ---- 2. Storage + Function App (Node 22, NOT 24; see Trap 1) ----
-az storage account create -n scspeechtok279487 -g WellsRG -l eastus \
-  --sku Standard_LRS --allow-blob-public-access false --min-tls-version TLS1_2
-az functionapp create -n sales-copilot-token -g WellsRG \
-  --storage-account scspeechtok279487 --consumption-plan-location eastus \
-  --runtime node --runtime-version 22 --functions-version 4 \
-  --os-type Linux --disable-app-insights true
-
-# ---- 3. Keys into Function app settings (Speech key + anti-abuse API key) ----
-KEY=$(az cognitiveservices account keys list -n sales-copilot-speech -g WellsRG --query key1 -o tsv)
-APIKEY=$(openssl rand -hex 32)   # anti-abuse shared secret; the connector sends it as x-api-key
-az functionapp config appsettings set -n sales-copilot-token -g WellsRG \
-  --settings SPEECH_KEY="$KEY" SPEECH_REGION=eastus SPEECH_API_KEY="$APIKEY"
-
-# ---- 4. Deploy function code via run-from-package (NOT config-zip; see Trap 2) ----
-cd azure/speech-token-broker &amp;&amp; npm install --omit=dev
-zip -r -X /tmp/speech-broker.zip host.json package.json src node_modules
-CONN=$(az storage account show-connection-string -n scspeechtok279487 -g WellsRG --query connectionString -o tsv)
-az storage container create -n deploy --connection-string "$CONN"
-az storage blob upload -c deploy -n speech-broker.zip -f /tmp/speech-broker.zip --overwrite --connection-string "$CONN"
-EXPIRY=$(date -u -v+2y '+%Y-%m-%dT%H:%MZ')      # Linux: date -u -d '+2 years' '+%Y-%m-%dT%H:%MZ'
-SAS=$(az storage blob generate-sas -c deploy -n speech-broker.zip --permissions r --expiry "$EXPIRY" --connection-string "$CONN" --full-uri -o tsv)
-az functionapp config appsettings set -n sales-copilot-token -g WellsRG --settings WEBSITE_RUN_FROM_PACKAGE="$SAS"
-az functionapp restart -n sales-copilot-token -g WellsRG
-# Redeploy after any Function code change: re-run this block's zip + blob upload.
-
-# ---- 5. CORS + verify both operations ----
-az functionapp cors add -n sales-copilot-token -g WellsRG --allowed-origins "*"
-curl -s -X POST https://sales-copilot-token.azurewebsites.net/api/tts \
-  -H "Content-Type: application/json" -H "x-api-key: $APIKEY" \
-  -d '{"text":"hello","locale":"en-US"}' | head -c 60
-# expect: {"audio":"&lt;base64 mp3&gt;", ...}   (without x-api-key you get 401)
-curl -s -X POST https://sales-copilot-token.azurewebsites.net/api/stt \
-  -H "Content-Type: application/json" -d '{}' | head -c 80
-# expect: {"error":"audio_required", ...}   (route is live)
-
-# ---- 6. Custom connector (both Synthesize + Transcribe ops) ----
-cd ../speech-connector
-pac connector create \
-  --api-definition-file apiDefinition.swagger.json \
-  --api-properties-file apiProperties.json
-
-# ---- 7. Connection: maker portal, MANUAL (NoAuth is not scriptable) ----
-# Maker portal: Connections, "+ New connection", pick "Sales Copilot Speech", Create
-pac connection list          # copy the Connection Id and the shared_... apiId
-
-# ---- 8. Wire the connector into the Code App ----
-cd ../../apps/sales-copilot
-BIN=$(find node_modules/.pnpm -path "*@microsoft/power-apps-cli/dist/Bin.js" | head -1)
-node "$BIN" add-data-source \
-  --api-id shared_&lt;apiId&gt; --connection-id &lt;connectionId&gt; \
-  --org-url https://&lt;your-org&gt;.crm.dynamics.com/ --non-interactive
-pnpm build &amp;&amp; npx power-apps push</div>
           </div>
         </section>
 

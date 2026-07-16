@@ -135,12 +135,28 @@ var knowledgeTree = [
     phase: 5.0, speed: 0.84
   },
   {
-    id: 'agentic-crm',
+    id: 'agentic-crm-solution',
     parentId: 'business-ai-solution',
+    type: 'topic',
+    label: { zh: 'Agentic CRM Solution', en: 'Agentic CRM Solution' },
+    color: '#b56cf5',
+    phase: 5.1, speed: 0.85
+  },
+  {
+    id: 'agentic-crm',
+    parentId: 'agentic-crm-solution',
     type: 'topic',
     label: { zh: 'Agentic Sales Mobile', en: 'Agentic Sales Mobile' },
     color: '#c084fc',
     phase: 5.2, speed: 0.86
+  },
+  {
+    id: 'agentic-service-mobile',
+    parentId: 'agentic-crm-solution',
+    type: 'topic',
+    label: { zh: 'Agentic Service Mobile', en: 'Agentic Service Mobile' },
+    color: '#60a5fa',
+    phase: 5.3, speed: 0.86
   },
   {
     id: 'industry-solution',
@@ -171,6 +187,46 @@ var knowledgeTree = [
   // 文章 — Business AI Solution
   // ════════════════════════════════════════
   {
+    id: 'agentic-crm-business-cycle',
+    parentId: 'agentic-crm-solution',
+    type: 'article',
+    title: {
+      zh: 'Agentic CRM：以业务周期为中心重构客户经营',
+      en: 'Agentic CRM: Rebuilding Customer Operations Around the Business Cycle'
+    },
+    summary: {
+      zh: '以端到端业务周期重新定义 AI 时代 CRM，连接 BizApps、Modern Work 与 Azure，并以 Sales/Service Mobile 验证落地。',
+      en: 'Redefines CRM around the end-to-end business cycle, connecting BizApps, Modern Work, and Azure with Sales and Service Mobile practices.'
+    },
+    tags: ['Agentic CRM', 'Business Cycle', 'BizApps', 'Modern Work', 'Microsoft Foundry'],
+    date: '2026-07-15',
+    url: 'posts/agentic-crm-business-cycle/index.html',
+    color: '#a855f7',
+    phase: 0.48, speed: 0.86,
+    relations: ['agentic-sales-mobile-proposal', 'agentic-service-mobile-solution', 'dynamics-365-contact-center-ccaas', 'dataverse-intelligence']
+  },
+
+  {
+    id: 'agentic-service-mobile-solution',
+    parentId: 'agentic-service-mobile',
+    type: 'article',
+    title: {
+      zh: '现场服务移动 AI 智能体方案：基于 Power Platform',
+      en: 'Field Service Mobile AI Agent Solution: Built on Power Platform'
+    },
+    summary: {
+      zh: '让现场人员少填表、多解决问题：串联 SLA 排程、访前简报、持续语音采集、工单确认与受控主数据变更。',
+      en: 'A service-driven mobile solution unifying SLA planning, pre-visit briefs, continuous voice capture, confirmation, and governed master-data changes.'
+    },
+    tags: ['Power Platform', 'Field Service', 'Copilot Studio', 'Mobile AI', 'Voice'],
+    date: '2026-07-11',
+    url: 'posts/agentic-service-mobile-solution/index.html',
+    color: '#60a5fa',
+    phase: 0.54, speed: 0.88,
+    relations: ['agentic-crm-business-cycle', 'agentic-sales-mobile-proposal', 'dynamics-365-contact-center-ccaas', 'power-apps-code-app']
+  },
+
+  {
     id: 'agentic-sales-mobile-proposal',
     parentId: 'agentic-crm',
     type: 'article',
@@ -187,7 +243,7 @@ var knowledgeTree = [
     url: 'posts/agentic-sales-mobile-proposal/index.html',
     color: '#c084fc',
     phase: 0.5, speed: 0.9,
-    relations: ['low-code-ai-era', 'enterprise-agent-arch', 'copilot-studio-overview']
+    relations: ['agentic-crm-business-cycle', 'low-code-ai-era', 'enterprise-agent-arch', 'copilot-studio-overview']
   },
 
   {
@@ -319,10 +375,10 @@ var knowledgeTree = [
       en: 'Agentic Sales Mobile Voice Architecture: Cross-Device Real-Time Speech on Azure'
     },
     summary: {
-      zh: '把移动端语音从依赖设备能力变成跨设备一致与安全：Code App 沙箱禁止直连，改由自定义连接器经 SDK 调服务端 Azure 语音代理；朗读近实时、听写点按转写；含操作级部署命令。',
+      zh: '把移动端语音从依赖设备能力变成跨设备一致与安全：Code App 沙箱禁止直连，改由自定义连接器经 SDK 调服务端 Azure 语音代理；朗读近实时、听写点按转写。',
       en: 'From device-dependent to cross-device voice: the Code App sandbox forbids direct egress, so a custom connector calls a server-side Azure speech proxy.'
     },
-    tags: ['Voice', 'Azure Speech', 'Custom Connector', 'TTS', 'STT', 'Deployment', 'Architecture'],
+    tags: ['Voice', 'Azure Speech', 'Custom Connector', 'TTS', 'STT', 'Architecture'],
     date: '2026-07-06',
     url: 'posts/agentic-sales-mobile-voice/index.html',
     color: '#f472b6',
@@ -348,6 +404,26 @@ var knowledgeTree = [
     color: '#34d399',
     phase: 0.68, speed: 0.8,
     relations: ['agentic-sales-mobile-voice']
+  },
+
+  {
+    id: 'dynamics-365-contact-center-ccaas',
+    parentId: 'business-ai-solution',
+    type: 'article',
+    title: {
+      zh: 'Dynamics 365 Contact Center：CCaaS 评估指南',
+      en: 'Dynamics 365 Contact Center: CCaaS Evaluation Guide'
+    },
+    summary: {
+      zh: 'D365 Contact Center 的能力、可参考的 Forrester/BVI 回报、为什么选微软（含分析师背书）、真实客户实证与落地路径。',
+      en: 'A guide to Dynamics 365 Contact Center: capabilities, Forrester/BVI ROI, why Microsoft (analyst-validated), customer proof, and adoption path.'
+    },
+    tags: ['Dynamics 365', 'Contact Center', 'CCaaS', 'Customer Service', 'Copilot', 'ROI'],
+    date: '2026-07-07',
+    url: 'posts/dynamics-365-contact-center-ccaas/index.html',
+    color: '#a855f7',
+    phase: 5.35, speed: 0.84,
+    relations: ['power-platform-governance', 'copilot-studio-overview', 'life-science-ai-blueprint']
   },
 
   // ════════════════════════════════════════
@@ -1016,6 +1092,25 @@ var knowledgeTree = [
     color: '#8b5cf6',
     phase: 4.2, speed: 0.83,
     relations: ['low-code-ai-era', 'copilot-studio-overview', 'agentic-sales-mobile-proposal']
+  },
+  {
+    id: 'dynamics-365-ce-tenant-separation',
+    parentId: 'power-platform',
+    type: 'article',
+    title: {
+      zh: 'CRM 系统拆分评估指南：可行性、架构与实现路径',
+      en: 'CRM System Separation Assessment: Feasibility, Architecture, and Delivery Paths'
+    },
+    summary: {
+      zh: '以 Success by Design 五阶段与三道评审闸门为主线，覆盖五项可行性闸门、三条路径、目标架构、数据边界与分阶段实施。',
+      en: 'A reusable CRM separation guide anchored on Success by Design, covering feasibility gates, three paths, architecture, data boundaries, and phased delivery.'
+    },
+    tags: ['CRM', 'Carve-Out', 'Separation Assessment', 'Success by Design', 'Dynamics 365', 'Dataverse', 'Power Platform'],
+    date: '2026-07-15',
+    url: 'posts/dynamics-365-ce-tenant-separation/index.html',
+    color: '#7c3aed',
+    phase: 4.5, speed: 0.84,
+    relations: ['power-platform-governance', 'dataverse-security-roles']
   },
   {
     id: 'power-platform-pricing-quote-tool',

@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CRM 系统拆分评估指南：可行性、架构与实现路径</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 {
+      font-size: clamp(2rem, 4.3vw, 3.35rem);
+      line-height: 1.08;
+      letter-spacing: -0.025em;
+      max-width: 24ch;
+    }
+
+    .table-scroll {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    .table-scroll .simple-table {
+      min-width: 920px;
+    }
+
+    .insight-grid.crm-grid-three,
+    .comparison-grid.crm-grid-three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .insight-grid.crm-grid-four {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .flow-list.phase-continue {
+      counter-reset: flow-counter 3;
+    }
+
+    [data-theme="dark"] .table-scroll {
+      color-scheme: dark;
+    }
+
+    .is-presentation-mode .hero-metrics,
+    .is-presentation-mode .hero-actions,
+    .is-presentation-mode .hero-panel > p {
+      display: none !important;
+    }
+
+    @media (max-width: 1080px) {
+      .insight-grid.crm-grid-four {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .insight-grid.crm-grid-three,
+      .comparison-grid.crm-grid-three {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .insight-grid.crm-grid-four {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    body:not(.is-presentation-mode) #references {
+      padding-bottom: 144px;
+    }
+
+    /* ── Master process flowchart (00) ── */
+    .crm-flow { display: flex; align-items: stretch; gap: 5px; margin-top: 20px; overflow-x: auto; padding: 4px 2px 12px; }
+    .cf-node { flex: 1 1 0; min-width: 140px; display: flex; flex-direction: column; gap: 7px; padding: 13px 12px 12px; border: 1px solid var(--card-border); border-top: 3px solid var(--accent); border-radius: 14px; background: var(--card-bg); box-shadow: var(--card-shadow); }
+    .cf-node.cf-teal { border-top-color: var(--teal); }
+    .cf-head { display: flex; align-items: center; gap: 8px; }
+    .cf-badge { flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 0.78rem; font-weight: 700; background: var(--accent); color: #fff; }
+    .cf-node.cf-teal .cf-badge { background: var(--teal); }
+    .cf-name { font-weight: 700; font-size: 0.96rem; line-height: 1.1; color: var(--ink); }
+    .cf-stage { display: block; font-size: 0.64rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); margin-top: 2px; }
+    .cf-node.cf-teal .cf-stage { color: var(--teal); }
+    .cf-act { font-size: 0.8rem; line-height: 1.42; color: var(--muted); margin: 0; }
+    .cf-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: 3px; }
+    .cf-review { font-size: 0.68rem; font-weight: 600; padding: 3px 8px; border-radius: 999px; background: rgba(224, 176, 75, 0.16); color: #9a6d15; border: 1px solid rgba(224, 176, 75, 0.34); }
+    [data-theme="dark"] .cf-review { color: var(--gold); }
+    .cf-exit { font-size: 0.68rem; font-weight: 700; padding: 3px 8px; border-radius: 8px; color: var(--ink); background: var(--panel); border: 1px dashed var(--accent); }
+    .cf-chapter { font-size: 0.7rem; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); text-decoration: none; border: 1px solid transparent; }
+    .cf-chapter:hover { border-color: var(--accent); }
+    .cf-gate { flex: none; width: 96px; align-self: center; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+    .cf-gate-tag { font-size: 0.56rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+    .cf-gate-label { font-size: 0.72rem; font-weight: 700; color: var(--ink); background: var(--panel); border: 1px dashed var(--accent); border-radius: 9px; padding: 5px 7px; line-height: 1.2; }
+    .cf-gate-arrow { color: var(--accent); font-size: 1.1rem; line-height: 1; }
+    .cf-legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 14px; font-size: 0.74rem; color: var(--muted); }
+    .cf-legend > span { display: inline-flex; align-items: center; gap: 7px; }
+    .cf-dot { width: 13px; height: 13px; border-radius: 4px; flex: none; }
+    .cf-dot-phase { background: var(--accent); }
+    .cf-dot-review { background: rgba(224, 176, 75, 0.75); }
+    .cf-dot-gate { border: 1px dashed var(--accent); }
+    @media (max-width: 900px) {
+      .crm-flow { flex-direction: column; overflow-x: visible; }
+      .cf-node { min-width: 0; }
+      .cf-gate { width: auto; flex-direction: row; justify-content: center; gap: 8px; padding: 3px 0; }
+      .cf-gate-arrow { transform: rotate(90deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            <span data-zh="Power Platform" data-en="Power Platform">Power Platform</span>
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航" data-nav-pager>
+            <a href="#methodology" data-zh="流程" data-en="Flow">流程</a>
+            <a href="#decision" data-zh="决策" data-en="Decide">决策</a>
+            <a href="#options" data-zh="对比" data-en="Compare">对比</a>
+            <a href="#architecture" data-zh="架构" data-en="Design">架构</a>
+            <a href="#boundary" data-zh="边界" data-en="Data">边界</a>
+            <a href="#phases" data-zh="阶段" data-en="Plan">阶段</a>
+            <a href="#assets" data-zh="资产" data-en="Assets">资产</a>
+            <a href="#cutover" data-zh="切换" data-en="Cutover">切换</a>
+            <a href="#governance" data-zh="治理" data-en="Govern">治理</a>
+            <a href="#references" data-zh="来源" data-en="Sources">来源</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow" data-zh="CRM Separation · Dynamics 365 CE / Dataverse Reference" data-en="CRM Separation · Dynamics 365 CE / Dataverse Reference">CRM Separation · Dynamics 365 CE / Dataverse Reference</span>
+            <h1 data-zh="CRM 系统拆分评估指南" data-en="CRM System Separation Assessment Guide">CRM 系统拆分评估指南</h1>
+            <p data-zh="企业因业务剥离、法律实体重组、区域独立、数据驻留或运营模式变化，需要把一个既有 CRM 拆成两个独立系统。本文提供适用于企业 CRM 的通用可行性判断、三条路径对比、目标架构、数据边界、六阶段实施和切换回退方法；平台能力、限制和工具以 Dynamics 365 CE / Dataverse 为实现参考。" data-en="Divestitures, legal-entity restructuring, regional independence, data-residency requirements, and operating-model changes can require one CRM to become two independent systems. This guide provides reusable feasibility criteria, three path options, a target architecture, data-boundary rules, six delivery phases, and cutover and rollback methods for enterprise CRM, using Dynamics 365 CE and Dataverse as the implementation reference for platform capabilities, constraints, and tools.">企业因业务剥离、法律实体重组、区域独立、数据驻留或运营模式变化，需要把一个既有 CRM 拆成两个独立系统。本文提供适用于企业 CRM 的通用可行性判断、三条路径对比、目标架构、数据边界、六阶段实施和切换回退方法；平台能力、限制和工具以 Dynamics 365 CE / Dataverse 为实现参考。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#options" data-zh="比较三条路径" data-en="Compare Three Paths">比较三条路径</a>
+              <a class="button button-secondary" href="#phases" data-zh="查看阶段闸门" data-en="Review Phase Gates">查看阶段闸门</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label" data-zh="路径选择规则" data-en="Path Selection Rule">路径选择规则</span>
+            <h2 data-zh="整个 CRM 完整转移时评估原生迁移；源端与目标端都继续运营时评估选择性拆分。" data-en="Assess Native Migration for a Complete CRM Transfer and Selective Carve-Out When Source and Target Both Continue Operating">整个 CRM 完整转移时评估原生迁移；源端与目标端都继续运营时评估选择性拆分。</h2>
+            <p data-zh="Microsoft 原生 tenant-to-tenant move 的迁移单位是整个 Dataverse organization；迁移完成后，源环境不再包含 Dataverse。[1] 因此它适用于完整所有权转移，不会自动按照法律实体、业务单元、区域或数据边界把共享 CRM 拆成两套。" data-en="The Microsoft native tenant-to-tenant move transfers the entire Dataverse organization; after completion, the source environment no longer contains Dataverse.[1] It fits complete ownership transfer and does not automatically split a shared CRM by legal entity, business unit, geography, or data boundary.">Microsoft 原生 tenant-to-tenant move 的迁移单位是整个 Dataverse organization；迁移完成后，源环境不再包含 Dataverse。[1] 因此它适用于完整所有权转移，不会自动按照法律实体、业务单元、区域或数据边界把共享 CRM 拆成两套。</p>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span><span data-zh="先判断：整个 CRM 转移，还是源端与目标端继续运营" data-en="Decide first: complete CRM transfer or continued operation in both source and target">先判断：整个 CRM 转移，还是源端与目标端继续运营</span></li>
+              <li><span class="layer-number">2</span><span data-zh="再定义：哪些数据、流程和接口属于拆分组织" data-en="Then define which data, processes, and integrations belong to the separated organization">再定义：哪些数据、流程和接口属于拆分组织</span></li>
+              <li><span class="layer-number">3</span><span data-zh="最后执行：独立目标环境、选择性迁移、受控切换" data-en="Then execute through an independent target, selective migration, and controlled cutover">最后执行：独立目标环境、选择性迁移、受控切换</span></li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label" data-zh="候选路径" data-en="Candidate Paths">候选路径</div>
+            <strong>3</strong>
+            <span data-zh="整环境转移 · 选择性拆分 · 业务重建" data-en="Whole-environment move · selective carve-out · business rebuild">整环境转移 · 选择性拆分 · 业务重建</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="迁移阶段" data-en="Migration Phases">迁移阶段</div>
+            <strong>6</strong>
+            <span data-zh="从发现到稳定期，每阶段设退出闸门" data-en="Discovery through stabilization, each with an exit gate">从发现到稳定期，每阶段设退出闸门</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="目标环境基线" data-en="Target Environment Baseline">目标环境基线</div>
+            <strong>3</strong>
+            <span data-zh="Dev · Test/UAT · Production" data-en="Development · Test/UAT · Production">Dev · Test/UAT · Production</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="关键闸门" data-en="Critical Gates">关键闸门</div>
+            <strong>4</strong>
+            <span data-zh="范围 · 构建 · 演练 · 切换" data-en="Scope · build · rehearsal · cutover">范围 · 构建 · 演练 · 切换</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <section id="methodology" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="00 / 项目方法论与主流程" data-en="00 / Methodology and Master Flow">00 / 项目方法论与主流程</p>
+            <h2 data-zh="把 Success by Design 五阶段裁剪到 CRM 租户拆分：从目标租户创建、Entra ID 到数据迁移与切换的端到端主线" data-en="Success by Design Tailored to CRM Tenant Separation: End to End from Target Tenant Creation and Entra ID to Data Migration and Cutover">把 Success by Design 五阶段裁剪到 CRM 租户拆分：从目标租户创建、Entra ID 到数据迁移与切换的端到端主线</h2>
+            <p data-zh="CRM 租户拆分不是一次性数据搬运，而是一个完整的 Dynamics 365 实施项目：要新建目标租户、建立 Entra ID 身份、预配 Dataverse 环境、按边界迁移数据、重建集成并受控切换。本章把 Microsoft 官方方法论 Success by Design（Dynamics 365 实施指南的核心、FastTrack 团队采用）的五个阶段——Discover、Initiate、Implement、Prepare、Operate——裁剪到租户拆分场景，用三道强制评审闸门治理，并按五条工作流（租户与身份、环境与应用、数据、集成与协作、切换与治理）展开端到端活动，让每个阶段和决策点引申到后续章节。[13]" data-en="A CRM tenant separation is not a one-off data move but a full Dynamics 365 implementation project: it creates a target tenant, establishes Entra ID identity, provisions Dataverse environments, migrates data along a boundary, rebuilds integrations, and cuts over under control. This section tailors the five phases of Microsoft's official Success by Design methodology (the core of the Dynamics 365 Implementation Guide, used by the FastTrack team)—Discover, Initiate, Implement, Prepare, and Operate—to the tenant-separation scenario, governs them with three mandatory review gates, and expands the end-to-end activities across five work streams (tenant and identity, environments and apps, data, integrations and collaboration, cutover and governance), routing every phase and decision point to a later chapter.[13]">CRM 租户拆分不是一次性数据搬运，而是一个完整的 Dynamics 365 实施项目：要新建目标租户、建立 Entra ID 身份、预配 Dataverse 环境、按边界迁移数据、重建集成并受控切换。本章把 Microsoft 官方方法论 Success by Design（Dynamics 365 实施指南的核心、FastTrack 团队采用）的五个阶段——Discover、Initiate、Implement、Prepare、Operate——裁剪到租户拆分场景，用三道强制评审闸门治理，并按五条工作流（租户与身份、环境与应用、数据、集成与协作、切换与治理）展开端到端活动，让每个阶段和决策点引申到后续章节。[13]</p>
+          </div>
+
+          <div data-present-step data-step-title="五阶段主流程" data-step-title-en="Five-Phase Master Flow" data-step-label="00 / MASTER FLOW">
+            <div class="crm-flow">
+              <div class="cf-node">
+                <div class="cf-head"><span class="cf-badge">1</span><div><span class="cf-name">Discover</span><span class="cf-stage" data-zh="评估" data-en="Assess">评估</span></div></div>
+                <p class="cf-act" data-zh="盘点源租户、Dataverse 环境、Entra 身份与安全组、集成；判可行性与目标租户/区域" data-en="Inventory source tenant, Dataverse environments, Entra identity and security groups, integrations; assess feasibility and target tenant/region">盘点源租户、Dataverse 环境、Entra 身份与安全组、集成；判可行性与目标租户/区域</p>
+                <div class="cf-tags"><span class="cf-review" data-zh="SBR 启动" data-en="SBR starts">SBR 启动</span><a class="cf-chapter" href="#decision" data-zh="§01 决策前提" data-en="§01 Decision Premise">§01 决策前提</a></div>
+              </div>
+              <div class="cf-gate"><span class="cf-gate-tag" data-zh="决策" data-en="Decision">决策</span><span class="cf-gate-label" data-zh="可行性 · 选路径" data-en="Feasible · pick path">可行性 · 选路径</span><span class="cf-gate-arrow" aria-hidden="true">→</span></div>
+              <div class="cf-node cf-teal">
+                <div class="cf-head"><span class="cf-badge">2</span><div><span class="cf-name">Initiate</span><span class="cf-stage" data-zh="计划" data-en="Plan">计划</span></div></div>
+                <p class="cf-act" data-zh="新建目标 Entra 租户与域；Solution Blueprint、数据边界、身份映射、Conditional Access 基线" data-en="Create target Entra tenant and domains; Solution Blueprint, data boundary, identity mapping, Conditional Access baseline">新建目标 Entra 租户与域；Solution Blueprint、数据边界、身份映射、Conditional Access 基线</p>
+                <div class="cf-tags"><span class="cf-review" data-zh="SBR 定稿" data-en="SBR finalized">SBR 定稿</span><a class="cf-chapter" href="#architecture" data-zh="§03 目标架构" data-en="§03 Target Architecture">§03 目标架构</a></div>
+              </div>
+              <div class="cf-gate"><span class="cf-gate-tag" data-zh="决策" data-en="Decision">决策</span><span class="cf-gate-label" data-zh="蓝图签署" data-en="Blueprint sign-off">蓝图签署</span><span class="cf-gate-arrow" aria-hidden="true">→</span></div>
+              <div class="cf-node">
+                <div class="cf-head"><span class="cf-badge">3</span><div><span class="cf-name">Implement</span><span class="cf-stage" data-zh="执行" data-en="Execute">执行</span></div></div>
+                <p class="cf-act" data-zh="预配 Dataverse 环境；建 Entra 用户/组/application users；迁移元数据与数据；重建集成" data-en="Provision Dataverse environments; build Entra users/groups/application users; migrate metadata and data; rebuild integrations">预配 Dataverse 环境；建 Entra 用户/组/application users；迁移元数据与数据；重建集成</p>
+                <div class="cf-tags"><span class="cf-review" data-zh="实施评审" data-en="Impl. Reviews">实施评审</span><a class="cf-chapter" href="#phases" data-zh="§05 分阶段计划" data-en="§05 Phased Plan">§05 分阶段计划</a></div>
+              </div>
+              <div class="cf-gate"><span class="cf-gate-tag" data-zh="决策" data-en="Decision">决策</span><span class="cf-gate-label" data-zh="迁移验收 · 演练二" data-en="Migration OK · rehearsal 2">迁移验收 · 演练二</span><span class="cf-gate-arrow" aria-hidden="true">→</span></div>
+              <div class="cf-node cf-teal">
+                <div class="cf-head"><span class="cf-badge">4</span><div><span class="cf-name">Prepare</span><span class="cf-stage" data-zh="测试" data-en="Test">测试</span></div></div>
+                <p class="cf-act" data-zh="UAT；登录/MFA/角色验证；切换手册与 go/no-go；模拟上线" data-en="UAT; sign-in/MFA/role validation; cutover runbook and go/no-go; mock go-lives">UAT；登录/MFA/角色验证；切换手册与 go/no-go；模拟上线</p>
+                <div class="cf-tags"><span class="cf-review" data-zh="就绪评审" data-en="Go-live review">就绪评审</span><a class="cf-chapter" href="#cutover" data-zh="§07 切换与回退" data-en="§07 Cutover and Rollback">§07 切换与回退</a></div>
+              </div>
+              <div class="cf-gate"><span class="cf-gate-tag" data-zh="决策" data-en="Decision">决策</span><span class="cf-gate-label" data-zh="上线 Go/No-Go" data-en="Go/No-Go">上线 Go/No-Go</span><span class="cf-gate-arrow" aria-hidden="true">→</span></div>
+              <div class="cf-node">
+                <div class="cf-head"><span class="cf-badge">5</span><div><span class="cf-name">Operate</span><span class="cf-stage" data-zh="运营" data-en="Operate">运营</span></div></div>
+                <p class="cf-act" data-zh="稳定期监控与支持；源侧退出；关闭跨租户共享与迁移凭据；知识移交" data-en="Stabilization monitoring and support; source-side exit; close cross-tenant sharing and migration credentials; knowledge transfer">稳定期监控与支持；源侧退出；关闭跨租户共享与迁移凭据；知识移交</p>
+                <div class="cf-tags"><span class="cf-exit" data-zh="稳定退出 → 完成" data-en="Stabilization exit → live">稳定退出 → 完成</span><a class="cf-chapter" href="#governance" data-zh="§08 治理与立项" data-en="§08 Governance and Approval">§08 治理与立项</a></div>
+              </div>
+            </div>
+            <div class="cf-legend">
+              <span><i class="cf-dot cf-dot-phase"></i><span data-zh="阶段（Success by Design）" data-en="Phase (Success by Design)">阶段（Success by Design）</span></span>
+              <span><i class="cf-dot cf-dot-review"></i><span data-zh="评审闸门" data-en="Review gate">评审闸门</span></span>
+              <span><i class="cf-dot cf-dot-gate"></i><span data-zh="决策闸门（通过才进入下一阶段）" data-en="Decision gate (pass to advance)">决策闸门（通过才进入下一阶段）</span></span>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="端到端工作流：评估 · 计划 · 执行" data-step-title-en="End-to-End Work Streams: Discover · Initiate · Implement" data-step-label="00 / WORK STREAMS · 1">
+            <div class="table-scroll">
+              <table class="simple-table">
+                <thead><tr><th data-zh="工作流" data-en="Work Stream">工作流</th><th data-zh="Discover · 评估" data-en="Discover · Assess">Discover · 评估</th><th data-zh="Initiate · 计划" data-en="Initiate · Plan">Initiate · 计划</th><th data-zh="Implement · 执行" data-en="Implement · Execute">Implement · 执行</th></tr></thead>
+                <tbody>
+                  <tr><td data-zh="租户与身份（Entra ID）" data-en="Tenant & Identity (Entra ID)">租户与身份（Entra ID）</td><td data-zh="盘点源租户、Entra 用户/组/应用注册、安全组、DLP" data-en="Inventory source tenant, Entra users/groups/app registrations, security groups, DLP">盘点源租户、Entra 用户/组/应用注册、安全组、DLP</td><td data-zh="新建目标 Microsoft 365 / Entra 租户，验证域，定身份映射与 Conditional Access 基线" data-en="Create target Microsoft 365/Entra tenant, verify domains, define identity mapping and Conditional Access baseline">新建目标 Microsoft 365 / Entra 租户，验证域，定身份映射与 Conditional Access 基线</td><td data-zh="建用户与许可、安全组与 group teams、application users / app registrations / secrets，启用 Conditional Access" data-en="Provision users and licenses, security groups and group teams, application users/app registrations/secrets, enable Conditional Access">建用户与许可、安全组与 group teams、application users / app registrations / secrets，启用 Conditional Access</td></tr>
+                  <tr><td data-zh="环境与应用" data-en="Environments & Apps">环境与应用</td><td data-zh="盘点 Dataverse 环境、D365 模块、solutions、表与容量" data-en="Inventory Dataverse environments, D365 modules, solutions, tables and capacity">盘点 Dataverse 环境、D365 模块、solutions、表与容量</td><td data-zh="设计目标环境链（Dev/Test/Prod）、publisher、DLP、pipeline" data-en="Design target environment chain (Dev/Test/Prod), publisher, DLP, pipelines">设计目标环境链（Dev/Test/Prod）、publisher、DLP、pipeline</td><td data-zh="预配目标 Dataverse 环境，用 managed solution 迁移元数据与应用" data-en="Provision target Dataverse environments, transport metadata and apps as managed solutions">预配目标 Dataverse 环境，用 managed solution 迁移元数据与应用</td></tr>
+                  <tr><td data-zh="数据" data-en="Data">数据</td><td data-zh="数据画像、归属规则、依赖闭包、历史处置、稳定键" data-en="Data profiling, ownership rules, dependency closure, historical disposition, stable keys">数据画像、归属规则、依赖闭包、历史处置、稳定键</td><td data-zh="数据处置矩阵、共享键、映射与转换规则" data-en="Data disposition matrix, shared keys, mapping and transformation rules">数据处置矩阵、共享键、映射与转换规则</td><td data-zh="Dataflows / ADF 按父子序 upsert，至少两次完整演练" data-en="Dataflows/ADF parent-child upsert, at least two full rehearsals">Dataflows / ADF 按父子序 upsert，至少两次完整演练</td></tr>
+                  <tr><td data-zh="集成与协作" data-en="Integrations & Collaboration">集成与协作</td><td data-zh="盘点接口、mailboxes、SharePoint、connections、网关" data-en="Inventory interfaces, mailboxes, SharePoint, connections, gateways">盘点接口、mailboxes、SharePoint、connections、网关</td><td data-zh="每个接口定 owner、目标 URL、凭据与协作边界" data-en="Assign each interface an owner, target URL, credential, and collaboration boundary">每个接口定 owner、目标 URL、凭据与协作边界</td><td data-zh="重建 server-side sync、SharePoint 集成、connection references、HTTP 回调" data-en="Rebuild server-side sync, SharePoint integration, connection references, HTTP callbacks">重建 server-side sync、SharePoint 集成、connection references、HTTP 回调</td></tr>
+                  <tr><td data-zh="切换与治理" data-en="Cutover & Governance">切换与治理</td><td data-zh="确定责任主体（CIO/业务/法务/数据/架构）与未知项" data-en="Identify accountable parties (CIO/business/legal/data/architecture) and unknowns">确定责任主体（CIO/业务/法务/数据/架构）与未知项</td><td data-zh="RACI、切换原则、回退边界、范围批准" data-en="RACI, cutover principles, rollback boundary, scope approval">RACI、切换原则、回退边界、范围批准</td><td data-zh="演练切换脚本、对账门槛与回退演练" data-en="Rehearse cutover script, reconciliation thresholds, and rollback drill">演练切换脚本、对账门槛与回退演练</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="端到端工作流：测试 · 运营" data-step-title-en="End-to-End Work Streams: Prepare · Operate" data-step-label="00 / WORK STREAMS · 2">
+            <div class="table-scroll">
+              <table class="simple-table">
+                <thead><tr><th data-zh="工作流" data-en="Work Stream">工作流</th><th data-zh="Prepare · 测试" data-en="Prepare · Test">Prepare · 测试</th><th data-zh="Operate · 运营" data-en="Operate · Operate">Operate · 运营</th></tr></thead>
+                <tbody>
+                  <tr><td data-zh="租户与身份（Entra ID）" data-en="Tenant & Identity (Entra ID)">租户与身份（Entra ID）</td><td data-zh="验证登录、MFA、许可与角色矩阵（正/负向访问测试）" data-en="Verify sign-in, MFA, licensing, and role matrix (positive/negative access tests)">验证登录、MFA、许可与角色矩阵（正/负向访问测试）</td><td data-zh="移交身份治理，关闭跨租户共享与迁移凭据，回收临时权限" data-en="Hand over identity governance, close cross-tenant sharing and migration credentials, revoke temporary access">移交身份治理，关闭跨租户共享与迁移凭据，回收临时权限</td></tr>
+                  <tr><td data-zh="环境与应用" data-en="Environments & Apps">环境与应用</td><td data-zh="solution import、依赖与 smoke test、UAT 回归" data-en="Solution import, dependency and smoke tests, UAT regression">solution import、依赖与 smoke test、UAT 回归</td><td data-zh="版本基线固化，纳入常规 ALM 与发布节奏" data-en="Freeze the version baseline into routine ALM and release cadence">版本基线固化，纳入常规 ALM 与发布节奏</td></tr>
+                  <tr><td data-zh="数据" data-en="Data">数据</td><td data-zh="数量、字段、关系、金额与业务场景对账" data-en="Reconcile count, fields, relationships, financials, and business scenarios">数量、字段、关系、金额与业务场景对账</td><td data-zh="数据质量监控，源数据按保留决定只读或删除" data-en="Monitor data quality; source data read-only or deleted per retention">数据质量监控，源数据按保留决定只读或删除</td></tr>
+                  <tr><td data-zh="集成与协作" data-en="Integrations & Collaboration">集成与协作</td><td data-zh="逐接口合同测试与端到端验证" data-en="Per-interface contract tests and end-to-end validation">逐接口合同测试与端到端验证</td><td data-zh="监控队列、同步与外部接口，关闭过渡通道" data-en="Monitor queues, sync, and external interfaces; close transitional channels">监控队列、同步与外部接口，关闭过渡通道</td></tr>
+                  <tr><td data-zh="切换与治理" data-en="Cutover & Governance">切换与治理</td><td data-zh="变更冻结准备、Go/No-Go 标准、模拟上线、支持模型" data-en="Prepare change freeze, go/no-go criteria, mock go-lives, support model">变更冻结准备、Go/No-Go 标准、模拟上线、支持模型</td><td data-zh="执行切换与稳定期监控，源侧退出与知识移交" data-en="Execute cutover and stabilization monitoring, source-side exit and knowledge transfer">执行切换与稳定期监控，源侧退出与知识移交</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="关键决策点与章节映射" data-step-title-en="Decision Points and Chapter Routing" data-step-label="00 / DECISION POINTS">
+            <div class="table-scroll">
+              <table class="simple-table">
+                <thead><tr><th data-zh="决策点 / 评审闸门" data-en="Decision Point / Gate">决策点 / 评审闸门</th><th data-zh="所在阶段" data-en="Phase">所在阶段</th><th data-zh="通过标准" data-en="Pass Criteria">通过标准</th><th data-zh="引申章节" data-en="Routes To">引申章节</th></tr></thead>
+                <tbody>
+                  <tr><td data-zh="可行性判定" data-en="Feasibility Decision">可行性判定</td><td data-zh="Discover" data-en="Discover">Discover</td><td data-zh="五项可行性闸门全部满足（业务与所有权、平台可迁移性、数据可分离性、独立运营、可切换可恢复）" data-en="All five feasibility gates are met (business and ownership, platform portability, data separability, independent operability, cutover and recoverability)">五项可行性闸门全部满足（业务与所有权、平台可迁移性、数据可分离性、独立运营、可切换可恢复）</td><td><a href="#decision" data-zh="§01 决策前提" data-en="§01 Decision Premise">§01 决策前提</a></td></tr>
+                  <tr><td data-zh="路径选择" data-en="Path Selection">路径选择</td><td data-zh="Discover → Initiate" data-en="Discover → Initiate">Discover → Initiate</td><td data-zh="在完整所有权转移 / 选择性拆分 / 业务重建之间，判据明确且唯一" data-en="The choice among complete ownership transfer, selective carve-out, and business rebuild is explicit and singular">在完整所有权转移 / 选择性拆分 / 业务重建之间，判据明确且唯一</td><td><a href="#options" data-zh="§02 方案对比" data-en="§02 Option Comparison">§02 方案对比</a></td></tr>
+                  <tr><td data-zh="蓝图签署（架构与数据边界）" data-en="Blueprint Sign-Off (Architecture and Data Boundary)">蓝图签署（架构与数据边界）</td><td data-zh="Initiate" data-en="Initiate">Initiate</td><td data-zh="目标架构、五个控制面、数据边界规则与身份/接口目标经业务、法务、数据 owner 与架构联合批准" data-en="Target architecture, the five control planes, data-boundary rules, and identity and integration targets are jointly approved by business, legal, data owners, and architecture">目标架构、五个控制面、数据边界规则与身份/接口目标经业务、法务、数据 owner 与架构联合批准</td><td><a href="#architecture" data-zh="§03 目标架构" data-en="§03 Target Architecture">§03 目标架构</a> · <a href="#boundary" data-zh="§04 数据边界" data-en="§04 Data Boundary">§04 数据边界</a></td></tr>
+                  <tr><td data-zh="迁移验收（演练二）" data-en="Migration Acceptance (Rehearsal Two)">迁移验收（演练二）</td><td data-zh="Implement" data-en="Implement">Implement</td><td data-zh="第二次完整演练在数量、关键字段、关系、金额、owner/team 与业务场景对账全部通过" data-en="Rehearsal two passes reconciliation on count, critical fields, relationships, financial totals, owner/team, and business scenarios">第二次完整演练在数量、关键字段、关系、金额、owner/team 与业务场景对账全部通过</td><td><a href="#phases" data-zh="§05 分阶段计划" data-en="§05 Phased Plan">§05 分阶段计划</a> · <a href="#assets" data-zh="§06 资产迁移" data-en="§06 Asset Migration">§06 资产迁移</a></td></tr>
+                  <tr><td data-zh="上线 Go/No-Go" data-en="Go/No-Go">上线 Go/No-Go</td><td data-zh="Prepare" data-en="Prepare">Prepare</td><td data-zh="Go-live Readiness Review 通过；关键业务路径验证、无未解释高风险差异" data-en="The Go-live Readiness Review passes; critical business paths are validated with no unexplained high-risk variance">Go-live Readiness Review 通过；关键业务路径验证、无未解释高风险差异</td><td><a href="#cutover" data-zh="§07 切换与回退" data-en="§07 Cutover and Rollback">§07 切换与回退</a></td></tr>
+                  <tr><td data-zh="稳定期退出" data-en="Stabilization Exit">稳定期退出</td><td data-zh="Operate" data-en="Operate">Operate</td><td data-zh="目标运营团队接管、未结缺陷进入常规 backlog、源侧按保留决定处置" data-en="The target operations team owns the service, remaining defects enter the normal backlog, and the source is handled per the retention decision">目标运营团队接管、未结缺陷进入常规 backlog、源侧按保留决定处置</td><td><a href="#governance" data-zh="§08 治理与立项" data-en="§08 Governance and Approval">§08 治理与立项</a></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="三道强制评审闸门" data-step-title-en="Three Mandatory Review Gates" data-step-label="00 / REVIEW GATES">
+            <div class="table-scroll">
+              <table class="simple-table">
+                <thead><tr><th data-zh="评审闸门" data-en="Review Gate">评审闸门</th><th data-zh="时点" data-en="Timing">时点</th><th data-zh="关注重点" data-en="Focus">关注重点</th><th data-zh="是否强制" data-en="Mandatory">是否强制</th></tr></thead>
+                <tbody>
+                  <tr><td data-zh="Solution Blueprint Review（SBR）" data-en="Solution Blueprint Review (SBR)">Solution Blueprint Review（SBR）</td><td data-zh="Discover 启动、Initiate 定稿" data-en="Starts in Discover, finalized in Initiate">Discover 启动、Initiate 定稿</td><td data-zh="高层方案与架构风险、关键工作流、早期对齐" data-en="High-level approach, architectural risk, key workstreams, and early alignment">高层方案与架构风险、关键工作流、早期对齐</td><td data-zh="是（起点，强制）" data-en="Yes (starting point, mandatory)">是（起点，强制）</td></tr>
+                  <tr><td data-zh="Implementation Reviews" data-en="Implementation Reviews">Implementation Reviews</td><td data-zh="Implement" data-en="Implement">Implement</td><td data-zh="data model、security、integration、ALM、测试策略等专题深挖" data-en="Topic deep dives: data model, security, integration, ALM, and testing strategy">data model、security、integration、ALM、测试策略等专题深挖</td><td data-zh="视 SBR 发现而定" data-en="As indicated by SBR findings">视 SBR 发现而定</td></tr>
+                  <tr><td data-zh="Go-live Readiness Review" data-en="Go-live Readiness Review">Go-live Readiness Review</td><td data-zh="Prepare" data-en="Prepare">Prepare</td><td data-zh="切换计划、go/no-go 标准、模拟上线、支持模型、部署手册" data-en="Cutover plan, go/no-go criteria, mock go-lives, support model, and deployment runbook">切换计划、go/no-go 标准、模拟上线、支持模型、部署手册</td><td data-zh="是（上线前，强制）" data-en="Yes (pre-go-live, mandatory)">是（上线前，强制）</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="quote-block">
+              <strong data-zh="评审产出与方法论适配" data-en="Review Outputs and Methodology Fit">评审产出与方法论适配</strong>
+            <span data-zh="每次评审把观察匹配到已知模式，产出三类 Findings：Assertions（做得对的地方）、Risks（若不缓解将带来负面影响）、Issues（已经或必然造成负面影响），再据此给出建议与行动。Success by Design 与团队既有实施方法论并行、不替代它；本文第 05 章的六个迁移阶段，就是 Implement 与 Prepare 在拆分场景下的具体工作包，同样适用于选择性拆分、整环境迁移与业务重建三条路径。[13]" data-en="Each review matches observations to known patterns and yields three finding types: assertions (what the team is doing right), risks (negative impact if not mitigated), and issues (already or certain to cause negative impact), which then drive recommendations and actions. Success by Design runs alongside—not instead of—the team's existing implementation methodology; the six migration phases in section 05 are the concrete work packages of Implement and Prepare in a separation, and the framework applies equally to the selective carve-out, whole-environment move, and business-rebuild paths.[13]">每次评审把观察匹配到已知模式，产出三类 Findings：Assertions（做得对的地方）、Risks（若不缓解将带来负面影响）、Issues（已经或必然造成负面影响），再据此给出建议与行动。Success by Design 与团队既有实施方法论并行、不替代它；本文第 05 章的六个迁移阶段，就是 Implement 与 Prepare 在拆分场景下的具体工作包，同样适用于选择性拆分、整环境迁移与业务重建三条路径。[13]</span>
+            </div>
+          </div>
+        </section>
+
+        <section id="decision" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="01 / 决策前提" data-en="01 / Decision Premise">01 / 决策前提</p>
+            <h2 data-zh="迁移单位必须先于迁移工具确定" data-en="Define the Migration Unit Before Selecting the Migration Tool">迁移单位必须先于迁移工具确定</h2>
+            <p data-zh="本章先把拆分诉求转化为一个可判断的所有权问题：迁移后，源租户是否仍需保留原 CRM 的客户、流程和历史。这个答案决定后续是移动一个完整 Dataverse organization，还是在目标租户建立第二套 CRM 并选择性迁移。" data-en="This section converts the separation request into an ownership decision: after migration, must the source tenant retain customers, processes, and history in the original CRM? The answer determines whether to move one complete Dataverse organization or build a second CRM in the target tenant and migrate selectively.">本章先把拆分诉求转化为一个可判断的所有权问题：迁移后，源租户是否仍需保留原 CRM 的客户、流程和历史。这个答案决定后续是移动一个完整 Dataverse organization，还是在目标租户建立第二套 CRM 并选择性迁移。</p>
+          </div>
+
+          <div class="comparison-grid" data-present-step data-step-title="先判断整体转移还是选择性拆分" data-step-title-en="Decide Between Whole Transfer and Selective Carve-Out" data-step-label="01 / DECISION PREMISE">
+            <article class="comparison-card">
+              <span class="comparison-label" data-zh="完整所有权转移" data-en="Complete Ownership Transfer">完整所有权转移</span>
+              <h3 data-zh="源租户不再需要该 Dataverse organization" data-en="The Source Tenant No Longer Needs the Dataverse Organization">源租户不再需要该 Dataverse organization</h3>
+              <ul class="layer-list">
+                <li><span class="layer-number">1</span><span data-zh="业务、数据和 CRM 运营权整体转入目标租户" data-en="Business, data, and CRM operations transfer together to the target tenant">业务、数据和 CRM 运营权整体转入目标租户</span></li>
+                <li><span class="layer-number">2</span><span data-zh="可评估 Microsoft 原生 tenant-to-tenant move" data-en="The Microsoft native tenant-to-tenant move can be assessed">可评估 Microsoft 原生 tenant-to-tenant move</span></li>
+                <li><span class="layer-number">3</span><span data-zh="用户、应用用户、连接和外围服务仍需重配置" data-en="Users, application users, connections, and peripheral services still require reconfiguration">用户、应用用户、连接和外围服务仍需重配置</span></li>
+              </ul>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label" data-zh="源端与目标端继续运营" data-en="Continued Operation in Source and Target">源端与目标端继续运营</span>
+              <h3 data-zh="保留组织与拆分组织都需独立 CRM" data-en="Both Retained and Separated Organizations Need Independent CRM">保留组织与拆分组织都需独立 CRM</h3>
+              <ul class="layer-list">
+                <li><span class="layer-number">1</span><span data-zh="同一客户、联系人或历史可能跨两个组织共享" data-en="Accounts, contacts, or history might be shared across both organizations">同一客户、联系人或历史可能跨两个组织共享</span></li>
+                <li><span class="layer-number">2</span><span data-zh="原生整环境移动不能完成按业务边界拆分" data-en="A native whole-environment move cannot split records by business boundary">原生整环境移动不能完成按业务边界拆分</span></li>
+                <li><span class="layer-number">3</span><span data-zh="应建立目标环境，先部署元数据，再迁移获批数据" data-en="Create the target environment, deploy metadata first, then migrate approved data">应建立目标环境，先部署元数据，再迁移获批数据</span></li>
+              </ul>
+            </article>
+          </div>
+
+          <div class="quote-block">
+            <strong data-zh="通用角色定义" data-en="Reusable Role Definitions">通用角色定义</strong>
+            <span data-zh="本文以「源租户」表示当前承载 CRM 的租户，以「保留组织」表示拆分后继续使用源 CRM 的业务范围，以「拆分组织」表示需要独立 CRM 的法律实体、业务单元、区域或子公司，以「目标租户」表示承载新 CRM 的租户。若不存在保留组织，则优先评估完整所有权转移。" data-en="This guide uses Source Tenant for the tenant that currently hosts CRM, Retained Organization for the business scope that continues using the source CRM, Separated Organization for the legal entity, business unit, region, or subsidiary that needs an independent CRM, and Target Tenant for the tenant hosting the new CRM. If no retained organization exists, assess complete ownership transfer first.">本文以「源租户」表示当前承载 CRM 的租户，以「保留组织」表示拆分后继续使用源 CRM 的业务范围，以「拆分组织」表示需要独立 CRM 的法律实体、业务单元、区域或子公司，以「目标租户」表示承载新 CRM 的租户。若不存在保留组织，则优先评估完整所有权转移。</span>
+          </div>
+
+          <div class="table-scroll" data-present-step data-step-title="五项可行性闸门" data-step-title-en="Five Feasibility Gates" data-step-label="01 / FEASIBILITY GATES">
+            <table class="simple-table">
+              <thead><tr><th data-zh="闸门" data-en="Gate">闸门</th><th data-zh="必须证明" data-en="Evidence Required">必须证明</th><th data-zh="不满足时" data-en="If Not Met">不满足时</th></tr></thead>
+              <tbody>
+                <tr><td data-zh="1 · 业务与所有权" data-en="1 · Business and Ownership">1 · 业务与所有权</td><td data-zh="保留组织、拆分组织、共享业务和最终 CRM 责任均有批准边界。" data-en="Approved boundaries exist for the retained organization, separated organization, shared business, and final CRM accountability.">保留组织、拆分组织、共享业务和最终 CRM 责任均有批准边界。</td><td data-zh="不能选定迁移路径；先完成法律、业务与运营责任划分。" data-en="Do not select a migration path; complete legal, business, and operating-accountability decisions first.">不能选定迁移路径；先完成法律、业务与运营责任划分。</td></tr>
+                <tr><td data-zh="2 · 平台可迁移性" data-en="2 · Platform Portability">2 · 平台可迁移性</td><td data-zh="源部署形态、环境类型、产品组件、ISV 依赖与目标区域均落在已验证的迁移或重建路径内。" data-en="Source deployment model, environment types, product components, ISV dependencies, and target geography all have a validated migration or rebuild path.">源部署形态、环境类型、产品组件、ISV 依赖与目标区域均落在已验证的迁移或重建路径内。</td><td data-zh="把不支持项拆为专项重建、替代或退役工作包。" data-en="Create dedicated rebuild, replacement, or retirement work packages for unsupported assets.">把不支持项拆为专项重建、替代或退役工作包。</td></tr>
+                <tr><td data-zh="3 · 数据可分离性" data-en="3 · Data Separability">3 · 数据可分离性</td><td data-zh="每类记录都有归属规则、共享策略、依赖闭包、历史处置和稳定业务键。" data-en="Every record class has an ownership rule, sharing policy, dependency closure, historical disposition, and stable business key.">每类记录都有归属规则、共享策略、依赖闭包、历史处置和稳定业务键。</td><td data-zh="选择性拆分不可进入构建；先完成数据画像和样本验证。" data-en="A selective carve-out cannot enter build; complete data profiling and sample validation first.">选择性拆分不可进入构建；先完成数据画像和样本验证。</td></tr>
+                <tr><td data-zh="4 · 独立运营能力" data-en="4 · Independent Operability">4 · 独立运营能力</td><td data-zh="目标身份、许可、环境、容量、接口、邮件、文档、监控、支持与供应商责任可以独立运行。" data-en="Target identity, licensing, environments, capacity, integrations, email, documents, monitoring, support, and vendor ownership can operate independently.">目标身份、许可、环境、容量、接口、邮件、文档、监控、支持与供应商责任可以独立运行。</td><td data-zh="允许限时过渡依赖，但必须有 owner、服务级别和关闭日期。" data-en="Allow time-bounded transitional dependencies only with an owner, service level, and closure date.">允许限时过渡依赖，但必须有 owner、服务级别和关闭日期。</td></tr>
+                <tr><td data-zh="5 · 可切换与可恢复" data-en="5 · Cutover and Recoverability">5 · 可切换与可恢复</td><td data-zh="冻结、最终增量、对账、入口切换、Go/No-Go 和目标写入前后的回退边界均可演练。" data-en="Freeze, final delta, reconciliation, entry-point switching, Go or No-Go, and rollback boundaries before and after target writes can all be rehearsed.">冻结、最终增量、对账、入口切换、Go/No-Go 和目标写入前后的回退边界均可演练。</td><td data-zh="不批准生产窗口；继续降低数据变化量或改用分波次切换。" data-en="Do not approve a production window; reduce the change volume or use wave-based cutover.">不批准生产窗口；继续降低数据变化量或改用分波次切换。</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="options" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="02 / 方案对比总览" data-en="02 / Option Comparison Overview">02 / 方案对比总览</p>
+            <h2 data-zh="三条路径分别适用于完整转移、选择性拆分与流程重建" data-en="Three Paths Address Complete Transfer, Selective Carve-Out, and Process Rebuild">三条路径分别适用于完整转移、选择性拆分与流程重建</h2>
+            <p data-zh="上一章用五项闸门判断是否具备拆分条件，本章比较三条实现路径。不存在对所有项目都成立的默认方案：完整所有权转移优先评估平台原生整实例迁移；源端与目标端都继续运营时评估选择性拆分；目标流程与旧系统差异过大时评估业务重建。" data-en="The previous section used five gates to determine whether separation is feasible. This section compares three implementation paths. No default fits every program: complete ownership transfer should assess a platform-native whole-instance move first; continued operation in both source and target should assess selective carve-out; and major divergence between target processes and the legacy system should assess business rebuild.">上一章用五项闸门判断是否具备拆分条件，本章比较三条实现路径。不存在对所有项目都成立的默认方案：完整所有权转移优先评估平台原生整实例迁移；源端与目标端都继续运营时评估选择性拆分；目标流程与旧系统差异过大时评估业务重建。</p>
+          </div>
+
+          <div class="insight-grid crm-grid-three" data-present-step data-step-title="三条迁移路径" data-step-title-en="Three Migration Paths" data-step-label="02 / OPTIONS">
+            <article class="insight-card">
+              <span class="card-index">A</span>
+              <h3 data-zh="平台原生整实例转移" data-en="Platform-Native Whole-Instance Move">平台原生整实例转移</h3>
+              <p data-zh="完整移动 CRM 实例及其业务数据。Dynamics 365 CE / Dataverse 提供两种原生形态：tenant-to-tenant 换租户、geo-to-geo 换区域。二者都移动整个环境，不做选择性拆分。[1][12]" data-en="Moves the complete CRM instance and its business data. Dynamics 365 CE and Dataverse offer two native variants: tenant-to-tenant changes the tenant and geo-to-geo changes the region. Both move a whole environment and perform no selective carve-out.[1][12]">完整移动 CRM 实例及其业务数据。Dynamics 365 CE / Dataverse 提供两种原生形态：tenant-to-tenant 换租户、geo-to-geo 换区域。二者都移动整个环境，不做选择性拆分。[1][12]</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">B</span>
+              <h3 data-zh="选择性拆分" data-en="Selective Carve-Out">选择性拆分</h3>
+              <p data-zh="在目标租户建立独立 ALM 环境链，使用解决方案迁移元数据，按获批边界迁移数据，再重建身份与集成。" data-en="Builds an independent ALM environment chain in the target tenant, transports metadata through solutions, migrates approved data, and recreates identity and integrations.">在目标租户建立独立 ALM 环境链，使用解决方案迁移元数据，按获批边界迁移数据，再重建身份与集成。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">C</span>
+              <h3 data-zh="业务重建" data-en="Business Rebuild">业务重建</h3>
+              <p data-zh="以拆分组织的目标流程重新设计 CRM，仅迁移必要主数据与开放业务，历史留在只读档案或源系统。" data-en="Redesigns CRM around the separated organization's target process, migrates only necessary master and open transactional data, and leaves history in a read-only archive or source system.">以拆分组织的目标流程重新设计 CRM，仅迁移必要主数据与开放业务，历史留在只读档案或源系统。</p>
+            </article>
+          </div>
+
+          <div data-present-step data-step-title="六维方案对比" data-step-title-en="Six-Dimension Option Comparison" data-step-label="02 / OPTIONS">
+            <div class="table-scroll">
+              <table class="simple-table">
+                <thead>
+                  <tr>
+                    <th data-zh="维度" data-en="Dimension">维度</th>
+                    <th data-zh="A · 整实例转移" data-en="A · Whole-Instance Move">A · 整实例转移</th>
+                    <th data-zh="B · 选择性拆分" data-en="B · Selective Carve-Out">B · 选择性拆分</th>
+                    <th data-zh="C · 业务重建" data-en="C · Business Rebuild">C · 业务重建</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td data-zh="适用条件" data-en="Fit Condition">适用条件</td><td data-zh="整个 CRM 所有权转移，源租户不再承载该 CRM" data-en="The entire CRM transfers and the source tenant no longer hosts it">整个 CRM 所有权转移，源租户不再承载该 CRM</td><td data-zh="源端与目标端都需继续运营，需要按记录与流程边界拆分" data-en="Both source and target continue operating and require record and process separation">源端与目标端都需继续运营，需要按记录与流程边界拆分</td><td data-zh="拆分组织流程变化大，历史复用价值低" data-en="The separated organization's processes change substantially and historical reuse value is low">拆分组织流程变化大，历史复用价值低</td></tr>
+                  <tr><td data-zh="主要优点" data-en="Primary Advantage">主要优点</td><td data-zh="Dataverse 数据与组织整体保持；URL、OrgID、名称不变" data-en="Dataverse data and organization stay intact; URL, OrgID, and name remain">Dataverse 数据与组织整体保持；URL、OrgID、名称不变</td><td data-zh="保留源 CRM，同时形成拆分组织的独立数据与治理边界" data-en="Preserves the source CRM while establishing independent data and governance for the separated organization">保留源 CRM，同时形成拆分组织的独立数据与治理边界</td><td data-zh="清理历史定制与技术债，目标流程更简洁" data-en="Removes historical customizations and technical debt for a simpler target process">清理历史定制与技术债，目标流程更简洁</td></tr>
+                  <tr><td data-zh="主要代价" data-en="Primary Cost">主要代价</td><td data-zh="不能保留两套可写 CRM；外围服务仍需重配置" data-en="Cannot retain two writable CRMs; peripheral services still require reconfiguration">不能保留两套可写 CRM；外围服务仍需重配置</td><td data-zh="需要业务边界规则、依赖闭包、数据转换与多轮对账" data-en="Requires business-boundary rules, dependency closure, transformation, and repeated reconciliation">需要业务边界规则、依赖闭包、数据转换与多轮对账</td><td data-zh="需求确认与用户变更更大，历史连续性最低" data-en="Requires greater requirements and user change, with the least historical continuity">需求确认与用户变更更大，历史连续性最低</td></tr>
+                  <tr><td data-zh="回退特性" data-en="Rollback Characteristic">回退特性</td><td data-zh="迁移前可取消；完成后回退需另行制定受支持方案" data-en="Can be canceled before completion; post-completion reversal requires a separately supported plan">迁移前可取消；完成后回退需另行制定受支持方案</td><td data-zh="切换前可保留源 CRM；目标开始独立写入后需补偿性回退" data-en="The source CRM can remain before cutover; independent target writes require compensating rollback">切换前可保留源 CRM；目标开始独立写入后需补偿性回退</td><td data-zh="可延后切换，但双轨流程持续越久，业务差异越大" data-en="Cutover can be delayed, but longer dual operation increases process divergence">可延后切换，但双轨流程持续越久，业务差异越大</td></tr>
+                  <tr><td data-zh="D365 实现边界" data-en="D365 Implementation Boundary">D365 实现边界</td><td data-zh="仅 Production / Sandbox；部分组件不支持；F&O 关联组织不可迁移" data-en="Production and Sandbox only; some components unsupported; F&O-linked organizations cannot move">仅 Production / Sandbox；部分组件不支持；F&O 关联组织不可迁移</td><td data-zh="Solutions 与数据迁移工具均可用，但不是单键拆分功能" data-en="Solutions and data migration tools are available, but this is not a one-click split feature">Solutions 与数据迁移工具均可用，但不是单键拆分功能</td><td data-zh="标准 ALM 可用，业务重设计与历史归档需项目自行定义" data-en="Standard ALM applies; business redesign and historical archiving remain project-defined">标准 ALM 可用，业务重设计与历史归档需项目自行定义</td></tr>
+                  <tr><td data-zh="本文结论" data-en="Conclusion in This Plan">本文结论</td><td data-zh="仅在完整所有权转移时优先" data-en="Preferred only for complete ownership transfer">仅在完整所有权转移时优先</td><td data-zh="在源端与目标端继续运营时推荐" data-en="Recommended when source and target both continue operating">在源端与目标端继续运营时推荐</td><td data-zh="在流程重构价值高于历史连续性时采用" data-en="Use when process redesign value exceeds historical continuity">在流程重构价值高于历史连续性时采用</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="原生迁移的两种形态（一）：定义、场景与流程" data-step-title-en="Two Native Moves (1): Definition, Scenario, and Process" data-step-label="02 / NATIVE MOVE VARIANTS">
+            <div class="table-scroll">
+              <table class="simple-table">
+                <thead><tr><th data-zh="对比维度" data-en="Dimension">对比维度</th><th data-zh="Tenant-to-tenant migration" data-en="Tenant-to-Tenant Migration">Tenant-to-tenant migration</th><th data-zh="Geo-to-geo migration（Geo Migration）" data-en="Geo-to-Geo Migration (Geo Migration)">Geo-to-geo migration（Geo Migration）</th></tr></thead>
+                <tbody>
+                  <tr><td data-zh="改变什么" data-en="What Changes">改变什么</td><td data-zh="环境的租户归属：把 Dataverse organization 关联到另一个租户。[1]" data-en="The environment's owning tenant: the Dataverse organization is linked to a different tenant.[1]">环境的租户归属：把 Dataverse organization 关联到另一个租户。[1]</td><td data-zh="环境所在的区域/数据中心，租户保持不变。[12]" data-en="The region or datacenter that hosts the environment, while the tenant stays the same.[12]">环境所在的区域/数据中心，租户保持不变。[12]</td></tr>
+                  <tr><td data-zh="租户与区域" data-en="Tenant and Region">租户与区域</td><td data-zh="租户改变，区域由目标租户决定。" data-en="The tenant changes; the region follows the target tenant.">租户改变，区域由目标租户决定。</td><td data-zh="单租户内操作：租户不变，区域改变。[12]" data-en="A single-tenant operation: the tenant is unchanged and the region changes.[12]">单租户内操作：租户不变，区域改变。[12]</td></tr>
+                  <tr><td data-zh="典型场景" data-en="Typical Scenario">典型场景</td><td data-zh="合并多个租户、企业收购、把环境所有权转到另一个租户。[1]" data-en="Merging multiple tenants, company acquisitions, and transferring environment ownership to another tenant.[1]">合并多个租户、企业收购、把环境所有权转到另一个租户。[1]</td><td data-zh="数据驻留合规、区域整合、迁到离用户更近或新开放的数据中心。[12]" data-en="Data-residency compliance, region consolidation, and moving closer to users or to newly opened datacenters.[12]">数据驻留合规、区域整合、迁到离用户更近或新开放的数据中心。[12]</td></tr>
+                  <tr><td data-zh="是否自助" data-en="Self-Service">是否自助</td><td data-zh="是。PowerShell 与 Power Platform 管理中心；源端提交、目标端审批。[1]" data-en="Yes. PowerShell and the Power Platform admin center; the source submits and the target approves.[1]">是。PowerShell 与 Power Platform 管理中心；源端提交、目标端审批。[1]</td><td data-zh="否。官方称支持有限、通常不可用，需联系客户经理或技术支持发起。[12]" data-en="No. Microsoft states support is limited and generally not available; initiate it through your account manager or Technical Support.[12]">否。官方称支持有限、通常不可用，需联系客户经理或技术支持发起。[12]</td></tr>
+                  <tr><td data-zh="前置与窗口" data-en="Lead Time and Window">前置与窗口</td><td data-zh="审批请求 7 天内有效；准备完成后 7 天内执行迁移。[1]" data-en="Approval requests are valid for seven days; run the migration within seven days after preparation.[1]">审批请求 7 天内有效；准备完成后 7 天内执行迁移。[1]</td><td data-zh="官方建议预留至少 10 天完成；cut-over 小组织 1–6 小时、大组织可达 48 小时，通常在夜间或周末。[12]" data-en="Microsoft advises allowing at least 10 days; cut-over runs 1 to 6 hours for smaller organizations and up to 48 hours for large ones, usually in the evening or over a weekend.[12]">官方建议预留至少 10 天完成；cut-over 小组织 1–6 小时、大组织可达 48 小时，通常在夜间或周末。[12]</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="原生迁移的两种形态（二）：标识、配置与影响" data-step-title-en="Two Native Moves (2): Identifiers, Configuration, and Impact" data-step-label="02 / NATIVE MOVE VARIANTS">
+            <div class="table-scroll">
+              <table class="simple-table">
+                <thead><tr><th data-zh="对比维度" data-en="Dimension">对比维度</th><th data-zh="Tenant-to-tenant migration" data-en="Tenant-to-Tenant Migration">Tenant-to-tenant migration</th><th data-zh="Geo-to-geo migration（Geo Migration）" data-en="Geo-to-Geo Migration (Geo Migration)">Geo-to-geo migration（Geo Migration）</th></tr></thead>
+                <tbody>
+                  <tr><td data-zh="URL 与标识" data-en="URL and Identifiers">URL 与标识</td><td data-zh="环境 URL、OrgID 与名称保持不变。[1]" data-en="The environment URL, OrgID, and name stay the same.[1]">环境 URL、OrgID 与名称保持不变。[1]</td><td data-zh="URL 改变（数据中心区域标识不同），environment ID 变为新的全局唯一 GUID。[12]" data-en="The URL changes (the datacenter region identifier differs) and the environment ID becomes a new globally unique GUID.[12]">URL 改变（数据中心区域标识不同），environment ID 变为新的全局唯一 GUID。[12]</td></tr>
+                  <tr><td data-zh="用户映射" data-en="User Mapping">用户映射</td><td data-zh="需要 usermapping.csv 把源用户映射到目标租户用户。[1]" data-en="Requires usermapping.csv to map source users to target-tenant users.[1]">需要 usermapping.csv 把源用户映射到目标租户用户。[1]</td><td data-zh="不需要用户映射，因为租户和用户不变。[12]" data-en="No user mapping is needed because the tenant and users do not change.[12]">不需要用户映射，因为租户和用户不变。[12]</td></tr>
+                  <tr><td data-zh="配置丢失" data-en="Configuration Loss">配置丢失</td><td data-zh="安全组、application users 不随迁移；Managed Environment 需在目标重新启用，连接与部分组件需重配。[1]" data-en="Security groups and application users do not travel; Managed Environments must be re-enabled at the target, and connections and some components require reconfiguration.[1]">安全组、application users 不随迁移；Managed Environment 需在目标重新启用，连接与部分组件需重配。[1]</td><td data-zh="备份、Managed Environment 状态、企业策略（CMK、VNet）、Lockbox、DLP、环境组、PAYG 与货币分配均丢失，需迁移后逐项恢复。[12]" data-en="Backups, Managed Environment status, enterprise policies (CMK, VNet), Lockbox, DLP, environment group, pay-as-you-go, and currency allocations are all lost and must be reapplied after migration.[12]">备份、Managed Environment 状态、企业策略（CMK、VNet）、Lockbox、DLP、环境组、PAYG 与货币分配均丢失，需迁移后逐项恢复。[12]</td></tr>
+                  <tr><td data-zh="主权云限制" data-en="Sovereign-Cloud Limits">主权云限制</td><td data-zh="GCC 与公有云之间不支持互迁。[1]" data-en="Migration between GCC and public clouds is not supported.[1]">GCC 与公有云之间不支持互迁。[1]</td><td data-zh="US GCC、GCC High、中国不支持；OCE 与 IND 进出受限。[12]" data-en="Not supported into or out of US GCC, GCC High, or China; restricted into or out of OCE and IND.[12]">US GCC、GCC High、中国不支持；OCE 与 IND 进出受限。[12]</td></tr>
+                  <tr><td data-zh="对拆分的意义" data-en="Relevance to Separation">对拆分的意义</td><td data-zh="整环境换租户，不按业务边界拆分记录。" data-en="Moves a whole environment to another tenant and does not split records by business boundary.">整环境换租户，不按业务边界拆分记录。</td><td data-zh="整环境换区域，不按业务边界拆分记录。" data-en="Relocates a whole environment to another region and does not split records by business boundary.">整环境换区域，不按业务边界拆分记录。</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="quote-block">
+              <strong data-zh="适用条件与常见误用" data-en="Applicability and Common Misuse">适用条件与常见误用</strong>
+            <span data-zh="选 tenant-to-tenant：整个 CRM 环境的所有权转到另一个租户（收购、集团重组、租户合并），且源租户不再需要该环境。选 geo-to-geo：环境必须落到不同区域以满足数据驻留或延迟要求，但仍留在同一租户；它是重定位而非拆分。二者都不能把一个共享 CRM 按法律实体、业务单元或区域拆成两套——这类需求应走本文的选择性拆分（路径 B），并在建目标环境时直接选定所需区域，通常无需再做 geo-to-geo。" data-en="Choose tenant-to-tenant when ownership of the whole CRM environment moves to another tenant (acquisition, group restructuring, tenant merger) and the source tenant no longer needs it. Choose geo-to-geo when the environment must reside in a different region for data-residency or latency requirements while staying in the same tenant; it relocates rather than separates. Neither splits one shared CRM by legal entity, business unit, or region into two systems — that need uses the selective carve-out (Path B) in this guide, and the target environment is created directly in the required region, so a separate geo-to-geo move is usually unnecessary.">选 tenant-to-tenant：整个 CRM 环境的所有权转到另一个租户（收购、集团重组、租户合并），且源租户不再需要该环境。选 geo-to-geo：环境必须落到不同区域以满足数据驻留或延迟要求，但仍留在同一租户；它是重定位而非拆分。二者都不能把一个共享 CRM 按法律实体、业务单元或区域拆成两套——这类需求应走本文的选择性拆分（路径 B），并在建目标环境时直接选定所需区域，通常无需再做 geo-to-geo。</span>
+            </div>
+          </div>
+        </section>
+
+        <section id="architecture" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="03 / 目标架构" data-en="03 / Target Architecture">03 / 目标架构</p>
+            <h2 data-zh="目标租户承载独立运行栈，迁移通道只在过渡期存在" data-en="The Target Tenant Hosts an Independent Runtime While the Migration Channel Is Temporary">目标租户承载独立运行栈，迁移通道只在过渡期存在</h2>
+            <p data-zh="上一章选择了选择性拆分，本章把它落成三域架构：源租户保持业务连续，过渡域执行受控提取与对账，目标租户形成独立身份、应用、数据、集成和治理。迁移通道不承担长期业务集成，稳定期结束后关闭。" data-en="After selecting the carve-out path, this section maps it to a three-zone architecture: the source tenant preserves continuity, a transition zone performs controlled extraction and reconciliation, and the target tenant establishes independent identity, application, data, integration, and governance. The migration channel is not a permanent business integration and is closed after stabilization.">上一章选择了选择性拆分，本章把它落成三域架构：源租户保持业务连续，过渡域执行受控提取与对账，目标租户形成独立身份、应用、数据、集成和治理。迁移通道不承担长期业务集成，稳定期结束后关闭。</p>
+          </div>
+
+          <div class="insight-grid crm-grid-three" data-present-step data-step-title="三域目标架构" data-step-title-en="Three-Zone Target Architecture" data-step-label="03 / TARGET ARCHITECTURE">
+            <article class="insight-card">
+              <span class="card-index">01</span>
+              <h3 data-zh="源租户 · 连续运营" data-en="Source Tenant · Continued Operation">源租户 · 连续运营</h3>
+              <p data-zh="现有 Dynamics 365 CE / Dataverse 保持权威；冻结期前继续承接业务。对目标范围数据应用边界标签，并提供受控只读提取。" data-en="The existing Dynamics 365 CE and Dataverse remain authoritative and continue business until the freeze. Target-scope data receives boundary labels and controlled read-only extraction.">现有 Dynamics 365 CE / Dataverse 保持权威；冻结期前继续承接业务。对目标范围数据应用边界标签，并提供受控只读提取。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">02</span>
+              <h3 data-zh="过渡域 · 迁移工厂" data-en="Transition Zone · Migration Factory">过渡域 · 迁移工厂</h3>
+              <p data-zh="保存解决方案构件、映射规则、提取批次、转换日志、错误队列和对账结果。凭据使用目标侧独立应用身份。" data-en="Stores solution artifacts, mapping rules, extraction batches, transformation logs, error queues, and reconciliation results. Credentials use independent target-side application identities.">保存解决方案构件、映射规则、提取批次、转换日志、错误队列和对账结果。凭据使用目标侧独立应用身份。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">03</span>
+              <h3 data-zh="目标租户 · 独立运行" data-en="Target Tenant · Independent Runtime">目标租户 · 独立运行</h3>
+              <p data-zh="至少设置 Dev、Test/UAT、Production 三套环境；在目标 Entra、Dataverse、Exchange、SharePoint 与外部系统中建立独立身份和权限。" data-en="Provides at least Development, Test/UAT, and Production environments, with independent identity and authorization across target Entra, Dataverse, Exchange, SharePoint, and external systems.">至少设置 Dev、Test/UAT、Production 三套环境；在目标 Entra、Dataverse、Exchange、SharePoint 与外部系统中建立独立身份和权限。</p>
+            </article>
+          </div>
+
+          <div data-present-step data-step-title="五个跨域控制面" data-step-title-en="Five Cross-Zone Control Planes" data-step-label="03 / TARGET ARCHITECTURE">
+            <div class="table-scroll">
+              <table class="simple-table">
+                <thead><tr><th data-zh="控制面" data-en="Control Plane">控制面</th><th data-zh="目标态" data-en="Target State">目标态</th><th data-zh="迁移机制" data-en="Migration Mechanism">迁移机制</th><th data-zh="失败边界" data-en="Failure Boundary">失败边界</th></tr></thead>
+                <tbody>
+                  <tr><td data-zh="身份与访问" data-en="Identity and Access">身份与访问</td><td data-zh="目标用户、组、应用注册与条件访问由目标租户管理" data-en="Target users, groups, app registrations, and Conditional Access are managed in the target tenant">目标用户、组、应用注册与条件访问由目标租户管理</td><td data-zh="先创建并许可目标用户；重建环境安全组、group teams 和 application users" data-en="Precreate and license target users; recreate environment security groups, group teams, and application users">先创建并许可目标用户；重建环境安全组、group teams 和 application users</td><td data-zh="未映射用户不得进入目标；应用身份不得沿用源租户密钥" data-en="Unmapped users cannot enter the target; application identities cannot reuse source-tenant credentials">未映射用户不得进入目标；应用身份不得沿用源租户密钥</td></tr>
+                  <tr><td data-zh="应用与元数据" data-en="Application and Metadata">应用与元数据</td><td data-zh="开发环境使用 unmanaged solution；Test/UAT 与生产使用 managed solution" data-en="Development uses unmanaged solutions; Test/UAT and production use managed solutions">开发环境使用 unmanaged solution；Test/UAT 与生产使用 managed solution</td><td data-zh="统一 publisher、解决方案分层、依赖清单和流水线" data-en="Use one publisher, solution layering, a dependency inventory, and pipelines">统一 publisher、解决方案分层、依赖清单和流水线</td><td data-zh="目标缺少依赖时停止导入，不在生产直接补 unmanaged customization" data-en="Stop import on missing dependencies and do not patch production with unmanaged customizations">目标缺少依赖时停止导入，不在生产直接补 unmanaged customization</td></tr>
+                  <tr><td data-zh="业务数据" data-en="Business Data">业务数据</td><td data-zh="目标范围记录进入目标；共享与争议记录按批准规则复制、引用或留档" data-en="Target-scope records enter the target; shared or disputed records follow approved copy, reference, or archive rules">目标范围记录进入目标；共享与争议记录按批准规则复制、引用或留档</td><td data-zh="先主数据后交易数据；alternate key 支持幂等 upsert 与关联重建" data-en="Load master data before transactions; alternate keys enable idempotent upsert and relationship reconstruction">先主数据后交易数据；alternate key 支持幂等 upsert 与关联重建</td><td data-zh="未通过依赖闭包的记录进入异常队列，不以空 lookup 强行写入" data-en="Records failing dependency closure enter an exception queue rather than being forced in with empty lookups">未通过依赖闭包的记录进入异常队列，不以空 lookup 强行写入</td></tr>
+                  <tr><td data-zh="集成与协作" data-en="Integration and Collaboration">集成与协作</td><td data-zh="每个接口在目标租户拥有独立 owner、凭据、URL 与监控" data-en="Every interface has an independent owner, credential, URL, and monitor in the target tenant">每个接口在目标租户拥有独立 owner、凭据、URL 与监控</td><td data-zh="重建 connection references、HTTP 回调、邮箱同步与 SharePoint 站点关联" data-en="Rebuild connection references, HTTP callbacks, mailbox synchronization, and SharePoint site associations">重建 connection references、HTTP 回调、邮箱同步与 SharePoint 站点关联</td><td data-zh="通过接口合同测试后才允许生产流量切换" data-en="Production traffic moves only after interface contract tests pass">通过接口合同测试后才允许生产流量切换</td></tr>
+                  <tr><td data-zh="治理与运维" data-en="Governance and Operations">治理与运维</td><td data-zh="目标租户独立承担 DLP、审计、容量、备份、支持和发布责任" data-en="The target tenant independently owns DLP, audit, capacity, backup, support, and release responsibilities">目标租户独立承担 DLP、审计、容量、备份、支持和发布责任</td><td data-zh="建立目标租户管理员、运营手册、告警、变更与应急流程" data-en="Establish target-tenant administrators, runbooks, alerts, change, and incident processes">建立目标租户管理员、运营手册、告警、变更与应急流程</td><td data-zh="稳定期退出前不得撤销源侧支持与取证访问" data-en="Source-side support and evidence access remain until stabilization exits">稳定期退出前不得撤销源侧支持与取证访问</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="quote-block">
+            <strong data-zh="环境策略依据" data-en="Environment Strategy Basis">环境策略依据</strong>
+            <span data-zh="Microsoft 建议至少分离 Development、Test 与 Production，Test 用于验证解决方案部署和端到端应用行为。[3] 若目标生产环境与开发环境处于不同服务更新站点，还必须校验版本方向，避免从较新环境向较旧环境导入解决方案。" data-en="Microsoft recommends at least separate Development, Test, and Production environments, with Test validating both solution deployment and end-to-end application behavior.[3] If target production and development environments use different service-update stations, verify version direction to avoid importing from a newer environment into an older one.">Microsoft 建议至少分离 Development、Test 与 Production，Test 用于验证解决方案部署和端到端应用行为。[3] 若目标生产环境与开发环境处于不同服务更新站点，还必须校验版本方向，避免从较新环境向较旧环境导入解决方案。</span>
+          </div>
+        </section>
+
+        <section id="boundary" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="04 / 数据边界" data-en="04 / Data Boundary">04 / 数据边界</p>
+            <h2 data-zh="数据拆分以业务所有权与依赖闭包为准" data-en="Data Separation Follows Business Ownership and Dependency Closure">数据拆分以业务所有权与依赖闭包为准</h2>
+            <p data-zh="目标架构只有在记录归属可计算时才可实施。本章把法律实体、业务过程、地域和记录关系合并为一套可审计规则；单纯按 owner、国家字段或创建人筛选都会遗漏团队拥有记录、跨区域客户和子表依赖。" data-en="The target architecture is implementable only when record ownership can be computed. This section combines legal entity, business process, geography, and record relationships into an auditable rule set. Filtering only by owner, country, or creator misses team-owned records, cross-region accounts, and child-table dependencies.">目标架构只有在记录归属可计算时才可实施。本章把法律实体、业务过程、地域和记录关系合并为一套可审计规则；单纯按 owner、国家字段或创建人筛选都会遗漏团队拥有记录、跨区域客户和子表依赖。</p>
+          </div>
+
+          <div class="insight-grid crm-grid-four" data-present-step data-step-title="四类数据处置" data-step-title-en="Four Data Dispositions" data-step-label="04 / DATA BOUNDARY">
+            <article class="insight-card">
+              <span class="card-index">01</span>
+              <h3 data-zh="拆分组织独有" data-en="Separated-Organization Exclusive">拆分组织独有</h3>
+              <p data-zh="由拆分组织拥有、仅由目标流程处理且无保留组织持续使用要求的记录，迁移后由目标 CRM 成为权威。" data-en="Records owned by the separated organization, processed only by target workflows, and not required by the retained organization become authoritative in the target CRM.">由拆分组织拥有、仅由目标流程处理且无保留组织持续使用要求的记录，迁移后由目标 CRM 成为权威。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">02</span>
+              <h3 data-zh="保留组织独有" data-en="Retained-Organization Exclusive">保留组织独有</h3>
+              <p data-zh="与拆分组织无业务、法律或运营关系的记录不进入目标；对账报告只记录数量与规则结果。" data-en="Records with no business, legal, or operational relationship to the separated organization do not enter the target; reconciliation records only counts and rule outcomes.">与拆分组织无业务、法律或运营关系的记录不进入目标；对账报告只记录数量与规则结果。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">03</span>
+              <h3 data-zh="共享主数据" data-en="Shared Master Data">共享主数据</h3>
+              <p data-zh="跨组织的 Account、Contact、Product 等按批准字段集复制；建立 shared business key，不让两个 CRM 的本地 GUID 成为跨组织标识。" data-en="Cross-organization Accounts, Contacts, and Products are copied using an approved field set and a shared business key; local CRM GUIDs do not become cross-organization identifiers.">跨组织的 Account、Contact、Product 等按批准字段集复制；建立 shared business key，不让两个 CRM 的本地 GUID 成为跨组织标识。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">04</span>
+              <h3 data-zh="受限与历史" data-en="Restricted and Historical">受限与历史</h3>
+              <p data-zh="法律保留、敏感字段、审计证据或争议记录依据法务决定迁移、脱敏、留源或进入独立只读档案。" data-en="Legal-hold, sensitive, audit-evidence, or disputed records follow legal decisions to migrate, mask, remain at source, or enter a separate read-only archive.">法律保留、敏感字段、审计证据或争议记录依据法务决定迁移、脱敏、留源或进入独立只读档案。</p>
+            </article>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle"><span data-zh="依赖闭包：每条业务记录必须带齐可运行上下文" data-en="Dependency Closure: Every Business Record Needs Its Executable Context">依赖闭包：每条业务记录必须带齐可运行上下文</span></button>
+              <div class="subsection-content">
+                <p data-zh="依赖闭包指一条获批迁移记录所依赖的父记录、引用数据、owner/team、活动参与方、附件与状态语义必须一并解决，否则该记录在目标系统中不可正确解释或执行。" data-en="Dependency closure means that every approved record must have its parent records, reference data, owner or team, activity parties, attachments, and status semantics resolved; otherwise the target cannot interpret or execute it correctly.">依赖闭包指一条获批迁移记录所依赖的父记录、引用数据、owner/team、活动参与方、附件与状态语义必须一并解决，否则该记录在目标系统中不可正确解释或执行。</p>
+                <ol class="flow-list">
+                  <li class="flow-step"><div class="flow-copy"><strong data-zh="先迁移主数据" data-en="Load Master Data First">先迁移主数据</strong><p data-zh="Currency、Unit、Product、Price List、Account、Contact 与自定义 reference tables 先建立 alternate keys。" data-en="Establish alternate keys for Currency, Unit, Product, Price List, Account, Contact, and custom reference tables first.">Currency、Unit、Product、Price List、Account、Contact 与自定义 reference tables 先建立 alternate keys。</p></div></li>
+                  <li class="flow-step"><div class="flow-copy"><strong data-zh="再迁移开放交易" data-en="Then Load Open Transactions">再迁移开放交易</strong><p data-zh="Opportunity、Case、Quote、Order 与活动按父子顺序载入；owner 与 team 在目标身份映射后再赋值。" data-en="Load Opportunities, Cases, Quotes, Orders, and activities in parent-child order; assign owners and teams after target identity mapping.">Opportunity、Case、Quote、Order 与活动按父子顺序载入；owner 与 team 在目标身份映射后再赋值。</p></div></li>
+                  <li class="flow-step"><div class="flow-copy"><strong data-zh="最后处置历史与附件" data-en="Finally Resolve History and Attachments">最后处置历史与附件</strong><p data-zh="关闭业务、Notes、Email、附件与 SharePoint 文档按保留价值和合规要求决定全迁、选择迁移或只读归档。" data-en="Closed transactions, Notes, Email, attachments, and SharePoint documents are fully migrated, selectively migrated, or archived read-only based on retention value and compliance.">关闭业务、Notes、Email、附件与 SharePoint 文档按保留价值和合规要求决定全迁、选择迁移或只读归档。</p></div></li>
+                </ol>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="具体失败样例：共享客户与目标范围商机不能只迁一半" data-en="Failure Walkthrough: A Shared Account and Target-Scope Opportunity Cannot Be Half-Migrated">具体失败样例：共享客户与目标范围商机不能只迁一半</span></button>
+              <div class="subsection-content">
+                <p data-zh="若 Opportunity 属于拆分组织团队，但其 Account 由共享团队拥有、Primary Contact 属于保留组织、Price List 为集团共享，则只按 Opportunity owner 筛选会生成三个失效 lookup，并可能让报价计算失败。" data-en="If an Opportunity belongs to a separated-organization team while its Account is owned by a shared team, its Primary Contact belongs to the retained organization, and its Price List is shared group-wide, filtering only by Opportunity owner creates three broken lookups and can break quote calculations.">若 Opportunity 属于拆分组织团队，但其 Account 由共享团队拥有、Primary Contact 属于保留组织、Price List 为集团共享，则只按 Opportunity owner 筛选会生成三个失效 lookup，并可能让报价计算失败。</p>
+                <div class="comparison-grid">
+                  <article class="comparison-card"><span class="comparison-label" data-zh="错误做法" data-en="Incorrect Method">错误做法</span><h3 data-zh="按 owner 单字段提取" data-en="Extract by Owner Only">按 owner 单字段提取</h3><p data-zh="记录数看似匹配，但目标商机缺客户、联系人和价格上下文；用户进入目标后无法继续推进。" data-en="Record counts appear correct, but the target opportunity lacks account, contact, and price context, so users cannot continue the process.">记录数看似匹配，但目标商机缺客户、联系人和价格上下文；用户进入目标后无法继续推进。</p></article>
+                  <article class="comparison-card next"><span class="comparison-label" data-zh="正确处置" data-en="Correct Disposition">正确处置</span><h3 data-zh="先判定共享，再完成依赖闭包" data-en="Classify Shared Data, Then Complete Dependency Closure">先判定共享，再完成依赖闭包</h3><p data-zh="复制获批字段的 Account 与 Contact，映射共享 Price List，建立目标 owner/team，再导入 Opportunity 并验证报价路径。" data-en="Copy approved Account and Contact fields, map the shared Price List, establish the target owner or team, then import the Opportunity and validate the quote path.">复制获批字段的 Account 与 Contact，映射共享 Price List，建立目标 owner/team，再导入 Opportunity 并验证报价路径。</p></article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="数据工具边界：Dataflows 与 ADF 都需要明确映射" data-en="Data Tool Boundaries: Both Dataflows and ADF Require Explicit Mapping">数据工具边界：Dataflows 与 ADF 都需要明确映射</span></button>
+              <div class="subsection-content">
+                <p data-zh="Microsoft 推荐 Dataflows 迁移 Dataverse 环境间数据；复杂批量迁移也可使用 Azure Data Factory / Synapse Dynamics connector。两类工具都只是执行器，不会替代业务归属、关联顺序和字段语义设计。[4][5]" data-en="Microsoft recommends Dataflows for migrating data between Dataverse environments; complex bulk migrations can also use the Azure Data Factory or Synapse Dynamics connector. Both are executors and do not replace business ownership, relationship ordering, or field-semantic design.[4][5]">Microsoft 推荐 Dataflows 迁移 Dataverse 环境间数据；复杂批量迁移也可使用 Azure Data Factory / Synapse Dynamics connector。两类工具都只是执行器，不会替代业务归属、关联顺序和字段语义设计。[4][5]</p>
+                <div class="table-scroll">
+                  <table class="simple-table">
+                    <thead><tr><th data-zh="工具" data-en="Tool">工具</th><th data-zh="适合" data-en="Best Fit">适合</th><th data-zh="官方限制" data-en="Official Limitation">官方限制</th><th data-zh="本方案用法" data-en="Use in This Plan">本方案用法</th></tr></thead>
+                    <tbody>
+                      <tr><td data-zh="Dataverse Dataflows" data-en="Dataverse Dataflows">Dataverse Dataflows</td><td data-zh="一次性跨环境或跨租户迁移；表结构接近" data-en="One-time cross-environment or cross-tenant migration with similar schemas">一次性跨环境或跨租户迁移；表结构接近</td><td data-zh="不支持 many-to-many relationship data；不能映射 Status / Status Reason；父子表需分开且手动定序" data-en="Does not import many-to-many relationship data or map Status and Status Reason; parent and child tables require separate, manually ordered dataflows">不支持 many-to-many relationship data；不能映射 Status / Status Reason；父子表需分开且手动定序</td><td data-zh="用于中等复杂度表和重复演练；alternate key 支持 upsert" data-en="Use for moderately complex tables and repeated rehearsals; alternate keys support upsert">用于中等复杂度表和重复演练；alternate key 支持 upsert</td></tr>
+                      <tr><td data-zh="ADF / Synapse Dynamics Connector" data-en="ADF / Synapse Dynamics Connector">ADF / Synapse Dynamics Connector</td><td data-zh="大批量、转换、错误处理与可观测流水线" data-en="Bulk loads, transformation, error handling, and observable pipelines">大批量、转换、错误处理与可观测流水线</td><td data-zh="PartyList 不支持；线上组织并发 batch call 上限为 52；sink 使用 Upsert" data-en="PartyList is unsupported; online organizations allow 52 concurrent batch calls; the sink uses Upsert">PartyList 不支持；线上组织并发 batch call 上限为 52；sink 使用 Upsert</td><td data-zh="用于大表、复杂转换和增量追平；显式设置并发与 batch size" data-en="Use for large tables, complex transformations, and delta catch-up with explicit concurrency and batch sizing">用于大表、复杂转换和增量追平；显式设置并发与 batch size</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="phases" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="05 / 分阶段迁移计划" data-en="05 / Phased Migration Plan">05 / 分阶段迁移计划</p>
+            <h2 data-zh="六个阶段以证据闸门推进，不以预设日历推进" data-en="Six Phases Advance Through Evidence Gates, Not a Preset Calendar">六个阶段以证据闸门推进，不以预设日历推进</h2>
+            <p data-zh="数据边界确定了迁移对象，本章把对象变成工作包。当前没有表数、记录量、附件容量、接口数和停机容忍度，因此不编造周数；项目在发现阶段采集基线，在两次完整演练后由实测吞吐量推导生产窗口。" data-en="After defining the migration object, this section turns it into work packages. Table count, row volume, attachment capacity, interface count, and outage tolerance are unknown, so no schedule is invented. Discovery establishes baselines, and two full rehearsals provide measured throughput for the production window.">数据边界确定了迁移对象，本章把对象变成工作包。当前没有表数、记录量、附件容量、接口数和停机容忍度，因此不编造周数；项目在发现阶段采集基线，在两次完整演练后由实测吞吐量推导生产窗口。</p>
+          </div>
+
+          <div data-present-step data-step-title="阶段一至三：从发现到构建" data-step-title-en="Phases One to Three: Discovery Through Build" data-step-label="05 / PHASED PLAN">
+            <ol class="flow-list">
+              <li class="flow-step"><div class="flow-copy"><strong data-zh="阶段 1 · 发现与可迁移性评估" data-en="Phase 1 · Discovery and Migratability Assessment">阶段 1 · 发现与可迁移性评估</strong><p data-zh="盘点环境、Dynamics 365 模块、solutions、表与容量、flows、plugins、custom APIs、PCF、canvas apps、Copilot Studio、Power Pages、mailboxes、SharePoint、网关、连接、应用用户、接口、审计与保留要求。退出闸门：资产清单有 owner，未知项有关闭日期。" data-en="Inventory environments, Dynamics 365 modules, solutions, tables and capacity, flows, plug-ins, custom APIs, PCF, canvas apps, Copilot Studio, Power Pages, mailboxes, SharePoint, gateways, connections, application users, interfaces, audit, and retention requirements. Exit gate: every asset has an owner and every unknown has a closure date.">盘点环境、Dynamics 365 模块、solutions、表与容量、flows、plugins、custom APIs、PCF、canvas apps、Copilot Studio、Power Pages、mailboxes、SharePoint、网关、连接、应用用户、接口、审计与保留要求。退出闸门：资产清单有 owner，未知项有关闭日期。</p></div></li>
+              <li class="flow-step"><div class="flow-copy"><strong data-zh="阶段 2 · 目标设计与范围批准" data-en="Phase 2 · Target Design and Scope Approval">阶段 2 · 目标设计与范围批准</strong><p data-zh="确定路径、目标环境链、license/capacity 假设、数据处置矩阵、共享 key、身份映射、接口目标、RACI、切换原则和退出安排。退出闸门：CIO、业务、法务、数据 owner 与架构负责人共同签署范围。" data-en="Confirm the path, target environment chain, license and capacity assumptions, data disposition matrix, shared keys, identity mapping, integration targets, RACI, cutover principles, and exit arrangement. Exit gate: CIO, business, legal, data owners, and architecture jointly approve scope.">确定路径、目标环境链、license/capacity 假设、数据处置矩阵、共享 key、身份映射、接口目标、RACI、切换原则和退出安排。退出闸门：CIO、业务、法务、数据 owner 与架构负责人共同签署范围。</p></div></li>
+              <li class="flow-step"><div class="flow-copy"><strong data-zh="阶段 3 · 目标构建与元数据迁移" data-en="Phase 3 · Target Build and Metadata Migration">阶段 3 · 目标构建与元数据迁移</strong><p data-zh="建立目标 Entra 与 Dev/Test/Production，配置 security groups、DLP、publisher、pipelines；把应用、表、security roles、flows 与相关组件纳入 solutions，并从 Dev 以 managed artifact 推进。退出闸门：空数据目标环境通过 solution import、依赖和 smoke test。" data-en="Build target Entra and Development, Test, and Production; configure security groups, DLP, publisher, and pipelines; place apps, tables, security roles, flows, and related components into solutions and promote managed artifacts from Development. Exit gate: the empty-data target passes solution import, dependency, and smoke tests.">建立目标 Entra 与 Dev/Test/Production，配置 security groups、DLP、publisher、pipelines；把应用、表、security roles、flows 与相关组件纳入 solutions，并从 Dev 以 managed artifact 推进。退出闸门：空数据目标环境通过 solution import、依赖和 smoke test。</p></div></li>
+            </ol>
+          </div>
+
+          <div data-present-step data-step-title="阶段四至六：从演练到稳定" data-step-title-en="Phases Four to Six: Rehearsal Through Stabilization" data-step-label="05 / PHASED PLAN">
+            <ol class="flow-list phase-continue">
+              <li class="flow-step"><div class="flow-copy"><strong data-zh="阶段 4 · 数据迁移、集成重建与测试" data-en="Phase 4 · Data Migration, Integration Rebuild, and Testing">阶段 4 · 数据迁移、集成重建与测试</strong><p data-zh="按主数据、开放交易、活动、历史和附件批次执行至少两次完整演练；并行重建 application users、connections、HTTP URLs、mailboxes、SharePoint 和外部接口。退出闸门：第二次演练通过数量、关键字段、关系、金额汇总、owner/team 与业务场景对账。" data-en="Run at least two full rehearsals across master data, open transactions, activities, history, and attachments while rebuilding application users, connections, HTTP URLs, mailboxes, SharePoint, and external interfaces. Exit gate: rehearsal two passes count, critical-field, relationship, financial aggregate, owner/team, and business-scenario reconciliation.">按主数据、开放交易、活动、历史和附件批次执行至少两次完整演练；并行重建 application users、connections、HTTP URLs、mailboxes、SharePoint 和外部接口。退出闸门：第二次演练通过数量、关键字段、关系、金额汇总、owner/team 与业务场景对账。</p></div></li>
+              <li class="flow-step"><div class="flow-copy"><strong data-zh="阶段 5 · 生产切换" data-en="Phase 5 · Production Cutover">阶段 5 · 生产切换</strong><p data-zh="进入变更冻结，执行最终全量或增量追平，完成自动与人工对账，切换接口、URL 和用户入口，业务 owner 决定 go/no-go。退出闸门：关键业务路径通过且没有未解释的高风险差异。" data-en="Enter change freeze, perform final full or delta catch-up, complete automated and manual reconciliation, switch integrations, URLs, and user entry points, and let the business owner make the go or no-go decision. Exit gate: critical business paths pass with no unexplained high-risk variance.">进入变更冻结，执行最终全量或增量追平，完成自动与人工对账，切换接口、URL 和用户入口，业务 owner 决定 go/no-go。退出闸门：关键业务路径通过且没有未解释的高风险差异。</p></div></li>
+              <li class="flow-step"><div class="flow-copy"><strong data-zh="阶段 6 · 稳定期与源侧退出" data-en="Phase 6 · Stabilization and Source Exit">阶段 6 · 稳定期与源侧退出</strong><p data-zh="按业务日监控登录、同步、flow、plugin、接口、队列和数据质量；关闭迁移凭据与双写通道，执行知识移交。退出闸门：目标运营团队接管，未结缺陷进入常规 backlog，源数据按保留决定继续只读或删除。" data-en="Monitor sign-in, synchronization, flows, plug-ins, integrations, queues, and data quality by business day; close migration credentials and dual-write channels; complete knowledge transfer. Exit gate: the target operations team owns the service, remaining defects enter the normal backlog, and source data follows the approved read-only or deletion decision.">按业务日监控登录、同步、flow、plugin、接口、队列和数据质量；关闭迁移凭据与双写通道，执行知识移交。退出闸门：目标运营团队接管，未结缺陷进入常规 backlog，源数据按保留决定继续只读或删除。</p></div></li>
+            </ol>
+          </div>
+
+          <div class="quote-block">
+            <strong data-zh="排期计算方法" data-en="Schedule Calculation Method">排期计算方法</strong>
+            <span data-zh="生产数据窗口应以第二次演练的实际结果计算：窗口 = 最终增量提取 + 转换/载入 + 自动对账 + 人工抽检 + 接口切换 + 业务验证 + 决策缓冲。任何阶段日期都应在资产清单完成后由关键路径和团队容量推导，不以通用周数代替。" data-en="Calculate the production data window from rehearsal-two evidence: final delta extraction + transformation and load + automated reconciliation + manual sampling + integration switch + business validation + decision buffer. Derive all phase dates from the critical path and team capacity after the inventory is complete rather than substituting generic week counts.">生产数据窗口应以第二次演练的实际结果计算：窗口 = 最终增量提取 + 转换/载入 + 自动对账 + 人工抽检 + 接口切换 + 业务验证 + 决策缓冲。任何阶段日期都应在资产清单完成后由关键路径和团队容量推导，不以通用周数代替。</span>
+          </div>
+        </section>
+
+        <section id="assets" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="06 / 资产迁移机制" data-en="06 / Asset Migration Mechanisms">06 / 资产迁移机制</p>
+            <h2 data-zh="每类资产采用独立机制，不能把环境移动等同于完整可用性" data-en="Each Asset Uses Its Own Mechanism; an Environment Move Does Not Equal Full Operability">每类资产采用独立机制，不能把环境移动等同于完整可用性</h2>
+            <p data-zh="六阶段计划需要一张可执行的资产路由表。本章把应用元数据、业务数据、身份、自动化、邮件、文档和不受支持组件分别映射到迁移机制与验收证据，防止环境或数据完成后才发现外围能力不可用。" data-en="The six-phase plan requires an executable asset-routing table. This section maps application metadata, business data, identity, automation, email, documents, and unsupported components to separate migration mechanisms and acceptance evidence so that peripheral failures are not discovered only after the environment or data has moved.">六阶段计划需要一张可执行的资产路由表。本章把应用元数据、业务数据、身份、自动化、邮件、文档和不受支持组件分别映射到迁移机制与验收证据，防止环境或数据完成后才发现外围能力不可用。</p>
+          </div>
+
+          <div data-present-step data-step-title="资产路由：应用、数据与身份" data-step-title-en="Asset Routing: Application, Data, and Identity" data-step-label="06 / ASSET MIGRATION">
+            <div class="table-scroll">
+              <table class="simple-table">
+                <thead><tr><th data-zh="资产" data-en="Asset">资产</th><th data-zh="机制" data-en="Mechanism">机制</th><th data-zh="目标侧动作" data-en="Target-Side Action">目标侧动作</th><th data-zh="验收证据" data-en="Acceptance Evidence">验收证据</th></tr></thead>
+                <tbody>
+                  <tr><td data-zh="Tables、columns、forms、views、model-driven apps、security roles、plugins" data-en="Tables, columns, forms, views, model-driven apps, security roles, and plug-ins">Tables、columns、forms、views、model-driven apps、security roles、plugins</td><td data-zh="Custom solution；Dev 为 unmanaged，后续环境为 managed" data-en="Custom solutions; unmanaged in Development and managed downstream">Custom solution；Dev 为 unmanaged，后续环境为 managed</td><td data-zh="统一 publisher 与依赖顺序；不使用不可导出的 Default Solution 作为发布包" data-en="Use one publisher and dependency order; do not use the nonexportable Default Solution as a release package">统一 publisher 与依赖顺序；不使用不可导出的 Default Solution 作为发布包</td><td data-zh="solution import log、dependency check、版本与 smoke test" data-en="Solution import log, dependency check, version, and smoke test">solution import log、dependency check、版本与 smoke test</td></tr>
+                  <tr><td data-zh="业务数据与关联" data-en="Business Data and Relationships">业务数据与关联</td><td data-zh="Dataflows 或 ADF/Synapse；按 alternate keys upsert" data-en="Dataflows or ADF/Synapse with alternate-key upsert">Dataflows 或 ADF/Synapse；按 alternate keys upsert</td><td data-zh="父表先于子表；many-to-many、Status、PartyList 等限制单独处理" data-en="Load parents before children; handle many-to-many, Status, PartyList, and other limitations separately">父表先于子表；many-to-many、Status、PartyList 等限制单独处理</td><td data-zh="记录数、关键字段、关系、金额汇总与抽样业务路径" data-en="Record counts, critical fields, relationships, financial aggregates, and sampled business paths">记录数、关键字段、关系、金额汇总与抽样业务路径</td></tr>
+                  <tr><td data-zh="用户、环境安全组与 group teams" data-en="Users, Environment Security Groups, and Group Teams">用户、环境安全组与 group teams</td><td data-zh="目标 Entra 预创建；用户映射用于整环境 move，选择性拆分使用独立身份映射表" data-en="Precreate in target Entra; whole moves use user mapping, while carve-outs use an independent identity map">目标 Entra 预创建；用户映射用于整环境 move，选择性拆分使用独立身份映射表</td><td data-zh="分配 license、security role、team 与业务单元；安全组不会随整环境 move 自动迁移" data-en="Assign licenses, security roles, teams, and business units; security groups do not migrate automatically with a whole move">分配 license、security role、team 与业务单元；安全组不会随整环境 move 自动迁移</td><td data-zh="角色矩阵、正向/负向访问测试与 owner/team 对账" data-en="Role matrix, positive and negative access tests, and owner/team reconciliation">角色矩阵、正向/负向访问测试与 owner/team 对账</td></tr>
+                  <tr><td data-zh="Application users、app registrations、secrets/certificates" data-en="Application Users, App Registrations, and Secrets or Certificates">Application users、app registrations、secrets/certificates</td><td data-zh="在目标 Entra 与每个 Dataverse 环境重新创建" data-en="Recreate in target Entra and in every Dataverse environment">在目标 Entra 与每个 Dataverse 环境重新创建</td><td data-zh="重新授予最小权限并轮换凭据；原生用户映射不支持 application users" data-en="Regrant least privilege and rotate credentials; native user mapping does not support application users">重新授予最小权限并轮换凭据；原生用户映射不支持 application users</td><td data-zh="每个接口的认证、授权、过期与禁用测试" data-en="Authentication, authorization, expiry, and disablement tests for every interface">每个接口的认证、授权、过期与禁用测试</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div data-present-step data-step-title="资产路由：自动化、协作与特殊产品" data-step-title-en="Asset Routing: Automation, Collaboration, and Specialized Products" data-step-label="06 / ASSET MIGRATION">
+            <div class="table-scroll">
+              <table class="simple-table">
+                <thead><tr><th data-zh="资产" data-en="Asset">资产</th><th data-zh="机制" data-en="Mechanism">机制</th><th data-zh="目标侧动作" data-en="Target-Side Action">目标侧动作</th><th data-zh="验收证据" data-en="Acceptance Evidence">验收证据</th></tr></thead>
+                <tbody>
+                  <tr><td data-zh="Power Automate 与 connections" data-en="Power Automate and Connections">Power Automate 与 connections</td><td data-zh="Flows 放入 Dataverse solutions；connections、custom connectors 与 gateways 手动重配" data-en="Place flows in Dataverse solutions; manually reconfigure connections, custom connectors, and gateways">Flows 放入 Dataverse solutions；connections、custom connectors 与 gateways 手动重配</td><td data-zh="先启用 child flows，再启用 parent flows；HTTP-triggered flows 更新新 URL" data-en="Enable child flows before parent flows and update new URLs for HTTP-triggered flows">先启用 child flows，再启用 parent flows；HTTP-triggered flows 更新新 URL</td><td data-zh="逐 flow 成功路径、失败路径、重试与调用方合同测试" data-en="Success, failure, retry, and caller-contract tests for each flow">逐 flow 成功路径、失败路径、重试与调用方合同测试</td></tr>
+                  <tr><td data-zh="Exchange mailboxes 与 server-side sync" data-en="Exchange Mailboxes and Server-Side Synchronization">Exchange mailboxes 与 server-side sync</td><td data-zh="目标 Exchange 与 Dataverse 建立同租户 profile；过渡期需要时可用 cross-tenant OAuth" data-en="Establish a same-tenant profile between target Exchange and Dataverse; use cross-tenant OAuth during transition when needed">目标 Exchange 与 Dataverse 建立同租户 profile；过渡期需要时可用 cross-tenant OAuth</td><td data-zh="配置、批准、Test & Enable mailbox；队列邮箱单独验证" data-en="Configure, approve, and Test & Enable each mailbox; validate queue mailboxes separately">配置、批准、Test & Enable mailbox；队列邮箱单独验证</td><td data-zh="Incoming、Outgoing、Appointments/Contacts/Tasks 三类状态均通过" data-en="Incoming, Outgoing, and Appointments, Contacts, and Tasks statuses all pass">Incoming、Outgoing、Appointments/Contacts/Tasks 三类状态均通过</td></tr>
+                  <tr><td data-zh="SharePoint 文档" data-en="SharePoint Documents">SharePoint 文档</td><td data-zh="另行迁移站点与文档，再重建 server-based SharePoint integration" data-en="Migrate sites and documents separately, then rebuild server-based SharePoint integration">另行迁移站点与文档，再重建 server-based SharePoint integration</td><td data-zh="更新 Site、Document Location 与权限；不把 Dataverse 记录迁移视为文档已迁移" data-en="Update Site, Document Location, and permissions; do not treat Dataverse record migration as document migration">更新 Site、Document Location 与权限；不把 Dataverse 记录迁移视为文档已迁移</td><td data-zh="从 CRM 打开、创建、搜索和授权文档的端到端测试" data-en="End-to-end tests for opening, creating, searching, and authorizing documents from CRM">从 CRM 打开、创建、搜索和授权文档的端到端测试</td></tr>
+                  <tr><td data-zh="Customer Voice、Omnichannel、component library、Customer Insights、Power Pages、Copilot Studio" data-en="Customer Voice, Omnichannel, Component Library, Customer Insights, Power Pages, and Copilot Studio">Customer Voice、Omnichannel、component library、Customer Insights、Power Pages、Copilot Studio</td><td data-zh="按产品专门 runbook 处理；前三项不受原生 tenant move 支持" data-en="Use product-specific runbooks; the first three are unsupported by the native tenant move">按产品专门 runbook 处理；前三项不受原生 tenant move 支持</td><td data-zh="导出、删除、重新预配或手工重连取决于产品；发现阶段必须单列" data-en="Export, delete, reprovision, or reconnect manually depending on product; inventory each separately during discovery">导出、删除、重新预配或手工重连取决于产品；发现阶段必须单列</td><td data-zh="使用对应产品的官方迁移检查表和业务场景验收" data-en="Use the product-specific official migration checklist and business-scenario acceptance">使用对应产品的官方迁移检查表和业务场景验收</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="quote-block">
+            <strong data-zh="原生整环境移动也存在前后置工作" data-en="The Native Whole Move Still Has Pre- and Post-Move Work">原生整环境移动也存在前后置工作</strong>
+            <span data-zh="Microsoft 明确要求对 Power Apps、Power Automate、Copilot Studio、Power Pages、Customer Insights、connections、mailboxes、security groups、Managed Environments 和未复制的环境设置执行专门步骤。[1] 因此即使最终改选方案 A，也应保留本章的资产清单与验收结构。" data-en="Microsoft explicitly requires product-specific steps for Power Apps, Power Automate, Copilot Studio, Power Pages, Customer Insights, connections, mailboxes, security groups, Managed Environments, and environment settings that do not copy.[1] Even if option A is ultimately selected, retain this asset inventory and acceptance structure.">Microsoft 明确要求对 Power Apps、Power Automate、Copilot Studio、Power Pages、Customer Insights、connections、mailboxes、security groups、Managed Environments 和未复制的环境设置执行专门步骤。[1] 因此即使最终改选方案 A，也应保留本章的资产清单与验收结构。</span>
+          </div>
+        </section>
+
+        <section id="cutover" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="07 / 切换与回退" data-en="07 / Cutover and Rollback">07 / 切换与回退</p>
+            <h2 data-zh="切换以第二次演练结果定窗，以写入所有权变化划定回退边界" data-en="Rehearsal Two Sets the Window, and Write Ownership Defines the Rollback Boundary">切换以第二次演练结果定窗，以写入所有权变化划定回退边界</h2>
+            <p data-zh="资产路由明确了要切换的对象，本章定义生产当日的顺序与停止条件。选择性拆分在目标开始独立写入前可以回到源系统；目标产生独有业务记录后，简单恢复源写入会形成双主数据，需要补偿性同步和业务仲裁。" data-en="After asset routing identifies what must switch, this section defines production-day order and stop conditions. A selective carve-out can return to the source before the target begins independent writes. Once the target creates unique business records, simply restoring source writes creates dual masters and requires compensating synchronization and business arbitration.">资产路由明确了要切换的对象，本章定义生产当日的顺序与停止条件。选择性拆分在目标开始独立写入前可以回到源系统；目标产生独有业务记录后，简单恢复源写入会形成双主数据，需要补偿性同步和业务仲裁。</p>
+          </div>
+
+          <div data-present-step data-step-title="八步生产切换" data-step-title-en="Eight-Step Production Cutover" data-step-label="07 / CUTOVER">
+            <ol class="flow-list">
+              <li class="flow-step"><div class="flow-copy"><strong data-zh="确认冻结与指挥链" data-en="Confirm Freeze and Command Chain">确认冻结与指挥链</strong><p data-zh="停止 solution、schema、security role 与接口变更；确认业务、技术、法务和支持值守人。" data-en="Stop solution, schema, security-role, and integration changes; confirm business, technical, legal, and support owners on duty.">停止 solution、schema、security role 与接口变更；确认业务、技术、法务和支持值守人。</p></div></li>
+              <li class="flow-step"><div class="flow-copy"><strong data-zh="完成源侧最终快照" data-en="Complete the Final Source Snapshot">完成源侧最终快照</strong><p data-zh="记录表级数量、关键汇总、最后修改水位、接口队列与未完成批处理，作为回退和对账基线。" data-en="Capture table counts, critical aggregates, last-modified watermarks, integration queues, and unfinished batch jobs as rollback and reconciliation baselines.">记录表级数量、关键汇总、最后修改水位、接口队列与未完成批处理，作为回退和对账基线。</p></div></li>
+              <li class="flow-step"><div class="flow-copy"><strong data-zh="暂停目标范围写入" data-en="Pause Target-Scope Writes">暂停目标范围写入</strong><p data-zh="通过维护窗口、业务流程控制或受支持的 administration mode 停止会形成目标范围增量的数据源。" data-en="Use a maintenance window, process control, or supported administration mode to stop sources that would create further target-scope deltas.">通过维护窗口、业务流程控制或受支持的 administration mode 停止会形成目标范围增量的数据源。</p></div></li>
+              <li class="flow-step"><div class="flow-copy"><strong data-zh="执行最终增量追平" data-en="Run Final Delta Catch-Up">执行最终增量追平</strong><p data-zh="按水位提取变更，依照父子顺序 upsert，并清空可重试错误队列。" data-en="Extract by watermark, upsert in parent-child order, and clear the retryable error queue.">按水位提取变更，依照父子顺序 upsert，并清空可重试错误队列。</p></div></li>
+              <li class="flow-step"><div class="flow-copy"><strong data-zh="执行自动与人工对账" data-en="Run Automated and Manual Reconciliation">执行自动与人工对账</strong><p data-zh="检查记录数、alternate key 唯一性、孤立 lookup、owner/team、金额汇总、活动参与方和抽样客户时间线。" data-en="Check counts, alternate-key uniqueness, orphan lookups, owners and teams, financial aggregates, activity parties, and sampled customer timelines.">检查记录数、alternate key 唯一性、孤立 lookup、owner/team、金额汇总、活动参与方和抽样客户时间线。</p></div></li>
+              <li class="flow-step"><div class="flow-copy"><strong data-zh="切换接口与协作服务" data-en="Switch Integrations and Collaboration Services">切换接口与协作服务</strong><p data-zh="启用 flows、application users、mailboxes、SharePoint、API endpoints、webhooks、报表和外部调用方。" data-en="Enable flows, application users, mailboxes, SharePoint, API endpoints, webhooks, reports, and external callers.">启用 flows、application users、mailboxes、SharePoint、API endpoints、webhooks、报表和外部调用方。</p></div></li>
+              <li class="flow-step"><div class="flow-copy"><strong data-zh="执行业务关键路径" data-en="Execute Critical Business Paths">执行业务关键路径</strong><p data-zh="按销售、服务和管理角色完成登录、查询、创建、审批、邮件、文档和集成回执；每条结果留证。" data-en="For sales, service, and management roles, test sign-in, query, create, approval, email, documents, and integration acknowledgments with evidence retained for every result.">按销售、服务和管理角色完成登录、查询、创建、审批、邮件、文档和集成回执；每条结果留证。</p></div></li>
+              <li class="flow-step"><div class="flow-copy"><strong data-zh="业务 owner 作出 go/no-go" data-en="Business Owner Makes the Go or No-Go Decision">业务 owner 作出 go/no-go</strong><p data-zh="未达到数据、接口、安全或关键流程阈值时停止开放；通过后才向目标用户发布新入口并开始稳定期。" data-en="If data, integration, security, or critical-process thresholds are not met, keep access closed. Publish the new entry point to target users and begin stabilization only after approval.">未达到数据、接口、安全或关键流程阈值时停止开放；通过后才向目标用户发布新入口并开始稳定期。</p></div></li>
+            </ol>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="Go/No-Go 判据必须在演练前批准" data-en="Go or No-Go Criteria Must Be Approved Before Rehearsal">Go/No-Go 判据必须在演练前批准</span></button>
+              <div class="subsection-content">
+                <p data-zh="阈值应由业务与数据 owner 根据风险定义，不能在生产窗口中临时协商；下表给出必须量化的类别，不替客户虚构具体百分比。" data-en="Business and data owners must define thresholds from risk before rehearsal rather than negotiating them during production. The table identifies categories that require numeric thresholds without inventing customer-specific percentages.">阈值应由业务与数据 owner 根据风险定义，不能在生产窗口中临时协商；下表给出必须量化的类别，不替客户虚构具体百分比。</p>
+                <table class="simple-table">
+                  <thead><tr><th data-zh="类别" data-en="Category">类别</th><th data-zh="必须批准的判据" data-en="Criterion Requiring Approval">必须批准的判据</th><th data-zh="停止条件示例" data-en="Example Stop Condition">停止条件示例</th></tr></thead>
+                  <tbody>
+                    <tr><td data-zh="数据完整性" data-en="Data Integrity">数据完整性</td><td data-zh="关键表允许差异数、孤立 lookup 数、金额汇总容差" data-en="Allowed variance for critical tables, orphan-lookups, and financial aggregates">关键表允许差异数、孤立 lookup 数、金额汇总容差</td><td data-zh="存在未解释的高价值商机、Case 或客户关系缺失" data-en="An unexplained high-value opportunity, case, or customer relationship is missing">存在未解释的高价值商机、Case 或客户关系缺失</td></tr>
+                    <tr><td data-zh="安全" data-en="Security">安全</td><td data-zh="角色正向与负向测试、敏感字段访问和管理员范围" data-en="Positive and negative role tests, sensitive-field access, and administrator scope">角色正向与负向测试、敏感字段访问和管理员范围</td><td data-zh="目标用户可读取保留组织专属数据，或关键用户无法读取获批数据" data-en="A target user can read retained-organization-exclusive data, or a critical user cannot read approved data">目标用户可读取保留组织专属数据，或关键用户无法读取获批数据</td></tr>
+                    <tr><td data-zh="业务连续性" data-en="Business Continuity">业务连续性</td><td data-zh="关键路径通过率、接口 backlog、邮箱与 flow 状态" data-en="Critical-path pass rate, integration backlog, mailbox, and flow status">关键路径通过率、接口 backlog、邮箱与 flow 状态</td><td data-zh="无法创建或推进核心交易，或关键外部系统未收到回执" data-en="Core transactions cannot be created or progressed, or a critical external system receives no acknowledgment">无法创建或推进核心交易，或关键外部系统未收到回执</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle"><span data-zh="回退分为写入前回退与写入后补偿" data-en="Rollback Splits into Pre-Write Reversal and Post-Write Compensation">回退分为写入前回退与写入后补偿</span></button>
+              <div class="subsection-content">
+                <p data-zh="目标开始产生独立业务写入是回退的不可忽略分界；在此之前可恢复源入口，在此之后必须保存目标增量并决定回灌、人工重录或继续完成切换。" data-en="Independent target writes are the material rollback boundary. Before that point, source access can be restored. After it, target deltas must be retained and either replayed, re-entered manually, or carried forward by completing the cutover.">目标开始产生独立业务写入是回退的不可忽略分界；在此之前可恢复源入口，在此之后必须保存目标增量并决定回灌、人工重录或继续完成切换。</p>
+                <div class="comparison-grid">
+                  <article class="comparison-card"><span class="comparison-label" data-zh="写入前" data-en="Before Target Writes">写入前</span><h3 data-zh="恢复源入口并重开源写入" data-en="Restore Source Entry and Source Writes">恢复源入口并重开源写入</h3><p data-zh="停止目标接口，保留迁移日志与目标快照，解除源侧冻结；调查原因后重新演练。" data-en="Stop target integrations, retain migration logs and the target snapshot, lift the source freeze, investigate, and rehearse again.">停止目标接口，保留迁移日志与目标快照，解除源侧冻结；调查原因后重新演练。</p></article>
+                  <article class="comparison-card next"><span class="comparison-label" data-zh="写入后" data-en="After Target Writes">写入后</span><h3 data-zh="执行补偿计划，禁止形成双主" data-en="Execute Compensation and Prevent Dual Masters">执行补偿计划，禁止形成双主</h3><p data-zh="冻结目标增量，导出新建与修改记录，由业务 owner 批准回灌或人工处置；未完成前不得让两边同时自由写入同一业务范围。" data-en="Freeze target deltas, export newly created and changed records, and obtain business-owner approval for replay or manual treatment. Do not allow both systems to write freely to the same scope before completion.">冻结目标增量，导出新建与修改记录，由业务 owner 批准回灌或人工处置；未完成前不得让两边同时自由写入同一业务范围。</p></article>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="governance" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="08 / 治理与立项决策" data-en="08 / Governance and Approval Decisions">08 / 治理与立项决策</p>
+            <h2 data-zh="立项批准四项原则，发现阶段关闭八项未知" data-en="Approve Four Principles and Close Eight Unknowns During Discovery">立项批准四项原则，发现阶段关闭八项未知</h2>
+            <p data-zh="切换方案需要管理层明确谁对业务边界、数据合法性、技术可用性和生产开放负责。本章给出最小治理结构与立项决策；项目获批不等于生产迁移获批，后者必须等待演练证据。" data-en="The cutover plan requires clear accountability for business boundaries, data legality, technical operability, and production opening. This section defines the minimum governance model and approval decisions. Project approval is not production-migration approval; the latter waits for rehearsal evidence.">切换方案需要管理层明确谁对业务边界、数据合法性、技术可用性和生产开放负责。本章给出最小治理结构与立项决策；项目获批不等于生产迁移获批，后者必须等待演练证据。</p>
+          </div>
+
+          <div class="insight-grid crm-grid-four" data-present-step data-step-title="四类责任主体" data-step-title-en="Four Accountable Parties" data-step-label="08 / GOVERNANCE">
+            <article class="insight-card">
+              <span class="card-index">01</span>
+              <h3 data-zh="执行发起人" data-en="Executive Sponsor">执行发起人</h3>
+              <p data-zh="批准迁移路径、预算边界、业务优先级、跨组织争议升级和最终 go/no-go 权限。" data-en="Approves the migration path, budget boundary, business priority, cross-organization dispute escalation, and final go or no-go authority.">批准迁移路径、预算边界、业务优先级、跨组织争议升级和最终 go/no-go 权限。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">02</span>
+              <h3 data-zh="业务与数据 Owner" data-en="Business and Data Owners">业务与数据 Owner</h3>
+              <p data-zh="批准流程边界、记录归属、共享字段、历史范围、对账阈值和业务场景验收。" data-en="Approve process boundaries, record ownership, shared fields, historical scope, reconciliation thresholds, and business-scenario acceptance.">批准流程边界、记录归属、共享字段、历史范围、对账阈值和业务场景验收。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">03</span>
+              <h3 data-zh="法务、安全与合规" data-en="Legal, Security, and Compliance">法务、安全与合规</h3>
+              <p data-zh="确认跨境、隐私、合同、法律保留、审计证据、删除和源侧保留期限。" data-en="Confirm cross-border, privacy, contractual, legal-hold, audit-evidence, deletion, and source-retention requirements.">确认跨境、隐私、合同、法律保留、审计证据、删除和源侧保留期限。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">04</span>
+              <h3 data-zh="技术与运营负责人" data-en="Technical and Operations Owners">技术与运营负责人</h3>
+              <p data-zh="对 solution、数据、身份、集成、切换、回退、监控、支持和知识移交提供可验证证据。" data-en="Provide verifiable evidence for solutions, data, identity, integrations, cutover, rollback, monitoring, support, and knowledge transfer.">对 solution、数据、身份、集成、切换、回退、监控、支持和知识移交提供可验证证据。</p>
+            </article>
+          </div>
+
+          <div data-present-step data-step-title="发现阶段必须关闭的八项未知" data-step-title-en="Eight Unknowns Discovery Must Close" data-step-label="08 / GOVERNANCE">
+            <table class="simple-table">
+              <thead><tr><th data-zh="未知项" data-en="Unknown">未知项</th><th data-zh="需要的证据" data-en="Required Evidence">需要的证据</th><th data-zh="影响的决策" data-en="Decision Affected">影响的决策</th></tr></thead>
+              <tbody>
+                <tr><td data-zh="1 · CRM 所有权是否整体转移" data-en="1 · Whether CRM Ownership Transfers in Full">1 · CRM 所有权是否整体转移</td><td data-zh="法律实体、业务 owner 与源侧持续使用声明" data-en="Legal-entity, business-owner, and source-continuity statements">法律实体、业务 owner 与源侧持续使用声明</td><td data-zh="方案 A 或 B" data-en="Option A or B">方案 A 或 B</td></tr>
+                <tr><td data-zh="2 · 环境与产品范围" data-en="2 · Environment and Product Scope">2 · 环境与产品范围</td><td data-zh="Production/Sandbox/Default 等环境及 D365 模块清单" data-en="Inventory of Production, Sandbox, Default, and other environments plus D365 modules">Production/Sandbox/Default 等环境及 D365 模块清单</td><td data-zh="官方支持路径与专门 runbook" data-en="Official support path and product-specific runbooks">官方支持路径与专门 runbook</td></tr>
+                <tr><td data-zh="3 · 数据规模与复杂度" data-en="3 · Data Scale and Complexity">3 · 数据规模与复杂度</td><td data-zh="每表记录、附件容量、审计、关系图与增长率" data-en="Rows per table, attachment capacity, audit, relationship graph, and growth rate">每表记录、附件容量、审计、关系图与增长率</td><td data-zh="工具、波次与窗口" data-en="Tooling, waves, and window">工具、波次与窗口</td></tr>
+                <tr><td data-zh="4 · 目标范围数据判定规则" data-en="4 · Target-Scope Data Classification Rules">4 · 目标范围数据判定规则</td><td data-zh="法律实体、区域、owner/team、流程和共享记录样本" data-en="Legal entity, geography, owner/team, process, and shared-record samples">法律实体、区域、owner/team、流程和共享记录样本</td><td data-zh="迁移范围与依赖闭包" data-en="Migration scope and dependency closure">迁移范围与依赖闭包</td></tr>
+                <tr><td data-zh="5 · 身份与许可" data-en="5 · Identity and Licensing">5 · 身份与许可</td><td data-zh="目标用户、groups、roles、application users 与容量估算" data-en="Target users, groups, roles, application users, and capacity estimate">目标用户、groups、roles、application users 与容量估算</td><td data-zh="目标租户就绪与访问模型" data-en="Target readiness and access model">目标租户就绪与访问模型</td></tr>
+                <tr><td data-zh="6 · 集成与协作依赖" data-en="6 · Integration and Collaboration Dependencies">6 · 集成与协作依赖</td><td data-zh="接口、connections、gateways、Exchange、SharePoint、Power BI 与调用方" data-en="Interfaces, connections, gateways, Exchange, SharePoint, Power BI, and callers">接口、connections、gateways、Exchange、SharePoint、Power BI 与调用方</td><td data-zh="重建工作量与切换顺序" data-en="Rebuild effort and cutover order">重建工作量与切换顺序</td></tr>
+                <tr><td data-zh="7 · 合规与保留" data-en="7 · Compliance and Retention">7 · 合规与保留</td><td data-zh="合同、隐私、跨境、legal hold、审计和删除要求" data-en="Contractual, privacy, cross-border, legal-hold, audit, and deletion requirements">合同、隐私、跨境、legal hold、审计和删除要求</td><td data-zh="字段范围、历史与源侧退出" data-en="Field scope, history, and source exit">字段范围、历史与源侧退出</td></tr>
+                <tr><td data-zh="8 · 停机容忍度与业务日历" data-en="8 · Outage Tolerance and Business Calendar">8 · 停机容忍度与业务日历</td><td data-zh="关键时区、月末/季末、服务窗口与手工应急流程" data-en="Critical time zones, month or quarter close, service windows, and manual contingency processes">关键时区、月末/季末、服务窗口与手工应急流程</td><td data-zh="演练设计、窗口与回退时点" data-en="Rehearsal design, window, and rollback point">演练设计、窗口与回退时点</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="quote-block">
+            <strong data-zh="建议批准的四项立项原则" data-en="Four Principles Recommended for Project Approval">建议批准的四项立项原则</strong>
+            <span data-zh="一，在源端与目标端继续运营时以选择性拆分为基线，同时保留发现阶段改选整环境转移的权利；二，目标租户采用独立 Dev/Test/Production 与 managed-solution ALM；三，数据范围必须由业务、法务和数据 owner 共同批准；四，生产迁移仅在至少两次完整演练、量化对账和回退演练通过后获批。" data-en="First, use selective carve-out as the baseline when source and target continue operating, while retaining the right to switch to a whole-environment move during discovery. Second, use independent Development, Test, and Production environments with managed-solution ALM in the target tenant. Third, require joint approval of data scope by business, legal, and data owners. Fourth, approve production migration only after at least two full rehearsals, quantified reconciliation, and rollback rehearsal pass.">一，在源端与目标端继续运营时以选择性拆分为基线，同时保留发现阶段改选整环境转移的权利；二，目标租户采用独立 Dev/Test/Production 与 managed-solution ALM；三，数据范围必须由业务、法务和数据 owner 共同批准；四，生产迁移仅在至少两次完整演练、量化对账和回退演练通过后获批。</span>
+          </div>
+        </section>
+
+        <section id="references" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="09 / 参考来源" data-en="09 / References">09 / 参考来源</p>
+            <h2 data-zh="Microsoft 官方资料界定能力与限制" data-en="Microsoft Official Sources Define Capabilities and Constraints">Microsoft 官方资料界定能力与限制</h2>
+            <p data-zh="下列资料支撑本文对整环境移动（换租户与换区域）、ALM、环境策略、数据迁移、身份访问、邮件与文档依赖的判断。方案中的路径推荐属于基于客户工作假设的架构推论；客户专属周期、成本、合规结论和停机窗口仍需发现与演练证据。" data-en="The sources below support the judgments about whole-environment moves (change of tenant and change of region), ALM, environment strategy, data migration, identity and access, email, and document dependencies. The path recommendation is an architectural inference from the customer working assumption; customer-specific duration, cost, compliance conclusions, and outage window still require discovery and rehearsal evidence.">下列资料支撑本文对整环境移动（换租户与换区域）、ALM、环境策略、数据迁移、身份访问、邮件与文档依赖的判断。方案中的路径推荐属于基于客户工作假设的架构推论；客户专属周期、成本、合规结论和停机窗口仍需发现与演练证据。</p>
+          </div>
+
+          <div data-present-step data-step-title="参考来源：迁移与 ALM" data-step-title-en="References: Migration and ALM" data-step-label="09 / REFERENCES">
+            <ul class="bib-list">
+              <li><span class="bib-id">[01]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/power-platform/admin/move-environment-tenant" target="_blank" rel="noopener" data-zh="Microsoft Learn · Tenant-to-tenant migrations" data-en="Microsoft Learn · Tenant-to-Tenant Migrations">Microsoft Learn · Tenant-to-tenant migrations</a><span class="bib-note" data-zh="页面日期 2026-06-04，内容更新至 2026-07-13。支撑整 Dataverse organization 迁移单位、Production/Sandbox 支持范围、URL/OrgID/名称保持、源环境不再含 Dataverse、用户映射、七天有效期、安全组与 application users 不迁移，以及 Power Apps、Power Automate、Power Pages、Copilot Studio、Customer Insights 等前后置步骤。" data-en="Page date 2026-06-04, content updated 2026-07-13. Supports the complete Dataverse organization as the move unit, Production and Sandbox scope, retained URL, OrgID, and name, removal of Dataverse from the source environment, user mapping, seven-day validity, nonmigration of security groups and application users, and product-specific pre- and post-move steps.">页面日期 2026-06-04，内容更新至 2026-07-13。支撑整 Dataverse organization 迁移单位、Production/Sandbox 支持范围、URL/OrgID/名称保持、源环境不再含 Dataverse、用户映射、七天有效期、安全组与 application users 不迁移，以及 Power Apps、Power Automate、Power Pages、Copilot Studio、Customer Insights 等前后置步骤。</span></li>
+              <li><span class="bib-id">[02]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/power-platform/alm/solution-concepts-alm" target="_blank" rel="noopener" data-zh="Microsoft Learn · Solution concepts with Power Platform" data-en="Microsoft Learn · Solution Concepts with Power Platform">Microsoft Learn · Solution concepts with Power Platform</a><span class="bib-note" data-zh="支撑 solutions 作为 ALM 机制、Development 使用 unmanaged、下游环境使用 managed、solution dependencies、publisher prefix 与元数据名称不可事后更改等约束。" data-en="Supports solutions as the ALM mechanism, unmanaged solutions in Development, managed solutions downstream, solution dependencies, publisher prefixes, and the immutability of metadata names after creation.">支撑 solutions 作为 ALM 机制、Development 使用 unmanaged、下游环境使用 managed、solution dependencies、publisher prefix 与元数据名称不可事后更改等约束。</span></li>
+              <li><span class="bib-id">[03]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/power-platform/alm/environment-strategy-alm" target="_blank" rel="noopener" data-zh="Microsoft Learn · ALM environment strategy considerations" data-en="Microsoft Learn · ALM Environment Strategy Considerations">Microsoft Learn · ALM environment strategy considerations</a><span class="bib-note" data-zh="支撑至少分离 Development、Test、Production，以及跨地域服务更新站点和 solution import 版本方向的注意事项。" data-en="Supports separating at least Development, Test, and Production and considering service-update stations and solution-import version direction across geographies.">支撑至少分离 Development、Test、Production，以及跨地域服务更新站点和 solution import 版本方向的注意事项。</span></li>
+              <li><span class="bib-id">[04]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/power-apps/developer/data-platform/dataverse-odata-dataflows-migration" target="_blank" rel="noopener" data-zh="Microsoft Learn · Migrate Data Between Dataverse Environments Using the OData Connector" data-en="Microsoft Learn · Migrate Data Between Dataverse Environments Using the OData Connector">Microsoft Learn · Migrate Data Between Dataverse Environments Using the OData Connector</a><span class="bib-note" data-zh="页面日期 2026-03-12。支撑 Dataflows 跨租户场景、目标先部署相同 schema、父表先于子表、alternate keys、以及 many-to-many、Status 和 Status Reason 限制。" data-en="Page date 2026-03-12. Supports cross-tenant Dataflows scenarios, target schema deployment first, parent-before-child ordering, alternate keys, and limitations for many-to-many, Status, and Status Reason.">页面日期 2026-03-12。支撑 Dataflows 跨租户场景、目标先部署相同 schema、父表先于子表、alternate keys、以及 many-to-many、Status 和 Status Reason 限制。</span></li>
+              <li><span class="bib-id">[05]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/azure/data-factory/connector-dynamics-crm-office-365" target="_blank" rel="noopener" data-zh="Microsoft Learn · Copy and transform data in Dynamics 365 or Dynamics CRM" data-en="Microsoft Learn · Copy and Transform Data in Dynamics 365 or Dynamics CRM">Microsoft Learn · Copy and transform data in Dynamics 365 or Dynamics CRM</a><span class="bib-note" data-zh="内容更新至 2026-07-08。支撑 ADF/Synapse Dynamics connector 的 source/sink、service principal、Upsert、batch 与并发限制，以及 PartyList 等数据类型限制。" data-en="Content updated 2026-07-08. Supports ADF/Synapse Dynamics connector source and sink capabilities, service-principal authentication, Upsert, batch and concurrency limits, and data-type limitations such as PartyList.">内容更新至 2026-07-08。支撑 ADF/Synapse Dynamics connector 的 source/sink、service principal、Upsert、batch 与并发限制，以及 PartyList 等数据类型限制。</span></li>
+            </ul>
+          </div>
+
+          <div data-present-step data-step-title="参考来源：身份、邮件与文档" data-step-title-en="References: Identity, Email, and Documents" data-step-label="09 / REFERENCES">
+            <ul class="bib-list">
+              <li><span class="bib-id">[06]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/power-platform/admin/control-user-access" target="_blank" rel="noopener" data-zh="Microsoft Learn · Control user access to environments with security groups and licenses" data-en="Microsoft Learn · Control User Access to Environments with Security Groups and Licenses">Microsoft Learn · Control user access to environments with security groups and licenses</a><span class="bib-note" data-zh="支撑环境 security group、license 与 security role 的共同访问条件，以及加入或移出组后对环境用户状态的影响。" data-en="Supports the combined environment security-group, license, and security-role access conditions and the effects of group membership changes on environment user status.">支撑环境 security group、license 与 security role 的共同访问条件，以及加入或移出组后对环境用户状态的影响。</span></li>
+              <li><span class="bib-id">[07]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/power-platform/admin/manage-group-teams" target="_blank" rel="noopener" data-zh="Microsoft Learn · Manage group teams" data-en="Microsoft Learn · Manage Group Teams">Microsoft Learn · Manage group teams</a><span class="bib-note" data-zh="内容更新至 2026-07-11。支撑 Microsoft Entra group teams、动态成员、security role 继承、owner/team 记录和环境安全组关系。" data-en="Content updated 2026-07-11. Supports Microsoft Entra group teams, dynamic membership, security-role inheritance, user- and team-owned records, and the relationship with environment security groups.">内容更新至 2026-07-11。支撑 Microsoft Entra group teams、动态成员、security role 继承、owner/team 记录和环境安全组关系。</span></li>
+              <li><span class="bib-id">[08]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/power-platform/admin/manage-application-users" target="_blank" rel="noopener" data-zh="Microsoft Learn · Manage application users in the Power Platform admin center" data-en="Microsoft Learn · Manage Application Users in the Power Platform Admin Center">Microsoft Learn · Manage application users in the Power Platform admin center</a><span class="bib-note" data-zh="页面日期 2026-04-03。支撑目标 Microsoft Entra app registration、Dataverse application user、business unit 与 security role 的创建和管理。" data-en="Page date 2026-04-03. Supports creating and managing target Microsoft Entra app registrations, Dataverse application users, business units, and security roles.">页面日期 2026-04-03。支撑目标 Microsoft Entra app registration、Dataverse application user、business unit 与 security role 的创建和管理。</span></li>
+              <li><span class="bib-id">[09]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/power-platform/admin/connect-exchange-online" target="_blank" rel="noopener" data-zh="Microsoft Learn · Connect to Exchange Online" data-en="Microsoft Learn · Connect to Exchange Online">Microsoft Learn · Connect to Exchange Online</a><span class="bib-note" data-zh="支撑同租户 S2S 与 cross-tenant OAuth profile、server-side synchronization、mailbox approval 和 Test & Enable 验收。" data-en="Supports same-tenant S2S and cross-tenant OAuth profiles, server-side synchronization, mailbox approval, and Test & Enable acceptance.">支撑同租户 S2S 与 cross-tenant OAuth profile、server-side synchronization、mailbox approval 和 Test & Enable 验收。</span></li>
+              <li><span class="bib-id">[10]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/power-platform/admin/set-up-sharepoint-integration" target="_blank" rel="noopener" data-zh="Microsoft Learn · Benefits of document management with SharePoint integration" data-en="Microsoft Learn · Benefits of Document Management with SharePoint Integration">Microsoft Learn · Benefits of document management with SharePoint integration</a><span class="bib-note" data-zh="支撑 Dynamics 365 / Dataverse model-driven apps 使用 server-based SharePoint integration 管理与记录关联的文档，以及 SharePoint 权限为独立依赖。" data-en="Supports server-based SharePoint integration for documents associated with Dynamics 365 or Dataverse model-driven records and establishes SharePoint permissions as a separate dependency.">支撑 Dynamics 365 / Dataverse model-driven apps 使用 server-based SharePoint integration 管理与记录关联的文档，以及 SharePoint 权限为独立依赖。</span></li>
+              <li><span class="bib-id">[11]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/power-platform/alm/use-solutions-for-your-customizations" target="_blank" rel="noopener" data-zh="Microsoft Learn · Use a solution to customize in Power Platform" data-en="Microsoft Learn · Use a Solution to Customize in Power Platform">Microsoft Learn · Use a solution to customize in Power Platform</a><span class="bib-note" data-zh="支撑使用 custom solution 管理定制，以及 Default Solution 不可导出、可能遗漏组件和 publisher prefix 不受控等风险。" data-en="Supports managing customizations in custom solutions and the risks that the Default Solution is nonexportable, can leave components behind, and applies uncontrolled publisher prefixes.">支撑使用 custom solution 管理定制，以及 Default Solution 不可导出、可能遗漏组件和 publisher prefix 不受控等风险。</span></li>
+            </ul>
+          </div>
+
+          <div data-present-step data-step-title="参考来源：区域迁移与数据驻留" data-step-title-en="References: Region Migration and Data Residency" data-step-label="09 / REFERENCES">
+            <ul class="bib-list">
+              <li><span class="bib-id">[12]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/power-platform/admin/geo-to-geo-migrations" target="_blank" rel="noopener" data-zh="Microsoft Learn · Geo-to-geo migrations" data-en="Microsoft Learn · Geo-to-Geo Migrations">Microsoft Learn · Geo-to-geo migrations</a><span class="bib-note" data-zh="页面日期 2026-06-26，内容更新至 2026-06-27。支撑同租户内跨区域移动、租户不变、支持有限且通常不可用需经技术支持发起、至少 10 天周期、cut-over 1–6 小时至 48 小时、URL 改变与 environment ID 变为新 GUID、备份/Managed Environment/企业策略/Lockbox/DLP/环境组/PAYG/货币分配丢失，以及 US GCC、GCC High、中国不支持与 OCE、IND 受限。" data-en="Page date 2026-06-26, content updated 2026-06-27. Supports the single-tenant cross-region move with an unchanged tenant, limited and generally unavailable support initiated through Technical Support, a lead time of at least 10 days, a 1-to-6-hour up to 48-hour cut-over, a changed URL and a new environment ID GUID, loss of backups, Managed Environment status, enterprise policies, Lockbox, DLP, environment group, pay-as-you-go, and currency allocations, and the restrictions that US GCC, GCC High, and China are unsupported while OCE and IND are restricted.">页面日期 2026-06-26，内容更新至 2026-06-27。支撑同租户内跨区域移动、租户不变、支持有限且通常不可用需经技术支持发起、至少 10 天周期、cut-over 1–6 小时至 48 小时、URL 改变与 environment ID 变为新 GUID、备份/Managed Environment/企业策略/Lockbox/DLP/环境组/PAYG/货币分配丢失，以及 US GCC、GCC High、中国不支持与 OCE、IND 受限。</span></li>
+            </ul>
+          </div>
+
+          <div data-present-step data-step-title="参考来源：方法论与项目治理" data-step-title-en="References: Methodology and Project Governance" data-step-label="09 / REFERENCES">
+            <ul class="bib-list">
+              <li><span class="bib-id">[13]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/dynamics365/guidance/implementation-guide/success-by-design" target="_blank" rel="noopener" data-zh="Microsoft Learn · Success by Design 框架简介" data-en="Microsoft Learn · Introduction to the Success by Design Framework">Microsoft Learn · Success by Design 框架简介</a><span class="bib-note" data-zh="内容更新至 2026-06-23。支撑把 Dynamics 365 实施生命周期归纳为 Discover、Initiate、Implement、Prepare、Operate 五个方法论无关阶段，以及 Solution Blueprint Review、Implementation Reviews、Go-live Readiness Review 三道评审、Findings（Assertions/Risks/Issues）模型，和 Success by Design 作为与团队实施方法论并行的治理框架定位。" data-en="Content updated 2026-06-23. Supports mapping the Dynamics 365 implementation lifecycle into the five methodology-agnostic phases Discover, Initiate, Implement, Prepare, and Operate, the Solution Blueprint Review, Implementation Reviews, and Go-live Readiness Review, the findings model (assertions, risks, issues), and the positioning of Success by Design as a governance framework used alongside the team's implementation methodology.">内容更新至 2026-06-23。支撑把 Dynamics 365 实施生命周期归纳为 Discover、Initiate、Implement、Prepare、Operate 五个方法论无关阶段，以及 Solution Blueprint Review、Implementation Reviews、Go-live Readiness Review 三道评审、Findings（Assertions/Risks/Issues）模型，和 Success by Design 作为与团队实施方法论并行的治理框架定位。</span></li>
+            </ul>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <p data-zh="&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。" data-en="&copy; 2026 illusion615's Knowledge Hub | Interactive HTML page.">&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。</p>
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

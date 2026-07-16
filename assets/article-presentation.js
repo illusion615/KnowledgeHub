@@ -193,6 +193,19 @@ document.addEventListener('DOMContentLoaded', function () {
     return pack[key] || '';
   };
 
+  // Build a shareable URL that carries the current language, theme, and style
+  // so a reader who opens the link keeps the sharer's selection.
+  var buildShareUrl = function () {
+    var lang = getLang();
+    var theme = root.getAttribute('data-theme') || localStorage.getItem('theme') || 'light';
+    var style = root.getAttribute('data-style') || localStorage.getItem('article-style') || 'clean';
+    var loc = window.location;
+    var base = (loc.origin && loc.origin !== 'null') ? loc.origin + loc.pathname : loc.href.split('#')[0].split('?')[0];
+    var parts = ['lang=' + (lang === 'en' ? 'en' : 'zh'), 'theme=' + (theme === 'dark' ? 'dark' : 'light')];
+    if (style && style !== 'clean') parts.push('style=' + style);
+    return base + '?' + parts.join('&') + (loc.hash || '');
+  };
+
   var applyLanguageToDocument = function (lang) {
     var targetLang = lang === 'en' ? 'en' : 'zh';
     var htmlLang = targetLang === 'zh' ? 'zh-CN' : 'en';
@@ -615,6 +628,109 @@ document.addEventListener('DOMContentLoaded', function () {
     var showFabBtn = panel.querySelector('[data-launch="showFab"]');
     var transitionOptions = panel.querySelectorAll('[data-transition-style]');
 
+    var syncLaunchPanelCopy = function () {
+      zhMode = getLang() === 'zh';
+
+      var text = function (el, zh, en) {
+        if (el) el.textContent = zhMode ? zh : en;
+      };
+      var attr = function (el, name, zh, en) {
+        if (el) el.setAttribute(name, zhMode ? zh : en);
+      };
+      var rowLabel = function (control, zh, en) {
+        var row = control ? control.closest('.launch-row') : null;
+        text(row ? row.querySelector('span') : null, zh, en);
+      };
+      var optionText = function (select, value, zh, en) {
+        if (!select) return;
+        Array.prototype.forEach.call(select.options, function (option) {
+          if (option.value === value) option.textContent = zhMode ? zh : en;
+        });
+      };
+
+      var titles = panel.querySelectorAll('.launch-section-title');
+      text(titles[0], '语音讲解', 'Narration');
+      text(titles[1], '显示', 'Display');
+      text(titles[2], '外观', 'Appearance');
+      text(titles[3], '过渡风格', 'Transition');
+
+      rowLabel(autoNarrateBtn, '自动语音讲解', 'Auto narration');
+      attr(autoNarrateBtn, 'aria-label', '自动语音讲解', 'Auto narration');
+      rowLabel(ttsSelect, '引擎', 'Engine');
+      optionText(ttsSelect, 'browser', '浏览器内置', 'Browser');
+
+      rowLabel(mossTtsVoiceSelect, '音色', 'Voice');
+      optionText(mossTtsVoiceSelect, 'vivian', 'vivian (活泼女声)', 'vivian (Female ZH)');
+      optionText(mossTtsVoiceSelect, 'serena', 'serena (温柔女声)', 'serena (Female ZH)');
+      optionText(mossTtsVoiceSelect, 'uncle_fu', 'uncle_fu (成熟男声)', 'uncle_fu (Male ZH)');
+      optionText(mossTtsVoiceSelect, 'dylan', 'dylan (京腔男声)', 'dylan (Male Beijing)');
+      optionText(mossTtsVoiceSelect, 'ryan', 'ryan (英文男声)', 'ryan (Male EN)');
+      optionText(mossTtsVoiceSelect, 'aiden', 'aiden (美式男声)', 'aiden (Male US)');
+      var cloneRecordBtn = panel.querySelector('.launch-clone-record');
+      var cloneDeleteBtn = panel.querySelector('.launch-clone-delete');
+      attr(cloneRecordBtn, 'title', '录制新声音', 'Record new clone');
+      attr(cloneRecordBtn, 'aria-label', '录制新声音', 'Record new clone');
+      attr(cloneDeleteBtn, 'title', '删除当前克隆', 'Delete current clone');
+      attr(cloneDeleteBtn, 'aria-label', '删除', 'Delete');
+
+      rowLabel(launchCloneQualitySelect, '克隆质量', 'Clone quality');
+      optionText(launchCloneQualitySelect, '8bit', '快速（8bit）', 'Fast (8bit)');
+      optionText(launchCloneQualitySelect, 'bf16', '高质（bf16）', 'High quality (bf16)');
+      rowLabel(fishVoiceInput, '音色', 'Voice');
+      if (fishVoiceInput) fishVoiceInput.placeholder = zhMode ? '留空 = 默认音色' : 'blank = default';
+      rowLabel(emotionSelect, '情绪', 'Emotion');
+      optionText(emotionSelect, 'default', '默认讲解', 'Default narrator');
+      optionText(emotionSelect, 'passionate', '充满激情', 'Passionate');
+      optionText(emotionSelect, 'inspiring', '激励鼓舞', 'Inspiring');
+      optionText(emotionSelect, 'warm', '温暖亲切', 'Warm');
+      optionText(emotionSelect, 'cheerful', '轻松愉快', 'Cheerful');
+      optionText(emotionSelect, 'serious', '严肃权威', 'Serious');
+      optionText(emotionSelect, 'storytelling', '娓娓道来', 'Storytelling');
+      optionText(emotionSelect, 'urgent', '紧迫急切', 'Urgent');
+
+      rowLabel(voiceSelect, '音色', 'Voice');
+      optionText(voiceSelect, '', '自动', 'Auto');
+      attr(panel.querySelector('[data-launch="voiceName"] + .launch-voice-test'), 'aria-label', '试听', 'Preview');
+      rowLabel(rateInput, '语速', 'Speed');
+
+      var focusModeBtn = panel.querySelector('[data-launch="focusMode"]');
+      rowLabel(focusModeBtn, '焦点模式', 'Focus mode');
+      attr(focusModeBtn, 'aria-label', '焦点模式：突出当前段落并虚化其他内容', 'Focus mode: highlight active block, dim others');
+      rowLabel(mobilePresentBtn, '手机优化', 'Mobile optimized');
+      attr(mobilePresentBtn, 'aria-label', '手机优化', 'Mobile optimized');
+      rowLabel(showLogoBtn, '左下角 Logo', 'Bottom-left logo');
+      attr(showLogoBtn, 'aria-label', '显示左下角 Logo', 'Show bottom-left logo');
+      rowLabel(showFabBtn, '右下角按钮', 'Bottom-right buttons');
+      attr(showFabBtn, 'aria-label', '显示右下角按钮', 'Show bottom-right buttons');
+
+      var bgGroup = panel.querySelector('[data-launch="presentBg"]');
+      var fontControl = panel.querySelector('[data-launch="presentFont"]');
+      rowLabel(bgGroup, '背景', 'Background');
+      if (bgGroup) {
+        text(bgGroup.querySelector('[data-value="default"]'), '默认', 'Default');
+        text(bgGroup.querySelector('[data-value="white"]'), '纯白', 'White');
+        text(bgGroup.querySelector('[data-value="black"]'), '纯黑', 'Black');
+        text(bgGroup.querySelector('[data-value="gray"]'), '浅灰', 'Gray');
+      }
+      rowLabel(fontControl, '字体', 'Font');
+
+      transitionOptions.forEach(function (button) {
+        var label = button.querySelectorAll('span')[1];
+        var style = button.getAttribute('data-transition-style');
+        if (style === 'fade') text(label, '淡入', 'Fade');
+        if (style === 'morph') text(label, '变形', 'Morph');
+        if (style === 'slide') text(label, '滑动', 'Slide');
+        if (style === 'zoom') text(label, '缩放', 'Zoom');
+      });
+
+      var playBtn = panel.querySelector('.launch-play-btn');
+      attr(playBtn, 'aria-label', '开始演示', 'Start Presentation');
+      text(panel.querySelector('.launch-hero-label'), '开始演示', 'Start Presentation');
+    };
+
+    panel._syncCopy = syncLaunchPanelCopy;
+    syncLaunchPanelCopy();
+
     var showLogo = localStorage.getItem('present-show-logo') !== 'false'; // default true
     var showFab = localStorage.getItem('present-show-fab') !== 'false';   // default true
     var presentTransition = localStorage.getItem('present-transition-style') || 'fade';
@@ -926,6 +1042,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.addEventListener('langChanged', function () {
       var selectedLang = getLang();
+      syncLaunchPanelCopy();
       if (ttsSelect.value !== 'vibevoice') {
         lastBrowserVoice = '';
         syncVoiceList();
@@ -1464,7 +1581,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var showWechatQr = function () {
       var qrImg = wechatPanel.querySelector('.share-wechat-qr-img');
       var qrTip = wechatPanel.querySelector('.share-wechat-qr-tip');
-      var url = window.location.href;
+      var url = buildShareUrl();
       qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=' + encodeURIComponent(url);
       qrTip.textContent = getLabel('wechatScanTip');
       wechatPanel.style.display = 'flex';
@@ -1504,7 +1621,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Copy URL handler
     copyItem.addEventListener('click', function () {
-      var url = window.location.href;
+      var url = buildShareUrl();
       var label = copyItem.querySelector('.share-item-label');
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(url).then(function () {
@@ -3071,7 +3188,7 @@ document.addEventListener('DOMContentLoaded', function () {
         mailtoTrigger.addEventListener('click', function (e) {
           e.preventDefault();
           var subject = encodeURIComponent(title);
-          var mailBody = encodeURIComponent(title + '\n\n' + window.location.href);
+          var mailBody = encodeURIComponent(title + '\n\n' + buildShareUrl());
           win.location.href = 'mailto:?subject=' + subject + '&body=' + mailBody;
         });
       }
@@ -3391,7 +3508,7 @@ document.addEventListener('DOMContentLoaded', function () {
       endQrWrap.style.display = showQR ? '' : 'none';
       var endQrImg = document.createElement('img');
       endQrImg.alt = 'QR Code';
-      endQrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=8&data=' + encodeURIComponent(window.location.href);
+      endQrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=8&data=' + encodeURIComponent(buildShareUrl());
       endQrWrap.appendChild(endQrImg);
       var endQrTip = document.createElement('span');
       endQrTip.className = 'present-end-qr-tip';
@@ -4492,6 +4609,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (wrapper) {
       e.stopPropagation();
       buildLaunchPanel();
+      if (wrapper._panel && wrapper._panel._syncCopy) wrapper._panel._syncCopy();
       if (wrapper.classList.contains('is-open')) {
         closeTopbarPanels();
       } else {
@@ -4526,6 +4644,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var cur = getLang();
     var next = cur === 'zh' ? 'en' : 'zh';
     applyLanguageToDocument(next);
+    updatePresentationLabels();
     var labelSpan = langToggleBtn.querySelector('.topbar-lang-label');
     if (labelSpan) labelSpan.textContent = next === 'zh' ? 'EN' : '中';
     var themeBtn = topbar.querySelector('[data-theme-toggle]');
