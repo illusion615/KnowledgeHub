@@ -191,15 +191,15 @@ var knowledgeTree = [
     parentId: 'agentic-crm-solution',
     type: 'article',
     title: {
-      zh: 'Agentic CRM：以业务周期为中心重构客户经营',
-      en: 'Agentic CRM: Rebuilding Customer Operations Around the Business Cycle'
+      zh: 'Agentic CRM：重构 AI 时代的客户经营',
+      en: 'Agentic CRM: Reinventing Customer Operations for the AI Era'
     },
     summary: {
-      zh: '以端到端业务周期重新定义 AI 时代 CRM，连接 BizApps、Modern Work 与 Azure，并以 Sales/Service Mobile 验证落地。',
-      en: 'Redefines CRM around the end-to-end business cycle, connecting BizApps, Modern Work, and Azure with Sales and Service Mobile practices.'
+      zh: '以六阶段客户生命周期重定义 Agentic CRM，映射 24 个场景，并提供 ROI、启动时机与扩展规模的评估框架。',
+      en: 'Frames Agentic CRM across six lifecycle stages, maps 24 scenarios, and provides a framework for ROI, launch timing, and scale decisions.'
     },
-    tags: ['Agentic CRM', 'Business Cycle', 'BizApps', 'Modern Work', 'Microsoft Foundry'],
-    date: '2026-07-15',
+    tags: ['Agentic CRM', 'Customer Lifecycle', 'AI ROI', 'AI Scenario Map', 'BizApps', 'Microsoft Foundry'],
+    date: '2026-07-17',
     url: 'posts/agentic-crm-business-cycle/index.html',
     color: '#a855f7',
     phase: 0.48, speed: 0.86,
@@ -408,7 +408,7 @@ var knowledgeTree = [
 
   {
     id: 'dynamics-365-contact-center-ccaas',
-    parentId: 'business-ai-solution',
+    parentId: 'agentic-crm-solution',
     type: 'article',
     title: {
       zh: 'Dynamics 365 Contact Center：CCaaS 评估指南',
@@ -423,7 +423,7 @@ var knowledgeTree = [
     url: 'posts/dynamics-365-contact-center-ccaas/index.html',
     color: '#a855f7',
     phase: 5.35, speed: 0.84,
-    relations: ['power-platform-governance', 'copilot-studio-overview', 'life-science-ai-blueprint']
+    relations: ['agentic-crm-business-cycle', 'power-platform-governance', 'copilot-studio-overview', 'life-science-ai-blueprint']
   },
 
   // ════════════════════════════════════════
@@ -1655,12 +1655,154 @@ var knowledgeTree = [
     phase: 0.2, speed: 0.88
   },
   {
-    id: 'edu-calculus',
+    id: 'edu-high-school-math',
     parentId: 'edu-fundamentals',
+    type: 'topic',
+    label: { zh: '高中数学', en: 'High School Mathematics' },
+    color: '#f59e0b',
+    phase: 0.35, speed: 0.90
+  },
+  {
+    id: 'edu-high-school-algebra-functions',
+    parentId: 'edu-high-school-math',
+    type: 'topic',
+    label: { zh: '代数与函数', en: 'Algebra and Functions' },
+    color: '#f97316',
+    phase: 0.7, speed: 0.92
+  },
+  {
+    id: 'edu-high-school-geometry-algebra',
+    parentId: 'edu-high-school-math',
+    type: 'topic',
+    label: { zh: '几何与代数', en: 'Geometry and Algebra' },
+    color: '#14b8a6',
+    phase: 1.45, speed: 0.90
+  },
+  {
+    id: 'edu-calculus',
+    parentId: 'edu-high-school-math',
     type: 'topic',
     label: { zh: '微积分', en: 'Calculus' },
     color: '#fb7185',
     phase: 0.3, speed: 0.9
+  },
+
+  // ════════════════════════════════════════
+  // 高中数学专题文章（2025 日常修订版课程标准）
+  // ════════════════════════════════════════
+  {
+    id: 'high-school-log-change-base',
+    parentId: 'edu-high-school-algebra-functions',
+    type: 'article',
+    title: {
+      zh: '对数换底公式：把陌生底数化成可计算形式',
+      en: 'Change of Base: Converting Any Logarithm Into a Computable Form'
+    },
+    summary: {
+      zh: '从指数定义推导换底公式，串联定义域、对数运算、方程、不等式与六道分层练习。',
+      en: 'Derives change of base from exponents, then connects domains, logarithm laws, equations, inequalities, and graded practice.'
+    },
+    tags: ['High School Mathematics', 'Logarithms', 'Change of Base', 'Functions'],
+    date: '2026-07-16',
+    url: 'posts/high-school-log-change-base/index.html',
+    color: '#f97316',
+    phase: 0.45, speed: 0.93,
+    relations: ['high-school-sequences', 'calculus-derivatives']
+  },
+  {
+    id: 'high-school-sequences',
+    parentId: 'edu-high-school-algebra-functions',
+    type: 'article',
+    title: {
+      zh: '数列：用离散函数描述递推与累积',
+      en: 'Sequences: Describing Recurrence and Accumulation With Discrete Functions'
+    },
+    summary: {
+      zh: '以离散函数统一数列表示、等差与等比通项、前 n 项和、现实建模及数学归纳法。',
+      en: 'Unifies sequence representations, arithmetic and geometric terms and sums, modeling, and mathematical induction.'
+    },
+    tags: ['High School Mathematics', 'Sequences', 'Arithmetic Sequence', 'Geometric Sequence'],
+    date: '2026-07-16',
+    url: 'posts/high-school-sequences/index.html',
+    color: '#f97316',
+    phase: 1.15, speed: 0.91,
+    relations: ['high-school-log-change-base', 'calculus-derivatives']
+  },
+  {
+    id: 'high-school-vector-operations',
+    parentId: 'edu-high-school-geometry-algebra',
+    type: 'article',
+    title: {
+      zh: '向量运算：加减、数乘、数量积与投影',
+      en: 'Vector Operations: Addition, Scalar Multiplication, Dot Products, and Projection'
+    },
+    summary: {
+      zh: '系统讲解向量加减、数乘、坐标、数量积与投影，并明确不存在通用的向量除以向量。',
+      en: 'Covers vector operations, coordinates, dot products, and projection while clarifying that general vector division is undefined.'
+    },
+    tags: ['High School Mathematics', 'Vectors', 'Dot Product', 'Projection'],
+    date: '2026-07-16',
+    url: 'posts/high-school-vector-operations/index.html',
+    color: '#14b8a6',
+    phase: 0.35, speed: 0.92,
+    relations: ['high-school-solid-geometry', 'high-school-conic-sections']
+  },
+  {
+    id: 'high-school-complex-numbers',
+    parentId: 'edu-high-school-geometry-algebra',
+    type: 'article',
+    title: {
+      zh: '复数：从数系扩充到复平面运算',
+      en: 'Complex Numbers: From Number-System Extension to Plane Geometry'
+    },
+    summary: {
+      zh: '从 i² = −1 建立复数代数形式、复平面、模、共轭与四则运算，并介绍三角表示。',
+      en: 'Builds complex form, plane geometry, modulus, conjugates, and arithmetic from i² = −1, with trigonometric form as extension.'
+    },
+    tags: ['High School Mathematics', 'Complex Numbers', 'Complex Plane', 'Conjugate'],
+    date: '2026-07-16',
+    url: 'posts/high-school-complex-numbers/index.html',
+    color: '#14b8a6',
+    phase: 1.05, speed: 0.90,
+    relations: ['high-school-vector-operations']
+  },
+  {
+    id: 'high-school-solid-geometry',
+    parentId: 'edu-high-school-geometry-algebra',
+    type: 'article',
+    title: {
+      zh: '立体几何：从空间关系到向量度量',
+      en: 'Solid Geometry: From Spatial Relations to Vector Measurement'
+    },
+    summary: {
+      zh: '贯通线面平行垂直、空间角与距离、几何体体积，以及方向向量和法向量的坐标方法。',
+      en: 'Connects spatial parallelism, perpendicularity, angles, distances, solids, direction vectors, and normal-vector methods.'
+    },
+    tags: ['High School Mathematics', 'Solid Geometry', 'Spatial Vectors', 'Planes'],
+    date: '2026-07-16',
+    url: 'posts/high-school-solid-geometry/index.html',
+    color: '#14b8a6',
+    phase: 1.75, speed: 0.88,
+    relations: ['high-school-vector-operations', 'high-school-conic-sections']
+  },
+  {
+    id: 'high-school-conic-sections',
+    parentId: 'edu-high-school-geometry-algebra',
+    type: 'article',
+    title: {
+      zh: '圆锥曲线：从轨迹定义到方程与性质',
+      en: 'Conic Sections: From Locus Definitions to Equations and Properties'
+    },
+    summary: {
+      zh: '以距离条件统一椭圆、双曲线和抛物线，讲解标准方程、焦点性质及直线联立。',
+      en: 'Unifies ellipses, hyperbolas, and parabolas through loci, standard equations, focal properties, and line intersections.'
+    },
+    tags: ['High School Mathematics', 'Conic Sections', 'Ellipse', 'Hyperbola', 'Parabola'],
+    date: '2026-07-16',
+    url: 'posts/high-school-conic-sections/index.html',
+    color: '#14b8a6',
+    phase: 2.45, speed: 0.86,
+    relations: ['high-school-vector-operations', 'high-school-solid-geometry']
   },
 
   // ════════════════════════════════════════
@@ -1713,15 +1855,15 @@ var knowledgeTree = [
       en: 'Derivatives: Capturing Instantaneous Rate of Change'
     },
     summary: {
-      zh: '从割线到切线、从平均速度到瞬时速度，用过山车和无人机案例讲解导数的几何与物理意义。',
-      en: 'From secant to tangent lines, explains derivatives through roller coaster and drone examples.'
+      zh: '从差商定义到公式、切线、单调性、极值与闭区间最值，覆盖 2025 课标高中导数完整范围。',
+      en: 'Covers the full 2025 senior-high derivative scope: limits, rules, tangents, monotonicity, and local and absolute extrema.'
     },
-    tags: ['Calculus', 'Derivatives', 'Tangent Line'],
-    date: '2026-04-14',
+    tags: ['Calculus', 'Derivatives', 'Tangent Line', 'Monotonicity', 'Extrema'],
+    date: '2026-07-16',
     url: 'posts/calculus-derivatives/index.html',
     color: '#fb7185',
     phase: 1.8, speed: 0.88,
-    relations: ['calculus-limits', 'calculus-integrals']
+    relations: ['calculus-limits', 'calculus-integrals', 'high-school-sequences', 'high-school-log-change-base']
   },
   {
     id: 'calculus-integrals',
