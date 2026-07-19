@@ -283,4 +283,203 @@
       }
     }
   }
+
+  // ── Inline citation linking (opt-in via [data-cite-links] on <html>/<body>) ──
+  // Converts bare [n] / [n][m] citation markers in article prose into compact,
+  // clickable superscripts that jump to the matching reference (#ref-n) and show
+  // the source title on hover. References are auto-anchored from their [n] bib-id,
+  // so no per-article markup is required. Runs after the initial i18n swap and
+  // re-runs on langChanged (the innerHTML swap restores raw [n] text each time).
+  var citeEscAttr = function (s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  };
+
+  var citeAnchor = function (num, label, title, targetId) {
+    if (!targetId) return '<span class="cite-nolink">' + label + '</span>';
+    return '<a href="#' + targetId + '" class="cite-link" data-ref="' + num +
+      '" title="' + citeEscAttr(title) + '">' + label + '</a>';
+  };
+
+  var citeBuildSup = function (nums, titles, refMap) {
+    // Split the cluster into consecutive runs; runs of 3+ collapse to "a–b"
+    // (linked to the first source), shorter runs list each number individually.
+    var groups = [];
+    var i = 0;
+    while (i < nums.length) {
+      var start = i;
+      while (i + 1 < nums.length && nums[i + 1] === nums[i] + 1) i += 1;
+      groups.push(nums.slice(start, i + 1));
+      i += 1;
+    }
+    var parts = [];
+    groups.forEach(function (g) {
+      if (g.length >= 3) {
+        var a = g[0];
+        var b = g[g.length - 1];
+        parts.push(citeAnchor(a, a + '\u2013' + b, 'Sources [' + a + ']\u2013[' + b + ']', refMap[a]));
+      } else {
+        g.forEach(function (n) {
+          parts.push(citeAnchor(n, String(n), titles[n] || ('Reference [' + n + ']'), refMap[n]));
+        });
+      }
+    });
+    return '<sup class="cite">' + parts.join('<span class="cite-sep">,</span>') + '</sup>';
+  };
+
+  var applyCitationLinks = function () {
+    // Opt-out escape hatch; otherwise auto-enabled for any article that has a
+    // bibliography (.bib-list). Articles without references are left untouched.
+    if (document.documentElement.hasAttribute('data-no-cite') ||
+        (document.body && document.body.hasAttribute('data-no-cite'))) return;
+    var scope = document.querySelector('.page-shell') || document.body;
+    if (!scope) return;
+
+    // 1) Auto-anchor references and collect source titles + real anchor ids.
+    //    Keys are normalized to integers so inline [1] matches a [01] bib-id,
+    //    and refMap points to each reference's actual id (possibly pre-authored).
+    var titles = {};
+    var refMap = {};
+    var bibItems = document.querySelectorAll('.bib-list li');
+    if (!bibItems.length) return;
+    Array.prototype.forEach.call(bibItems, function (li) {
+      var idSpan = li.querySelector('.bib-id');
+      if (!idSpan) return;
+      var m = (idSpan.textContent || '').match(/\d+/);
+      if (!m) return;
+      var num = parseInt(m[0], 10);
+      if (!li.id) li.id = 'ref-' + num;
+      refMap[num] = li.id;
+      var author = li.querySelector('.bib-author');
+      titles[num] = author ? (author.textContent || '').replace(/\s+/g, ' ').trim() : '';
+    });
+
+    // 2) Linkify [n] clusters in prose, skipping refs/links/code/existing cites.
+    var SKIP = { A: 1, CODE: 1, PRE: 1, SCRIPT: 1, STYLE: 1, SUP: 1, BUTTON: 1 };
+    var walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, {
+      acceptNode: function (node) {
+        if (!node.nodeValue || node.nodeValue.indexOf('[') === -1) return NodeFilter.FILTER_REJECT;
+        var p = node.parentNode;
+        while (p && p !== scope) {
+          if (p.nodeType === 1) {
+            if (SKIP[p.tagName]) return NodeFilter.FILTER_REJECT;
+            if (p.id === 'references') return NodeFilter.FILTER_REJECT;
+            if (p.classList && p.classList.contains('bib-list')) return NodeFilter.FILTER_REJECT;
+            if (typeof p.className === 'string' && p.className.indexOf('present-page') !== -1) return NodeFilter.FILTER_REJECT;
+          }
+          p = p.parentNode;
+        }
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    var targets = [];
+    var walked;
+    while ((walked = walker.nextNode())) targets.push(walked);
+
+    var clusterRe = /(?:\[\d{1,3}\])+/g;
+    targets.forEach(function (textNode) {
+      var text = textNode.nodeValue;
+      clusterRe.lastIndex = 0;
+      if (!clusterRe.test(text)) return;
+      clusterRe.lastIndex = 0;
+      var frag = document.createDocumentFragment();
+      var last = 0;
+      var match;
+      while ((match = clusterRe.exec(text))) {
+        if (match.index > last) frag.appendChild(document.createTextNode(text.slice(last, match.index)));
+        var nums = [];
+        var numRe = /\d{1,3}/g;
+        var nm;
+        while ((nm = numRe.exec(match[0]))) {
+          var v = parseInt(nm[0], 10);
+          if (nums.indexOf(v) === -1) nums.push(v);
+        }
+        nums.sort(function (a, b) { return a - b; });
+        var allHaveRef = nums.length && nums.every(function (v) { return refMap.hasOwnProperty(v); });
+        if (allHaveRef) {
+          var holder = document.createElement('span');
+          holder.innerHTML = citeBuildSup(nums, titles, refMap);
+          while (holder.firstChild) frag.appendChild(holder.firstChild);
+        } else {
+          frag.appendChild(document.createTextNode(match[0]));
+        }
+        last = match.index + match[0].length;
+      }
+      if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+      textNode.parentNode.replaceChild(frag, textNode);
+    });
+
+    // 3) Upgrade pre-authored citation anchors (<a href="#ref-n">[n]</a>) to the
+    //    same superscript style, so hand-linked articles match the auto-linked
+    //    ones. Idempotent: anchors we already own carry .cite-link and are skipped.
+    var anchors = scope.querySelectorAll('a[href^="#ref-"]');
+    Array.prototype.forEach.call(anchors, function (a) {
+      if (a.classList.contains('cite-link')) return;
+      var pa = a.parentNode;
+      while (pa && pa !== scope) {
+        if (pa.nodeType === 1) {
+          if (pa.id === 'references') return;
+          if (pa.classList && pa.classList.contains('bib-list')) return;
+          if (typeof pa.className === 'string' && pa.className.indexOf('present-page') !== -1) return;
+        }
+        pa = pa.parentNode;
+      }
+      var mm = (a.textContent || '').trim().match(/^\[?(\d{1,3})\]?$/);
+      if (!mm) return;
+      var num = parseInt(mm[1], 10);
+      a.textContent = String(num);
+      a.classList.add('cite-link');
+      a.setAttribute('data-ref', num);
+      if (!a.getAttribute('title') && titles.hasOwnProperty(num)) a.setAttribute('title', titles[num]);
+      var prev = a.previousSibling;
+      if (prev && prev.nodeType === 1 && prev.tagName === 'SUP' && prev.classList.contains('cite')) {
+        var sep = document.createElement('span');
+        sep.className = 'cite-sep';
+        sep.textContent = ',';
+        prev.appendChild(sep);
+        prev.appendChild(a);
+      } else {
+        var q = a.parentNode;
+        var inSup = null;
+        while (q && q !== scope) { if (q.tagName === 'SUP') { inSup = q; break; } q = q.parentNode; }
+        if (inSup) {
+          inSup.classList.add('cite');
+        } else {
+          var sup = document.createElement('sup');
+          sup.className = 'cite';
+          a.parentNode.insertBefore(sup, a);
+          sup.appendChild(a);
+        }
+      }
+    });
+  };
+
+  var citeScrollTo = function (id) {
+    var target = document.getElementById(id);
+    if (!target) return false;
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    var prev = document.querySelector('.bib-list li.bib-hit');
+    if (prev) prev.classList.remove('bib-hit');
+    void target.offsetWidth;
+    target.classList.add('bib-hit');
+    if (window.history && window.history.replaceState) window.history.replaceState(null, '', '#' + id);
+    return true;
+  };
+
+  document.addEventListener('click', function (e) {
+    var el = e.target;
+    while (el && el !== document && !(el.tagName === 'A' && typeof el.className === 'string' && el.className.indexOf('cite-link') !== -1)) {
+      el = el.parentNode;
+    }
+    if (!el || el === document) return;
+    var href = el.getAttribute('href') || '';
+    var id = href.charAt(0) === '#' ? href.slice(1) : '';
+    if (id && citeScrollTo(id)) e.preventDefault();
+  });
+
+  applyCitationLinks();
+  document.addEventListener('langChanged', applyCitationLinks);
 })();
