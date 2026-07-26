@@ -2310,6 +2310,25 @@ var knowledgeTree = [
   // 文章 — 上海中考志愿填报策略
   // ════════════════════════════════════════
   {
+    id: 'jianping-clubs-gaokao-planning',
+    parentId: 'shanghai-zhongkao',
+    type: 'article',
+    title: {
+      zh: '建平中学社团活动与高考升学：选择、投入与三年规划',
+      en: 'Jianping High School Clubs and Gaokao Planning: Selection, Commitment, and a Three-Year Plan'
+    },
+    summary: {
+      zh: '基于建平官网与 2026 高招规则，拆解 9 个重点社团的技能、时间、难度、能力、升学路径与退出条件。',
+      en: 'Profiles nine Jianping clubs by skills, workload, difficulty, capabilities, admissions routes, outputs, and exit conditions.'
+    },
+    tags: ['中考', '建平中学', '社团活动', '高考规划', '综合评价'],
+    date: '2026-07-26',
+    url: 'posts/jianping-clubs-gaokao-planning/index.html',
+    color: '#e11d48',
+    phase: 3.8, speed: 0.81,
+    relations: ['four-schools-profile', 'sh-top12-gaokao', 'shanghai-zizhao-2026']
+  },
+  {
     id: 'zhongkao-volunteer-strategy',
     parentId: 'shanghai-zhongkao',
     type: 'article',
