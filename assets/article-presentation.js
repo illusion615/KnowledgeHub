@@ -3350,7 +3350,9 @@ document.addEventListener('DOMContentLoaded', function () {
   var getAccordionTitle = function (item) {
     var toggle = item.querySelector('.subsection-toggle');
     if (!toggle) return '';
-    var span = toggle.querySelector('span:not(.subsection-number)');
+    // Skip ordinal badges (.subsection-number) and status chips (.event-tag) so the
+    // slide title comes from the title span only.
+    var span = toggle.querySelector('span:not(.subsection-number):not(.event-tag)');
     if (span) return normalizeTitle(span.textContent);
     return normalizeTitle(toggle.textContent).replace(/^\d+(\.\d+)?\s*/, '');
   };

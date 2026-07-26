@@ -2318,10 +2318,10 @@ var knowledgeTree = [
       en: 'Jianping High School Clubs and Gaokao Planning: Selection, Commitment, and a Three-Year Plan'
     },
     summary: {
-      zh: '基于建平官网与 2026 高招规则，拆解 9 个重点社团的技能、时间、难度、能力、升学路径与退出条件。',
-      en: 'Profiles nine Jianping clubs by skills, workload, difficulty, capabilities, admissions routes, outputs, and exit conditions.'
+      zh: '核验 9 个重点社团与六大学科主教练体系，比较投入、竞争力、报名路径、官方资源、升学资格与退出条件。',
+      en: 'Evaluates nine clubs and six coach-led olympiad tracks by workload, standing, entry route, official resources, admissions eligibility, and exit criteria.'
     },
-    tags: ['中考', '建平中学', '社团活动', '高考规划', '综合评价'],
+    tags: ['中考', '建平中学', '社团活动', '学科竞赛', '高考规划', '综合评价'],
     date: '2026-07-26',
     url: 'posts/jianping-clubs-gaokao-planning/index.html',
     color: '#e11d48',
