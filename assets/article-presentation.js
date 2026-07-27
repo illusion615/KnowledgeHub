@@ -3308,6 +3308,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var getNestedStepCandidates = function (container) {
     var result = [];
     var candidates = container.querySelectorAll('[data-present-step]');
+    var locales = ['zh', 'en'];
 
     candidates.forEach(function (candidate) {
       var parentStep = candidate.parentElement ? candidate.parentElement.closest('[data-present-step]') : null;
@@ -3323,12 +3324,23 @@ document.addEventListener('DOMContentLoaded', function () {
         // Drop the parent's step status so it's not double-counted.
         candidate.removeAttribute('data-present-step');
         subs.forEach(function (sub, idx) {
+          var suffix = subs.length > 1 ? ' (' + (idx + 1) + '/' + subs.length + ')' : '';
           if (!sub.hasAttribute('data-step-title')) {
-            sub.setAttribute('data-step-title', pTitle + (subs.length > 1 ? ' (' + (idx + 1) + '/' + subs.length + ')' : ''));
+            sub.setAttribute('data-step-title', pTitle + suffix);
           }
           if (pLabel && !sub.hasAttribute('data-step-label')) {
             sub.setAttribute('data-step-label', pLabel);
           }
+          locales.forEach(function (locale) {
+            var localizedTitle = candidate.getAttribute('data-step-title-' + locale);
+            var localizedLabel = candidate.getAttribute('data-step-label-' + locale);
+            if (localizedTitle && !sub.hasAttribute('data-step-title-' + locale)) {
+              sub.setAttribute('data-step-title-' + locale, localizedTitle + suffix);
+            }
+            if (localizedLabel && !sub.hasAttribute('data-step-label-' + locale)) {
+              sub.setAttribute('data-step-label-' + locale, localizedLabel);
+            }
+          });
           sub.setAttribute('data-present-step', '');
           autoAssignedSteps.push(sub);
           result.push(sub);
@@ -3490,7 +3502,8 @@ document.addEventListener('DOMContentLoaded', function () {
       endSlide = document.createElement('div');
       endSlide.className = 'present-end-slide';
       endSlide.setAttribute('data-present-step', '');
-      endSlide.setAttribute('data-step-title', '');
+      endSlide.setAttribute('data-step-title', '感谢收看');
+      endSlide.setAttribute('data-step-title-en', 'Thank You');
       endSlide.setAttribute('data-step-label', '');
       autoAssignedSteps.push(endSlide);
 
@@ -3539,6 +3552,8 @@ document.addEventListener('DOMContentLoaded', function () {
     var presentTextNode = presentationToggle ? presentationToggle.querySelector('[data-present-toggle-label]') : null;
     var styleTextNode = styleToggle ? styleToggle.querySelector('[data-style-toggle-label]') : null;
     var shareTextNode = shareWrapper ? shareWrapper.querySelector('[data-share-toggle-label]') : null;
+    var endTitle = document.querySelector('.present-end-title');
+    var endQrTip = document.querySelector('.present-end-qr-tip');
 
     presentationToggle.setAttribute('aria-label', state.enabled ? getLabel('exit') : getLabel('enter'));
     presentationToggle.setAttribute('aria-pressed', String(state.enabled));
@@ -3627,6 +3642,13 @@ document.addEventListener('DOMContentLoaded', function () {
     if (presentationPagerToggle) {
       presentationPagerToggle.setAttribute('aria-label', getLabel('pagePicker'));
       presentationPagerToggle.setAttribute('title', getLabel('pagePicker'));
+    }
+
+    if (endTitle) {
+      endTitle.textContent = getLang() === 'zh' ? '感谢收看' : 'Thank You';
+    }
+    if (endQrTip) {
+      endQrTip.textContent = getLang() === 'zh' ? '扫码访问' : 'Scan to visit';
     }
 
     if (presentationStatus && presentationStatus.classList.contains('is-page-menu-open') && renderPresentationPageMenu) {

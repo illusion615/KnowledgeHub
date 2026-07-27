@@ -186,6 +186,55 @@ inline `<style>` 里**禁止**写 `.X > [data-present-step] + [data-present-step
 - 演示模式：信息正文不得小于 `0.76rem`；结构标签不得小于 `0.7rem`。低于 `0.7rem` 只允许用于 P1、序号、短代码等不超过约 12 个字符的微型标记。
 - 同一组件必须明确区分标题、正文、标签与短码四级，不得为了塞进一页把所有文字一起缩小。达到字号下限后仍溢出，按信息边界拆成多个 `data-present-step`。
 
+**G. 演示 Surface Contract（强制）**
+
+任何自定义容器（包括架构图、流程图、地图、board、canvas、配置面板、计算器输入面板、结果面板）的**根容器本身**只要带有阅读模式外框（`background / border / border-radius / box-shadow / backdrop-filter`），并且该根容器直接携带 `data-present-step` / `data-present-substep` 晋升为整页 slide，就必须在**同一个元素**显式选择 surface。**类名不构成豁免**：`.tool-panel`、`.roi-panel`、`.workspace` 等业务命名与 `.architecture`、`.diagram` 接受完全相同的检查。
+
+- `data-present-surface="unframed"`：外框只是阅读模式容器 chrome。共享演示 CSS 自动移除背景、边框、圆角、阴影与 backdrop filter；内部节点、卡片和数据编码不受影响。架构图、流程图、配置面板、计算器面板和内容组合图默认选这个。
+- `data-present-surface="board"`：根背景本身承载坐标轴、区域、拓扑或空间语义，演示时必须保留。象限图、棋盘、mesh/network board 仅在背景确实属于数据编码时选这个。
+
+```html
+<figure class="solution-architecture"
+        data-present-step
+        data-present-surface="unframed"
+        data-step-title="Solution Architecture">
+  <!-- Inner nodes keep their own semantic surfaces. -->
+</figure>
+```
+
+规则与判据：
+1. 新组件禁止再复制 `.is-presentation-mode .X.is-active { background: transparent; border: 0; ... }` 局部补丁；使用语义属性。旧文章的完整显式去框仅为迁移兼容。
+2. 属性必须放在被晋升为 active step 的元素本身，不能放在后代节点。
+3. `unframed` 实测时 active 根节点必须满足：透明背景、0 边框、0 圆角、无阴影、无 backdrop filter；`board` 必须说明背景承载的具体信息。
+4. `tests/validate.js` Test 10 按 CSS 计算模型检查所有直接晋升的自定义根组件，不依赖类名关键词；有阅读外框却既无 surface 声明、也无共享框架管理或完整旧式去框时直接失败。
+
+**H. 演示元数据多语言契约（新双语文章强制）**
+
+新双语文章必须在根节点启用严格检查：
+
+```html
+<html lang="zh-CN" data-present-i18n="strict">
+```
+
+显式演示元数据以中文为默认值，英文放在 `-en` 属性；标题和标签分别成对出现：
+
+```html
+<div data-present-step
+  data-step-title="配置流程特征"
+  data-step-title-en="Configure Process Characteristics"
+  data-step-label="04 / 配置"
+  data-step-label-en="04 / Configure">
+</div>
+```
+
+规则：
+1. 禁止把英文同时复制到 `data-step-title` 与 `data-step-title-en`，也禁止只翻正文而漏掉演示浮动标题、页码菜单和 PPT 导出标题。
+2. 默认 `data-step-title` / `data-step-label` 必须包含中文语义；英文分别放进 `data-step-title-en` / `data-step-label-en`。
+3. 产品名、缩写或代码若跨语言确实不变，在同一 step 上声明 `data-present-i18n-invariant="title"`、`"label"` 或 `"title label"`；不允许用“内容一样”作为无声明漏译。
+4. Accordion 自动标题仍来自 `.subsection-toggle > span`，因此该 span 的 `data-zh/data-en` 同样必须完整。
+5. 完工时在中文和英文各遍历一次演示页；检查浮动标题、章节标签、页码菜单与导出标题，而不只检查 slide 正文。
+6. `tests/validate.js` Test 11 对带 `data-present-i18n="strict"` 的文章执行硬检查。
+
 ### 0.9 自治原则 — Tech Decisions Are Mine
 
 Boss 只关心**内容与业务**。技术问题（CSS 选择器范围、是否抽共享、是否扩 validate、组件契约位置）一律由我决策并落实到全局规则/instructions/memory/test，**不反问 boss**。当 boss 给出技术反馈时，我必须：
@@ -198,6 +247,8 @@ Boss 只关心**内容与业务**。技术问题（CSS 选择器范围、是否�
 
 > 默认所有新文章按本规范产出**全文双语**；旧文章在被 boss 显式重访时升级。
 > 参考实现：[posts/agentic-sales-mobile-proposal/index.html](../../posts/agentic-sales-mobile-proposal/index.html)（495+ `data-en` 覆盖 hero/段落/列表/卡片/Eyebrow/Metric label/Accordion 标题/Step 标题/参考列表）。
+
+所有新双语文章的 `<html>` 必须同时声明 `data-present-i18n="strict"`，演示元数据按 §0.8-H 成对本地化。
 
 **覆盖范围（必须全包）**：
 

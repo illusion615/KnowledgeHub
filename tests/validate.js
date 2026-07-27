@@ -14,6 +14,9 @@
 //   6. No duplicate CSS selectors for known issues
 //   7. Summary zh/en length limits
 //   8. No unescaped " in data-zh/data-en attributes
+//   9. No local data-present-step sibling-gap override hacks
+//  10. Framed visualization steps declare a presentation surface
+//  11. Strict bilingual articles localize presentation titles and labels
 
 var fs = require('fs');
 var path = require('path');
@@ -505,6 +508,209 @@ function testGapManagedContract() {
   }
 }
 
+// ── Test 10: visualization presentation-surface contract ──
+
+function testPresentationSurfaceContract() {
+  console.log('\n\x1b[36m[10] presentation-surface contract\x1b[0m');
+  var articles = findArticles();
+  var sharedCss = readFile(path.join(ASSETS, 'article.css')) + '\n' + readFile(path.join(ASSETS, 'article-diagram.css'));
+  var chromeProperty = /(?:^|[;\s])(?:background(?:-color)?|border(?:-radius)?|box-shadow|-webkit-backdrop-filter|backdrop-filter)\s*:/i;
+  var allowedSurfaces = { unframed: true, board: true };
+  // Shared presentation CSS or legacy article runtimes already own these
+  // slide surfaces. Keep this list narrow: custom panels must declare a
+  // surface regardless of whether their class name contains "panel/card".
+  var managedRootClasses = {
+    'subsection-item': true,
+    'quote-block': true,
+    'task-card': true,
+    'finding-card': true,
+    'phase-step-card': true,
+    'layer-row': true,
+    'depth-row': true,
+    'loop-step': true
+  };
+  // Exact migration compatibility only. These pre-contract components have
+  // bespoke presentation runtimes or intentionally framed table/work boards.
+  // Do not add new components here; new code must declare its surface.
+  var legacyRootExemptions = {
+    'posts/claw-code-mcp-hardening/index.html': { 'lc-flow': true },
+    'posts/claw-code-runtime-anatomy/index.html': { 'loop-ladder': true, 'prompt-anatomy': true },
+    'posts/copilot-deep-dive/index.html': { 'score-table-wrap': true },
+    'posts/dynamics-365-contact-center-ccaas/index.html': { 'roi-formula': true },
+    'posts/function-calling-best-practices/index.html': { 'diff-table-wrap': true },
+    'posts/function-calling-landscape/index.html': { 'benchmark-table-wrap': true },
+    'posts/jianping-clubs-gaokao-planning/index.html': { 'path-table-wrap': true },
+    'posts/m4-max-local-models/index.html': { 'score-table-wrap': true },
+    'posts/power-platform-governance/index.html': {
+      'lc-overview': true,
+      'tcv-b': true,
+      'lic-collapsible': true,
+      'task-collapsible': true
+    }
+  };
+  var passCount = 0;
+
+  function escapeRegex(value) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function cssRules(css) {
+    var rules = [];
+    var pattern = /([^{}]+)\{([^{}]*)\}/g;
+    var match;
+    while ((match = pattern.exec(css)) !== null) {
+      rules.push({ selector: match[1].trim(), body: match[2] });
+    }
+    return rules;
+  }
+
+  function isRootSelector(selector, className) {
+    var terminal = new RegExp('\\.' + escapeRegex(className) + '(?:::{0,1}[\\w-]+(?:\\([^)]*\\))?)?\\s*$');
+    return selector.split(',').some(function (part) {
+      return terminal.test(part.trim());
+    });
+  }
+
+  function hasReadingChrome(rules, className) {
+    return rules.some(function (rule) {
+      return rule.selector.indexOf('is-presentation-mode') === -1 &&
+        isRootSelector(rule.selector, className) && chromeProperty.test(rule.body);
+    });
+  }
+
+  function hasLegacyUnframing(rules, className) {
+    var target = new RegExp('\\.' + escapeRegex(className) + '\\.is-active(?:\\s|,|$)');
+    return rules.some(function (rule) {
+      var body = rule.body;
+      return rule.selector.indexOf('is-presentation-mode') !== -1 && target.test(rule.selector) &&
+        /background\s*:\s*transparent/i.test(body) &&
+        /border\s*:\s*0(?:px|rem|em)?/i.test(body) &&
+        /border-radius\s*:\s*0(?:px|rem|em)?/i.test(body) &&
+        /box-shadow\s*:\s*none/i.test(body);
+    });
+  }
+
+  articles.forEach(function (article) {
+    var html = readFile(article.path);
+    var articleRelPath = relPath(article.path);
+    var legacyClasses = legacyRootExemptions[articleRelPath] || {};
+    var styleBlocks = html.match(/<style\b[^>]*>([\s\S]*?)<\/style>/gi) || [];
+    var css = sharedCss + '\n' + styleBlocks.join('\n');
+    var rules = cssRules(css);
+    var tagPattern = /<[a-z][\w-]*\b([^>]*\bdata-present-(?:sub)?step\b[^>]*)>/gi;
+    var failures = [];
+    var tagMatch;
+
+    while ((tagMatch = tagPattern.exec(html)) !== null) {
+      var attrs = tagMatch[1];
+      var classMatch = attrs.match(/\bclass="([^"]+)"/i);
+      var surfaceMatch = attrs.match(/\bdata-present-surface="([^"]+)"/i);
+      var surface = surfaceMatch ? surfaceMatch[1] : '';
+      var classes = classMatch ? classMatch[1].split(/\s+/) : [];
+
+      if (surface && !allowedSurfaces[surface]) {
+        failures.push('invalid data-present-surface="' + surface + '"');
+        continue;
+      }
+
+      classes.forEach(function (className) {
+        if (/^(?:is|has)-/.test(className) || managedRootClasses[className] || legacyClasses[className] || !hasReadingChrome(rules, className)) return;
+        if (surface || hasLegacyUnframing(rules, className)) return;
+        failures.push('.' + className + ' has reading-mode chrome but no data-present-surface declaration');
+      });
+    }
+
+    if (failures.length > 0) {
+      error(article.path, failures.slice(0, 4).join('; ') + ' (see article instructions §0.8-G)');
+    } else {
+      passCount++;
+    }
+  });
+
+  if (passCount === articles.length) {
+    pass('All ' + articles.length + ' articles honor the presentation-surface contract');
+  } else {
+    pass(passCount + '/' + articles.length + ' articles OK');
+  }
+}
+
+// ── Test 11: strict presentation metadata i18n contract ──
+
+function testPresentationI18nContract() {
+  console.log('\n\x1b[36m[11] presentation metadata i18n contract\x1b[0m');
+  var articles = findArticles();
+  var strictCount = 0;
+  var passCount = 0;
+  var hanPattern = /[\u3400-\u9fff]/;
+
+  function readAttr(attrs, name) {
+    var match = attrs.match(new RegExp('\\b' + name + '="([^"]*)"', 'i'));
+    return match ? match[1] : null;
+  }
+
+  function hasInvariant(value, kind) {
+    if (!value) return false;
+    return value.split(/\s+/).some(function (entry) {
+      return entry === 'all' || entry === kind;
+    });
+  }
+
+  articles.forEach(function (article) {
+    var html = readFile(article.path);
+    var rootMatch = html.match(/<html\b([^>]*)>/i);
+    var rootAttrs = rootMatch ? rootMatch[1] : '';
+    var strict = /\bdata-present-i18n="strict"/i.test(rootAttrs);
+    var tagPattern;
+    var tagMatch;
+    var failures = [];
+
+    if (!strict) return;
+    strictCount++;
+
+    tagPattern = /<[a-z][\w-]*\b([^>]*\bdata-present-(?:sub)?step\b[^>]*)>/gi;
+    while ((tagMatch = tagPattern.exec(html)) !== null) {
+      var attrs = tagMatch[1];
+      var title = readAttr(attrs, 'data-step-title');
+      var titleEn = readAttr(attrs, 'data-step-title-en');
+      var label = readAttr(attrs, 'data-step-label');
+      var labelEn = readAttr(attrs, 'data-step-label-en');
+      var invariant = readAttr(attrs, 'data-present-i18n-invariant') || '';
+      var titleInvariant = hasInvariant(invariant, 'title');
+      var labelInvariant = hasInvariant(invariant, 'label');
+
+      if (title !== null) {
+        if (!titleInvariant && titleEn === null) failures.push('data-step-title missing data-step-title-en: ' + title);
+        if (!titleInvariant && titleEn !== null && title === titleEn) failures.push('Chinese and English step titles are identical: ' + title);
+        if (!titleInvariant && !hanPattern.test(title)) failures.push('default data-step-title has no Chinese semantics: ' + title);
+      } else if (titleEn !== null) {
+        failures.push('data-step-title-en exists without default data-step-title: ' + titleEn);
+      }
+
+      if (label !== null) {
+        if (!labelInvariant && labelEn === null) failures.push('data-step-label missing data-step-label-en: ' + label);
+        if (!labelInvariant && labelEn !== null && label === labelEn) failures.push('Chinese and English step labels are identical: ' + label);
+        if (!labelInvariant && !hanPattern.test(label)) failures.push('default data-step-label has no Chinese semantics: ' + label);
+      } else if (labelEn !== null) {
+        failures.push('data-step-label-en exists without default data-step-label: ' + labelEn);
+      }
+    }
+
+    if (failures.length > 0) {
+      error(article.path, failures.slice(0, 6).join('; ') + ' (see article instructions §0.8-H)');
+    } else {
+      passCount++;
+    }
+  });
+
+  if (strictCount === 0) {
+    pass('No strict presentation-i18n articles found');
+  } else if (passCount === strictCount) {
+    pass('All ' + strictCount + ' strict presentation-i18n article(s) pass');
+  } else {
+    pass(passCount + '/' + strictCount + ' strict presentation-i18n articles OK');
+  }
+}
+
 // ── Run all tests ──
 
 console.log('\n\x1b[1m══════════════════════════════════════════\x1b[0m');
@@ -520,6 +726,8 @@ testCSSIssues();
 testArticleStructure();
 testDataAttrQuoteSafety();
 testGapManagedContract();
+testPresentationSurfaceContract();
+testPresentationI18nContract();
 
 console.log('\n\x1b[1m══════════════════════════════════════════\x1b[0m');
 if (totalErrors > 0) {

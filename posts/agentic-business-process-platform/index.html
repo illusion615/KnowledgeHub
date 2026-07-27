@@ -1,0 +1,1903 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-present-i18n="strict">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agentic Business Process Platform — 基于 Microsoft Copilot Studio 的企业审批 Agent 平台</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&amp;family=Space+Grotesk:wght@500;700&amp;display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css?v=20260727-surface" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 {
+      max-width: 24ch;
+      font-size: clamp(2rem, 4.2vw, 3.35rem);
+      line-height: 1.08;
+      letter-spacing: -0.02em;
+    }
+
+    .hero-copy .platform-subtitle {
+      max-width: 50ch;
+      margin: 0 0 14px;
+      color: var(--ink);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: clamp(1.04rem, 1.7vw, 1.24rem);
+      font-weight: 700;
+      line-height: 1.55;
+    }
+
+    .platform-grid-four {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .platform-grid-three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    /* Component: .abp-architecture
+       Reading mode: four directional lanes show source events, agent control, deterministic workflow, and governance.
+       Presentation mode: the complete architecture remains one centered slide; mobile reading collapses lanes vertically. */
+    .abp-architecture {
+      display: grid;
+      gap: var(--rhythm-inline);
+      margin: 0;
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .abp-architecture figcaption {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: var(--rhythm-inline);
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .abp-architecture figcaption strong {
+      color: var(--ink);
+      font-size: 1.02rem;
+    }
+
+    .abp-architecture figcaption span {
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-align: right;
+    }
+
+    .abp-arch-main {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 76px minmax(0, 1fr);
+      grid-template-areas:
+        "submit . human"
+        "submit-arrow . human-arrow"
+        "agent route workflow";
+      gap: var(--rhythm-tight) var(--rhythm-inline);
+      align-items: stretch;
+    }
+
+    .abp-arch-submit { grid-area: submit; }
+    .abp-arch-submit-arrow { grid-area: submit-arrow; }
+    .abp-arch-agent { grid-area: agent; }
+    .abp-arch-route { grid-area: route; }
+    .abp-arch-workflow { grid-area: workflow; }
+    .abp-arch-human-arrow { grid-area: human-arrow; }
+    .abp-arch-human { grid-area: human; }
+
+    .abp-arch-experience,
+    .abp-arch-agent,
+    .abp-arch-workflow,
+    .abp-arch-state,
+    .abp-arch-compat {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--card-bg, rgba(255,255,255,0.55));
+    }
+
+    .abp-arch-experience,
+    .abp-arch-agent,
+    .abp-arch-workflow {
+      padding: 14px 15px;
+    }
+
+    .abp-arch-submit {
+      border-color: rgba(43,140,255,0.3);
+      background: linear-gradient(145deg, rgba(43,140,255,0.09), rgba(255,255,255,0.03));
+    }
+
+    .abp-arch-human {
+      border-color: rgba(255,122,0,0.3);
+      background: linear-gradient(145deg, rgba(255,122,0,0.09), rgba(255,255,255,0.03));
+    }
+
+    .abp-arch-agent {
+      border-color: rgba(168,85,247,0.34);
+      background: linear-gradient(145deg, rgba(168,85,247,0.12), rgba(13,143,140,0.08));
+    }
+
+    .abp-arch-workflow {
+      border-color: rgba(13,143,140,0.32);
+      background: linear-gradient(145deg, rgba(13,143,140,0.1), rgba(255,255,255,0.03));
+    }
+
+    .abp-arch-kicker {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--accent);
+      font-size: 0.68rem;
+      font-weight: 800;
+      line-height: 1.3;
+      text-transform: uppercase;
+    }
+
+    .abp-arch-experience > strong,
+    .abp-arch-agent > strong,
+    .abp-arch-workflow > strong,
+    .abp-arch-state-copy > div > strong,
+    .abp-arch-compat > strong {
+      display: block;
+      color: var(--ink);
+      font-size: 1rem;
+      line-height: 1.35;
+    }
+
+    .abp-arch-experience > p,
+    .abp-arch-agent > p,
+    .abp-arch-workflow > p,
+    .abp-arch-state-copy > div > p,
+    .abp-arch-compat > p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 0.76rem;
+      line-height: 1.5;
+    }
+
+    .abp-arch-lane-arrow,
+    .abp-arch-route,
+    .abp-arch-support {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      color: var(--muted);
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .abp-arch-lane-arrow b,
+    .abp-arch-route b,
+    .abp-arch-support b {
+      color: var(--accent);
+      font-size: 1.35rem;
+      line-height: 1;
+    }
+
+    .abp-arch-lane-arrow {
+      min-height: 28px;
+    }
+
+    .abp-arch-route {
+      align-self: stretch;
+    }
+
+    .abp-arch-support {
+      flex-direction: row;
+      min-height: 22px;
+    }
+
+    .abp-arch-source-grid,
+    .abp-arch-channel-grid,
+    .abp-arch-capability-grid,
+    .abp-arch-flow-grid,
+    .abp-arch-governance {
+      display: grid;
+      gap: var(--rhythm-tight);
+      margin-top: 10px;
+    }
+
+    .abp-arch-source-grid,
+    .abp-arch-flow-grid,
+    .abp-arch-governance {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .abp-arch-channel-grid,
+    .abp-arch-capability-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .abp-arch-node,
+    .abp-arch-channel,
+    .abp-arch-capability,
+    .abp-arch-flow-step {
+      min-width: 0;
+      padding: 8px 9px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: var(--bg);
+    }
+
+    .abp-arch-node,
+    .abp-arch-channel,
+    .abp-arch-capability {
+      text-align: center;
+    }
+
+    .abp-arch-node strong,
+    .abp-arch-channel strong,
+    .abp-arch-capability strong,
+    .abp-arch-flow-step strong,
+    .abp-arch-governance strong {
+      display: block;
+      color: var(--ink);
+      font-size: 0.8rem;
+      line-height: 1.3;
+    }
+
+    .abp-arch-node span,
+    .abp-arch-channel span,
+    .abp-arch-capability span,
+    .abp-arch-flow-step span,
+    .abp-arch-governance span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 0.7rem;
+      line-height: 1.35;
+    }
+
+    .abp-arch-flow-step.is-human {
+      border-color: rgba(255,122,0,0.34);
+      background: rgba(255,122,0,0.07);
+    }
+
+    .abp-arch-state {
+      padding: 12px 14px;
+      border-color: rgba(13,143,140,0.34);
+      background: linear-gradient(145deg, rgba(13,143,140,0.09), rgba(43,140,255,0.06));
+    }
+
+    .abp-arch-state-copy {
+      display: grid;
+      grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.65fr);
+      gap: var(--rhythm-inline);
+      align-items: center;
+    }
+
+    .abp-arch-governance > div {
+      min-width: 0;
+      padding: 9px 10px;
+      border-top: 3px solid var(--teal);
+      border-radius: 8px;
+      background: rgba(13,143,140,0.07);
+    }
+
+    .abp-arch-compat {
+      margin-top: 8px;
+      padding: 7px 9px;
+      border-style: dashed;
+      background: transparent;
+    }
+
+    [data-theme="dark"] .abp-arch-node,
+    [data-theme="dark"] .abp-arch-channel,
+    [data-theme="dark"] .abp-arch-capability {
+      background: rgba(255,255,255,0.045);
+    }
+
+    [data-theme="dark"] .abp-arch-submit {
+      background: linear-gradient(145deg, rgba(43,140,255,0.14), rgba(255,255,255,0.025));
+    }
+
+    [data-theme="dark"] .abp-arch-human {
+      background: linear-gradient(145deg, rgba(255,122,0,0.14), rgba(255,255,255,0.025));
+    }
+
+    [data-theme="dark"] .abp-arch-agent {
+      background: linear-gradient(145deg, rgba(168,85,247,0.18), rgba(13,143,140,0.1));
+    }
+
+    [data-theme="dark"] .abp-arch-workflow {
+      background: linear-gradient(145deg, rgba(13,143,140,0.14), rgba(255,255,255,0.025));
+    }
+
+    [data-theme="dark"] .abp-arch-state {
+      background: linear-gradient(145deg, rgba(13,143,140,0.14), rgba(43,140,255,0.08));
+    }
+
+    [data-theme="dark"] .abp-arch-flow-step {
+      background: rgba(0,0,0,0.16);
+    }
+
+    [data-theme="dark"] .abp-arch-flow-step.is-human {
+      background: rgba(255,122,0,0.12);
+    }
+
+    .is-presentation-mode .abp-architecture.is-active {
+      gap: 4px;
+    }
+
+    .is-presentation-mode .abp-architecture.is-active figcaption {
+      padding-bottom: 6px;
+    }
+
+    .is-presentation-mode .abp-architecture.is-active .abp-arch-main {
+      gap: 4px var(--rhythm-inline);
+    }
+
+    .is-presentation-mode .abp-architecture.is-active .abp-arch-experience,
+    .is-presentation-mode .abp-architecture.is-active .abp-arch-agent,
+    .is-presentation-mode .abp-architecture.is-active .abp-arch-workflow {
+      padding: 8px 10px;
+    }
+
+    .is-presentation-mode .abp-architecture.is-active .abp-arch-source-grid,
+    .is-presentation-mode .abp-architecture.is-active .abp-arch-channel-grid,
+    .is-presentation-mode .abp-architecture.is-active .abp-arch-capability-grid,
+    .is-presentation-mode .abp-architecture.is-active .abp-arch-flow-grid,
+    .is-presentation-mode .abp-architecture.is-active .abp-arch-governance {
+      gap: 5px;
+      margin-top: 6px;
+    }
+
+    .is-presentation-mode .abp-architecture.is-active .abp-arch-node,
+    .is-presentation-mode .abp-architecture.is-active .abp-arch-channel,
+    .is-presentation-mode .abp-architecture.is-active .abp-arch-capability,
+    .is-presentation-mode .abp-architecture.is-active .abp-arch-flow-step {
+      padding: 5px 7px;
+    }
+
+    .is-presentation-mode .abp-architecture.is-active .abp-arch-compat {
+      margin-top: 5px;
+      padding: 5px 7px;
+    }
+
+    .is-presentation-mode .abp-architecture.is-active .abp-arch-lane-arrow {
+      min-height: 20px;
+    }
+
+    .is-presentation-mode .abp-architecture.is-active .abp-arch-support {
+      min-height: 16px;
+    }
+
+    .is-presentation-mode .abp-architecture.is-active .abp-arch-state {
+      padding: 8px 10px;
+    }
+
+    .is-presentation-mode .abp-architecture.is-active .abp-arch-governance > div {
+      padding: 6px 7px;
+    }
+
+    .is-presentation-mode .hero-panel {
+      padding-top: 13px;
+      padding-bottom: 13px;
+    }
+
+    .table-scroll {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    .table-scroll .simple-table {
+      min-width: 780px;
+    }
+
+    .table-scroll .sku-table {
+      min-width: 1040px;
+    }
+
+    .sku-table tfoot th,
+    .sku-table tfoot td {
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    /* Component: .config-tool
+       Reading mode: configuration inputs and generated stack share a two-column workbench.
+       Presentation mode: each panel becomes one slide; data-gap-managed prevents doubled spacing. */
+    .config-tool {
+      display: grid;
+      grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+      gap: var(--rhythm-card);
+      align-items: start;
+    }
+
+    .tool-panel {
+      min-width: 0;
+      padding: 20px;
+      border: 1px solid var(--card-border, rgba(255,255,255,0.1));
+      border-radius: 16px;
+      background: var(--card-bg, rgba(255,255,255,0.04));
+      box-shadow: var(--card-shadow, none);
+    }
+
+    .tool-panel > h3,
+    .tool-panel > [data-present-substep] > h3 {
+      margin: 0 0 8px;
+      font-size: 1.06rem;
+    }
+
+    .tool-panel > p,
+    .tool-panel > [data-present-substep] > p {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 0.86rem;
+      line-height: 1.65;
+    }
+
+    .tool-panel > [data-present-substep] + [data-present-substep] {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+    }
+
+    .tool-field {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(140px, 0.72fr);
+      gap: var(--rhythm-inline);
+      align-items: center;
+      margin-bottom: var(--rhythm-inline);
+    }
+
+    .tool-field label,
+    .tool-check span {
+      color: var(--ink);
+      font-size: 0.86rem;
+      line-height: 1.45;
+    }
+
+    .tool-field select,
+    .tool-field input[type="number"],
+    .roi-field input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px 10px;
+      border: 1px solid var(--card-border, rgba(255,255,255,0.16));
+      border-radius: 8px;
+      background: rgba(255,255,255,0.04);
+      color: var(--ink);
+      font: inherit;
+      font-size: 0.86rem;
+    }
+
+    [data-theme="light"] .tool-field select,
+    [data-theme="light"] .tool-field input[type="number"],
+    [data-theme="light"] .roi-field input {
+      background: rgba(0,0,0,0.025);
+    }
+
+    [data-theme="dark"] .tool-field select,
+    [data-theme="dark"] .tool-field input[type="number"],
+    [data-theme="dark"] .roi-field input {
+      background: rgba(255,255,255,0.055);
+    }
+
+    .tool-checks {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--rhythm-inline);
+      margin-top: 16px;
+    }
+
+    .tool-check {
+      display: flex;
+      gap: var(--rhythm-tight);
+      align-items: flex-start;
+      min-width: 0;
+    }
+
+    .tool-check input {
+      width: 17px;
+      height: 17px;
+      margin: 2px 0 0;
+      flex: 0 0 auto;
+      accent-color: var(--accent);
+    }
+
+    .tool-result-summary {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--rhythm-inline);
+      margin-bottom: 16px;
+    }
+
+    .tool-result-summary div {
+      padding: 12px 14px;
+      border: 1px solid var(--card-border, rgba(255,255,255,0.1));
+      border-radius: 12px;
+      background: rgba(168,85,247,0.07);
+    }
+
+    .tool-result-summary span {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--muted);
+      font-size: 0.72rem;
+    }
+
+    .tool-result-summary strong {
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+
+    /* Component: .roi-calc
+       Reading mode: assumptions and results form a two-column calculator.
+       Presentation mode: each panel becomes one slide; data-gap-managed prevents doubled spacing. */
+    .roi-calc {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: var(--rhythm-card);
+      align-items: start;
+    }
+
+    .roi-panel {
+      min-width: 0;
+      padding: 20px;
+      border: 1px solid var(--card-border, rgba(255,255,255,0.1));
+      border-radius: 16px;
+      background: var(--card-bg, rgba(255,255,255,0.04));
+      box-shadow: var(--card-shadow, none);
+    }
+
+    .roi-panel > h3,
+    .roi-panel > [data-present-substep] > h3 {
+      margin: 0 0 8px;
+      font-size: 1.06rem;
+    }
+
+    .roi-panel > p,
+    .roi-panel > [data-present-substep] > p {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.65;
+    }
+
+    .roi-panel > [data-present-substep] + [data-present-substep] {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+    }
+
+    .roi-input-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--rhythm-inline);
+    }
+
+    .roi-field {
+      min-width: 0;
+    }
+
+    .roi-field label {
+      display: block;
+      min-height: 2.5em;
+      margin-bottom: 5px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.35;
+    }
+
+    .roi-field input {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .roi-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--rhythm-inline);
+      margin-bottom: 16px;
+    }
+
+    .roi-kpi {
+      min-width: 0;
+      padding: 13px 14px;
+      border: 1px solid var(--card-border, rgba(255,255,255,0.1));
+      border-radius: 12px;
+      background: rgba(168,85,247,0.07);
+    }
+
+    .roi-kpi span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.72rem;
+    }
+
+    .roi-kpi strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 1.2rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .roi-verdict {
+      margin-top: 16px;
+      padding: 13px 15px;
+      border: 1px dashed rgba(168,85,247,0.45);
+      border-radius: 12px;
+      background: rgba(168,85,247,0.07);
+      font-size: 0.84rem;
+      line-height: 1.65;
+    }
+
+    .roi-verdict strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .roi-note {
+      margin-top: 14px !important;
+      font-size: 0.78rem !important;
+    }
+
+    .is-presentation-mode .config-tool,
+    .is-presentation-mode .roi-calc {
+      display: block;
+    }
+
+    .is-presentation-mode .tool-panel,
+    .is-presentation-mode .roi-panel {
+      max-width: 1040px;
+      margin: 0 auto;
+    }
+
+    .is-presentation-mode .tool-panel:has(> [data-present-substep].is-active),
+    .is-presentation-mode .roi-panel:has(> [data-present-substep].is-active) {
+      display: contents;
+    }
+
+    .is-presentation-mode .tool-panel > [data-present-substep].is-active {
+      margin-top: 0;
+      padding-top: 0;
+      border-top: 0;
+    }
+
+    .is-presentation-mode .roi-panel > [data-present-substep].is-active {
+      margin-top: 0;
+      padding-top: 0;
+      border-top: 0;
+    }
+
+    .is-presentation-mode .tool-panel [data-present-substep].is-active .simple-table th,
+    .is-presentation-mode .tool-panel [data-present-substep].is-active .simple-table td {
+      padding: 7px 8px;
+      font-size: 0.76rem;
+    }
+
+    .is-presentation-mode .tool-result-summary {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--rhythm-tight);
+    }
+
+    .is-presentation-mode .tool-result-summary div {
+      padding: 10px 12px;
+    }
+
+    @media (max-width: 980px) {
+      .platform-grid-four,
+      .platform-grid-three {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .abp-arch-main {
+        grid-template-columns: minmax(0, 1fr) 54px minmax(0, 1fr);
+      }
+
+      .abp-arch-channel-grid,
+      .abp-arch-capability-grid,
+      .abp-arch-governance {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .config-tool,
+      .roi-calc {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .platform-grid-four,
+      .platform-grid-three,
+      .tool-checks,
+      .tool-result-summary,
+      .roi-input-grid,
+      .roi-kpi-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .abp-arch-main {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "submit"
+          "submit-arrow"
+          "agent"
+          "route"
+          "workflow"
+          "human-arrow"
+          "human";
+      }
+
+      .abp-arch-route b {
+        transform: rotate(90deg);
+      }
+
+      .abp-arch-human-arrow b {
+        transform: rotate(180deg);
+      }
+
+      .abp-arch-source-grid,
+      .abp-arch-governance {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .abp-arch-channel-grid,
+      .abp-arch-capability-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .abp-arch-state-copy {
+        grid-template-columns: 1fr;
+      }
+
+      .abp-architecture figcaption {
+        display: block;
+      }
+
+      .abp-architecture figcaption strong,
+      .abp-architecture figcaption span {
+        display: block;
+      }
+
+      .abp-architecture figcaption span {
+        margin-top: 4px;
+        text-align: left;
+      }
+
+      .tool-field {
+        grid-template-columns: 1fr;
+      }
+
+      .is-presentation-mode .tool-result-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .roi-field label {
+        min-height: 0;
+      }
+    }
+
+    body:not(.is-presentation-mode) #references {
+      padding-bottom: 144px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            <span data-zh="Business AI Solution" data-en="Business AI Solution">Business AI Solution</span>
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航" data-nav-pager>
+            <a href="#challenges" data-zh="现状与挑战" data-en="Challenges">现状与挑战</a>
+            <a href="#principles" data-zh="理念与收益" data-en="Principles">理念与收益</a>
+            <a href="#architecture" data-zh="方案架构" data-en="Architecture">方案架构</a>
+            <a href="#configuration" data-zh="配置工具" data-en="Configuration">配置工具</a>
+            <a href="#roi" data-zh="ROI 计算" data-en="ROI">ROI 计算</a>
+            <a href="#case" data-zh="客户案例" data-en="Case">客户案例</a>
+            <a href="#references" data-zh="参考资料" data-en="References">参考资料</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow" data-zh="Microsoft Business AI Solution · 审批现代化" data-en="Microsoft Business AI Solution · Approval Modernization">Microsoft Business AI Solution · 审批现代化</span>
+            <h1 data-zh="Agentic Business Process Platform" data-en="Agentic Business Process Platform">Agentic Business Process Platform</h1>
+            <p class="platform-subtitle" data-zh="基于 Microsoft Copilot Studio 的企业审批 Agent 平台" data-en="An Enterprise Approval Agent Platform on Microsoft Copilot Studio">基于 Microsoft Copilot Studio 的企业审批 Agent 平台</p>
+            <p data-zh="员工继续在 ERP、CRM、HR 和专业业务系统中提交表单。Copilot Studio 流程 Agent 接收事件、整合上下文并选择已批准的 Agent flow；Agent flow 按规则执行连接器、原生 AI 节点、Approval、Request information 与回写。Dataverse 保存状态与审计，整套运行时统一按 Copilot Credits 计量。[1][2][3]" data-en="Employees keep submitting forms in ERP, CRM, HR, and specialist systems. A Copilot Studio process agent receives events, assembles context, and selects an approved agent flow; the flow deterministically runs connectors, native AI nodes, approvals, requests for information, and writeback. Dataverse retains state and audit, and Copilot Credits meter the runtime.[1][2][3]">员工继续在 ERP、CRM、HR 和专业业务系统中提交表单。Copilot Studio 流程 Agent 接收事件、整合上下文并选择已批准的 Agent flow；Agent flow 按规则执行连接器、原生 AI 节点、Approval、Request information 与回写。Dataverse 保存状态与审计，整套运行时统一按 Copilot Credits 计量。[1][2][3]</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#architecture" data-zh="查看端到端架构" data-en="Explore the End-to-End Architecture">查看端到端架构</a>
+              <a class="button button-secondary" href="#configuration" data-zh="配置产品组合" data-en="Configure the Product Stack">配置产品组合</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label" data-zh="方案边界" data-en="Solution Boundary">方案边界</span>
+            <h2 data-zh="Agent 负责理解与分派，Workflow 负责确定性执行，人负责关键决定。" data-en="Agents Interpret and Route, Workflows Execute Deterministically, and People Own Material Decisions">Agent 负责理解与分派，Workflow 负责确定性执行，人负责关键决定。</h2>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span><span data-zh="提交入口不迁移：业务人员继续使用熟悉的来源系统和表单" data-en="No intake migration: employees retain familiar source systems and forms">提交入口不迁移：业务人员继续使用熟悉的来源系统和表单</span></li>
+              <li><span class="layer-number">2</span><span data-zh="Agent 只调用已注册工具：流程选择可生成，金额计算、权限和写入路径保持确定" data-en="The agent calls registered tools only: workflow selection can be generative, while calculations, authorization, and writes stay deterministic">Agent 只调用已注册工具：流程选择可生成，金额计算、权限和写入路径保持确定</span></li>
+              <li><span class="layer-number">3</span><span data-zh="Human in the loop：缺信息时请求补充，关键决定进入 Approval，Agent 不代替审批人" data-en="Human in the loop: request missing information and route material decisions to approval; the agent never replaces the approver">Human in the loop：缺信息时请求补充，关键决定进入 Approval，Agent 不代替审批人</span></li>
+              <li><span class="layer-number">4</span><span data-zh="来源系统保持权威：审批结果经过幂等回写后才完成闭环" data-en="Source systems remain authoritative: the process closes only after idempotent writeback">来源系统保持权威：审批结果经过幂等回写后才完成闭环</span></li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label" data-zh="Agentic 控制面" data-en="Agentic Control Plane">Agentic 控制面</div>
+            <strong>1</strong>
+            <span data-zh="Copilot Studio 流程 Agent" data-en="Copilot Studio Process Agent">Copilot Studio 流程 Agent</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="Human-in-the-Loop Gate" data-en="Human-in-the-Loop Gates">Human-in-the-Loop Gate</div>
+            <strong>2</strong>
+            <span data-zh="Approval · Request information" data-en="Approval · Request Information">Approval · Request information</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="确定性执行层" data-en="Deterministic Execution Layer">确定性执行层</div>
+            <strong>1</strong>
+            <span data-zh="Copilot Studio Agent flows" data-en="Copilot Studio Agent Flows">Copilot Studio Agent flows</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="首期来源表单替换" data-en="Phase-One Source-Form Replacements">首期来源表单替换</div>
+            <strong>0</strong>
+            <span data-zh="优先连接，不重做提交端" data-en="Connect first; do not rebuild intake">优先连接，不重做提交端</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <section id="challenges" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="01 / 业务现状与挑战" data-en="01 / Business Context and Challenges">01 / 业务现状与挑战</p>
+            <h2 data-zh="四类断裂让审批人把时间花在找入口、补信息和追状态上" data-en="Four Frictions Make Approval Work Slower Than the Decision Itself">四类断裂让审批人把时间花在找入口、补信息和追状态上</h2>
+            <p data-zh="传统企业通常按财务、采购、销售、HR 和项目管理分别建设业务系统。提交端与专业流程已经稳定，但审批任务、材料结构、催办方式和历史记录散落在各系统。立项前应至少采集四项同口径基线：每名审批人每周访问的系统数、单笔主动处理分钟、等待时长中位数、因材料不全造成的退回率；没有基线就不能承诺提速幅度。" data-en="Enterprises commonly operate separate finance, procurement, sales, HR, and project systems. Intake and specialist workflows may already be stable, while approval tasks, evidence formats, reminders, and history remain fragmented. Before funding a pilot, collect four comparable baselines: systems visited per approver per week, active handling minutes per item, median waiting time, and return rate caused by incomplete evidence. Without a baseline, no cycle-time claim is defensible.">传统企业通常按财务、采购、销售、HR 和项目管理分别建设业务系统。提交端与专业流程已经稳定，但审批任务、材料结构、催办方式和历史记录散落在各系统。立项前应至少采集四项同口径基线：每名审批人每周访问的系统数、单笔主动处理分钟、等待时长中位数、因材料不全造成的退回率；没有基线就不能承诺提速幅度。</p>
+          </div>
+
+          <div class="insight-grid platform-grid-four" data-present-step data-step-title="四类审批断裂" data-step-title-en="Four Approval Frictions" data-step-label="01 / 业务挑战" data-step-label-en="01 / Challenges">
+            <article class="insight-card">
+              <span class="card-index">01</span>
+              <h3 data-zh="入口分散" data-en="Fragmented Entry Points">入口分散</h3>
+              <p data-zh="审批人需要在邮件通知、ERP、采购、费用和 CRM 等入口之间切换，移动场景下更容易把等待任务误当成已处理任务。" data-en="Approvers switch among email notifications, ERP, procurement, expense, and CRM interfaces. On mobile devices, pending items are easier to lose among completed work.">审批人需要在邮件通知、ERP、采购、费用和 CRM 等入口之间切换，移动场景下更容易把等待任务误当成已处理任务。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">02</span>
+              <h3 data-zh="上下文不完整" data-en="Incomplete Decision Context">上下文不完整</h3>
+              <p data-zh="表单只呈现本系统字段，审批人还要查合同、预算、供应商历史、邮件和政策，主动处理时间因此高于点击同意或拒绝本身。" data-en="A form exposes only its local fields. Approvers still inspect contracts, budgets, supplier history, email, and policy, so active handling takes longer than the approve-or-reject action itself.">表单只呈现本系统字段，审批人还要查合同、预算、供应商历史、邮件和政策，主动处理时间因此高于点击同意或拒绝本身。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">03</span>
+              <h3 data-zh="集成改造昂贵" data-en="Expensive Source-System Changes">集成改造昂贵</h3>
+              <p data-zh="重做每个系统的表单和工作流会触发回归测试、培训、发布窗口与供应商定制费用；把提交端一并迁移会扩大首期范围。" data-en="Rebuilding forms and workflows in every system creates regression testing, training, release-window, and vendor-customization costs. Migrating intake expands the first-phase scope.">重做每个系统的表单和工作流会触发回归测试、培训、发布窗口与供应商定制费用；把提交端一并迁移会扩大首期范围。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">04</span>
+              <h3 data-zh="记录无法统一复核" data-en="No Unified Review Record">记录无法统一复核</h3>
+              <p data-zh="待办、已办、转派、补件和回写失败分布在不同数据库，管理者难以按流程、部门、金额、时长和异常原因统一分析。" data-en="Pending, completed, reassigned, supplemented, and failed-writeback events live in different stores, preventing consistent analysis by process, department, amount, duration, and exception cause.">待办、已办、转派、补件和回写失败分布在不同数据库，管理者难以按流程、部门、金额、时长和异常原因统一分析。</p>
+            </article>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion data-present-step data-step-title="试点基线测量口径" data-step-title-en="Baseline Measurement Contract" data-step-label="01 / 基线" data-step-label-en="01 / Baseline">
+              <button class="subsection-toggle"><span data-zh="1.1 试点前先统一四项基线口径" data-en="1.1 Standardize Four Baseline Measures Before the Pilot">1.1 试点前先统一四项基线口径</span></button>
+              <div class="subsection-content">
+                <p data-zh="基线按同一流程、同一风险等级和同一月份采集，避免把业务季节性误判为平台收益。" data-en="Collect baselines for the same process, risk tier, and calendar period so seasonality is not misclassified as platform value.">基线按同一流程、同一风险等级和同一月份采集，避免把业务季节性误判为平台收益。</p>
+                <div class="table-scroll">
+                  <table class="simple-table">
+                    <thead><tr><th data-zh="指标" data-en="Measure">指标</th><th data-zh="计算口径" data-en="Definition">计算口径</th><th data-zh="数据来源" data-en="Source">数据来源</th><th data-zh="排除项" data-en="Exclusion">排除项</th></tr></thead>
+                    <tbody>
+                      <tr><td data-zh="系统切换数" data-en="Systems Visited">系统切换数</td><td data-zh="每名审批人每周打开的独立审批系统数量" data-en="Distinct approval systems opened by each approver per week">每名审批人每周打开的独立审批系统数量</td><td data-zh="访问日志 + 抽样访谈" data-en="Access logs plus sampled interviews">访问日志 + 抽样访谈</td><td data-zh="仅查阅、不参与审批的系统" data-en="Read-only systems unrelated to the decision">仅查阅、不参与审批的系统</td></tr>
+                      <tr><td data-zh="主动处理分钟" data-en="Active Handling Minutes">主动处理分钟</td><td data-zh="首次打开到提交决定之间的有效操作时间" data-en="Effective interaction time from first open to submitted decision">首次打开到提交决定之间的有效操作时间</td><td data-zh="遥测 + 20 笔人工计时样本" data-en="Telemetry plus 20 manually timed samples">遥测 + 20 笔人工计时样本</td><td data-zh="等待他人补件的时间" data-en="Time waiting for supplementary evidence">等待他人补件的时间</td></tr>
+                      <tr><td data-zh="等待时长中位数" data-en="Median Waiting Time">等待时长中位数</td><td data-zh="任务生成到首次有效决定的自然小时" data-en="Elapsed hours from task creation to first valid decision">任务生成到首次有效决定的自然小时</td><td data-zh="来源系统流程日志" data-en="Source-system workflow logs">来源系统流程日志</td><td data-zh="已批准暂停的业务时段" data-en="Approved business holds">已批准暂停的业务时段</td></tr>
+                      <tr><td data-zh="材料退回率" data-en="Evidence Return Rate">材料退回率</td><td data-zh="因材料缺失或冲突而退回的审批数 / 总审批数" data-en="Approvals returned for missing or conflicting evidence divided by all approvals">因材料缺失或冲突而退回的审批数 / 总审批数</td><td data-zh="退回原因代码" data-en="Return-reason codes">退回原因代码</td><td data-zh="业务条件变化导致的撤回" data-en="Withdrawals caused by changed business conditions">业务条件变化导致的撤回</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="principles" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="02 / 设计理念与期望获益" data-en="02 / Design Principles and Expected Benefits">02 / 设计理念与期望获益</p>
+            <h2 data-zh="保留来源系统，把审批体验、证据和治理标准化" data-en="Preserve Source Systems, Standardize the Approval Experience">保留来源系统，把审批体验、证据和治理标准化</h2>
+            <p data-zh="平台以一次审批旅程为主线：来源系统创建事项，中台生成标准工作项和 AI 简报，审批人在 Outlook、Teams 或 Power Pages 统一工作台决策，结果回写来源系统，Power Pages 保留面向内部与外部参与者的统一入口。收益必须落在四个可测结果上：减少系统切换、降低单笔处理时间、减少材料退回、提高跨系统追溯覆盖率。" data-en="The platform follows one approval journey: a source system creates a request, the control plane produces a normalized work item and AI brief, and the approver decides in Outlook, Teams, or the Power Pages unified workbench. The result returns to the source, while Power Pages provides one entry point for internal and external participants. Value must appear in four measurable outcomes: fewer system switches, lower handling time, fewer evidence returns, and greater cross-system trace coverage.">平台以一次审批旅程为主线：来源系统创建事项，中台生成标准工作项和 AI 简报，审批人在 Outlook、Teams 或 Power Pages 统一工作台决策，结果回写来源系统，Power Pages 保留面向内部与外部参与者的统一入口。收益必须落在四个可测结果上：减少系统切换、降低单笔处理时间、减少材料退回、提高跨系统追溯覆盖率。</p>
+          </div>
+
+          <div class="comparison-grid platform-grid-four" data-present-step data-step-title="四项设计原则" data-step-title-en="Four Design Principles" data-step-label="02 / 设计原则" data-step-label-en="02 / Principles">
+            <article class="comparison-card next">
+              <span class="comparison-label" data-zh="原则 1" data-en="Principle 1">原则 1</span>
+              <h3 data-zh="来源系统保持权威" data-en="Source Systems Stay Authoritative">来源系统保持权威</h3>
+              <p data-zh="平台保存审批副本、事件和引用，不复制全部业务主数据。正式订单、费用、合同和人员记录仍由原系统负责。" data-en="The platform stores approval copies, events, and references rather than replicating all business master data. Orders, expenses, contracts, and employee records remain authoritative in their source systems.">平台保存审批副本、事件和引用，不复制全部业务主数据。正式订单、费用、合同和人员记录仍由原系统负责。</p>
+            </article>
+            <article class="comparison-card">
+              <span class="comparison-label" data-zh="原则 2" data-en="Principle 2">原则 2</span>
+              <h3 data-zh="先统一工作项，再统一界面" data-en="Normalize the Work Item Before the Interface">先统一工作项，再统一界面</h3>
+              <p data-zh="所有流程先映射到同一 ApprovalCase 数据契约，再投递到 Outlook、Teams 和工作台，避免每接一个系统就开发一套审批页面。" data-en="Every process maps to one ApprovalCase contract before delivery to Outlook, Teams, and the workbench, avoiding a new approval interface for every connected system.">所有流程先映射到同一 ApprovalCase 数据契约，再投递到 Outlook、Teams 和工作台，避免每接一个系统就开发一套审批页面。</p>
+            </article>
+            <article class="comparison-card">
+              <span class="comparison-label" data-zh="原则 3" data-en="Principle 3">原则 3</span>
+              <h3 data-zh="AI 输出证据简报" data-en="AI Produces an Evidence Brief">AI 输出证据简报</h3>
+              <p data-zh="简报分为已确认事实、规则异常、缺失信息和建议关注点，并保留来源链接。AI 不改变金额、审批链或最终决定。" data-en="The brief separates verified facts, policy anomalies, missing information, and review points while retaining source links. AI does not alter amounts, approval chains, or final decisions.">简报分为已确认事实、规则异常、缺失信息和建议关注点，并保留来源链接。AI 不改变金额、审批链或最终决定。</p>
+            </article>
+            <article class="comparison-card">
+              <span class="comparison-label" data-zh="原则 4" data-en="Principle 4">原则 4</span>
+              <h3 data-zh="一次决定形成完整事件链" data-en="One Decision Produces a Complete Event Chain">一次决定形成完整事件链</h3>
+              <p data-zh="接收、补件、委派、提醒、决定、回写和失败重试都写成不可混淆的事件，支持复核、分析和责任追踪。" data-en="Receipt, supplementation, delegation, reminders, decisions, writeback, and retries become distinct events that support review, analytics, and accountability.">接收、补件、委派、提醒、决定、回写和失败重试都写成不可混淆的事件，支持复核、分析和责任追踪。</p>
+            </article>
+          </div>
+
+          <div data-present-step data-step-title="期望收益与试点指标" data-step-title-en="Expected Benefits and Pilot Measures" data-step-label="02 / 期望收益" data-step-label-en="02 / Benefits">
+            <div class="table-scroll">
+              <table class="simple-table">
+                <thead><tr><th data-zh="期望获益" data-en="Expected Benefit">期望获益</th><th data-zh="验证指标" data-en="Pilot Measure">验证指标</th><th data-zh="通过条件示例" data-en="Example Gate">通过条件示例</th><th data-zh="不应归因的变化" data-en="Excluded Change">不应归因的变化</th></tr></thead>
+                <tbody>
+                  <tr><td data-zh="减少入口切换" data-en="Fewer Interface Switches">减少入口切换</td><td data-zh="每名审批人每周访问系统数" data-en="Systems visited per approver per week">每名审批人每周访问系统数</td><td data-zh="试点流程降至 Outlook/Teams + Power Pages 统一工作台" data-en="Pilot processes require only Outlook/Teams plus the Power Pages unified workbench">试点流程降至 Outlook/Teams + Power Pages 统一工作台</td><td data-zh="非试点系统访问变化" data-en="Changes in nonpilot system usage">非试点系统访问变化</td></tr>
+                  <tr><td data-zh="缩短主动处理时间" data-en="Lower Active Handling Time">缩短主动处理时间</td><td data-zh="同风险等级单笔分钟数中位数" data-en="Median minutes per item within the same risk tier">同风险等级单笔分钟数中位数</td><td data-zh="连续 4 周下降且错误决定率不升" data-en="Lower for four consecutive weeks without a higher decision-error rate">连续 4 周下降且错误决定率不升</td><td data-zh="审批量下降带来的总工时变化" data-en="Total-hours change caused by lower approval volume">审批量下降带来的总工时变化</td></tr>
+                  <tr><td data-zh="减少材料退回" data-en="Fewer Evidence Returns">减少材料退回</td><td data-zh="材料缺失/冲突退回率" data-en="Return rate for missing or conflicting evidence">材料缺失/冲突退回率</td><td data-zh="与同期对照组相比下降" data-en="Lower than a matched control group in the same period">与同期对照组相比下降</td><td data-zh="政策放宽造成的退回减少" data-en="Fewer returns caused by relaxed policy">政策放宽造成的退回减少</td></tr>
+                  <tr><td data-zh="提高追溯覆盖" data-en="Greater Trace Coverage">提高追溯覆盖</td><td data-zh="具备来源、决定、人员与回写证据的事项占比" data-en="Items with source, decision, actor, and writeback evidence">具备来源、决定、人员与回写证据的事项占比</td><td data-zh="生产试点达到 99%，异常进入明确队列" data-en="Production pilot reaches 99%, with exceptions entering a named queue">生产试点达到 99%，异常进入明确队列</td><td data-zh="历史数据补录覆盖率" data-en="Backfilled historical-record coverage">历史数据补录覆盖率</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section id="architecture" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="03 / 解决方案架构" data-en="03 / Solution Architecture">03 / 解决方案架构</p>
+            <h2 data-zh="Copilot Studio Agent 负责理解与分派，Agent Flow 负责确定性执行" data-en="Copilot Studio Agents Interpret and Route; Agent Flows Execute Deterministically">Copilot Studio Agent 负责理解与分派，Agent Flow 负责确定性执行</h2>
+            <p data-zh="生产基线采用 Copilot Studio autonomous agent + Agent flows：事件触发器唤醒流程 Agent，Agent 根据已授权上下文选择版本化 workflow；Agent flow 按固定分支执行连接器、AI 节点与 human-in-the-loop action；Dataverse 保存跨等待时段的 ApprovalCase。新 Workflows 画布目前仍是 public preview，适合沙盒验证，不作为生产基线。[1][4]" data-en="The production baseline uses a Copilot Studio autonomous agent plus agent flows. An event trigger activates the process agent, which selects a versioned workflow from authorized context. The agent flow executes connectors, AI nodes, and human-in-the-loop actions through fixed branches, while Dataverse retains the ApprovalCase across wait periods. The new Workflows canvas remains in public preview and belongs in a sandbox rather than the production baseline.[1][4]">生产基线采用 Copilot Studio autonomous agent + Agent flows：事件触发器唤醒流程 Agent，Agent 根据已授权上下文选择版本化 workflow；Agent flow 按固定分支执行连接器、AI 节点与 human-in-the-loop action；Dataverse 保存跨等待时段的 ApprovalCase。新 Workflows 画布目前仍是 public preview，适合沙盒验证，不作为生产基线。[1][4]</p>
+          </div>
+
+          <figure class="abp-architecture" data-present-step data-present-surface="unframed" data-step-title="Agentic Business Process Platform 架构图" data-step-title-en="Agentic Business Process Platform Architecture" data-step-label="03 / 架构图" data-step-label-en="03 / Architecture" aria-labelledby="abp-architecture-title">
+            <figcaption id="abp-architecture-title">
+              <strong data-zh="Agentic Business Process Platform · 逻辑架构" data-en="Agentic Business Process Platform · Logical Architecture">Agentic Business Process Platform · 逻辑架构</strong>
+              <span data-zh="双入口位于顶层；Agent 与 Workflow 位于第二层；状态与治理统一由底部支撑" data-en="Dual entry points sit on top; agent and workflow form the second layer; state and governance support both from below">双入口位于顶层；Agent 与 Workflow 位于第二层；状态与治理统一由底部支撑</span>
+            </figcaption>
+
+            <div class="abp-arch-main">
+              <div class="abp-arch-experience abp-arch-submit">
+                <span class="abp-arch-kicker" data-zh="Submission Experience Plane" data-en="Submission Experience Plane">Submission Experience Plane</span>
+                <strong data-zh="现有业务系统提交入口" data-en="Existing Business-System Intake">现有业务系统提交入口</strong>
+                <p data-zh="业务人员继续在熟悉的表单和专业系统中提交，不迁移业务入口。" data-en="Employees keep submitting through familiar forms and specialist systems without migrating intake.">业务人员继续在熟悉的表单和专业系统中提交，不迁移业务入口。</p>
+                <div class="abp-arch-source-grid" aria-label="Source systems">
+                  <div class="abp-arch-node"><strong>ERP</strong><span data-zh="采购 · 财务" data-en="Procurement · Finance">采购 · 财务</span></div>
+                  <div class="abp-arch-node"><strong>CRM</strong><span data-zh="客户 · 合同" data-en="Customer · Contract">客户 · 合同</span></div>
+                  <div class="abp-arch-node"><strong>HR</strong><span data-zh="人员 · 假勤" data-en="People · Leave">人员 · 假勤</span></div>
+                  <div class="abp-arch-node"><strong data-zh="专业系统" data-en="Specialist Systems">专业系统</strong><span data-zh="项目 · 质量" data-en="Project · Quality">项目 · 质量</span></div>
+                </div>
+              </div>
+
+              <div class="abp-arch-lane-arrow abp-arch-submit-arrow"><b aria-hidden="true">↓</b><span data-zh="Event Trigger · 业务事件" data-en="Event Trigger · Business Event">Event Trigger · 业务事件</span></div>
+
+              <div class="abp-arch-agent">
+                <span class="abp-arch-kicker" data-zh="Agentic Control Plane" data-en="Agentic Control Plane">Agentic Control Plane</span>
+                <strong data-zh="Copilot Studio 流程 Agent" data-en="Copilot Studio Process Agent">Copilot Studio 流程 Agent</strong>
+                <p data-zh="理解事件与上下文，识别流程、风险和缺失信息，只选择已发布的 Agent flow 与工具。" data-en="Interprets events and context, identifies process, risk, and missing information, and selects only published agent flows and tools.">理解事件与上下文，识别流程、风险和缺失信息，只选择已发布的 Agent flow 与工具。</p>
+                <div class="abp-arch-capability-grid">
+                  <div class="abp-arch-capability"><strong data-zh="理解上下文" data-en="Understand Context">理解上下文</strong></div>
+                  <div class="abp-arch-capability"><strong data-zh="识别风险" data-en="Identify Risk">识别风险</strong></div>
+                  <div class="abp-arch-capability"><strong data-zh="选择 Workflow" data-en="Select Workflow">选择 Workflow</strong></div>
+                </div>
+              </div>
+
+              <div class="abp-arch-route"><b aria-hidden="true">→</b><span data-zh="选择版本化 Workflow" data-en="Select Versioned Workflow">选择版本化 Workflow</span></div>
+
+              <div class="abp-arch-workflow">
+                <span class="abp-arch-kicker" data-zh="Deterministic Execution Plane" data-en="Deterministic Execution Plane">Deterministic Execution Plane</span>
+                <strong data-zh="Copilot Studio Workflow" data-en="Copilot Studio Workflow">Copilot Studio Workflow</strong>
+                <p data-zh="以 Agent Flow 作为生产基线；相同输入按相同规则执行，每个节点可版本化、测试与审计。" data-en="Uses agent flows as the production baseline; the same input follows the same rules, with versioned, testable, auditable nodes.">以 Agent Flow 作为生产基线；相同输入按相同规则执行，每个节点可版本化、测试与审计。</p>
+                <div class="abp-arch-flow-grid">
+                  <div class="abp-arch-flow-step"><strong data-zh="校验与归一" data-en="Validate and Normalize">校验与归一</strong><span data-zh="身份 · 幂等 · 审批矩阵" data-en="Identity · Idempotency · Approval Matrix">身份 · 幂等 · 审批矩阵</span></div>
+                  <div class="abp-arch-flow-step"><strong data-zh="连接器与 AI" data-en="Connectors and AI">连接器与 AI</strong><span data-zh="Tool · Prompt · 文档处理" data-en="Tool · Prompt · Content Processing">Tool · Prompt · 文档处理</span></div>
+                  <div class="abp-arch-flow-step is-human"><strong data-zh="Human in the Loop" data-en="Human in the Loop">Human in the Loop</strong><span data-zh="Request information · Approval" data-en="Request Information · Approval">Request information · Approval</span></div>
+                  <div class="abp-arch-flow-step"><strong data-zh="回写与补偿" data-en="Writeback and Compensation">回写与补偿</strong><span data-zh="Connector · 重试 · 对账" data-en="Connector · Retry · Reconciliation">Connector · 重试 · 对账</span></div>
+                </div>
+                <div class="abp-arch-compat">
+                  <strong data-zh="兼容适配 · Power Automate Adapter" data-en="Compatibility · Power Automate Adapter">兼容适配 · Power Automate Adapter</strong>
+                  <p data-zh="只封装暂不兼容的 connector 或尚未转换的既有 cloud flow。" data-en="Wraps only incompatible connectors or existing cloud flows not yet converted.">只封装暂不兼容的 connector 或尚未转换的既有 cloud flow。</p>
+                </div>
+              </div>
+
+              <div class="abp-arch-lane-arrow abp-arch-human-arrow"><b aria-hidden="true">↑</b><span data-zh="审批任务 · 人员响应" data-en="Approval Task · Human Response">审批任务 · 人员响应</span></div>
+
+              <div class="abp-arch-experience abp-arch-human">
+                <span class="abp-arch-kicker" data-zh="Human Experience Plane" data-en="Human Experience Plane">Human Experience Plane</span>
+                <strong data-zh="审批人统一工作入口" data-en="Unified Approver Entry Point">审批人统一工作入口</strong>
+                <p data-zh="审批人补充信息、批准、拒绝、退回或委派；Agent 提供解释、提醒与升级。" data-en="Approvers provide information, approve, reject, return, or delegate; the agent explains, reminds, and escalates.">审批人补充信息、批准、拒绝、退回或委派；Agent 提供解释、提醒与升级。</p>
+                <div class="abp-arch-channel-grid">
+                  <div class="abp-arch-channel"><strong>Outlook</strong><span data-zh="邮件审批" data-en="Email Approval">邮件审批</span></div>
+                  <div class="abp-arch-channel"><strong>Teams Approvals</strong><span data-zh="协作审批" data-en="Collaborative Approval">协作审批</span></div>
+                  <div class="abp-arch-channel"><strong data-zh="Power Pages 统一工作台" data-en="Power Pages Workbench">Power Pages 统一工作台</strong><span data-zh="内外部参与 · 待办 · 已办" data-en="Internal/External · Pending · Completed">内外部参与 · 待办 · 已办</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="abp-arch-support"><b aria-hidden="true">↑</b><span data-zh="持久状态、审计、安全与运营支撑全部运行层" data-en="Durable state, audit, security, and operations support every runtime block">持久状态、审计、安全与运营支撑全部运行层</span><b aria-hidden="true">↑</b></div>
+
+            <div class="abp-arch-state">
+              <div class="abp-arch-state-copy">
+                <div>
+                  <span class="abp-arch-kicker" data-zh="State and Audit Plane" data-en="State and Audit Plane">State and Audit Plane</span>
+                  <strong>Microsoft Dataverse · ApprovalCase</strong>
+                  <p data-zh="来源引用 · Agent/Workflow Run ID · Human Task · 决定 · 回写状态 · Credits 遥测" data-en="Source references · Agent/Workflow run IDs · Human tasks · Decisions · Writeback status · Credit telemetry">来源引用 · Agent/Workflow Run ID · Human Task · 决定 · 回写状态 · Credits 遥测</p>
+                </div>
+                <div class="abp-arch-governance" aria-label="State and audit governance capabilities">
+                  <div><strong data-zh="身份" data-en="Identity">身份</strong><span>Entra · Least Privilege</span></div>
+                  <div><strong data-zh="数据边界" data-en="Data Boundary">数据边界</strong><span>DLP · Dataverse RBAC</span></div>
+                  <div><strong data-zh="生命周期" data-en="Lifecycle">生命周期</strong><span>Solutions · Dev/Test/Prod</span></div>
+                  <div><strong data-zh="运营" data-en="Operations">运营</strong><span>Activity Map · Credits · Alerts</span></div>
+                </div>
+              </div>
+            </div>
+          </figure>
+
+          <div class="comparison-grid platform-grid-three" data-present-step data-step-title="Agent、Workflow 与状态层的职责" data-step-title-en="Responsibilities Across Agent, Workflow, and State" data-step-label="03 / 职责边界" data-step-label-en="03 / Responsibilities">
+            <article class="comparison-card next">
+              <span class="comparison-label" data-zh="理解与分派" data-en="Interpret and Route">理解与分派</span>
+              <h3 data-zh="Copilot Studio 流程 Agent" data-en="Copilot Studio Process Agent">Copilot Studio 流程 Agent</h3>
+              <p data-zh="接收事件，读取有权限的上下文，识别流程类型、风险和缺失信息，只从已注册的 Agent flow、prompt 与 connector tool 中选择下一步。" data-en="Receives events, reads authorized context, identifies process type, risk, and missing information, and selects only from registered agent flows, prompts, and connector tools.">接收事件，读取有权限的上下文，识别流程类型、风险和缺失信息，只从已注册的 Agent flow、prompt 与 connector tool 中选择下一步。</p>
+            </article>
+            <article class="comparison-card">
+              <span class="comparison-label" data-zh="确定性执行" data-en="Deterministic Execution">确定性执行</span>
+              <h3 data-zh="Copilot Studio Agent Flow" data-en="Copilot Studio Agent Flow">Copilot Studio Agent Flow</h3>
+              <p data-zh="按规则完成校验、分支、循环、连接器调用、AI 节点、Approval、Request information 和幂等回写；相同输入走相同规则路径。" data-en="Runs validation, branches, loops, connector calls, AI nodes, approvals, requests for information, and idempotent writeback through rules; the same input follows the same rule path.">按规则完成校验、分支、循环、连接器调用、AI 节点、Approval、Request information 和幂等回写；相同输入走相同规则路径。</p>
+            </article>
+            <article class="comparison-card">
+              <span class="comparison-label" data-zh="持久状态" data-en="Durable State">持久状态</span>
+              <h3 data-zh="Dataverse ApprovalCase" data-en="Dataverse ApprovalCase">Dataverse ApprovalCase</h3>
+              <p data-zh="保存来源引用、Agent/Workflow 运行 ID、人工任务、决定、回写结果和 Credits 遥测；等待人员数小时或数天时不依赖对话会话存活。" data-en="Stores source references, agent and workflow run IDs, human tasks, decisions, writeback results, and credit telemetry without relying on a live conversation while people respond hours or days later.">保存来源引用、Agent/Workflow 运行 ID、人工任务、决定、回写结果和 Credits 遥测；等待人员数小时或数天时不依赖对话会话存活。</p>
+            </article>
+          </div>
+
+          <div data-present-step data-step-title="运行时：事件与 Agent 分派" data-step-title-en="Runtime: Event and Agent Routing" data-step-label="03 / 运行时" data-step-label-en="03 / Runtime">
+            <ol class="flow-list">
+              <li class="flow-step"><div class="flow-copy"><strong data-zh="1 · 来源事件唤醒流程 Agent" data-en="1 · A Source Event Activates the Process Agent">1 · 来源事件唤醒流程 Agent</strong><p data-zh="ERP、CRM、HR 或专业系统保留原表单；Copilot Studio event trigger 把经过筛选的 payload 发送给 Agent。事件触发器目前使用 maker credentials，生产环境必须使用专用低权限 maker 身份。[2]" data-en="ERP, CRM, HR, and specialist systems retain their forms. A Copilot Studio event trigger sends a filtered payload to the agent. Event triggers currently use maker credentials, so production requires a dedicated least-privileged maker identity.[2]">ERP、CRM、HR 或专业系统保留原表单；Copilot Studio event trigger 把经过筛选的 payload 发送给 Agent。事件触发器目前使用 maker credentials，生产环境必须使用专用低权限 maker 身份。[2]</p></div></li>
+              <li class="flow-step"><div class="flow-copy"><strong data-zh="2 · Agent 识别流程、风险与下一工具" data-en="2 · The Agent Identifies Process, Risk, and the Next Tool">2 · Agent 识别流程、风险与下一工具</strong><p data-zh="Agent 读取来源引用和允许的企业上下文，识别流程类型、风险级别与缺失信息，只选择发布清单中的 Agent flow；金额计算、审批矩阵和权限不交给生成式判断。[5]" data-en="The agent reads source references and authorized enterprise context, identifies process type, risk tier, and missing information, and selects only a published agent flow. Amount calculations, approval matrices, and authorization stay outside generative judgment.[5]">Agent 读取来源引用和允许的企业上下文，识别流程类型、风险级别与缺失信息，只选择发布清单中的 Agent flow；金额计算、审批矩阵和权限不交给生成式判断。[5]</p></div></li>
+            </ol>
+          </div>
+
+          <div data-present-step data-step-title="运行时：确定性 Workflow 执行" data-step-title-en="Runtime: Deterministic Workflow Execution" data-step-label="03 / 运行时" data-step-label-en="03 / Runtime">
+            <ol class="flow-list" start="3">
+              <li class="flow-step"><div class="flow-copy"><strong data-zh="3 · Agent Flow 执行规则、连接器与 AI 节点" data-en="3 · The Agent Flow Runs Rules, Connectors, and AI Nodes">3 · Agent Flow 执行规则、连接器与 AI 节点</strong><p data-zh="workflow 用 <code>sourceSystem + sourceRecordId + version</code> 做幂等校验，通过 Copilot Studio connector tool 读取业务数据，并用原生 prompt / content processing 节点生成带来源的证据简报。[6][7]" data-en="The workflow performs idempotency checks with <code>sourceSystem + sourceRecordId + version</code>, reads business data through Copilot Studio connector tools, and uses native prompt or content-processing nodes to produce a sourced evidence brief.[6][7]">workflow 用 <code>sourceSystem + sourceRecordId + version</code> 做幂等校验，通过 Copilot Studio connector tool 读取业务数据，并用原生 prompt / content processing 节点生成带来源的证据简报。[6][7]</p></div></li>
+            </ol>
+          </div>
+
+          <div data-present-step data-step-title="运行时：补件与人员决定" data-step-title-en="Runtime: Evidence Requests and Human Decisions" data-step-label="03 / 运行时" data-step-label-en="03 / Runtime">
+            <ol class="flow-list" start="4">
+              <li class="flow-step"><div class="flow-copy"><strong data-zh="4 · 缺信息时 Request information" data-en="4 · Request Information When Evidence Is Missing">4 · 缺信息时 Request information</strong><p data-zh="Request information action 暂停 Agent flow，通过 Outlook 向指定人员收集字段，收到响应后把答案作为动态参数恢复执行。当前限制是仅支持 Outlook、采用首个响应且不能发送给租户外用户；外部补件改由 Power Pages Human Task 收集。[8][17][18]" data-en="The Request Information action pauses the agent flow, collects fields from named reviewers through Outlook, and resumes with their responses as dynamic parameters. Current limits are Outlook-only delivery, first-response-wins processing, and no recipients outside the tenant; Power Pages Human Tasks collect evidence from external participants.[8][17][18]">Request information action 暂停 Agent flow，通过 Outlook 向指定人员收集字段，收到响应后把答案作为动态参数恢复执行。当前限制是仅支持 Outlook、采用首个响应且不能发送给租户外用户；外部补件改由 Power Pages Human Task 收集。[8][17][18]</p></div></li>
+              <li class="flow-step"><div class="flow-copy"><strong data-zh="5 · 人员决定进入 ApprovalCase" data-en="5 · Human Decisions Enter ApprovalCase">5 · 人员决定进入 ApprovalCase</strong><p data-zh="Agent flow 为租户内审批人生成 Approval；参与人数较多或包含外部人员时，workflow 同时生成 Dataverse Human Task，由 Power Pages 统一工作台展示证据并收集决定。Outlook、Teams 与 Power Pages 的人员响应都写回 ApprovalCase；Agent 只能解释、提醒和升级。[1][9][10][17][18]" data-en="The agent flow creates approvals for tenant-internal approvers. For high-volume or external participation, the workflow also creates Dataverse Human Tasks, and the Power Pages unified workbench presents evidence and collects decisions. Human responses from Outlook, Teams, and Power Pages return to ApprovalCase; the agent can only explain, remind, and escalate.[1][9][10][17][18]">Agent flow 为租户内审批人生成 Approval；参与人数较多或包含外部人员时，workflow 同时生成 Dataverse Human Task，由 Power Pages 统一工作台展示证据并收集决定。Outlook、Teams 与 Power Pages 的人员响应都写回 ApprovalCase；Agent 只能解释、提醒和升级。[1][9][10][17][18]</p></div></li>
+            </ol>
+          </div>
+
+          <div data-present-step data-step-title="运行时：回写与异常监督" data-step-title-en="Runtime: Writeback and Exception Supervision" data-step-label="03 / 运行时" data-step-label-en="03 / Runtime">
+            <ol class="flow-list" start="6">
+              <li class="flow-step"><div class="flow-copy"><strong data-zh="6 · Workflow 回写，Agent 监督异常" data-en="6 · The Workflow Writes Back and the Agent Supervises Exceptions">6 · Workflow 回写，Agent 监督异常</strong><p data-zh="Agent flow 先写入决定与运行遥测，再调用来源 connector 幂等回写。原生 connector 不满足要求时才封装 custom connector 或调用既有 Power Automate adapter；失败进入 Dataverse 异常队列，由 Agent 催办和解释。[11]" data-en="The agent flow records the decision and runtime telemetry before idempotent writeback through a source connector. Only when a native connector is insufficient does the design wrap a custom connector or invoke an existing Power Automate adapter. Failures enter a Dataverse exception queue for agent follow-up and explanation.[11]">Agent flow 先写入决定与运行遥测，再调用来源 connector 幂等回写。原生 connector 不满足要求时才封装 custom connector 或调用既有 Power Automate adapter；失败进入 Dataverse 异常队列，由 Agent 催办和解释。[11]</p></div></li>
+            </ol>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion data-present-step data-step-title="ApprovalCase 契约与状态机" data-step-title-en="ApprovalCase Contract and State Machine" data-step-label="03 / 数据契约" data-step-label-en="03 / Data Contract">
+              <button class="subsection-toggle"><span data-zh="3.1 ApprovalCase 契约与 Agent/Workflow 状态机" data-en="3.1 ApprovalCase Contract and Agent/Workflow State Machine">3.1 ApprovalCase 契约与 Agent/Workflow 状态机</span></button>
+              <div class="subsection-content">
+                <div data-present-substep data-step-title="ApprovalCase 数据契约" data-step-title-en="ApprovalCase Data Contract">
+                  <p data-zh="统一数据契约只保存完成审批所需的最小字段和来源引用，避免把中台扩张为第二套 ERP。" data-en="The normalized contract stores only the minimum fields and source references required to complete an approval, preventing the control plane from becoming a second ERP.">统一数据契约只保存完成审批所需的最小字段和来源引用，避免把中台扩张为第二套 ERP。</p>
+                  <div class="table-scroll">
+                    <table class="simple-table">
+                      <thead><tr><th data-zh="字段组" data-en="Field Group">字段组</th><th data-zh="关键字段" data-en="Key Fields">关键字段</th><th data-zh="作用" data-en="Purpose">作用</th></tr></thead>
+                      <tbody>
+                        <tr><td data-zh="身份" data-en="Identity">身份</td><td><code>caseId</code>, <code>sourceSystem</code>, <code>sourceRecordId</code>, <code>version</code></td><td data-zh="定位事项并阻止重复审批" data-en="Locate the request and prevent duplicate approvals">定位事项并阻止重复审批</td></tr>
+                        <tr><td data-zh="Agent 上下文" data-en="Agent Context">Agent 上下文</td><td><code>processAgent</code>, <code>intent</code>, <code>riskTier</code>, <code>agentRunId</code></td><td data-zh="记录 Agent 如何分类事项及选择哪个 workflow" data-en="Record how the agent classified the case and selected a workflow">记录 Agent 如何分类事项及选择哪个 workflow</td></tr>
+                        <tr><td data-zh="人工任务" data-en="Human Task">人工任务</td><td><code>taskType</code>, <code>assignedTo</code>, <code>dueAt</code>, <code>humanTaskId</code></td><td data-zh="区分补充信息、审批、委派与升级" data-en="Distinguish information requests, approvals, delegation, and escalation">区分补充信息、审批、委派与升级</td></tr>
+                        <tr><td data-zh="Workflow 遥测" data-en="Workflow Telemetry">Workflow 遥测</td><td><code>workflowVersion</code>, <code>workflowRunId</code>, <code>flowActions</code>, <code>aiToolUnits</code></td><td data-zh="关联确定性执行、版本和 Copilot Credits 估算" data-en="Link deterministic execution, version, and Copilot Credit estimates">关联确定性执行、版本和 Copilot Credits 估算</td></tr>
+                        <tr><td data-zh="决定与回写" data-en="Decision and Writeback">决定与回写</td><td><code>decision</code>, <code>comment</code>, <code>decidedBy</code>, <code>decidedAt</code>, <code>writebackStatus</code></td><td data-zh="保存人员决定并证明来源系统已接收" data-en="Retain the human decision and prove source-system receipt">保存人员决定并证明来源系统已接收</td></tr>
+                        <tr><td data-zh="追踪" data-en="Traceability">追踪</td><td><code>correlationId</code>, <code>eventHistory</code>, <code>errorCode</code></td><td data-zh="串联所有短流程、重试和异常处理" data-en="Link all short-running flows, retries, and exception handling">串联所有短流程、重试和异常处理</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div data-present-substep data-step-title="Agent/Workflow 六状态生命周期" data-step-title-en="Six-State Agent/Workflow Lifecycle">
+                  <p data-zh="六个状态把 Agent 规划、workflow 执行、人员等待和来源系统落账分开；长时间等待保存在 Dataverse，不依赖一个持续对话。" data-en="Six states separate agent planning, workflow execution, human waiting, and source posting. Long waits persist in Dataverse rather than depend on a continuous conversation.">六个状态把 Agent 规划、workflow 执行、人员等待和来源系统落账分开；长时间等待保存在 Dataverse，不依赖一个持续对话。</p>
+                  <ol class="flow-list">
+                    <li class="flow-step"><div class="flow-copy"><strong data-zh="Triggered → Planned" data-en="Triggered → Planned">Triggered → Planned</strong><p data-zh="事件完成真实性校验，Agent 记录分类、风险、所选 workflow 与输入版本；无法匹配发布清单时进入 Exception。" data-en="The event passes authenticity checks, and the agent records classification, risk, selected workflow, and input version. A case that matches no published workflow enters Exception.">事件完成真实性校验，Agent 记录分类、风险、所选 workflow 与输入版本；无法匹配发布清单时进入 Exception。</p></div></li>
+                    <li class="flow-step"><div class="flow-copy"><strong data-zh="Running → WaitingHuman → Resumed" data-en="Running → WaitingHuman → Resumed">Running → WaitingHuman → Resumed</strong><p data-zh="Agent flow 执行到补件或审批 gate 后持久化 human task；人员响应触发恢复，原输入、响应与 workflow 版本保持关联。" data-en="The agent flow persists a human task at an information or approval gate. The response resumes execution while preserving links to the original input, response, and workflow version.">Agent flow 执行到补件或审批 gate 后持久化 human task；人员响应触发恢复，原输入、响应与 workflow 版本保持关联。</p></div></li>
+                    <li class="flow-step"><div class="flow-copy"><strong data-zh="Writeback → Closed / Exception" data-en="Writeback → Closed / Exception">Writeback → Closed / Exception</strong><p data-zh="来源系统确认幂等回写后进入 Closed；权限拒绝、版本冲突、容量阻断或重试耗尽进入 Exception。" data-en="The case reaches Closed after the source confirms idempotent writeback. Authorization denial, version conflicts, capacity enforcement, or exhausted retries move it to Exception.">来源系统确认幂等回写后进入 Closed；权限拒绝、版本冲突、容量阻断或重试耗尽进入 Exception。</p></div></li>
+                  </ol>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion data-present-step data-step-title="Agent、Workflow 与人的决定边界" data-step-title-en="Decision Boundaries Across Agent, Workflow, and People" data-step-label="03 / 决定边界" data-step-label-en="03 / Decision Boundaries">
+              <button class="subsection-toggle"><span data-zh="3.2 Agent、Workflow 与人的决定边界" data-en="3.2 Decision Boundaries Across Agent, Workflow, and People">3.2 Agent、Workflow 与人的决定边界</span></button>
+              <div class="subsection-content">
+                <p data-zh="三类执行者各自拥有明确决定权；Agent 的生成式规划不能覆盖 workflow 规则，也不能覆盖人员审批。" data-en="Each executor owns explicit decisions. Generative agent planning can't override workflow rules or human approvals.">三类执行者各自拥有明确决定权；Agent 的生成式规划不能覆盖 workflow 规则，也不能覆盖人员审批。</p>
+                <div class="comparison-grid platform-grid-three">
+                  <article class="comparison-card next"><span class="comparison-label" data-zh="Agent" data-en="Agent">Agent</span><h3 data-zh="理解、解释与选择受控工具" data-en="Interpret, Explain, and Select Controlled Tools">理解、解释与选择受控工具</h3><p data-zh="可分类事项、整合证据、识别缺失、选择已发布 workflow、解释状态与发起催办；不能自创工具、金额或审批规则。[5]" data-en="Can classify cases, assemble evidence, identify gaps, select a published workflow, explain status, and initiate follow-up. It can't invent tools, amounts, or approval policy.[5]">可分类事项、整合证据、识别缺失、选择已发布 workflow、解释状态与发起催办；不能自创工具、金额或审批规则。[5]</p></article>
+                  <article class="comparison-card"><span class="comparison-label" data-zh="Workflow" data-en="Workflow">Workflow</span><h3 data-zh="计算、校验、授权与回写" data-en="Calculate, Validate, Authorize, and Write Back">计算、校验、授权与回写</h3><p data-zh="拥有金额公式、审批矩阵、SLA、连接器输入、幂等键、重试和补偿逻辑；生成式输出只能作为显式字段进入规则判断。" data-en="Owns amount formulas, approval matrices, SLAs, connector inputs, idempotency keys, retries, and compensation. Generated output enters rules only through explicit fields.">拥有金额公式、审批矩阵、SLA、连接器输入、幂等键、重试和补偿逻辑；生成式输出只能作为显式字段进入规则判断。</p></article>
+                  <article class="comparison-card"><span class="comparison-label" data-zh="Human" data-en="Human">Human</span><h3 data-zh="补充事实并承担最终责任" data-en="Supply Facts and Own Final Accountability">补充事实并承担最终责任</h3><p data-zh="信息提供者确认缺失字段；审批人完成批准、拒绝、退回或委派。每次操作保存身份、时间、意见和所见证据版本。" data-en="Information providers confirm missing fields; approvers approve, reject, return, or delegate. Every action stores identity, time, rationale, and the evidence version shown.">信息提供者确认缺失字段；审批人完成批准、拒绝、退回或委派。每次操作保存身份、时间、意见和所见证据版本。</p></article>
+                </div>
+                <p class="quote-block" data-zh="失败样例：合同读取失败时，Agent 标记「合同内容未知」，workflow 转入 Request information 或人工审阅；禁止 Agent 根据供应商历史补写本合同条款。" data-en="Failure example: if contract extraction fails, the agent marks Contract content unknown and the workflow enters Request information or manual review. The agent must not infer this contract's terms from supplier history.">失败样例：合同读取失败时，Agent 标记「合同内容未知」，workflow 转入 Request information 或人工审阅；禁止 Agent 根据供应商历史补写本合同条款。</p>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion data-present-step data-step-title="回写失败与恢复" data-step-title-en="Writeback Failure and Recovery" data-step-label="03 / 失败恢复" data-step-label-en="03 / Failure Recovery">
+              <button class="subsection-toggle"><span data-zh="3.3 失败走查：人员已批准，但 ERP 回写超时" data-en="3.3 Failure Walkthrough: Human Approval Succeeds, ERP Writeback Times Out">3.3 失败走查：人员已批准，但 ERP 回写超时</span></button>
+              <div class="subsection-content">
+                <p data-zh="Approval 完成与来源系统落账是两个状态；Agent 负责解释和催办，Agent flow 负责重试与补偿，任何一方都不能把回写失败标成完成。" data-en="Approval completion and source-system posting are separate states. The agent explains and follows up, while the agent flow owns retry and compensation; neither can mark failed writeback as complete.">Approval 完成与来源系统落账是两个状态；Agent 负责解释和催办，Agent flow 负责重试与补偿，任何一方都不能把回写失败标成完成。</p>
+                <ol class="flow-list">
+                  <li class="flow-step"><div class="flow-copy"><strong data-zh="决定入账" data-en="Record the Decision">决定入账</strong><p data-zh="平台保存 Approve、审批人、时间、意见和输入版本，状态进入 WritebackPending。" data-en="The platform records Approve, the approver, timestamp, rationale, and input version, then enters WritebackPending.">平台保存 Approve、审批人、时间、意见和输入版本，状态进入 WritebackPending。</p></div></li>
+                  <li class="flow-step"><div class="flow-copy"><strong data-zh="Agent Flow 按幂等键重试" data-en="The Agent Flow Retries with the Idempotency Key">Agent Flow 按幂等键重试</strong><p data-zh="workflow 按指数退避重试 3 次；来源接口必须接受 idempotencyKey，避免网络恢复后重复过账。" data-en="The workflow retries three times with exponential backoff. The source API must accept the idempotencyKey to prevent duplicate posting after network recovery.">workflow 按指数退避重试 3 次；来源接口必须接受 idempotencyKey，避免网络恢复后重复过账。</p></div></li>
+                  <li class="flow-step"><div class="flow-copy"><strong data-zh="进入异常队列" data-en="Enter the Exception Queue">进入异常队列</strong><p data-zh="三次失败后进入 Exception，通知流程负责人；Power Pages 统一工作台显示「已批准，待回写」，而不是「已完成」。" data-en="After three failures, the case enters Exception and notifies the process owner. The Power Pages unified workbench shows Approved, writeback pending rather than Completed.">三次失败后进入 Exception，通知流程负责人；Power Pages 统一工作台显示「已批准，待回写」，而不是「已完成」。</p></div></li>
+                  <li class="flow-step"><div class="flow-copy"><strong data-zh="对账后关闭" data-en="Close After Reconciliation">对账后关闭</strong><p data-zh="人工修复权限或版本冲突后再次回写；只有 ERP 返回业务凭证号并完成对账，状态才进入 Closed。" data-en="After permissions or version conflicts are repaired, writeback runs again. The case reaches Closed only when ERP returns a business document number and reconciliation succeeds.">人工修复权限或版本冲突后再次回写；只有 ERP 返回业务凭证号并完成对账，状态才进入 Closed。</p></div></li>
+                </ol>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion data-present-step data-step-title="安全、DLP 与 ALM 边界" data-step-title-en="Security, DLP, and ALM Boundaries" data-step-label="03 / 治理" data-step-label-en="03 / Governance">
+              <button class="subsection-toggle"><span data-zh="3.4 安全、DLP 与 ALM 边界" data-en="3.4 Security, DLP, and ALM Boundaries">3.4 安全、DLP 与 ALM 边界</span></button>
+              <div class="subsection-content">
+                <p data-zh="Agentic 运行时增加了触发身份、工具权限、Credits 容量和 preview 边界；四项必须分别设定生产门槛。" data-en="The agentic runtime adds trigger identity, tool authorization, credit capacity, and preview boundaries. Each requires its own production gate.">Agentic 运行时增加了触发身份、工具权限、Credits 容量和 preview 边界；四项必须分别设定生产门槛。</p>
+                <ul class="layer-list">
+                  <li><span class="layer-number">1</span><span data-zh="触发身份：event trigger 当前只使用 agent maker credentials；生产使用专用低权限 maker 账号，并把 payload 缩到最小字段。[2]" data-en="Trigger identity: event triggers currently use agent-maker credentials only. Production uses a dedicated least-privileged maker account and minimizes trigger payloads.[2]">触发身份：event trigger 当前只使用 agent maker credentials；生产使用专用低权限 maker 账号，并把 payload 缩到最小字段。[2]</span></li>
+                  <li><span class="layer-number">2</span><span data-zh="工具与数据：DLP 控制 connector 组合，Dataverse 角色限制表、列与记录；Agent 只获得完成当前流程所需工具。[12][14]" data-en="Tools and data: DLP governs connector combinations, Dataverse roles restrict tables, columns, and records, and the agent receives only the tools needed for the current process.[12][14]">工具与数据：DLP 控制 connector 组合，Dataverse 角色限制表、列与记录；Agent 只获得完成当前流程所需工具。[12][14]</span></li>
+                  <li><span class="layer-number">3</span><span data-zh="容量：每 100 个 Agent flow actions 消耗 13 Copilot Credits；预付容量耗尽会阻止新 flow run，生产环境启用告警、月度上限和 PAYG 连续性方案。[3]" data-en="Capacity: every 100 agent-flow actions consume 13 Copilot Credits. Exhausted prepaid capacity blocks new flow runs, so production uses alerts, monthly limits, and a pay-as-you-go continuity plan.[3]">容量：每 100 个 Agent flow actions 消耗 13 Copilot Credits；预付容量耗尽会阻止新 flow run，生产环境启用告警、月度上限和 PAYG 连续性方案。[3]</span></li>
+                  <li><span class="layer-number">4</span><span data-zh="发布与风险：Agent、Agent flow、prompt、connector 与 Dataverse 表进入 Solution，经 Dev → Test → Prod；preview action 不进入关键生产路径，AI 风险按持续治理、测量和处置执行。[13][15]" data-en="Release and risk: agents, agent flows, prompts, connectors, and Dataverse tables enter Solutions and move through Dev → Test → Prod. Preview actions stay out of critical production paths, and AI risk follows continuous governance, measurement, and treatment.[13][15]">发布与风险：Agent、Agent flow、prompt、connector 与 Dataverse 表进入 Solution，经 Dev → Test → Prod；preview action 不进入关键生产路径，AI 风险按持续治理、测量和处置执行。[13][15]</span></li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion data-present-step data-step-title="Power Automate 兼容适配边界" data-step-title-en="Power Automate as a Compatibility Adapter" data-step-label="03 / 兼容适配" data-step-label-en="03 / Compatibility">
+              <button class="subsection-toggle"><span data-zh="3.5 Power Automate 只保留为兼容适配器" data-en="3.5 Power Automate Remains Only as a Compatibility Adapter">3.5 Power Automate 只保留为兼容适配器</span></button>
+              <div class="subsection-content">
+                <p data-zh="新流程首先在 Copilot Studio 内完成；只有连接能力或既有资产无法直接迁移时，才保留 Power Automate 适配层。" data-en="New processes are completed inside Copilot Studio first. A Power Automate adapter remains only when connector capability or existing assets can't move directly.">新流程首先在 Copilot Studio 内完成；只有连接能力或既有资产无法直接迁移时，才保留 Power Automate 适配层。</p>
+                <div class="comparison-grid platform-grid-three">
+                  <article class="comparison-card next"><span class="comparison-label" data-zh="首选" data-en="Preferred">首选</span><h3 data-zh="Copilot Studio 原生 Connector / Agent Flow" data-en="Native Copilot Studio Connector and Agent Flow">Copilot Studio 原生 Connector / Agent Flow</h3><p data-zh="预置 connector、custom connector、规则、AI 与 human action 全部留在同一 workflow，统一版本、测试、观察与 Credits 计量。" data-en="Prebuilt and custom connectors, rules, AI, and human actions stay in one workflow with unified versioning, testing, observability, and credit metering.">预置 connector、custom connector、规则、AI 与 human action 全部留在同一 workflow，统一版本、测试、观察与 Credits 计量。</p></article>
+                  <article class="comparison-card"><span class="comparison-label" data-zh="兼容" data-en="Compatibility">兼容</span><h3 data-zh="既有 Cloud Flow 单向转换" data-en="One-Way Conversion of Existing Cloud Flows">既有 Cloud Flow 单向转换</h3><p data-zh="已在 Solution 中的 Power Automate cloud flow 可把 plan 改为 Copilot Studio，转成 Agent flow 并改用 Copilot Studio capacity；转换不可逆。[1]" data-en="A Power Automate cloud flow already in a Solution can change its plan to Copilot Studio, become an agent flow, and use Copilot Studio capacity. The conversion is irreversible.[1]">已在 Solution 中的 Power Automate cloud flow 可把 plan 改为 Copilot Studio，转成 Agent flow 并改用 Copilot Studio capacity；转换不可逆。[1]</p></article>
+                  <article class="comparison-card"><span class="comparison-label" data-zh="最后选择" data-en="Last Resort">最后选择</span><h3 data-zh="Power Automate Adapter" data-en="Power Automate Adapter">Power Automate Adapter</h3><p data-zh="仅用于 Agent flow 暂不兼容的 connector、复杂本地网关路径或无法立即迁移的既有流程；对 Agent 暴露单一、窄权限 action，不扩散为第二套编排层。" data-en="Use only for connectors not yet reliable in agent flows, complex gateway paths, or flows that can't migrate immediately. Expose one narrow, least-privileged action to the agent rather than a second orchestration layer.">仅用于 Agent flow 暂不兼容的 connector、复杂本地网关路径或无法立即迁移的既有流程；对 Agent 暴露单一、窄权限 action，不扩散为第二套编排层。</p></article>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="configuration" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="04 / 产品配置工具" data-en="04 / Product Configuration Workbench">04 / 产品配置工具</p>
+            <h2 data-zh="配置运行量与参与人数，再估算 Credits 和 Power Pages 容量" data-en="Configure Runtime Volume and Participants Before Sizing Credits and Power Pages">配置运行量与参与人数，再估算 Credits 和 Power Pages 容量</h2>
+            <p data-zh="基础组合固定为 Copilot Studio 流程 Agent、Agent flows、Dataverse、Power Pages 统一工作台与 Microsoft 365 内部审批入口。Prompt、文档处理、Power BI、本地网关和 API Management 按需求加入；Power Automate 仅在既有 Flow 无法转换或 connector 不兼容时作为适配器。配置器先估算月度 Copilot Credits 与 Power Pages 计费单位，再生成包含 SKU、用途、官方 USD 单价、数量和月度小计的动态清单。Copilot Studio PAYG、Power Pages、Power BI Pro 与 Power Automate Process 进入已计价合计；Prompt token、APIM 区域 SKU、外部身份提供商、税费和合同折扣另行核算。[3][16][19][20][21][22]" data-en="The core stack is a Copilot Studio process agent, agent flows, Dataverse, a Power Pages unified workbench, and Microsoft 365 internal approval surfaces. Prompts, content processing, Power BI, the on-premises gateway, and API Management enter as required. Power Automate appears only as an adapter when an existing flow can't be converted or a connector is incompatible. The configurator first estimates monthly Copilot Credits and Power Pages billing units, then produces a dynamic bill of materials with SKU, purpose, official USD unit price, quantity, and monthly subtotal. Priced totals include Copilot Studio pay-as-you-go, Power Pages, Power BI Pro, and Power Automate Process; prompt tokens, regional APIM SKUs, external identity providers, taxes, and contract discounts remain separate.[3][16][19][20][21][22]">基础组合固定为 Copilot Studio 流程 Agent、Agent flows、Dataverse、Power Pages 统一工作台与 Microsoft 365 内部审批入口。Prompt、文档处理、Power BI、本地网关和 API Management 按需求加入；Power Automate 仅在既有 Flow 无法转换或 connector 不兼容时作为适配器。配置器先估算月度 Copilot Credits 与 Power Pages 计费单位，再生成包含 SKU、用途、官方 USD 单价、数量和月度小计的动态清单。Copilot Studio PAYG、Power Pages、Power BI Pro 与 Power Automate Process 进入已计价合计；Prompt token、APIM 区域 SKU、外部身份提供商、税费和合同折扣另行核算。[3][16][19][20][21][22]</p>
+          </div>
+
+          <div class="config-tool" data-gap-managed>
+            <div class="tool-panel" data-present-step data-present-surface="unframed" data-step-title="配置流程特征" data-step-title-en="Configure Process Characteristics" data-step-label="04 / 配置" data-step-label-en="04 / Configure">
+              <div data-present-substep data-step-title="业务量与参与人数" data-step-title-en="Business Volume and Participants">
+                <h3 data-zh="流程与用户规模" data-en="Process and User Scale">流程与用户规模</h3>
+                <p data-zh="填写来源形态、Human Gate、月事件量和 Power Pages 月活参与人数；月活按每个网站每个自然月的唯一认证用户计数。[16]" data-en="Enter source pattern, human gate, monthly event volume, and monthly active Power Pages participants. Monthly active usage counts unique authenticated users per website per calendar month.[16]">填写来源形态、Human Gate、月事件量和 Power Pages 月活参与人数；月活按每个网站每个自然月的唯一认证用户计数。[16]</p>
+                <div class="tool-field">
+                  <label for="cfgSource" data-zh="来源系统形态" data-en="Source-System Pattern">来源系统形态</label>
+                  <select id="cfgSource">
+                    <option value="cloud" data-zh="云应用 + 标准连接器" data-en="Cloud Apps + Standard Connectors">云应用 + 标准连接器</option>
+                    <option value="onprem" data-zh="云与本地系统混合" data-en="Mixed Cloud and On-Premises">云与本地系统混合</option>
+                    <option value="api" data-zh="自定义 API / 无标准连接器" data-en="Custom APIs / No Standard Connector">自定义 API / 无标准连接器</option>
+                  </select>
+                </div>
+                <div class="tool-field">
+                  <label for="cfgHumanGate" data-zh="Human-in-the-Loop 模式" data-en="Human-in-the-Loop Mode">Human-in-the-Loop 模式</label>
+                  <select id="cfgHumanGate">
+                    <option value="approval" data-zh="Approval（生产基线）" data-en="Approval (Production Baseline)">Approval（生产基线）</option>
+                    <option value="request" data-zh="Approval + Request information" data-en="Approval + Request Information">Approval + Request information</option>
+                    <option value="adaptive" data-zh="Approval + Adaptive Card 补件" data-en="Approval + Adaptive Card for Missing Information">Approval + Adaptive Card 补件</option>
+                  </select>
+                </div>
+                <div class="tool-field"><label for="cfgMonthlyCases" data-zh="月业务事件量（笔）" data-en="Monthly Business Events">月业务事件量（笔）</label><input id="cfgMonthlyCases" type="number" min="0" value="20000" /></div>
+                <div class="tool-field"><label for="cfgParticipants" data-zh="Power Pages 月活参与人数（含内外部）" data-en="Monthly Active Power Pages Participants (Internal + External)">Power Pages 月活参与人数（含内外部）</label><input id="cfgParticipants" type="number" min="0" step="1" value="180" /></div>
+              </div>
+
+              <div data-present-substep data-step-title="Action 与文档用量" data-step-title-en="Action and Document Volume">
+                <h3 data-zh="Copilot Credits 用量参数" data-en="Copilot Credit Usage Inputs">Copilot Credits 用量参数</h3>
+                <p data-zh="按每笔业务事件填写 Agent action、Agent flow action 和文档页数；上线后用 Activity Map 的实际节点用量替换。" data-en="Enter agent actions, agent-flow actions, and document pages per business event, then replace estimates with measured node usage from Activity Map.">按每笔业务事件填写 Agent action、Agent flow action 和文档页数；上线后用 Activity Map 的实际节点用量替换。</p>
+                <div class="tool-field"><label for="cfgAgentActions" data-zh="每笔 Agent actions" data-en="Agent Actions per Case">每笔 Agent actions</label><input id="cfgAgentActions" type="number" min="0" value="2" /></div>
+                <div class="tool-field"><label for="cfgFlowActions" data-zh="每笔 Agent flow actions" data-en="Agent-Flow Actions per Case">每笔 Agent flow actions</label><input id="cfgFlowActions" type="number" min="0" value="18" /></div>
+                <div class="tool-field"><label for="cfgPages" data-zh="每笔文档页数（勾选时）" data-en="Document Pages per Case (When Enabled)">每笔文档页数（勾选时）</label><input id="cfgPages" type="number" min="0" value="2" /></div>
+              </div>
+
+              <div data-present-substep data-step-title="可选能力与治理条件" data-step-title-en="Optional Capabilities and Governance Conditions">
+                <h3 data-zh="可选能力与边界" data-en="Optional Capabilities and Boundaries">可选能力与边界</h3>
+                <p data-zh="勾选会改变推荐产品栈、身份路径、治理要求或 Credits 组成，不改变来源系统仍为业务权威的架构原则。" data-en="Selections change the recommended stack, identity path, governance requirements, or Credit composition without changing source-system authority.">勾选会改变推荐产品栈、身份路径、治理要求或 Credits 组成，不改变来源系统仍为业务权威的架构原则。</p>
+                <div class="tool-checks">
+                  <label class="tool-check"><input id="cfgAiBrief" type="checkbox" checked /><span data-zh="Copilot Studio Prompt 简报" data-en="Copilot Studio Prompt Brief">Copilot Studio Prompt 简报</span></label>
+                  <label class="tool-check"><input id="cfgDocument" type="checkbox" /><span data-zh="Content processing 文档提取" data-en="Content Processing for Documents">Content processing 文档提取</span></label>
+                  <label class="tool-check"><input id="cfgExternal" type="checkbox" /><span data-zh="包含外部参与者（Power Pages 登录）" data-en="Include External Participants (Power Pages Sign-In)">包含外部参与者（Power Pages 登录）</span></label>
+                  <label class="tool-check"><input id="cfgAnalytics" type="checkbox" checked /><span data-zh="跨流程管理分析" data-en="Cross-Process Management Analytics">跨流程管理分析</span></label>
+                  <label class="tool-check"><input id="cfgHighRisk" type="checkbox" /><span data-zh="高风险/受监管流程" data-en="High-Risk or Regulated Process">高风险/受监管流程</span></label>
+                  <label class="tool-check"><input id="cfgLegacyAdapter" type="checkbox" /><span data-zh="保留不可迁移既有 Flow" data-en="Retain Nonconvertible Existing Flows">保留不可迁移既有 Flow</span></label>
+                </div>
+              </div>
+            </div>
+
+            <div class="tool-panel" data-present-step data-present-surface="unframed" data-step-title="Agentic 产品栈、Credits 与 Power Pages 容量" data-step-title-en="Recommended Agentic Stack, Credits, and Power Pages Capacity" data-step-label="04 / 推荐方案" data-step-label-en="04 / Recommendation">
+              <div data-present-substep data-step-title="容量与计费摘要" data-step-title-en="Capacity and Billing Summary">
+                <h3 data-zh="推荐 Agentic 运行基线与双容量下限" data-en="Recommended Agentic Runtime and Dual Capacity Floor">推荐 Agentic 运行基线与双容量下限</h3>
+                <p data-zh="Credits 按 Agent action、Agent flow action 和文档页估算；Power Pages 按每个网站每月唯一认证用户数估算，每 100 人需要 1 个订阅容量包。[3][16]" data-en="Credits are estimated from agent actions, agent-flow actions, and document pages. Power Pages capacity is based on unique authenticated users per website per month, with one subscription capacity pack for each 100 users.[3][16]">Credits 按 Agent action、Agent flow action 和文档页估算；Power Pages 按每个网站每月唯一认证用户数估算，每 100 人需要 1 个订阅容量包。[3][16]</p>
+                <div class="tool-result-summary">
+                  <div><span data-zh="运行基线" data-en="Runtime Baseline">运行基线</span><strong id="cfgRuntime">-</strong></div>
+                  <div><span data-zh="集成模式" data-en="Integration Pattern">集成模式</span><strong id="cfgPattern">-</strong></div>
+                  <div><span data-zh="容量策略" data-en="Capacity Strategy">容量策略</span><strong id="cfgBilling">-</strong></div>
+                  <div><span data-zh="月度 Credits 下限" data-en="Monthly Credit Floor">月度 Credits 下限</span><strong id="cfgCreditFloor">-</strong></div>
+                  <div><span data-zh="Power Pages 计费单位" data-en="Power Pages Billing Units">Power Pages 计费单位</span><strong id="cfgPowerPagesPacks">-</strong></div>
+                  <div><span data-zh="月度已计价 SKU 合计" data-en="Monthly Priced SKU Total">月度已计价 SKU 合计</span><strong id="cfgMonthlyListTotal">-</strong></div>
+                </div>
+                <div class="roi-verdict" id="cfgWarning"><strong data-zh="架构提醒" data-en="Architecture Note">架构提醒</strong><span>-</span></div>
+              </div>
+              <div data-present-substep data-step-title="产品 SKU 与列表价明细" data-step-title-en="Product SKUs and List-Price Detail">
+                <h3 data-zh="推荐产品 SKU 与官方列表价" data-en="Recommended Product SKUs and Official List Prices">推荐产品 SKU 与官方列表价</h3>
+                <p data-zh="使用 2026-07-27 可核验的美国商业渠道 USD 列表价；自动比较 Power Pages 订阅包与 PAYG。税费、合同折扣、区域差异及标为「另计」的服务不进入合计。[16][19][20][21][22]" data-en="Uses verifiable US commercial USD list prices as of 2026-07-27 and automatically compares Power Pages subscription packs with pay-as-you-go. Taxes, contract discounts, regional differences, and items marked Excluded aren't included in totals.[16][19][20][21][22]">使用 2026-07-27 可核验的美国商业渠道 USD 列表价；自动比较 Power Pages 订阅包与 PAYG。税费、合同折扣、区域差异及标为「另计」的服务不进入合计。[16][19][20][21][22]</p>
+                <div class="table-scroll">
+                  <table class="simple-table sku-table" aria-label="推荐产品 SKU 与官方列表价">
+                    <thead><tr><th data-zh="产品 SKU" data-en="Product SKU">产品 SKU</th><th data-zh="用途描述" data-en="Purpose">用途描述</th><th data-zh="单价（USD）" data-en="Unit Price (USD)">单价（USD）</th><th data-zh="数量" data-en="Quantity">数量</th><th data-zh="月度小计" data-en="Monthly Subtotal">月度小计</th></tr></thead>
+                    <tbody id="cfgProductBody"></tbody>
+                    <tfoot>
+                      <tr><th colspan="4" data-zh="月度已计价 SKU 合计" data-en="Monthly Priced SKU Total">月度已计价 SKU 合计</th><td id="cfgSkuMonthlyTotal">-</td></tr>
+                      <tr><th colspan="4" data-zh="年化已计价 SKU 合计" data-en="Annualized Priced SKU Total">年化已计价 SKU 合计</th><td id="cfgSkuAnnualTotal">-</td></tr>
+                    </tfoot>
+                  </table>
+                </div>
+                <p class="roi-note" data-zh="包含于 Copilot Studio 或 Power Pages 权益中的 Agent Flow、Prompt、Content Processing、Dataverse 基础容量、Teams/Outlook 入口与 Managed Environments 不重复计价。现有 Power Apps、Dynamics 365、Microsoft 365 或 Power BI 权益应在采购前抵扣。" data-en="Agent flows, prompts, content processing, baseline Dataverse capacity, Teams/Outlook channels, and Managed Environments included through Copilot Studio or Power Pages aren't priced twice. Deduct qualifying existing Power Apps, Dynamics 365, Microsoft 365, or Power BI entitlements before purchase.">包含于 Copilot Studio 或 Power Pages 权益中的 Agent Flow、Prompt、Content Processing、Dataverse 基础容量、Teams/Outlook 入口与 Managed Environments 不重复计价。现有 Power Apps、Dynamics 365、Microsoft 365 或 Power BI 权益应在采购前抵扣。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion data-present-step data-step-title="四阶段交付计划" data-step-title-en="Four-Phase Delivery Plan" data-step-label="04 / 交付" data-step-label-en="04 / Delivery">
+              <button class="subsection-toggle"><span data-zh="4.1 从一个流程到企业平台的四阶段交付" data-en="4.1 Four-Phase Delivery from One Process to an Enterprise Platform">4.1 从一个流程到企业平台的四阶段交付</span></button>
+              <div class="subsection-content">
+                <p data-zh="首期只选一个流程、一个责任部门和一组明确指标；每阶段有退出条件，未达标时不扩范围。" data-en="Phase one selects one process, one accountable function, and one explicit measure set. Each phase has an exit gate, and scope does not expand when the gate fails.">首期只选一个流程、一个责任部门和一组明确指标；每阶段有退出条件，未达标时不扩范围。</p>
+                <ol class="flow-list">
+                  <li class="flow-step"><div class="flow-copy"><strong data-zh="阶段 1 · 2 周发现与基线" data-en="Phase 1 · Two-Week Discovery and Baseline">阶段 1 · 2 周发现与基线</strong><p data-zh="选定一个月审批量足够、风险可控的流程；完成 4 项基线、ApprovalCase 字段映射、身份边界和回写接口评审。" data-en="Select one sufficiently frequent, controllable-risk process. Complete four baselines, ApprovalCase mapping, identity boundaries, and writeback API review.">选定一个月审批量足够、风险可控的流程；完成 4 项基线、ApprovalCase 字段映射、身份边界和回写接口评审。</p></div></li>
+                  <li class="flow-step"><div class="flow-copy"><strong data-zh="阶段 2 · 4–6 周 Agent + Workflow PoC" data-en="Phase 2 · Four-to-Six-Week Agent and Workflow PoC">阶段 2 · 4–6 周 Agent + Workflow PoC</strong><p data-zh="用 PAYG 建立流程 Agent、一个 Agent flow、Prompt、Approval、Request information 与模拟回写；验证 Outlook-only、首个响应和租户边界。" data-en="Use pay-as-you-go to build the process agent, one agent flow, a prompt, approval, Request information, and simulated writeback; validate Outlook-only delivery, first-response behavior, and tenant boundaries.">用 PAYG 建立流程 Agent、一个 Agent flow、Prompt、Approval、Request information 与模拟回写；验证 Outlook-only、首个响应和租户边界。</p></div></li>
+                  <li class="flow-step"><div class="flow-copy"><strong data-zh="阶段 3 · 6–8 周生产试点" data-en="Phase 3 · Six-to-Eight-Week Production Pilot">阶段 3 · 6–8 周生产试点</strong><p data-zh="限制到一个部门和明确金额阈值，保留原审批入口回退；连续 4 周对照业务指标，并记录每笔 Agent actions、Flow actions、Prompt tokens 与文档页数。" data-en="Restrict production to one function and an explicit amount threshold while retaining the original approval path. Compare business measures for four weeks and record agent actions, flow actions, prompt tokens, and document pages per case.">限制到一个部门和明确金额阈值，保留原审批入口回退；连续 4 周对照业务指标，并记录每笔 Agent actions、Flow actions、Prompt tokens 与文档页数。</p></div></li>
+                  <li class="flow-step"><div class="flow-copy"><strong data-zh="阶段 4 · 按模板逐流程扩展" data-en="Phase 4 · Expand Process by Process with Templates">阶段 4 · 按模板逐流程扩展</strong><p data-zh="复用 Agent instructions、Agent flow、Prompt、Connector、Human Gate、ApprovalCase、DLP 和 ALM 模板；一次只增加一个流程或组织范围。" data-en="Reuse agent instructions, agent flows, prompts, connectors, human gates, ApprovalCase, DLP, and ALM templates, adding only one process or organizational scope at a time.">复用 Agent instructions、Agent flow、Prompt、Connector、Human Gate、ApprovalCase、DLP 和 ALM 模板；一次只增加一个流程或组织范围。</p></div></li>
+                </ol>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="roi" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="05 / ROI 评估计算器" data-en="05 / ROI Assessment Calculator">05 / ROI 评估计算器</p>
+            <h2 data-zh="用时间、返工、延误损失和避免重构成本计算回报" data-en="Measure Time, Rework, Delay, and Avoided Rebuild Cost">用时间、返工、延误损失和避免重构成本计算回报</h2>
+            <p data-zh="计算器把年化运营收益与一次性、年度成本分开：时间收益来自有效审批量 × 单笔节省分钟 × 综合人力成本 × 收益兑现率；返工收益来自退回率差值；延误损失按可避免暴露额折减。年度平台成本直接读取上方 SKU 表的月度 USD 合计，按可调规划汇率折算为 CNY，再加 APIM、外部 IdP 等另计成本；不再重复手填 Copilot Credits 与 Power Pages 预算。默认值是组合示例假设，不代表客户实测或 Microsoft 收益承诺。" data-en="The calculator separates annual operating benefits from one-time and recurring cost. Time value equals effective approval volume × minutes saved × loaded labor cost × realization. Rework value uses the return-rate difference, and delay value applies a reduction to avoidable exposure. Annual platform cost now reads the monthly USD total from the SKU table, converts it to CNY with an adjustable planning rate, and adds excluded items such as APIM or an external identity provider. Copilot Credits and Power Pages budget are no longer entered twice. Defaults are composite assumptions, not measured results or Microsoft benefit commitments.">计算器把年化运营收益与一次性、年度成本分开：时间收益来自有效审批量 × 单笔节省分钟 × 综合人力成本 × 收益兑现率；返工收益来自退回率差值；延误损失按可避免暴露额折减。年度平台成本直接读取上方 SKU 表的月度 USD 合计，按可调规划汇率折算为 CNY，再加 APIM、外部 IdP 等另计成本；不再重复手填 Copilot Credits 与 Power Pages 预算。默认值是组合示例假设，不代表客户实测或 Microsoft 收益承诺。</p>
+          </div>
+
+          <div class="roi-calc" data-gap-managed>
+            <div class="roi-panel" data-present-step data-present-surface="unframed" data-step-title="ROI 测算参数" data-step-title-en="ROI Assumptions" data-step-label="05 / 输入参数" data-step-label-en="05 / Inputs">
+              <div data-present-substep data-step-title="审批量、采用与时间价值" data-step-title-en="Volume, Adoption, and Time Value">
+                <h3 data-zh="审批量、采用与时间价值" data-en="Volume, Adoption, and Time Value">审批量、采用与时间价值</h3>
+                <p data-zh="所有效率输入都应由同流程试点替换；采用率按实际通过新入口完成决定的审批量计算。" data-en="Replace every efficiency input with evidence from the same-process pilot. Adoption is the share of decisions actually completed through the new surfaces.">所有效率输入都应由同流程试点替换；采用率按实际通过新入口完成决定的审批量计算。</p>
+                <div class="roi-input-grid">
+                  <div class="roi-field"><label for="roiMonthly" data-zh="月审批量（笔）" data-en="Monthly Approvals">月审批量（笔）</label><input id="roiMonthly" type="number" min="0" value="20000" /></div>
+                  <div class="roi-field"><label for="roiAdoption" data-zh="新入口采用率（%）" data-en="New-Surface Adoption (%)">新入口采用率（%）</label><input id="roiAdoption" type="number" min="0" max="100" value="70" /></div>
+                  <div class="roi-field"><label for="roiMinutesSaved" data-zh="单笔节省分钟" data-en="Minutes Saved per Approval">单笔节省分钟</label><input id="roiMinutesSaved" type="number" min="0" value="3" step="0.1" /></div>
+                  <div class="roi-field"><label for="roiHourly" data-zh="综合人力成本（CNY/小时）" data-en="Loaded Labor Cost (CNY/Hour)">综合人力成本（CNY/小时）</label><input id="roiHourly" type="number" min="0" value="220" /></div>
+                  <div class="roi-field"><label for="roiRealization" data-zh="收益兑现率（%）" data-en="Benefit Realization (%)">收益兑现率（%）</label><input id="roiRealization" type="number" min="0" max="100" value="60" /></div>
+                </div>
+              </div>
+
+              <div data-present-substep data-step-title="返工与延误损失" data-step-title-en="Rework and Delay Exposure">
+                <h3 data-zh="返工与延误损失" data-en="Rework and Delay Exposure">返工与延误损失</h3>
+                <p data-zh="返工收益只使用材料缺失或冲突造成的退回率差值；延误收益只计入能够稳定归因的暴露额。" data-en="Rework value uses only the return-rate change caused by missing or conflicting evidence. Delay value includes only exposure that can be attributed consistently.">返工收益只使用材料缺失或冲突造成的退回率差值；延误收益只计入能够稳定归因的暴露额。</p>
+                <div class="roi-input-grid">
+                  <div class="roi-field"><label for="roiReturnBefore" data-zh="基线材料退回率（%）" data-en="Baseline Evidence Return Rate (%)">基线材料退回率（%）</label><input id="roiReturnBefore" type="number" min="0" max="100" value="10" /></div>
+                  <div class="roi-field"><label for="roiReturnAfter" data-zh="目标材料退回率（%）" data-en="Target Evidence Return Rate (%)">目标材料退回率（%）</label><input id="roiReturnAfter" type="number" min="0" max="100" value="6" /></div>
+                  <div class="roi-field"><label for="roiReworkMinutes" data-zh="每次退回返工分钟" data-en="Rework Minutes per Return">每次退回返工分钟</label><input id="roiReworkMinutes" type="number" min="0" value="18" /></div>
+                  <div class="roi-field"><label for="roiDelayExposure" data-zh="年可避免延误损失（CNY）" data-en="Annual Avoidable Delay Exposure (CNY)">年可避免延误损失（CNY）</label><input id="roiDelayExposure" type="number" min="0" value="1000000" /></div>
+                  <div class="roi-field"><label for="roiDelayReduction" data-zh="延误损失降低率（%）" data-en="Delay-Loss Reduction (%)">延误损失降低率（%）</label><input id="roiDelayReduction" type="number" min="0" max="100" value="20" /></div>
+                </div>
+              </div>
+
+              <div data-present-substep data-step-title="实施、汇率与年度预算" data-step-title-en="Implementation, Exchange Rate, and Annual Budget">
+                <h3 data-zh="实施、汇率与年度预算" data-en="Implementation, Exchange Rate, and Annual Budget">实施、汇率与年度预算</h3>
+                <p data-zh="已计价 SKU 由配置器自动带入；汇率只用于规划折算，APIM、外部 IdP、税费和折扣等通过「另计成本」补充。" data-en="Priced SKUs flow in automatically from the configurator. The exchange rate is for planning conversion only; add APIM, external IdP, taxes, discounts, and other excluded items separately.">已计价 SKU 由配置器自动带入；汇率只用于规划折算，APIM、外部 IdP、税费和折扣等通过「另计成本」补充。</p>
+                <div class="roi-input-grid">
+                  <div class="roi-field"><label for="roiAvoidedRebuild" data-zh="避免来源系统重构（CNY，一次性）" data-en="Avoided Source Rebuild (CNY, One-Time)">避免来源系统重构（CNY，一次性）</label><input id="roiAvoidedRebuild" type="number" min="0" value="0" /></div>
+                  <div class="roi-field"><label for="roiImplementation" data-zh="Agent + Workflow 实施与变革（CNY，一次性）" data-en="Agent + Workflow Implementation and Change (CNY, One-Time)">Agent + Workflow 实施与变革（CNY，一次性）</label><input id="roiImplementation" type="number" min="0" value="600000" /></div>
+                  <div class="roi-field"><label for="roiUsdCnyRate" data-zh="规划汇率（1 USD = CNY）" data-en="Planning Exchange Rate (1 USD = CNY)">规划汇率（1 USD = CNY）</label><input id="roiUsdCnyRate" type="number" min="0" value="7.2" step="0.01" /></div>
+                  <div class="roi-field"><label for="roiOtherPlatformCost" data-zh="年另计平台成本（CNY）" data-en="Annual Excluded Platform Cost (CNY)">年另计平台成本（CNY）</label><input id="roiOtherPlatformCost" type="number" min="0" value="0" /></div>
+                  <div class="roi-field"><label for="roiOperations" data-zh="年运营支持成本（CNY）" data-en="Annual Operations Support (CNY)">年运营支持成本（CNY）</label><input id="roiOperations" type="number" min="0" value="180000" /></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="roi-panel" data-present-step data-present-surface="unframed" data-step-title="ROI 结果与投资门槛" data-step-title-en="ROI Results and Investment Gate" data-step-label="05 / 测算结果" data-step-label-en="05 / Results">
+              <div data-present-substep data-step-title="ROI 指标总览" data-step-title-en="ROI Metrics Overview">
+                <h3 data-zh="收益与投资判断" data-en="Benefits and Investment View">收益与投资判断</h3>
+                <p data-zh="回收期按净前期投入 ÷（年化运营收益 − 年度运行成本）计算；避免重构成本只抵减前期投入一次。" data-en="Payback equals net upfront investment divided by annual operating benefit minus annual run cost. Avoided rebuild cost offsets upfront investment once.">回收期按净前期投入 ÷（年化运营收益 − 年度运行成本）计算；避免重构成本只抵减前期投入一次。</p>
+                <div class="roi-kpi-grid">
+                  <div class="roi-kpi"><span data-zh="年化运营收益" data-en="Annual Operating Benefit">年化运营收益</span><strong id="roiAnnualBenefit">CNY 0</strong></div>
+                  <div class="roi-kpi"><span data-zh="首年总成本" data-en="First-Year Cost">首年总成本</span><strong id="roiFirstYearCost">CNY 0</strong></div>
+                  <div class="roi-kpi"><span data-zh="首年 ROI" data-en="First-Year ROI">首年 ROI</span><strong id="roiPercent">0%</strong></div>
+                  <div class="roi-kpi"><span data-zh="回收期" data-en="Payback Period">回收期</span><strong id="roiPayback">-</strong></div>
+                  <div class="roi-kpi"><span data-zh="三年净收益" data-en="Three-Year Net Benefit">三年净收益</span><strong id="roiThreeYearNet">CNY 0</strong></div>
+                  <div class="roi-kpi"><span data-zh="三年收益/成本比" data-en="Three-Year Benefit/Cost Ratio">三年收益/成本比</span><strong id="roiRatio">0.0x</strong></div>
+                </div>
+              </div>
+              <div data-present-substep data-step-title="配置 SKU 预算纳入 ROI" data-step-title-en="Configured SKU Budget in ROI">
+                <h3 data-zh="配置 SKU 预算纳入 ROI" data-en="Configured SKU Budget in ROI">配置 SKU 预算纳入 ROI</h3>
+                <p data-zh="每个已计价 SKU 的月度 USD 小计按规划汇率年化为 CNY；标为「另计」的行不自动计入，需通过年另计平台成本补充。" data-en="Each priced SKU monthly USD subtotal is annualized into CNY using the planning exchange rate. Rows marked Excluded aren't added automatically and must be entered through annual excluded platform cost.">每个已计价 SKU 的月度 USD 小计按规划汇率年化为 CNY；标为「另计」的行不自动计入，需通过年另计平台成本补充。</p>
+                <div class="table-scroll">
+                  <table class="simple-table" aria-label="ROI 配置 SKU 预算">
+                    <thead><tr><th data-zh="产品 SKU" data-en="Product SKU">产品 SKU</th><th data-zh="数量" data-en="Quantity">数量</th><th data-zh="月度小计（USD）" data-en="Monthly Subtotal (USD)">月度小计（USD）</th><th data-zh="年化预算（CNY）" data-en="Annual Budget (CNY)">年化预算（CNY）</th></tr></thead>
+                    <tbody id="roiSkuBudgetBody"></tbody>
+                    <tfoot>
+                      <tr><th colspan="3" data-zh="规划汇率" data-en="Planning Exchange Rate">规划汇率</th><td id="roiSkuExchangeRate">-</td></tr>
+                      <tr><th colspan="3" data-zh="已计价 SKU 年化预算" data-en="Annualized Priced SKU Budget">已计价 SKU 年化预算</th><td id="roiSkuAnnualCny">-</td></tr>
+                      <tr><th colspan="3" data-zh="年另计平台成本" data-en="Annual Excluded Platform Cost">年另计平台成本</th><td id="roiOtherAnnualCny">-</td></tr>
+                      <tr><th colspan="3" data-zh="ROI 采用的年度平台预算" data-en="Annual Platform Budget Used in ROI">ROI 采用的年度平台预算</th><td id="roiPlatformAnnualCny">-</td></tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+              <div data-present-substep data-step-title="收益构成与投资门槛" data-step-title-en="Benefit Composition and Investment Gate">
+                <h3 data-zh="收益构成与投资门槛" data-en="Benefit Composition and Investment Gate">收益构成与投资门槛</h3>
+                <div class="table-scroll">
+                  <table class="simple-table" aria-label="ROI 收益拆分">
+                    <thead><tr><th data-zh="收益来源" data-en="Benefit Source">收益来源</th><th data-zh="金额" data-en="Amount">金额</th><th data-zh="计算口径" data-en="Basis">计算口径</th></tr></thead>
+                    <tbody id="roiValueBody"></tbody>
+                  </table>
+                </div>
+                <div class="roi-verdict" id="roiVerdict"><strong data-zh="投资判断" data-en="Investment View">投资判断</strong><span>-</span></div>
+                <p class="roi-note" data-zh="说明：计算结果未折现、未计税，也未估算错误审批、合规事件或现金流改善等难以稳定归因的收益。正式商业论证应由财务团队审核口径，并对采用率、单笔省时和退回率做敏感性分析。" data-en="Note: results are undiscounted and pretax, and they exclude benefits that are difficult to attribute consistently, such as avoided decision errors, compliance events, and working-capital effects. Finance should review the formal business case and run sensitivity analysis on adoption, time saved, and return rate.">说明：计算结果未折现、未计税，也未估算错误审批、合规事件或现金流改善等难以稳定归因的收益。正式商业论证应由财务团队审核口径，并对采用率、单笔省时和退回率做敏感性分析。</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="case" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="06 / 客户案例" data-en="06 / Customer Case">06 / 客户案例</p>
+            <h2 data-zh="组合采购案例说明如何设置生产试点门槛" data-en="A Composite Procurement Case Shows How to Set a Pilot Gate">组合采购案例说明如何设置生产试点门槛</h2>
+            <p data-zh="以下是基于常见制造业采购审批特征构造的组合示例，不对应任何单一真实客户，也不宣称已经实现结果。它用于展示如何把业务问题、产品配置、基线、目标和扩展条件放进同一份试点章程。所有数字都必须由客户日志、财务口径和安全评审替换。" data-en="The following composite combines common manufacturing-procurement approval characteristics. It does not represent one real customer and does not claim realized outcomes. Its purpose is to show how business problems, product configuration, baselines, targets, and scale gates fit into one pilot charter. Every figure must be replaced with customer logs, finance definitions, and security review.">以下是基于常见制造业采购审批特征构造的组合示例，不对应任何单一真实客户，也不宣称已经实现结果。它用于展示如何把业务问题、产品配置、基线、目标和扩展条件放进同一份试点章程。所有数字都必须由客户日志、财务口径和安全评审替换。</p>
+          </div>
+
+          <div class="insight-grid platform-grid-three" data-present-step data-step-title="制造业采购组合示例" data-step-title-en="Composite Manufacturing Procurement Scenario" data-step-label="06 / 组合案例" data-step-label-en="06 / Composite Case">
+            <article class="insight-card"><span class="card-index">01</span><h3 data-zh="现状假设" data-en="Illustrative Baseline">现状假设</h3><p data-zh="3 个来源系统，180 名审批人，月均 20,000 笔；单笔主动处理 7 分钟，材料退回率 10%，审批人需要分别登录采购、ERP 和合同系统。" data-en="Three source systems, 180 approvers, and 20,000 monthly requests. Active handling averages seven minutes, evidence returns are 10%, and approvers separately enter procurement, ERP, and contract systems.">3 个来源系统，180 名审批人，月均 20,000 笔；单笔主动处理 7 分钟，材料退回率 10%，审批人需要分别登录采购、ERP 和合同系统。</p></article>
+            <article class="insight-card"><span class="card-index">02</span><h3 data-zh="试点范围" data-en="Pilot Scope">试点范围</h3><p data-zh="选择一个工厂、一个间接采购流程和 30 名审批人；保留原提交表单，接入预算、供应商状态和合同附件，Outlook/Teams 处理内部审批。" data-en="Select one plant, one indirect-procurement process, and 30 approvers. Retain the original intake form, connect budget, supplier status, and contract evidence, and process internal decisions in Outlook/Teams.">选择一个工厂、一个间接采购流程和 30 名审批人；保留原提交表单，接入预算、供应商状态和合同附件，Outlook/Teams 处理内部审批。</p></article>
+            <article class="insight-card"><span class="card-index">03</span><h3 data-zh="产品配置" data-en="Product Configuration">产品配置</h3><p data-zh="Copilot Studio 流程 Agent + Agent Flow + Dataverse + Power Pages 统一工作台 + Teams Approvals；原生 Prompt 与 Content processing 生成简报并提取附件；Custom Connector 回写 ERP；Power BI 分析流程。" data-en="A Copilot Studio process agent, agent flow, Dataverse, a Power Pages unified workbench, and Teams Approvals; native prompts and content processing for briefs and attachments; a custom connector for ERP writeback; and Power BI for process analysis.">Copilot Studio 流程 Agent + Agent Flow + Dataverse + Power Pages 统一工作台 + Teams Approvals；原生 Prompt 与 Content processing 生成简报并提取附件；Custom Connector 回写 ERP；Power BI 分析流程。</p></article>
+          </div>
+
+          <div data-present-step data-step-title="试点通过与停止条件" data-step-title-en="Pilot Gates and Failure Conditions" data-step-label="06 / 试点门槛" data-step-label-en="06 / Pilot Gates">
+            <div class="table-scroll">
+              <table class="simple-table">
+                <thead><tr><th data-zh="维度" data-en="Dimension">维度</th><th data-zh="组合示例基线" data-en="Composite Baseline">组合示例基线</th><th data-zh="8 周试点通过条件" data-en="Eight-Week Pilot Gate">8 周试点通过条件</th><th data-zh="停止扩展条件" data-en="Stop Condition">停止扩展条件</th></tr></thead>
+                <tbody>
+                  <tr><td data-zh="采用" data-en="Adoption">采用</td><td data-zh="0% 使用统一入口" data-en="0% use the unified surfaces">0% 使用统一入口</td><td data-zh="至少 70% 试点审批通过 Outlook/Teams 完成" data-en="At least 70% of pilot decisions complete through Outlook/Teams">至少 70% 试点审批通过 Outlook/Teams 完成</td><td data-zh="连续 2 周低于 50%" data-en="Below 50% for two consecutive weeks">连续 2 周低于 50%</td></tr>
+                  <tr><td data-zh="效率" data-en="Efficiency">效率</td><td data-zh="单笔主动处理 7 分钟" data-en="Seven active minutes per item">单笔主动处理 7 分钟</td><td data-zh="同风险等级中位数降至 4 分钟或以下" data-en="Median falls to four minutes or less within the same risk tier">同风险等级中位数降至 4 分钟或以下</td><td data-zh="处理时间下降但错误决定率上升" data-en="Handling time falls while decision-error rate rises">处理时间下降但错误决定率上升</td></tr>
+                  <tr><td data-zh="材料质量" data-en="Evidence Quality">材料质量</td><td data-zh="材料退回率 10%" data-en="10% evidence return rate">材料退回率 10%</td><td data-zh="降至 6% 或以下，且政策标准不变" data-en="Falls to 6% or less with unchanged policy standards">降至 6% 或以下，且政策标准不变</td><td data-zh="AI 简报出现 1 次未标注来源的关键事实" data-en="One material AI fact appears without a source">AI 简报出现 1 次未标注来源的关键事实</td></tr>
+                  <tr><td data-zh="可靠性" data-en="Reliability">可靠性</td><td data-zh="跨系统追踪缺失" data-en="No cross-system trace">跨系统追踪缺失</td><td data-zh="99% 事项具备完整事件链，回写成功率至少 99.5%" data-en="99% have complete event chains and writeback succeeds at least 99.5%">99% 事项具备完整事件链，回写成功率至少 99.5%</td><td data-zh="出现重复过账或未授权数据访问" data-en="Any duplicate posting or unauthorized data access">出现重复过账或未授权数据访问</td></tr>
+                  <tr><td data-zh="财务" data-en="Economics">财务</td><td data-zh="无同口径收益基线" data-en="No comparable benefit baseline">无同口径收益基线</td><td data-zh="用实测参数重算后，三年收益/成本比至少 1.2x" data-en="At least 1.2x three-year benefit/cost after recalculation with measured inputs">用实测参数重算后，三年收益/成本比至少 1.2x</td><td data-zh="只靠未报价的避免重构成本才能达到 1.0x" data-en="Reaches 1.0x only through an unquoted avoided-rebuild assumption">只靠未报价的避免重构成本才能达到 1.0x</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion data-present-step data-step-title="案例决策与下一步范围" data-step-title-en="Case Decision and Next Scope" data-step-label="06 / 决策" data-step-label-en="06 / Decision">
+              <button class="subsection-toggle"><span data-zh="6.1 达标后如何扩展，未达标时如何处理" data-en="6.1 How to Scale After Passing and Respond After Failure">6.1 达标后如何扩展，未达标时如何处理</span></button>
+              <div class="subsection-content">
+                <p data-zh="扩展依据是试点门槛，不是演示反馈；每轮只增加一个流程或组织范围。" data-en="Scale follows pilot gates rather than demo feedback, and each wave adds only one process or organizational scope.">扩展依据是试点门槛，不是演示反馈；每轮只增加一个流程或组织范围。</p>
+                <div class="comparison-grid">
+                  <article class="comparison-card next"><span class="comparison-label" data-zh="通过" data-en="Pass">通过</span><h3 data-zh="复用模板，增加第二个采购流程" data-en="Reuse the Template for a Second Procurement Process">复用模板，增加第二个采购流程</h3><p data-zh="复用状态机、异常队列、连接引用、DLP、简报 schema 和指标定义，只新增字段映射、审批规则与来源 API。" data-en="Reuse the state machine, exception queue, connection references, DLP, brief schema, and measures. Add only field mapping, approval policy, and source APIs.">复用状态机、异常队列、连接引用、DLP、简报 schema 和指标定义，只新增字段映射、审批规则与来源 API。</p></article>
+                  <article class="comparison-card"><span class="comparison-label" data-zh="未通过" data-en="Fail">未通过</span><h3 data-zh="保持原入口，修复单一失败原因" data-en="Retain the Original Path and Repair One Failure Cause">保持原入口，修复单一失败原因</h3><p data-zh="按采用、数据质量、AI 简报、集成可靠性或经济性定位失败；修复后重跑同范围 4 周，不同时更换流程和组织。" data-en="Classify failure by adoption, data quality, AI brief, integration reliability, or economics. After repair, rerun the same scope for four weeks without changing both process and organization.">按采用、数据质量、AI 简报、集成可靠性或经济性定位失败；修复后重跑同范围 4 周，不同时更换流程和组织。</p></article>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="references" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="07 / 参考资料" data-en="07 / References">07 / 参考资料</p>
+            <h2 data-zh="参考资料与证据边界" data-en="References and Evidence Boundaries">参考资料与证据边界</h2>
+            <p data-zh="产品能力和限制以 Microsoft Learn 与 Microsoft Support 官方文档为准；AI 风险边界参考 NIST AI RMF。本文没有引用未经核验的客户收益数字。产品许可、功能可用性和服务限制可能随地区、云环境与发布时间变化，实施前应重新核验。" data-en="Product capabilities and limits rely on official Microsoft Learn and Microsoft Support documentation, while AI risk boundaries reference the NIST AI RMF. This proposal cites no unverified customer benefit figures. Licensing, feature availability, and service limits can vary by region, cloud, and release date and must be rechecked before implementation.">产品能力和限制以 Microsoft Learn 与 Microsoft Support 官方文档为准；AI 风险边界参考 NIST AI RMF。本文没有引用未经核验的客户收益数字。产品许可、功能可用性和服务限制可能随地区、云环境与发布时间变化，实施前应重新核验。</p>
+          </div>
+
+          <div data-present-step data-step-title="Copilot Studio 运行时资料" data-step-title-en="Copilot Studio Runtime Documentation" data-step-label="07 / 参考资料" data-step-label-en="07 / References">
+            <ul class="bib-list">
+              <li><span class="bib-id">[1]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/flows-overview" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Agent Flows Overview" data-en="Microsoft Learn · Agent Flows Overview">Microsoft Learn · Agent Flows Overview</a><span class="bib-note" data-zh="支撑确定性 Agent flow、AI 与 human-in-the-loop action、Solution 管理、Credits 计量及既有 cloud flow 单向转换。" data-en="Supports deterministic agent flows, AI and human-in-the-loop actions, Solution management, credit metering, and one-way cloud-flow conversion.">支撑确定性 Agent flow、AI 与 human-in-the-loop action、Solution 管理、Credits 计量及既有 cloud flow 单向转换。</span></li>
+              <li><span class="bib-id">[2]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/authoring-triggers-about" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Event Triggers Overview" data-en="Microsoft Learn · Event Triggers Overview">Microsoft Learn · Event Triggers Overview</a><span class="bib-note" data-zh="支撑 autonomous event trigger、payload、Activity Map、maker credentials 限制、DLP 与触发配额。" data-en="Supports autonomous event triggers, payloads, Activity Map, maker-credential limitations, DLP, and trigger quotas.">支撑 autonomous event trigger、payload、Activity Map、maker credentials 限制、DLP 与触发配额。</span></li>
+              <li><span class="bib-id">[3]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/requirements-messages-management" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Copilot Studio Billing Rates and Management" data-en="Microsoft Learn · Copilot Studio Billing Rates and Management">Microsoft Learn · Copilot Studio Billing Rates and Management</a><span class="bib-note" data-zh="支撑 Agent action、Agent flow action、AI tool、文档页费率，以及容量耗尽、预付与 PAYG 边界。" data-en="Supports rates for agent actions, agent-flow actions, AI tools, and document pages, plus capacity enforcement, prepaid, and PAYG boundaries.">支撑 Agent action、Agent flow action、AI tool、文档页费率，以及容量耗尽、预付与 PAYG 边界。</span></li>
+              <li><span class="bib-id">[4]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/workflows-experience/flows-overview" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Workflows Overview (Preview)" data-en="Microsoft Learn · Workflows Overview (Preview)">Microsoft Learn · Workflows Overview (Preview)</a><span class="bib-note" data-zh="支撑新 Workflows 画布、原生 AI action、Agent handoff 与 node-level testing；官方明确其为 public preview。" data-en="Supports the new Workflows canvas, native AI actions, agent handoffs, and node-level testing; Microsoft explicitly marks it public preview.">支撑新 Workflows 画布、原生 AI action、Agent handoff 与 node-level testing；官方明确其为 public preview。</span></li>
+              <li><span class="bib-id">[5]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/guidance/autonomous-agents" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Design Autonomous Agent Capabilities" data-en="Microsoft Learn · Design Autonomous Agent Capabilities">Microsoft Learn · Design Autonomous Agent Capabilities</a><span class="bib-note" data-zh="支撑最小权限、输入真实性、关键动作人工监督、审计和渐进扩权。" data-en="Supports least privilege, input authenticity, human oversight for critical actions, auditing, and gradual expansion of authority.">支撑最小权限、输入真实性、关键动作人工监督、审计和渐进扩权。</span></li>
+            </ul>
+          </div>
+
+          <div data-present-step data-step-title="Human-in-the-Loop 与集成资料" data-step-title-en="Human-in-the-Loop and Integration Documentation" data-step-label="07 / 参考资料" data-step-label-en="07 / References">
+            <ul class="bib-list">
+              <li><span class="bib-id">[6]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/advanced-connectors" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Use Connectors in Copilot Studio Agents" data-en="Microsoft Learn · Use Connectors in Copilot Studio Agents">Microsoft Learn · Use Connectors in Copilot Studio Agents</a><span class="bib-note" data-zh="支撑 connector 作为 Agent tool、topic action 和 Agent flow action，以及 user / maker credentials。" data-en="Supports connectors as agent tools, topic actions, and agent-flow actions, including user and maker credentials.">支撑 connector 作为 Agent tool、topic action 和 Agent flow action，以及 user / maker credentials。</span></li>
+              <li><span class="bib-id">[7]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/prompts-overview" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Prompts Overview in Copilot Studio" data-en="Microsoft Learn · Prompts Overview in Copilot Studio">Microsoft Learn · Prompts Overview in Copilot Studio</a><span class="bib-note" data-zh="支撑 prompt 作为 Agent tool 或 workflow node，用于摘要、分类、实体提取与结构化生成，并要求人工监督。" data-en="Supports prompts as agent tools or workflow nodes for summarization, classification, entity extraction, and structured generation with human oversight.">支撑 prompt 作为 Agent tool 或 workflow node，用于摘要、分类、实体提取与结构化生成，并要求人工监督。</span></li>
+              <li><span class="bib-id">[8]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/flows-request-for-information" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Request Information from Human Review in Agent Flows" data-en="Microsoft Learn · Request Information from Human Review in Agent Flows">Microsoft Learn · Request Information from Human Review in Agent Flows</a><span class="bib-note" data-zh="支撑暂停 Agent flow、经 Outlook 收集首个响应，并以动态参数恢复执行；请求对象不能位于租户外。" data-en="Supports pausing an agent flow, collecting the first response through Outlook, and resuming with dynamic parameters; recipients can't be outside the tenant.">支撑暂停 Agent flow、经 Outlook 收集首个响应，并以动态参数恢复执行；请求对象不能位于租户外。</span></li>
+              <li><span class="bib-id">[9]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/power-automate/get-started-approvals" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Get Started with Approvals" data-en="Microsoft Learn · Get Started with Approvals">Microsoft Learn · Get Started with Approvals</a><span class="bib-note" data-zh="支撑 Outlook、Teams Adaptive Card 与 action center 响应，以及 B2B guest 参与条件。" data-en="Supports responses through Outlook, Teams Adaptive Cards, and the action center, plus B2B guest participation conditions.">支撑 Outlook、Teams Adaptive Card 与 action center 响应，以及 B2B guest 参与条件。</span></li>
+              <li><span class="bib-id">[10]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/microsoftteams/approval-admin" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Manage the Approvals App in Microsoft Teams" data-en="Microsoft Learn · Manage the Approvals App in Microsoft Teams">Microsoft Learn · Manage the Approvals App in Microsoft Teams</a><span class="bib-note" data-zh="支撑 Teams Approvals、Dataverse 存储、收发事项可见性、Purview 审计与条件访问。" data-en="Supports Teams Approvals, Dataverse storage, request visibility, Purview auditing, and Conditional Access.">支撑 Teams Approvals、Dataverse 存储、收发事项可见性、Purview 审计与条件访问。</span></li>
+            </ul>
+          </div>
+
+          <div data-present-step data-step-title="Power Pages 工作台与许可资料" data-step-title-en="Power Pages Workbench and Licensing Documentation" data-step-label="07 / 参考资料" data-step-label-en="07 / References">
+            <ul class="bib-list">
+              <li><span class="bib-id">[16]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/power-platform/admin/powerapps-flow-licensing-faq#power-pages" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Power Pages Licensing FAQ" data-en="Microsoft Learn · Power Pages Licensing FAQ">Microsoft Learn · Power Pages Licensing FAQ</a><span class="bib-note" data-zh="支撑认证用户按每个网站每月唯一登录用户计量、内部与外部用户范围，以及每个订阅容量包包含 100 名认证用户。" data-en="Supports authenticated-user metering by unique signed-in users per website per month, coverage of internal and external users, and 100 authenticated users in each subscription capacity pack.">支撑认证用户按每个网站每月唯一登录用户计量、内部与外部用户范围，以及每个订阅容量包包含 100 名认证用户。</span></li>
+              <li><span class="bib-id">[17]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/power-pages/security/authentication/" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Power Pages Authentication Overview" data-en="Microsoft Learn · Power Pages Authentication Overview">Microsoft Learn · Power Pages Authentication Overview</a><span class="bib-note" data-zh="支撑 Entra ID、Entra External ID 等身份提供商、认证用户到 Dataverse Contact 的映射，以及 Web Role 授权。" data-en="Supports identity providers including Microsoft Entra ID and External ID, mapping authenticated users to Dataverse contacts, and authorization through web roles.">支撑 Entra ID、Entra External ID 等身份提供商、认证用户到 Dataverse Contact 的映射，以及 Web Role 授权。</span></li>
+              <li><span class="bib-id">[18]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/power-pages/security/table-permissions" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Set Table Permissions in Power Pages" data-en="Microsoft Learn · Set Table Permissions in Power Pages">Microsoft Learn · Set Table Permissions in Power Pages</a><span class="bib-note" data-zh="支撑使用 Contact / Account 访问类型、Web Role 与表权限，把参与者限制到与其关联的 ApprovalCase 和 HumanTask 记录。" data-en="Supports contact- or account-scoped access, web roles, and table permissions that restrict participants to related ApprovalCase and HumanTask records.">支撑使用 Contact / Account 访问类型、Web Role 与表权限，把参与者限制到与其关联的 ApprovalCase 和 HumanTask 记录。</span></li>
+            </ul>
+          </div>
+
+          <div data-present-step data-step-title="产品 SKU 与列表价资料" data-step-title-en="Product SKU and List-Price Documentation" data-step-label="07 / 参考资料" data-step-label-en="07 / References">
+            <ul class="bib-list">
+              <li><span class="bib-id">[19]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/power-platform/admin/pay-as-you-go-meters" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Power Platform PAYG Meters" data-en="Microsoft Learn · Power Platform PAYG Meters">Microsoft Learn · Power Platform PAYG Meters</a><span class="bib-note" data-zh="支撑 Copilot Studio 每 Copilot Credit 0.01 USD、Power Pages 每月活认证用户/网站 4 USD，以及按量计费边界。" data-en="Supports the Copilot Studio rate of USD 0.01 per Copilot Credit, Power Pages at USD 4 per monthly authenticated user per website, and pay-as-you-go boundaries.">支撑 Copilot Studio 每 Copilot Credit 0.01 USD、Power Pages 每月活认证用户/网站 4 USD，以及按量计费边界。</span></li>
+              <li><span class="bib-id">[20]</span><a class="bib-author" href="https://www.microsoft.com/en-us/power-platform/products/power-bi/pricing" target="_blank" rel="noopener noreferrer" data-zh="Microsoft · Power BI Pricing" data-en="Microsoft · Power BI Pricing">Microsoft · Power BI Pricing</a><span class="bib-note" data-zh="支撑 Power BI Pro 美国商业列表价 14 USD/用户/月；现有 Microsoft 365 或 Fabric 权益需在采购前核对。" data-en="Supports the US commercial list price of USD 14 per Power BI Pro user per month; verify existing Microsoft 365 or Fabric entitlements before purchase.">支撑 Power BI Pro 美国商业列表价 14 USD/用户/月；现有 Microsoft 365 或 Fabric 权益需在采购前核对。</span></li>
+              <li><span class="bib-id">[21]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/power-platform/admin/powerapps-flow-licensing-faq#power-automate" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Power Automate Licensing FAQ" data-en="Microsoft Learn · Power Automate Licensing FAQ">Microsoft Learn · Power Automate Licensing FAQ</a><span class="bib-note" data-zh="支撑 Power Automate Process 美国商业列表价 150 USD/bot/月，以及一个业务关键流程供不限内部用户访问的许可边界。" data-en="Supports the US commercial list price of USD 150 per Power Automate Process bot per month and its licensing boundary for one business-critical process accessed by unlimited internal users.">支撑 Power Automate Process 美国商业列表价 150 USD/bot/月，以及一个业务关键流程供不限内部用户访问的许可边界。</span></li>
+              <li><span class="bib-id">[22]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/billing-licensing" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Copilot Studio Licensing" data-en="Microsoft Learn · Copilot Studio Licensing">Microsoft Learn · Copilot Studio Licensing</a><span class="bib-note" data-zh="支撑 Copilot Studio PAYG 与预付 Copilot Credits 许可模式，以及 maker 使用的 Copilot Studio User License 免费。" data-en="Supports Copilot Studio pay-as-you-go and prepaid Copilot Credit licensing models and the no-charge Copilot Studio User License for makers.">支撑 Copilot Studio PAYG 与预付 Copilot Credits 许可模式，以及 maker 使用的 Copilot Studio User License 免费。</span></li>
+            </ul>
+          </div>
+
+          <div data-present-step data-step-title="治理与风险资料" data-step-title-en="Governance and Risk Documentation" data-step-label="07 / 参考资料" data-step-label-en="07 / References">
+            <ul class="bib-list">
+              <li><span class="bib-id">[11]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/connectors/custom-connectors/" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Custom Connectors Overview" data-en="Microsoft Learn · Custom Connectors Overview">Microsoft Learn · Custom Connectors Overview</a><span class="bib-note" data-zh="支撑使用 OpenAPI 或 Postman 把 REST / SOAP API 包装为 Copilot Studio 可调用的 custom connector。" data-en="Supports wrapping REST or SOAP APIs through OpenAPI or Postman as custom connectors callable from Copilot Studio.">支撑使用 OpenAPI 或 Postman 把 REST / SOAP API 包装为 Copilot Studio 可调用的 custom connector。</span></li>
+              <li><span class="bib-id">[12]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/power-platform/admin/wp-data-loss-prevention" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Data Loss Prevention Policies" data-en="Microsoft Learn · Data Loss Prevention Policies">Microsoft Learn · Data Loss Prevention Policies</a><span class="bib-note" data-zh="支撑按业务、非业务和阻止分组治理 connector，控制 Agent、Flow 与应用之间的数据流动。" data-en="Supports connector governance through business, nonbusiness, and blocked classifications across agents, flows, and apps.">支撑按业务、非业务和阻止分组治理 connector，控制 Agent、Flow 与应用之间的数据流动。</span></li>
+              <li><span class="bib-id">[13]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/power-platform/alm/overview-alm" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Application Lifecycle Management with Microsoft Power Platform" data-en="Microsoft Learn · Application Lifecycle Management with Microsoft Power Platform">Microsoft Learn · Application Lifecycle Management with Microsoft Power Platform</a><span class="bib-note" data-zh="支撑使用 Solutions、环境、源代码和管道管理 Agent、Flow、Prompt、Connector 与 Dataverse 组件。" data-en="Supports managing agents, flows, prompts, connectors, and Dataverse components through Solutions, environments, source control, and pipelines.">支撑使用 Solutions、环境、源代码和管道管理 Agent、Flow、Prompt、Connector 与 Dataverse 组件。</span></li>
+              <li><span class="bib-id">[14]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/power-platform/admin/wp-security-cds" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Security Concepts in Microsoft Dataverse" data-en="Microsoft Learn · Security Concepts in Microsoft Dataverse">Microsoft Learn · Security Concepts in Microsoft Dataverse</a><span class="bib-note" data-zh="支撑 Dataverse 环境、业务部门、角色、记录和字段安全。" data-en="Supports Dataverse security across environments, business units, roles, records, and fields.">支撑 Dataverse 环境、业务部门、角色、记录和字段安全。</span></li>
+              <li><span class="bib-id">[15]</span><a class="bib-author" href="https://doi.org/10.6028/NIST.AI.100-1" target="_blank" rel="noopener noreferrer" data-zh="NIST · Artificial Intelligence Risk Management Framework (AI RMF 1.0)" data-en="NIST · Artificial Intelligence Risk Management Framework (AI RMF 1.0)">NIST · Artificial Intelligence Risk Management Framework (AI RMF 1.0)</a><span class="bib-note" data-zh="以 Govern、Map、Measure、Manage 组织 AI 风险管理，支撑来源记录、人员监督、持续测量与异常处置。" data-en="Organizes AI risk management through Govern, Map, Measure, and Manage, supporting source traceability, human oversight, continuous measurement, and exception treatment.">以 Govern、Map、Measure、Manage 组织 AI 风险管理，支撑来源记录、人员监督、持续测量与异常处置。</span></li>
+            </ul>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <p data-zh="&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。" data-en="&copy; 2026 illusion615's Knowledge Hub | Interactive HTML page.">&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。</p>
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var configIds;
+      var roiIds;
+      var configuredMonthlySkuUsd;
+      var configuredSkuBudget;
+
+      function byId(id) {
+        return document.getElementById(id);
+      }
+
+      function isEnglish() {
+        var lang;
+        lang = document.documentElement.getAttribute('lang') || '';
+        return lang.toLowerCase().indexOf('en') === 0;
+      }
+
+      function pick(zh, en) {
+        return isEnglish() ? en : zh;
+      }
+
+      function appendCell(row, text) {
+        var cell;
+        cell = document.createElement('td');
+        cell.textContent = text;
+        row.appendChild(cell);
+      }
+
+      function formatUsd(value) {
+        var amount;
+        amount = Number.isFinite(value) ? value : 0;
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+          minimumFractionDigits: amount > 0 && amount < 1 ? 2 : 0,
+          maximumFractionDigits: 2
+        }).format(amount);
+      }
+
+      function addListPriceSku(body, sku, purposeZh, purposeEn, unitPrice, unitZh, unitEn, quantity, quantityZh, quantityEn) {
+        var row;
+        var subtotal;
+        subtotal = unitPrice * quantity;
+        row = document.createElement('tr');
+        appendCell(row, sku);
+        appendCell(row, pick(purposeZh, purposeEn));
+        appendCell(row, formatUsd(unitPrice) + pick(unitZh, unitEn));
+        appendCell(row, formatCount(quantity) + pick(quantityZh, quantityEn));
+        appendCell(row, formatUsd(subtotal));
+        body.appendChild(row);
+        configuredSkuBudget.push({
+          sku: sku,
+          quantity: quantity,
+          quantityZh: quantityZh,
+          quantityEn: quantityEn,
+          monthlySubtotal: subtotal,
+          excluded: false
+        });
+        return subtotal;
+      }
+
+      function addExcludedSku(body, sku, purposeZh, purposeEn, unitPriceZh, unitPriceEn, quantityZh, quantityEn) {
+        var row;
+        row = document.createElement('tr');
+        appendCell(row, sku);
+        appendCell(row, pick(purposeZh, purposeEn));
+        appendCell(row, pick(unitPriceZh, unitPriceEn));
+        appendCell(row, pick(quantityZh, quantityEn));
+        appendCell(row, pick('另计', 'Excluded'));
+        body.appendChild(row);
+        configuredSkuBudget.push({
+          sku: sku,
+          quantityZh: quantityZh,
+          quantityEn: quantityEn,
+          monthlySubtotal: 0,
+          excluded: true
+        });
+      }
+
+      function selectedValue(id) {
+        var element;
+        element = byId(id);
+        return element ? element.value : '';
+      }
+
+      function checked(id) {
+        var element;
+        element = byId(id);
+        return Boolean(element && element.checked);
+      }
+
+      function updateConfiguration() {
+        var body;
+        var source;
+        var humanGate;
+        var monthlyCases;
+        var powerPagesUsers;
+        var powerPagesPacks;
+        var powerPagesTier;
+        var powerPagesPackPrice;
+        var powerPagesSubscriptionCost;
+        var powerPagesPaygCost;
+        var usePowerPagesPayg;
+        var agentActions;
+        var flowActions;
+        var pages;
+        var agentCredits;
+        var flowCredits;
+        var documentCredits;
+        var creditFloor;
+        var monthlyListTotal;
+        var pattern;
+        var runtime;
+        var billing;
+        var warnings;
+        var warningSpan;
+        body = byId('cfgProductBody');
+        source = selectedValue('cfgSource');
+        humanGate = selectedValue('cfgHumanGate');
+        monthlyCases = numberValue('cfgMonthlyCases');
+        powerPagesUsers = Math.ceil(numberValue('cfgParticipants'));
+        powerPagesPacks = powerPagesUsers > 0 ? Math.ceil(powerPagesUsers / 100) : 0;
+        powerPagesTier = powerPagesPacks >= 1000 ? 3 : (powerPagesPacks >= 100 ? 2 : 1);
+        powerPagesPackPrice = powerPagesTier === 3 ? 50 : (powerPagesTier === 2 ? 75 : 200);
+        powerPagesSubscriptionCost = powerPagesPacks * powerPagesPackPrice;
+        powerPagesPaygCost = powerPagesUsers * 4;
+        usePowerPagesPayg = powerPagesUsers === 0 || powerPagesPaygCost < powerPagesSubscriptionCost;
+        agentActions = numberValue('cfgAgentActions');
+        flowActions = numberValue('cfgFlowActions');
+        pages = checked('cfgDocument') ? numberValue('cfgPages') : 0;
+        agentCredits = monthlyCases * agentActions * 5;
+        flowCredits = monthlyCases * flowActions * 13 / 100;
+        documentCredits = monthlyCases * pages * 8;
+        creditFloor = agentCredits + flowCredits + documentCredits;
+        monthlyListTotal = 0;
+        pattern = '';
+        runtime = '';
+        billing = '';
+        warnings = [];
+        warningSpan = byId('cfgWarning') ? byId('cfgWarning').querySelector('span') : null;
+
+        if (!body) {
+          return;
+        }
+
+        body.innerHTML = '';
+        configuredSkuBudget = [];
+        monthlyListTotal += addListPriceSku(body, 'Microsoft Copilot Studio PAYG', '运行 Process Agent 与 Agent Flow；数量包含 Agent actions、flow actions 和已启用的文档页，Prompt token 另计。[19]', 'Runs the process agent and agent flows. Quantity includes agent actions, flow actions, and enabled document pages; prompt tokens are additional.[19]', 0.01, ' / Credit', ' / credit', creditFloor, ' Credits', ' credits');
+        monthlyListTotal += addListPriceSku(body, 'Copilot Studio User License', '授予 1 名 maker 创建和管理 Agent 的权限；tenant 使用量由 Copilot Credits 计费。[22]', 'Allows one maker to create and manage agents; tenant usage is billed through Copilot Credits.[22]', 0, ' / 用户/月', ' / user/month', 1, ' 名 maker', ' maker');
+
+        if (usePowerPagesPayg) {
+          monthlyListTotal += addListPriceSku(body, 'Power Pages Authenticated Users PAYG', '为统一工作台的内部与外部月活认证用户计费；同一用户在同一网站当月重复登录只计一次。[19]', 'Bills internal and external monthly authenticated users of the unified workbench; repeat sign-ins to the same site in a month count once.[19]', 4, ' / 用户/网站/月', ' / user/site/month', powerPagesUsers, ' 名用户', ' users');
+        } else {
+          monthlyListTotal += addListPriceSku(body, 'Power Pages Authenticated Users - Tier ' + powerPagesTier, '为统一工作台配置 100 人/包的月活认证容量；当前人数按官方阶梯价自动选择 Tier ' + powerPagesTier + '。[16]', 'Provides 100-user monthly authenticated capacity packs for the unified workbench; current volume selects official Tier ' + powerPagesTier + ' pricing.[16]', powerPagesPackPrice, ' / 100 人包/月', ' / 100-user pack/month', powerPagesPacks, ' 包', ' packs');
+        }
+
+        if (source === 'cloud') {
+          pattern = pick('Copilot Studio 标准 Connector', 'Copilot Studio Standard Connectors');
+        } else if (source === 'onprem') {
+          pattern = pick('Agent Flow + 本地数据网关', 'Agent Flow + On-Premises Data Gateway');
+          monthlyListTotal += addListPriceSku(body, 'On-premises Data Gateway', '从 Agent Flow 连接内网 ERP、数据库或文件服务；数量按两节点高可用软件部署估算，主机成本另计。', 'Connects agent flows to internal ERP, databases, or file services; quantity assumes a two-node high-availability software deployment, excluding host cost.', 0, ' / 软件节点/月', ' / software node/month', 2, ' 个节点', ' nodes');
+        } else {
+          pattern = pick('Copilot Studio Custom Connector + APIM', 'Copilot Studio Custom Connector + APIM');
+          addExcludedSku(body, 'Azure API Management - SKU TBD', '向 Agent Flow 暴露窄权限 API，并集中管理认证、限流、版本和观测；必须先选择 Azure 区域与 APIM 层级才能取得官方单价。', 'Exposes narrow APIs to agent flows while centralizing authentication, throttling, versioning, and observability; an Azure region and APIM tier are required for an official unit price.', '按 Azure 区域与层级', 'By Azure region and tier', '1 个服务', '1 service');
+          warnings.push(pick('Azure API Management 未选择区域与 SKU，未进入列表价合计。', 'Azure API Management has no selected region or SKU and is excluded from the list-price total.'));
+        }
+
+        if (checked('cfgAiBrief')) {
+          warnings.push(pick('Prompt token 与模型层级未计入当前 Credits 下限。', 'Prompt tokens and model tier are excluded from the current credit floor.'));
+        }
+
+        if (humanGate === 'request') {
+          runtime = pick('Classic Agent Flow + Request information', 'Classic Agent Flow + Request Information');
+          warnings.push(pick('Request information 当前仅支持 Outlook、采用首个响应且不能发送给租户外用户。', 'Request information currently supports Outlook only, uses the first response, and cannot target users outside the tenant.'));
+        } else if (humanGate === 'adaptive') {
+          runtime = pick('Classic Agent Flow + Approval + Adaptive Card', 'Classic Agent Flow + Approval + Adaptive Card');
+        } else {
+          runtime = pick('Classic Agent Flow + Approval', 'Classic Agent Flow + Approval');
+        }
+
+        if (checked('cfgExternal')) {
+          runtime += pick(' + Power Pages 外部 Human Task', ' + Power Pages External Human Tasks');
+          addExcludedSku(body, 'External Identity Provider - SKU TBD', '外部参与者通过所选身份提供商登录 Power Pages；需确定 Entra External ID 或其他 IdP 及外部 MAU 后计价。[17][18]', 'External participants sign in to Power Pages through the selected identity provider; choose Microsoft Entra External ID or another IdP and confirm external MAU before pricing.[17][18]', '按所选 IdP 官方价', 'Official selected-IdP rate', '外部 MAU 待确认', 'External MAU TBD');
+          warnings.push(pick('Request information 不能发送到租户外；外部补件和决定应通过 Power Pages Human Task 收集。', 'Request Information cannot target users outside the tenant; collect external evidence and decisions through Power Pages Human Tasks.'));
+        }
+
+        if (checked('cfgAnalytics')) {
+          monthlyListTotal += addListPriceSku(body, 'Power BI Pro', '供 1 名报表发布者分析周期、退回、异常、工作量和 SLA；读者席位或 Fabric capacity 需按发布方式补充。[20]', 'Provides one report publisher for cycle-time, return, exception, workload, and SLA analysis; add viewer seats or Fabric capacity based on distribution.[20]', 14, ' / 用户/月', ' / user/month', 1, ' 名用户', ' user');
+        }
+
+        if (checked('cfgHighRisk')) {
+          monthlyListTotal += addListPriceSku(body, 'Managed Environments', '通过符合条件的 Copilot Studio 或 Power Pages 许可启用受控共享、使用洞察和治理；Pipelines 继续按现有许可边界核验。[16]', 'Uses qualifying Copilot Studio or Power Pages licensing for controlled sharing, usage insights, and governance; verify Pipelines against existing entitlements.[16]', 0, ' / 环境/月', ' / environment/month', 1, ' 个环境', ' environment');
+          warnings.push(pick('高风险流程保留双人评审、完整来源和严格发布门，Agent 不获得最终批准权限。', 'High-risk processes retain dual review, complete sources, and strict release gates; the agent receives no final approval authority.'));
+        }
+
+        if (checked('cfgLegacyAdapter')) {
+          monthlyListTotal += addListPriceSku(body, 'Power Automate Process', '为 1 个不可转换的业务关键 Flow 提供独立流程许可；只作为兼容适配器，不承担核心编排。[21]', 'Licenses one nonconvertible business-critical flow as a compatibility adapter rather than the core orchestrator.[21]', 150, ' / bot/月', ' / bot/month', 1, ' 个 bot', ' bot');
+          warnings.push(pick('Power Automate adapter 使用独立许可与运行监控；应设退出计划，避免形成第二套编排层。', 'The Power Automate adapter has separate licensing and monitoring; define an exit plan so it does not become a second orchestration layer.'));
+        }
+
+        if (monthlyCases > 50000) {
+          billing = pick('Copilot PAYG 列表价基线 + Power Pages ' + (usePowerPagesPayg ? 'PAYG' : 'Tier ' + powerPagesTier + ' 订阅'), 'Copilot PAYG List-Price Baseline + Power Pages ' + (usePowerPagesPayg ? 'PAYG' : 'Tier ' + powerPagesTier + ' Subscription'));
+          warnings.push(pick('超过 50,000 笔/月时按真实峰值、action 数、connector 限流与 SLA 做容量测试。', 'Above 50,000 cases per month, test real peaks, action counts, connector throttling, and SLA.'));
+        } else {
+          billing = pick('Copilot PAYG + Power Pages ' + (usePowerPagesPayg ? 'PAYG' : 'Tier ' + powerPagesTier + ' 订阅'), 'Copilot PAYG + Power Pages ' + (usePowerPagesPayg ? 'PAYG' : 'Tier ' + powerPagesTier + ' Subscription'));
+        }
+
+        warnings.unshift(pick('已计价 SKU 月度列表价合计 ' + formatUsd(monthlyListTotal) + '；未含税、折扣和另计项目。', 'Priced SKU monthly list total is ' + formatUsd(monthlyListTotal) + ', excluding tax, discounts, and excluded items.'));
+        warnings.unshift(pick('下限拆分：Agent ' + formatCount(agentCredits) + ' + Flow ' + formatCount(flowCredits) + ' + 文档 ' + formatCount(documentCredits) + ' Credits/月。', 'Floor breakdown: Agent ' + formatCount(agentCredits) + ' + Flow ' + formatCount(flowCredits) + ' + Documents ' + formatCount(documentCredits) + ' Credits/month.'));
+
+        byId('cfgRuntime').textContent = runtime;
+        byId('cfgPattern').textContent = pattern;
+        byId('cfgBilling').textContent = billing;
+        byId('cfgCreditFloor').textContent = formatCount(creditFloor) + ' Credits';
+        byId('cfgPowerPagesPacks').textContent = usePowerPagesPayg ? 'PAYG · ' + formatCount(powerPagesUsers) + pick(' 人', ' users') : formatCount(powerPagesPacks) + pick(' 包 · Tier ', ' packs · Tier ') + powerPagesTier;
+        byId('cfgMonthlyListTotal').textContent = formatUsd(monthlyListTotal);
+        byId('cfgSkuMonthlyTotal').textContent = formatUsd(monthlyListTotal);
+        byId('cfgSkuAnnualTotal').textContent = formatUsd(monthlyListTotal * 12);
+        configuredMonthlySkuUsd = monthlyListTotal;
+        if (warningSpan) {
+          warningSpan.textContent = warnings.join(' ');
+        }
+      }
+
+      function numberValue(id) {
+        var element;
+        var value;
+        element = byId(id);
+        value = element ? parseFloat(element.value) : 0;
+        return Number.isFinite(value) ? Math.max(0, value) : 0;
+      }
+
+      function formatCount(value) {
+        return new Intl.NumberFormat(isEnglish() ? 'en-US' : 'zh-CN', {
+          maximumFractionDigits: 0
+        }).format(Math.ceil(Number.isFinite(value) ? value : 0));
+      }
+
+      function money(value) {
+        return new Intl.NumberFormat(isEnglish() ? 'en-US' : 'zh-CN', {
+          style: 'currency',
+          currency: 'CNY',
+          maximumFractionDigits: 0
+        }).format(value);
+      }
+
+      function percent(value) {
+        return (Number.isFinite(value) ? value : 0).toFixed(0) + '%';
+      }
+
+      function addValueRow(body, nameZh, nameEn, amount, basisZh, basisEn) {
+        var row;
+        row = document.createElement('tr');
+        appendCell(row, pick(nameZh, nameEn));
+        appendCell(row, money(amount));
+        appendCell(row, pick(basisZh, basisEn));
+        body.appendChild(row);
+      }
+
+      function addRoiSkuBudgetRow(body, item, exchangeRate) {
+        var row;
+        var quantity;
+        row = document.createElement('tr');
+        quantity = item.excluded ? pick(item.quantityZh, item.quantityEn) : formatCount(item.quantity) + pick(item.quantityZh, item.quantityEn);
+        appendCell(row, item.sku);
+        appendCell(row, quantity);
+        appendCell(row, item.excluded ? pick('另计', 'Excluded') : formatUsd(item.monthlySubtotal));
+        appendCell(row, item.excluded ? pick('另计', 'Excluded') : money(item.monthlySubtotal * 12 * exchangeRate));
+        body.appendChild(row);
+      }
+
+      function updateRoi() {
+        var monthly;
+        var adoption;
+        var minutesSaved;
+        var hourly;
+        var realization;
+        var returnBefore;
+        var returnAfter;
+        var reworkMinutes;
+        var delayExposure;
+        var delayReduction;
+        var avoidedRebuild;
+        var implementation;
+        var usdCnyRate;
+        var otherPlatformCost;
+        var annualSkuBudget;
+        var license;
+        var operations;
+        var annualEffectiveVolume;
+        var timeValue;
+        var returnDelta;
+        var reworkValue;
+        var delayValue;
+        var annualOperatingBenefit;
+        var annualRunCost;
+        var firstYearCost;
+        var firstYearBenefit;
+        var firstYearRoi;
+        var threeYearBenefit;
+        var threeYearCost;
+        var threeYearNet;
+        var ratio;
+        var annualNetOperating;
+        var netUpfront;
+        var payback;
+        var body;
+        var skuBody;
+        var verdictSpan;
+        var verdict;
+
+        monthly = numberValue('roiMonthly');
+        adoption = Math.min(100, numberValue('roiAdoption')) / 100;
+        minutesSaved = numberValue('roiMinutesSaved');
+        hourly = numberValue('roiHourly');
+        realization = Math.min(100, numberValue('roiRealization')) / 100;
+        returnBefore = Math.min(100, numberValue('roiReturnBefore')) / 100;
+        returnAfter = Math.min(100, numberValue('roiReturnAfter')) / 100;
+        reworkMinutes = numberValue('roiReworkMinutes');
+        delayExposure = numberValue('roiDelayExposure');
+        delayReduction = Math.min(100, numberValue('roiDelayReduction')) / 100;
+        avoidedRebuild = numberValue('roiAvoidedRebuild');
+        implementation = numberValue('roiImplementation');
+        usdCnyRate = numberValue('roiUsdCnyRate');
+        otherPlatformCost = numberValue('roiOtherPlatformCost');
+        annualSkuBudget = configuredMonthlySkuUsd * 12 * usdCnyRate;
+        license = annualSkuBudget + otherPlatformCost;
+        operations = numberValue('roiOperations');
+
+        annualEffectiveVolume = monthly * 12 * adoption;
+        timeValue = annualEffectiveVolume * (minutesSaved / 60) * hourly * realization;
+        returnDelta = Math.max(0, returnBefore - returnAfter);
+        reworkValue = annualEffectiveVolume * returnDelta * (reworkMinutes / 60) * hourly * realization;
+        delayValue = delayExposure * delayReduction * realization;
+        annualOperatingBenefit = timeValue + reworkValue + delayValue;
+        annualRunCost = license + operations;
+        firstYearCost = implementation + annualRunCost;
+        firstYearBenefit = annualOperatingBenefit + avoidedRebuild;
+        firstYearRoi = firstYearCost > 0 ? ((firstYearBenefit - firstYearCost) / firstYearCost) * 100 : 0;
+        threeYearBenefit = (annualOperatingBenefit * 3) + avoidedRebuild;
+        threeYearCost = implementation + (annualRunCost * 3);
+        threeYearNet = threeYearBenefit - threeYearCost;
+        ratio = threeYearCost > 0 ? threeYearBenefit / threeYearCost : 0;
+        annualNetOperating = annualOperatingBenefit - annualRunCost;
+        netUpfront = Math.max(0, implementation - avoidedRebuild);
+        payback = annualNetOperating > 0 ? netUpfront / (annualNetOperating / 12) : 0;
+        body = byId('roiValueBody');
+        skuBody = byId('roiSkuBudgetBody');
+        verdictSpan = byId('roiVerdict') ? byId('roiVerdict').querySelector('span') : null;
+
+        byId('roiAnnualBenefit').textContent = money(annualOperatingBenefit);
+        byId('roiFirstYearCost').textContent = money(firstYearCost);
+        byId('roiPercent').textContent = percent(firstYearRoi);
+        byId('roiPayback').textContent = annualNetOperating > 0 ? payback.toFixed(1) + pick(' 个月', ' months') : '-';
+        byId('roiThreeYearNet').textContent = money(threeYearNet);
+        byId('roiRatio').textContent = ratio.toFixed(1) + 'x';
+        byId('roiSkuExchangeRate').textContent = '1 USD = ' + usdCnyRate.toFixed(2) + ' CNY';
+        byId('roiSkuAnnualCny').textContent = money(annualSkuBudget);
+        byId('roiOtherAnnualCny').textContent = money(otherPlatformCost);
+        byId('roiPlatformAnnualCny').textContent = money(license);
+
+        if (skuBody) {
+          skuBody.innerHTML = '';
+          configuredSkuBudget.forEach(function (item) {
+            addRoiSkuBudgetRow(skuBody, item, usdCnyRate);
+          });
+        }
+
+        if (body) {
+          body.innerHTML = '';
+          addValueRow(body, '审批处理时间', 'Approval Handling Time', timeValue, '有效审批量 × 单笔省时 × 人力成本 × 兑现率', 'effective volume × time saved × labor cost × realization');
+          addValueRow(body, '材料返工减少', 'Reduced Evidence Rework', reworkValue, '有效审批量 × 退回率差值 × 返工时间 × 人力成本 × 兑现率', 'effective volume × return-rate delta × rework time × labor cost × realization');
+          addValueRow(body, '延误损失降低', 'Reduced Delay Loss', delayValue, '年可避免暴露额 × 降低率 × 兑现率', 'annual avoidable exposure × reduction × realization');
+          addValueRow(body, '避免来源系统重构', 'Avoided Source Rebuild', avoidedRebuild, '仅在存在同范围正式报价时计入一次', 'counted once only when a comparable formal quote exists');
+        }
+
+        if (ratio >= 1.5 && firstYearRoi >= 0) {
+          verdict = pick('当前假设支持进入受控生产试点。立项前仍需把采用率、单笔省时、材料退回率和实施成本替换为本企业基线，并分别测试保守、基准和乐观情景。', 'Current assumptions support a controlled production pilot. Before funding, replace adoption, time saved, evidence return rate, and implementation cost with enterprise baselines and test conservative, base, and optimistic scenarios.');
+        } else if (ratio >= 1) {
+          verdict = pick('当前假设下三年收益可以覆盖成本，但缓冲有限。建议缩小首期流程范围、降低年度运行成本，或先验证材料返工与延误损失能否稳定归因。', 'Under current assumptions, three-year benefits cover cost with limited headroom. Reduce initial scope or recurring cost, or first validate whether rework and delay benefits can be attributed reliably.');
+        } else {
+          verdict = pick('当前假设下三年收益不足以覆盖成本。不要依赖未经报价的避免重构成本；应重新选择审批量更高、上下文查找更重或材料退回更频繁的流程。', 'Under current assumptions, three-year benefits do not cover cost. Do not rely on unquoted avoided-rebuild value; select a higher-volume process with greater context-search effort or evidence rework.');
+        }
+
+        if (verdictSpan) {
+          verdictSpan.textContent = verdict;
+        }
+      }
+
+      function updateConfigurationAndRoi() {
+        updateConfiguration();
+        updateRoi();
+      }
+
+      configIds = ['cfgSource', 'cfgHumanGate', 'cfgMonthlyCases', 'cfgParticipants', 'cfgAgentActions', 'cfgFlowActions', 'cfgPages', 'cfgAiBrief', 'cfgDocument', 'cfgExternal', 'cfgAnalytics', 'cfgHighRisk', 'cfgLegacyAdapter'];
+      roiIds = ['roiMonthly', 'roiAdoption', 'roiMinutesSaved', 'roiHourly', 'roiRealization', 'roiReturnBefore', 'roiReturnAfter', 'roiReworkMinutes', 'roiDelayExposure', 'roiDelayReduction', 'roiAvoidedRebuild', 'roiImplementation', 'roiUsdCnyRate', 'roiOtherPlatformCost', 'roiOperations'];
+      configuredMonthlySkuUsd = 0;
+      configuredSkuBudget = [];
+
+      configIds.forEach(function (id) {
+        var element;
+        element = byId(id);
+        if (element) {
+          element.addEventListener('input', updateConfigurationAndRoi);
+          element.addEventListener('change', updateConfigurationAndRoi);
+        }
+      });
+
+      roiIds.forEach(function (id) {
+        var element;
+        element = byId(id);
+        if (element) {
+          element.addEventListener('input', updateRoi);
+          element.addEventListener('change', updateRoi);
+        }
+      });
+
+      document.addEventListener('langChanged', function () {
+        updateConfiguration();
+        updateRoi();
+      });
+
+      updateConfiguration();
+      updateRoi();
+    });
+  </script>
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js?v=20260727-present-i18n"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

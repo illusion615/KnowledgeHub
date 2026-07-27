@@ -187,6 +187,26 @@ var knowledgeTree = [
   // 文章 — Business AI Solution
   // ════════════════════════════════════════
   {
+    id: 'agentic-business-process-platform',
+    parentId: 'business-ai-solution',
+    type: 'article',
+    title: {
+      zh: 'Agentic Business Process Platform：基于 Copilot Studio 的企业审批 Agent 平台',
+      en: 'Agentic Business Process Platform: Approval Agents on Copilot Studio'
+    },
+    summary: {
+      zh: '以 Copilot Studio、Agent Flow、Power Pages 与 Human-in-the-Loop 统一内外部审批，提供架构、官方 SKU 列表价、容量与 ROI 评估。',
+      en: 'Unifies internal and external approvals using Copilot Studio, agent flows, Power Pages, and human gates, with official SKU pricing, capacity, and ROI sizing.'
+    },
+    tags: ['Copilot Studio', 'Agent Flows', 'Power Pages', 'Human-in-the-Loop', 'Approvals', 'Dataverse', 'Business Process'],
+    date: '2026-07-27',
+    url: 'posts/agentic-business-process-platform/index.html',
+    color: '#a855f7',
+    phase: 0.44, speed: 0.87,
+    relations: ['power-platform-governance', 'power-platform-pricing-quote-tool', 'dataverse-intelligence', 'agentic-crm-business-cycle']
+  },
+
+  {
     id: 'agentic-crm-business-cycle',
     parentId: 'agentic-crm-solution',
     type: 'article',
