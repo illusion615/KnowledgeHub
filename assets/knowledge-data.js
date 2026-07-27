@@ -211,12 +211,12 @@ var knowledgeTree = [
     parentId: 'agentic-service-mobile',
     type: 'article',
     title: {
-      zh: '现场服务移动 AI 智能体方案：基于 Power Platform',
-      en: 'Field Service Mobile AI Agent Solution: Built on Power Platform'
+      zh: 'Agentic Field Service：重构 Agent 赋能的现场服务',
+      en: 'Agentic Field Service: Rebuilding Field Service Around Agents'
     },
     summary: {
-      zh: '让现场人员少填表、多解决问题：串联 SLA 排程、访前简报、持续语音采集、工单确认与受控主数据变更。',
-      en: 'A service-driven mobile solution unifying SLA planning, pre-visit briefs, continuous voice capture, confirmation, and governed master-data changes.'
+      zh: '以一次上门完成服务为目标：串联当日排序、访前背景、过程中采集与关单确认，兼顾一次修复率与开票周期。',
+      en: 'Aimed at completing service in one visit: day sequencing, pre-visit context, capture during work, and closure review, improving first-time fix and invoicing.'
     },
     tags: ['Power Platform', 'Field Service', 'Copilot Studio', 'Mobile AI', 'Voice'],
     date: '2026-07-11',
@@ -2305,13 +2305,21 @@ var knowledgeTree = [
     color: '#dc2626',
     phase: 0.8, speed: 0.85
   },
+  {
+    id: 'shanghai-gaokao',
+    parentId: 'edu-subject',
+    type: 'topic',
+    label: { zh: '上海高考', en: 'Shanghai Gaokao' },
+    color: '#b91c1c',
+    phase: 2.4, speed: 0.83
+  },
 
   // ════════════════════════════════════════
-  // 文章 — 上海中考志愿填报策略
+  // 文章 — 上海高考升学规划
   // ════════════════════════════════════════
   {
     id: 'jianping-clubs-gaokao-planning',
-    parentId: 'shanghai-zhongkao',
+    parentId: 'shanghai-gaokao',
     type: 'article',
     title: {
       zh: '建平中学社团活动与高考升学：选择、投入与三年规划',
@@ -2321,7 +2329,7 @@ var knowledgeTree = [
       zh: '核验 9 个重点社团与六大学科主教练体系，比较投入、竞争力、报名路径、官方资源、升学资格与退出条件。',
       en: 'Evaluates nine clubs and six coach-led olympiad tracks by workload, standing, entry route, official resources, admissions eligibility, and exit criteria.'
     },
-    tags: ['中考', '建平中学', '社团活动', '学科竞赛', '高考规划', '综合评价'],
+    tags: ['高考规划', '建平中学', '社团活动', '学科竞赛', '综合评价', '强基计划'],
     date: '2026-07-26',
     url: 'posts/jianping-clubs-gaokao-planning/index.html',
     color: '#e11d48',
