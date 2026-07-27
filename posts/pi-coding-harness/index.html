@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pi 深度解析：极简 Coding Agent Harness 的能力、取舍与采用评估</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&amp;family=Space+Grotesk:wght@500;700&amp;display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    /* Component: .table-scroll
+       Reading mode: keeps table columns readable and scrollable on narrow screens.
+       Presentation mode: uses the full slide width without a forced minimum. */
+    .table-scroll {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    @media (max-width: 720px) {
+      .table-scroll .simple-table {
+        min-width: 720px;
+      }
+
+      .is-presentation-mode .table-scroll .simple-table {
+        min-width: 0;
+      }
+    }
+
+    .hero-copy h1 {
+      max-width: 22ch;
+      font-size: clamp(1.85rem, 4.5vw, 3.35rem);
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+    }
+
+    [data-theme="dark"] .hero-panel {
+      border-color: rgba(129, 140, 248, 0.3);
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero" data-present-step data-step-title="Overview" data-step-title-zh="总览" data-step-title-en="Overview">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            <span data-zh="Function Calling &amp; Agentic" data-en="Function Calling &amp; Agentic">Function Calling &amp; Agentic</span>
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航" data-nav-pager>
+            <a href="#positioning" data-zh="定位" data-en="Positioning">定位</a>
+            <a href="#capabilities" data-zh="能力" data-en="Capabilities">能力</a>
+            <a href="#value" data-zh="价值" data-en="Value">价值</a>
+            <a href="#landscape" data-zh="竞品" data-en="Landscape">竞品</a>
+            <a href="#fit" data-zh="适用性" data-en="Fit">适用性</a>
+            <a href="#workflow" data-zh="用法" data-en="Workflow">用法</a>
+            <a href="#advanced" data-zh="进阶" data-en="Advanced">进阶</a>
+            <a href="#verdict" data-zh="结论" data-en="Verdict">结论</a>
+            <a href="#references" data-zh="参考" data-en="References">参考</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Minimal Agent Harness · Evaluation Guide</span>
+            <h1 data-zh="pi 深度解析：极简 Coding Agent Harness 的能力、取舍与采用评估" data-en="Pi Deep Dive: Capabilities, Trade-Offs, and Adoption Assessment of a Minimal Coding Agent Harness">pi 深度解析：极简 Coding Agent Harness 的能力、取舍与采用评估</h1>
+            <p data-zh="pi 是一个 MIT 许可的终端 coding agent harness。这里的 harness 指围绕模型运行的宿主层，负责工具调用、上下文、会话、模型接入和用户界面。pi 把核心维持在很小的范围，把工作流差异交给 TypeScript 扩展、Skills、Prompt Templates 与 Packages。本文用于快速理解它是否值得纳入个人工具链。" data-en="Pi is an MIT-licensed terminal coding agent harness. Here, harness means the host layer around a model that manages tool calls, context, sessions, model access, and the user interface. Pi keeps that core deliberately small and delegates workflow-specific behavior to TypeScript extensions, skills, prompt templates, and packages. This article is designed to help assess whether Pi belongs in a personal toolchain.">pi 是一个 MIT 许可的终端 coding agent harness。这里的 harness 指围绕模型运行的宿主层，负责工具调用、上下文、会话、模型接入和用户界面。pi 把核心维持在很小的范围，把工作流差异交给 TypeScript 扩展、Skills、Prompt Templates 与 Packages。本文用于快速理解它是否值得纳入个人工具链。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#verdict" data-zh="先看采用结论" data-en="Read the Verdict First">先看采用结论</a>
+              <a class="button button-secondary" href="#landscape" data-zh="查看竞品对比" data-en="Compare Alternatives">查看竞品对比</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label" data-zh="一句话判断" data-en="One-Line Assessment">一句话判断</span>
+            <h2 data-zh="pi 适合想控制 Agent 运行方式、切换多家模型或构建自定义 Agent 产品的人；只追求开箱即用时，成熟的一体化产品更省时间。" data-en="Pi fits people who want to control agent runtime behavior, switch across model providers, or build custom agent products; mature integrated products save more time when turnkey use is the priority.">pi 适合想控制 Agent 运行方式、切换多家模型或构建自定义 Agent 产品的人；只追求开箱即用时，成熟的一体化产品更省时间。</h2>
+            <ul class="layer-list section-grid-spaced">
+              <li data-zh="<span class='layer-number'>1</span>核心很小：默认工作建立在少量文件与 shell 工具上。" data-en="<span class='layer-number'>1</span>Small core: default work is built on a compact set of file and shell tools."><span class="layer-number">1</span>核心很小：默认工作建立在少量文件与 shell 工具上。</li>
+              <li data-zh="<span class='layer-number'>2</span>扩展很深：事件、工具、Provider、UI 与会话行为都可改。" data-en="<span class='layer-number'>2</span>Deep extension surface: events, tools, providers, UI, and session behavior are customizable."><span class="layer-number">2</span>扩展很深：事件、工具、Provider、UI 与会话行为都可改。</li>
+              <li data-zh="<span class='layer-number'>3</span>边界很明确：没有内置沙箱，默认以启动进程的用户权限运行。" data-en="<span class='layer-number'>3</span>Explicit boundary: there is no built-in sandbox, and Pi runs with the launching user's permissions."><span class="layer-number">3</span>边界很明确：没有内置沙箱，默认以启动进程的用户权限运行。</li>
+              <li data-zh="<span class='layer-number'>4</span>评估重点不是功能总数，而是控制权是否值得配置成本。" data-en="<span class='layer-number'>4</span>The decision is not about feature count, but whether control is worth the configuration cost."><span class="layer-number">4</span>评估重点不是功能总数，而是控制权是否值得配置成本。</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label" data-zh="许可证" data-en="License">许可证</div>
+            <strong>MIT</strong>
+            <span data-zh="CLI、核心运行时与 SDK 均开源" data-en="CLI, core runtime, and SDK are open source">CLI、核心运行时与 SDK 均开源</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="架构包" data-en="Architecture Packages">架构包</div>
+            <strong>4</strong>
+            <span>pi-ai · agent-core · tui · coding-agent</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="运行模式" data-en="Run Modes">运行模式</div>
+            <strong>4</strong>
+            <span data-zh="TUI · Print · JSON · RPC" data-en="TUI · Print · JSON · RPC">TUI · Print · JSON · RPC</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="安全边界" data-en="Security Boundary">安全边界</div>
+            <strong data-zh="宿主权限" data-en="Host Permissions">宿主权限</strong>
+            <span data-zh="需要容器或 VM 提供真实隔离" data-en="Real isolation requires a container or VM">需要容器或 VM 提供真实隔离</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <section id="positioning" class="section" data-reveal data-step-title-zh="pi 是可扩展的 Agent 宿主，不是预设完整工作流的编码产品" data-step-title-en="Pi Is an Extensible Agent Host, Not a Product with One Prescribed Workflow">
+          <div class="section-head">
+            <p class="section-kicker" data-zh="01 / Product Positioning" data-en="01 / Product Positioning">01 / Product Positioning</p>
+            <h2 data-zh="pi 是可扩展的 Agent 宿主，不是预设完整工作流的编码产品" data-en="Pi Is an Extensible Agent Host, Not a Product with One Prescribed Workflow">pi 是可扩展的 Agent 宿主，不是预设完整工作流的编码产品</h2>
+            <p data-zh="官方把 pi 定义为 minimal terminal coding harness：核心处理模型调用、工具循环、会话和终端交互；计划、审批、MCP、子代理等工作流能力不进入内核，而由扩展、外部 CLI、tmux 或容器补齐。[1][2] 这项边界决定了它的优势与学习成本。" data-en="The official documentation defines Pi as a minimal terminal coding harness: the core handles model calls, the tool loop, sessions, and terminal interaction. Workflow features such as planning, approvals, MCP, and subagents stay outside the core and can be supplied by extensions, external CLIs, tmux, or containers.[1][2] This boundary determines both its strengths and its learning cost.">官方把 pi 定义为 minimal terminal coding harness：核心处理模型调用、工具循环、会话和终端交互；计划、审批、MCP、子代理等工作流能力不进入内核，而由扩展、外部 CLI、tmux 或容器补齐。[1][2] 这项边界决定了它的优势与学习成本。</p>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item is-open" data-accordion data-step-title-zh="1.1 四层架构各自可以独立使用" data-step-title-en="1.1 Each of the Four Architecture Layers Can Be Used Independently">
+              <button class="subsection-toggle"><span data-zh="1.1 四层架构各自可以独立使用" data-en="1.1 Each of the Four Architecture Layers Can Be Used Independently">1.1 四层架构各自可以独立使用</span></button>
+              <div class="subsection-content">
+                <p data-zh="pi 不是一个不可拆分的 CLI；四个公开包把模型接入、Agent 循环、终端 UI 与成品 CLI 分开，允许只复用需要的层。[1][6]" data-en="Pi is not an indivisible CLI. Four public packages separate model access, the agent loop, the terminal UI, and the finished CLI, allowing consumers to reuse only the layers they need.[1][6]">pi 不是一个不可拆分的 CLI；四个公开包把模型接入、Agent 循环、终端 UI 与成品 CLI 分开，允许只复用需要的层。[1][6]</p>
+                <div class="insight-grid">
+                  <article class="insight-card">
+                    <span class="card-index">01</span>
+                    <h3>pi-ai</h3>
+                    <p data-zh="统一 OpenAI、Anthropic、Google 等 Provider API，处理流式输出、推理内容、工具调用、成本与跨 Provider 上下文转换。" data-en="Unifies OpenAI, Anthropic, Google, and other provider APIs while handling streaming, reasoning content, tool calls, cost, and cross-provider context conversion.">统一 OpenAI、Anthropic、Google 等 Provider API，处理流式输出、推理内容、工具调用、成本与跨 Provider 上下文转换。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">02</span>
+                    <h3>pi-agent-core</h3>
+                    <p data-zh="提供 Agent 循环、工具执行、状态管理、附件与消息队列，不绑定某一种用户界面。" data-en="Provides the agent loop, tool execution, state management, attachments, and message queues without binding to one user interface.">提供 Agent 循环、工具执行、状态管理、附件与消息队列，不绑定某一种用户界面。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">03</span>
+                    <h3>pi-tui</h3>
+                    <p data-zh="采用保留终端 scrollback 的差分渲染方式，组件可以缓存并局部更新。" data-en="Uses differential rendering while preserving terminal scrollback; components can cache output and update incrementally.">采用保留终端 scrollback 的差分渲染方式，组件可以缓存并局部更新。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">04</span>
+                    <h3>pi-coding-agent</h3>
+                    <p data-zh="把模型、Agent、TUI、会话与资源发现组合为可直接使用的终端编码 Agent。" data-en="Combines models, the agent runtime, TUI, sessions, and resource discovery into the ready-to-use terminal coding agent.">把模型、Agent、TUI、会话与资源发现组合为可直接使用的终端编码 Agent。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion data-step-title-zh="1.2 默认 Agent 循环只有四个关键动作" data-step-title-en="1.2 The Default Agent Loop Has Four Essential Actions">
+              <button class="subsection-toggle"><span data-zh="1.2 默认 Agent 循环只有四个关键动作" data-en="1.2 The Default Agent Loop Has Four Essential Actions">1.2 默认 Agent 循环只有四个关键动作</span></button>
+              <div class="subsection-content">
+                <p data-zh="默认工具集围绕 read、bash、edit、write 展开；grep、find、ls 可组成只读工具集。模型在产生不含工具调用的响应前持续循环，用户可以在运行中插入 steering 或 follow-up 消息。[2][6]" data-en="The default toolset centers on read, bash, edit, and write; grep, find, and ls can form a read-only set. The model continues looping until it produces a response without tool calls, while users can queue steering or follow-up messages during execution.[2][6]">默认工具集围绕 read、bash、edit、write 展开；grep、find、ls 可组成只读工具集。模型在产生不含工具调用的响应前持续循环，用户可以在运行中插入 steering 或 follow-up 消息。[2][6]</p>
+                <ul class="flow-list">
+                  <li>
+                    <span class="flow-step">1</span>
+                    <div class="flow-copy">
+                      <strong data-zh="组装上下文" data-en="Assemble Context">组装上下文</strong>
+                      <p data-zh="加载系统提示、AGENTS.md / CLAUDE.md、Skills 描述、有效工具和当前会话分支。" data-en="Load the system prompt, AGENTS.md or CLAUDE.md, skill descriptions, active tools, and the current session branch.">加载系统提示、AGENTS.md / CLAUDE.md、Skills 描述、有效工具和当前会话分支。</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">2</span>
+                    <div class="flow-copy">
+                      <strong data-zh="调用模型" data-en="Call the Model">调用模型</strong>
+                      <p data-zh="Provider 适配层负责请求格式、流式事件、推理内容、缓存和使用量差异。" data-en="The provider adapter handles request formats, streaming events, reasoning content, caching, and usage differences.">Provider 适配层负责请求格式、流式事件、推理内容、缓存和使用量差异。</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">3</span>
+                    <div class="flow-copy">
+                      <strong data-zh="执行并记录工具" data-en="Execute and Record Tools">执行并记录工具</strong>
+                      <p data-zh="工具参数经 schema 验证后执行，结果写回会话；同一批工具可以并行运行。" data-en="Tool arguments are schema-validated before execution, and results are written back to the session; tools in one batch can run in parallel.">工具参数经 schema 验证后执行，结果写回会话；同一批工具可以并行运行。</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">4</span>
+                    <div class="flow-copy">
+                      <strong data-zh="继续、转向或结束" data-en="Continue, Steer, or Finish">继续、转向或结束</strong>
+                      <p data-zh="有工具结果或 steering 消息时进入下一轮；无工具调用且队列为空时结束。" data-en="Tool results or steering messages trigger another turn; the run ends when there are no tool calls and the queue is empty.">有工具结果或 steering 消息时进入下一轮；无工具调用且队列为空时结束。</p>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion data-step-title-zh="1.3 六类常见能力被有意留在内核之外" data-step-title-en="1.3 Six Common Capabilities Are Deliberately Kept Outside the Core">
+              <button class="subsection-toggle"><span data-zh="1.3 六类常见能力被有意留在内核之外" data-en="1.3 Six Common Capabilities Are Deliberately Kept Outside the Core">1.3 六类常见能力被有意留在内核之外</span></button>
+              <div class="subsection-content">
+                <p data-zh="这些能力不是完全做不到，而是没有成为所有用户都必须承担的默认复杂度；官方 examples 已提供其中多项的扩展实现。[2][3]" data-en="These capabilities are not impossible; they are simply excluded from the default complexity imposed on every user. Official examples already provide extension implementations for several of them.[2][3]">这些能力不是完全做不到，而是没有成为所有用户都必须承担的默认复杂度；官方 examples 已提供其中多项的扩展实现。[2][3]</p>
+                <div class="insight-grid">
+                  <article class="insight-card">
+                    <span class="card-index">01</span>
+                    <h3 data-zh="权限弹窗" data-en="Permission Prompts">权限弹窗</h3>
+                    <p data-zh="可用 tool_call 事件实现规则与确认；默认没有逐次审批。" data-en="Rules and confirmations can be implemented through tool_call events; per-action approval is not the default.">可用 tool_call 事件实现规则与确认；默认没有逐次审批。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">02</span>
+                    <h3 data-zh="Plan Mode 与 Todo" data-en="Plan Mode and Todos">Plan Mode 与 Todo</h3>
+                    <p data-zh="可用只读工具、文件或官方 plan-mode 扩展示例实现。" data-en="They can be implemented with read-only tools, files, or the official plan-mode extension example.">可用只读工具、文件或官方 plan-mode 扩展示例实现。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">03</span>
+                    <h3>MCP</h3>
+                    <p data-zh="内核不加载 MCP 工具清单；需要时可通过 CLI 包装器或扩展接入。" data-en="The core does not load MCP tool catalogs; wrappers or extensions can add them when needed.">内核不加载 MCP 工具清单；需要时可通过 CLI 包装器或扩展接入。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">04</span>
+                    <h3 data-zh="子代理" data-en="Subagents">子代理</h3>
+                    <p data-zh="可由扩展或 pi --print 子进程生成，内核不规定编排方式。" data-en="Extensions or pi --print subprocesses can create them; the core does not prescribe orchestration.">可由扩展或 pi --print 子进程生成，内核不规定编排方式。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">05</span>
+                    <h3 data-zh="后台 Shell" data-en="Background Shell">后台 Shell</h3>
+                    <p data-zh="官方建议用 tmux 管理 server、watcher、REPL 和调试器。" data-en="The official recommendation is to use tmux for servers, watchers, REPLs, and debuggers.">官方建议用 tmux 管理 server、watcher、REPL 和调试器。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">06</span>
+                    <h3 data-zh="进程内沙箱" data-en="In-Process Sandbox">进程内沙箱</h3>
+                    <p data-zh="真实隔离交给 Docker、OpenShell、Gondolin 微型 VM 或其他 OS 边界。" data-en="Real isolation is delegated to Docker, OpenShell, Gondolin micro-VMs, or another OS boundary.">真实隔离交给 Docker、OpenShell、Gondolin 微型 VM 或其他 OS 边界。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="capabilities" class="section" data-reveal data-step-title-zh="日常编码能力完整，差异集中在会话、模型与编程接口" data-step-title-en="Daily Coding Is Complete; Sessions, Models, and APIs Create the Difference">
+          <div class="section-head">
+            <p class="section-kicker" data-zh="02 / Capability Map" data-en="02 / Capability Map">02 / Capability Map</p>
+            <h2 data-zh="日常编码能力完整，差异集中在会话、模型与编程接口" data-en="Daily Coding Is Complete; Sessions, Models, and APIs Create the Difference">日常编码能力完整，差异集中在会话、模型与编程接口</h2>
+            <p data-zh="pi 可以读写项目、运行命令、处理图片、压缩上下文并恢复会话。它进一步把会话存为可分支的 JSONL 树，允许在同一对话中回到任意历史节点；同时提供 TUI、一次性输出、JSON 事件流、RPC 和 Node.js SDK。[2][4][6]" data-en="Pi can read and write projects, run commands, process images, compact context, and resume sessions. It additionally stores sessions as branchable JSONL trees, allowing a conversation to return to any historical point, and exposes TUI, one-shot output, JSON event stream, RPC, and a Node.js SDK.[2][4][6]">pi 可以读写项目、运行命令、处理图片、压缩上下文并恢复会话。它进一步把会话存为可分支的 JSONL 树，允许在同一对话中回到任意历史节点；同时提供 TUI、一次性输出、JSON 事件流、RPC 和 Node.js SDK。[2][4][6]</p>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item is-open" data-accordion data-step-title-zh="2.1 交互式编码覆盖完整闭环" data-step-title-en="2.1 Interactive Coding Covers the Full Loop">
+              <button class="subsection-toggle"><span data-zh="2.1 交互式编码覆盖完整闭环" data-en="2.1 Interactive Coding Covers the Full Loop">2.1 交互式编码覆盖完整闭环</span></button>
+              <div class="subsection-content">
+                <p data-zh="从定位文件到修改与验证，pi 的默认工具足以完成常见代码任务；TUI 还提供文件模糊搜索、路径补全、多行输入、图片粘贴、外部编辑器与 shell 快捷入口。[2]" data-en="From locating files through editing and verification, Pi's default tools cover common coding tasks. The TUI also provides fuzzy file search, path completion, multiline input, image paste, an external editor, and shell shortcuts.[2]">从定位文件到修改与验证，pi 的默认工具足以完成常见代码任务；TUI 还提供文件模糊搜索、路径补全、多行输入、图片粘贴、外部编辑器与 shell 快捷入口。[2]</p>
+                <div class="insight-grid">
+                  <article class="insight-card">
+                    <span class="card-index">01</span>
+                    <h3 data-zh="理解与定位" data-en="Understand and Locate">理解与定位</h3>
+                    <p data-zh="读取文本或图片，通过 @ 选择文件；grep、find、ls 支持受限的只读分析。" data-en="Read text or images and select files with @; grep, find, and ls support constrained read-only analysis.">读取文本或图片，通过 @ 选择文件；grep、find、ls 支持受限的只读分析。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">02</span>
+                    <h3 data-zh="修改与执行" data-en="Modify and Execute">修改与执行</h3>
+                    <p data-zh="精确编辑、完整写入和 shell 执行组成实现闭环，工具调用过程与结果直接显示。" data-en="Exact edits, full writes, and shell execution form the implementation loop, with tool calls and results displayed directly.">精确编辑、完整写入和 shell 执行组成实现闭环，工具调用过程与结果直接显示。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">03</span>
+                    <h3 data-zh="运行中干预" data-en="Mid-Run Intervention">运行中干预</h3>
+                    <p data-zh="Enter 发送 steering，在当前工具批次结束后改变方向；Alt+Enter 把补充任务排到整个 Agent 运行之后。" data-en="Enter queues steering after the current tool batch; Alt+Enter queues a follow-up after the complete agent run.">Enter 发送 steering，在当前工具批次结束后改变方向；Alt+Enter 把补充任务排到整个 Agent 运行之后。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion data-step-title-zh="2.2 树状会话支持保留多条探索路径" data-step-title-en="2.2 Tree Sessions Preserve Multiple Lines of Exploration">
+              <button class="subsection-toggle"><span data-zh="2.2 树状会话支持保留多条探索路径" data-en="2.2 Tree Sessions Preserve Multiple Lines of Exploration">2.2 树状会话支持保留多条探索路径</span></button>
+              <div class="subsection-content">
+                <p data-zh="每条会话记录都有 id 与 parentId，当前活跃位置是一个 leaf；因此改变早期提示不会删除后续历史，而是形成新分支。[4]" data-en="Every session entry has an id and parentId, and the current position is an active leaf. Revising an earlier prompt therefore creates a new branch instead of deleting later history.[4]">每条会话记录都有 id 与 parentId，当前活跃位置是一个 leaf；因此改变早期提示不会删除后续历史，而是形成新分支。[4]</p>
+                <div class="comparison-grid">
+                  <article class="comparison-card">
+                    <span class="comparison-label">/tree</span>
+                    <h3 data-zh="在一个会话文件内探索替代方案" data-en="Explore Alternatives in One Session File">在一个会话文件内探索替代方案</h3>
+                    <ul class="challenge-list">
+                      <li data-zh="跳到任意历史 entry 并从那里继续。" data-en="Jump to any historical entry and continue from there.">跳到任意历史 entry 并从那里继续。</li>
+                      <li data-zh="可为离开的分支生成摘要并带入新路径。" data-en="Optionally summarize the abandoned branch into the new path.">可为离开的分支生成摘要并带入新路径。</li>
+                      <li data-zh="标签可标记重要检查点。" data-en="Labels can mark important checkpoints.">标签可标记重要检查点。</li>
+                    </ul>
+                  </article>
+                  <article class="comparison-card next">
+                    <span class="comparison-label">/fork · /clone</span>
+                    <h3 data-zh="把选中的历史路径拆成新会话" data-en="Split a Selected History Path into a New Session">把选中的历史路径拆成新会话</h3>
+                    <ul class="challenge-list">
+                      <li data-zh="fork 从较早的用户消息开始新文件。" data-en="Fork starts a new file from an earlier user message.">fork 从较早的用户消息开始新文件。</li>
+                      <li data-zh="clone 复制当前活跃分支。" data-en="Clone duplicates the current active branch.">clone 复制当前活跃分支。</li>
+                      <li data-zh="适合隔离代码审查、替代实现或模型对比。" data-en="Useful for isolated reviews, alternative implementations, or model comparisons.">适合隔离代码审查、替代实现或模型对比。</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion data-step-title-zh="2.3 Provider 抽象允许在会话中切换模型" data-step-title-en="2.3 Provider Abstraction Enables Mid-Session Model Switching">
+              <button class="subsection-toggle"><span data-zh="2.3 Provider 抽象允许在会话中切换模型" data-en="2.3 Provider Abstraction Enables Mid-Session Model Switching">2.3 Provider 抽象允许在会话中切换模型</span></button>
+              <div class="subsection-content">
+                <p data-zh="pi 支持订阅 OAuth、API key、云平台、本地 llama.cpp 与 OpenAI-compatible endpoint；模型变化时尽力转换不同 Provider 的工具调用和推理内容格式，但这种交接受上游 API 差异限制。[7][10]" data-en="Pi supports subscription OAuth, API keys, cloud platforms, local llama.cpp, and OpenAI-compatible endpoints. When models change, it performs best-effort conversion across provider-specific tool-call and reasoning formats, but the handoff remains constrained by upstream API differences.[7][10]">pi 支持订阅 OAuth、API key、云平台、本地 llama.cpp 与 OpenAI-compatible endpoint；模型变化时尽力转换不同 Provider 的工具调用和推理内容格式，但这种交接受上游 API 差异限制。[7][10]</p>
+                <div class="table-scroll">
+                  <table class="simple-table">
+                  <thead>
+                    <tr>
+                      <th data-zh="接入类型" data-en="Access Type">接入类型</th>
+                      <th data-zh="代表选项" data-en="Representative Options">代表选项</th>
+                      <th data-zh="适用判断" data-en="When It Fits">适用判断</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td data-zh="订阅登录" data-en="Subscription Login">订阅登录</td>
+                      <td data-zh="ChatGPT、Claude、GitHub Copilot、xAI" data-en="ChatGPT, Claude, GitHub Copilot, xAI">ChatGPT、Claude、GitHub Copilot、xAI</td>
+                      <td data-zh="已有个人订阅，希望减少密钥配置；具体计费仍按 Provider 规则。" data-en="You already have a personal subscription and want less key setup; billing still follows provider rules.">已有个人订阅，希望减少密钥配置；具体计费仍按 Provider 规则。</td>
+                    </tr>
+                    <tr>
+                      <td data-zh="API 与云平台" data-en="APIs and Cloud Platforms">API 与云平台</td>
+                      <td data-zh="OpenAI、Anthropic、Google、Azure OpenAI、Bedrock、Vertex AI" data-en="OpenAI, Anthropic, Google, Azure OpenAI, Bedrock, Vertex AI">OpenAI、Anthropic、Google、Azure OpenAI、Bedrock、Vertex AI</td>
+                      <td data-zh="需要固定账单、企业云身份或网关治理。" data-en="You need controlled billing, enterprise cloud identity, or gateway governance.">需要固定账单、企业云身份或网关治理。</td>
+                    </tr>
+                    <tr>
+                      <td data-zh="聚合网关" data-en="Aggregator Gateways">聚合网关</td>
+                      <td>OpenRouter · Cloudflare AI Gateway · Vercel AI Gateway</td>
+                      <td data-zh="希望从一个账户试用多家模型或统一转发。" data-en="You want to test many models from one account or centralize routing.">希望从一个账户试用多家模型或统一转发。</td>
+                    </tr>
+                    <tr>
+                      <td data-zh="本地与自托管" data-en="Local and Self-Hosted">本地与自托管</td>
+                      <td>llama.cpp · Ollama · LM Studio · vLLM</td>
+                      <td data-zh="数据位置、离线运行或推理成本比模型上限更重要。" data-en="Data location, offline operation, or inference cost matters more than frontier capability.">数据位置、离线运行或推理成本比模型上限更重要。</td>
+                    </tr>
+                  </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion data-step-title-zh="2.4 CLI、RPC 与 SDK 覆盖三种集成深度" data-step-title-en="2.4 CLI, RPC, and SDK Cover Three Integration Depths">
+              <button class="subsection-toggle"><span data-zh="2.4 CLI、RPC 与 SDK 覆盖三种集成深度" data-en="2.4 CLI, RPC, and SDK Cover Three Integration Depths">2.4 CLI、RPC 与 SDK 覆盖三种集成深度</span></button>
+              <div class="subsection-content">
+                <p data-zh="同一运行时既可以被人直接操作，也可以作为子进程或 Node.js 库嵌入产品；选择标准是是否需要类型安全与进程内状态访问。[2][6]" data-en="The same runtime can be used directly by a person, embedded as a subprocess, or linked as a Node.js library. The deciding factor is whether type safety and in-process state access are required.[2][6]">同一运行时既可以被人直接操作，也可以作为子进程或 Node.js 库嵌入产品；选择标准是是否需要类型安全与进程内状态访问。[2][6]</p>
+                <div class="insight-grid">
+                  <article class="insight-card">
+                    <span class="card-index">01</span>
+                    <h3 data-zh="TUI / Print" data-en="TUI / Print">TUI / Print</h3>
+                    <p data-zh="个人交互用默认 TUI；脚本中的单次任务用 pi -p，标准输入可直接并入提示。" data-en="Use the default TUI for personal interaction and pi -p for one-shot scripts; standard input can be merged into the prompt.">个人交互用默认 TUI；脚本中的单次任务用 pi -p，标准输入可直接并入提示。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">02</span>
+                    <h3 data-zh="JSON / RPC" data-en="JSON / RPC">JSON / RPC</h3>
+                    <p data-zh="JSON 输出全部事件；RPC 通过 stdin/stdout JSONL 控制会话，适合非 Node.js 客户端与进程隔离。" data-en="JSON emits every event; RPC controls sessions over stdin/stdout JSONL, fitting non-Node.js clients and process isolation.">JSON 输出全部事件；RPC 通过 stdin/stdout JSONL 控制会话，适合非 Node.js 客户端与进程隔离。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">03</span>
+                    <h3>Node.js SDK</h3>
+                    <p data-zh="直接访问 AgentSession、事件、模型、工具、会话树与资源加载器，适合自定义 UI、评测和自动化产品。" data-en="Directly exposes AgentSession, events, models, tools, session trees, and resource loaders for custom UIs, evaluations, and automation products.">直接访问 AgentSession、事件、模型、工具、会话树与资源加载器，适合自定义 UI、评测和自动化产品。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="value" class="section" data-reveal data-step-title-zh="pi 的独特价值是可检查、可替换的运行时控制面" data-step-title-en="Pi's Distinctive Value Is an Inspectable, Replaceable Runtime Control Surface">
+          <div class="section-head">
+            <p class="section-kicker" data-zh="03 / Distinctive Value" data-en="03 / Distinctive Value">03 / Distinctive Value</p>
+            <h2 data-zh="pi 的独特价值是可检查、可替换的运行时控制面" data-en="Pi's Distinctive Value Is an Inspectable, Replaceable Runtime Control Surface">pi 的独特价值是可检查、可替换的运行时控制面</h2>
+            <p data-zh="多数 coding agent 允许配置模型和规则；pi 进一步公开每轮上下文、Provider 请求、工具调用、结果、会话切换与 UI 生命周期的挂钩点。这个能力适合构建可重复的个人工作流或产品原型，但也把集成、兼容与安全责任交给使用者。[3]" data-en="Most coding agents let users configure models and rules. Pi additionally exposes hooks around per-turn context, provider requests, tool calls, results, session replacement, and UI lifecycles. This supports repeatable personal workflows and product prototypes, while transferring integration, compatibility, and security responsibility to the user.[3]">多数 coding agent 允许配置模型和规则；pi 进一步公开每轮上下文、Provider 请求、工具调用、结果、会话切换与 UI 生命周期的挂钩点。这个能力适合构建可重复的个人工作流或产品原型，但也把集成、兼容与安全责任交给使用者。[3]</p>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item is-open" data-accordion data-step-title-zh="3.1 四项价值都可以通过具体接口验证" data-step-title-en="3.1 Four Sources of Value Are Verifiable Through Concrete Interfaces">
+              <button class="subsection-toggle"><span data-zh="3.1 四项价值都可以通过具体接口验证" data-en="3.1 Four Sources of Value Are Verifiable Through Concrete Interfaces">3.1 四项价值都可以通过具体接口验证</span></button>
+              <div class="subsection-content">
+                <p data-zh="价值不来自抽象的开放性，而来自可以定位到接口的控制：修改上下文、拦截工具、注册 Provider、嵌入运行时。" data-en="The value is not abstract openness; it comes from controls tied to concrete interfaces: modifying context, intercepting tools, registering providers, and embedding the runtime.">价值不来自抽象的开放性，而来自可以定位到接口的控制：修改上下文、拦截工具、注册 Provider、嵌入运行时。</p>
+                <div class="insight-grid">
+                  <article class="insight-card">
+                    <span class="card-index">01</span>
+                    <h3 data-zh="上下文可检查" data-en="Inspectable Context">上下文可检查</h3>
+                    <p data-zh="context 事件可在每次 LLM 调用前查看或过滤消息；before_agent_start 可修改该轮系统提示。" data-en="The context event can inspect or filter messages before every LLM call; before_agent_start can modify the system prompt for that run.">context 事件可在每次 LLM 调用前查看或过滤消息；before_agent_start 可修改该轮系统提示。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">02</span>
+                    <h3 data-zh="执行链可拦截" data-en="Interceptable Execution">执行链可拦截</h3>
+                    <p data-zh="tool_call 可以改参数或阻断执行，tool_result 可以链式改写结果，适合权限、审计与远程执行。" data-en="tool_call can mutate arguments or block execution, while tool_result can transform results as middleware, supporting permission, audit, and remote execution policies.">tool_call 可以改参数或阻断执行，tool_result 可以链式改写结果，适合权限、审计与远程执行。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">03</span>
+                    <h3 data-zh="模型层可替换" data-en="Replaceable Model Layer">模型层可替换</h3>
+                    <p data-zh="Provider 可以在运行时注册或覆盖，包括自定义 OAuth、模型目录与非标准流式 API。" data-en="Providers can be registered or overridden at runtime, including custom OAuth, model catalogs, and nonstandard streaming APIs.">Provider 可以在运行时注册或覆盖，包括自定义 OAuth、模型目录与非标准流式 API。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">04</span>
+                    <h3 data-zh="产品层可复用" data-en="Reusable Product Layer">产品层可复用</h3>
+                    <p data-zh="SDK 与 RPC 让相同 AgentSession 进入 Web、桌面、移动、CI 或评测系统，不必从 CLI 屏幕抓取文本。" data-en="The SDK and RPC allow the same AgentSession to power web, desktop, mobile, CI, or evaluation systems without scraping CLI output.">SDK 与 RPC 让相同 AgentSession 进入 Web、桌面、移动、CI 或评测系统，不必从 CLI 屏幕抓取文本。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion data-step-title-zh="3.2 同一项控制权也会产生四类成本" data-step-title-en="3.2 The Same Control Creates Four Categories of Cost">
+              <button class="subsection-toggle"><span data-zh="3.2 同一项控制权也会产生四类成本" data-en="3.2 The Same Control Creates Four Categories of Cost">3.2 同一项控制权也会产生四类成本</span></button>
+              <div class="subsection-content">
+                <p data-zh="pi 的代价主要不是安装难度，而是使用者需要决定哪些能力应当进入自己的配置，并持续维护这些选择。" data-en="Pi's main cost is not installation; it is the ongoing need to decide which capabilities belong in the user's configuration and maintain those choices.">pi 的代价主要不是安装难度，而是使用者需要决定哪些能力应当进入自己的配置，并持续维护这些选择。</p>
+                <div class="comparison-grid">
+                  <article class="comparison-card">
+                    <span class="comparison-label" data-zh="获得的控制" data-en="Control Gained">获得的控制</span>
+                    <h3 data-zh="按任务设计自己的 harness" data-en="Design a Harness Around Each Task">按任务设计自己的 harness</h3>
+                    <ul class="challenge-list">
+                      <li data-zh="系统提示与工具定义保持小而可见。" data-en="Keep system prompts and tool definitions small and visible.">系统提示与工具定义保持小而可见。</li>
+                      <li data-zh="自由选择 Provider、工具协议和执行环境。" data-en="Choose providers, tool protocols, and execution environments freely.">自由选择 Provider、工具协议和执行环境。</li>
+                      <li data-zh="会话 JSONL 可以自行分析、导出或迁移。" data-en="Analyze, export, or migrate session JSONL independently.">会话 JSONL 可以自行分析、导出或迁移。</li>
+                    </ul>
+                  </article>
+                  <article class="comparison-card next">
+                    <span class="comparison-label" data-zh="承担的责任" data-en="Responsibility Assumed">承担的责任</span>
+                    <h3 data-zh="自行维护安全、兼容与工作流一致性" data-en="Maintain Security, Compatibility, and Workflow Consistency">自行维护安全、兼容与工作流一致性</h3>
+                    <ul class="challenge-list">
+                      <li data-zh="扩展以完整用户权限运行，第三方包需要审阅。" data-en="Extensions run with full user permissions, so third-party packages require review.">扩展以完整用户权限运行，第三方包需要审阅。</li>
+                      <li data-zh="Provider 差异使跨模型上下文交接只能尽力转换。" data-en="Provider differences make cross-model context handoff best effort.">Provider 差异使跨模型上下文交接只能尽力转换。</li>
+                      <li data-zh="团队统一审批、策略与支持需要额外工程。" data-en="Team-wide approval, policy, and support require additional engineering.">团队统一审批、策略与支持需要额外工程。</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion data-step-title-zh="3.3 安全判断：Project Trust 不等于运行隔离" data-step-title-en="3.3 Security Assessment: Project Trust Is Not Runtime Isolation">
+              <button class="subsection-toggle"><span data-zh="3.3 安全判断：Project Trust 不等于运行隔离" data-en="3.3 Security Assessment: Project Trust Is Not Runtime Isolation">3.3 安全判断：Project Trust 不等于运行隔离</span></button>
+              <div class="subsection-content">
+                <p data-zh="Project Trust 只决定是否加载项目中的 .pi 设置、扩展、Skills 与 Packages；一旦 Agent 开始工作，内置工具和扩展仍拥有 pi 进程的文件、网络与凭据权限。[5]" data-en="Project Trust only decides whether to load project-local .pi settings, extensions, skills, and packages. Once the agent starts working, built-in tools and extensions still have the Pi process's file, network, and credential permissions.[5]">Project Trust 只决定是否加载项目中的 .pi 设置、扩展、Skills 与 Packages；一旦 Agent 开始工作，内置工具和扩展仍拥有 pi 进程的文件、网络与凭据权限。[5]</p>
+                <ul class="flow-list">
+                  <li>
+                    <span class="flow-step">1</span>
+                    <div class="flow-copy">
+                      <strong data-zh="可信个人项目" data-en="Trusted Personal Project">可信个人项目</strong>
+                      <p data-zh="可直接运行，但仍应检查 git diff、限制长期凭据并避免让 Agent 读取无关目录。" data-en="Direct execution is reasonable, but still review git diffs, limit long-lived credentials, and keep unrelated directories out of reach.">可直接运行，但仍应检查 git diff、限制长期凭据并避免让 Agent 读取无关目录。</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">2</span>
+                    <div class="flow-copy">
+                      <strong data-zh="不可信仓库" data-en="Untrusted Repository">不可信仓库</strong>
+                      <p data-zh="先用 --no-approve 忽略项目动态资源，再把代码复制进只提供必要凭据的容器或 VM。" data-en="First use --no-approve to ignore dynamic project resources, then copy the code into a container or VM with only the credentials required.">先用 --no-approve 忽略项目动态资源，再把代码复制进只提供必要凭据的容器或 VM。</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">3</span>
+                    <div class="flow-copy">
+                      <strong data-zh="无人值守自动化" data-en="Unattended Automation">无人值守自动化</strong>
+                      <p data-zh="采用最小挂载、短期凭据、受限网络和明确工具 allowlist；不要把 Project Trust 当作安全边界。" data-en="Use minimal mounts, short-lived credentials, restricted network access, and an explicit tool allowlist; never treat Project Trust as a security boundary.">采用最小挂载、短期凭据、受限网络和明确工具 allowlist；不要把 Project Trust 当作安全边界。</p>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="landscape" class="section" data-reveal data-step-title-zh="同类产品的主要分界是开箱能力、模型自由度与运行时可编程性" data-step-title-en="Alternatives Differ Most in Turnkey Features, Model Freedom, and Runtime Programmability">
+          <div class="section-head">
+            <p class="section-kicker" data-zh="04 / Product Landscape" data-en="04 / Product Landscape">04 / Product Landscape</p>
+            <h2 data-zh="同类产品的主要分界是开箱能力、模型自由度与运行时可编程性" data-en="Alternatives Differ Most in Turnkey Features, Model Freedom, and Runtime Programmability">同类产品的主要分界是开箱能力、模型自由度与运行时可编程性</h2>
+            <p data-zh="Claude Code、Codex CLI、OpenCode、Aider、Cline 与 Gemini CLI 都能在本地代码库中读写文件和执行命令。选择时应先判断需要的是成熟产品、轻量结对编程、多 Provider TUI、IDE 审批体验，还是可作为库改造的 Agent 运行时。[11]-[16]" data-en="Claude Code, Codex CLI, OpenCode, Aider, Cline, and Gemini CLI can all read and write local repositories and execute commands. Selection should begin by deciding whether the need is a mature integrated product, lightweight pair programming, a multi-provider TUI, an IDE approval experience, or an agent runtime designed for programmatic adaptation.[11]-[16]">Claude Code、Codex CLI、OpenCode、Aider、Cline 与 Gemini CLI 都能在本地代码库中读写文件和执行命令。选择时应先判断需要的是成熟产品、轻量结对编程、多 Provider TUI、IDE 审批体验，还是可作为库改造的 Agent 运行时。[11]-[16]</p>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item is-open" data-accordion data-step-title-zh="4.1 六个相近项目的定位与取舍" data-step-title-en="4.1 Positioning and Trade-Offs Across Six Comparable Projects">
+              <button class="subsection-toggle"><span data-zh="4.1 六个相近项目的定位与取舍" data-en="4.1 Positioning and Trade-Offs Across Six Comparable Projects">4.1 六个相近项目的定位与取舍</span></button>
+              <div class="subsection-content">
+                <p data-zh="表中的优点与限制针对个人采用决策，不代表通用排名；同一产品在企业授权、模型选择和插件配置变化后可能得到不同结论。" data-en="The strengths and limits below target a personal adoption decision, not a universal ranking. Enterprise licensing, model choice, and plugin configuration can change the result for the same product.">表中的优点与限制针对个人采用决策，不代表通用排名；同一产品在企业授权、模型选择和插件配置变化后可能得到不同结论。</p>
+                <div class="table-scroll">
+                  <table class="simple-table">
+                  <thead>
+                    <tr>
+                      <th data-zh="产品" data-en="Product">产品</th>
+                      <th data-zh="主要优势" data-en="Primary Strength">主要优势</th>
+                      <th data-zh="相对 pi 的差异 / 限制" data-en="Difference or Limitation vs Pi">相对 pi 的差异 / 限制</th>
+                      <th data-zh="更适合谁" data-en="Best Fit">更适合谁</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>Claude Code</strong></td>
+                      <td data-zh="终端、IDE、桌面、Web、Agent Teams、MCP、Hooks、Skills 与自动化形成完整产品面。" data-en="Terminal, IDE, desktop, web, agent teams, MCP, hooks, skills, and automation form a complete product surface.">终端、IDE、桌面、Web、Agent Teams、MCP、Hooks、Skills 与自动化形成完整产品面。</td>
+                      <td data-zh="Claude-first，许多编排能力由产品预设；不以通用 MIT 运行时库为主要交付形态。" data-en="Claude-first, with substantial orchestration prescribed by the product; it is not primarily delivered as a general-purpose MIT runtime library.">Claude-first，许多编排能力由产品预设；不以通用 MIT 运行时库为主要交付形态。</td>
+                      <td data-zh="希望最少配置获得完整 Agent 工作流的人。" data-en="People who want a complete agent workflow with minimal setup.">希望最少配置获得完整 Agent 工作流的人。</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Codex CLI</strong></td>
+                      <td data-zh="OpenAI 官方、本地运行、Apache 2.0，和 ChatGPT 方案及 OpenAI 模型整合紧密。" data-en="OpenAI's local Apache-2.0 agent with close integration to ChatGPT plans and OpenAI models.">OpenAI 官方、本地运行、Apache 2.0，和 ChatGPT 方案及 OpenAI 模型整合紧密。</td>
+                      <td data-zh="模型与产品路径以 OpenAI 生态为中心；pi 的 Provider 抽象和扩展事件面更适合多模型实验。" data-en="Its model and product path centers on the OpenAI ecosystem; Pi's provider abstraction and event surface fit multi-model experiments better.">模型与产品路径以 OpenAI 生态为中心；pi 的 Provider 抽象和扩展事件面更适合多模型实验。</td>
+                      <td data-zh="已经使用 ChatGPT，重视官方模型协同的人。" data-en="Existing ChatGPT users who prioritize first-party model integration.">已经使用 ChatGPT，重视官方模型协同的人。</td>
+                    </tr>
+                    <tr>
+                      <td><strong>OpenCode</strong></td>
+                      <td data-zh="开源、多 Provider，提供 TUI、桌面与 IDE、Plan / Build 模式、权限、MCP、Plugins、SDK 与 Server。" data-en="Open source and multi-provider, with TUI, desktop and IDE surfaces, Plan and Build modes, permissions, MCP, plugins, SDK, and server.">开源、多 Provider，提供 TUI、桌面与 IDE、Plan / Build 模式、权限、MCP、Plugins、SDK 与 Server。</td>
+                      <td data-zh="默认产品面更丰富、配置面也更大；pi 更强调小内核与逐项组合。" data-en="Its default product and configuration surfaces are broader; Pi emphasizes a smaller core assembled capability by capability.">默认产品面更丰富、配置面也更大；pi 更强调小内核与逐项组合。</td>
+                      <td data-zh="需要多 Provider 且希望开箱拥有现代完整 TUI 的人。" data-en="People who want multi-provider support and a feature-rich modern TUI out of the box.">需要多 Provider 且希望开箱拥有现代完整 TUI 的人。</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Aider</strong></td>
+                      <td data-zh="终端结对编程、git 集成、repo map、Architect 模式与跨模型支持经过长期迭代。" data-en="Terminal pair programming, git integration, repository maps, Architect mode, and broad model support have matured over time.">终端结对编程、git 集成、repo map、Architect 模式与跨模型支持经过长期迭代。</td>
+                      <td data-zh="核心重心是代码编辑与 git 工作流，不是可深度改造 UI、事件与 Provider 的通用 Agent harness。" data-en="Its center of gravity is code editing and git workflow rather than a general agent harness with deeply programmable UI, events, and providers.">核心重心是代码编辑与 git 工作流，不是可深度改造 UI、事件与 Provider 的通用 Agent harness。</td>
+                      <td data-zh="偏好明确文件范围、自动提交与结对式迭代的人。" data-en="People who prefer explicit file scope, automatic commits, and pair-programming iteration.">偏好明确文件范围、自动提交与结对式迭代的人。</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Cline</strong></td>
+                      <td data-zh="IDE 与 CLI 双入口、可审阅 diff、Plan / Act、逐项审批、MCP、SDK、多 Agent 与定时任务。" data-en="IDE and CLI access, reviewable diffs, Plan and Act modes, per-action approval, MCP, SDK, multi-agent teams, and schedules.">IDE 与 CLI 双入口、可审阅 diff、Plan / Act、逐项审批、MCP、SDK、多 Agent 与定时任务。</td>
+                      <td data-zh="产品面和团队编排更重；pi 的内核与会话格式更小，更容易作为自定义实验底座。" data-en="Its product and team-orchestration surface is heavier; Pi's smaller core and session format are easier to use as an experimental base.">产品面和团队编排更重；pi 的内核与会话格式更小，更容易作为自定义实验底座。</td>
+                      <td data-zh="重视 IDE 内可视化审批、MCP 与多人编排的人。" data-en="People who prioritize visual IDE approvals, MCP, and multi-agent orchestration.">重视 IDE 内可视化审批、MCP 与多人编排的人。</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Gemini CLI</strong></td>
+                      <td data-zh="Google 官方开源、个人免费额度、1M 上下文、内置 Search grounding、MCP、沙箱与 GitHub Action。" data-en="Google's open-source CLI with a personal free tier, 1M context, built-in Search grounding, MCP, sandboxing, and a GitHub Action.">Google 官方开源、个人免费额度、1M 上下文、内置 Search grounding、MCP、沙箱与 GitHub Action。</td>
+                      <td data-zh="模型体验以 Gemini 为中心；pi 更适合同一会话切换多家 Provider 或自定义 Provider 协议。" data-en="The model experience centers on Gemini; Pi better supports switching across providers in one session or implementing custom provider protocols.">模型体验以 Gemini 为中心；pi 更适合同一会话切换多家 Provider 或自定义 Provider 协议。</td>
+                      <td data-zh="依赖 Google Cloud / Gemini，希望低成本开始的人。" data-en="Google Cloud or Gemini users who want a low-cost starting point.">依赖 Google Cloud / Gemini，希望低成本开始的人。</td>
+                    </tr>
+                  </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion data-step-title-zh="4.2 先按需求分流，再比较模型表现" data-step-title-en="4.2 Route by Need Before Comparing Model Performance">
+              <button class="subsection-toggle"><span data-zh="4.2 先按需求分流，再比较模型表现" data-en="4.2 Route by Need Before Comparing Model Performance">4.2 先按需求分流，再比较模型表现</span></button>
+              <div class="subsection-content">
+                <p data-zh="Coding agent 的结果同时受模型、提示、工具 schema、上下文选择与执行环境影响；因此不应把某次任务结果直接归因于 harness。先按工作方式筛选，再用相同代码任务和模型做本地试验。" data-en="Coding-agent outcomes depend jointly on model, prompt, tool schemas, context selection, and execution environment. A single task result should not be attributed directly to the harness. Filter by workflow first, then run local trials with the same code task and model.">Coding agent 的结果同时受模型、提示、工具 schema、上下文选择与执行环境影响；因此不应把某次任务结果直接归因于 harness。先按工作方式筛选，再用相同代码任务和模型做本地试验。</p>
+                <ul class="flow-list">
+                  <li>
+                    <span class="flow-step">1</span>
+                    <div class="flow-copy">
+                      <strong data-zh="优先开箱完整度" data-en="Prioritize Turnkey Completeness">优先开箱完整度</strong>
+                      <p data-zh="Claude Code、Cline 或 OpenCode 更快进入工作；无需先设计自己的扩展与安全策略。" data-en="Claude Code, Cline, or OpenCode starts productive work faster without first designing custom extensions and security policies.">Claude Code、Cline 或 OpenCode 更快进入工作；无需先设计自己的扩展与安全策略。</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">2</span>
+                    <div class="flow-copy">
+                      <strong data-zh="优先某家模型与订阅" data-en="Prioritize One Model Ecosystem">优先某家模型与订阅</strong>
+                      <p data-zh="Claude Code、Codex CLI 或 Gemini CLI 的第一方集成通常更直接。" data-en="Claude Code, Codex CLI, or Gemini CLI generally offers the most direct first-party integration.">Claude Code、Codex CLI 或 Gemini CLI 的第一方集成通常更直接。</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">3</span>
+                    <div class="flow-copy">
+                      <strong data-zh="优先 git 结对编辑" data-en="Prioritize Git-Centered Pair Editing">优先 git 结对编辑</strong>
+                      <p data-zh="Aider 的文件范围、repo map 与自动提交方式更专注。" data-en="Aider's file scope, repository map, and automatic commit workflow are more specialized.">Aider 的文件范围、repo map 与自动提交方式更专注。</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">4</span>
+                    <div class="flow-copy">
+                      <strong data-zh="优先运行时控制与嵌入" data-en="Prioritize Runtime Control and Embedding">优先运行时控制与嵌入</strong>
+                      <p data-zh="pi 的事件、Provider、会话树、SDK 与 RPC 组合最值得进入试用。" data-en="Pi's combination of events, providers, session trees, SDK, and RPC deserves evaluation first.">pi 的事件、Provider、会话树、SDK 与 RPC 组合最值得进入试用。</p>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion data-step-title-zh="4.3 官方基准只能证明可行性，不能替代个人试用" data-step-title-en="4.3 Official Benchmarks Show Feasibility, Not Personal Fit">
+              <button class="subsection-toggle"><span data-zh="4.3 官方基准只能证明可行性，不能替代个人试用" data-en="4.3 Official Benchmarks Show Feasibility, Not Personal Fit">4.3 官方基准只能证明可行性，不能替代个人试用</span></button>
+              <div class="subsection-content">
+                <p data-zh="作者在 2025 年文章中发布过 pi + Claude Opus 4.5 的 Terminal-Bench 2.0 结果，目的是说明极简工具集可以完成复杂终端任务。[10] 该结果由项目作者自行运行，模型与版本也已变化，不能作为 2026 年产品排名。" data-en="The author published Terminal-Bench 2.0 results for Pi with Claude Opus 4.5 in 2025 to show that a minimal toolset can complete complex terminal tasks.[10] The run was produced by the project author, and both model and versions have since changed, so it is not a 2026 product ranking.">作者在 2025 年文章中发布过 pi + Claude Opus 4.5 的 Terminal-Bench 2.0 结果，目的是说明极简工具集可以完成复杂终端任务。[10] 该结果由项目作者自行运行，模型与版本也已变化，不能作为 2026 年产品排名。</p>
+                <div class="quote-block">
+                  <strong data-zh="正确用法" data-en="Correct Use">正确用法</strong>
+                  <span data-zh="把公开基准当作「这种架构能工作」的证据；把同仓库、同模型、同任务、同验收条件的并行试用当作「是否适合我」的证据。" data-en="Use public benchmarks as evidence that the architecture can work. Use parallel trials on the same repository, model, task, and acceptance criteria as evidence that it fits you.">把公开基准当作「这种架构能工作」的证据；把同仓库、同模型、同任务、同验收条件的并行试用当作「是否适合我」的证据。</span>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="fit" class="section" data-reveal data-step-title-zh="是否适合取决于你要使用 Agent，还是要设计 Agent 的运行方式" data-step-title-en="Fit Depends on Whether You Use an Agent or Design How the Agent Runs">
+          <div class="section-head">
+            <p class="section-kicker" data-zh="05 / User and Scenario Fit" data-en="05 / User and Scenario Fit">05 / User and Scenario Fit</p>
+            <h2 data-zh="是否适合取决于你要使用 Agent，还是要设计 Agent 的运行方式" data-en="Fit Depends on Whether You Use an Agent or Design How the Agent Runs">是否适合取决于你要使用 Agent，还是要设计 Agent 的运行方式</h2>
+            <p data-zh="只想完成编码任务的人通常不需要接触 Provider hooks、会话格式或工具队列；需要重复调优上下文、接入私有模型、构建工具协议或嵌入产品的人，会直接受益于这些接口。" data-en="People who only want to complete coding tasks rarely need provider hooks, session formats, or tool queues. Those who repeatedly tune context, integrate private models, build tool protocols, or embed agents into products benefit directly from these interfaces.">只想完成编码任务的人通常不需要接触 Provider hooks、会话格式或工具队列；需要重复调优上下文、接入私有模型、构建工具协议或嵌入产品的人，会直接受益于这些接口。</p>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item is-open" data-accordion data-step-title-zh="5.1 六类用户最容易获得正向收益" data-step-title-en="5.1 Six User Profiles Are Most Likely to Benefit">
+              <button class="subsection-toggle"><span data-zh="5.1 六类用户最容易获得正向收益" data-en="5.1 Six User Profiles Are Most Likely to Benefit">5.1 六类用户最容易获得正向收益</span></button>
+              <div class="subsection-content">
+                <p data-zh="共同特征是愿意用少量配置换取长期可重复的工作方式，而不是把每个任务都交给产品默认值。" data-en="Their shared trait is a willingness to trade modest setup effort for a repeatable long-term workflow instead of delegating every decision to product defaults.">共同特征是愿意用少量配置换取长期可重复的工作方式，而不是把每个任务都交给产品默认值。</p>
+                <div class="insight-grid">
+                  <article class="insight-card">
+                    <span class="card-index">01</span>
+                    <h3 data-zh="Harness / Agent 开发者" data-en="Harness and Agent Developers">Harness / Agent 开发者</h3>
+                    <p data-zh="需要一个现成的 AgentSession、工具循环和 Provider 层作为产品原型。" data-en="Need an existing AgentSession, tool loop, and provider layer as a product prototype.">需要一个现成的 AgentSession、工具循环和 Provider 层作为产品原型。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">02</span>
+                    <h3 data-zh="上下文工程实践者" data-en="Context Engineering Practitioners">上下文工程实践者</h3>
+                    <p data-zh="需要测量、过滤或替换每轮发送给模型的内容。" data-en="Need to measure, filter, or replace what reaches the model on each turn.">需要测量、过滤或替换每轮发送给模型的内容。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">03</span>
+                    <h3 data-zh="多模型使用者" data-en="Multi-Model Users">多模型使用者</h3>
+                    <p data-zh="会按任务、成本、延迟或区域在多个 Provider 间切换。" data-en="Switch among providers based on task, cost, latency, or region.">会按任务、成本、延迟或区域在多个 Provider 间切换。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">04</span>
+                    <h3 data-zh="本地模型使用者" data-en="Local Model Users">本地模型使用者</h3>
+                    <p data-zh="需要 llama.cpp、Ollama、LM Studio 或 vLLM 与工具调用协同。" data-en="Need llama.cpp, Ollama, LM Studio, or vLLM to work with tool calling.">需要 llama.cpp、Ollama、LM Studio 或 vLLM 与工具调用协同。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">05</span>
+                    <h3 data-zh="终端与 tmux 重度用户" data-en="Terminal and tmux Power Users">终端与 tmux 重度用户</h3>
+                    <p data-zh="已经用 shell 管理 server、日志、调试器与远程主机。" data-en="Already manage servers, logs, debuggers, and remote hosts through the shell.">已经用 shell 管理 server、日志、调试器与远程主机。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">06</span>
+                    <h3 data-zh="Agent 研究与评测者" data-en="Agent Researchers and Evaluators">Agent 研究与评测者</h3>
+                    <p data-zh="需要结构化事件、透明会话和可替换工具来做复现实验。" data-en="Need structured events, transparent sessions, and replaceable tools for reproducible experiments.">需要结构化事件、透明会话和可替换工具来做复现实验。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion data-step-title-zh="5.2 四种需求通常应优先选择其他产品" data-step-title-en="5.2 Four Needs Usually Point to Another Product First">
+              <button class="subsection-toggle"><span data-zh="5.2 四种需求通常应优先选择其他产品" data-en="5.2 Four Needs Usually Point to Another Product First">5.2 四种需求通常应优先选择其他产品</span></button>
+              <div class="subsection-content">
+                <p data-zh="这些场景不是 pi 无法实现，而是补齐到同等体验所需的配置与维护成本会抵消小内核的收益。" data-en="Pi can technically address these scenarios, but the setup and maintenance required to reach an equivalent experience can erase the benefit of its small core.">这些场景不是 pi 无法实现，而是补齐到同等体验所需的配置与维护成本会抵消小内核的收益。</p>
+                <div class="comparison-grid">
+                  <article class="comparison-card">
+                    <span class="comparison-label" data-zh="优先其他产品" data-en="Prefer Another Product">优先其他产品</span>
+                    <h3 data-zh="工作方式依赖成熟产品面" data-en="The Workflow Depends on a Mature Product Surface">工作方式依赖成熟产品面</h3>
+                    <ul class="challenge-list">
+                      <li data-zh="必须在 IDE 内逐项审阅 diff 与命令。" data-en="Every diff and command must be reviewed inside the IDE.">必须在 IDE 内逐项审阅 diff 与命令。</li>
+                      <li data-zh="需要内置 Agent Teams、后台任务与定时自动化。" data-en="Built-in agent teams, background jobs, and scheduling are required.">需要内置 Agent Teams、后台任务与定时自动化。</li>
+                      <li data-zh="MCP 是现有工具生态的主要连接方式。" data-en="MCP is the primary integration path for the existing tool ecosystem.">MCP 是现有工具生态的主要连接方式。</li>
+                      <li data-zh="团队要求集中策略、审批、支持与 SLA。" data-en="The team requires centralized policy, approval, support, and an SLA.">团队要求集中策略、审批、支持与 SLA。</li>
+                    </ul>
+                  </article>
+                  <article class="comparison-card next">
+                    <span class="comparison-label" data-zh="考虑 pi" data-en="Consider Pi">考虑 pi</span>
+                    <h3 data-zh="工作方式依赖运行时可编程性" data-en="The Workflow Depends on Runtime Programmability">工作方式依赖运行时可编程性</h3>
+                    <ul class="challenge-list">
+                      <li data-zh="需要看见或改写每轮上下文与 Provider payload。" data-en="Per-turn context or provider payloads must be visible or mutable.">需要看见或改写每轮上下文与 Provider payload。</li>
+                      <li data-zh="需要自定义工具、Provider、UI 或会话分支。" data-en="Custom tools, providers, UI, or session branching are required.">需要自定义工具、Provider、UI 或会话分支。</li>
+                      <li data-zh="需要在同一工具内比较多个模型与本地 endpoint。" data-en="Multiple models and local endpoints must be compared in one tool.">需要在同一工具内比较多个模型与本地 endpoint。</li>
+                      <li data-zh="需要把 Agent 运行时嵌入自己的程序。" data-en="The agent runtime must be embedded into a custom application.">需要把 Agent 运行时嵌入自己的程序。</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion data-step-title-zh="5.3 六个主要场景覆盖从个人编码到产品嵌入" data-step-title-en="5.3 Six Primary Scenarios Span Personal Coding to Product Embedding">
+              <button class="subsection-toggle"><span data-zh="5.3 六个主要场景覆盖从个人编码到产品嵌入" data-en="5.3 Six Primary Scenarios Span Personal Coding to Product Embedding">5.3 六个主要场景覆盖从个人编码到产品嵌入</span></button>
+              <div class="subsection-content">
+                <p data-zh="场景之间可以共享模型与扩展，但应使用独立会话和工具 allowlist，避免不相关的上下文与权限累积。" data-en="Scenarios can share models and extensions, but should use separate sessions and tool allowlists to prevent unrelated context and permissions from accumulating.">场景之间可以共享模型与扩展，但应使用独立会话和工具 allowlist，避免不相关的上下文与权限累积。</p>
+                <div class="insight-grid">
+                  <article class="insight-card">
+                    <span class="card-index">01</span>
+                    <h3 data-zh="日常实现与修复" data-en="Implementation and Bug Fixes">日常实现与修复</h3>
+                    <p data-zh="读代码、编辑、运行测试、检查 diff，保持任务边界清楚。" data-en="Read code, edit, run tests, and inspect diffs within a clear task boundary.">读代码、编辑、运行测试、检查 diff，保持任务边界清楚。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">02</span>
+                    <h3 data-zh="只读审查" data-en="Read-Only Review">只读审查</h3>
+                    <p data-zh="只启用 read、grep、find、ls，对代码、依赖或设计做无写入分析。" data-en="Enable only read, grep, find, and ls for non-mutating code, dependency, or design analysis.">只启用 read、grep、find、ls，对代码、依赖或设计做无写入分析。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">03</span>
+                    <h3 data-zh="多模型复核" data-en="Multi-Model Review">多模型复核</h3>
+                    <p data-zh="从同一会话节点 fork，用不同模型审查同一变更并比较发现。" data-en="Fork from one session point and have different models review the same change.">从同一会话节点 fork，用不同模型审查同一变更并比较发现。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">04</span>
+                    <h3 data-zh="远程与沙箱执行" data-en="Remote and Sandboxed Execution">远程与沙箱执行</h3>
+                    <p data-zh="覆写内置工具的 operations，把文件和 shell 操作转到 SSH、容器或微型 VM。" data-en="Override built-in tool operations to route file and shell work through SSH, containers, or micro-VMs.">覆写内置工具的 operations，把文件和 shell 操作转到 SSH、容器或微型 VM。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">05</span>
+                    <h3 data-zh="CI 与批处理" data-en="CI and Batch Work">CI 与批处理</h3>
+                    <p data-zh="通过 print 或 JSON mode 执行一次性任务，并消费结构化事件。" data-en="Run one-shot tasks through print or JSON mode and consume structured events.">通过 print 或 JSON mode 执行一次性任务，并消费结构化事件。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">06</span>
+                    <h3 data-zh="自定义 Agent 产品" data-en="Custom Agent Products">自定义 Agent 产品</h3>
+                    <p data-zh="通过 SDK 或 RPC 构建自己的界面、工具、鉴权与会话管理。" data-en="Use the SDK or RPC to build a custom interface, tools, authentication, and session management.">通过 SDK 或 RPC 构建自己的界面、工具、鉴权与会话管理。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="workflow" class="section" data-reveal data-step-title-zh="最佳用法是先固定安全与上下文，再逐步增加扩展" data-step-title-en="The Best Workflow Fixes Security and Context Before Adding Extensions">
+          <div class="section-head">
+            <p class="section-kicker" data-zh="06 / Best-Use Workflow" data-en="06 / Best-Use Workflow">06 / Best-Use Workflow</p>
+            <h2 data-zh="最佳用法是先固定安全与上下文，再逐步增加扩展" data-en="The Best Workflow Fixes Security and Context Before Adding Extensions">最佳用法是先固定安全与上下文，再逐步增加扩展</h2>
+            <p data-zh="从空配置开始一次性安装大量 Packages 会同时改变工具、提示和权限，难以判断收益来源。更稳妥的方式是先用默认 CLI 完成一个真实任务，再按明确缺口增加资源。" data-en="Installing many packages into an empty setup changes tools, prompts, and permissions simultaneously, making benefits hard to attribute. A more reliable approach is to complete one real task with the default CLI, then add resources only for observed gaps.">从空配置开始一次性安装大量 Packages 会同时改变工具、提示和权限，难以判断收益来源。更稳妥的方式是先用默认 CLI 完成一个真实任务，再按明确缺口增加资源。</p>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item is-open" data-accordion data-step-title-zh="6.1 六步建立可重复的个人工作流" data-step-title-en="6.1 Build a Repeatable Personal Workflow in Six Steps">
+              <button class="subsection-toggle"><span data-zh="6.1 六步建立可重复的个人工作流" data-en="6.1 Build a Repeatable Personal Workflow in Six Steps">6.1 六步建立可重复的个人工作流</span></button>
+              <div class="subsection-content">
+                <p data-zh="每一步都产生一个可检查结果：安装可运行、项目规则可见、工具范围明确、会话可恢复、验证可执行、扩展有具体用途。" data-en="Each step produces an inspectable result: a working installation, visible project rules, explicit tool scope, resumable sessions, executable validation, and extensions with a defined purpose.">每一步都产生一个可检查结果：安装可运行、项目规则可见、工具范围明确、会话可恢复、验证可执行、扩展有具体用途。</p>
+                <ul class="flow-list">
+                  <li>
+                    <span class="flow-step">1</span>
+                    <div class="flow-copy">
+                      <strong data-zh="安装并登录一个 Provider" data-en="Install and Authenticate One Provider">安装并登录一个 Provider</strong>
+                      <p data-zh="使用 npm --ignore-scripts 安装，或采用官方安装脚本；先只配置一个熟悉的模型，减少变量。" data-en="Install with npm --ignore-scripts or the official installer; configure one familiar model first to reduce variables.">使用 npm --ignore-scripts 安装，或采用官方安装脚本；先只配置一个熟悉的模型，减少变量。</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">2</span>
+                    <div class="flow-copy">
+                      <strong data-zh="写清项目上下文" data-en="Define Project Context">写清项目上下文</strong>
+                      <p data-zh="在 AGENTS.md 或 CLAUDE.md 中记录构建命令、代码约定、安全红线和完成标准；保持内容短且可执行。" data-en="Record build commands, coding conventions, safety constraints, and completion criteria in AGENTS.md or CLAUDE.md; keep it short and executable.">在 AGENTS.md 或 CLAUDE.md 中记录构建命令、代码约定、安全红线和完成标准；保持内容短且可执行。</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">3</span>
+                    <div class="flow-copy">
+                      <strong data-zh="为任务选择工具边界" data-en="Choose the Tool Boundary for the Task">为任务选择工具边界</strong>
+                      <p data-zh="分析任务先用只读工具；可信实现任务再启用 edit、write、bash；不可信任务进入容器。" data-en="Start analysis with read-only tools, add edit, write, and bash for trusted implementation, and move untrusted work into a container.">分析任务先用只读工具；可信实现任务再启用 edit、write、bash；不可信任务进入容器。</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">4</span>
+                    <div class="flow-copy">
+                      <strong data-zh="命名并分离会话" data-en="Name and Separate Sessions">命名并分离会话</strong>
+                      <p data-zh="研究、实现、审查使用不同命名会话；需要比较方案时从共同节点 fork。" data-en="Use separately named sessions for research, implementation, and review; fork from a common point when comparing alternatives.">研究、实现、审查使用不同命名会话；需要比较方案时从共同节点 fork。</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">5</span>
+                    <div class="flow-copy">
+                      <strong data-zh="让完成标准可执行" data-en="Make Completion Criteria Executable">让完成标准可执行</strong>
+                      <p data-zh="把测试、lint、typecheck 或 diff 检查写进提示与项目规则，要求 Agent 在结束前运行并汇报。" data-en="Put tests, lint, type checks, or diff review into prompts and project rules, requiring execution and reporting before completion.">把测试、lint、typecheck 或 diff 检查写进提示与项目规则，要求 Agent 在结束前运行并汇报。</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">6</span>
+                    <div class="flow-copy">
+                      <strong data-zh="只为反复出现的缺口增加资源" data-en="Add Resources Only for Repeated Gaps">只为反复出现的缺口增加资源</strong>
+                      <p data-zh="重复提示变成 template，领域流程变成 Skill，必须运行代码的策略或工具变成 extension。" data-en="Turn repeated prompts into templates, domain workflows into skills, and policies or tools requiring executable code into extensions.">重复提示变成 template，领域流程变成 Skill，必须运行代码的策略或工具变成 extension。</p>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion data-step-title-zh="6.2 最小配置从三个命令和一个上下文文件开始" data-step-title-en="6.2 A Minimal Setup Starts with Three Commands and One Context File">
+              <button class="subsection-toggle"><span data-zh="6.2 最小配置从三个命令和一个上下文文件开始" data-en="6.2 A Minimal Setup Starts with Three Commands and One Context File">6.2 最小配置从三个命令和一个上下文文件开始</span></button>
+              <div class="subsection-content">
+                <p data-zh="首次试用不需要先写扩展；安装、登录、启动和一个准确的 AGENTS.md 已足以检验默认体验。" data-en="A first trial does not require an extension. Installation, authentication, startup, and one accurate AGENTS.md are enough to evaluate the default experience.">首次试用不需要先写扩展；安装、登录、启动和一个准确的 AGENTS.md 已足以检验默认体验。</p>
+                <div class="table-scroll">
+                  <table class="simple-table">
+                  <thead>
+                    <tr>
+                      <th data-zh="动作" data-en="Action">动作</th>
+                      <th data-zh="示例" data-en="Example">示例</th>
+                      <th data-zh="检查结果" data-en="Check">检查结果</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td data-zh="安装" data-en="Install">安装</td>
+                      <td><code>npm install -g --ignore-scripts @earendil-works/pi-coding-agent</code></td>
+                      <td data-zh="pi --version 返回版本号。" data-en="pi --version returns a version.">pi --version 返回版本号。</td>
+                    </tr>
+                    <tr>
+                      <td data-zh="登录" data-en="Authenticate">登录</td>
+                      <td><code>/login</code></td>
+                      <td data-zh="/model 能看到至少一个可用模型。" data-en="/model lists at least one available model.">/model 能看到至少一个可用模型。</td>
+                    </tr>
+                    <tr>
+                      <td data-zh="运行" data-en="Run">运行</td>
+                      <td><code>cd your-project &amp;&amp; pi --name "first evaluation"</code></td>
+                      <td data-zh="启动页显示已加载的上下文文件、Skills 与扩展。" data-en="The startup header lists loaded context files, skills, and extensions.">启动页显示已加载的上下文文件、Skills 与扩展。</td>
+                    </tr>
+                    <tr>
+                      <td data-zh="只读评估" data-en="Read-Only Evaluation">只读评估</td>
+                      <td><code>pi --tools read,grep,find,ls -p "Review this repository"</code></td>
+                      <td data-zh="任务完成且工作树没有新增修改。" data-en="The task completes without new working-tree changes.">任务完成且工作树没有新增修改。</td>
+                    </tr>
+                  </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion data-step-title-zh="6.3 三条使用纪律比堆叠扩展更重要" data-step-title-en="6.3 Three Operating Disciplines Matter More Than Extension Count">
+              <button class="subsection-toggle"><span data-zh="6.3 三条使用纪律比堆叠扩展更重要" data-en="6.3 Three Operating Disciplines Matter More Than Extension Count">6.3 三条使用纪律比堆叠扩展更重要</span></button>
+              <div class="subsection-content">
+                <p data-zh="长期效果取决于任务边界、验证和会话卫生；扩展只能自动化已经定义清楚的做法。" data-en="Long-term effectiveness depends on task boundaries, validation, and session hygiene. Extensions can only automate practices that are already well defined.">长期效果取决于任务边界、验证和会话卫生；扩展只能自动化已经定义清楚的做法。</p>
+                <div class="insight-grid">
+                  <article class="insight-card">
+                    <span class="card-index">01</span>
+                    <h3 data-zh="研究与实现分会话" data-en="Separate Research from Implementation">研究与实现分会话</h3>
+                    <p data-zh="先产出可复用的事实或设计 artifact，再用新会话实现，避免工具输出挤占实现上下文。" data-en="Produce a reusable fact or design artifact first, then implement in a fresh session so exploration output does not consume implementation context.">先产出可复用的事实或设计 artifact，再用新会话实现，避免工具输出挤占实现上下文。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">02</span>
+                    <h3 data-zh="长进程交给 tmux" data-en="Put Long Processes in tmux">长进程交给 tmux</h3>
+                    <p data-zh="server、watcher、REPL 和调试器保留独立可观察会话，Agent 和人都能重新连接。" data-en="Keep servers, watchers, REPLs, and debuggers in independent observable sessions that both agent and human can reconnect to.">server、watcher、REPL 和调试器保留独立可观察会话，Agent 和人都能重新连接。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">03</span>
+                    <h3 data-zh="把验证作为结束条件" data-en="Treat Validation as a Completion Condition">把验证作为结束条件</h3>
+                    <p data-zh="模型声明完成不等于任务完成；必须以测试退出码、诊断、diff 或可观察行为收口。" data-en="A model claiming completion does not complete the task; close with test exit codes, diagnostics, diffs, or observable behavior.">模型声明完成不等于任务完成；必须以测试退出码、诊断、diff 或可观察行为收口。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="advanced" class="section" data-reveal data-step-title-zh="扩展路径从文本资源逐步进入可执行运行时" data-step-title-en="The Extension Path Progresses from Text Resources to Executable Runtime Control">
+          <div class="section-head">
+            <p class="section-kicker" data-zh="07 / Extensions and Advanced Use" data-en="07 / Extensions and Advanced Use">07 / Extensions and Advanced Use</p>
+            <h2 data-zh="扩展路径从文本资源逐步进入可执行运行时" data-en="The Extension Path Progresses from Text Resources to Executable Runtime Control">扩展路径从文本资源逐步进入可执行运行时</h2>
+            <p data-zh="Prompt Templates 与 Skills 主要改变模型获得的指令；Extensions 可以执行代码并修改生命周期；Packages 用于分发这些资源；SDK 与 RPC 则把整个 Agent 运行时嵌入其他系统。权限与维护成本也按这一顺序增加。[3][6][8][9]" data-en="Prompt templates and skills mainly change the instructions available to the model. Extensions execute code and modify lifecycle behavior; packages distribute these resources; SDK and RPC embed the entire agent runtime into other systems. Permission and maintenance costs rise in the same order.[3][6][8][9]">Prompt Templates 与 Skills 主要改变模型获得的指令；Extensions 可以执行代码并修改生命周期；Packages 用于分发这些资源；SDK 与 RPC 则把整个 Agent 运行时嵌入其他系统。权限与维护成本也按这一顺序增加。[3][6][8][9]</p>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item is-open" data-accordion data-step-title-zh="7.1 四级扩展模型对应四种复杂度" data-step-title-en="7.1 Four Extension Levels Correspond to Four Complexity Levels">
+              <button class="subsection-toggle"><span data-zh="7.1 四级扩展模型对应四种复杂度" data-en="7.1 Four Extension Levels Correspond to Four Complexity Levels">7.1 四级扩展模型对应四种复杂度</span></button>
+              <div class="subsection-content">
+                <p data-zh="优先选择能解决问题的最低层级；如果一段可复用提示已经足够，就不应先写拥有完整系统权限的 TypeScript 扩展。" data-en="Choose the lowest level that solves the problem. If a reusable prompt is sufficient, do not begin with a TypeScript extension that has full system permissions.">优先选择能解决问题的最低层级；如果一段可复用提示已经足够，就不应先写拥有完整系统权限的 TypeScript 扩展。</p>
+                <div class="insight-grid">
+                  <article class="insight-card">
+                    <span class="card-index">01</span>
+                    <h3 data-zh="Prompt Template" data-en="Prompt Template">Prompt Template</h3>
+                    <p data-zh="把重复提示保存为斜杠命令，支持参数展开；适合审查、发布、总结等固定任务。" data-en="Save repeated prompts as slash commands with argument expansion for fixed tasks such as review, release, or summarization.">把重复提示保存为斜杠命令，支持参数展开；适合审查、发布、总结等固定任务。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">02</span>
+                    <h3>Agent Skill</h3>
+                    <p data-zh="按 Agent Skills 规范封装工作流、脚本、参考资料和资产；描述常驻，全文按需加载。" data-en="Package workflows, scripts, references, and assets under the Agent Skills specification; descriptions stay resident while full instructions load on demand.">按 Agent Skills 规范封装工作流、脚本、参考资料和资产；描述常驻，全文按需加载。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">03</span>
+                    <h3>TypeScript Extension</h3>
+                    <p data-zh="注册工具、命令、快捷键、Provider 和 UI，或拦截输入、上下文、模型请求与工具执行。" data-en="Register tools, commands, shortcuts, providers, and UI, or intercept input, context, model requests, and tool execution.">注册工具、命令、快捷键、Provider 和 UI，或拦截输入、上下文、模型请求与工具执行。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">04</span>
+                    <h3 data-zh="Package / SDK / RPC" data-en="Package / SDK / RPC">Package / SDK / RPC</h3>
+                    <p data-zh="Package 分发资源；SDK 在 Node.js 进程内组合运行时；RPC 为其他语言提供进程边界。" data-en="Packages distribute resources, the SDK composes the runtime in a Node.js process, and RPC exposes a process boundary to other languages.">Package 分发资源；SDK 在 Node.js 进程内组合运行时；RPC 为其他语言提供进程边界。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion data-step-title-zh="7.2 高级用法集中在工具、上下文与执行位置" data-step-title-en="7.2 Advanced Patterns Center on Tools, Context, and Execution Location">
+              <button class="subsection-toggle"><span data-zh="7.2 高级用法集中在工具、上下文与执行位置" data-en="7.2 Advanced Patterns Center on Tools, Context, and Execution Location">7.2 高级用法集中在工具、上下文与执行位置</span></button>
+              <div class="subsection-content">
+                <p data-zh="官方 examples 给出了可运行模式，适合先复制最小示例再逐项修改；不要从空白文件猜测生命周期与状态恢复规则。[3]" data-en="Official examples provide executable patterns. Start from the smallest relevant example and modify it incrementally rather than guessing lifecycle and state-restoration rules from a blank file.[3]">官方 examples 给出了可运行模式，适合先复制最小示例再逐项修改；不要从空白文件猜测生命周期与状态恢复规则。[3]</p>
+                <div class="table-scroll">
+                  <table class="simple-table">
+                  <thead>
+                    <tr>
+                      <th data-zh="模式" data-en="Pattern">模式</th>
+                      <th data-zh="机制" data-en="Mechanism">机制</th>
+                      <th data-zh="主要用途" data-en="Primary Use">主要用途</th>
+                      <th data-zh="关键边界" data-en="Critical Boundary">关键边界</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td data-zh="权限与路径保护" data-en="Permission and Path Protection">权限与路径保护</td>
+                      <td><code>tool_call</code></td>
+                      <td data-zh="拦截 rm、sudo、.env 写入或生产部署。" data-en="Intercept rm, sudo, .env writes, or production deployment.">拦截 rm、sudo、.env 写入或生产部署。</td>
+                      <td data-zh="扩展自身仍有完整权限，规则不是 OS 沙箱。" data-en="The extension itself retains full permissions; rules are not an OS sandbox.">扩展自身仍有完整权限，规则不是 OS 沙箱。</td>
+                    </tr>
+                    <tr>
+                      <td data-zh="动态工具加载" data-en="Dynamic Tool Loading">动态工具加载</td>
+                      <td><code>getAllTools + setActiveTools</code></td>
+                      <td data-zh="初始只暴露搜索器，按任务激活匹配工具，减少 schema 上下文。" data-en="Expose only a search tool initially and activate matches per task to reduce schema context.">初始只暴露搜索器，按任务激活匹配工具，减少 schema 上下文。</td>
+                      <td data-zh="原生 deferred loading 只适用于支持对应协议的模型，其他模型走完整工具列表回退。" data-en="Native deferred loading requires compatible models; other models fall back to the full active tool list.">原生 deferred loading 只适用于支持对应协议的模型，其他模型走完整工具列表回退。</td>
+                    </tr>
+                    <tr>
+                      <td data-zh="自定义上下文压缩" data-en="Custom Context Compaction">自定义上下文压缩</td>
+                      <td><code>session_before_compact</code></td>
+                      <td data-zh="按项目保留决策、文件变化与验证状态。" data-en="Preserve project decisions, file changes, and validation state.">按项目保留决策、文件变化与验证状态。</td>
+                      <td data-zh="摘要会替代被压缩消息，需要保留可验证事实而不是只写结论。" data-en="The summary replaces compacted messages, so it must preserve verifiable facts rather than conclusions alone.">摘要会替代被压缩消息，需要保留可验证事实而不是只写结论。</td>
+                    </tr>
+                    <tr>
+                      <td data-zh="远程执行" data-en="Remote Execution">远程执行</td>
+                      <td data-zh="覆写 Tool Operations" data-en="Override Tool Operations">覆写 Tool Operations</td>
+                      <td data-zh="让 read、edit、bash 在 SSH、容器或微型 VM 内执行。" data-en="Execute read, edit, and bash over SSH, inside a container, or in a micro-VM.">让 read、edit、bash 在 SSH、容器或微型 VM 内执行。</td>
+                      <td data-zh="宿主工作区的读写挂载仍会影响宿主文件，需最小挂载。" data-en="Writable host workspace mounts still affect host files and must be minimized.">宿主工作区的读写挂载仍会影响宿主文件，需最小挂载。</td>
+                    </tr>
+                    <tr>
+                      <td data-zh="自定义 Provider" data-en="Custom Provider">自定义 Provider</td>
+                      <td><code>registerProvider</code></td>
+                      <td data-zh="企业代理、SSO、模型动态发现或非标准流式 API。" data-en="Enterprise proxies, SSO, dynamic model discovery, or nonstandard streaming APIs.">企业代理、SSO、模型动态发现或非标准流式 API。</td>
+                      <td data-zh="调用格式、缓存、推理内容和使用量字段需自行验证。" data-en="Request formats, caching, reasoning content, and usage fields require independent validation.">调用格式、缓存、推理内容和使用量字段需自行验证。</td>
+                    </tr>
+                    <tr>
+                      <td data-zh="自定义 UI" data-en="Custom UI">自定义 UI</td>
+                      <td><code>ctx.ui</code></td>
+                      <td data-zh="弹窗、状态栏、widget、自定义编辑器、overlay 与工具结果渲染。" data-en="Dialogs, status bars, widgets, custom editors, overlays, and tool-result rendering.">弹窗、状态栏、widget、自定义编辑器、overlay 与工具结果渲染。</td>
+                      <td data-zh="TUI、RPC、JSON、Print 对 UI 能力的支持不同，需要按 mode 分支。" data-en="TUI, RPC, JSON, and Print support different UI capabilities and require mode-aware behavior.">TUI、RPC、JSON、Print 对 UI 能力的支持不同，需要按 mode 分支。</td>
+                    </tr>
+                  </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion data-step-title-zh="7.3 三个实现细节决定扩展是否可靠" data-step-title-en="7.3 Three Implementation Details Determine Extension Reliability">
+              <button class="subsection-toggle"><span data-zh="7.3 三个实现细节决定扩展是否可靠" data-en="7.3 Three Implementation Details Determine Extension Reliability">7.3 三个实现细节决定扩展是否可靠</span></button>
+              <div class="subsection-content">
+                <p data-zh="工具能运行不代表扩展已经可靠；并行写入、输出规模与会话状态恢复是最容易在小样本中被忽略的三项约束。[3]" data-en="A working tool does not make an extension reliable. Parallel writes, output volume, and session-state restoration are three constraints easily missed in small trials.[3]">工具能运行不代表扩展已经可靠；并行写入、输出规模与会话状态恢复是最容易在小样本中被忽略的三项约束。[3]</p>
+                <div class="insight-grid">
+                  <article class="insight-card">
+                    <span class="card-index">01</span>
+                    <h3 data-zh="文件修改必须排队" data-en="File Mutations Must Be Queued">文件修改必须排队</h3>
+                    <p data-zh="自定义写工具应使用 withFileMutationQueue 覆盖完整读改写窗口，避免与内置 edit 并行覆盖。" data-en="Custom write tools should use withFileMutationQueue around the entire read-modify-write window to avoid racing the built-in edit tool.">自定义写工具应使用 withFileMutationQueue 覆盖完整读改写窗口，避免与内置 edit 并行覆盖。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">02</span>
+                    <h3 data-zh="工具输出必须截断" data-en="Tool Output Must Be Truncated">工具输出必须截断</h3>
+                    <p data-zh="官方默认上限为 50KB 或 2000 行；保留关键部分，并把完整结果写到可再次读取的文件。" data-en="The official default limit is 50KB or 2,000 lines. Keep the relevant portion and write full output to a file that can be read later.">官方默认上限为 50KB 或 2000 行；保留关键部分，并把完整结果写到可再次读取的文件。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">03</span>
+                    <h3 data-zh="状态必须随分支恢复" data-en="State Must Restore with Branches">状态必须随分支恢复</h3>
+                    <p data-zh="把状态写入 tool result details 或 custom entry，并在 session_start 从当前 branch 重建。" data-en="Persist state in tool-result details or custom entries, then rebuild it from the current branch during session_start.">把状态写入 tool result details 或 custom entry，并在 session_start 从当前 branch 重建。</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="verdict" class="section" data-reveal data-step-title-zh="采用建议：值得做受控试用，不宜在未验证前替换现有主力工具" data-step-title-en="Adoption Verdict: Run a Controlled Trial Before Replacing a Primary Tool">
+          <div class="section-head">
+            <p class="section-kicker" data-zh="08 / Adoption Verdict" data-en="08 / Adoption Verdict">08 / Adoption Verdict</p>
+            <h2 data-zh="采用建议：值得做受控试用，不宜在未验证前替换现有主力工具" data-en="Adoption Verdict: Run a Controlled Trial Before Replacing a Primary Tool">采用建议：值得做受控试用，不宜在未验证前替换现有主力工具</h2>
+            <p data-zh="pi 在可编程性、多 Provider、会话透明度和嵌入能力上有明确优势；开箱安全、IDE 审阅、团队治理与一体化功能不是它的默认强项。个人评估应通过一周内的真实任务验证控制权是否能转化为更少返工或更稳定的结果。" data-en="Pi has clear strengths in programmability, multi-provider access, session transparency, and embedding. Turnkey safety, IDE review, team governance, and integrated product features are not its default strengths. A personal evaluation should use real tasks over one week to determine whether control produces less rework or more stable outcomes.">pi 在可编程性、多 Provider、会话透明度和嵌入能力上有明确优势；开箱安全、IDE 审阅、团队治理与一体化功能不是它的默认强项。个人评估应通过一周内的真实任务验证控制权是否能转化为更少返工或更稳定的结果。</p>
+          </div>
+
+          <div class="subsection-accordion section-grid-spaced">
+            <article class="subsection-item is-open" data-accordion data-step-title-zh="8.1 本文评分显示控制力突出，产品完整度有限" data-step-title-en="8.1 This Assessment Shows Strong Control and Limited Turnkey Completeness">
+              <button class="subsection-toggle"><span data-zh="8.1 本文评分显示控制力突出，产品完整度有限" data-en="8.1 This Assessment Shows Strong Control and Limited Turnkey Completeness">8.1 本文评分显示控制力突出，产品完整度有限</span></button>
+              <div class="subsection-content">
+                <p data-zh="以下 1-5 分为本文基于官方能力边界的主观评估，不是独立基准；分数只用于暴露取舍，不能替代本地试用。" data-en="The following 1-5 ratings are this article's subjective assessment of official capability boundaries, not an independent benchmark. They expose trade-offs and do not replace a local trial.">以下 1-5 分为本文基于官方能力边界的主观评估，不是独立基准；分数只用于暴露取舍，不能替代本地试用。</p>
+                <div class="table-scroll">
+                  <table class="simple-table">
+                  <thead>
+                    <tr>
+                      <th data-zh="维度" data-en="Dimension">维度</th>
+                      <th data-zh="评分" data-en="Rating">评分</th>
+                      <th data-zh="依据" data-en="Basis">依据</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td data-zh="运行时可编程性" data-en="Runtime Programmability">运行时可编程性</td>
+                      <td><strong>5 / 5</strong></td>
+                      <td data-zh="事件、工具、Provider、UI、会话和 SDK 都有公开接口。" data-en="Events, tools, providers, UI, sessions, and SDK all expose public interfaces.">事件、工具、Provider、UI、会话和 SDK 都有公开接口。</td>
+                    </tr>
+                    <tr>
+                      <td data-zh="模型与接入灵活性" data-en="Model and Access Flexibility">模型与接入灵活性</td>
+                      <td><strong>5 / 5</strong></td>
+                      <td data-zh="覆盖订阅、API、云平台、聚合网关、本地与自定义 Provider。" data-en="Covers subscriptions, APIs, clouds, gateways, local endpoints, and custom providers.">覆盖订阅、API、云平台、聚合网关、本地与自定义 Provider。</td>
+                    </tr>
+                    <tr>
+                      <td data-zh="会话透明度" data-en="Session Transparency">会话透明度</td>
+                      <td><strong>5 / 5</strong></td>
+                      <td data-zh="JSONL 树、标签、分支、导入导出与 SessionManager API。" data-en="JSONL trees, labels, branches, import and export, and the SessionManager API.">JSONL 树、标签、分支、导入导出与 SessionManager API。</td>
+                    </tr>
+                    <tr>
+                      <td data-zh="开箱工作流" data-en="Turnkey Workflow">开箱工作流</td>
+                      <td><strong>3 / 5</strong></td>
+                      <td data-zh="日常编码完整，但计划、审批、MCP、子代理与后台进程需要组合。" data-en="Daily coding is complete, but planning, approvals, MCP, subagents, and background processes require assembly.">日常编码完整，但计划、审批、MCP、子代理与后台进程需要组合。</td>
+                    </tr>
+                    <tr>
+                      <td data-zh="内置安全" data-en="Built-In Safety">内置安全</td>
+                      <td><strong>2 / 5</strong></td>
+                      <td data-zh="有 Project Trust 与工具 allowlist，但没有内置运行沙箱或默认逐项审批。" data-en="Project Trust and tool allowlists exist, but there is no built-in runtime sandbox or default per-action approval.">有 Project Trust 与工具 allowlist，但没有内置运行沙箱或默认逐项审批。</td>
+                    </tr>
+                    <tr>
+                      <td data-zh="IDE 与团队产品面" data-en="IDE and Team Product Surface">IDE 与团队产品面</td>
+                      <td><strong>2 / 5</strong></td>
+                      <td data-zh="重点是终端与 SDK，不提供同等成熟的 IDE 审阅、集中治理和商业支持面。" data-en="The focus is terminal and SDK rather than an equally mature IDE review, centralized governance, and commercial support surface.">重点是终端与 SDK，不提供同等成熟的 IDE 审阅、集中治理和商业支持面。</td>
+                    </tr>
+                  </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion data-step-title-zh="8.2 用四个真实任务完成一周试用" data-step-title-en="8.2 Complete a One-Week Trial with Four Real Tasks">
+              <button class="subsection-toggle"><span data-zh="8.2 用四个真实任务完成一周试用" data-en="8.2 Complete a One-Week Trial with Four Real Tasks">8.2 用四个真实任务完成一周试用</span></button>
+              <div class="subsection-content">
+                <p data-zh="试用应覆盖读、写、分支与扩展四种行为，并与当前主力工具使用同一模型、仓库和验收条件。" data-en="The trial should cover reading, writing, branching, and extension behavior while using the same model, repository, and acceptance criteria as the current primary tool.">试用应覆盖读、写、分支与扩展四种行为，并与当前主力工具使用同一模型、仓库和验收条件。</p>
+                <ul class="flow-list">
+                  <li>
+                    <span class="flow-step">1</span>
+                    <div class="flow-copy">
+                      <strong data-zh="只读架构问答" data-en="Read-Only Architecture Q&amp;A">只读架构问答</strong>
+                      <p data-zh="限制为 read、grep、find、ls，检查事实准确率、读取范围、token 使用与完成时间。" data-en="Restrict to read, grep, find, and ls; measure factual accuracy, files inspected, token usage, and completion time.">限制为 read、grep、find、ls，检查事实准确率、读取范围、token 使用与完成时间。</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">2</span>
+                    <div class="flow-copy">
+                      <strong data-zh="小型 Bug 修复" data-en="Small Bug Fix">小型 Bug 修复</strong>
+                      <p data-zh="要求定位根因、最小修改和聚焦测试；记录人为纠正次数与最终 diff 质量。" data-en="Require root-cause identification, a minimal edit, and a focused test; record human corrections and final diff quality.">要求定位根因、最小修改和聚焦测试；记录人为纠正次数与最终 diff 质量。</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">3</span>
+                    <div class="flow-copy">
+                      <strong data-zh="从同一节点做模型复核" data-en="Cross-Model Review from One Node">从同一节点做模型复核</strong>
+                      <p data-zh="fork 两条分支，用两个 Provider 复核同一变更，观察上下文交接和发现差异。" data-en="Fork two branches and review the same change with two providers, observing context handoff and differences in findings.">fork 两条分支，用两个 Provider 复核同一变更，观察上下文交接和发现差异。</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="flow-step">4</span>
+                    <div class="flow-copy">
+                      <strong data-zh="加入一个最小扩展" data-en="Add One Minimal Extension">加入一个最小扩展</strong>
+                      <p data-zh="实现危险命令确认或受保护路径阻断，验证开发成本、热重载、会话恢复与失败行为。" data-en="Implement dangerous-command confirmation or protected-path blocking, then evaluate development cost, hot reload, session restoration, and failure behavior.">实现危险命令确认或受保护路径阻断，验证开发成本、热重载、会话恢复与失败行为。</p>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion data-step-title-zh="8.3 达到三条门槛后再纳入主力工具链" data-step-title-en="8.3 Promote Pi Only After Three Adoption Gates Pass">
+              <button class="subsection-toggle"><span data-zh="8.3 达到三条门槛后再纳入主力工具链" data-en="8.3 Promote Pi Only After Three Adoption Gates Pass">8.3 达到三条门槛后再纳入主力工具链</span></button>
+              <div class="subsection-content">
+                <p data-zh="决定应基于可观察结果，而不是对极简理念的认同；只要一条门槛不满足，就保留为实验或专项工具。" data-en="The decision should rest on observable outcomes rather than agreement with minimalist philosophy. If any gate fails, keep Pi as an experimental or specialized tool.">决定应基于可观察结果，而不是对极简理念的认同；只要一条门槛不满足，就保留为实验或专项工具。</p>
+                <div class="insight-grid">
+                  <article class="insight-card">
+                    <span class="card-index">01</span>
+                    <h3 data-zh="质量门槛" data-en="Quality Gate">质量门槛</h3>
+                    <p data-zh="四个试用任务全部通过既有测试与人工 diff 审查，且没有增加返工。" data-en="All four trial tasks pass existing tests and human diff review without increasing rework.">四个试用任务全部通过既有测试与人工 diff 审查，且没有增加返工。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">02</span>
+                    <h3 data-zh="效率门槛" data-en="Efficiency Gate">效率门槛</h3>
+                    <p data-zh="配置和维护时间能由会话复用、多模型切换或自动策略节省的时间抵消。" data-en="Setup and maintenance time is offset by time saved through session reuse, model switching, or automated policy.">配置和维护时间能由会话复用、多模型切换或自动策略节省的时间抵消。</p>
+                  </article>
+                  <article class="insight-card">
+                    <span class="card-index">03</span>
+                    <h3 data-zh="安全门槛" data-en="Security Gate">安全门槛</h3>
+                    <p data-zh="可信与不可信任务有明确隔离策略，第三方扩展已审阅，凭据与挂载保持最小范围。" data-en="Trusted and untrusted tasks have explicit isolation policies, third-party extensions are reviewed, and credentials and mounts remain minimal.">可信与不可信任务有明确隔离策略，第三方扩展已审阅，凭据与挂载保持最小范围。</p>
+                  </article>
+                </div>
+                <div class="quote-block">
+                  <strong data-zh="最终结论" data-en="Final Verdict">最终结论</strong>
+                  <span data-zh="pi 值得作为「可编程 Agent harness」试用；是否成为日常主力，取决于你能否把额外控制权转化为可测量的质量、效率或集成收益。" data-en="Pi deserves a trial as a programmable agent harness. Whether it becomes a daily driver depends on converting additional control into measurable quality, efficiency, or integration gains.">pi 值得作为「可编程 Agent harness」试用；是否成为日常主力，取决于你能否把额外控制权转化为可测量的质量、效率或集成收益。</span>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="references" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="09 / References" data-en="09 / References">09 / References</p>
+            <h2 data-zh="参考资料与证据边界" data-en="References and Evidence Boundaries">参考资料与证据边界</h2>
+            <p data-zh="pi 的能力与边界以官方最新文档为主；竞品定位只引用各自官方文档或仓库。产品功能和订阅规则变化较快，本文核查日期为 2026-07-27。" data-en="Pi capabilities and boundaries rely primarily on its latest official documentation. Competitor positioning uses only each project's official documentation or repository. Product features and subscription rules change quickly; this article was checked on 2026-07-27.">pi 的能力与边界以官方最新文档为主；竞品定位只引用各自官方文档或仓库。产品功能和订阅规则变化较快，本文核查日期为 2026-07-27。</p>
+          </div>
+
+          <ol class="bib-list section-grid-spaced" data-present-step data-step-title-zh="参考资料：pi 官方来源" data-step-title-en="References: Official Pi Sources">
+            <li id="ref-1">
+              <span class="bib-id">[1]</span>
+              <span class="bib-author">Earendil Inc. &amp; Contributors, 2026.</span>
+              <em data-zh="Pi Documentation" data-en="Pi Documentation">Pi Documentation</em>
+              <a href="https://pi.dev/docs/latest" target="_blank" rel="noopener noreferrer">pi.dev/docs/latest</a>
+              <span class="bib-note" data-zh="支撑产品定义、四个核心包、安装入口、定制资源与编程接口总览。" data-en="Supports the product definition, four core packages, installation, customization resources, and programmatic interfaces.">支撑产品定义、四个核心包、安装入口、定制资源与编程接口总览。</span>
+            </li>
+            <li id="ref-2">
+              <span class="bib-id">[2]</span>
+              <span class="bib-author">Earendil Inc. &amp; Contributors, 2026.</span>
+              <em data-zh="Using Pi" data-en="Using Pi">Using Pi</em>
+              <a href="https://pi.dev/docs/latest/usage" target="_blank" rel="noopener noreferrer">pi.dev/docs/latest/usage</a>
+              <span class="bib-note" data-zh="支撑 TUI、消息队列、上下文文件、CLI 模式、工具 allowlist 与极简设计原则。" data-en="Supports TUI behavior, message queues, context files, CLI modes, tool allowlists, and minimalist design principles.">支撑 TUI、消息队列、上下文文件、CLI 模式、工具 allowlist 与极简设计原则。</span>
+            </li>
+            <li id="ref-3">
+              <span class="bib-id">[3]</span>
+              <span class="bib-author">Earendil Inc. &amp; Contributors, 2026.</span>
+              <em data-zh="Extensions" data-en="Extensions">Extensions</em>
+              <a href="https://pi.dev/docs/latest/extensions" target="_blank" rel="noopener noreferrer">pi.dev/docs/latest/extensions</a>
+              <span class="bib-note" data-zh="支撑事件生命周期、自定义工具、Provider、UI、状态恢复、动态工具加载与官方扩展示例。" data-en="Supports lifecycle events, custom tools, providers, UI, state restoration, dynamic tool loading, and official extension examples.">支撑事件生命周期、自定义工具、Provider、UI、状态恢复、动态工具加载与官方扩展示例。</span>
+            </li>
+            <li id="ref-4">
+              <span class="bib-id">[4]</span>
+              <span class="bib-author">Earendil Inc. &amp; Contributors, 2026.</span>
+              <em data-zh="Sessions" data-en="Sessions">Sessions</em>
+              <a href="https://pi.dev/docs/latest/sessions" target="_blank" rel="noopener noreferrer">pi.dev/docs/latest/sessions</a>
+              <span class="bib-note" data-zh="支撑 JSONL 树、/tree、/fork、/clone、标签、分支摘要与恢复行为。" data-en="Supports JSONL trees, /tree, /fork, /clone, labels, branch summaries, and resume behavior.">支撑 JSONL 树、/tree、/fork、/clone、标签、分支摘要与恢复行为。</span>
+            </li>
+            <li id="ref-5">
+              <span class="bib-id">[5]</span>
+              <span class="bib-author">Earendil Inc. &amp; Contributors, 2026.</span>
+              <em data-zh="Security" data-en="Security">Security</em>
+              <a href="https://pi.dev/docs/latest/security" target="_blank" rel="noopener noreferrer">pi.dev/docs/latest/security</a>
+              <span class="bib-note" data-zh="支撑 Project Trust、无内置沙箱、宿主权限边界与不可信任务的隔离建议。" data-en="Supports Project Trust, the absence of a built-in sandbox, host-permission boundaries, and isolation guidance for untrusted work.">支撑 Project Trust、无内置沙箱、宿主权限边界与不可信任务的隔离建议。</span>
+            </li>
+            <li id="ref-6">
+              <span class="bib-id">[6]</span>
+              <span class="bib-author">Earendil Inc. &amp; Contributors, 2026.</span>
+              <em data-zh="SDK" data-en="SDK">SDK</em>
+              <a href="https://pi.dev/docs/latest/sdk" target="_blank" rel="noopener noreferrer">pi.dev/docs/latest/sdk</a>
+              <span class="bib-note" data-zh="支撑 AgentSession、事件、工具、ResourceLoader、SessionManager、运行模式与 RPC 的编程接口。" data-en="Supports AgentSession, events, tools, ResourceLoader, SessionManager, run modes, and RPC APIs.">支撑 AgentSession、事件、工具、ResourceLoader、SessionManager、运行模式与 RPC 的编程接口。</span>
+            </li>
+            <li id="ref-7">
+              <span class="bib-id">[7]</span>
+              <span class="bib-author">Earendil Inc. &amp; Contributors, 2026.</span>
+              <em data-zh="Providers" data-en="Providers">Providers</em>
+              <a href="https://pi.dev/docs/latest/providers" target="_blank" rel="noopener noreferrer">pi.dev/docs/latest/providers</a>
+              <span class="bib-note" data-zh="支撑订阅、API key、云平台、llama.cpp、自定义 Provider 与凭据解析规则。" data-en="Supports subscriptions, API keys, cloud platforms, llama.cpp, custom providers, and credential resolution.">支撑订阅、API key、云平台、llama.cpp、自定义 Provider 与凭据解析规则。</span>
+            </li>
+            <li id="ref-8">
+              <span class="bib-id">[8]</span>
+              <span class="bib-author">Earendil Inc. &amp; Contributors, 2026.</span>
+              <em data-zh="Skills" data-en="Skills">Skills</em>
+              <a href="https://pi.dev/docs/latest/skills" target="_blank" rel="noopener noreferrer">pi.dev/docs/latest/skills</a>
+              <span class="bib-note" data-zh="支撑 Agent Skills 规范、渐进加载、跨 harness 技能目录与 Skill Package 结构。" data-en="Supports the Agent Skills specification, progressive loading, cross-harness skill directories, and skill package structure.">支撑 Agent Skills 规范、渐进加载、跨 harness 技能目录与 Skill Package 结构。</span>
+            </li>
+            <li id="ref-9">
+              <span class="bib-id">[9]</span>
+              <span class="bib-author">Earendil Inc. &amp; Contributors, 2026.</span>
+              <em data-zh="Pi Packages" data-en="Pi Packages">Pi Packages</em>
+              <a href="https://pi.dev/docs/latest/packages" target="_blank" rel="noopener noreferrer">pi.dev/docs/latest/packages</a>
+              <span class="bib-note" data-zh="支撑 Extensions、Skills、Prompt Templates 与 Themes 的 npm、git 和本地分发方式。" data-en="Supports npm, git, and local distribution of extensions, skills, prompt templates, and themes.">支撑 Extensions、Skills、Prompt Templates 与 Themes 的 npm、git 和本地分发方式。</span>
+            </li>
+          </ol>
+          <ol class="bib-list section-grid-spaced" data-present-step data-step-title-zh="参考资料：设计背景与同类产品" data-step-title-en="References: Design Rationale and Alternative Products">
+            <li id="ref-10">
+              <span class="bib-id">[10]</span>
+              <span class="bib-author">Mario Zechner, 2025.</span>
+              <em data-zh="What I Learned Building an Opinionated and Minimal Coding Agent" data-en="What I Learned Building an Opinionated and Minimal Coding Agent">What I Learned Building an Opinionated and Minimal Coding Agent</em>
+              <a href="https://mariozechner.at/posts/2025-11-30-pi-coding-agent/" target="_blank" rel="noopener noreferrer">mariozechner.at/posts/2025-11-30-pi-coding-agent</a>
+              <span class="bib-note" data-zh="支撑项目动机、架构取舍、跨 Provider 上下文、TUI 设计与作者发布的 Terminal-Bench 结果；属于项目作者材料，不视为独立评测。" data-en="Supports project motivation, architecture trade-offs, cross-provider context, TUI design, and the author's Terminal-Bench results; it is project-author material, not an independent evaluation.">支撑项目动机、架构取舍、跨 Provider 上下文、TUI 设计与作者发布的 Terminal-Bench 结果；属于项目作者材料，不视为独立评测。</span>
+            </li>
+            <li id="ref-11">
+              <span class="bib-id">[11]</span>
+              <span class="bib-author">Anthropic, 2026.</span>
+              <em data-zh="Claude Code Overview" data-en="Claude Code Overview">Claude Code Overview</em>
+              <a href="https://code.claude.com/docs/en/overview" target="_blank" rel="noopener noreferrer">code.claude.com/docs/en/overview</a>
+              <span class="bib-note" data-zh="支撑 Claude Code 的终端、IDE、桌面、Web、MCP、Hooks、Skills、Agent Teams 与自动化能力。" data-en="Supports Claude Code terminal, IDE, desktop, web, MCP, hooks, skills, agent teams, and automation capabilities.">支撑 Claude Code 的终端、IDE、桌面、Web、MCP、Hooks、Skills、Agent Teams 与自动化能力。</span>
+            </li>
+            <li id="ref-12">
+              <span class="bib-id">[12]</span>
+              <span class="bib-author">OpenAI, 2026.</span>
+              <em data-zh="Codex CLI" data-en="Codex CLI">Codex CLI</em>
+              <a href="https://github.com/openai/codex" target="_blank" rel="noopener noreferrer">github.com/openai/codex</a>
+              <span class="bib-note" data-zh="支撑 Codex CLI 的本地定位、ChatGPT 登录方式、Apache 2.0 许可证与 OpenAI 生态关系。" data-en="Supports Codex CLI's local positioning, ChatGPT authentication, Apache-2.0 license, and OpenAI ecosystem relationship.">支撑 Codex CLI 的本地定位、ChatGPT 登录方式、Apache 2.0 许可证与 OpenAI 生态关系。</span>
+            </li>
+            <li id="ref-13">
+              <span class="bib-id">[13]</span>
+              <span class="bib-author">Anomaly, 2026.</span>
+              <em data-zh="OpenCode Documentation" data-en="OpenCode Documentation">OpenCode Documentation</em>
+              <a href="https://opencode.ai/docs/" target="_blank" rel="noopener noreferrer">opencode.ai/docs</a>
+              <span class="bib-note" data-zh="支撑 OpenCode 的多 Provider、TUI / Desktop / IDE、Plan / Build、权限、MCP、Plugins、SDK 与 Server。" data-en="Supports OpenCode multi-provider access, TUI, desktop, IDE, Plan and Build modes, permissions, MCP, plugins, SDK, and server.">支撑 OpenCode 的多 Provider、TUI / Desktop / IDE、Plan / Build、权限、MCP、Plugins、SDK 与 Server。</span>
+            </li>
+            <li id="ref-14">
+              <span class="bib-id">[14]</span>
+              <span class="bib-author">Aider, 2026.</span>
+              <em data-zh="Aider Documentation" data-en="Aider Documentation">Aider Documentation</em>
+              <a href="https://aider.chat/docs/" target="_blank" rel="noopener noreferrer">aider.chat/docs</a>
+              <span class="bib-note" data-zh="支撑 Aider 的终端结对编程、git、repo map、Architect 模式、测试与多 Provider 能力。" data-en="Supports Aider terminal pair programming, git integration, repository maps, Architect mode, testing, and multi-provider access.">支撑 Aider 的终端结对编程、git、repo map、Architect 模式、测试与多 Provider 能力。</span>
+            </li>
+            <li id="ref-15">
+              <span class="bib-id">[15]</span>
+              <span class="bib-author">Cline Bot Inc., 2026.</span>
+              <em data-zh="Cline" data-en="Cline">Cline</em>
+              <a href="https://github.com/cline/cline" target="_blank" rel="noopener noreferrer">github.com/cline/cline</a>
+              <span class="bib-note" data-zh="支撑 Cline 的 IDE / CLI、diff 审阅、审批、MCP、SDK、多 Agent、定时任务与多 Provider 能力。" data-en="Supports Cline IDE and CLI, diff review, approvals, MCP, SDK, multi-agent teams, scheduling, and multi-provider access.">支撑 Cline 的 IDE / CLI、diff 审阅、审批、MCP、SDK、多 Agent、定时任务与多 Provider 能力。</span>
+            </li>
+            <li id="ref-16">
+              <span class="bib-id">[16]</span>
+              <span class="bib-author">Google, 2026.</span>
+              <em data-zh="Gemini CLI" data-en="Gemini CLI">Gemini CLI</em>
+              <a href="https://github.com/google-gemini/gemini-cli" target="_blank" rel="noopener noreferrer">github.com/google-gemini/gemini-cli</a>
+              <span class="bib-note" data-zh="支撑 Gemini CLI 的免费额度、1M 上下文、Search grounding、MCP、沙箱、GitHub 集成与 Apache 2.0 许可证。" data-en="Supports Gemini CLI free tier, 1M context, Search grounding, MCP, sandboxing, GitHub integration, and Apache-2.0 license.">支撑 Gemini CLI 的免费额度、1M 上下文、Search grounding、MCP、沙箱、GitHub 集成与 Apache 2.0 许可证。</span>
+            </li>
+          </ol>
+        </section>
+      </main>
+
+      <footer class="page-footer">
+        <p data-zh="&amp;copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。" data-en="&amp;copy; 2026 illusion615's Knowledge Hub | Interactive HTML page.">&copy; 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。</p>
+      </footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

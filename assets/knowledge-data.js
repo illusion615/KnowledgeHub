@@ -2913,5 +2913,28 @@ var knowledgeTree = [
     color: '#f97316',
     phase: 3.6, speed: 0.84,
     relations: ['enterprise-agent-arch', 'copilot-deep-dive', 'agentic-ai-adoption']
+  },
+
+  // ════════════════════════════════════════
+  // 文章 — pi Coding Agent Harness
+  // ════════════════════════════════════════
+  {
+    id: 'pi-coding-harness',
+    parentId: 'fc-agentic',
+    type: 'article',
+    title: {
+      zh: 'pi 深度解析：极简 Coding Agent Harness 的能力、取舍与采用评估',
+      en: 'Pi Deep Dive: Capabilities, Trade-Offs, and Adoption Assessment of a Minimal Coding Agent Harness'
+    },
+    summary: {
+      zh: '解析 pi 的极简内核、多模型与扩展体系，对比六类同类工具，并给出适用场景、最佳用法和一周采用评估方案。',
+      en: 'Explains Pi\'s minimal core, multi-model and extension architecture, compares six alternatives, and provides workflows plus a one-week adoption trial.'
+    },
+    tags: ['Pi', 'Coding Agent', 'Agent Harness', 'Multi-Model', 'Developer Tools'],
+    date: '2026-07-27',
+    url: 'posts/pi-coding-harness/index.html',
+    color: '#6366f1',
+    phase: 4.1, speed: 0.83,
+    relations: ['copilot-harness-eng', 'hermes-agent-comparison', 'mcp-principles-development']
   }
 ];
