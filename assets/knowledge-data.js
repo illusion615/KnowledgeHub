@@ -195,10 +195,10 @@ var knowledgeTree = [
       en: 'Agentic Business Process Platform: Approval Agents on Copilot Studio'
     },
     summary: {
-      zh: '以 Copilot Studio、Agent Flow、Power Pages 与 Human-in-the-Loop 统一内外部审批，提供架构、官方 SKU 列表价、容量与 ROI 评估。',
-      en: 'Unifies internal and external approvals using Copilot Studio, agent flows, Power Pages, and human gates, with official SKU pricing, capacity, and ROI sizing.'
+      zh: '以 Source Adapter 对接可改造与不可改造业务系统，结合 Copilot Studio Workflow 统一审批，提供接入矩阵、架构、容量、SKU 与 ROI 评估。',
+      en: 'Connects extensible and fixed systems through source adapters, then unifies approvals with Copilot Studio Workflows, integration sizing, pricing, and ROI.'
     },
-    tags: ['Copilot Studio', 'Agent Flows', 'Power Pages', 'Human-in-the-Loop', 'Approvals', 'Dataverse', 'Business Process'],
+    tags: ['Copilot Studio', 'Copilot Studio Workflows', 'Source Integration', 'Desktop Flows', 'Power Pages', 'Human-in-the-Loop', 'Approvals', 'Dataverse', 'Business Process'],
     date: '2026-07-27',
     url: 'posts/agentic-business-process-platform/index.html',
     color: '#a855f7',

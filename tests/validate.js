@@ -2,7 +2,11 @@
 // ======================================
 // Knowledge Hub — Full Validation Suite
 // ======================================
-// Run: node tests/validate.js
+// Run:
+//   node tests/validate.js                                  # full repository gate
+//   node tests/validate.js --article <slug>                 # one article, article-scoped checks
+//   node tests/validate.js --article <slug> --checks i18n,density
+//   node tests/validate.js --changed                        # changed articles, or full gate for shared assets
 // Exit 0 = all pass, Exit 1 = failures found
 //
 // Tests:
@@ -17,13 +21,19 @@
 //   9. No local data-present-step sibling-gap override hacks
 //  10. Framed visualization steps declare a presentation surface
 //  11. Strict bilingual articles localize presentation titles and labels
+//  12. Sections that exceed multiple density thresholds trigger decomposition review
+//  13. Custom agents have valid frontmatter and review agents remain read-only
 
 var fs = require('fs');
 var path = require('path');
+var childProcess = require('child_process');
 
 var ROOT = path.resolve(__dirname, '..');
 var POSTS = path.join(ROOT, 'posts');
 var ASSETS = path.join(ROOT, 'assets');
+var ALL_CHECKS = ['knowledge', 'scripts', 'inline-styles', 'inline-js', 'assets', 'css', 'structure', 'quotes', 'gap', 'surface', 'i18n', 'density', 'customizations'];
+var ARTICLE_CHECKS = ['scripts', 'inline-styles', 'inline-js', 'structure', 'quotes', 'gap', 'surface', 'i18n', 'density'];
+var validationOptions = parseValidationOptions(process.argv.slice(2));
 
 var totalErrors = 0;
 var totalWarnings = 0;
@@ -52,6 +62,156 @@ function readFile(filePath) {
   return fs.readFileSync(filePath, 'utf8');
 }
 
+function printUsage() {
+  console.log([
+    'Usage: node tests/validate.js [options]',
+    '',
+    'Options:',
+    '  --article <slug[,slug]>  Validate only the named article(s)',
+    '  --checks <name[,name]>   Run only selected checks',
+    '  --changed                Target changed articles; shared assets force full validation',
+    '  --full                   Force the full repository gate',
+    '  --list-checks            Print available check names',
+    '  --help                   Print this help',
+    '',
+    'Checks: ' + ALL_CHECKS.join(', ')
+  ].join('\n'));
+}
+
+function parseCsv(value) {
+  return value.split(',').map(function (item) {
+    return item.trim();
+  }).filter(function (item) {
+    return item.length > 0;
+  });
+}
+
+function unique(values) {
+  var seen = {};
+  return values.filter(function (value) {
+    if (seen[value]) return false;
+    seen[value] = true;
+    return true;
+  });
+}
+
+function gitOutput(args) {
+  try {
+    return childProcess.execFileSync('git', args, {
+      cwd: ROOT,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    }).trim();
+  } catch (e) {
+    return '';
+  }
+}
+
+function changedPaths() {
+  var tracked = gitOutput(['diff', '--name-only', '--diff-filter=ACMRTUXB', 'HEAD']);
+  var untracked = gitOutput(['ls-files', '--others', '--exclude-standard']);
+  return unique((tracked + '\n' + untracked).split('\n').filter(function (filePath) {
+    return filePath.length > 0;
+  }));
+}
+
+function applyChangedScope(options) {
+  var paths = changedPaths();
+  var slugs = [];
+  var forceFull = false;
+
+  options.changedPaths = paths;
+  paths.forEach(function (filePath) {
+    var articleMatch = filePath.match(/^posts\/([^/]+)\/index\.html$/);
+    if (articleMatch) {
+      slugs.push(articleMatch[1]);
+      return;
+    }
+    if (filePath === 'assets/knowledge-data.js') {
+      options.changedKnowledge = true;
+      return;
+    }
+    if (/^(?:assets\/|tests\/|\.github\/agents\/|index\.html$|settings\.html$)/.test(filePath)) {
+      forceFull = true;
+    }
+  });
+
+  options.articleSlugs = unique(options.articleSlugs.concat(slugs));
+  options.forceFull = options.forceFull || forceFull;
+}
+
+function parseValidationOptions(args) {
+  var options = {
+    articleSlugs: [],
+    checks: null,
+    changed: false,
+    changedKnowledge: false,
+    changedPaths: [],
+    forceFull: false
+  };
+  var index;
+  var arg;
+  var invalidChecks;
+
+  for (index = 0; index < args.length; index++) {
+    arg = args[index];
+    if (arg === '--help') {
+      printUsage();
+      process.exit(0);
+    }
+    if (arg === '--list-checks') {
+      console.log(ALL_CHECKS.join('\n'));
+      process.exit(0);
+    }
+    if (arg === '--full') {
+      options.forceFull = true;
+      continue;
+    }
+    if (arg === '--changed') {
+      options.changed = true;
+      continue;
+    }
+    if (arg === '--article' || arg === '--checks') {
+      if (!args[index + 1]) {
+        console.error('Missing value for ' + arg);
+        process.exit(2);
+      }
+      if (arg === '--article') {
+        options.articleSlugs = options.articleSlugs.concat(parseCsv(args[++index]));
+      } else {
+        options.checks = parseCsv(args[++index]);
+      }
+      continue;
+    }
+    console.error('Unknown option: ' + arg);
+    printUsage();
+    process.exit(2);
+  }
+
+  options.articleSlugs = unique(options.articleSlugs);
+  if (options.checks) {
+    invalidChecks = options.checks.filter(function (check) {
+      return ALL_CHECKS.indexOf(check) === -1;
+    });
+    if (invalidChecks.length > 0) {
+      console.error('Unknown check(s): ' + invalidChecks.join(', '));
+      process.exit(2);
+    }
+    options.checks = unique(options.checks);
+  }
+  if (options.changed) applyChangedScope(options);
+  return options;
+}
+
+function selectedChecks(options) {
+  var checks;
+  if (options.checks) return options.checks;
+  if (options.forceFull || (!options.changed && options.articleSlugs.length === 0)) return ALL_CHECKS;
+  checks = options.articleSlugs.length > 0 ? ARTICLE_CHECKS.slice() : [];
+  if (options.changedKnowledge) checks.unshift('knowledge');
+  return unique(checks);
+}
+
 function findArticles() {
   var dirs = fs.readdirSync(POSTS);
   var articles = [];
@@ -60,6 +220,16 @@ function findArticles() {
     if (fs.existsSync(indexPath)) {
       articles.push({ slug: d, path: indexPath });
     }
+  });
+  if (validationOptions.forceFull || validationOptions.articleSlugs.length === 0) return articles;
+  validationOptions.articleSlugs.forEach(function (slug) {
+    if (!articles.some(function (article) { return article.slug === slug; })) {
+      console.error('Article not found: ' + slug);
+      process.exit(2);
+    }
+  });
+  articles = articles.filter(function (article) {
+    return validationOptions.articleSlugs.indexOf(article.slug) !== -1;
   });
   return articles;
 }
@@ -342,6 +512,19 @@ function testAssetSyntax() {
     try {
       new Function(code);
       pass(f + ' syntax OK');
+    } catch (e) {
+      error(filePath, 'JS syntax error: ' + e.message);
+    }
+  });
+
+  fs.readdirSync(path.join(ROOT, 'tests')).filter(function (f) {
+    return f.endsWith('.js');
+  }).forEach(function (f) {
+    var filePath = path.join(ROOT, 'tests', f);
+    var code = readFile(filePath).replace(/^#![^\n]*\n/, '');
+    try {
+      new Function(code);
+      pass('tests/' + f + ' syntax OK');
     } catch (e) {
       error(filePath, 'JS syntax error: ' + e.message);
     }
@@ -711,23 +894,236 @@ function testPresentationI18nContract() {
   }
 }
 
-// ── Run all tests ──
+// ── Test 12: multi-view section density contract ──
+
+function testSectionDensityContract() {
+  console.log('\n\x1b[36m[12] Multi-view section density contract\x1b[0m');
+  var articles = findArticles();
+  var strictCount = 0;
+  var warnedSections = 0;
+
+  function countEffectivePresentationPages(sectionHtml) {
+    var tagPattern = /<\/?([a-z][\w-]*)\b[^>]*>/gi;
+    var voidTags = { area: true, base: true, br: true, col: true, embed: true, hr: true, img: true, input: true, link: true, meta: true, param: true, source: true, track: true, wbr: true };
+    var stack = [];
+    var pages = 0;
+    var match;
+
+    function finalize(node) {
+      if (node.isStep && !node.hasSubstep) pages++;
+    }
+
+    while ((match = tagPattern.exec(sectionHtml)) !== null) {
+      var token = match[0];
+      var tagName = match[1].toLowerCase();
+      var isClosing = /^<\//.test(token);
+      var isSelfClosing = /\/\s*>$/.test(token) || voidTags[tagName];
+      var node;
+      var index;
+
+      if (isClosing) {
+        for (index = stack.length - 1; index >= 0; index--) {
+          if (stack[index].tagName !== tagName) continue;
+          while (stack.length > index) finalize(stack.pop());
+          break;
+        }
+        continue;
+      }
+
+      node = {
+        tagName: tagName,
+        isStep: /\bdata-present-step\b/i.test(token),
+        isSubstep: /\bdata-present-substep\b/i.test(token),
+        hasSubstep: false
+      };
+
+      if (node.isSubstep) {
+        pages++;
+        stack.forEach(function (ancestor) {
+          if (ancestor.isStep) ancestor.hasSubstep = true;
+        });
+      }
+
+      if (!isSelfClosing) {
+        stack.push(node);
+      } else {
+        finalize(node);
+      }
+    }
+
+    while (stack.length > 0) finalize(stack.pop());
+    return pages;
+  }
+
+  articles.forEach(function (article) {
+    var html = readFile(article.path);
+    var mainMatch = html.match(/<main\b[^>]*>([\s\S]*?)<\/main>/i);
+    var mainHtml = mainMatch ? mainMatch[1] : '';
+    var sectionPattern = /<section\b([^>]*)>([\s\S]*?)<\/section>/gi;
+    var sectionMatch;
+
+    if (!/<html\b[^>]*\bdata-section-density="strict"/i.test(html)) return;
+    strictCount++;
+
+    while ((sectionMatch = sectionPattern.exec(mainHtml)) !== null) {
+      var attrs = sectionMatch[1];
+      var body = sectionMatch[2];
+      var idMatch = attrs.match(/\bid="([^"]+)"/i);
+      var id = idMatch ? idMatch[1] : '(unnamed)';
+      var headingMatch = body.match(/<h2\b[^>]*>([\s\S]*?)<\/h2>/i);
+      var heading = headingMatch ? headingMatch[1].replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim() : id;
+      var exempt = /\bdata-density-exempt="(?:references|appendix|single-tool)"/i.test(attrs) ||
+        /^(?:references?|bibliography|appendix|appendices)$/i.test(id) ||
+        /参考(?:资料|来源|文献)|References?|Bibliography|附录|Appendix/i.test(heading);
+      var presentationPages;
+      var accordionCount;
+      var text;
+      var textChars;
+      var hits = [];
+
+      if (exempt) continue;
+
+      presentationPages = countEffectivePresentationPages(body);
+      accordionCount = (body.match(/\bdata-accordion\b/gi) || []).length;
+      text = body
+        .replace(/<!--[\s\S]*?-->/g, '')
+        .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+        .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
+        .replace(/<[^>]*>/g, '')
+        .replace(/&(?:#\d+|#x[\da-f]+|[a-z]+);/gi, 'x')
+        .replace(/\s+/g, '');
+      textChars = text.length;
+
+      if (presentationPages > 7) hits.push(presentationPages + ' presentation pages (>7)');
+      if (accordionCount > 3) hits.push(accordionCount + ' accordions (>3)');
+      if (textChars > 3000) hits.push(textChars + ' text chars (>3000)');
+
+      if (hits.length >= 2) {
+        warnedSections++;
+        warn(article.path, 'Section #' + id + ' (' + heading + ') needs decomposition review: ' + hits.join(', ') + ' (see instructions §0.7-F)');
+      }
+    }
+  });
+
+  if (strictCount === 0) {
+    pass('No strict section-density articles found');
+  } else if (warnedSections === 0) {
+    pass('All ' + strictCount + ' strict section-density article(s) pass');
+  } else {
+    pass(warnedSections + ' section(s) flagged across ' + strictCount + ' strict article(s)');
+  }
+}
+
+// ── Test 13: custom-agent contract ──
+
+function testCustomAgentContract() {
+  console.log('\n\x1b[36m[13] Custom agent contract\x1b[0m');
+  var agentsDir = path.join(ROOT, '.github', 'agents');
+  var files;
+  var validCount = 0;
+
+  if (!fs.existsSync(agentsDir)) {
+    pass('No workspace custom agents found');
+    return;
+  }
+
+  files = fs.readdirSync(agentsDir).filter(function (fileName) {
+    return fileName.endsWith('.agent.md');
+  });
+
+  files.forEach(function (fileName) {
+    var filePath = path.join(agentsDir, fileName);
+    var content = readFile(filePath);
+    var frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---\n/);
+    var frontmatter;
+    var toolsMatch;
+    var tools;
+    var failures = [];
+
+    if (!frontmatterMatch) {
+      error(filePath, 'Missing YAML frontmatter');
+      return;
+    }
+    frontmatter = frontmatterMatch[1];
+    if (!/^description:\s*.+$/m.test(frontmatter)) failures.push('missing description');
+    if (!/^name:\s*.+$/m.test(frontmatter)) failures.push('missing name');
+    toolsMatch = frontmatter.match(/^tools:\s*\[([^\]]*)\]\s*$/m);
+    if (!toolsMatch) {
+      failures.push('missing explicit tools list');
+    } else {
+      tools = toolsMatch[1].split(',').map(function (tool) { return tool.trim(); });
+      if (/article-(?:evidence|structure)-review\.agent\.md$/.test(fileName) &&
+          (tools.indexOf('edit') !== -1 || tools.indexOf('execute') !== -1)) {
+        failures.push('article review agents must remain read-only');
+      }
+    }
+    if (/article-(?:evidence|structure)-review\.agent\.md$/.test(fileName) &&
+        !/^user-invocable:\s*false\s*$/m.test(frontmatter)) {
+      failures.push('article review agents must be subagent-only');
+    }
+
+    if (failures.length > 0) {
+      error(filePath, failures.join('; '));
+    } else {
+      validCount++;
+    }
+  });
+
+  if (validCount === files.length) {
+    pass('All ' + files.length + ' custom agent(s) valid');
+  } else {
+    pass(validCount + '/' + files.length + ' custom agents valid');
+  }
+}
+
+// ── Run selected tests ──
+
+function checkDefinitions() {
+  return [
+    { name: 'knowledge', run: testKnowledgeData },
+    { name: 'scripts', run: testArticleScripts },
+    { name: 'inline-styles', run: testInlineStyles },
+    { name: 'inline-js', run: testArrowFunctions },
+    { name: 'assets', run: testAssetSyntax },
+    { name: 'css', run: testCSSIssues },
+    { name: 'structure', run: testArticleStructure },
+    { name: 'quotes', run: testDataAttrQuoteSafety },
+    { name: 'gap', run: testGapManagedContract },
+    { name: 'surface', run: testPresentationSurfaceContract },
+    { name: 'i18n', run: testPresentationI18nContract },
+    { name: 'density', run: testSectionDensityContract },
+    { name: 'customizations', run: testCustomAgentContract }
+  ];
+}
+
+function modeDescription(options, checks) {
+  if (options.forceFull || (!options.changed && options.articleSlugs.length === 0 && !options.checks)) {
+    return 'full repository';
+  }
+  if (options.articleSlugs.length > 0) {
+    return 'article(s): ' + options.articleSlugs.join(', ') + ' | checks: ' + checks.join(', ');
+  }
+  if (options.changed) {
+    return 'changed files | checks: ' + checks.join(', ');
+  }
+  return 'checks: ' + checks.join(', ');
+}
+
+var checksToRun = selectedChecks(validationOptions);
+var definitions = checkDefinitions();
 
 console.log('\n\x1b[1m══════════════════════════════════════════\x1b[0m');
 console.log('\x1b[1m  Knowledge Hub Validation Suite\x1b[0m');
 console.log('\x1b[1m══════════════════════════════════════════\x1b[0m');
+console.log('  Mode: ' + modeDescription(validationOptions, checksToRun));
 
-testKnowledgeData();
-testArticleScripts();
-testInlineStyles();
-testArrowFunctions();
-testAssetSyntax();
-testCSSIssues();
-testArticleStructure();
-testDataAttrQuoteSafety();
-testGapManagedContract();
-testPresentationSurfaceContract();
-testPresentationI18nContract();
+if (checksToRun.length === 0) {
+  pass('No relevant validation checks selected');
+} else {
+  definitions.forEach(function (definition) {
+    if (checksToRun.indexOf(definition.name) !== -1) definition.run();
+  });
+}
 
 console.log('\n\x1b[1m══════════════════════════════════════════\x1b[0m');
 if (totalErrors > 0) {

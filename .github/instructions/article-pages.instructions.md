@@ -71,11 +71,27 @@ applyTo: "posts/**/*.html"
 - `.subsection-content` 第一句必须是一句话总结，后接结构化组件（cards / flow-list / table），禁止整块只放一段散文。
 - 一张幻灯片只承载一个想法；若 section 同时有卡片网格和 accordion，必须拆 step。
 
-### 0.5 完工闸门（顺序不可调）
-1. `node tests/validate.js` 必须 exit 0，warnings 数量不得新增（基线 14 条无关 WARN）。
+### 0.5 分级验证与完工闸门
+
+验证按变更风险分级。**完整仓库验证只在一个内容单元稳定后和提交前执行，不得在每个微小补丁后重复执行。** 第一次实质编辑后仍须立刻运行能推翻当前假设的最窄检查。
+
+| 等级 | 典型变更 | 中间检查 | 完工浏览器检查 |
+|---|---|---|---|
+| L0 文案 | 术语、标题、摘要、单点数值，不改变 DOM 结构和 CSS | 搜索旧值 + `node tests/verify-change.js --article <slug> --level L0` | 自动扫全部 section 宽度与控制台；截图受影响区域；演示元数据未变时不扫全 deck |
+| L1 局部行为 | 单章节内容、配置器字段、局部 JS、accordion 内容 | `node tests/verify-change.js --article <slug> --level L1` + 目标交互断言 | 全 section 阅读扫描；受影响章节做中英文、桌面/移动检查；仅扫描受影响演示页 |
+| L2 结构/共享 | 拆章、架构图、演示分页、共享 CSS/JS、导航或全局组件 | `node tests/verify-change.js --article <slug> --level L2`；共享资产变化用 `--changed` 自动升级全仓 | 中文亮色 + 英文深色全 deck；桌面/移动；逐 section 检查并截关键结构页 |
+
+L2 研究若同时存在事实证据与文章结构两条独立不确定性，可并行调用只读的 `Article Evidence Reviewer` 与 `Article Structure Reviewer`；主 Agent 必须先完成直接锚点检查，并始终保持唯一编辑者。只有一条不确定性时只调用对应 Agent，不为凑并发重复研究。
+
+**验证账本停止规则**：一项检查成功后，后续编辑没有触及它覆盖的风险面，就不得重跑。例如只改汇率默认值，不重扫全部演示页；只改正文术语，不重测暗色 CSS。若后续编辑改变 DOM、CSS、演示元数据或共享运行时，对应检查才失效。
+
+完工闸门（顺序不可调）：
+
+1. 目标文章快速验证必须通过；优先使用 `node tests/verify-change.js --article <slug> --level <level>`，或用 `--changed` 自动选择当前改动。
 2. `assets/knowledge-data.js` 的 `summary.zh ≤ 100` 字符、`summary.en ≤ 160` 字符。
-3. 用 built-in browser 打开本文，**逐 section 截图**，确认无 grid 孤儿、无文字溢出、暗色/亮色都正常（详见 `/memories/boss-guardrails.md` 的 Post-Edit Browser Verification）。
-4. 完成前再回头扫一遍 §0.1–§0.4 自检。
+3. 按上表完成 built-in browser 检查；HTML/CSS 变更至少自动遍历全部 section，并对受影响区域截图。
+4. 内容稳定后运行一次 `node tests/verify-change.js --final`；其中全仓 `validate.js` 与 staged/unstaged diff 检查必须全部通过，warnings 不得新增（当前基线 22 条无关 WARN）。
+5. 回头扫一遍 §0.1–§0.4 自检。
 
 ### 0.6 组件复用纪律（NO ROGUE COMPONENTS）
 
@@ -126,6 +142,41 @@ hero `.hero-metrics` 抛出的每个 metric、`.hero-panel .layer-list` 抛出�
 
 **E. 完稿"一句话回放"自检**
 用一句话复述每个 section 的主张，串起来读一遍。如果读起来跳跃、缺环、或顺序倒过来也说得通，结构就不及格，必须重排。
+
+**F. 多视图架构拆章契约（Multi-View Architecture Decomposition Contract）**
+
+架构、设计和完整方案类文章必须区分三种不同层级，禁止互相替代：
+
+1. **抽象层级（abstraction level）**：系统 → 子系统 → 组件，回答「由什么组成」。
+2. **架构视图（architecture view）**：边界与接口、静态结构与职责、运行时与状态、部署拓扑、横切治理与风险，回答不同的读者问题。
+3. **披露层级（disclosure level）**：`<section>` → accordion → `data-present-step` / `data-present-substep`，只控制阅读和演示展开方式，不定义架构语义。
+
+拆章规则：
+
+- 一个 `<section>` 只能回答**一个读者问题**，并以**一种架构视图**为主。边界接入、静态结构、运行时、状态模型、部署、治理/风险之间发生视图切换时，必须新建同级 `<section>`，不得继续塞进同一章的 accordion。
+- 同一视图中的多个抽象层级可以留在一章，例如「平台 → 子系统 → 组件」逐层下钻；但必须先给该视图总览，再展开关键子系统。
+- accordion 只能承载**同一视图的可选深度**、补充证据或失败样例。删除 accordion 后若本节主张无法成立，或 accordion 自己需要完整的「需求、机制、取舍、边界」四层论证，它就不是支线，必须升格为同级章节。
+- `data-present-step` / `data-present-substep` 只负责演示分页。禁止用更多 slide 掩盖章节已经包含多条主线的问题。
+- 横切概念（安全、身份、可观测性、DLP、ALM、可靠性）若同时作用于多个组件，应集中在「治理与保障」类章节，避免在每个组件说明中重复。
+- 架构文章推荐认知顺序：**业务边界/外部接入 → 逻辑结构与职责 → 运行时与持久状态 → 部署（如适用）→ 可靠性与治理 → 配置/落地**。可按内容删减，但不得把不同视图重新合并成一个笼统的「架构」章节。
+
+密度预警：一个非 References / 附录 / 单一交互工具章节命中以下任意 **2 项**，必须暂停并做拆章评审：
+
+- 有效演示页超过 **7** 张：普通 `data-present-step` 计 1 页；父 step 含 `data-present-substep` 时，父容器不单独计页，只计实际子页；
+- accordion 超过 **3** 个；
+- 去除标签与空白后的正文超过 **3,000** 字符；
+- 包含 **2 个以上非平凡子系统**，且每个都需要 §0.11-B 的四层说明；
+- 同时出现两种以上架构视图，例如「静态组件图 + 运行时流程」或「接入矩阵 + 安全治理」。
+
+前 3 项由 `tests/validate.js` 给出组合 warning；后 2 项必须在章节大纲和完稿审查中人工判断。数量阈值是触发审查，不是鼓励把内容压到阈值以下；只要读者问题或架构视图已经改变，即使未超数量也必须拆章。
+
+新建的架构、设计、完整方案文章，以及被明确重访并发生实质结构修改的既有文章，必须在根节点启用严格检查：
+
+```html
+<html lang="zh-CN" data-section-density="strict">
+```
+
+严格模式按渐进迁移执行：`tests/validate.js` 只扫描声明该属性的文章，避免一次性把历史文章全部变成新增 warning；历史文章在后续实质重访时补上属性并完成拆章。`data-density-exempt="references"`、`"appendix"` 或 `"single-tool"` 只能标在确属参考资料、附录或单一交互工具的 `<section>` 上，不得用于规避普通正文拆章。
 
 ### 0.8 双模式组件契约 — Dual-Mode Component Contract
 

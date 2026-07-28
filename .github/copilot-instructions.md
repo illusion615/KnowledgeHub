@@ -53,7 +53,20 @@
 
 ## Testing
 - Run `node tests/validate.js` before every commit — exit code 0 required
+- During iteration, run `node tests/verify-change.js --article <slug> --level L0|L1|L2`; it executes independent read-only checks concurrently and returns a browser plan
+- Use `node tests/verify-change.js --changed --level <level>` when changed-file scope is reliable; shared assets automatically force full validation
+- Run `node tests/verify-change.js --final` once after the change set is stable and before commit
 - Test suite covers: knowledge-data.js integrity, script order, inline style violations, arrow function bans, asset syntax, CSS known issues, article structural checks
+
+## Efficient Execution & Delegation
+- Classify article changes as L0 text, L1 local behavior, or L2 structure/shared runtime; follow the validation matrix in `article-pages.instructions.md` §0.5
+- Keep one validation ledger: do not rerun a successful check unless a later edit touches the behavior that check covers
+- Optimize time to first concrete result: start with the direct file/symbol anchor and the cheapest discriminating check; report that result before broad research or optional subagent work
+- The main agent is the only working-tree editor. Never let multiple agents edit the same files concurrently
+- Use subagents only for independent, read-only research or broad exploration that can return a concise summary; direct exact searches, small edits, and final verification stay in the main agent
+- For L2 article work with both evidence and structure uncertainty, invoke `Article Evidence Reviewer` and `Article Structure Reviewer` together in one parallel batch after the first concrete result; use either one alone when only one uncertainty exists
+- When other broad research threads are independent, invoke at most two read-only subagents in one parallel batch after the first visible update; otherwise use the existing Explore agent once or stay in the main agent
+- Subagent calls in the current VS Code environment are synchronous waits, not background jobs. Never describe them as asynchronous; parallel read-only subagents may reduce total elapsed time but do not improve time to the next visible update
 
 ## Forbidden Patterns
 - Do NOT use JavaScript frameworks or bundlers
