@@ -146,17 +146,25 @@ var knowledgeTree = [
     id: 'agentic-crm',
     parentId: 'agentic-crm-solution',
     type: 'topic',
-    label: { zh: 'Agentic Sales Mobile', en: 'Agentic Sales Mobile' },
+    label: { zh: 'Agentic Sales', en: 'Agentic Sales' },
     color: '#c084fc',
     phase: 5.2, speed: 0.86
+  },
+  {
+    id: 'agentic-service',
+    parentId: 'agentic-crm-solution',
+    type: 'topic',
+    label: { zh: 'Agentic Service', en: 'Agentic Service' },
+    color: '#818cf8',
+    phase: 5.3, speed: 0.86
   },
   {
     id: 'agentic-service-mobile',
     parentId: 'agentic-crm-solution',
     type: 'topic',
-    label: { zh: 'Agentic Service Mobile', en: 'Agentic Service Mobile' },
+    label: { zh: 'Agentic Field Service', en: 'Agentic Field Service' },
     color: '#60a5fa',
-    phase: 5.3, speed: 0.86
+    phase: 5.4, speed: 0.86
   },
   {
     id: 'industry-solution',
@@ -198,7 +206,7 @@ var knowledgeTree = [
       zh: '面向客户的 RFP 智能审查方案：业务挑战、目标收益、架构组件、产品配置与实施路线。',
       en: 'A customer-ready RFP review solution covering challenges, outcomes, architecture, products, benefits, and delivery.'
     },
-    tags: ['RFP Review', 'Power Apps', 'Copilot Studio', 'Power Automate', 'Dataverse', 'SharePoint', 'Human-in-the-Loop', 'Document Intelligence'],
+    tags: ['RFP Review', 'Power Apps', 'Copilot Studio', 'Copilot Studio Workflow', 'Dataverse', 'SharePoint', 'Human-in-the-Loop', 'Document Intelligence'],
     date: '2026-07-29',
     url: 'posts/evidence-grounded-rfp-review/index.html',
     color: '#a855f7',
@@ -448,7 +456,7 @@ var knowledgeTree = [
 
   {
     id: 'dynamics-365-contact-center-ccaas',
-    parentId: 'agentic-crm-solution',
+    parentId: 'agentic-service',
     type: 'article',
     title: {
       zh: 'Dynamics 365 Contact Center：CCaaS 评估指南',
@@ -2377,6 +2385,25 @@ var knowledgeTree = [
     relations: ['four-schools-profile', 'sh-top12-gaokao', 'shanghai-zizhao-2026']
   },
   {
+    id: 'jianping-class-14-dali',
+    parentId: 'shanghai-gaokao',
+    type: 'article',
+    title: {
+      zh: '建平中学14班「大理班」：选拔、培养、出口与适配边界',
+      en: 'Jianping High School Class 14: Selection, Training, Outcomes, and Fit'
+    },
+    summary: {
+      zh: '区分建平14班的官方事实与跨届传言，核验分班、选科重组、课表、师资和出口，并给出优势、风险与当届核验清单。',
+      en: 'Separates official evidence from recurring claims about Jianping Class 14, covering placement, curriculum, staffing, outcomes, risks, and verification.'
+    },
+    tags: ['建平中学', '14班', '大理班', '理科创新班', '学科竞赛', '高考出口'],
+    date: '2026-07-29',
+    url: 'posts/jianping-class-14-dali/index.html',
+    color: '#be123c',
+    phase: 4.2, speed: 0.80,
+    relations: ['jianping-clubs-gaokao-planning', 'sh-top12-gaokao', 'shanghai-zizhao-2026']
+  },
+  {
     id: 'zhongkao-volunteer-strategy',
     parentId: 'shanghai-zhongkao',
     type: 'article',
@@ -2971,18 +2998,18 @@ var knowledgeTree = [
     parentId: 'fc-agentic',
     type: 'article',
     title: {
-      zh: 'pi 深度解析：极简 Coding Agent Harness 的能力、取舍与采用评估',
-      en: 'Pi Deep Dive: Capabilities, Trade-Offs, and Adoption Assessment of a Minimal Coding Agent Harness'
+      zh: 'Pi × 自研智能体平台：以 Aye aye Captain 为样本的融合与替代决策',
+      en: 'Pi and Custom Agent Platforms: Integration and Replacement Decisions from Aye aye Captain'
     },
     summary: {
-      zh: '解析 pi 的极简内核、多模型与扩展体系，对比六类同类工具，并给出适用场景、最佳用法和一周采用评估方案。',
-      en: 'Explains Pi\'s minimal core, multi-model and extension architecture, compares six alternatives, and provides workflows plus a one-week adoption trial.'
+      zh: '以 Aye aye Captain 的 28 个 Playbook 与 48 个 MCP 工具为样本，判断 Pi 的执行平面价值，并给出接入架构、改造边界与分阶段试点。',
+      en: 'Uses Aye aye Captain\'s 28 playbooks and 48 MCP tools to define Pi\'s execution-plane value, integration architecture, platform changes, and staged pilot.'
     },
-    tags: ['Pi', 'Coding Agent', 'Agent Harness', 'Multi-Model', 'Developer Tools'],
-    date: '2026-07-27',
+    tags: ['Pi', 'Agent Platform', 'Agent Runtime', 'MCP', 'Multi-Model', 'Aye aye Captain'],
+    date: '2026-07-28',
     url: 'posts/pi-coding-harness/index.html',
     color: '#6366f1',
     phase: 4.1, speed: 0.83,
-    relations: ['copilot-harness-eng', 'hermes-agent-comparison', 'mcp-principles-development']
+    relations: ['agent-platform-philosophy', 'copilot-harness-eng', 'hermes-agent-comparison', 'mcp-principles-development']
   }
 ];
