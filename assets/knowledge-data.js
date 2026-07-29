@@ -187,6 +187,26 @@ var knowledgeTree = [
   // 文章 — Business AI Solution
   // ════════════════════════════════════════
   {
+    id: 'evidence-grounded-rfp-review',
+    parentId: 'business-ai-solution',
+    type: 'article',
+    title: {
+      zh: 'Evidence-Grounded RFP Review：可追溯的企业招标文件智能审查方案',
+      en: 'Evidence-Grounded RFP Review: An Auditable Enterprise Solution'
+    },
+    summary: {
+      zh: '面向客户的 RFP 智能审查方案：业务挑战、目标收益、架构组件、产品配置与实施路线。',
+      en: 'A customer-ready RFP review solution covering challenges, outcomes, architecture, products, benefits, and delivery.'
+    },
+    tags: ['RFP Review', 'Power Apps', 'Copilot Studio', 'Power Automate', 'Dataverse', 'SharePoint', 'Human-in-the-Loop', 'Document Intelligence'],
+    date: '2026-07-29',
+    url: 'posts/evidence-grounded-rfp-review/index.html',
+    color: '#a855f7',
+    phase: 0.42, speed: 0.88,
+    relations: ['agentic-business-process-platform', 'power-platform-governance', 'dataverse-intelligence', 'copilot-studio-overview']
+  },
+
+  {
     id: 'agentic-business-process-platform',
     parentId: 'business-ai-solution',
     type: 'article',
