@@ -48,46 +48,15 @@ document.addEventListener('DOMContentLoaded', function () {
   var mediaRecorder = null;
   var recordedChunks = [];
   var recordingStream = null;
-  var focusModeEnabled = localStorage.getItem('present-focus-mode') !== 'false'; // default ON
   var recordAspectRatio = localStorage.getItem('present-record-ratio') || '16:9';
-  var mobilePresentEnabled = localStorage.getItem('present-mobile-mode') === 'true';
-  var mobilePresentLoader = null;
-  var mobilePresentController = null;
 
   if (!site || !topbar || !hero || !main) return;
-
-  // Phase 2: Listen for focus mode toggle from narration-ui settings panel
-  document.addEventListener('focusModeChanged', function (e) {
-    focusModeEnabled = e.detail.enabled;
-    if (!focusModeEnabled) {
-      exitFocusMode();
-    } else if (narrationState === 'playing') {
-      enterFocusMode();
-    }
-  });
 
   // Phase 3: Listen for record ratio change from narration-ui settings panel
   document.addEventListener('recordRatioChanged', function (e) {
     recordAspectRatio = e.detail.ratio;
   });
 
-  // Phase 4: Listen for mobile present mode toggle
-  document.addEventListener('mobilePresentChanged', function (e) {
-    mobilePresentEnabled = e.detail.enabled;
-    localStorage.setItem('present-mobile-mode', mobilePresentEnabled ? 'true' : 'false');
-    if (state.enabled) {
-      if (mobilePresentEnabled) {
-        root.classList.add('is-mobile-present');
-        ensureMobilePresent();
-      } else {
-        root.classList.remove('is-mobile-present');
-        if (mobilePresentController) {
-          mobilePresentController.destroy();
-          mobilePresentController = null;
-        }
-      }
-    }
-  });
 
   var labels = {
     zh: {
@@ -239,6 +208,47 @@ document.addEventListener('DOMContentLoaded', function () {
     document.body.classList.add('present-transition-' + normalized);
   };
 
+  /* ── Presentation styles ──
+     Each preset owns its canvas class plus a surface polarity; the polarity drives
+     data-theme while presenting so every component follows the style, not just the
+     background. Reading mode always falls back to the reader's own theme. */
+  var PRESENT_BG_STYLES = {
+    'default': { className: '', surface: null },
+    white: { className: 'present-bg-white', surface: 'light' },
+    black: { className: 'present-bg-black', surface: 'dark' },
+    gray: { className: 'present-bg-gray', surface: 'light' },
+    corporate: { className: 'present-bg-corporate', surface: 'light' },
+    cola: { className: 'present-bg-cola', surface: 'dark' }
+  };
+
+  var getReadingTheme = function () {
+    var stored = localStorage.getItem('theme');
+    if (stored === 'dark' || stored === 'light') return stored;
+    return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+  };
+
+  var getPresentBgKey = function () {
+    var value = localStorage.getItem('present-bg') || 'default';
+    return PRESENT_BG_STYLES[value] ? value : 'default';
+  };
+
+  var syncPresentationSurface = function () {
+    var entry = PRESENT_BG_STYLES[getPresentBgKey()];
+    var surface = (state.enabled && entry.surface) ? entry.surface : getReadingTheme();
+    root.setAttribute('data-theme', surface);
+  };
+
+  var applyPresentBg = function (value) {
+    Object.keys(PRESENT_BG_STYLES).forEach(function (key) {
+      var className = PRESENT_BG_STYLES[key].className;
+      if (className) document.body.classList.remove(className);
+    });
+
+    var entry = PRESENT_BG_STYLES[value] || PRESENT_BG_STYLES['default'];
+    if (entry.className) document.body.classList.add(entry.className);
+    syncPresentationSurface();
+  };
+
   var ensureTopbarLayout = function () {
     var existingStart = topbar.querySelector('.topbar-slot-start');
     var existingCenter = topbar.querySelector('.topbar-slot-center');
@@ -377,24 +387,6 @@ document.addEventListener('DOMContentLoaded', function () {
     return btn;
   };
 
-  /* ── Topbar inline toggles: theme (light/dark) + lang (zh/en) ──
-     Replace the legacy palette panel: theme & lang flip directly from the topbar,
-     no dropdown panel. */
-  var ensureThemeToggle = function () {
-    var btn = topbar.querySelector('[data-theme-toggle]');
-    if (btn) return btn;
-    btn = document.createElement('button');
-    btn.className = 'present-toggle topbar-theme-toggle';
-    btn.type = 'button';
-    btn.setAttribute('data-theme-toggle', '');
-    btn.setAttribute('aria-label', getLang() === 'zh' ? '切换深浅色' : 'Toggle theme');
-    btn.innerHTML = ''
-      + '<svg class="present-toggle-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>'
-      + '<svg class="present-toggle-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
-    topbarActions.appendChild(btn);
-    return btn;
-  };
-
   var ensureLangToggle = function () {
     var btn = topbar.querySelector('[data-lang-toggle]');
     if (btn) return btn;
@@ -493,7 +485,7 @@ document.addEventListener('DOMContentLoaded', function () {
       '    <select class="launch-voice-select" data-launch="voiceName">',
       '      <option value="">' + (zhMode ? '自动' : 'Auto') + '</option>',
       '    </select>',
-      '    <button type="button" class="launch-voice-test" aria-label="' + (zhMode ? '试听' : 'Preview') + '">' +
+      '    <button type="button" class="launch-voice-test" data-launch="voicePreview" aria-label="' + (zhMode ? '试听' : 'Preview') + '">' +
             '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>' +
           '</button>',
       '  </div>',
@@ -505,40 +497,32 @@ document.addEventListener('DOMContentLoaded', function () {
       '</div>',
       '</div>',
       '<div class="launch-section">',
-      '<h4 class="launch-section-title">' + (zhMode ? '显示' : 'Display') + '</h4>',
-      '<div class="launch-section-grid">',
-      '<div class="launch-row">',
-      '  <span class="launch-row-label">' + (zhMode ? '焦点模式' : 'Focus mode') + '</span>',
-      '  <button type="button" class="launch-switch" data-launch="focusMode" aria-label="' + (zhMode ? '焦点模式：突出当前段落并虚化其他内容' : 'Focus mode: highlight active block, dim others') + '"></button>',
-      '</div>',
-      '<div class="launch-row">',
-      '  <span class="launch-row-label">' + (zhMode ? '手机优化' : 'Mobile optimized') + '</span>',
-      '  <button type="button" class="launch-switch" data-launch="mobilePresent" aria-label="' + (zhMode ? '手机优化' : 'Mobile optimized') + '"></button>',
-      '</div>',
-      '<div class="launch-row">',
-      '  <span class="launch-row-label">' + (zhMode ? '左下角 Logo' : 'Bottom-left logo') + '</span>',
-      '  <button type="button" class="launch-switch" data-launch="showLogo" aria-label="' + (zhMode ? '显示左下角 Logo' : 'Show bottom-left logo') + '"></button>',
-      '</div>',
-      '<div class="launch-row">',
-      '  <span class="launch-row-label">' + (zhMode ? '右下角按钮' : 'Bottom-right buttons') + '</span>',
-      '  <button type="button" class="launch-switch" data-launch="showFab" aria-label="' + (zhMode ? '显示右下角按钮' : 'Show bottom-right buttons') + '"></button>',
-      '</div>',
-      '</div>',
-      '</div>',
-      '<div class="launch-section">',
-      '<h4 class="launch-section-title">' + (zhMode ? '外观' : 'Appearance') + '</h4>',
-      '<div class="launch-row">',
-      '  <span class="launch-row-label">' + (zhMode ? '背景' : 'Background') + '</span>',
-      '  <div class="launch-toggle-group" role="group" data-launch="presentBg">',
-      '    <button type="button" class="launch-toggle" data-value="default">' + (zhMode ? '默认' : 'Default') + '</button>',
-      '    <button type="button" class="launch-toggle" data-value="white">' + (zhMode ? '纯白' : 'White') + '</button>',
-      '    <button type="button" class="launch-toggle" data-value="black">' + (zhMode ? '纯黑' : 'Black') + '</button>',
-      '    <button type="button" class="launch-toggle" data-value="gray">' + (zhMode ? '浅灰' : 'Gray') + '</button>',
-      '  </div>',
-      '</div>',
-      '<div class="launch-row">',
-      '  <span class="launch-row-label">' + (zhMode ? '字体' : 'Font') + '</span>',
-      '  <select class="launch-select" data-launch="presentFont"></select>',
+      '<h4 class="launch-section-title">' + (zhMode ? '演示风格' : 'Presentation Style') + '</h4>',
+      '<div class="launch-background-options" role="group" aria-label="' + (zhMode ? '演示风格' : 'Presentation Style') + '">',
+      '  <button type="button" class="launch-background-option" data-bg-style="default">',
+      '    <span class="launch-background-preview is-default"></span>',
+      '    <span>' + (zhMode ? '默认' : 'Default') + '</span>',
+      '  </button>',
+      '  <button type="button" class="launch-background-option" data-bg-style="white">',
+      '    <span class="launch-background-preview is-white"></span>',
+      '    <span>' + (zhMode ? '纯白' : 'White') + '</span>',
+      '  </button>',
+      '  <button type="button" class="launch-background-option" data-bg-style="black">',
+      '    <span class="launch-background-preview is-black"></span>',
+      '    <span>' + (zhMode ? '纯黑' : 'Black') + '</span>',
+      '  </button>',
+      '  <button type="button" class="launch-background-option" data-bg-style="gray">',
+      '    <span class="launch-background-preview is-gray"></span>',
+      '    <span>' + (zhMode ? '浅灰' : 'Gray') + '</span>',
+      '  </button>',
+      '  <button type="button" class="launch-background-option" data-bg-style="corporate">',
+      '    <span class="launch-background-preview is-corporate"></span>',
+      '    <span>' + (zhMode ? '商务' : 'Corporate') + '</span>',
+      '  </button>',
+      '  <button type="button" class="launch-background-option" data-bg-style="cola">',,
+      '    <span class="launch-background-preview is-cola"></span>',
+      '    <span>' + (zhMode ? '可乐红' : 'Cola Red') + '</span>',
+      '  </button>',
       '</div>',
       '</div>',
       '<div class="launch-section">',
@@ -588,7 +572,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var voiceSection = panel.querySelector('.launch-voice-settings');
     var ttsSelect = panel.querySelector('[data-launch="ttsProvider"]');
     var voiceSelect = panel.querySelector('[data-launch="voiceName"]');
-    var voiceTestBtn = panel.querySelector('.launch-voice-test');
+    var voiceTestBtn = panel.querySelector('[data-launch="voicePreview"]');
     var rateInput = panel.querySelector('[data-launch="rate"]');
     var rateVal = panel.querySelector('.launch-rate-val');
     var mossRows = panel.querySelectorAll('.launch-moss-row');
@@ -618,15 +602,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (emotionSelect && savedSettings.ttsEmotion) emotionSelect.value = savedSettings.ttsEmotion;
     if (autoNarrate) autoNarrateBtn.classList.add('is-on');
 
-    // Mobile present toggle
-    var mobilePresentBtn = panel.querySelector('[data-launch="mobilePresent"]');
-    if (mobilePresentEnabled) mobilePresentBtn.classList.add('is-on');
-
-    // ── Display options: logo / fab / transition style ──
-    // (Theme / background / font live in the Style panel — keep them out of the launch panel.)
-    var showLogoBtn = panel.querySelector('[data-launch="showLogo"]');
-    var showFabBtn = panel.querySelector('[data-launch="showFab"]');
     var transitionOptions = panel.querySelectorAll('[data-transition-style]');
+    var backgroundOptions = panel.querySelectorAll('[data-bg-style]');
 
     var syncLaunchPanelCopy = function () {
       zhMode = getLang() === 'zh';
@@ -650,9 +627,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
       var titles = panel.querySelectorAll('.launch-section-title');
       text(titles[0], '语音讲解', 'Narration');
-      text(titles[1], '显示', 'Display');
-      text(titles[2], '外观', 'Appearance');
-      text(titles[3], '过渡风格', 'Transition');
+      text(titles[1], '演示风格', 'Presentation Style');
+      text(titles[2], '过渡风格', 'Transition');
 
       rowLabel(autoNarrateBtn, '自动语音讲解', 'Auto narration');
       attr(autoNarrateBtn, 'aria-label', '自动语音讲解', 'Auto narration');
@@ -690,29 +666,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
       rowLabel(voiceSelect, '音色', 'Voice');
       optionText(voiceSelect, '', '自动', 'Auto');
-      attr(panel.querySelector('[data-launch="voiceName"] + .launch-voice-test'), 'aria-label', '试听', 'Preview');
+      attr(voiceTestBtn, 'aria-label', '试听', 'Preview');
       rowLabel(rateInput, '语速', 'Speed');
 
-      var focusModeBtn = panel.querySelector('[data-launch="focusMode"]');
-      rowLabel(focusModeBtn, '焦点模式', 'Focus mode');
-      attr(focusModeBtn, 'aria-label', '焦点模式：突出当前段落并虚化其他内容', 'Focus mode: highlight active block, dim others');
-      rowLabel(mobilePresentBtn, '手机优化', 'Mobile optimized');
-      attr(mobilePresentBtn, 'aria-label', '手机优化', 'Mobile optimized');
-      rowLabel(showLogoBtn, '左下角 Logo', 'Bottom-left logo');
-      attr(showLogoBtn, 'aria-label', '显示左下角 Logo', 'Show bottom-left logo');
-      rowLabel(showFabBtn, '右下角按钮', 'Bottom-right buttons');
-      attr(showFabBtn, 'aria-label', '显示右下角按钮', 'Show bottom-right buttons');
-
-      var bgGroup = panel.querySelector('[data-launch="presentBg"]');
-      var fontControl = panel.querySelector('[data-launch="presentFont"]');
-      rowLabel(bgGroup, '背景', 'Background');
-      if (bgGroup) {
-        text(bgGroup.querySelector('[data-value="default"]'), '默认', 'Default');
-        text(bgGroup.querySelector('[data-value="white"]'), '纯白', 'White');
-        text(bgGroup.querySelector('[data-value="black"]'), '纯黑', 'Black');
-        text(bgGroup.querySelector('[data-value="gray"]'), '浅灰', 'Gray');
-      }
-      rowLabel(fontControl, '字体', 'Font');
+      backgroundOptions.forEach(function (button) {
+        var label = button.querySelectorAll('span')[1];
+        var value = button.getAttribute('data-bg-style');
+        if (value === 'default') text(label, '默认', 'Default');
+        if (value === 'white') text(label, '纯白', 'White');
+        if (value === 'black') text(label, '纯黑', 'Black');
+        if (value === 'gray') text(label, '浅灰', 'Gray');
+        if (value === 'corporate') text(label, '商务', 'Corporate');
+        if (value === 'cola') text(label, '可乐红', 'Cola Red');
+      });
 
       transitionOptions.forEach(function (button) {
         var label = button.querySelectorAll('span')[1];
@@ -731,41 +697,12 @@ document.addEventListener('DOMContentLoaded', function () {
     panel._syncCopy = syncLaunchPanelCopy;
     syncLaunchPanelCopy();
 
-    var showLogo = localStorage.getItem('present-show-logo') !== 'false'; // default true
-    var showFab = localStorage.getItem('present-show-fab') !== 'false';   // default true
     var presentTransition = localStorage.getItem('present-transition-style') || 'fade';
-
-    var applyShowLogo = function (on) {
-      document.body.classList.toggle('present-hide-logo', !on);
-    };
-    var applyShowFab = function (on) {
-      document.body.classList.toggle('present-hide-fab', !on);
-    };
-
-    if (showLogo) showLogoBtn.classList.add('is-on');
-    if (showFab) showFabBtn.classList.add('is-on');
     transitionOptions.forEach(function (btn) {
       btn.classList.toggle('is-active', btn.getAttribute('data-transition-style') === presentTransition);
     });
     // Apply on load
-    applyShowLogo(showLogo);
-    applyShowFab(showFab);
     applyPresentationTransitionStyle(presentTransition);
-
-    showLogoBtn.addEventListener('click', function (e) {
-      e.preventDefault(); e.stopPropagation();
-      showLogoBtn.classList.toggle('is-on');
-      var on = showLogoBtn.classList.contains('is-on');
-      localStorage.setItem('present-show-logo', on ? 'true' : 'false');
-      applyShowLogo(on);
-    });
-    showFabBtn.addEventListener('click', function (e) {
-      e.preventDefault(); e.stopPropagation();
-      showFabBtn.classList.toggle('is-on');
-      var on = showFabBtn.classList.contains('is-on');
-      localStorage.setItem('present-show-fab', on ? 'true' : 'false');
-      applyShowFab(on);
-    });
     transitionOptions.forEach(function (btn) {
       btn.addEventListener('click', function (e) {
         e.preventDefault();
@@ -776,6 +713,30 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         localStorage.setItem('present-transition-style', style);
         applyPresentationTransitionStyle(style);
+      });
+    });
+
+    // Presentation background — body classes only take effect inside presentation mode.
+    var markActiveBackground = function (value) {
+      backgroundOptions.forEach(function (btn) {
+        var isActive = btn.getAttribute('data-bg-style') === value;
+        btn.classList.toggle('is-active', isActive);
+        btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      });
+    };
+
+    var presentBg = getPresentBgKey();
+    markActiveBackground(presentBg);
+    applyPresentBg(presentBg);
+
+    backgroundOptions.forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var value = btn.getAttribute('data-bg-style') || 'default';
+        markActiveBackground(value);
+        localStorage.setItem('present-bg', value);
+        applyPresentBg(value);
       });
     });
 
@@ -816,6 +777,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       allVoices.forEach(function (v) {
         if (v.lang.indexOf(langPrefix) !== 0) return;
+        if (!/premium|natural|nature/i.test(v.name + ' ' + v.voiceURI)) return;
         var opt = document.createElement('option');
         opt.value = v.name;
         var coreName = v.name.replace(/\s*\(.*\)\s*$/, '');
@@ -916,138 +878,17 @@ document.addEventListener('DOMContentLoaded', function () {
       saveLaunchSettings();
     });
 
-    mobilePresentBtn.addEventListener('click', function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      mobilePresentBtn.classList.toggle('is-on');
-      var isOn = mobilePresentBtn.classList.contains('is-on');
-      localStorage.setItem('present-mobile-mode', isOn ? 'true' : 'false');
-      document.dispatchEvent(new CustomEvent('mobilePresentChanged', { detail: { enabled: isOn } }));
-    });
-
-    // Focus mode toggle
-    var focusModeBtn = panel.querySelector('[data-launch="focusMode"]');
-    if (focusModeBtn) {
-      if (focusModeEnabled) focusModeBtn.classList.add('is-on');
-      focusModeBtn.addEventListener('click', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        focusModeBtn.classList.toggle('is-on');
-        var isOn = focusModeBtn.classList.contains('is-on');
-        localStorage.setItem('present-focus-mode', isOn ? 'true' : 'false');
-        document.dispatchEvent(new CustomEvent('focusModeChanged', { detail: { enabled: isOn } }));
-      });
-    }
-
-    /* ── Appearance: background + font (migrated from style panel) ── */
-    var bgGroup = panel.querySelector('[data-launch="presentBg"]');
-    var fontSelect = panel.querySelector('[data-launch="presentFont"]');
-
-    var FONT_PRESETS = {
-      zh: [
-        { value: 'default', label: '默认（Noto Sans SC）', stack: '' },
-        { value: 'noto-serif-sc', label: '思源宋体', stack: '"Noto Serif SC", "Source Han Serif SC", "Songti SC", serif' },
-        { value: 'pingfang', label: '苹方 PingFang', stack: '"PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif' },
-        { value: 'yahei', label: '微软雅黑', stack: '"Microsoft YaHei", "微软雅黑", "PingFang SC", sans-serif' },
-        { value: 'heiti', label: '黑体', stack: '"Heiti SC", "黑体", "STHeiti", "PingFang SC", sans-serif' },
-        { value: 'kaiti', label: '楷体', stack: '"Kaiti SC", "STKaiti", "楷体", "KaiTi", serif' },
-        { value: 'songti', label: '宋体', stack: '"Songti SC", "STSong", "宋体", "SimSun", serif' },
-        { value: 'fangsong', label: '仿宋', stack: '"FangSong", "STFangsong", "仿宋", serif' }
-      ],
-      en: [
-        { value: 'default', label: 'Default (Noto Sans)', stack: '' },
-        { value: 'helvetica', label: 'Helvetica', stack: '"Helvetica Neue", Helvetica, Arial, sans-serif' },
-        { value: 'arial', label: 'Arial', stack: 'Arial, "Helvetica Neue", Helvetica, sans-serif' },
-        { value: 'calibri', label: 'Calibri', stack: 'Calibri, Candara, Segoe, "Segoe UI", Optima, sans-serif' },
-        { value: 'segoe', label: 'Segoe UI', stack: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif' },
-        { value: 'roboto', label: 'Roboto', stack: 'Roboto, "Helvetica Neue", Arial, sans-serif' },
-        { value: 'inter', label: 'Inter', stack: 'Inter, "Segoe UI", Roboto, sans-serif' },
-        { value: 'georgia', label: 'Georgia', stack: 'Georgia, "Times New Roman", Times, serif' },
-        { value: 'times', label: 'Times New Roman', stack: '"Times New Roman", Times, serif' },
-        { value: 'garamond', label: 'Garamond', stack: 'Garamond, "EB Garamond", Georgia, serif' }
-      ]
-    };
-
-    var applyPresentBg = function (val) {
-      var classes = ['present-bg-white', 'present-bg-black', 'present-bg-gray'];
-      classes.forEach(function (c) { document.body.classList.remove(c); });
-      if (val === 'white') document.body.classList.add('present-bg-white');
-      else if (val === 'black') document.body.classList.add('present-bg-black');
-      else if (val === 'gray') document.body.classList.add('present-bg-gray');
-    };
-
-    var applyPresentFont = function (langKey, value) {
-      var list = FONT_PRESETS[langKey] || FONT_PRESETS.en;
-      var entry = null;
-      for (var i = 0; i < list.length; i++) {
-        if (list[i].value === value) { entry = list[i]; break; }
-      }
-      if (!entry || !entry.stack) {
-        document.documentElement.style.removeProperty('--present-font');
-        document.body.classList.remove('present-custom-font');
-      } else {
-        document.documentElement.style.setProperty('--present-font', entry.stack);
-        document.body.classList.add('present-custom-font');
-      }
-    };
-
-    var populatePresentFontOptions = function (langKey) {
-      if (!fontSelect) return;
-      var list = FONT_PRESETS[langKey] || FONT_PRESETS.en;
-      while (fontSelect.options.length) {
-        fontSelect.removeChild(fontSelect.lastChild);
-      }
-      list.forEach(function (item) {
-        var opt = document.createElement('option');
-        opt.value = item.value;
-        opt.textContent = item.label;
-        if (item.stack) opt.style.fontFamily = item.stack;
-        fontSelect.appendChild(opt);
-      });
-      var saved = localStorage.getItem('present-font:' + langKey) || 'default';
-      fontSelect.value = saved;
-      applyPresentFont(langKey, saved);
-    };
-
-    if (bgGroup) {
-      var initialBg = localStorage.getItem('present-bg') || 'default';
-      bgGroup.querySelectorAll('.launch-toggle').forEach(function (btn) {
-        if (btn.getAttribute('data-value') === initialBg) btn.classList.add('is-active');
-        btn.addEventListener('click', function (e) {
-          e.preventDefault();
-          e.stopPropagation();
-          var v = btn.getAttribute('data-value');
-          bgGroup.querySelectorAll('.launch-toggle').forEach(function (b) { b.classList.remove('is-active'); });
-          btn.classList.add('is-active');
-          localStorage.setItem('present-bg', v);
-          applyPresentBg(v);
-        });
-      });
-      applyPresentBg(initialBg);
-    }
-
-    if (fontSelect) {
-      populatePresentFontOptions(getLang() === 'zh' ? 'zh' : 'en');
-      fontSelect.addEventListener('change', function () {
-        var langKey = getLang() === 'zh' ? 'zh' : 'en';
-        localStorage.setItem('present-font:' + langKey, fontSelect.value);
-        applyPresentFont(langKey, fontSelect.value);
-      });
-    }
-
     langSelect.addEventListener('change', function () {
       // Stub — lang now switches via the topbar toggle; the langChanged listener below
       // handles voice/font refresh.
     });
 
     document.addEventListener('langChanged', function () {
-      var selectedLang = getLang();
       syncLaunchPanelCopy();
       if (ttsSelect.value !== 'vibevoice') {
         lastBrowserVoice = '';
         syncVoiceList();
       }
-      populatePresentFontOptions(selectedLang === 'zh' ? 'zh' : 'en');
       if (state.enabled) {
         setPresentationStep(state.index);
       }
@@ -1264,16 +1105,10 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!wrapper) return;
 
     var STYLE_PANEL_COPY = {
-      langLabel: { zh: '语言', en: 'Language' },
-      themeLabel: { zh: '明暗模式', en: 'Theme' },
-      backgroundLabel: { zh: '背景', en: 'Background' },
+      themeLabel: { zh: '阅读模式', en: 'Reading mode' },
       fontLabel: { zh: '字体', en: 'Font' },
-      themeLight: { zh: '浅色', en: 'Light' },
-      themeDark: { zh: '深色', en: 'Dark' },
-      bgDefault: { zh: '默认', en: 'Default' },
-      bgWhite: { zh: '纯白', en: 'White' },
-      bgBlack: { zh: '纯黑', en: 'Black' },
-      bgGray: { zh: '浅灰', en: 'Gray' }
+      logoLabel: { zh: '左下角 Logo', en: 'Bottom-left logo' },
+      fabLabel: { zh: '右下角按钮', en: 'Bottom-right buttons' }
     };
     var getStylePanelCopy = function (key) {
       var langKey = getLang() === 'zh' ? 'zh' : 'en';
@@ -1287,31 +1122,12 @@ document.addEventListener('DOMContentLoaded', function () {
       '  <strong data-style-panel-title>' + getLabel('style') + '</strong>',
       '</div>',
       '<div class="style-panel-row">',
-      '  <span class="style-panel-label" data-style-panel-copy="langLabel">' + getStylePanelCopy('langLabel') + '</span>',
-      '  <div class="style-panel-control">',
-      '    <div class="style-panel-toggle-group" role="group" data-style-panel="lang" data-style-panel-group-label="langLabel" aria-label="' + getStylePanelCopy('langLabel') + '">',
-      '      <button type="button" class="style-panel-toggle" data-value="zh">中文</button>',
-      '      <button type="button" class="style-panel-toggle" data-value="en">English</button>',
-      '    </div>',
-      '  </div>',
-      '</div>',
-      '<div class="style-panel-row">',
       '  <span class="style-panel-label" data-style-panel-copy="themeLabel">' + getStylePanelCopy('themeLabel') + '</span>',
       '  <div class="style-panel-control">',
-      '    <div class="style-panel-toggle-group" role="group" data-style-panel="theme" data-style-panel-group-label="themeLabel" aria-label="' + getStylePanelCopy('themeLabel') + '">',
-      '      <button type="button" class="style-panel-toggle" data-value="light" data-style-panel-copy="themeLight">' + getStylePanelCopy('themeLight') + '</button>',
-      '      <button type="button" class="style-panel-toggle" data-value="dark" data-style-panel-copy="themeDark">' + getStylePanelCopy('themeDark') + '</button>',
-      '    </div>',
-      '  </div>',
-      '</div>',
-      '<div class="style-panel-row">',
-      '  <span class="style-panel-label" data-style-panel-copy="backgroundLabel">' + getStylePanelCopy('backgroundLabel') + '</span>',
-      '  <div class="style-panel-control">',
-      '    <div class="style-panel-toggle-group" role="group" data-style-panel="presentBg" data-style-panel-group-label="backgroundLabel" aria-label="' + getStylePanelCopy('backgroundLabel') + '">',
-      '      <button type="button" class="style-panel-toggle" data-value="default" data-style-panel-copy="bgDefault">' + getStylePanelCopy('bgDefault') + '</button>',
-      '      <button type="button" class="style-panel-toggle" data-value="white" data-style-panel-copy="bgWhite">' + getStylePanelCopy('bgWhite') + '</button>',
-      '      <button type="button" class="style-panel-toggle" data-value="black" data-style-panel-copy="bgBlack">' + getStylePanelCopy('bgBlack') + '</button>',
-      '      <button type="button" class="style-panel-toggle" data-value="gray" data-style-panel-copy="bgGray">' + getStylePanelCopy('bgGray') + '</button>',
+      '    <div class="style-theme-control">',
+      '      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>',
+      '      <button type="button" class="launch-switch style-theme-switch" role="switch" data-style-panel="theme" aria-label="' + getStylePanelCopy('themeLabel') + '"></button>',
+      '      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
       '    </div>',
       '  </div>',
       '</div>',
@@ -1319,6 +1135,18 @@ document.addEventListener('DOMContentLoaded', function () {
       '  <span class="style-panel-label" data-style-panel-copy="fontLabel">' + getStylePanelCopy('fontLabel') + '</span>',
       '  <div class="style-panel-control">',
       '    <select class="style-panel-select" data-style-panel="presentFont"></select>',
+      '  </div>',
+      '</div>',
+      '<div class="style-panel-row">',
+      '  <span class="style-panel-label" data-style-panel-copy="logoLabel">' + getStylePanelCopy('logoLabel') + '</span>',
+      '  <div class="style-panel-control">',
+      '    <button type="button" class="launch-switch" data-style-panel="showLogo"></button>',
+      '  </div>',
+      '</div>',
+      '<div class="style-panel-row">',
+      '  <span class="style-panel-label" data-style-panel-copy="fabLabel">' + getStylePanelCopy('fabLabel') + '</span>',
+      '  <div class="style-panel-control">',
+      '    <button type="button" class="launch-switch" data-style-panel="showFab"></button>',
       '  </div>',
       '</div>'
     ].join('\n');
@@ -1328,10 +1156,10 @@ document.addEventListener('DOMContentLoaded', function () {
     __styleHost.appendChild(panel);
     wrapper._panel = panel;
 
-    var langGroup = panel.querySelector('[data-style-panel="lang"]');
-    var themeGroup = panel.querySelector('[data-style-panel="theme"]');
-    var bgGroup = panel.querySelector('[data-style-panel="presentBg"]');
+    var themeSwitch = panel.querySelector('[data-style-panel="theme"]');
     var fontSelect = panel.querySelector('[data-style-panel="presentFont"]');
+    var showLogoBtn = panel.querySelector('[data-style-panel="showLogo"]');
+    var showFabBtn = panel.querySelector('[data-style-panel="showFab"]');
 
     var FONT_PRESETS = {
       zh: [
@@ -1358,14 +1186,6 @@ document.addEventListener('DOMContentLoaded', function () {
       ]
     };
 
-    var applyPresentBg = function (val) {
-      var classes = ['present-bg-white', 'present-bg-black', 'present-bg-gray'];
-      classes.forEach(function (c) { document.body.classList.remove(c); });
-      if (val === 'white') document.body.classList.add('present-bg-white');
-      else if (val === 'black') document.body.classList.add('present-bg-black');
-      else if (val === 'gray') document.body.classList.add('present-bg-gray');
-    };
-
     var syncStylePanelCopy = function () {
       var title = panel.querySelector('[data-style-panel-title]');
       if (title) {
@@ -1377,37 +1197,7 @@ document.addEventListener('DOMContentLoaded', function () {
         el.textContent = getStylePanelCopy(key);
       });
 
-      panel.querySelectorAll('[data-style-panel-group-label]').forEach(function (group) {
-        var key = group.getAttribute('data-style-panel-group-label');
-        group.setAttribute('aria-label', getStylePanelCopy(key));
-      });
-    };
-
-    var setToggleGroupValue = function (group, value) {
-      if (!group) return;
-
-      group.setAttribute('data-selected', value);
-      group.querySelectorAll('.style-panel-toggle').forEach(function (button) {
-        var isActive = button.getAttribute('data-value') === value;
-        button.classList.toggle('is-active', isActive);
-        button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-      });
-    };
-
-    var bindToggleGroup = function (group, onChange) {
-      if (!group) return;
-
-      group.querySelectorAll('.style-panel-toggle').forEach(function (button) {
-        button.addEventListener('click', function () {
-          var value = button.getAttribute('data-value');
-          if (group.getAttribute('data-selected') === value) {
-            return;
-          }
-
-          setToggleGroupValue(group, value);
-          onChange(value);
-        });
-      });
+      themeSwitch.setAttribute('aria-label', getStylePanelCopy('themeLabel'));
     };
 
     var applyPresentFont = function (langKey, value) {
@@ -1449,38 +1239,46 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var syncPanelState = function () {
       var lang = getLang();
-      var currentTheme = root.getAttribute('data-theme') || localStorage.getItem('theme') || 'light';
-      var bg = localStorage.getItem('present-bg') || 'default';
+      var currentTheme = getReadingTheme();
       var langKey = lang === 'zh' ? 'zh' : 'en';
+      var showLogo = localStorage.getItem('present-show-logo') !== 'false';
+      var showFab = localStorage.getItem('present-show-fab') !== 'false';
 
       syncStylePanelCopy();
-      setToggleGroupValue(langGroup, lang);
-      setToggleGroupValue(themeGroup, currentTheme === 'dark' ? 'dark' : 'light');
-      setToggleGroupValue(bgGroup, bg);
+      themeSwitch.classList.toggle('is-on', currentTheme === 'dark');
+      themeSwitch.setAttribute('aria-checked', currentTheme === 'dark' ? 'true' : 'false');
+      showLogoBtn.classList.toggle('is-on', showLogo);
+      showLogoBtn.setAttribute('aria-pressed', showLogo ? 'true' : 'false');
+      showFabBtn.classList.toggle('is-on', showFab);
+      showFabBtn.setAttribute('aria-pressed', showFab ? 'true' : 'false');
+      document.body.classList.toggle('present-hide-logo', !showLogo);
+      document.body.classList.toggle('present-hide-fab', !showFab);
       populatePresentFontOptions(langKey);
-      applyPresentBg(bg);
     };
 
-    bindToggleGroup(langGroup, function (value) {
-      applyLanguageToDocument(value);
-      syncPanelState();
-      updatePresentationLabels();
-    });
-
-    bindToggleGroup(themeGroup, function (value) {
-      root.setAttribute('data-theme', value);
+    themeSwitch.addEventListener('click', function () {
+      var value = getReadingTheme() === 'dark' ? 'light' : 'dark';
       localStorage.setItem('theme', value);
-    });
-
-    bindToggleGroup(bgGroup, function (value) {
-      localStorage.setItem('present-bg', value);
-      applyPresentBg(value);
+      syncPresentationSurface();
+      syncPanelState();
     });
 
     fontSelect.addEventListener('change', function () {
       var langKey = getLang() === 'zh' ? 'zh' : 'en';
       localStorage.setItem('present-font:' + langKey, fontSelect.value);
       applyPresentFont(langKey, fontSelect.value);
+    });
+
+    showLogoBtn.addEventListener('click', function () {
+      var on = !showLogoBtn.classList.contains('is-on');
+      localStorage.setItem('present-show-logo', on ? 'true' : 'false');
+      syncPanelState();
+    });
+
+    showFabBtn.addEventListener('click', function () {
+      var on = !showFabBtn.classList.contains('is-on');
+      localStorage.setItem('present-show-fab', on ? 'true' : 'false');
+      syncPanelState();
     });
 
     document.addEventListener('langChanged', function () {
@@ -2460,6 +2258,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // Add matching voices
       allVoices.forEach(function (v) {
         if (v.lang.indexOf(langPrefix) !== 0) return;
+        if (!/premium|natural|nature/i.test(v.name + ' ' + v.voiceURI)) return;
         var opt = document.createElement('option');
         opt.value = v.name;
         // Format: extract dialect from lang tag, show as "Name · Dialect"
@@ -2843,53 +2642,16 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   var hasNarrationSupport = function () {
+    var narrationSettings = {};
     try {
-      var s = JSON.parse(localStorage.getItem('llm-settings'));
-      return !!(s && s.provider !== 'none' && s.endpoint && s.model &&
-               window.speechSynthesis && window.SpeechSynthesisUtterance);
-    } catch (e) { return false; }
-  };
-
-  /** Lazy-load mobile presentation module. */
-  var ensureMobilePresent = function () {
-    if (mobilePresentLoader) {
-      mobilePresentLoader.then(function () {
-        if (!mobilePresentController && window.StudyRoomMobilePresent) {
-          mobilePresentController = window.StudyRoomMobilePresent.init({
-            root: root,
-            getLang: getLang,
-            goToPrev: goToPreviousStep,
-            goToNext: goToNextStep,
-            getState: function () { return { enabled: state.enabled, index: state.index }; },
-            getPresentSteps: function () { return presentSteps; }
-          });
-        }
-      });
-      return mobilePresentLoader;
+      narrationSettings = JSON.parse(localStorage.getItem('narration-settings')) || {};
+    } catch (e) {}
+    if (narrationSettings.ttsProvider === 'vibevoice' ||
+        narrationSettings.ttsEngine === 'moss-tts-nano' ||
+        narrationSettings.ttsEngine === 'fish-s2') {
+      return true;
     }
-    mobilePresentLoader = new Promise(function (resolve, reject) {
-      if (window.StudyRoomMobilePresent) { resolve(); return; }
-      var s = document.createElement('script');
-      s.src = resolvePresentationAssetUrl('article-mobile-present.js');
-      s.async = true;
-      s.onload = function () {
-        if (window.StudyRoomMobilePresent) { resolve(); return; }
-        reject(new Error('article-mobile-present.js loaded but unavailable.'));
-      };
-      s.onerror = function () { reject(new Error('Failed to load article-mobile-present.js.')); };
-      document.head.appendChild(s);
-    });
-    mobilePresentLoader.then(function () {
-      mobilePresentController = window.StudyRoomMobilePresent.init({
-        root: root,
-        getLang: getLang,
-        goToPrev: goToPreviousStep,
-        goToNext: goToNextStep,
-        getState: function () { return { enabled: state.enabled, index: state.index }; },
-        getPresentSteps: function () { return presentSteps; }
-      });
-    });
-    return mobilePresentLoader;
+    return !!(window.speechSynthesis && window.SpeechSynthesisUtterance);
   };
 
   var ensureNarration = function () {
@@ -2934,6 +2696,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (snapshot.enabled) {
       state.enabled = true;
       root.classList.add('is-presentation-mode');
+      syncPresentationSurface();
       setPresentationStep(snapshot.index);
       var activeStep = presentSteps[snapshot.index];
       if (activeStep) { activeStep.scrollTop = snapshot.stepScrollTop; syncStepOverflowState(activeStep); }
@@ -2942,6 +2705,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     state.enabled = false;
     root.classList.remove('is-presentation-mode');
+    syncPresentationSurface();
     exitBrowserFullscreen();
     restoreAccordionStates();
     setPresentationStep(snapshot.index);
@@ -3769,50 +3533,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   };
 
-  // ── Phase 2: Focus mode — tag anchor elements per slide ──
-  var tagFocusElements = function (slideEl) {
-    if (!slideEl) return;
-    // Clear previous focus-keep tags across ALL steps
-    var prevKept = root.querySelectorAll('.focus-keep');
-    prevKept.forEach(function (el) { el.classList.remove('focus-keep'); });
-
-    // Tag anchor elements in current slide
-    var anchors = slideEl.querySelectorAll('h2, h3, h4, img, blockquote, strong, .insight-callout, .insight-grid, .metric-card, .comparison-grid');
-    anchors.forEach(function (el) {
-      // Walk up to find the direct child of subsection-content or the event-field
-      var target = el;
-      while (target.parentElement && !target.parentElement.classList.contains('subsection-content') && !target.parentElement.classList.contains('event-field')) {
-        target = target.parentElement;
-      }
-      target.classList.add('focus-keep');
-    });
-
-    // If subsection-content has NO anchors at all (only plain <p> elements),
-    // keep everything visible — dimming text-only content is meaningless.
-    var subContent = slideEl.querySelector('.subsection-content');
-    if (subContent && !subContent.querySelector('.focus-keep')) {
-      var children = subContent.children;
-      for (var ci = 0; ci < children.length; ci++) {
-        children[ci].classList.add('focus-keep');
-      }
-    }
-
-    // First event-field is always kept via CSS :first-child, but also tag it
-    var firstField = slideEl.querySelector('.event-field');
-    if (firstField) firstField.classList.add('focus-keep');
-  };
-
-  var enterFocusMode = function () {
-    if (!focusModeEnabled) return;
-    var activeStep = presentSteps[state.index];
-    tagFocusElements(activeStep);
-    site.classList.add('is-focus-mode');
-  };
-
-  var exitFocusMode = function () {
-    site.classList.remove('is-focus-mode');
-  };
-
   var setPresentationStep = function (index) {
     var safeIndex;
     var activeStep;
@@ -3881,10 +3601,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     syncStepOverflowState(activeStep);
 
-    // Phase 2: Re-tag focus anchors when slide changes during narration
-    if (site.classList.contains('is-focus-mode')) {
-      tagFocusElements(activeStep);
-    }
   };
 
   var resolvePresentationStepIndex = function () {
@@ -4246,6 +3962,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var enterPresentation = function () {
     state.enabled = true;
     root.classList.add('is-presentation-mode');
+    syncPresentationSurface();
 
     // Sync narration settings panel from localStorage (launch panel writes there)
     var settingsPanel = document.querySelector('.narration-settings-panel');
@@ -4268,12 +3985,6 @@ document.addEventListener('DOMContentLoaded', function () {
     updatePresentationLabels();
     requestBrowserFullscreen();
 
-    // Phase 4: Mobile presentation mode — explicit toggle OR auto-detect by viewport
-    mobilePresentEnabled = localStorage.getItem('present-mobile-mode') === 'true' || window.innerWidth <= 768;
-    if (mobilePresentEnabled) {
-      root.classList.add('is-mobile-present');
-      ensureMobilePresent();
-    }
   };
 
   /** Prepare narration controller (lazy load + create). Returns Promise<controller>. */
@@ -4314,12 +4025,6 @@ document.addEventListener('DOMContentLoaded', function () {
           onStateChange: function (newState) {
             narrationState = newState;
             root.classList.toggle('is-narrating', newState === 'playing' || newState === 'generating');
-            // Phase 2: Focus mode — enter on play, exit on pause/idle
-            if (newState === 'playing') {
-              enterFocusMode();
-            } else if (newState === 'paused' || newState === 'idle') {
-              exitFocusMode();
-            }
             updateAutoPlayButton();
           },
           onSubtitle: function (text) { showSubtitleSentence(text); },
@@ -4430,7 +4135,6 @@ document.addEventListener('DOMContentLoaded', function () {
     showSubtitleSentence('');
     narrationState = 'idle';
     root.classList.remove('is-narrating');
-    exitFocusMode();
     updateAutoPlayButton();
   };
 
@@ -4513,13 +4217,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     state.enabled = false;
     root.classList.remove('is-presentation-mode');
-
-    // Phase 4: Clean up mobile presentation mode
-    root.classList.remove('is-mobile-present');
-    if (mobilePresentController) {
-      mobilePresentController.destroy();
-      mobilePresentController = null;
-    }
+    syncPresentationSurface();
 
     restoreAccordionStates();
     setPresentationStep(state.index);
@@ -4592,9 +4290,10 @@ document.addEventListener('DOMContentLoaded', function () {
   ensureTopbarLayout();
   topbarActions = ensureTopbarActions();
   presentationToggle = ensureToggle();
-  var themeToggleBtn = ensureThemeToggle();
+  styleToggle = ensureStyleToggle();
   var langToggleBtn = ensureLangToggle();
   buildLaunchPanel();
+  buildStylePanel();
   shareWrapper = ensureShareDropdown();
   presentationFloating = ensureFloating();
   presentationExit = presentationFloating.querySelector('[data-present-exit]');
@@ -4655,14 +4354,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  themeToggleBtn.addEventListener('click', function (e) {
-    e.stopPropagation();
-    var cur = root.getAttribute('data-theme') || 'light';
-    var next = cur === 'dark' ? 'light' : 'dark';
-    root.setAttribute('data-theme', next);
-    try { localStorage.setItem('theme', next); } catch (err) {}
-  });
-
   langToggleBtn.addEventListener('click', function (e) {
     e.stopPropagation();
     var cur = getLang();
@@ -4671,8 +4362,6 @@ document.addEventListener('DOMContentLoaded', function () {
     updatePresentationLabels();
     var labelSpan = langToggleBtn.querySelector('.topbar-lang-label');
     if (labelSpan) labelSpan.textContent = next === 'zh' ? 'EN' : '中';
-    var themeBtn = topbar.querySelector('[data-theme-toggle]');
-    if (themeBtn) themeBtn.setAttribute('aria-label', next === 'zh' ? '切换深浅色' : 'Toggle theme');
   });
 
 

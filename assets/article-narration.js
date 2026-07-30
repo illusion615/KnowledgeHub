@@ -103,6 +103,12 @@
         acceptNode: function (node) {
           // Skip aria-hidden elements (presentation chrome, not content)
           if (node.getAttribute('aria-hidden') === 'true') return NodeFilter.FILTER_REJECT;
+          if (node.classList.contains('topbar') ||
+              node.classList.contains('present-floating') ||
+              node.classList.contains('backdrop') ||
+              node.tagName === 'NAV' || node.tagName === 'FOOTER') {
+            return NodeFilter.FILTER_REJECT;
+          }
           // Skip toggled-off subsection content in normal reading mode
           if (node.classList.contains('subsection-content') &&
               node.getAttribute('aria-hidden') === 'true') return NodeFilter.FILTER_REJECT;
@@ -147,6 +153,25 @@
       if (s && s.provider !== 'none' && s.endpoint && s.model) return s;
     } catch (e) {}
     return null;
+  }
+
+  function buildFallbackNarrative(slideInfo, lang) {
+    var maxLength = lang === 'zh' ? 480 : 760;
+    var lines = [];
+    var seen = {};
+    var source = [slideInfo.title || '', slideInfo.body || ''].join('\n').split(/\n+/);
+    var text = '';
+
+    source.forEach(function (line) {
+      var normalized = line.replace(/^[-·]\s*/, '').replace(/\s+/g, ' ').trim();
+      if (!normalized || seen[normalized]) return;
+      seen[normalized] = true;
+      if (text.length + normalized.length + 1 > maxLength) return;
+      lines.push(normalized);
+      text += (text ? ' ' : '') + normalized;
+    });
+
+    return lines.join(lang === 'zh' ? '。' : '. ') + (lines.length ? (lang === 'zh' ? '。' : '.') : '');
   }
 
   /**
@@ -274,7 +299,8 @@
 
   function generateNarrative(slideInfo, slideIndex, totalSlides, lang, abortSignal) {
     var settings = getLlmSettings();
-    if (!settings) return Promise.reject(new Error('No LLM settings'));
+    var fallback = buildFallbackNarrative(slideInfo, lang);
+    if (!settings) return Promise.resolve(fallback);
 
     // Get article title for context so LLM knows the topic
     var articleTitle = document.title || '';
@@ -349,9 +375,14 @@
         if (settings.provider === 'ollama') {
           return (data.message && data.message.content) ? data.message.content.trim() : '';
         }
-        return (data.choices && data.choices[0] && data.choices[0].message)
+        var result = (data.choices && data.choices[0] && data.choices[0].message)
           ? data.choices[0].message.content.trim()
           : '';
+        return result || fallback;
+      })
+      .catch(function (err) {
+        if (err && err.name === 'AbortError') throw err;
+        return fallback;
       });
   }
 
@@ -1160,8 +1191,6 @@
      Static utility: check if narration is possible
      ══════════════════════════════════════════════════════ */
   function isAvailable() {
-    var hasLlm = !!getLlmSettings();
-    if (!hasLlm) return false;
     // Available if browser TTS exists OR a local OpenAI-compatible TTS engine is configured
     var hasBrowserTTS = !!(window.speechSynthesis && window.SpeechSynthesisUtterance);
     var hasLocalTTS = false;

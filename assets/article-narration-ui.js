@@ -153,21 +153,13 @@
           '</button>',
         '</div>',
         '<div class="narration-setting-divider"></div>',
-        '<label class="narration-setting-row narration-toggle-row">',
-        '  <span>' + (getLang() === 'zh' ? '讲解聚焦模式' : 'Focus Mode') + '</span>',
-        '  <input type="checkbox" class="narration-checkbox" data-narration-setting="focusMode" ' + (localStorage.getItem('present-focus-mode') !== 'false' ? 'checked' : '') + ' />',
-        '</label>',
         '<label class="narration-setting-row">',
         '  <span>' + (getLang() === 'zh' ? '录制比例' : 'Record Ratio') + '</span>',
         '  <select class="narration-select" data-narration-setting="recordRatio">',
         '    <option value="16:9">' + (getLang() === 'zh' ? '横屏 16:9' : 'Landscape 16:9') + '</option>',
         '    <option value="9:16">' + (getLang() === 'zh' ? '竖屏 9:16（手机）' : 'Portrait 9:16') + '</option>',
         '    <option value="1:1">' + (getLang() === 'zh' ? '正方 1:1（社交媒体）' : 'Square 1:1') + '</option>',
-        '  </select>',
-        '</label>',
-        '<label class="narration-setting-row narration-toggle-row">',
-        '  <span>' + (getLang() === 'zh' ? '手机优化' : 'Mobile optimized') + '</span>',
-        '  <input type="checkbox" class="narration-checkbox" data-narration-setting="mobilePresent" ' + (localStorage.getItem('present-mobile-mode') === 'true' ? 'checked' : '') + ' />',
+        '</select>',
         '</label>'
       ].join('\n');
 
@@ -239,12 +231,12 @@
 
         allVoices.forEach(function (v) {
           if (v.lang.indexOf(langPrefix) !== 0) return;
+          if (!/premium|natural|nature/i.test(v.name + ' ' + v.voiceURI)) return;
           var opt = document.createElement('option');
           opt.value = v.name;
           var dialectLabel = dialectMap[v.lang] || v.lang;
-          var isNatural = v.name.indexOf('Natural') !== -1 || v.name.indexOf('Premium') !== -1;
           var coreName = v.name.replace(/\s*\(.*\)\s*$/, '');
-          opt.textContent = coreName + ' · ' + dialectLabel + (isNatural ? ' ★' : '');
+          opt.textContent = coreName + ' · ' + dialectLabel;
           opt.title = v.name + ' (' + v.lang + ')';
           voiceSelect.appendChild(opt);
         });
@@ -296,16 +288,6 @@
         fishVoiceInput.addEventListener('change', saveSettings);
       }
 
-      // Phase 2: Focus mode toggle
-      var focusCheckbox = panel.querySelector('[data-narration-setting="focusMode"]');
-      if (focusCheckbox) {
-        focusCheckbox.addEventListener('change', function () {
-          localStorage.setItem('present-focus-mode', focusCheckbox.checked ? 'true' : 'false');
-          // Notify presentation.js via custom event
-          document.dispatchEvent(new CustomEvent('focusModeChanged', { detail: { enabled: focusCheckbox.checked } }));
-        });
-      }
-
       // Phase 3: Record ratio selector
       var recordRatioSelect = panel.querySelector('[data-narration-setting="recordRatio"]');
       if (recordRatioSelect) {
@@ -314,22 +296,6 @@
         recordRatioSelect.addEventListener('change', function () {
           localStorage.setItem('present-record-ratio', recordRatioSelect.value);
           document.dispatchEvent(new CustomEvent('recordRatioChanged', { detail: { ratio: recordRatioSelect.value } }));
-          // Auto-check mobile mode when switching to 9:16
-          var mobileCheckbox = panel.querySelector('[data-narration-setting="mobilePresent"]');
-          if (mobileCheckbox && recordRatioSelect.value === '9:16' && !mobileCheckbox.checked) {
-            mobileCheckbox.checked = true;
-            localStorage.setItem('present-mobile-mode', 'true');
-            document.dispatchEvent(new CustomEvent('mobilePresentChanged', { detail: { enabled: true } }));
-          }
-        });
-      }
-
-      // Phase 4: Mobile present mode toggle
-      var mobilePresentCheckbox = panel.querySelector('[data-narration-setting="mobilePresent"]');
-      if (mobilePresentCheckbox) {
-        mobilePresentCheckbox.addEventListener('change', function () {
-          localStorage.setItem('present-mobile-mode', mobilePresentCheckbox.checked ? 'true' : 'false');
-          document.dispatchEvent(new CustomEvent('mobilePresentChanged', { detail: { enabled: mobilePresentCheckbox.checked } }));
         });
       }
 

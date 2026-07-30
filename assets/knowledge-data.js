@@ -1458,12 +1458,12 @@ var knowledgeTree = [
     parentId: 'knowledge-hub-design-docs',
     type: 'article',
     title: {
-      zh: '演示模式手机端优化设计：面向移动消费的内容重构方案',
-      en: 'Mobile Presentation Mode: Content Restructuring for Phone-Screen Consumption'
+      zh: '演示模式手机端优化设计（已下线）',
+      en: 'Mobile Presentation Mode (Retired)'
     },
     summary: {
-      zh: '为演示模式新增手机模式模块，从排版、导航、手势和字幕四维度重构内容呈现，使录制产物在手机屏幕上原生可读。',
-      en: 'Adds a mobile mode module to presentation with touch gestures, bottom nav bar, enlarged typography, and safe-area layout for phone-native readability.'
+      zh: '归档设计：独立手机演示模式已于 2026-07-30 下线，9:16 录制比例继续保留。',
+      en: 'Archived design: the standalone mobile presentation mode was retired on 2026-07-30; 9:16 recording remains available.'
     },
     tags: ['Design Document', 'Presentation', 'Mobile', 'UX'],
     date: '2026-04-21',
