@@ -463,10 +463,10 @@ var knowledgeTree = [
       en: 'Dynamics 365 Contact Center: CCaaS Evaluation Guide'
     },
     summary: {
-      zh: 'D365 Contact Center 的能力、可参考的 Forrester/BVI 回报、为什么选微软（含分析师背书）、真实客户实证与落地路径。',
-      en: 'A guide to Dynamics 365 Contact Center: capabilities, Forrester/BVI ROI, why Microsoft (analyst-validated), customer proof, and adoption path.'
+      zh: 'D365 Contact Center 选型指南：能力、ROI、客户证据、ServiceNow/语音接入架构、许可成本与治理边界。',
+      en: 'A D365 Contact Center evaluation guide covering capabilities, ROI, customer proof, ServiceNow and voice architecture, licensing, cost, and governance.'
     },
-    tags: ['Dynamics 365', 'Contact Center', 'CCaaS', 'Customer Service', 'Copilot', 'ROI'],
+    tags: ['Dynamics 365', 'Contact Center', 'CCaaS', 'Customer Service', 'Copilot', 'ServiceNow', 'ROI'],
     date: '2026-07-07',
     url: 'posts/dynamics-365-contact-center-ccaas/index.html',
     color: '#a855f7',
