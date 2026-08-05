@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-section-density="strict">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -52,6 +52,15 @@
       vertical-align: top;
     }
 
+    .table-scroll {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    .table-scroll .compare-table {
+      min-width: 760px;
+    }
+
     [data-theme="dark"] .compare-table th {
       background: rgba(255, 255, 255, 0.04);
       border-color: rgba(255, 255, 255, 0.1);
@@ -59,6 +68,10 @@
 
     [data-theme="dark"] .compare-table td {
       border-color: rgba(255, 255, 255, 0.06);
+    }
+
+    [data-theme="dark"] .table-scroll {
+      color-scheme: dark;
     }
 
     /* ── 状态徽标 ── */
@@ -335,6 +348,7 @@
               <a href="#directengine">转机</a>
               <a href="#poc">PoC</a>
               <a href="#runbook">配置</a>
+              <a href="#message-processing">消息处理</a>
               <a href="#conclusion">结论</a>
               <a href="#references">参考</a>
             </nav>
@@ -345,8 +359,8 @@
           <div class="hero-copy load-in">
             <span class="eyebrow" data-zh="工程验证与实施指南" data-en="Engineering Validation and Implementation Guide">工程验证与实施指南</span>
             <h1 data-zh="验证 Copilot Studio 流式输出：Classic Agent 与 New Agent 的两条运行时路径" data-en="Verifying Copilot Studio Streaming: Two Runtime Paths for Classic and New Agents">验证 Copilot Studio 流式输出：Classic Agent 与 New Agent 的两条运行时路径</h1>
-            <p data-zh="Copilot Studio 的 Classic Agent 与 New Agent 都可以通过 SSE 渐进返回活动，但两者不能共用同一个 Direct-to-Engine 地址。Classic Agent 使用 published-bot endpoint；采用 CLICopilotRecognizer 的 New Agent 使用 agentic runtime 第三方 endpoint。本文给出支持边界、可复现配置、原始 activity 判据与故障定位方法。" data-en="Classic and New Copilot Studio agents can both return activities progressively over SSE, but they do not share one Direct-to-Engine endpoint. Classic agents use the published-bot endpoint; New Agents with CLICopilotRecognizer use the agentic runtime third-party endpoint. This guide documents the support boundary, reproducible configuration, raw-activity criteria, and failure diagnosis.">
-              Copilot Studio 的 Classic Agent 与 New Agent 都可以通过 SSE 渐进返回活动，但两者不能共用同一个 Direct-to-Engine 地址。Classic Agent 使用 published-bot endpoint；采用 CLICopilotRecognizer 的 New Agent 使用 agentic runtime 第三方 endpoint。本文给出支持边界、可复现配置、原始 activity 判据与故障定位方法。
+            <p data-zh="Classic published-bot 与 New Agent /agenticruntime/3p 是两条不同的 Direct-to-Engine 运行时路径。本文直接验证了 New Agent /3p 的选路、SPA 登录和会话建立；progressive streaming 能力由微软官方插件与公开实测提供证据。本文进一步给出 raw activity 到 reasoning、stage 与 answer UI 的归一化规则。" data-en="Classic published-bot and New Agent /agenticruntime/3p are separate Direct-to-Engine runtime paths. This article directly validates New Agent /3p routing, SPA sign-in, and conversation creation; Microsoft implementations and public captures provide the progressive-streaming evidence. It also defines how raw activities normalize into reasoning, stages, and answer UI.">
+              Classic published-bot 与 New Agent /agenticruntime/3p 是两条不同的 Direct-to-Engine 运行时路径。本文直接验证了 New Agent /3p 的选路、SPA 登录和会话建立；progressive streaming 能力由微软官方插件与公开实测提供证据。本文进一步给出 raw activity 到 reasoning、stage 与 answer UI 的归一化规则。
             </p>
             <div class="hero-actions">
               <a class="button button-primary" href="#directline">Direct Line 实测</a>
@@ -369,7 +383,7 @@
           <div class="metric">
             <div class="metric-label">Direct Line 实测</div>
             <strong>0 流式片段</strong>
-            <span>3 类 agent · 最长 34s / 19149 字一次性返回</span>
+            <span>3 类 agent · 最长约 34s / 1335 字一次性返回</span>
           </div>
           <div class="metric">
             <div class="metric-label" data-zh="运行时地址" data-en="Runtime Endpoints">运行时地址</div>
@@ -378,8 +392,8 @@
           </div>
           <div class="metric">
             <div class="metric-label" data-zh="New Agent 会话" data-en="New Agent Session">New Agent 会话</div>
-            <strong data-zh="已打通" data-en="Connected">已打通</strong>
-            <span data-zh="MCSChat · /3p · GitHub Pages SPA 登录" data-en="MCSChat · /3p · GitHub Pages SPA sign-in">MCSChat · /3p · GitHub Pages SPA 登录</span>
+            <strong data-zh="已建立" data-en="Created">已建立</strong>
+            <span data-zh="/3p 选路 · SPA token · conversation ID" data-en="/3p route · SPA token · conversation ID">/3p 选路 · SPA token · conversation ID</span>
           </div>
         </div>
       </header>
@@ -433,12 +447,34 @@
           </div>
 
           <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span data-zh="2.0 实现前先统一术语" data-en="2.0 Implementation Glossary">2.0 实现前先统一术语</span>
+              </button>
+              <div class="subsection-content">
+                <p data-zh="下列词分别指 transport、runtime、identity 与 measurement；混用会直接导致 endpoint 或 reducer 选错。" data-en="These terms describe transport, runtime, identity, and measurement. Mixing them leads directly to the wrong endpoint or reducer.">下列词分别指 transport、runtime、identity 与 measurement；混用会直接导致 endpoint 或 reducer 选错。</p>
+                <div class="table-scroll">
+                <table class="compare-table">
+                  <thead><tr><th data-zh="术语" data-en="Term">术语</th><th data-zh="本文定义" data-en="Definition in This Article">本文定义</th></tr></thead>
+                  <tbody>
+                    <tr><td>D2E</td><td data-zh="Direct-to-Engine：客户端直接调用 Copilot Studio runtime 的 SSE 集成方式" data-en="Direct-to-Engine: an SSE integration that calls the Copilot Studio runtime directly">Direct-to-Engine：客户端直接调用 Copilot Studio runtime 的 SSE 集成方式</td></tr>
+                    <tr><td>SSE</td><td data-zh="Server-Sent Events：服务器通过一个 HTTP response 持续发送 event frames" data-en="Server-Sent Events: a server sends event frames continuously over one HTTP response">Server-Sent Events：服务器通过一个 HTTP response 持续发送 event frames</td></tr>
+                    <tr><td><code>recognizer</code></td><td data-zh="Agent shape 判据；GenerativeAIRecognizer 对应 Classic，CLIAgentRecognizer 或 CLICopilotRecognizer 对应 New Agent" data-en="The Agent-shape discriminator: GenerativeAIRecognizer for Classic; CLIAgentRecognizer or CLICopilotRecognizer for New Agent">Agent shape 判据；<code>GenerativeAIRecognizer</code> 对应 Classic，<code>CLIAgentRecognizer</code> 或 <code>CLICopilotRecognizer</code> 对应 New Agent</td></tr>
+                    <tr><td><code>published-bot</code></td><td data-zh="Classic Agent 的 D2E runtime family" data-en="The D2E runtime family for Classic agents">Classic Agent 的 D2E runtime family</td></tr>
+                    <tr><td><code>/3p</code></td><td data-zh="New Agent agentic runtime 的第三方 D2E endpoint family" data-en="The third-party D2E endpoint family for the New Agent agentic runtime">New Agent agentic runtime 的第三方 D2E endpoint family</td></tr>
+                    <tr><td>TTFT</td><td data-zh="Time to first token：发送用户消息到收到首个非空答案文本的时间" data-en="Time to first token: elapsed time from sending the user message to receiving the first non-empty answer text">Time to first token：发送用户消息到收到首个非空答案文本的时间</td></tr>
+                  </tbody>
+                </table>
+                </div>
+              </div>
+            </article>
+
             <article class="subsection-item is-open" data-accordion>
               <button class="subsection-toggle">
                 <span>2.1 核心机制：复用 typing 活动承载增量</span>
               </button>
               <div class="subsection-content">
-                <p>livestreaming 不引入新的传输协议，而是复用既有的 <code>typing</code> 活动来携带渐进正文，最后用一条 <code>message</code> 封口。整个会话用 <code>streamId</code> 标识，<code>streamSequence</code> 递增用于丢弃乱序片段。</p>
+                <p>Direct Line livestreaming 复用既有的 <code>typing</code> 活动携带渐进正文，通常由终止 <code>message</code> 收口。同一条流式回答用 <code>streamId</code> 标识；conversation 由独立的 conversation ID 管理。<code>streamSequence</code> 递增用于丢弃乱序片段。</p>
                 <div class="arch-flow arch-flow-5col">
                   <div class="arch-block arch-block-orange">informative<br/><span class="arch-hint">typing · "正在搜索…"</span></div>
                   <div class="arch-arrow">→</div>
@@ -446,7 +482,7 @@
                   <div class="arch-arrow">→</div>
                   <div class="arch-block arch-block-teal">final<br/><span class="arch-hint">message · 完整封口</span></div>
                 </div>
-                <p class="caption-muted">片段的 <code>text</code> 携带「截至当前的累积全文」，后一条整体替换前一条；这让客户端即使丢包或中途加入也能追上。</p>
+                <p class="caption-muted">片段的文本编码不能一概而论：可能是 delta，也可能是 snapshot / full-text-so-far。客户端应先读取 <code>chunkType</code>，再按运行时选择 append 或 replace；New Agent /3p 在未明确标记 delta 时按 authoritative snapshot 处理。</p>
               </div>
             </article>
 
@@ -483,6 +519,7 @@
               </button>
               <div class="subsection-content">
                 <p>官方明确 livestreaming 的通道要求，这决定了客户端这边能不能收到：</p>
+                <div class="table-scroll">
                 <table class="compare-table">
                   <thead>
                     <tr><th>通道</th><th>是否支持</th><th>原因</th></tr>
@@ -494,6 +531,7 @@
                     <tr><td>Teams</td><td><span class="status-badge badge-ok">支持</span></td><td>原生支持</td></tr>
                   </tbody>
                 </table>
+                </div>
                 <p class="caption-muted">MCSChat 已使用 <code>webSocket: true</code> 的 Direct Line，满足客户端前提——所以「收不到流式」不能归因于通道选错。</p>
               </div>
             </article>
@@ -535,7 +573,7 @@
 
                 <p class="mt-14"><strong>② Classic Agent D2E</strong> — published-bot runtime 使用 <code>/copilotstudio/dataverse-backed/authenticated/bots/{schema}</code> 与 <code>api-version=2022-03-01-preview</code>。这是公开 SDK 默认构造的地址。</p>
 
-                <p class="mt-14"><strong>③ New Agent D2E</strong> — <code>CLIAgentRecognizer</code> / <code>CLICopilotRecognizer</code> 必须改走 <code>/copilotstudio/agenticruntime/3p/dataverse-backed/authenticated/bots/{schema}</code> 与 <code>api-version=1</code>。微软官方插件 PR #26 已端到端验证每轮约 25 个累积 typing 片段；Microsoft Learn 仍标注 New Experience 尚未被 Client Library 正式支持，因此生产采用需要把技术可用与正式支持分开评估。</p>
+                <p class="mt-14"><strong>③ New Agent D2E</strong> — <code>CLIAgentRecognizer</code> / <code>CLICopilotRecognizer</code> 必须改走 <code>/copilotstudio/agenticruntime/3p/dataverse-backed/authenticated/bots/{schema}</code> 与 <code>api-version=1</code>。微软官方插件 PR #26 已端到端验证每轮约 25 个 progressive typing 片段；Microsoft Learn 仍标注 New Experience 尚未被 Client Library 正式支持，因此生产采用需要把技术可用与正式支持分开评估。</p>
 
                 <p class="mt-14"><strong>④ 客户端模拟（打字机）</strong> — 在 Web Chat 的 activity middleware 拦截最终 <code>message</code>，按字符切片逐步更新气泡。<strong>优</strong>：不依赖服务端下发、不需登录、改动最小。<strong>劣</strong>：不降低真实 TTFT，纯视觉效果。</p>
 
@@ -585,7 +623,7 @@
                   <tbody>
                     <tr><td>IVA</td><td>Topic 驱动</td><td>1 条完整 message；typing 无元数据</td></tr>
                     <tr><td>Storyteller</td><td>纯 instructions 生成式</td><td>501 字一次性返回；typing 无元数据</td></tr>
-                    <tr><td>UniversalStudio Campus</td><td>生成式回答 + 知识库（RAG）</td><td>~34s 后 19149 字一次性返回；typing 无元数据</td></tr>
+                    <tr><td>UniversalStudio Campus</td><td>生成式回答 + 知识库（RAG）</td><td>~34s 后 1335 字一次性返回；9 条 typing 均无正文和流式元数据</td></tr>
                   </tbody>
                 </table>
                 <p class="caption-muted">三种最该出现流式的场景全部覆盖，原始活动流中从未出现流式标记。</p>
@@ -597,7 +635,7 @@
                 <span>4.2 原始 activity 证据（RAG 长回答这一轮）</span>
               </button>
               <div class="subsection-content">
-                <p>对 1000 字以上的 RAG 长回答，Direct Line 共返回 17 条活动：16 条 <code>typing</code> + 1 条 <code>message</code>。typing 全部无文本、无元数据，message 文本长度 19149。</p>
+                <p>对该次 RAG 长回答，Direct Line 共返回 10 条活动：9 条 <code>typing</code> + 1 条 <code>message</code>。9 条 typing 全部无正文、无流式元数据；最终 message 文本长度为 1335。</p>
                 <div class="code-block">// 典型 typing（keep-alive，无任何流式字段）
 {
   "type": "typing",
@@ -611,17 +649,14 @@
 // 最终 message（一次性完整正文）
 {
   "type": "message",
-  "textLength": 19149,
+  "textLength": 1335,
   "textFormat": "markdown",
   "channelData": { "feedbackLoop": { "type": "default" } },
-  "entities": [
-    { "type": "https://schema.org/Message", "citation": [ /* 5 条 */ ] },
-    { "type": "thought" }
-  ]
+  "entities": []
   // entities 里没有 type === "streaminfo"
 }</div>
                 <div class="finding finding-warn">
-                  <strong>递归扫描结果：</strong>对全部 17 条活动搜索 <code>stream / streaming / informative / streaminfo</code>，唯一命中是最终 message 正文里自然出现的英文单词。没有任何元数据字段或 <code>streaminfo</code> 实体命中。
+                  <strong>递归扫描结果：</strong>对全部 10 条活动搜索 <code>stream / streaming / informative / streaminfo</code>，没有元数据字段或 <code>streaminfo</code> 实体命中。
                 </div>
               </div>
             </article>
@@ -631,7 +666,7 @@
                 <span>4.3 后台设置核对：没有「streaming 开关」</span>
               </button>
               <div class="subsection-content">
-                <p>逐项检查了 agent 的「生成式 AI」设置页：编排、深度推理、模型、回复格式、内容审核、用户反馈、允许无依据回答、Web 搜索、文件上传、代码解释器、增强搜索、租户图谱——<strong>没有任何一项与 streaming / 流式相关</strong>。这佐证了一个判断：流式不是用户可点的开关，而是平台运行时的能力，满足条件时自动产生片段。</p>
+                <p>逐项检查了本文目标 agent 的「生成式 AI」设置页：编排、深度推理、模型、回复格式、内容审核、用户反馈、允许无依据回答、Web 搜索、文件上传、代码解释器、增强搜索与租户图谱。<strong>在这些页面中没有发现 per-agent streaming 开关。</strong>是否下发片段仍需按 runtime、channel、environment 与 rollout 分别验证，不能从设置页反推出平台的完整支持范围。</p>
               </div>
             </article>
 
@@ -644,8 +679,8 @@
         <section id="directengine" class="section" data-reveal>
           <div class="section-head">
             <p class="section-kicker">05 / 转机</p>
-            <h2>Direct Engine：另一条原生支持流式的通道</h2>
-            <p>对接 Copilot Studio 不止 Direct Line 一条路。Microsoft 365 Agents SDK 的 Copilot Studio Client 使用的是另一套协议，源码里就内置了流式处理。</p>
+            <h2>Direct Engine：SDK 提供 SSE 流式 API，运行时仍需实测</h2>
+            <p>对接 Copilot Studio 不止 Direct Line 一条路。Microsoft 365 Agents SDK 的 Copilot Studio Client 提供 SSE AsyncGenerator API；API 存在证明客户端具备消费能力，不等同于每个 Agent、环境和 runtime 都会下发 progressive 片段。</p>
           </div>
 
           <div class="subsection-accordion">
@@ -662,7 +697,7 @@
                     <tr><td>Direct Line 3.0（当前）</td><td>WebSocket / 轮询</td><td><span class="status-badge badge-warn">取决于服务端下发</span></td></tr>
                     <tr><td>iframe 嵌入（demo / live 站点）</td><td>内部仍是 Direct Line + WebChat</td><td><span class="status-badge badge-warn">同上</span></td></tr>
                     <tr><td>Direct Line REST（C# SDK）</td><td>HTTP 轮询</td><td><span class="status-badge badge-fail">否</span></td></tr>
-                    <tr><td><strong>Agents SDK — Copilot Studio Client</strong></td><td><strong>Direct Engine（SSE）</strong></td><td><span class="status-badge badge-ok">原生支持</span></td></tr>
+                    <tr><td><strong>Agents SDK — Copilot Studio Client</strong></td><td><strong>Direct Engine（SSE）</strong></td><td><span class="status-badge badge-ok">API 已提供</span> · 是否下发需实测</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -670,10 +705,10 @@
 
             <article class="subsection-item" data-accordion>
               <button class="subsection-toggle">
-                <span>5.2 源码证据：客户端内置 streaminfo 累积</span>
+                <span>5.2 源码证据：客户端分别解析 stream、thought 与 toolCall</span>
               </button>
               <div class="subsection-content">
-                <p><code>@microsoft/agents-copilotstudio-client</code> 通过 <code>text/event-stream</code>（SSE）逐条 yield 活动，并主动识别流式实体、按 <code>streamId</code> + <code>streamSequence</code> 累积文本——新老两种格式（entities 与 channelData）都兼容：</p>
+                <p><code>@microsoft/agents-copilotstudio-client</code> 通过 <code>text/event-stream</code>（SSE）逐条 yield 活动。stream metadata 决定答案生命周期；<code>thought</code> entity 承载 reasoning 文本；<code>toolCall</code> entity 承载工具 started / completed 生命周期。三者必须独立归一化，不能混成一组进度行。stream metadata 可位于 entities 或 channelData：</p>
                 <div class="code-block">const streamingEntity = activity.entities?.find(
   e =&gt; e.type === 'streaminfo' &amp;&amp; e.streamType === 'streaming'
 )
@@ -772,7 +807,7 @@ case ActivityTypes.Typing:
                     <tr><td>Classic Agent URL</td><td><code>https://{envHost}/copilotstudio/dataverse-backed/authenticated/bots/{schema}/conversations?api-version=2022-03-01-preview</code></td></tr>
                     <tr><td>New Agent URL</td><td><code>https://{envHost}/copilotstudio/agenticruntime/3p/dataverse-backed/authenticated/bots/{schema}/conversations?api-version=1</code></td></tr>
                     <tr><td>Token audience</td><td><code>https://api.powerplatform.com/.default</code></td></tr>
-                    <tr><td>所需委托权限</td><td><code>CopilotStudio.Copilots.Invoke</code></td></tr>
+                    <tr><td>本文成功链路的委托权限</td><td>至少包含 <code>CopilotStudio.Copilots.Invoke</code>；若仍返回 403，以 response body 列出的缺失权限为准</td></tr>
                     <tr><td>传输</td><td>SSE（<code>Accept: text/event-stream</code>）</td></tr>
                   </tbody>
                 </table>
@@ -788,7 +823,7 @@ case ActivityTypes.Typing:
           <div class="section-head">
             <p class="section-kicker">07 / Runbook</p>
             <h2>Direct Engine 配置实操：从 App 注册到流式调用</h2>
-            <p>§6 已证明端点可达；其捷径测试触发的 403 揭示了正规路径需 <code>CopilotStudio.Copilots.Invoke</code> 委托权限。本节把 §8.2 的高层路径展开为可照做的步骤：前四步在 Azure / Entra 完成应用注册与委托授权，后两步在前端取 token 并发起 SSE 流式调用。下文截图均在 Entra 管理中心实拍（账户与具体 ID 已打码）。</p>
+            <p>§6 已证明端点可达；其捷径测试触发的 403 揭示了正规路径需 <code>CopilotStudio.Copilots.Invoke</code> 委托权限。以下步骤先在 Azure / Entra 完成应用注册与委托授权，再在前端取 token、选择运行时 endpoint 并发起 SSE 调用。截图均来自 Entra 管理中心，账户与具体 ID 已打码。</p>
           </div>
 
           <div class="subsection-accordion">
@@ -934,6 +969,13 @@ https://{envHost}/copilotstudio/dataverse-backed/authenticated
 // New Agent: cliagent-1.0.0 / CLICopilotRecognizer
 https://{envHost}/copilotstudio/agenticruntime/3p/dataverse-backed/authenticated
   /bots/{schemaName}?api-version=1</div>
+                <p class="mt-14">Prod / First Release 环境的 host 可由 Environment ID 计算；其他 sovereign / test cloud 的 suffix 长度与域名不同，应交给官方 SDK 的 cloud resolver：</p>
+                <div class="code-block">function prodEnvironmentHost(environmentId) {
+  const id = environmentId.toLowerCase().replaceAll('-', '')
+  const prefix = id.slice(0, -2)
+  const suffix = id.slice(-2)
+  return `${prefix}.${suffix}.environment.api.powerplatform.com`
+}</div>
               </div>
             </article>
 
@@ -942,7 +984,7 @@ https://{envHost}/copilotstudio/agenticruntime/3p/dataverse-backed/authenticated
                 <span>7.6 步骤六 · 取 token 并发起流式调用</span>
               </button>
               <div class="subsection-content">
-                <p>浏览器侧用 MSAL 走 PKCE 取一个带 <code>.Invoke</code> 的 token，再交给 Copilot Studio Client 发起 SSE 流式会话。scope 必须指向 Power Platform API 的 Invoke 权限：</p>
+                <p>浏览器侧用 MSAL 走 PKCE 请求 Power Platform API 的 <code>.default</code> scope；该 scope 只会把租户中已经授予此 SPA 的 delegated permissions 放进 token，因此步骤三必须预先授予 <code>CopilotStudio.Copilots.Invoke</code>。</p>
                 <div class="code-block">import { PublicClientApplication } from '@azure/msal-browser'
 import { CopilotStudioClient, ConnectionSettings }
   from '@microsoft/agents-copilotstudio-client'
@@ -956,9 +998,8 @@ const pca = new PublicClientApplication({
 })
 await pca.initialize()
 
-// 关键：scope 指向 Power Platform API 的 Invoke 权限
 const { accessToken } = await pca.acquireTokenPopup({
-  scopes: ['https://api.powerplatform.com/CopilotStudio.Copilots.Invoke'],
+  scopes: ['https://api.powerplatform.com/.default'],
 })
 
 const isNewAgent = recognizerKind === 'CLIAgentRecognizer'
@@ -974,14 +1015,25 @@ const settings = new ConnectionSettings({ directConnectUrl, cloud: 'Prod' })
 
 const client = new CopilotStudioClient(settings, accessToken)
 
-// SSE 流式：逐条 yield activity，typing 段携带 streaminfo 片段
-for await (const activity of client.startConversationStreaming()) {
-  if (activity.type === 'typing') {
-    // 按 streamId + streamSequence 累积片段（见 §5.2）
-  }
+let conversationId
+for await (const activity of client.startConversationStreaming({
+  emitStartConversationEvent: true,
+})) {
+  conversationId ||= activity.conversation?.id || client.conversationId
+}
+
+const message = {
+  type: 'message',
+  text: 'Explain what this agent can help with.',
+  conversation: { id: conversationId },
+}
+
+// 建立会话后还必须发送用户消息，才能复现答案 streaming
+for await (const activity of client.sendActivityStreaming(message, conversationId)) {
+  reduceTurnActivity(activity)
 }</div>
                 <div class="finding">
-                  <strong>冒烟验证：</strong>临时核对 token 可用 <code>az account get-access-token --scope https://api.powerplatform.com/CopilotStudio.Copilots.Invoke</code>；但 az CLI 第一方客户端未必持有 <code>.Invoke</code>（这正是 §6.2 拿到 <code>.Test</code> 的原因），正式链路应走本应用的 MSAL token。
+                  <strong>Token 完成判据：</strong>检查本应用通过 MSAL 取得的 access token：<code>aud</code> 应指向 Power Platform API，<code>scp</code> 应包含 <code>CopilotStudio.Copilots.Invoke</code>。不要用 Azure CLI 第一方客户端的 token 代替，也不要把 access token 上传到外部解码网站。
                 </div>
               </div>
             </article>
@@ -995,8 +1047,8 @@ for await (const activity of client.startConversationStreaming()) {
                   <thead><tr><th>现象</th><th>原因</th><th>处理</th></tr></thead>
                   <tbody>
                     <tr><td><span class="status-badge badge-fail">403</span> InsufficientDelegatedPermissions</td><td>漏加 <code>.Invoke</code> 或未 Grant admin consent</td><td>回步骤三补权限并完成管理员同意</td></tr>
-                    <tr><td><span class="status-badge badge-fail">401</span> Unauthorized</td><td>token audience / scope 不对</td><td>scope 用 <code>api.powerplatform.com/CopilotStudio.Copilots.Invoke</code></td></tr>
-                    <tr><td><code>AADSTS50011</code></td><td>当前页面 origin 未注册为 SPA redirect URI</td><td>在 Entra 逐字注册 origin；路径不参与匹配</td></tr>
+                    <tr><td><span class="status-badge badge-fail">401</span> Unauthorized</td><td>token audience 不对或 token 已过期</td><td>MSAL scope 使用 <code>https://api.powerplatform.com/.default</code></td></tr>
+                    <tr><td><code>AADSTS50011</code></td><td>请求中的 <code>redirectUri</code> 未注册为 SPA redirect URI</td><td>MCSChat 设置 <code>redirectUri = window.location.origin</code>，因此注册 exact origin；若应用配置包含路径，则协议、主机、端口、路径和尾斜杠都必须与实际值完全一致</td></tr>
                     <tr><td>搜不到 Power Platform API</td><td>租户未注册其服务主体</td><td><code>az ad sp create --id 8578e004-a5c6-46e7-913e-12f58912df43</code></td></tr>
                     <tr><td>MSAL 重定向报错</td><td>Redirect URI 与前端回调不一致</td><td>步骤四逐字核对端口与尾斜杠</td></tr>
                     <tr><td><code>new-generation ... not supported</code></td><td>New Agent 被发送到 Classic runtime</td><td>改用 <code>/agenticruntime/3p</code> 与 <code>api-version=1</code></td></tr>
@@ -1009,62 +1061,122 @@ for await (const activity of client.startConversationStreaming()) {
 
             <article class="subsection-item" data-accordion>
               <button class="subsection-toggle">
-                <span>7.8 进阶：静默登录与「匿名 agent」的收尾</span>
+                <span>7.8 调用身份的证据边界</span>
               </button>
               <div class="subsection-content">
-                <p>前面六步配通后，常见的下一个诉求是：<strong>agent 本身是匿名的，能不能让用户连登录这一步都省掉？</strong>这里要先拆开一个被反复混淆的点。</p>
-
-                <div class="finding finding-warn">
-                  <strong>结构性事实：Direct Engine 没有「匿名版」。</strong>看 §6.3 的连接 URL，路径里写死了 <code>/authenticated/</code>；而本文授的 <code>CopilotStudio.Copilots.Invoke</code> 是 <em>Delegated（委托）</em> 权限——即「以某个登录用户的身份调用」，<strong>它没有 Application（应用级）版本</strong>。所以无法用「纯后端、零用户」的方式调用 Direct Engine。
-                </div>
-
-                <p class="mt-14">因此「agent 匿名」和「Direct Engine 调用需要用户 token」是两件不冲突、但必须分开的事：agent 匿名指它不校验<em>对话者</em>身份；而 Direct Engine 这个<em>传输通道</em>仍要求<em>调用方</em>持有一个用户 token。先按你的真实诉求选路线：</p>
-
-                <table class="compare-table">
-                  <thead><tr><th>真实诉求</th><th>方案</th><th>原生流式</th></tr></thead>
-                  <tbody>
-                    <tr><td><strong>A · 真·匿名</strong>：公网任何人都能用，根本没有账号</td><td>回到 Direct Line + 后端发匿名 token</td><td><span class="status-badge badge-fail">否</span> · 回到 §4 模拟流式</td></tr>
-                    <tr><td><strong>B · 静默 SSO</strong>：用户其实是公司内已登录的人，只是不想再弹登录框</td><td>MSAL 静默取 token</td><td><span class="status-badge badge-ok">保留</span></td></tr>
-                    <tr><td><strong>C · 公网匿名感 + 要流式</strong>：对外不弹登录，底层借一个固定身份</td><td>后端服务账号代取 token + SSE 代理</td><td><span class="status-badge badge-ok">保留</span></td></tr>
-                  </tbody>
-                </table>
-
-                <p class="mt-14"><strong>路线 B · MSAL 静默 SSO</strong>——把 §7.6 的 <code>acquireTokenPopup</code> 换成「先试静默、失败再兜底」。对<em>已登录</em>的公司用户完全无感；对没有 Entra 会话的公网访客，静默必然失败、仍要兜底交互。</p>
-                <div class="code-block">const req = { scopes: ['https://api.powerplatform.com/CopilotStudio.Copilots.Invoke'] }
-let result
-try {
-  // 用户在本租户已有 Entra 会话 → 完全无感、不弹框
-  result = await pca.ssoSilent({ ...req, loginHint })   // 或对已缓存 account 用 acquireTokenSilent
-} catch (e) {
-  // 纯公网访客、无现成会话 → 只能兜底交互
-  result = await pca.acquireTokenPopup(req)
-}</div>
-                <p class="caption-muted">这条路解决的是「少弹一次框」，不是「匿名」——它对已登录用户免提示，但无法让无账号访客零登录。</p>
-
-                <p class="mt-14"><strong>路线 C · 后端服务账号代取 token</strong>——用一个专用服务账号（confidential client，存 secret/证书 + 该账号的 refresh token）放后端静默续 token；浏览器<em>不直接拿 token</em>，改走你的后端代理转发 SSE。所有访客共用这一个身份，对匿名 agent 正合适。</p>
-                <div class="code-block">浏览器 ──(无需登录)──▶ 你的后端 ──(服务账号 token)──▶ Direct Engine SSE</div>
-                <ul class="challenge-list mt-14">
-                  <li><strong>优点</strong> — 前端零登录、token 不下发浏览器，更安全。</li>
-                  <li><strong>代价</strong> — 平台侧看到的都是同一个身份，限流/防滥用要后端自己扛；首个 refresh token 仍需该服务账号登录一次。</li>
-                  <li><strong>避坑</strong> — 别用 ROPC（username/password 流）图省事，它与 MFA / 条件访问不兼容且正被弃用。</li>
-                </ul>
-
-                <p class="mt-14"><strong>路线 A · 回到 Direct Line 匿名 token</strong>——若诉求就是「公网谁都能用、绝不登录」，Direct Engine 不适合：后端用 Direct Line secret 换一个匿名会话 token 给前端，用户全程零登录。代价正是 §4 已证明的——该环境 Direct Line 不下发流式，只能继续模拟流式。</p>
-
-                <div class="finding">
-                  <strong>选型建议：</strong>对外公网无账号 → 选 <strong>A</strong>，接受模拟流式（即 MCSChat 现状，最省事）；公司内部、用户本就登了 Entra → 选 <strong>B</strong>，几行代码免提示且保留真流式；既要对外不弹登录又要真流式 → 只能上 <strong>C</strong>，但需承担后端代理与防滥用的工程量。
-                </div>
+                <p data-zh="本文验证的是 delegated user-token 调用链路：浏览器 SPA 通过 MSAL 获取携带 CopilotStudio.Copilots.Invoke 的 token，再调用 D2E SSE endpoint。本文没有验证 application-permission、匿名调用或服务账号代理路径，因此不对这些路径作可用性结论。" data-en="This article validates the delegated user-token path: a browser SPA acquires a token carrying CopilotStudio.Copilots.Invoke through MSAL and calls the D2E SSE endpoint. It does not validate application permissions, anonymous invocation, or service-account proxy patterns, so it makes no availability claim for those paths.">本文验证的是 delegated user-token 调用链路：浏览器 SPA 通过 MSAL 获取携带 <code>CopilotStudio.Copilots.Invoke</code> 的 token，再调用 D2E SSE endpoint。本文没有验证 application-permission、匿名调用或服务账号代理路径，因此不对这些路径作可用性结论。</p>
+                <div class="finding finding-warn"><strong data-zh="不要从 /authenticated/ 字面推导完整支持矩阵。" data-en="Do not infer the complete support matrix from the /authenticated/ path name.">不要从 <code>/authenticated/</code> 字面推导完整支持矩阵。</strong><span data-zh="生产架构应以 Microsoft Learn、目标租户的权限清单和一次真实 token exchange 为准。" data-en="For production architecture, rely on Microsoft Learn, the target tenant's permission catalog, and a real token exchange.">生产架构应以 Microsoft Learn、目标租户的权限清单和一次真实 token exchange 为准。</span></div>
               </div>
             </article>
           </div>
         </section>
 
         <!-- ═══════════════════════════════════════════════ -->
-        <!-- 08 / 结论 -->
+        <!-- 08 / 消息处理 -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <section id="message-processing" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="08 / 消息处理" data-en="08 / Message Processing">08 / 消息处理</p>
+            <h2 data-zh="New Agent 活动必须先按 turn 归一化，再进入 UI" data-en="Normalize New Agent Activities by Turn Before Rendering">New Agent 活动必须先按 turn 归一化，再进入 UI</h2>
+            <p data-zh="/agenticruntime/3p 返回的内容比 Classic livestreaming 更丰富：一轮中可能交错出现 thought、informative、toolCall、answer snapshot 与 final。activity 到一条就追加一个 DOM 节点会产生断句、重复正文、空气泡和进度后置。正确边界是先维护 TurnState，再分别更新 Work panel 与主答案气泡。" data-en="The /agenticruntime/3p stream is richer than Classic livestreaming: thought, informative, toolCall, answer snapshots, and final activities can interleave within one turn. Appending one DOM node per activity causes fragmented reasoning, duplicated answer text, blank bubbles, and progress shown after the answer. Maintain a TurnState first, then update the Work panel and answer bubble separately.">/agenticruntime/3p 返回的内容比 Classic livestreaming 更丰富：一轮中可能交错出现 thought、informative、toolCall、answer snapshot 与 final。activity 到一条就追加一个 DOM 节点会产生断句、重复正文、空气泡和进度后置。正确边界是先维护 TurnState，再分别更新 Work panel 与主答案气泡。</p>
+          </div>
+
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle">
+                <span data-zh="8.1 Raw activity 到 UI 的映射规则" data-en="8.1 Raw-Activity-to-UI Mapping Rules">8.1 Raw activity 到 UI 的映射规则</span>
+              </button>
+              <div class="subsection-content">
+                <p data-zh="先按语义分类，再决定显示位置；transport 字段本身不应直接决定 DOM 数量。" data-en="Classify by semantics before choosing a rendering surface; transport fields must not directly determine the number of DOM nodes.">先按语义分类，再决定显示位置；transport 字段本身不应直接决定 DOM 数量。</p>
+                <div class="table-scroll">
+                <table class="compare-table">
+                  <thead><tr><th data-zh="Raw activity" data-en="Raw Activity">Raw activity</th><th data-zh="归一化事件" data-en="Normalized Event">归一化事件</th><th data-zh="更新位置" data-en="Rendering Target">更新位置</th><th data-zh="关键规则" data-en="Rule">关键规则</th></tr></thead>
+                  <tbody>
+                    <tr><td><code>entities[type=thought]</code></td><td><code>reasoningUpdate</code></td><td data-zh="Work panel 的一个 reasoning 段落" data-en="One reasoning paragraph in the Work panel">Work panel 的一个 reasoning 段落</td><td data-zh="合并快照与片段，不创建 checklist item" data-en="Merge snapshots and fragments; never create checklist items">合并快照与片段，不创建 checklist item</td></tr>
+                    <tr><td><code>streamType=informative</code></td><td><code>stageUpdate</code></td><td data-zh="Work panel 的 stage 列表" data-en="Stage list in the Work panel">Work panel 的 stage 列表</td><td data-zh="同一阶段原位更新，晚到状态仍留在答案前" data-en="Update the same stage in place; late status remains before the answer">同一阶段原位更新，晚到状态仍留在答案前</td></tr>
+                    <tr><td><code>entities[type=toolCall]</code></td><td><code>toolUpdate</code></td><td data-zh="Work panel 的工具行" data-en="Tool row in the Work panel">Work panel 的工具行</td><td data-zh="按 tool_call_id 合并 started / completed" data-en="Merge started and completed by tool_call_id">按 <code>tool_call_id</code> 合并 started / completed</td></tr>
+                    <tr><td><code>typing + streaming</code></td><td><code>answerSnapshot</code></td><td data-zh="唯一答案气泡" data-en="The single answer bubble">唯一答案气泡</td><td data-zh="MCSChat /3p reducer：streaminfo 或 channelData 的 chunkType === delta 才 append；其余 chunk 先按 snapshot replace" data-en="MCSChat /3p reducer: append only when streaminfo or channelData has chunkType === delta; otherwise replace the snapshot">MCSChat /3p reducer：streaminfo 或 channelData 的 <code>chunkType === 'delta'</code> 才 append；其余 chunk 先按 snapshot replace</td></tr>
+                    <tr><td><code>message / streamType=final</code></td><td><code>answerFinal</code></td><td data-zh="同一答案气泡" data-en="The same answer bubble">同一答案气泡</td><td data-zh="final text 是权威正文；精确重复 final 丢弃" data-en="Final text is authoritative; drop exact duplicate finals">final text 是权威正文；精确重复 final 丢弃</td></tr>
+                    <tr><td data-zh="空 streaming / 空 final" data-en="Empty streaming / empty final">空 streaming / 空 final</td><td><code>noContent / cancel</code></td><td data-zh="不创建或移除未完成气泡" data-en="Do not create, or remove, an unfinished bubble">不创建或移除未完成气泡</td><td data-zh="无正文、附件或 action 时不显示 metadata；Work panel 可折叠保留为 trace" data-en="Do not show metadata without text, attachments, or actions; the Work panel may remain as a collapsed trace">无正文、附件或 action 时不显示 metadata；Work panel 可折叠保留为 trace</td></tr>
+                  </tbody>
+                </table>
+                </div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span data-zh="8.2 TurnState 与状态转换" data-en="8.2 TurnState and State Transitions">8.2 TurnState 与状态转换</span>
+              </button>
+              <div class="subsection-content">
+                <p data-zh="所有到达顺序差异都收敛到一个 turn-level state；UI 只订阅 state 变化，不直接订阅 raw activity。" data-en="All arrival-order differences converge into one turn-level state. The UI subscribes to state changes rather than raw activities.">所有到达顺序差异都收敛到一个 turn-level state；UI 只订阅 state 变化，不直接订阅 raw activity。</p>
+                <div class="code-block">TurnState {
+  phase: 'working' | 'streaming' | 'completed' | 'cancelled'
+  startedAt: number
+  reasoningText: string
+  stages: Map&lt;stageId, { label, status, durationMs? }&gt;
+  answerText: string
+  answerState?: { streamAliases, lastSequence, chunkCount }
+  finalText?: string
+}</div>
+                <ol class="flow-list mt-14">
+                  <li class="flow-step"><div class="flow-copy"><strong data-zh="1 · Working" data-en="1 · Working">1 · Working</strong><p data-zh="首个 thought、informative 或 toolCall 创建 Work panel；reasoning 更新同一段落，stage 按 ID 原位更新。" data-en="The first thought, informative, or toolCall event creates the Work panel. Reasoning updates one paragraph; stages update in place by ID.">首个 thought、informative 或 toolCall 创建 Work panel；reasoning 更新同一段落，stage 按 ID 原位更新。</p></div></li>
+                  <li class="flow-step"><div class="flow-copy"><strong data-zh="2 · Answer Streaming" data-en="2 · Answer Streaming">2 · Answer Streaming</strong><p data-zh="首个非空 answer snapshot 只负责延迟创建唯一答案气泡。可以折叠 Work panel 减少视觉干扰，但不能据此把 active tool 或 stage 伪造为 done。临时 stream key 与后续真实 streamId 绑定到同一 answer state。" data-en="The first non-empty answer snapshot only lazily creates the single answer bubble. The Work panel may collapse to reduce visual noise, but active tools or stages must not be fabricated as done. A temporary stream key and the later real streamId alias the same answer state.">首个非空 answer snapshot 只负责延迟创建唯一答案气泡。可以折叠 Work panel 减少视觉干扰，但不能据此把 active tool 或 stage 伪造为 done。临时 stream key 与后续真实 streamId 绑定到同一 answer state。</p></div></li>
+                  <li class="flow-step"><div class="flow-copy"><strong data-zh="3 · Completed / Cancelled" data-en="3 · Completed / Cancelled">3 · Completed / Cancelled</strong><p data-zh="终止 message 或显式 final 写入权威正文并关闭 answer state。只有收到 tool/stage completed 或 turn final 后，相关 stage 才能标记 done；此时面板改为 Worked for Ns 并自动折叠。contentless final 在没有可渲染正文时取消未完成答案；晚到 answer chunk 直接丢弃。" data-en="A terminal message or explicit final writes the authoritative text and closes the answer state. Mark a stage done only after its completed event or the turn final; then change the panel to Worked for Ns and collapse it. A contentless final cancels an unfinished answer when no renderable content exists; late answer chunks are dropped.">终止 message 或显式 final 写入权威正文并关闭 answer state。只有收到 tool/stage completed 或 turn final 后，相关 stage 才能标记 done；此时面板改为 <code>Worked for Ns</code> 并自动折叠。contentless final 在没有可渲染正文时取消未完成答案；晚到 answer chunk 直接丢弃。</p></div></li>
+                </ol>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span data-zh="8.3 Thought reducer 与 stage reducer" data-en="8.3 Thought and Stage Reducers">8.3 Thought reducer 与 stage reducer</span>
+              </button>
+              <div class="subsection-content">
+                <p data-zh="thought entity 没有稳定 ID 或 sequence，不能把每次返回当成独立步骤。reducer 必须同时处理累计快照、修订快照、重叠片段与新片段。" data-en="Thought entities have no stable ID or sequence, so each payload cannot become an independent step. The reducer must handle cumulative snapshots, revised snapshots, overlapping fragments, and new fragments.">thought entity 没有稳定 ID 或 sequence，不能把每次返回当成独立步骤。reducer 必须同时处理累计快照、修订快照、重叠片段与新片段。</p>
+                <div class="table-scroll">
+                <table class="compare-table">
+                  <thead><tr><th data-zh="文本关系" data-en="Text Relationship">文本关系</th><th data-zh="处理" data-en="Action">处理</th><th data-zh="目的" data-en="Purpose">目的</th></tr></thead>
+                  <tbody>
+                    <tr><td data-zh="完全相同" data-en="Exact match">完全相同</td><td data-zh="忽略" data-en="Ignore">忽略</td><td data-zh="去除重发" data-en="Remove retransmission">去除重发</td></tr>
+                    <tr><td><code>incoming.includes(current)</code></td><td data-zh="incoming 替换 current" data-en="Replace current with incoming">incoming 替换 current</td><td data-zh="累计增长" data-en="Cumulative growth">累计增长</td></tr>
+                    <tr><td data-zh="共同前缀较长但后文变化" data-en="Long common prefix with revised suffix">共同前缀较长但后文变化</td><td data-zh="incoming 替换 current" data-en="Replace current with incoming">incoming 替换 current</td><td data-zh="接受运行时修订" data-en="Accept runtime revision">接受运行时修订</td></tr>
+                    <tr><td data-zh="current 尾部与 incoming 头部重叠" data-en="Current suffix overlaps incoming prefix">current 尾部与 incoming 头部重叠</td><td data-zh="只追加非重叠部分" data-en="Append only the non-overlapping part">只追加非重叠部分</td><td data-zh="合并句子碎片" data-en="Join sentence fragments">合并句子碎片</td></tr>
+                    <tr><td data-zh="无可识别关系" data-en="No recognizable relationship">无可识别关系</td><td data-zh="按空格或标点接入同一 transcript" data-en="Join into the same transcript with spacing or punctuation">按空格或标点接入同一 transcript</td><td data-zh="避免创建伪 action item" data-en="Avoid false action items">避免创建伪 action item</td></tr>
+                  </tbody>
+                </table>
+                </div>
+                <div class="finding"><strong data-zh="Stage reducer：" data-en="Stage reducer: ">Stage reducer：</strong><span data-zh="toolCall 与 informative 共用一个 stages 容器。有 tool_call_id 时用该 ID；没有 ID 的 informative 先转小写、去掉首尾空白、末尾省略号和 Calling / Running / Loading、completed / finished 等状态词，再把规范化 label 作为 key。started 显示 spinner，completed 在同一行改为勾选，并可附 duration_ms。" data-en="toolCall and informative updates share one stages container. Use tool_call_id when present. Otherwise lowercase and trim the informative label, remove trailing ellipses and lifecycle words such as Calling, Running, Loading, completed, and finished, then use the normalized label as the key. Show a spinner for started, update the same row to a checkmark for completed, and append duration_ms when available.">toolCall 与 informative 共用一个 stages 容器。有 <code>tool_call_id</code> 时用该 ID；没有 ID 的 informative 先转小写、去掉首尾空白、末尾省略号和 Calling / Running / Loading、completed / finished 等状态词，再把规范化 label 作为 key。started 显示 spinner，completed 在同一行改为勾选，并可附 <code>duration_ms</code>。</span></div>
+              </div>
+            </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span data-zh="8.4 Copilot 风格 Work panel 与验收标准" data-en="8.4 Copilot-Style Work Panel and Acceptance Criteria">8.4 Copilot 风格 Work panel 与验收标准</span>
+              </button>
+              <div class="subsection-content">
+                <p data-zh="Work panel 不是 raw log，也不是主消息列表。它是可折叠的 turn trace：工作时展开；答案开始时可折叠但保留真实 pending/done 状态；收到 turn final 后显示 Worked for Ns 并保持可展开。" data-en="The Work panel is neither a raw log nor the main transcript. It is a collapsible turn trace: open while work is in progress; it may collapse when the answer starts while preserving real pending/done state; after the turn final it shows Worked for Ns and remains expandable.">Work panel 不是 raw log，也不是主消息列表。它是可折叠的 turn trace：工作时展开；答案开始时可折叠但保留真实 pending/done 状态；收到 turn final 后显示 <code>Worked for Ns</code> 并保持可展开。</p>
+                <table class="compare-table">
+                  <thead><tr><th data-zh="验收项" data-en="Acceptance Check">验收项</th><th data-zh="通过条件" data-en="Pass Condition">通过条件</th></tr></thead>
+                  <tbody>
+                    <tr><td data-zh="Reasoning" data-en="Reasoning">Reasoning</td><td data-zh="任意数量 thought chunks 最终只对应一个连续 paragraph" data-en="Any number of thought chunks produces one continuous paragraph">任意数量 thought chunks 最终只对应一个连续 paragraph</td></tr>
+                    <tr><td data-zh="Stages" data-en="Stages">Stages</td><td data-zh="同一 tool ID 的 started / completed 只有一行，最终状态为 done" data-en="Started and completed for one tool ID share one row whose final state is done">同一 tool ID 的 started / completed 只有一行，最终状态为 done</td></tr>
+                    <tr><td data-zh="Answer" data-en="Answer">Answer</td><td data-zh="一轮只有一个非空答案气泡；final text 与气泡正文完全一致" data-en="A turn has exactly one non-empty answer bubble whose text matches the final text">一轮只有一个非空答案气泡；final text 与气泡正文完全一致</td></tr>
+                    <tr><td data-zh="Ordering" data-en="Ordering">Ordering</td><td data-zh="Work panel 在 DOM 和视觉上均位于 answer 前；晚到状态不能移动答案" data-en="The Work panel precedes the answer in DOM and visual order; late status cannot move the answer">Work panel 在 DOM 和视觉上均位于 answer 前；晚到状态不能移动答案</td></tr>
+                    <tr><td data-zh="Completion" data-en="Completion">Completion</td><td data-zh="结束后显示 Worked for Ns、自动折叠、零 pending spinner" data-en="After completion, show Worked for Ns, collapse automatically, and leave zero pending spinners">结束后显示 <code>Worked for Ns</code>、自动折叠、零 pending spinner</td></tr>
+                  </tbody>
+                </table>
+                <p class="caption-muted" data-zh="MCSChat 的验证页在 ?debug=1 时暴露 query-gated replay hook，可确定性回放累计 thought、碎片 thought、修订 thought、tool started/completed、空 chunk、临时 stream key、重复 final 与晚到事件。回放应逐项满足上表，而不是只看页面是否出现文字。" data-en="With ?debug=1, the MCSChat verification page exposes a query-gated replay hook for deterministic cumulative, fragmented, and revised thought text; tool started/completed; empty chunks; temporary stream keys; duplicate finals; and late events. Replays must satisfy every condition above rather than merely render some text.">MCSChat 的验证页在 <code>?debug=1</code> 时暴露 query-gated replay hook，可确定性回放累计 thought、碎片 thought、修订 thought、tool started/completed、空 chunk、临时 stream key、重复 final 与晚到事件。回放应逐项满足上表，而不是只看页面是否出现文字。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- 09 / 结论 -->
         <!-- ═══════════════════════════════════════════════ -->
         <section id="conclusion" class="section" data-reveal>
           <div class="section-head">
-            <p class="section-kicker">08 / Conclusion</p>
+            <p class="section-kicker">09 / Conclusion</p>
             <h2>结论与后续路径</h2>
             <p>把「支持」与「下发」分开后，事实链条清晰了。</p>
           </div>
@@ -1072,46 +1184,46 @@ try {
           <div class="subsection-accordion">
             <article class="subsection-item is-open" data-accordion>
               <button class="subsection-toggle">
-                <span>8.1 事实结论</span>
+                <span>9.1 事实结论</span>
               </button>
               <div class="subsection-content">
                 <ul>
                   <li><strong>协议层成立</strong>：livestreaming 协议真实存在，微软自家 SDK 就在用 <code>streaminfo</code> / <code>streamType</code>，与 WebChat 文档一致。</li>
-                  <li><strong>Direct Line 通道未下发</strong>：当前环境三类 agent 实测均无流式片段，原始 payload 本身不含协议字段——不是客户端解析问题。</li>
+                  <li><strong>本文实测的 Direct Line 环境未下发</strong>：当前环境三类 agent 实测均无流式片段，原始 payload 本身不含协议字段——不是客户端解析问题，也不能外推为所有 Direct Line 环境都不下发。</li>
                   <li><strong>Web Chat 是渲染层</strong>：Direct Line livestreaming 与 Direct-to-Engine SSE 是两套传输机制，客户端可把两者规范化到同一个消息渲染状态机。</li>
                   <li><strong>Direct Engine 有两个 runtime family</strong>：Classic Agent 使用 published-bot endpoint；New Agent 使用 agentic runtime <code>/3p</code> endpoint。只替换 schema name 不足以切换 Agent 代际。</li>
-                  <li><strong>New Agent D2E 技术路径已验证</strong>：微软官方插件于 2026-07-22 合并 `/3p` streaming 实现并记录每轮约 25 个累积 typing 片段；微软员工独立 playground 于 2026-08-05 记录过 150+ 片段。MCSChat 已在 GitHub Pages 通过 SPA 登录并建立目标 New Agent 会话。</li>
+                  <li><strong>外部证据验证 New Agent /3p progressive streaming</strong>：微软官方插件于 2026-07-22 合并 `/3p` 实现并记录每轮约 25 个 progressive typing 片段；微软员工独立 playground 于 2026-08-05 记录过 150+ progressive 片段。</li>
+                  <li><strong>MCSChat 本地证据边界</strong>：MCSChat 已在 GitHub Pages 验证 /3p 选路、SPA 登录、目标 New Agent 会话建立，以及 thought / toolCall / answer fixture 的归一化行为；本文没有展示 MCSChat 自身的完整生产 activity dump。</li>
                   <li><strong>正式支持边界仍存在</strong>：Microsoft Learn 于 2026-07-27 仍写明 New Experience 尚未被 Copilot Studio Client Library 正式支持；渠道矩阵也把 Native app / Direct Line 标为不可用。<code>/3p</code> 应视为可用的实验性集成路径，而不是 GA 承诺。</li>
-                  <li><strong>不是开关问题</strong>：后台没有 streaming 开关；流式是平台运行时能力。</li>
+                  <li><strong>未发现 per-agent streaming 开关</strong>：在本文检查的 agent 设置页中没有独立 streaming 开关；实际下发仍可能受 runtime、channel、environment 与 rollout 控制。</li>
                 </ul>
               </div>
             </article>
 
             <article class="subsection-item" data-accordion>
               <button class="subsection-toggle">
-                <span>8.2 下一步路径</span>
+                <span>9.2 生产采用门槛</span>
               </button>
               <div class="subsection-content">
                 <ol class="decision-list">
-                  <li><strong>建 Entra 应用注册</strong>：在目标租户创建（或复用）App Registration。</li>
-                  <li><strong>授权委托权限</strong>：API permissions → Power Platform API → CopilotStudio → <code>CopilotStudio.Copilots.Invoke</code>（Delegated），并完成管理员同意。</li>
-                  <li><strong>走 MSAL / PKCE 取 token</strong>：audience 仍为 <code>api.powerplatform.com</code>，拿到带 <code>.Invoke</code> 的 token。</li>
-                  <li><strong>按 Agent shape 生成 base URL</strong>：Classic 使用 published-bot endpoint；New Agent 使用 <code>/agenticruntime/3p</code>。</li>
-                  <li><strong>用 startConversationStreaming() 实测</strong>：记录 SSE 活动数、有效 typing chunk 数、sequence、TTFT 与 final；不要用前端打字机动画判断。</li>
+                  <li><strong>Support gate</strong>：明确接受 <code>/3p</code> 尚未进入 Microsoft Learn 正式 Client Library 支持矩阵；生产 SLA 不能只依赖实验性实现。</li>
+                  <li><strong>Identity gate</strong>：在目标租户完成 delegated permission、admin consent、SPA redirect URI 与真实 token exchange；仅看到登录页不算通过。</li>
+                  <li><strong>Wire gate</strong>：保存一轮完整 ordered activity dump，确认至少包含 conversation ID、首个非空 answer、终止 message/final，以及预期的 thought/toolCall/informative 字段。</li>
+                  <li><strong>UI gate</strong>：确定性 replay 必须满足 §8.4：一个 reasoning transcript、一个答案气泡、tool lifecycle 原位更新、零空气泡、零重复 final、零 pending spinner。</li>
                 </ol>
               </div>
             </article>
 
             <article class="subsection-item" data-accordion>
               <button class="subsection-toggle">
-                <span>8.3 方法论沉淀</span>
+                <span>9.3 证据使用规则</span>
               </button>
               <div class="subsection-content">
                 <ul>
-                  <li><strong>抓地面真相</strong>：争议「是不是解析错了」时，直接订阅最底层的原始数据流，绕过自己的代码。</li>
-                  <li><strong>把声明和事实分开</strong>：文档说「支持」与某环境「实际下发」是两件事，只有原始 payload 能裁决。</li>
-                  <li><strong>读官方源码而非文档措辞</strong>：informative / streaming 到底是 type 还是 streamType，源码里的 schema 一看便知。</li>
-                  <li><strong>403 比 401 信息量大</strong>：精确的权限缺失提示，往往比模糊的「不支持」更接近可执行的下一步。</li>
+                  <li><strong>平台支持声明</strong>：只由 Microsoft Learn、正式 release note 或产品支持矩阵支撑；GitHub PR 和公开样例只能证明实现存在。</li>
+                  <li><strong>环境下发事实</strong>：只由目标环境的 raw ordered activities 支撑；其他租户的 chunk 数不能代替本地 capture。</li>
+                  <li><strong>客户端行为</strong>：由 reducer fixture 和浏览器断言支撑；看到动画不等于服务端 progressive streaming。</li>
+                  <li><strong>错误归因</strong>：403、401、404、AADSTS50011 与 runtime mismatch 分别记录 status、response body、token audience 和 endpoint 后再判断，不把所有失败归为“不支持”。</li>
                 </ul>
               </div>
             </article>
@@ -1130,16 +1242,16 @@ try {
             <li id="ref-1"><span class="bib-id">[1]</span> <span class="bib-author">Microsoft.</span> <a href="https://github.com/microsoft/BotFramework-WebChat/blob/main/docs/LIVESTREAMING.md" target="_blank" rel="noopener noreferrer">"Livestreaming,"</a> <em>BotFramework-WebChat docs,</em> 2025.<span class="bib-note">livestreaming 术语、bot 实现的三种场景（informative / streaming / final）、通道支持矩阵与设计决策。</span></li>
             <li id="ref-2"><span class="bib-id">[2]</span> <span class="bib-author">Microsoft.</span> <a href="https://github.com/microsoft/BotFramework-WebChat/blob/main/packages/core/src/utils/getActivityLivestreamingMetadata.ts" target="_blank" rel="noopener noreferrer">"getActivityLivestreamingMetadata.ts,"</a> <em>BotFramework-WebChat source,</em> 2025.<span class="bib-note">流式元数据的权威 schema：channelData 或 entities[type=streaminfo] 等价、streamType 取值、streamSequence 约束。</span></li>
             <li id="ref-3"><span class="bib-id">[3]</span> <span class="bib-author">Microsoft.</span> <a href="https://www.npmjs.com/package/@microsoft/agents-copilotstudio-client" target="_blank" rel="noopener noreferrer">"@microsoft/agents-copilotstudio-client,"</a> <em>npm,</em> 2026.<span class="bib-note">Direct Engine Protocol 客户端；ConnectionSettings、JWT 认证、CopilotStudio.Copilots.Invoke 权限要求。</span></li>
-            <li id="ref-4"><span class="bib-id">[4]</span> <span class="bib-author">Microsoft.</span> <a href="https://github.com/microsoft/Agents-for-js/blob/main/packages/agents-copilotstudio-client/src/copilotStudioClient.ts" target="_blank" rel="noopener noreferrer">"copilotStudioClient.ts,"</a> <em>Agents-for-js source,</em> 2026.<span class="bib-note">SSE 流式实现、streaminfo 累积逻辑、*Streaming 系列 AsyncGenerator API。</span></li>
+            <li id="ref-4"><span class="bib-id">[4]</span> <span class="bib-author">Microsoft.</span> <a href="https://github.com/microsoft/Agents-for-js/blob/main/packages/agents-copilotstudio-client/src/copilotStudioClient.ts" target="_blank" rel="noopener noreferrer">"copilotStudioClient.ts,"</a> <em>Agents-for-js source,</em> 2026.<span class="bib-note">SSE 读取、conversation ID 处理与 *Streaming 系列 AsyncGenerator API；payload 的 delta / snapshot 语义仍需按 capture 验证。</span></li>
             <li id="ref-5"><span class="bib-id">[5]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/publication-connect-bot-to-custom-application" target="_blank" rel="noopener noreferrer">"Publish an agent to mobile or custom apps,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">自定义应用对接路径，Direct Line token 获取与 Activity 负载解析。</span></li>
-            <li id="ref-6"><span class="bib-id">[6]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/advanced-generative-actions" target="_blank" rel="noopener noreferrer">"Orchestrate agent behavior with generative AI,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">生成式编排设置项核对，佐证后台无独立 streaming 开关。</span></li>
+            <li id="ref-6"><span class="bib-id">[6]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/advanced-generative-actions" target="_blank" rel="noopener noreferrer">"Orchestrate agent behavior with generative AI,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">生成式编排设置项参考；本文检查的目标 Agent 设置页未出现 per-agent streaming 开关。</span></li>
             <li id="ref-7"><span class="bib-id">[7]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/customize-default-canvas" target="_blank" rel="noopener noreferrer">"Customize the look and feel of an agent,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">官方 Web Chat 嵌入路径：createDirectLine + renderWebChat 走 Direct Line token 端点（§3.1 路径对比依据）。</span></li>
             <li id="ref-8"><span class="bib-id">[8]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-365/agents-sdk/integrate-with-mcs" target="_blank" rel="noopener noreferrer">"Integrate with Copilot Studio,"</a> <em>Microsoft Learn,</em> updated 2026-07-28.<span class="bib-note">明确指出 New Experience agents 尚未被 Copilot Studio Client Library 正式支持，用于界定 GA 支持边界。</span></li>
-            <li id="ref-9"><span class="bib-id">[9]</span> <span class="bib-author">Microsoft.</span> <a href="https://github.com/microsoft/copilot-studio-plugin/pull/26" target="_blank" rel="noopener noreferrer">"Add chat with agent skill for CLI (agentic-loop) agents,"</a> <em>copilot-studio-plugin PR #26,</em> merged 2026-07-22.<span class="bib-note">给出 <code>/agenticruntime/3p</code> URL、<code>api-version=1</code>、recognizer gate、MSAL 权限与 streaming 实测；记录每轮约 25 个累积 typing 片段。</span></li>
+            <li id="ref-9"><span class="bib-id">[9]</span> <span class="bib-author">Microsoft.</span> <a href="https://github.com/microsoft/copilot-studio-plugin/pull/26" target="_blank" rel="noopener noreferrer">"Add chat with agent skill for CLI (agentic-loop) agents,"</a> <em>copilot-studio-plugin PR #26,</em> merged 2026-07-22.<span class="bib-note">给出 <code>/agenticruntime/3p</code> URL、<code>api-version=1</code>、recognizer gate、MSAL 权限与 streaming 实测；记录每轮约 25 个 progressive typing 片段。</span></li>
             <li id="ref-10"><span class="bib-id">[10]</span> <span class="bib-author">Microsoft.</span> <a href="https://github.com/microsoft/Agents-for-js/issues/1198" target="_blank" rel="noopener noreferrer">"CopilotStudioClient hangs indefinitely on non-2xx,"</a> <em>Agents-for-js issue #1198,</em> 2026-07.<span class="bib-note">独立复现 New Agent <code>/3p</code> directConnectUrl，并记录未发布 Agent 返回 404 时 SDK 自动重连的问题。</span></li>
             <li id="ref-11"><span class="bib-id">[11]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/publication-channels-overview" target="_blank" rel="noopener noreferrer">"Available channels for agents,"</a> <em>Microsoft Learn,</em> updated 2026-08-03.<span class="bib-note">GitHub Copilot harness Agent 的渠道矩阵：Web app iframe 可用，Native app / Direct Line 不可用。</span></li>
-            <li id="ref-12"><span class="bib-id">[12]</span> <span class="bib-author">Michael Jiang.</span> <a href="https://github.com/jzh24516/copilot-streaming-chat-playground" target="_blank" rel="noopener noreferrer">"Copilot Studio Streaming Chat Playground,"</a> <em>GitHub,</em> updated 2026-08-05.<span class="bib-note">微软员工公开的独立实测：authenticated <code>/3p</code> progressive streaming，部分回答观察到 150+ 累积片段。</span></li>
-            <li id="ref-13"><span class="bib-id">[13]</span> <span class="bib-author">illusion615.</span> <a href="https://github.com/illusion615/MCSChat/commit/c4472d7" target="_blank" rel="noopener noreferrer">"Route new agents through 3p runtime,"</a> <em>MCSChat commit c4472d7,</em> 2026-08-05.<span class="bib-note">MCSChat 的双运行时实现与 GitHub Pages SPA 登录验证；New Agent 会话在目标环境成功建立。</span></li>
+            <li id="ref-12"><span class="bib-id">[12]</span> <span class="bib-author">Michael Jiang.</span> <a href="https://github.com/jzh24516/copilot-streaming-chat-playground" target="_blank" rel="noopener noreferrer">"Copilot Studio Streaming Chat Playground,"</a> <em>GitHub,</em> updated 2026-08-05.<span class="bib-note">微软员工公开的独立实测：authenticated <code>/3p</code> progressive streaming，部分回答观察到 150+ progressive 片段。</span></li>
+            <li id="ref-13"><span class="bib-id">[13]</span> <span class="bib-author">illusion615.</span> <a href="https://github.com/illusion615/MCSChat/commit/3e88792" target="_blank" rel="noopener noreferrer">"Structure New Agent work progress,"</a> <em>MCSChat commit 3e88792,</em> 2026-08-05.<span class="bib-note">包含 New Agent /3p 路由、TurnAssembler、reasoning 与 toolCall reducers、Copilot 风格 Work panel，以及 <code>?debug=1</code> replay hook。</span></li>
           </ol>
         </section>
       </main>

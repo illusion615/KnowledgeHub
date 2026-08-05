@@ -1249,8 +1249,8 @@ var knowledgeTree = [
       en: 'Verifying Copilot Studio Streaming Across Classic and New Agent Runtimes'
     },
     summary: {
-      zh: '实测区分 Classic Agent 与 New Agent 的两条 D2E 运行时路径，给出 /3p endpoint、鉴权、原始 SSE 判据与正式支持边界。',
-      en: 'Separates Classic and New Agent D2E runtimes with the /3p endpoint, authentication, raw SSE criteria, and the official support boundary.'
+      zh: '区分 Classic 与 New Agent D2E 路径，并给出 /3p 鉴权、thought/toolCall/answer 归一化、Work panel 状态机与验收标准。',
+      en: 'Separates Classic and New Agent D2E paths and specifies /3p auth, thought/toolCall/answer normalization, Work panel states, and acceptance tests.'
     },
     tags: ['Copilot Studio', 'Livestreaming', 'Direct Line', 'Direct Engine'],
     date: '2026-06-15',
