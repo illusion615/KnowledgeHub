@@ -1245,12 +1245,12 @@ var knowledgeTree = [
     parentId: 'copilot-studio',
     type: 'article',
     title: {
-      zh: '验证 Copilot Studio 流式输出：从 Direct Line 到 Direct Engine 的实测',
-      en: 'Verifying Copilot Studio Streaming: From Direct Line to Direct Engine'
+      zh: '验证 Copilot Studio 流式输出：Classic 与 New Agent 的两条运行时路径',
+      en: 'Verifying Copilot Studio Streaming Across Classic and New Agent Runtimes'
     },
     summary: {
-      zh: '一次完整的工程验证：抓取 Direct Line 原始 activity 证明流式片段未下发，再发现 Agents SDK 的 Direct Engine（SSE）原生支持流式，实测唯一阻塞点是缺 CopilotStudio.Copilots.Invoke 权限。',
-      en: 'A full engineering investigation: raw Direct Line activities prove no streaming chunks arrive, then the Agents SDK Direct Engine (SSE) is found to natively support streaming — with the sole blocker being a missing CopilotStudio.Copilots.Invoke permission.'
+      zh: '实测区分 Classic Agent 与 New Agent 的两条 D2E 运行时路径，给出 /3p endpoint、鉴权、原始 SSE 判据与正式支持边界。',
+      en: 'Separates Classic and New Agent D2E runtimes with the /3p endpoint, authentication, raw SSE criteria, and the official support boundary.'
     },
     tags: ['Copilot Studio', 'Livestreaming', 'Direct Line', 'Direct Engine'],
     date: '2026-06-15',

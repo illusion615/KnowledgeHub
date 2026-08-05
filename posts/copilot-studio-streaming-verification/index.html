@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>验证 Copilot Studio 流式输出：从 Direct Line 到 Direct Engine 的实测</title>
+  <title>验证 Copilot Studio 流式输出：Classic 与 New Agent 的两条运行时路径</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
@@ -343,10 +343,10 @@
 
         <div class="hero-grid">
           <div class="hero-copy load-in">
-            <span class="eyebrow">Engineering Investigation Log</span>
-            <h1>验证 Copilot Studio 流式输出：从 Direct Line 到 Direct Engine 的实测</h1>
-            <p>
-              一个自定义 Web 前端（MCSChat）希望逐字显示 Copilot Studio 的回答。本文记录一次完整的工程验证：先在 Direct Line 通道上抓取原始 activity 证明流式片段并未到达，再发现 Microsoft 365 Agents SDK 的 Direct Engine 客户端源码原生处理流式、端点可从浏览器直连。Direct Engine 在本环境是否真正下发流式尚未实测；PoC 用 az CLI 捷径 token 调用触发的 403，揭示了正规路径所需的 .Invoke scope。全程以 Direct Line 原始 JSON 与服务器响应为依据。
+            <span class="eyebrow" data-zh="工程验证与实施指南" data-en="Engineering Validation and Implementation Guide">工程验证与实施指南</span>
+            <h1 data-zh="验证 Copilot Studio 流式输出：Classic Agent 与 New Agent 的两条运行时路径" data-en="Verifying Copilot Studio Streaming: Two Runtime Paths for Classic and New Agents">验证 Copilot Studio 流式输出：Classic Agent 与 New Agent 的两条运行时路径</h1>
+            <p data-zh="Copilot Studio 的 Classic Agent 与 New Agent 都可以通过 SSE 渐进返回活动，但两者不能共用同一个 Direct-to-Engine 地址。Classic Agent 使用 published-bot endpoint；采用 CLICopilotRecognizer 的 New Agent 使用 agentic runtime 第三方 endpoint。本文给出支持边界、可复现配置、原始 activity 判据与故障定位方法。" data-en="Classic and New Copilot Studio agents can both return activities progressively over SSE, but they do not share one Direct-to-Engine endpoint. Classic agents use the published-bot endpoint; New Agents with CLICopilotRecognizer use the agentic runtime third-party endpoint. This guide documents the support boundary, reproducible configuration, raw-activity criteria, and failure diagnosis.">
+              Copilot Studio 的 Classic Agent 与 New Agent 都可以通过 SSE 渐进返回活动，但两者不能共用同一个 Direct-to-Engine 地址。Classic Agent 使用 published-bot endpoint；采用 CLICopilotRecognizer 的 New Agent 使用 agentic runtime 第三方 endpoint。本文给出支持边界、可复现配置、原始 activity 判据与故障定位方法。
             </p>
             <div class="hero-actions">
               <a class="button button-primary" href="#directline">Direct Line 实测</a>
@@ -355,12 +355,12 @@
           </div>
 
           <aside class="hero-panel load-in">
-            <span class="panel-label">三句话结论</span>
-            <h2>协议成立，环境未下发，通道有别</h2>
+            <span class="panel-label" data-zh="实施结论" data-en="Implementation Findings">实施结论</span>
+            <h2 data-zh="先识别 Agent 代际，再选择运行时" data-en="Identify the Agent Generation Before Choosing the Runtime">先识别 Agent 代际，再选择运行时</h2>
             <ul class="layer-list section-grid-spaced">
-              <li><span class="layer-number">1</span>WebChat livestreaming 协议真实存在，元数据是 <code>streamType</code>（informative / streaming / final），不是新的 activity type。</li>
-              <li><span class="layer-number">2</span>当前 Direct Line 通道上，三类 agent 实测均未收到任何流式片段——服务端没有下发。</li>
-              <li><span class="layer-number">3</span>Agents SDK 的 Direct Engine（SSE）客户端源码原生处理流式，端点可直连；本环境是否真正下发流式尚未实测。捷径 token 调用触发的 403 揭示了正规路径需 <code>CopilotStudio.Copilots.Invoke</code> scope。</li>
+              <li data-zh="&lt;span class='layer-number'&gt;1&lt;/span&gt;Classic Agent 使用 &lt;code&gt;/dataverse-backed/...&lt;/code&gt; 与 &lt;code&gt;api-version=2022-03-01-preview&lt;/code&gt;。" data-en="&lt;span class='layer-number'&gt;1&lt;/span&gt;Classic agents use &lt;code&gt;/dataverse-backed/...&lt;/code&gt; with &lt;code&gt;api-version=2022-03-01-preview&lt;/code&gt;。"><span class="layer-number">1</span>Classic Agent 使用 <code>/dataverse-backed/...</code> 与 <code>api-version=2022-03-01-preview</code>。</li>
+              <li data-zh="&lt;span class='layer-number'&gt;2&lt;/span&gt;New Agent 使用 &lt;code&gt;/agenticruntime/3p/dataverse-backed/...&lt;/code&gt; 与 &lt;code&gt;api-version=1&lt;/code&gt;。" data-en="&lt;span class='layer-number'&gt;2&lt;/span&gt;New Agents use &lt;code&gt;/agenticruntime/3p/dataverse-backed/...&lt;/code&gt; with &lt;code&gt;api-version=1&lt;/code&gt;。"><span class="layer-number">2</span>New Agent 使用 <code>/agenticruntime/3p/dataverse-backed/...</code> 与 <code>api-version=1</code>。</li>
+              <li data-zh="&lt;span class='layer-number'&gt;3&lt;/span&gt;两条路径都需要 Power Platform 委托 token；生产采用时还要区分技术可用与 Microsoft Learn 的正式支持矩阵。" data-en="&lt;span class='layer-number'&gt;3&lt;/span&gt;Both paths require a delegated Power Platform token; production adoption must distinguish technical availability from the Microsoft Learn support matrix."><span class="layer-number">3</span>两条路径都需要 Power Platform 委托 token；生产采用时还要区分技术可用与 Microsoft Learn 的正式支持矩阵。</li>
             </ul>
           </aside>
         </div>
@@ -372,14 +372,14 @@
             <span>3 类 agent · 最长 34s / 19149 字一次性返回</span>
           </div>
           <div class="metric">
-            <div class="metric-label">Direct Engine 端点</div>
-            <strong>可直连</strong>
-            <span>SSE · CORS 放行 · 原生 streaminfo 处理</span>
+            <div class="metric-label" data-zh="运行时地址" data-en="Runtime Endpoints">运行时地址</div>
+            <strong data-zh="2 条" data-en="2 Paths">2 条</strong>
+            <span data-zh="Classic published-bot + New Agent /3p" data-en="Classic published-bot + New Agent /3p">Classic published-bot + New Agent /3p</span>
           </div>
           <div class="metric">
-            <div class="metric-label">流式下发</div>
-            <strong>待实测</strong>
-            <span>源码支持，本环境尚未实测到片段</span>
+            <div class="metric-label" data-zh="New Agent 会话" data-en="New Agent Session">New Agent 会话</div>
+            <strong data-zh="已打通" data-en="Connected">已打通</strong>
+            <span data-zh="MCSChat · /3p · GitHub Pages SPA 登录" data-en="MCSChat · /3p · GitHub Pages SPA sign-in">MCSChat · /3p · GitHub Pages SPA 登录</span>
           </div>
         </div>
       </header>
@@ -513,11 +513,11 @@
           <div class="subsection-accordion">
             <article class="subsection-item is-open" data-accordion>
               <button class="subsection-toggle">
-                <span>3.1 术语与三条路径对比</span>
+                <span>3.1 术语与四条路径对比</span>
               </button>
               <div class="subsection-content">
                 <div class="finding">
-                  <strong>术语：</strong>官方把「服务端边生成边推送、客户端渐进渲染」这一能力称为 <strong>livestreaming</strong>（亦称 <em>streaming response</em>），见 BotFramework-WebChat 文档 [1]。它不是新协议，而是一套约定：复用 typing 活动承载增量、用 <code>streamType</code> / <code>streaminfo</code> 元数据标记（§2）。下面三条路<strong>共用 Web Chat 作渲染层，但数据来源 / 协议各不相同</strong>——并非「同一个 streaming 协议」；其中 Direct Engine 是与 livestreaming 无关的另一套传输协议（SSE）。
+                  <strong>术语：</strong>官方把「服务端边生成边推送、客户端渐进渲染」这一能力称为 <strong>livestreaming</strong>（亦称 <em>streaming response</em>），见 BotFramework-WebChat 文档 [1]。它不是新协议，而是一套约定：复用 typing 活动承载增量、用 <code>streamType</code> / <code>streaminfo</code> 元数据标记（§2）。下面四条路<strong>共用 Web Chat 作渲染层，但数据来源 / 协议各不相同</strong>——并非「同一个 streaming 协议」；其中 Direct Engine 是与 livestreaming 无关的另一套传输协议（SSE）。
                 </div>
                 <table class="compare-table">
                   <thead>
@@ -525,19 +525,22 @@
                   </thead>
                   <tbody>
                     <tr><td>① 原生 livestreaming</td><td>Direct Line（WebSocket）· typing + streaminfo</td><td><span class="status-badge badge-ok">是</span> · 须服务端下发</td><td>取决于通道</td><td>无</td></tr>
-                    <tr><td>② Direct Engine 桥接</td><td>Direct Engine · SSE（适配为 livestreaming activity）</td><td><span class="status-badge badge-ok">是</span></td><td>是 · <code>.Invoke</code></td><td>中</td></tr>
-                    <tr><td>③ 客户端模拟（打字机）</td><td>无协议 · 本地动画</td><td><span class="status-badge badge-fail">否</span> · 纯视觉</td><td>否</td><td>小</td></tr>
+                    <tr><td>② Classic Agent D2E</td><td><code>/dataverse-backed/...</code> · SSE</td><td><span class="status-badge badge-ok">是</span></td><td>是 · <code>.Invoke</code></td><td>中</td></tr>
+                    <tr><td>③ New Agent D2E</td><td><code>/agenticruntime/3p/...</code> · SSE</td><td><span class="status-badge badge-ok">是</span> · 实验性路径</td><td>是 · <code>.Invoke</code></td><td>中</td></tr>
+                    <tr><td>④ 客户端模拟（打字机）</td><td>无协议 · 本地动画</td><td><span class="status-badge badge-fail">否</span> · 纯视觉</td><td>否</td><td>小</td></tr>
                   </tbody>
                 </table>
 
                 <p class="mt-14"><strong>① 原生 livestreaming</strong> — 用 agent 的 Direct Line token 端点 <code>createDirectLine({ domain, token })</code> 接 WebSocket，再 <code>renderWebChat</code>；Web Chat 按 <code>streamType</code> 自动渲染。<strong>优</strong>：零改造、官方原生。<strong>劣</strong>：完全取决于服务端是否下发——本环境实测见 §4。</p>
 
-                <p class="mt-14"><strong>② Direct Engine 桥接</strong> — 用 Agents SDK 的 <code>startConversationStreaming()</code> 取 SSE 片段，封装成 Web Chat 可消费的 <code>typing</code> + <code>streaminfo</code> activity 注入渲染。<strong>优</strong>：真原生流式、TTFT 真实下降，UI 仍复用 Web Chat。<strong>劣</strong>：需 Entra 应用 + <code>CopilotStudio.Copilots.Invoke</code> 委托权限 + 登录，并自写 SSE→activity 适配层——配置详见 §5–§7。</p>
+                <p class="mt-14"><strong>② Classic Agent D2E</strong> — published-bot runtime 使用 <code>/copilotstudio/dataverse-backed/authenticated/bots/{schema}</code> 与 <code>api-version=2022-03-01-preview</code>。这是公开 SDK 默认构造的地址。</p>
 
-                <p class="mt-14"><strong>③ 客户端模拟（打字机）</strong> — 在 Web Chat 的 activity middleware 拦截最终 <code>message</code>，按字符切片逐步更新气泡。<strong>优</strong>：不依赖服务端下发、不需登录、改动最小。<strong>劣</strong>：不降低真实 TTFT，纯视觉效果；即 MCSChat 现状。</p>
+                <p class="mt-14"><strong>③ New Agent D2E</strong> — <code>CLIAgentRecognizer</code> / <code>CLICopilotRecognizer</code> 必须改走 <code>/copilotstudio/agenticruntime/3p/dataverse-backed/authenticated/bots/{schema}</code> 与 <code>api-version=1</code>。微软官方插件 PR #26 已端到端验证每轮约 25 个累积 typing 片段；Microsoft Learn 仍标注 New Experience 尚未被 Client Library 正式支持，因此生产采用需要把技术可用与正式支持分开评估。</p>
+
+                <p class="mt-14"><strong>④ 客户端模拟（打字机）</strong> — 在 Web Chat 的 activity middleware 拦截最终 <code>message</code>，按字符切片逐步更新气泡。<strong>优</strong>：不依赖服务端下发、不需登录、改动最小。<strong>劣</strong>：不降低真实 TTFT，纯视觉效果。</p>
 
                 <div class="finding">
-                  <strong>选型：</strong>服务端已下发流式 → ①（最省）；要真降低 TTFT 且可接受登录 → ②；只要视觉效果、不改后端 → ③。
+                  <strong>选型：</strong>先从 Agent 的 recognizer / template 判断代际。Classic Agent 走 published-bot D2E；New Agent 走 agentic runtime <code>/3p</code>；只有在不需要真实降低 TTFT 时才使用客户端模拟。
                 </div>
               </div>
             </article>
@@ -555,6 +558,7 @@
                 <p class="mt-14">随后发送一条会触发长回答的问题，等最终 <code>message</code> 到达后，对全部活动做递归扫描，检查是否存在 <code>streamType</code> / <code>streamId</code> / <code>streamSequence</code> 字段或 <code>streaminfo</code> 实体。</p>
               </div>
             </article>
+
           </div>
         </section>
 
@@ -683,6 +687,23 @@ case ActivityTypes.Typing:
                 <p class="mt-14">它还提供一组 <code>AsyncGenerator</code> 流式 API：<code>startConversationStreaming()</code>、<code>sendActivityStreaming()</code>、<code>executeStreaming()</code>、<code>subscribeAsync()</code>——正是为渐进输出设计的接口形态。</p>
               </div>
             </article>
+
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle">
+                <span>5.3 两代 Agent 的 endpoint 不可互换</span>
+              </button>
+              <div class="subsection-content">
+                <p>Agent 的 schema name 只标识目标，不能决定运行时。先读取 Dataverse <code>bot.template</code> 或 recognizer，再选择 endpoint family：</p>
+                <table class="compare-table">
+                  <thead><tr><th>Agent shape</th><th>识别字段</th><th>Direct-to-Engine base URL</th></tr></thead>
+                  <tbody>
+                    <tr><td>Classic / published bot</td><td><code>default-2.1.0</code> / <code>GenerativeAIRecognizer</code></td><td><code>/copilotstudio/dataverse-backed/authenticated/bots/{schema}?api-version=2022-03-01-preview</code></td></tr>
+                    <tr><td>New Agent / agentic loop</td><td><code>cliagent-1.0.0</code> / <code>CLICopilotRecognizer</code></td><td><code>/copilotstudio/agenticruntime/3p/dataverse-backed/authenticated/bots/{schema}?api-version=1</code></td></tr>
+                  </tbody>
+                </table>
+                <div class="finding finding-warn"><strong>错误特征：</strong>把 New Agent 发往旧 published-bot endpoint 时，HTTP 与会话创建可能成功，但 agent 返回 <code>This new-generation agent isn't supported in this experience.</code>。这表示 runtime family 选错，不表示 New Agent 不具备 D2E streaming。</div>
+              </div>
+            </article>
           </div>
         </section>
 
@@ -693,13 +714,13 @@ case ActivityTypes.Typing:
           <div class="section-head">
             <p class="section-kicker">06 / PoC</p>
             <h2>在 MCSChat 中实测 Direct Engine</h2>
-            <p>不只看文档——在项目自身的浏览器环境里逐项验证：SDK 可加载、暴露流式 API、端点可直连、能取到 token；而用 az CLI 捷径 token 发起的调用返回 403，揭示了正规路径所需的 scope。真正的流式下发尚未走到。</p>
+            <p>实测先复现了两个可区分的失败：Azure CLI 客户端缺 <code>.Invoke</code> 时返回 403；New Agent 误用 Classic endpoint 时返回 <code>not supported in this experience</code>。改用已授权 SPA token 与 <code>/agenticruntime/3p</code> 后，MCSChat 在 GitHub Pages 成功建立 New Agent 会话。</p>
           </div>
 
           <div class="subsection-accordion">
             <article class="subsection-item is-open" data-accordion>
               <button class="subsection-toggle">
-                <span>6.1 五步验证与结果</span>
+                <span>6.1 七步验证与结果</span>
               </button>
               <div class="subsection-content">
                 <table class="compare-table">
@@ -712,6 +733,8 @@ case ActivityTypes.Typing:
                     <tr><td>3</td><td>Direct Engine 端点能否从页面直连（CORS）</td><td><span class="status-badge badge-ok">是</span> · access-control-allow-origin: *</td></tr>
                     <tr><td>4</td><td>能否取到 Power Platform token</td><td><span class="status-badge badge-ok">是</span> · audience 正确</td></tr>
                     <tr><td>5</td><td>用 az CLI 捷径 token 发起调用</td><td><span class="status-badge badge-fail">403</span> · token scope 是 .Test，揭示端点需 .Invoke</td></tr>
+                    <tr><td>6</td><td>New Agent 使用 Classic endpoint</td><td><span class="status-badge badge-fail">路由错误</span> · 返回 new-generation not supported</td></tr>
+                    <tr><td>7</td><td>New Agent 改用 <code>/agenticruntime/3p</code></td><td><span class="status-badge badge-ok">已建立会话</span> · GitHub Pages SPA 登录通过</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -733,7 +756,7 @@ case ActivityTypes.Typing:
   }
 }</div>
                 <div class="finding">
-                  <strong>403 在这里是诊断，不是阻塞：</strong>它不是模糊的「不支持」，而是精确告知端点需要 <code>CopilotStudio.Copilots.Invoke</code> scope。这个 403 是捷径测试的产物——用了只带 <code>.Test</code> 的 az CLI token；若照 §7 正规流程从一开始就配 <code>.Invoke</code>，根本不会遇到它。端点活着、能直连、客户端源码支持流式——但本环境是否真正下发流式，这次 PoC 还没走到。
+                  <strong>403 是调用方应用的权限诊断：</strong>Azure CLI 第一方客户端没有本测试所需的 delegated permission；它不能代替为 MCSChat 注册并授权的 SPA。使用携带 <code>CopilotStudio.Copilots.Invoke</code> 的 MCSChat token 后，该阻塞消失。
                 </div>
               </div>
             </article>
@@ -746,7 +769,8 @@ case ActivityTypes.Typing:
                 <table class="compare-table">
                   <thead><tr><th>项</th><th>值</th></tr></thead>
                   <tbody>
-                    <tr><td>连接 URL 模式</td><td><code>https://{env}.environment.api.powerplatform.com/copilotstudio/dataverse-backed/authenticated/bots/{schemaName}/conversations?api-version=2022-03-01-preview</code></td></tr>
+                    <tr><td>Classic Agent URL</td><td><code>https://{envHost}/copilotstudio/dataverse-backed/authenticated/bots/{schema}/conversations?api-version=2022-03-01-preview</code></td></tr>
+                    <tr><td>New Agent URL</td><td><code>https://{envHost}/copilotstudio/agenticruntime/3p/dataverse-backed/authenticated/bots/{schema}/conversations?api-version=1</code></td></tr>
                     <tr><td>Token audience</td><td><code>https://api.powerplatform.com/.default</code></td></tr>
                     <tr><td>所需委托权限</td><td><code>CopilotStudio.Copilots.Invoke</code></td></tr>
                     <tr><td>传输</td><td>SSE（<code>Accept: text/event-stream</code>）</td></tr>
@@ -857,7 +881,7 @@ case ActivityTypes.Typing:
                   <figure>
                     <img class="portal-shot" src="./de-step-03a-invoke.png" alt="Request API permissions 面板，Power Platform API 的 CopilotStudio 分组下勾选 CopilotStudio.Copilots.Invoke" loading="lazy" />
                     <figcaption class="figure-caption">① Delegated permissions → 展开 <code>CopilotStudio</code> → 勾选 <code>CopilotStudio.Copilots.Invoke</code>（“Allows Invoking Copilots”）。</figcaption>
-                    <img class="portal-shot" src="./de-step-03b-granted.png" alt="Configured permissions 列表，Power Platform API 的 CopilotStudio.Copilots.Invoke 状态显示 Granted for Contoso" loading="lazy" style="margin-top:12px;" />
+                    <img class="portal-shot mt-14" src="./de-step-03b-granted.png" alt="Configured permissions 列表，Power Platform API 的 CopilotStudio.Copilots.Invoke 状态显示 Granted for Contoso" loading="lazy" />
                     <figcaption class="figure-caption">② Add permissions 后点 Grant admin consent；Status 列出现绿勾 <em>Granted for {tenant}</em> 即生效。</figcaption>
                   </figure>
                 </div>
@@ -902,10 +926,14 @@ case ActivityTypes.Typing:
                     <tr><td><code>agentIdentifier</code></td><td>Copilot Studio → agent → Settings → schema name</td><td>连接 URL 的 <code>{schemaName}</code> 段</td></tr>
                   </tbody>
                 </table>
-                <p class="mt-14">连接 URL 模式（已在 §6.3 确认）：</p>
-                <div class="code-block">https://{env}.environment.api.powerplatform.com
-  /copilotstudio/dataverse-backed/authenticated
-  /bots/{schemaName}/conversations?api-version=2022-03-01-preview</div>
+                <p class="mt-14">先用 <code>bot.template</code> / recognizer 判断 Agent shape，再生成 base URL。SDK 会在 base URL 后追加 <code>/conversations</code> 与会话 ID：</p>
+                <div class="code-block">// Classic Agent: default-2.1.0 / GenerativeAIRecognizer
+https://{envHost}/copilotstudio/dataverse-backed/authenticated
+  /bots/{schemaName}?api-version=2022-03-01-preview
+
+// New Agent: cliagent-1.0.0 / CLICopilotRecognizer
+https://{envHost}/copilotstudio/agenticruntime/3p/dataverse-backed/authenticated
+  /bots/{schemaName}?api-version=1</div>
               </div>
             </article>
 
@@ -933,12 +961,16 @@ const { accessToken } = await pca.acquireTokenPopup({
   scopes: ['https://api.powerplatform.com/CopilotStudio.Copilots.Invoke'],
 })
 
-const settings = new ConnectionSettings({
-  appClientId: clientId,
-  tenantId,
-  environmentId,                      // 步骤五
-  agentIdentifier,                    // 步骤五（schema name）
-})
+const isNewAgent = recognizerKind === 'CLIAgentRecognizer'
+  || recognizerKind === 'CLICopilotRecognizer'
+
+const directConnectUrl = isNewAgent
+  ? `https://${envHost}/copilotstudio/agenticruntime/3p/dataverse-backed/` +
+    `authenticated/bots/${agentIdentifier}?api-version=1`
+  : `https://${envHost}/copilotstudio/dataverse-backed/authenticated/` +
+    `bots/${agentIdentifier}?api-version=2022-03-01-preview`
+
+const settings = new ConnectionSettings({ directConnectUrl, cloud: 'Prod' })
 
 const client = new CopilotStudioClient(settings, accessToken)
 
@@ -964,12 +996,14 @@ for await (const activity of client.startConversationStreaming()) {
                   <tbody>
                     <tr><td><span class="status-badge badge-fail">403</span> InsufficientDelegatedPermissions</td><td>漏加 <code>.Invoke</code> 或未 Grant admin consent</td><td>回步骤三补权限并完成管理员同意</td></tr>
                     <tr><td><span class="status-badge badge-fail">401</span> Unauthorized</td><td>token audience / scope 不对</td><td>scope 用 <code>api.powerplatform.com/CopilotStudio.Copilots.Invoke</code></td></tr>
+                    <tr><td><code>AADSTS50011</code></td><td>当前页面 origin 未注册为 SPA redirect URI</td><td>在 Entra 逐字注册 origin；路径不参与匹配</td></tr>
                     <tr><td>搜不到 Power Platform API</td><td>租户未注册其服务主体</td><td><code>az ad sp create --id 8578e004-a5c6-46e7-913e-12f58912df43</code></td></tr>
                     <tr><td>MSAL 重定向报错</td><td>Redirect URI 与前端回调不一致</td><td>步骤四逐字核对端口与尾斜杠</td></tr>
-                    <tr><td>连接 404 / 环境不符</td><td><code>environmentId</code> 或 schema name 取错</td><td>回步骤五从 PPAC / agent Settings 复核</td></tr>
+                    <tr><td><code>new-generation ... not supported</code></td><td>New Agent 被发送到 Classic runtime</td><td>改用 <code>/agenticruntime/3p</code> 与 <code>api-version=1</code></td></tr>
+                    <tr><td><span class="status-badge badge-fail">404</span> ItemNotFound</td><td>Agent 未发布，或 environment/schema 错</td><td>先发布 Agent，再从 Metadata 复核 ID</td></tr>
                   </tbody>
                 </table>
-                <p class="caption-muted">走通后观察 SSE 流是否出现 <code>streamType: "streaming"</code> 的逐段 typing 片段——这能判定「协议可用」与「环境未下发」（§8.2 第 4 条）。</p>
+                <p class="caption-muted">走通后记录 SSE 流中的有效 typing chunk 数、<code>streamSequence</code>、TTFT 与 final activity；这能区分服务端真实渐进下发与前端模拟动画。</p>
               </div>
             </article>
 
@@ -1044,8 +1078,10 @@ try {
                 <ul>
                   <li><strong>协议层成立</strong>：livestreaming 协议真实存在，微软自家 SDK 就在用 <code>streaminfo</code> / <code>streamType</code>，与 WebChat 文档一致。</li>
                   <li><strong>Direct Line 通道未下发</strong>：当前环境三类 agent 实测均无流式片段，原始 payload 本身不含协议字段——不是客户端解析问题。</li>
-                  <li><strong>Web Chat 是渲染层，有三条通路</strong>：原生 livestreaming 取决于服务端下发；要真降低 TTFT 可走 Direct Engine（SSE）桥接；只要视觉效果可走客户端模拟（§3.1）。</li>
-                  <li><strong>Direct Engine 通道可达</strong>：端点能从浏览器直连、客户端源码原生处理流式；本环境是否真正下发流式尚未实测。捷径 token 调用触发的 403 揭示了正规路径需 <code>.Invoke</code> 权限。</li>
+                  <li><strong>Web Chat 是渲染层</strong>：Direct Line livestreaming 与 Direct-to-Engine SSE 是两套传输机制，客户端可把两者规范化到同一个消息渲染状态机。</li>
+                  <li><strong>Direct Engine 有两个 runtime family</strong>：Classic Agent 使用 published-bot endpoint；New Agent 使用 agentic runtime <code>/3p</code> endpoint。只替换 schema name 不足以切换 Agent 代际。</li>
+                  <li><strong>New Agent D2E 技术路径已验证</strong>：微软官方插件于 2026-07-22 合并 `/3p` streaming 实现并记录每轮约 25 个累积 typing 片段；微软员工独立 playground 于 2026-08-05 记录过 150+ 片段。MCSChat 已在 GitHub Pages 通过 SPA 登录并建立目标 New Agent 会话。</li>
+                  <li><strong>正式支持边界仍存在</strong>：Microsoft Learn 于 2026-07-27 仍写明 New Experience 尚未被 Copilot Studio Client Library 正式支持；渠道矩阵也把 Native app / Direct Line 标为不可用。<code>/3p</code> 应视为可用的实验性集成路径，而不是 GA 承诺。</li>
                   <li><strong>不是开关问题</strong>：后台没有 streaming 开关；流式是平台运行时能力。</li>
                 </ul>
               </div>
@@ -1060,7 +1096,8 @@ try {
                   <li><strong>建 Entra 应用注册</strong>：在目标租户创建（或复用）App Registration。</li>
                   <li><strong>授权委托权限</strong>：API permissions → Power Platform API → CopilotStudio → <code>CopilotStudio.Copilots.Invoke</code>（Delegated），并完成管理员同意。</li>
                   <li><strong>走 MSAL / PKCE 取 token</strong>：audience 仍为 <code>api.powerplatform.com</code>，拿到带 <code>.Invoke</code> 的 token。</li>
-                  <li><strong>用 startConversationStreaming() 实测</strong>：观察 SSE 流是否出现 <code>streamType: "streaming"</code> 的逐段片段——这能判定「协议可用」与「环境未下发」。</li>
+                  <li><strong>按 Agent shape 生成 base URL</strong>：Classic 使用 published-bot endpoint；New Agent 使用 <code>/agenticruntime/3p</code>。</li>
+                  <li><strong>用 startConversationStreaming() 实测</strong>：记录 SSE 活动数、有效 typing chunk 数、sequence、TTFT 与 final；不要用前端打字机动画判断。</li>
                 </ol>
               </div>
             </article>
@@ -1097,6 +1134,12 @@ try {
             <li id="ref-5"><span class="bib-id">[5]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/publication-connect-bot-to-custom-application" target="_blank" rel="noopener noreferrer">"Publish an agent to mobile or custom apps,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">自定义应用对接路径，Direct Line token 获取与 Activity 负载解析。</span></li>
             <li id="ref-6"><span class="bib-id">[6]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/advanced-generative-actions" target="_blank" rel="noopener noreferrer">"Orchestrate agent behavior with generative AI,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">生成式编排设置项核对，佐证后台无独立 streaming 开关。</span></li>
             <li id="ref-7"><span class="bib-id">[7]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/customize-default-canvas" target="_blank" rel="noopener noreferrer">"Customize the look and feel of an agent,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">官方 Web Chat 嵌入路径：createDirectLine + renderWebChat 走 Direct Line token 端点（§3.1 路径对比依据）。</span></li>
+            <li id="ref-8"><span class="bib-id">[8]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-365/agents-sdk/integrate-with-mcs" target="_blank" rel="noopener noreferrer">"Integrate with Copilot Studio,"</a> <em>Microsoft Learn,</em> updated 2026-07-28.<span class="bib-note">明确指出 New Experience agents 尚未被 Copilot Studio Client Library 正式支持，用于界定 GA 支持边界。</span></li>
+            <li id="ref-9"><span class="bib-id">[9]</span> <span class="bib-author">Microsoft.</span> <a href="https://github.com/microsoft/copilot-studio-plugin/pull/26" target="_blank" rel="noopener noreferrer">"Add chat with agent skill for CLI (agentic-loop) agents,"</a> <em>copilot-studio-plugin PR #26,</em> merged 2026-07-22.<span class="bib-note">给出 <code>/agenticruntime/3p</code> URL、<code>api-version=1</code>、recognizer gate、MSAL 权限与 streaming 实测；记录每轮约 25 个累积 typing 片段。</span></li>
+            <li id="ref-10"><span class="bib-id">[10]</span> <span class="bib-author">Microsoft.</span> <a href="https://github.com/microsoft/Agents-for-js/issues/1198" target="_blank" rel="noopener noreferrer">"CopilotStudioClient hangs indefinitely on non-2xx,"</a> <em>Agents-for-js issue #1198,</em> 2026-07.<span class="bib-note">独立复现 New Agent <code>/3p</code> directConnectUrl，并记录未发布 Agent 返回 404 时 SDK 自动重连的问题。</span></li>
+            <li id="ref-11"><span class="bib-id">[11]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/publication-channels-overview" target="_blank" rel="noopener noreferrer">"Available channels for agents,"</a> <em>Microsoft Learn,</em> updated 2026-08-03.<span class="bib-note">GitHub Copilot harness Agent 的渠道矩阵：Web app iframe 可用，Native app / Direct Line 不可用。</span></li>
+            <li id="ref-12"><span class="bib-id">[12]</span> <span class="bib-author">Michael Jiang.</span> <a href="https://github.com/jzh24516/copilot-streaming-chat-playground" target="_blank" rel="noopener noreferrer">"Copilot Studio Streaming Chat Playground,"</a> <em>GitHub,</em> updated 2026-08-05.<span class="bib-note">微软员工公开的独立实测：authenticated <code>/3p</code> progressive streaming，部分回答观察到 150+ 累积片段。</span></li>
+            <li id="ref-13"><span class="bib-id">[13]</span> <span class="bib-author">illusion615.</span> <a href="https://github.com/illusion615/MCSChat/commit/c4472d7" target="_blank" rel="noopener noreferrer">"Route new agents through 3p runtime,"</a> <em>MCSChat commit c4472d7,</em> 2026-08-05.<span class="bib-note">MCSChat 的双运行时实现与 GitHub Pages SPA 登录验证；New Agent 会话在目标环境成功建立。</span></li>
           </ol>
         </section>
       </main>
