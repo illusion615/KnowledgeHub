@@ -21,71 +21,228 @@
     "showCanvas": false
   },
   "groups": [
-    { "id": "customer-domain", "order": 0, "label": { "zh": "客户 / 第三方系统（方案边界外）", "en": "Customer / Third-Party Systems (Outside Solution Boundary)" } },
-    { "id": "gateway-domain", "order": 1, "label": { "zh": "Azure D2E Streaming Gateway（方案部署边界）", "en": "Azure D2E Streaming Gateway (Solution Deployment Boundary)" } },
-    { "id": "microsoft-domain", "order": 2, "label": { "zh": "Microsoft 平台域", "en": "Microsoft Platform Domain" } }
+    {
+      "id": "customer-domain",
+      "order": 0,
+      "label": {
+        "zh": "客户 / 第三方系统（方案边界外）",
+        "en": "Customer / Third-Party Systems (Outside Solution Boundary)"
+      }
+    },
+    {
+      "id": "gateway-domain",
+      "order": 1,
+      "label": {
+        "zh": "Azure D2E Streaming Gateway（方案部署边界）",
+        "en": "Azure D2E Streaming Gateway (Solution Deployment Boundary)"
+      }
+    },
+    {
+      "id": "microsoft-domain",
+      "order": 2,
+      "label": {
+        "zh": "Microsoft 平台域（边界外既有组件）",
+        "en": "Microsoft Platform Domain (Existing Components Outside the Boundary)"
+      }
+    }
   ],
   "nodes": [
     {
-      "id": "customer-idp", "layer": 0, "order": 0, "group": "customer-domain", "role": "control",
-      "label": { "zh": "调用方访问控制", "en": "Caller Access Control" },
-      "detail": { "zh": "OIDC JWT / API key / mTLS；公网生产三选一", "en": "OIDC JWT / API Key / mTLS for Public Production" }
+      "id": "customer-app",
+      "layer": 0,
+      "order": 0,
+      "group": "customer-domain",
+      "role": "service",
+      "label": {
+        "zh": "客户自有应用",
+        "en": "Customer-Owned App"
+      },
+      "detail": {
+        "zh": "Web / Mobile / Backend；携带项目选定凭据",
+        "en": "Web / Mobile / Backend; Carries Selected Credential"
+      }
     },
     {
-      "id": "customer-app", "layer": 1, "order": 1, "group": "customer-domain", "role": "service",
-      "label": { "zh": "客户自有应用", "en": "Customer-Owned App" },
-      "detail": { "zh": "Web / Mobile / Backend；携带项目凭据", "en": "Web / Mobile / Backend; Uses Selected Credential" }
+      "id": "edge-api",
+      "layer": 1,
+      "order": 0,
+      "group": "gateway-domain",
+      "role": "data",
+      "label": {
+        "zh": "Azure API Management",
+        "en": "Azure API Management"
+      },
+      "detail": {
+        "zh": "可选统一入口：认证策略、限流；关闭 SSE 缓冲",
+        "en": "Optional Edge: Auth Policy, Limits, No SSE Buffer"
+      }
     },
     {
-      "id": "edge-api", "layer": 2, "order": 0, "group": "gateway-domain", "role": "data",
-      "label": { "zh": "Azure API Management", "en": "Azure API Management" },
-      "detail": { "zh": "统一入口、认证、限流；SSE 禁止缓冲", "en": "Auth Policy, Rate Limits; Disable SSE Buffering" }
+      "id": "conversation-runtime",
+      "layer": 2,
+      "order": 1,
+      "group": "gateway-domain",
+      "role": "required",
+      "label": {
+        "zh": "Streaming API Runtime",
+        "en": "Streaming API Runtime"
+      },
+      "detail": {
+        "zh": "访问控制、限流、取消与超时；归约或透传写出",
+        "en": "Access Control, Limits, Cancel; Two Output Modes"
+      }
     },
     {
-      "id": "conversation-runtime", "layer": 3, "order": 1, "group": "gateway-domain", "role": "required",
-      "label": { "zh": "Streaming API Runtime", "en": "Streaming API Runtime" },
-      "detail": { "zh": "HTTPS、访问控制、限流、SSE、取消与超时", "en": "HTTPS, Access Control, Rate Limits, SSE, Cancel" }
+      "id": "session-store",
+      "layer": 3,
+      "order": 4,
+      "group": "gateway-domain",
+      "role": "control",
+      "label": {
+        "zh": "会话状态存储",
+        "en": "Conversation State Store"
+      },
+      "detail": {
+        "zh": "不透明 ID 映射、ETag、TTL、turn 锁",
+        "en": "Opaque ID Mapping, ETag, TTL, Turn Lock"
+      }
     },
     {
-      "id": "d2e-adapter", "layer": 4, "order": 2, "group": "gateway-domain", "role": "required",
-      "label": { "zh": "D2E Streaming Adapter", "en": "D2E Streaming Adapter" },
-      "detail": { "zh": "delegated token、D2E POST、Activity SSE 解析", "en": "Delegated Token, D2E POST, Activity SSE Parsing" }
+      "id": "d2e-adapter",
+      "layer": 4,
+      "order": 2,
+      "group": "gateway-domain",
+      "role": "required",
+      "label": {
+        "zh": "D2E Streaming Adapter",
+        "en": "D2E Streaming Adapter"
+      },
+      "detail": {
+        "zh": "单一帧读取路径：D2E POST、Activity SSE 解析",
+        "en": "Single Frame Path: D2E POST, Activity SSE"
+      }
     },
     {
-      "id": "session-store", "layer": 5, "order": 3, "group": "gateway-domain", "role": "control",
-      "label": { "zh": "会话状态存储", "en": "Conversation State Store" },
-      "detail": { "zh": "多轮、扩展或 opaque ID 时需要；建议 Cosmos DB", "en": "For Multi-Turn or Scale-Out; Cosmos DB Suggested" }
+      "id": "identity-cache",
+      "layer": 5,
+      "order": 3,
+      "group": "gateway-domain",
+      "role": "required",
+      "label": {
+        "zh": "专用 delegated 身份",
+        "en": "Dedicated Delegated Identity"
+      },
+      "detail": {
+        "zh": "专用用户 + 加密 MSAL cache（mode 600）",
+        "en": "Dedicated User + Encrypted MSAL Cache"
+      }
     },
     {
-      "id": "telemetry", "layer": 6, "order": 4, "group": "gateway-domain", "role": "data",
-      "label": { "zh": "运维增强", "en": "Operational Enhancements" },
-      "detail": { "zh": "Key Vault、Application Insights、私网与告警", "en": "Key Vault, App Insights, Private Network" }
+      "id": "entra-id",
+      "layer": 6,
+      "order": 0,
+      "group": "microsoft-domain",
+      "role": "service",
+      "label": {
+        "zh": "Microsoft Entra ID",
+        "en": "Microsoft Entra ID"
+      },
+      "detail": {
+        "zh": "签发 delegated token；api.powerplatform.com/.default",
+        "en": "Issues Delegated Tokens for Power Platform"
+      }
     },
     {
-      "id": "entra", "layer": 7, "order": 0, "group": "microsoft-domain", "role": "required",
-      "label": { "zh": "专用 delegated 身份", "en": "Dedicated Delegated Identity" },
-      "detail": { "zh": "专用用户 + 加密 MSAL cache", "en": "Dedicated User + Encrypted MSAL Cache" }
+      "id": "d2e-runtime",
+      "layer": 7,
+      "order": 1,
+      "group": "microsoft-domain",
+      "role": "service",
+      "label": {
+        "zh": "Power Platform D2E",
+        "en": "Power Platform D2E"
+      },
+      "detail": {
+        "zh": "校验 delegated 身份，返回 Activity SSE",
+        "en": "Validates Delegated Identity, Returns Activity SSE"
+      }
     },
     {
-      "id": "d2e-runtime", "layer": 8, "order": 1, "group": "microsoft-domain", "role": "service",
-      "label": { "zh": "Power Platform D2E", "en": "Power Platform D2E" },
-      "detail": { "zh": "校验 delegated 身份，返回 Activity SSE", "en": "Validates Delegated Identity and Returns Activity SSE" }
-    },
-    {
-      "id": "anonymous-agent", "layer": 9, "order": 2, "group": "microsoft-domain", "role": "required",
-      "label": { "zh": "已发布 No Authentication Agent", "en": "Published No Authentication Agent" },
-      "detail": { "zh": "不要求最终用户 Entra 登录", "en": "Requires No End-User Entra Sign-In" }
+      "id": "anonymous-agent",
+      "layer": 8,
+      "order": 2,
+      "group": "microsoft-domain",
+      "role": "service",
+      "label": {
+        "zh": "已发布 No Authentication Agent",
+        "en": "Published No Authentication Agent"
+      },
+      "detail": {
+        "zh": "不要求最终用户 Entra 登录",
+        "en": "Requires No End-User Entra Sign-In"
+      }
     }
   ],
   "edges": [
-    { "from": "customer-idp", "to": "customer-app", "label": { "zh": "项目选定凭据", "en": "Project-Selected Credential" } },
-    { "from": "customer-app", "to": "edge-api", "label": { "zh": "可选 APIM 路径", "en": "Optional APIM Path" } },
-    { "from": "customer-app", "to": "conversation-runtime", "label": { "zh": "直连 HTTPS / SSE", "en": "Direct HTTPS / SSE" } },
-    { "from": "edge-api", "to": "conversation-runtime", "label": { "zh": "可选边缘策略 / 流式透传", "en": "Optional Edge Policy / Streaming Pass-Through" } },
-    { "from": "conversation-runtime", "to": "d2e-adapter", "label": { "zh": "已验证请求", "en": "Validated Request" } },
-    { "from": "conversation-runtime", "to": "session-store", "label": { "zh": "状态 / ETag / TTL", "en": "State / ETag / TTL" } },
-    { "from": "d2e-adapter", "to": "entra", "label": { "zh": "静默获取 delegated token", "en": "Silently Acquire Delegated Token" } },
-    { "from": "d2e-adapter", "to": "d2e-runtime", "label": { "zh": "D2E POST / Activity SSE", "en": "D2E POST / Activity SSE" } },
-    { "from": "d2e-runtime", "to": "anonymous-agent", "label": { "zh": "调用已发布 Agent", "en": "Invoke Published Agent" } }
+    {
+      "from": "customer-app",
+      "to": "edge-api",
+      "label": {
+        "zh": "可选 APIM 路径",
+        "en": "Optional APIM Path"
+      }
+    },
+    {
+      "from": "customer-app",
+      "to": "conversation-runtime",
+      "label": {
+        "zh": "直连 HTTPS / SSE",
+        "en": "Direct HTTPS / SSE"
+      }
+    },
+    {
+      "from": "edge-api",
+      "to": "conversation-runtime"
+    },
+    {
+      "from": "conversation-runtime",
+      "to": "session-store",
+      "label": {
+        "zh": "会话映射 / ETag / TTL",
+        "en": "Mapping / ETag / TTL"
+      }
+    },
+    {
+      "from": "conversation-runtime",
+      "to": "d2e-adapter"
+    },
+    {
+      "from": "d2e-adapter",
+      "to": "identity-cache"
+    },
+    {
+      "from": "identity-cache",
+      "to": "entra-id",
+      "label": {
+        "zh": "token 刷新 / 重新登录",
+        "en": "Token Refresh / Re-Sign-In"
+      }
+    },
+    {
+      "from": "d2e-adapter",
+      "to": "d2e-runtime",
+      "label": {
+        "zh": "D2E POST / Activity SSE",
+        "en": "D2E POST / Activity SSE"
+      }
+    },
+    {
+      "from": "d2e-runtime",
+      "to": "anonymous-agent",
+      "label": {
+        "zh": "调用已发布 Agent",
+        "en": "Invoke Published Agent"
+      }
+    }
   ]
 }
