@@ -1718,18 +1718,40 @@ document.addEventListener('DOMContentLoaded', function () {
   var narrationCapsuleChatBtn = null;
 
   var ensureNarrationFab = function () {
-    // Reuse existing assistant-fab or create a new one
     var fab = document.querySelector('.assistant-fab');
     if (!fab) {
+      if (!state.enabled) return null;
       fab = document.createElement('button');
       fab.className = 'assistant-fab';
-      fab.setAttribute('aria-label', 'AI');
-      // Show narration indicator icon by default; assistant.js overrides with chat icon if LLM is configured
+      fab.setAttribute('data-presentation-owned', '');
+      fab.setAttribute('aria-label', getLabel('autoPlay'));
       fab.innerHTML = NARRATION_SVG_PLAY;
       document.body.appendChild(fab);
     }
     presentationAutoPlay = fab;
     return fab;
+  };
+
+  var restoreAssistantFab = function () {
+    if (!presentationAutoPlay) return;
+    if (presentationAutoPlay.hasAttribute('data-presentation-owned') &&
+        !document.querySelector('.assistant-dialog')) {
+      presentationAutoPlay.remove();
+      presentationAutoPlay = null;
+      narrationCapsuleSettingsBtn = null;
+      narrationCapsuleRecordBtn = null;
+      narrationCapsuleChatBtn = null;
+      return;
+    }
+    presentationAutoPlay.classList.remove('is-narration-mode');
+    var originalHtml = presentationAutoPlay.getAttribute('data-original-html');
+    presentationAutoPlay.innerHTML = originalHtml || NARRATION_SVG_CHAT;
+    presentationAutoPlay.removeAttribute('data-original-html');
+    presentationAutoPlay.setAttribute('aria-label', 'AI Assistant');
+    presentationAutoPlay.style.removeProperty('--capsule-expanded-height');
+    narrationCapsuleSettingsBtn = null;
+    narrationCapsuleRecordBtn = null;
+    narrationCapsuleChatBtn = null;
   };
 
   /** Build capsule structure inside the FAB (only in presentation mode) */
@@ -2706,6 +2728,7 @@ document.addEventListener('DOMContentLoaded', function () {
     state.enabled = false;
     root.classList.remove('is-presentation-mode');
     syncPresentationSurface();
+    restoreAssistantFab();
     exitBrowserFullscreen();
     restoreAccordionStates();
     setPresentationStep(snapshot.index);
@@ -2765,6 +2788,25 @@ document.addEventListener('DOMContentLoaded', function () {
       });
 
       return Promise.all(svgCaptures).then(function () {
+        // Force lazy images to load before geometry capture.
+        //
+        // Steps are measured while off-screen, so any <img loading="lazy">
+        // that never scrolled into view has not been fetched: currentSrc is
+        // empty and the picture silently disappears from the deck. Clearing
+        // the attribute and waiting for decode() makes the export
+        // deterministic regardless of how far the reader scrolled.
+        var lazyImgs = [];
+        document.querySelectorAll('img[loading="lazy"], img:not([loading])').forEach(function (img) {
+          if (img.complete && img.naturalWidth > 0) return;
+          img.loading = 'eager';
+          img.removeAttribute('loading');
+          lazyImgs.push(
+            (img.decode ? img.decode() : Promise.resolve())
+              .catch(function () { /* broken image: renderStep reports it */ })
+          );
+        });
+        return Promise.all(lazyImgs);
+      }).then(function () {
         presentSteps.forEach(function (step, stepIndex) {
           setPresentationStep(stepIndex);
           exporter.renderStep(pptx, step, stepIndex, stepIndex, presentSteps.length, palette, deriveStepLabel, deriveStepTitle);
@@ -4199,21 +4241,7 @@ document.addEventListener('DOMContentLoaded', function () {
     stopNarration();
     if (isRecording()) stopRecording();
 
-    // Restore FAB to chat mode
-    if (presentationAutoPlay) {
-      presentationAutoPlay.classList.remove('is-narration-mode');
-      var originalHtml = presentationAutoPlay.getAttribute('data-original-html');
-      if (originalHtml) {
-        presentationAutoPlay.innerHTML = originalHtml;
-        presentationAutoPlay.removeAttribute('data-original-html');
-      } else {
-        presentationAutoPlay.innerHTML = NARRATION_SVG_CHAT;
-      }
-      presentationAutoPlay.setAttribute('aria-label', 'AI Assistant');
-      narrationCapsuleSettingsBtn = null;
-      narrationCapsuleRecordBtn = null;
-      narrationCapsuleChatBtn = null;
-    }
+    restoreAssistantFab();
 
     state.enabled = false;
     root.classList.remove('is-presentation-mode');
