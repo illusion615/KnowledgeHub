@@ -391,19 +391,23 @@
     reportDensity(step, stepRect, stepIndex, slideTitle || slideLabel);
 
     if (headerH > 0) {
-      var accent = '#FF7A00';
-      // 2.4-in accent bar
-      sl.addShape('rect', { x: 0.6, y: 0.30, w: 2.4, h: 0.05, fill: { color: 'FF7A00' }, line: { type: 'none' } });
+      // No decorative rule above the title.
+      //
+      // A coloured bar spanning the header used to sit here. Accent stripes
+      // and header bars are a well-known tell of auto-generated decks, and
+      // they carry no information — the label already establishes the
+      // section. Whitespace separates the header from the body instead.
+      // See the "已知失真 / 演示规范" notes in study-room-standards §5.3.
       if (slideLabel) {
         sl.addText(slideLabel, {
-          x: 0.6, y: 0.40, w: SW - 1.2, h: 0.28,
+          x: 0.6, y: 0.34, w: SW - 1.2, h: 0.28,
           margin: 0, fontFace: FONT_STACK.DISPLAY, fontSize: 11, bold: true,
           color: '0D8F8C', charSpacing: 1.5, valign: 'top'
         });
       }
       if (slideTitle) {
         sl.addText(slideTitle, {
-          x: 0.6, y: 0.66, w: SW - 1.2, h: 0.32,
+          x: 0.6, y: 0.60, w: SW - 1.2, h: 0.32,
           margin: 0, fontFace: FONT_STACK.DISPLAY, fontSize: 22, bold: true,
           color: (toHex(parseColor(getComputedStyle(document.body).color)) || p.text),
           valign: 'top', shrinkText: true
