@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Knowledge Hub — 学习与研究笔记</title>
+  <script>
+    var isPrivateHub = new URLSearchParams(window.location.search).get('knowledge') === 'private';
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
@@ -2028,8 +2031,8 @@
   <header class="overlay-header">
     <div class="logo">
       <span class="logo-text">
-        <span class="logo-owner">illusion615's</span>
-        <span class="logo-main" data-zh="Knowledge Hub" data-en="Knowledge Hub">Knowledge Hub</span>
+        <span class="logo-owner" id="hub-owner">illusion615's</span>
+        <span class="logo-main" id="hub-name" data-zh="Knowledge Hub" data-en="Knowledge Hub">Knowledge Hub</span>
       </span>
     </div>
     <div class="controls">
@@ -2381,7 +2384,9 @@
   </aside>
 
   <script src="assets/scrollbar.js"></script>
-  <script src="assets/knowledge-data.js"></script>
+  <script>
+    document.write('<script src="' + (isPrivateHub ? 'private/assets/private-knowledge-data.js' : 'assets/knowledge-data.js') + '"><\/script>');
+  </script>
   <script src="assets/color-schemes.js"></script>
   <script src="assets/pan-zoom.js"></script>
   <script src="assets/infographic-view.js"></script>
@@ -2428,6 +2433,20 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
+
+    if (isPrivateHub) {
+      document.getElementById('hub-owner').textContent = 'Private';
+      document.getElementById('hub-name').textContent = 'Knowledge Hub';
+      document.getElementById('hub-name').setAttribute('data-zh', 'Knowledge Hub');
+      document.getElementById('hub-name').setAttribute('data-en', 'Knowledge Hub');
+      document.getElementById('lang-toggle').style.setProperty('display', 'none', 'important');
+      document.getElementById('lang-toggle').setAttribute('aria-hidden', 'true');
+      document.getElementById('lang-toggle').setAttribute('tabindex', '-1');
+      document.getElementById('styleSettingsLink').href = 'settings.html';
+      document.querySelector('footer p').setAttribute('data-zh', '© 2026 Wells Zhang · 仅限私人访问');
+      document.querySelector('footer p').setAttribute('data-en', '© 2026 Wells Zhang · 仅限私人访问');
+      document.querySelector('footer p').textContent = '© 2026 Wells Zhang · 仅限私人访问';
+    }
 
     // ============ TREE UTILITIES ============
     // Build lookup maps from the flat knowledgeTree[]
@@ -2639,7 +2658,7 @@
     var groupMap = {};
 
     // ============ STATE ============
-    var lang = localStorage.getItem('lang') || 'zh';
+    var lang = isPrivateHub ? 'zh' : (localStorage.getItem('lang') || 'zh');
     var theme = localStorage.getItem('theme') ||
       (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     var currentLayout = localStorage.getItem('layout') || 'galaxy';
@@ -2936,7 +2955,9 @@
       // Sync header lang toggle label — show current language
       var ltLabel = document.querySelector('#lang-toggle .lang-toggle-label');
       if (ltLabel) ltLabel.textContent = l === 'zh' ? '中' : 'EN';
-      document.title = l === 'zh' ? 'Knowledge Hub — 学习与研究笔记' : 'Knowledge Hub — Study & Research Notes';
+      document.title = isPrivateHub
+        ? 'Private Knowledge Hub — 私人知识库'
+        : (l === 'zh' ? 'Knowledge Hub — 学习与研究笔记' : 'Knowledge Hub — Study & Research Notes');
       // Sync search placeholder
       var si = document.getElementById('search-input');
       if (si) si.placeholder = l === 'zh' ? si.getAttribute('data-zh-placeholder') : si.getAttribute('data-en-placeholder');

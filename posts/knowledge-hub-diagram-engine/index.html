@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-section-density="strict" data-present-i18n="strict">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title data-zh="Knowledge Hub 图表引擎：从文章语义到 Draw.io 与双语 SVG" data-en="Knowledge Hub Diagram Engine: From Article Semantics to Draw.io and Bilingual SVG">Knowledge Hub 图表引擎：从文章语义到 Draw.io 与双语 SVG</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 {
+      max-width: 19ch;
+      font-size: clamp(2.1rem, 5vw, 3.7rem);
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    /* Component: .generated-diagram
+       Reading mode: bordered figure contains one locale-specific generated SVG and its source link.
+       Presentation mode: figure becomes an unframed slide; the active SVG remains bounded by the viewport. */
+    .generated-diagram {
+      margin-top: 24px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+    .generated-diagram img {
+      display: block;
+      width: 100%;
+      height: auto;
+      max-height: 72vh;
+      object-fit: contain;
+    }
+    html[lang="en"] .diagram-zh,
+    html:not([lang="en"]) .diagram-en { display: none; }
+    .diagram-caption {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: var(--rhythm-inline);
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.55;
+    }
+    .diagram-caption a {
+      color: var(--teal);
+      white-space: nowrap;
+    }
+    .contract-code {
+      margin-top: 18px;
+      padding: 18px 20px;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: rgba(15, 23, 42, 0.94);
+      color: #E2E8F0;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.82rem;
+      line-height: 1.65;
+      white-space: pre;
+    }
+    .table-scroll {
+      max-width: 100%;
+      overflow-x: auto;
+    }
+    .status-pass { color: var(--teal); font-weight: 700; }
+    .status-next { color: var(--accent); font-weight: 700; }
+    @media (max-width: 720px) {
+      .generated-diagram { padding: 8px; }
+      .generated-diagram img { max-height: none; }
+      .diagram-caption { align-items: flex-start; flex-direction: column; }
+    }
+    .is-presentation-mode .generated-diagram.is-active img {
+      max-height: calc(100vh - 190px);
+    }
+    .is-presentation-mode .generated-diagram.is-active .diagram-caption {
+      margin-top: 8px;
+      font-size: 0.76rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            <span data-zh="Knowledge Hub Design" data-en="Knowledge Hub Design">Knowledge Hub Design</span>
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航" data-nav-pager>
+            <a href="#requirements" data-zh="设计要求" data-en="Requirements">设计要求</a>
+            <a href="#architecture" data-zh="系统架构" data-en="Architecture">系统架构</a>
+            <a href="#contract" data-zh="规格契约" data-en="Contract">规格契约</a>
+            <a href="#compiler" data-zh="编译器" data-en="Compiler">编译器</a>
+            <a href="#workflow" data-zh="生成流程" data-en="Workflow">生成流程</a>
+            <a href="#sequence" data-zh="交互时序" data-en="Sequence">交互时序</a>
+            <a href="#quality" data-zh="质量闸门" data-en="Quality">质量闸门</a>
+            <a href="#boundary" data-zh="边界与演进" data-en="Boundary">边界与演进</a>
+            <a href="#references" data-zh="参考资料" data-en="References">参考资料</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow" data-zh="DiagramSpec · Draw.io · Bilingual SVG" data-en="DiagramSpec · Draw.io · Bilingual SVG">DiagramSpec · Draw.io · Bilingual SVG</span>
+            <h1 data-zh="让文章语义直接生成可维护的专业图表" data-en="Generate Maintainable Professional Diagrams from Article Semantics">让文章语义直接生成可维护的专业图表</h1>
+            <p data-zh="本文供 AI 内容工程师评审图表能力是否应纳入 Knowledge Hub 写作流程。AI 内容工程需要把系统边界、业务流程和模块交互转成可审阅的视觉资产，同时保留可编辑源文件、双语一致性与发布质量。本设计用 DiagramSpec 保存图意，由确定性编译器生成 Draw.io 工程文件和中英文 SVG；本文的系统架构图、生成流程图与交互时序图均由该实现实际生成。" data-en="This article enables AI content engineers to assess whether diagram generation belongs in the Knowledge Hub authoring workflow. AI content engineering must turn system boundaries, business flows, and module interactions into reviewable visual assets while preserving editable sources, bilingual consistency, and publication quality. This design stores diagram intent in DiagramSpec and uses a deterministic compiler to produce Draw.io source and Chinese and English SVG files. The architecture, workflow, and interaction sequence diagrams in this article were generated by the implementation itself.">本文供 AI 内容工程师评审图表能力是否应纳入 Knowledge Hub 写作流程。AI 内容工程需要把系统边界、业务流程和模块交互转成可审阅的视觉资产，同时保留可编辑源文件、双语一致性与发布质量。本设计用 DiagramSpec 保存图意，由确定性编译器生成 Draw.io 工程文件和中英文 SVG；本文的系统架构图、生成流程图与交互时序图均由该实现实际生成。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#architecture" data-zh="查看实际架构" data-en="View the Working Architecture">查看实际架构</a>
+              <a class="button button-secondary" href="#quality" data-zh="检查质量闸门" data-en="Inspect the Quality Gates">检查质量闸门</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label" data-zh="设计结论" data-en="Design Decision">设计结论</span>
+            <h2 data-zh="AI 定义语义，编译器决定几何，Draw.io 保留人工编辑入口。" data-en="AI Defines Semantics, the Compiler Owns Geometry, and Draw.io Preserves Manual Editing">AI 定义语义，编译器决定几何，Draw.io 保留人工编辑入口。</h2>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span><span data-zh="单一 DiagramSpec 同时保存中文和英文节点、关系与层级" data-en="One DiagramSpec stores Chinese and English nodes, relationships, and layers">单一 DiagramSpec 同时保存中文和英文节点、关系与层级</span></li>
+              <li><span class="layer-number">2</span><span data-zh="编译器使用固定或显式节点尺寸，计算分层位置和正交连接，不要求模型填写坐标" data-en="The compiler uses fixed or explicit node dimensions and calculates layered placement and orthogonal connectors; the model does not supply coordinates">编译器使用固定或显式节点尺寸，计算分层位置和正交连接，不要求模型填写坐标</span></li>
+              <li><span class="layer-number">3</span><span data-zh="每张图输出一个 .drawio 源文件和两个语言版本的 SVG" data-en="Each diagram produces one .drawio source and two locale-specific SVG files">每张图输出一个 .drawio 源文件和两个语言版本的 SVG</span></li>
+              <li><span class="layer-number">4</span><span data-zh="发布页面不加载 Draw.io、Next.js 或额外图表运行时" data-en="Published pages load no Draw.io, Next.js, or additional diagram runtime">发布页面不加载 Draw.io、Next.js 或额外图表运行时</span></li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="hero-metrics load-in">
+          <div class="metric"><div class="metric-label" data-zh="首版图形" data-en="Initial Diagram Types">首版图形</div><strong>3</strong><span data-zh="架构 · 流程 · 时序" data-en="Architecture · Flow · Sequence">架构 · 流程 · 时序</span></div>
+          <div class="metric"><div class="metric-label" data-zh="每图产物" data-en="Artifacts per Diagram">每图产物</div><strong>3</strong><span data-zh="Draw.io · 中文 SVG · 英文 SVG" data-en="Draw.io · Chinese SVG · English SVG">Draw.io · 中文 SVG · 英文 SVG</span></div>
+          <div class="metric"><div class="metric-label" data-zh="质量层级" data-en="Quality Levels">质量层级</div><strong>2</strong><span data-zh="编译检查 · 页面验收" data-en="Compile Checks · Page Acceptance">编译检查 · 页面验收</span></div>
+          <div class="metric"><div class="metric-label" data-zh="额外图表运行时" data-en="Additional Diagram Runtime">额外图表运行时</div><strong>0</strong><span data-zh="发布为静态 SVG" data-en="Published as Static SVG">发布为静态 SVG</span></div>
+        </div>
+      </header>
+
+      <main>
+        <section id="requirements" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="01 / 设计要求" data-en="01 / Design Requirements">01 / 设计要求</p>
+            <h2 data-zh="文章图表必须同时满足可复现、可编辑、双语一致和静态发布" data-en="Article Diagrams Must Be Reproducible, Editable, Bilingual, and Static at Runtime">文章图表必须同时满足可复现、可编辑、双语一致和静态发布</h2>
+            <p data-zh="Knowledge Hub 的一篇设计文章同时服务滚动阅读、全屏演示、PPT 导出和后续内容维护。图表如果只保存位图，无法可靠修改；如果只保存 Mermaid，复杂架构的图标、分组和连线路由受限；如果在页面运行 Draw.io，又会把编辑器依赖带给每位读者。因此首版用四项可验证要求约束方案。" data-en="A Knowledge Hub design article serves scrolling, full-screen presentation, PPT export, and future maintenance. A bitmap alone cannot be edited reliably; Mermaid alone limits icons, grouping, and routing in complex architecture diagrams; running Draw.io on the page would impose an editor dependency on every reader. The initial design is therefore constrained by four testable requirements.">Knowledge Hub 的一篇设计文章同时服务滚动阅读、全屏演示、PPT 导出和后续内容维护。图表如果只保存位图，无法可靠修改；如果只保存 Mermaid，复杂架构的图标、分组和连线路由受限；如果在页面运行 Draw.io，又会把编辑器依赖带给每位读者。因此首版用四项可验证要求约束方案。</p>
+          </div>
+          <div class="insight-grid" data-present-step data-step-title="四项要求共同定义可发布图表" data-step-title-en="Four Requirements Define a Publishable Diagram" data-step-label="01 / 设计要求" data-step-label-en="01 / REQUIREMENTS">
+            <article class="insight-card"><span class="card-index">01</span><h3 data-zh="确定性重建" data-en="Deterministic Rebuild">确定性重建</h3><p data-zh="在同一 Node.js 运行环境中，测试夹具连续编译两次必须产生字节一致的 SVG；跨运行环境一致性尚未纳入测试。" data-en="Within the same Node.js runtime, compiling the test fixture twice must produce byte-identical SVG. Cross-runtime reproducibility is not yet tested.">在同一 Node.js 运行环境中，测试夹具连续编译两次必须产生字节一致的 SVG；跨运行环境一致性尚未纳入测试。</p></article>
+            <article class="insight-card"><span class="card-index">02</span><h3 data-zh="保留可编辑源" data-en="Editable Source Retained">保留可编辑源</h3><p data-zh="每张图必须提交标准 mxGraph XML 的 .drawio 文件；人工可以在 Draw.io 中继续调整，但语义变更仍回写 DiagramSpec。" data-en="Every diagram commits a .drawio file containing standard mxGraph XML. Manual editing remains available, while semantic changes return to DiagramSpec.">每张图必须提交标准 mxGraph XML 的 .drawio 文件；人工可以在 Draw.io 中继续调整，但语义变更仍回写 DiagramSpec。</p></article>
+            <article class="insight-card"><span class="card-index">03</span><h3 data-zh="双语同源" data-en="One Bilingual Source">双语同源</h3><p data-zh="节点标签必须提供 zh/en；边标签可以省略，但一旦提供也必须双语。缺少任一必需语言时编译直接失败。" data-en="Node labels must provide zh and en. Edge labels are optional, but when present they must also be bilingual. Compilation fails when a required locale is missing.">节点标签必须提供 zh/en；边标签可以省略，但一旦提供也必须双语。缺少任一必需语言时编译直接失败。</p></article>
+            <article class="insight-card"><span class="card-index">04</span><h3 data-zh="静态交付" data-en="Static Delivery">静态交付</h3><p data-zh="文章只引用 SVG，保持 GitHub Pages 的零构建运行架构；Draw.io 和编译器只参与编辑期，不进入读者浏览器。" data-en="Articles reference SVG only, preserving the zero-build GitHub Pages runtime. Draw.io and the compiler participate during authoring, not in the reader's browser.">文章只引用 SVG，保持 GitHub Pages 的零构建运行架构；Draw.io 和编译器只参与编辑期，不进入读者浏览器。</p></article>
+          </div>
+        </section>
+
+        <section id="architecture" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="02 / 系统架构" data-en="02 / System Architecture">02 / 系统架构</p>
+            <h2 data-zh="DiagramSpec 位于文章语义与发布资产之间" data-en="DiagramSpec Sits Between Article Semantics and Published Assets">DiagramSpec 位于文章语义与发布资产之间</h2>
+            <p data-zh="系统分为四个架构域：内容协作域定义读者问题和双语图意；Diagram Engine 承担规格校验、容器布局、几何检查和资产序列化；图表资产仓库保存可重建语义源、可编辑 Draw.io 和双语 SVG；Knowledge Hub 运行时只消费静态 SVG，分别服务阅读、演示与 PPT 导出。下图由 system-architecture.diagram.json 通过本设计的编译器生成。" data-en="The system has four architecture domains. The content authoring plane defines the reader question and bilingual diagram intent. Diagram Engine owns specification validation, container layout, geometry checks, and asset serialization. The artifact store retains the rebuildable semantic source, editable Draw.io, and bilingual SVG. Knowledge Hub runtime consumes static SVG only for reading, presentation, and PPT export. The diagram below was generated from system-architecture.diagram.json by the compiler described here.">系统分为四个架构域：内容协作域定义读者问题和双语图意；Diagram Engine 承担规格校验、容器布局、几何检查和资产序列化；图表资产仓库保存可重建语义源、可编辑 Draw.io 和双语 SVG；Knowledge Hub 运行时只消费静态 SVG，分别服务阅读、演示与 PPT 导出。下图由 system-architecture.diagram.json 通过本设计的编译器生成。</p>
+          </div>
+          <figure class="generated-diagram" data-present-step data-present-surface="unframed" data-step-title="Knowledge Hub 图表引擎系统架构" data-step-title-en="Knowledge Hub Diagram Engine System Architecture" data-step-label="02 / 系统架构" data-step-label-en="02 / SYSTEM ARCHITECTURE">
+            <img class="diagram-zh" src="media/system-architecture.zh.svg" alt="Knowledge Hub 图表引擎系统架构：内容协作域、Diagram Engine、图表资产仓库和 Knowledge Hub 运行时四个系统边界及其内部组件" />
+            <img class="diagram-en" src="media/system-architecture.en.svg" alt="Knowledge Hub Diagram Engine system architecture with content authoring, engine, artifact store, and runtime boundaries and their internal components" />
+            <figcaption class="diagram-caption"><span data-zh="由 Diagram Engine 实际生成；SVG 是发布产物，Draw.io 是可编辑源文件。" data-en="Generated by the Diagram Engine; SVG is the publication asset and Draw.io is the editable source.">由 Diagram Engine 实际生成；SVG 是发布产物，Draw.io 是可编辑源文件。</span><a href="media/system-architecture.drawio" download data-zh="下载 .drawio" data-en="Download .drawio">下载 .drawio</a></figcaption>
+          </figure>
+              <div data-present-step data-step-title="四个架构域如何协作" data-step-title-en="How the Four Architecture Domains Work Together" data-step-label="02a / 职责边界" data-step-label-en="02a / OWNERSHIP BOUNDARIES">
+                <p data-zh="协作域只定义语义；引擎域独占几何计算和格式转换；资产域保存三类不同用途的文件；运行时域选择当前语言的 SVG，并交给现有灯箱、演示模式和 PPT 导出器处理。" data-en="The authoring plane defines semantics only. The engine exclusively owns geometry and format conversion. The artifact store retains three files for distinct purposes. The runtime selects the active locale's SVG and delegates it to the lightbox, presentation mode, and PPT exporter.">协作域只定义语义；引擎域独占几何计算和格式转换；资产域保存三类不同用途的文件；运行时域选择当前语言的 SVG，并交给现有灯箱、演示模式和 PPT 导出器处理。</p>
+                <div class="table-scroll"><table class="simple-table"><thead><tr><th data-zh="边界" data-en="Boundary">边界</th><th data-zh="输入" data-en="Input">输入</th><th data-zh="输出" data-en="Output">输出</th><th data-zh="禁止承担" data-en="Must Not Own">禁止承担</th></tr></thead><tbody>
+                  <tr><td>DiagramSpec</td><td data-zh="文章论点与关系" data-en="Article claims and relationships">文章论点与关系</td><td data-zh="双语语义图" data-en="Bilingual semantic graph">双语语义图</td><td data-zh="像素坐标与 SVG 标签" data-en="Pixel coordinates or SVG markup">像素坐标与 SVG 标签</td></tr>
+                  <tr><td data-zh="编译器" data-en="Compiler">编译器</td><td data-zh="DiagramSpec + 布局参数" data-en="DiagramSpec plus layout parameters">DiagramSpec + 布局参数</td><td data-zh="Draw.io + 双语 SVG" data-en="Draw.io plus bilingual SVG">Draw.io + 双语 SVG</td><td data-zh="改写文章论点" data-en="Rewriting article claims">改写文章论点</td></tr>
+                  <tr><td data-zh="图表渲染路径" data-en="Diagram Rendering Path">图表渲染路径</td><td data-zh="静态 SVG" data-en="Static SVG">静态 SVG</td><td data-zh="阅读、演示与导出" data-en="Reading, presentation, and export">阅读、演示与导出</td><td data-zh="重新布局或调用 AI" data-en="Relayout or AI calls">重新布局或调用 AI</td></tr>
+                </tbody></table></div>
+          </div>
+        </section>
+
+        <section id="contract" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="03 / 规格契约" data-en="03 / Specification Contract">03 / 规格契约</p>
+            <h2 data-zh="DiagramSpec v1 只表达有向分层图" data-en="DiagramSpec v1 Expresses Directed Layered Graphs Only">DiagramSpec v1 只表达有向分层图</h2>
+            <p data-zh="DiagramSpec v1 包含两套明确契约。architecture 与 flowchart 使用 nodes、edges 和 layer；architecture 还必须用 groups 表达真实系统边界。sequence 使用 participants 和按时间排序的 messages，消息可标记为 call 或 response。所有可见文本必须提供 zh/en，所有引用必须指向已声明实体。" data-en="DiagramSpec v1 contains two explicit contracts. Architecture and flowchart use nodes, edges, and layer, while architecture must also use groups for real system boundaries. Sequence uses participants and time-ordered messages, with each message marked as call or response. All visible text must provide zh and en, and every reference must target a declared entity.">DiagramSpec v1 包含两套明确契约。architecture 与 flowchart 使用 nodes、edges 和 layer；architecture 还必须用 groups 表达真实系统边界。sequence 使用 participants 和按时间排序的 messages，消息可标记为 call 或 response。所有可见文本必须提供 zh/en，所有引用必须指向已声明实体。</p>
+          </div>
+          <div data-present-step data-step-title="DiagramSpec v1 的最小契约" data-step-title-en="The Minimal DiagramSpec v1 Contract" data-step-label="03 / 规格契约" data-step-label-en="03 / SPECIFICATION CONTRACT">
+            <pre class="contract-code">{
+  "version": 1,
+  "type": "flowchart",
+  "title": { "zh": "编译流程", "en": "Compilation Flow" },
+  "layout": { "direction": "right" },
+  "nodes": [
+    { "id": "spec", "layer": 0, "role": "artifact",
+      "label": { "zh": "图表规格", "en": "Diagram Spec" } },
+    { "id": "compiler", "layer": 1, "role": "service",
+      "label": { "zh": "图表编译器", "en": "Diagram Compiler" } }
+  ],
+  "edges": [{ "from": "spec", "to": "compiler" }]
+}</pre>
+            <div class="table-scroll"><table class="simple-table"><thead><tr><th data-zh="字段" data-en="Field">字段</th><th data-zh="约束" data-en="Constraint">约束</th><th data-zh="失败结果" data-en="Failure Result">失败结果</th></tr></thead><tbody>
+              <tr><td><code>version</code></td><td data-zh="当前只能为 1" data-en="Must currently equal 1">当前只能为 1</td><td data-zh="拒绝未知格式" data-en="Reject unknown format">拒绝未知格式</td></tr>
+              <tr><td><code>nodes[].id</code></td><td data-zh="图内唯一" data-en="Unique within the diagram">图内唯一</td><td data-zh="编译终止" data-en="Compilation stops">编译终止</td></tr>
+              <tr><td><code>label.zh/en</code></td><td data-zh="两个非空字符串" data-en="Two non-empty strings">两个非空字符串</td><td data-zh="禁止生成单语资产" data-en="Prevent monolingual assets">禁止生成单语资产</td></tr>
+              <tr><td><code>edges[].from/to</code></td><td data-zh="必须引用现有节点" data-en="Must reference existing nodes">必须引用现有节点</td><td data-zh="报告未知节点" data-en="Report unknown node">报告未知节点</td></tr>
+            </tbody></table></div>
+          </div>
+          <div data-present-step data-step-title="v1 用表达范围换取可检查性" data-step-title-en="v1 Trades Expressive Range for Verifiability" data-step-label="03a / 设计取舍" data-step-label-en="03a / DESIGN TRADEOFF">
+            <p class="quote-block" data-zh="取舍：v1 不接受任意坐标、自由曲线和混合画布。这个限制牺牲自由度，换来可重复布局和可自动检查；需要任意绘图时仍可打开生成的 .drawio 文件人工编辑。" data-en="Tradeoff: v1 does not accept arbitrary coordinates, free-form curves, or mixed canvases. The restriction trades freedom for reproducible layout and automated checks; arbitrary drawing remains available by opening the generated .drawio file.">取舍：v1 不接受任意坐标、自由曲线和混合画布。这个限制牺牲自由度，换来可重复布局和可自动检查；需要任意绘图时仍可打开生成的 .drawio 文件人工编辑。</p>
+          </div>
+        </section>
+
+        <section id="compiler" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="04 / 编译器设计" data-en="04 / Compiler Design">04 / 编译器设计</p>
+            <h2 data-zh="编译器用固定尺寸与分层坐标消除模型手算几何" data-en="The Compiler Removes Model-Calculated Geometry with Fixed Dimensions and Layered Coordinates">编译器用固定尺寸与分层坐标消除模型手算几何</h2>
+            <p data-zh="图表编译器满足一个可复现需求：模型只提交语义关系，代码独占几何计算。编译器先按 layer 和 order 分组，再用画布边距、节点尺寸、层间距和同行间距计算坐标；横向图从左到右排列，纵向图从上到下排列；边使用源节点与目标节点边缘中点之间的正交折线。" data-en="The compiler serves one reproducibility requirement: the model submits semantic relationships while code exclusively owns geometry. It groups nodes by layer and order, then calculates coordinates from canvas margins, node dimensions, inter-layer spacing, and within-layer spacing. Horizontal diagrams run left to right, vertical diagrams top to bottom, and edges use orthogonal paths between source and target edge midpoints.">图表编译器满足一个可复现需求：模型只提交语义关系，代码独占几何计算。编译器先按 layer 和 order 分组，再用画布边距、节点尺寸、层间距和同行间距计算坐标；横向图从左到右排列，纵向图从上到下排列；边使用源节点与目标节点边缘中点之间的正交折线。</p>
+          </div>
+          <div data-present-step data-step-title="同一几何模型序列化为三份资产" data-step-title-en="One Geometry Model Serializes into Three Assets" data-step-label="04 / 编译机制" data-step-label-en="04 / COMPILATION MECHANISM">
+            <div class="table-scroll"><table class="simple-table"><thead><tr><th data-zh="阶段" data-en="Stage">阶段</th><th data-zh="机制" data-en="Mechanism">机制</th><th data-zh="输出" data-en="Output">输出</th></tr></thead><tbody>
+              <tr><td data-zh="验证" data-en="Validate">验证</td><td data-zh="检查 schema、双语、角色、引用、循环和方向" data-en="Check schema, locales, roles, references, cycles, and direction">检查 schema、双语、角色、引用、循环和方向</td><td data-zh="合法语义图" data-en="Valid semantic graph">合法语义图</td></tr>
+              <tr><td data-zh="布局" data-en="Layout">布局</td><td data-zh="按 layer/order 分组并计算固定矩形；布局后逐对检测相交" data-en="Group by layer and order, calculate fixed rectangles, then test every pair for intersection">按 layer/order 分组并计算固定矩形；布局后逐对检测相交</td><td data-zh="带坐标的中间模型" data-en="Positioned intermediate model">带坐标的中间模型</td></tr>
+              <tr><td data-zh="序列化" data-en="Serialize">序列化</td><td data-zh="中文和英文分别运行同一布局算法，再写入 mxGraph XML 与 SVG" data-en="Run the same layout algorithm for Chinese and English, then write mxGraph XML and SVG">中文和英文分别运行同一布局算法，再写入 mxGraph XML 与 SVG</td><td data-zh="1 个 .drawio + 2 个 SVG" data-en="One .drawio plus two SVG files">1 个 .drawio + 2 个 SVG</td></tr>
+            </tbody></table></div>
+          </div>
+          <div data-present-step data-step-title="固定布局的取舍与失败边界" data-step-title-en="Fixed-Layout Tradeoffs and Failure Boundary" data-step-label="04a / 取舍与边界" data-step-label-en="04a / TRADEOFF &amp; LIMIT">
+            <p data-zh="设计否决了让 AI 直接填写 x/y 坐标，因为同一语义会随模型和提示变化。架构图与流程图由容器、layer 和 order 决定几何；时序图由参与者顺序和消息顺序决定生命线与纵向位置。首版没有引入 ELK，采用外部布局器的判据是出现循环、嵌套容器或需要绕开障碍物的连接线。" data-en="The design rejects AI-authored x/y coordinates because identical semantics can produce different geometry across models and prompts. Containers, layer, and order determine architecture and flow geometry; participant and message order determine sequence lifelines and vertical positions. The initial release does not use ELK. An external layout adapter becomes justified when cycles, nested containers, or obstacle-avoiding connectors appear.">设计否决了让 AI 直接填写 x/y 坐标，因为同一语义会随模型和提示变化。架构图与流程图由容器、layer 和 order 决定几何；时序图由参与者顺序和消息顺序决定生命线与纵向位置。首版没有引入 ELK，采用外部布局器的判据是出现循环、嵌套容器或需要绕开障碍物的连接线。</p>
+            <p class="quote-block" data-zh="失败样例：横向画布只有 400px，却放置四层 210px 节点时，布局后矩形发生相交，编译器报告具体节点对并终止；它不会通过缩小字体掩盖错误。" data-en="Failure example: when a 400px-wide horizontal canvas contains four layers of 210px nodes, rectangle intersection occurs after layout. The compiler reports the exact node pair and stops instead of hiding the error with smaller text.">失败样例：横向画布只有 400px，却放置四层 210px 节点时，布局后矩形发生相交，编译器报告具体节点对并终止；它不会通过缩小字体掩盖错误。</p>
+            <p data-zh="文字边界：v1 使用固定节点尺寸和单行 SVG 文本，尚未自动检测文字溢出。作者必须在浏览器中确认标签完整显示；过长内容应缩短标签、拆分节点或提高全图节点宽度。" data-en="Text boundary: v1 uses fixed node dimensions and single-line SVG text, and does not yet detect text overflow automatically. Authors must confirm complete labels in the browser; longer content requires shorter labels, split nodes, or a wider diagram-wide node size.">文字边界：v1 使用固定节点尺寸和单行 SVG 文本，尚未自动检测文字溢出。作者必须在浏览器中确认标签完整显示；过长内容应缩短标签、拆分节点或提高全图节点宽度。</p>
+          </div>
+        </section>
+
+        <section id="workflow" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="05 / 生成流程" data-en="05 / Generation Workflow">05 / 生成流程</p>
+            <h2 data-zh="九步主路径和三个失败分支阻止不合格图表进入发布" data-en="A Nine-Step Main Path and Three Failure Branches Block Unqualified Diagrams from Publication">九步主路径和三个失败分支阻止不合格图表进入发布</h2>
+            <p data-zh="结构检查不能替代页面检查：一张无重叠的 SVG 仍可能在手机上过密、在英文版中缩得过小，或在演示模式中侵入导航按钮。因此流程先验证 DiagramSpec 与几何，再把候选资产嵌入文章，最后在真实页面中检查桌面、手机、主题与 PPT。下图由 article-workflow.diagram.json 生成。" data-en="Structural checks cannot replace page-level review. An overlap-free SVG may still be too dense on mobile, shrink excessively in English, or intrude into presentation navigation. The workflow therefore validates DiagramSpec and geometry first, embeds candidate assets into the article, and then checks desktop, mobile, themes, and PPT in the real page. The diagram below was generated from article-workflow.diagram.json.">结构检查不能替代页面检查：一张无重叠的 SVG 仍可能在手机上过密、在英文版中缩得过小，或在演示模式中侵入导航按钮。因此流程先验证 DiagramSpec 与几何，再把候选资产嵌入文章，最后在真实页面中检查桌面、手机、主题与 PPT。下图由 article-workflow.diagram.json 生成。</p>
+          </div>
+          <figure class="generated-diagram" data-present-step data-present-surface="unframed" data-step-title="文章图表生成与验证流程" data-step-title-en="Article Diagram Generation and Validation Flow" data-step-label="05 / 生成流程" data-step-label-en="05 / GENERATION FLOW">
+            <img class="diagram-zh" src="media/article-workflow.zh.svg" alt="九步文章图表主路径以及规格、布局和页面三个失败修订分支" />
+            <img class="diagram-en" src="media/article-workflow.en.svg" alt="Nine-step article diagram main path with specification, layout, and page remediation branches" />
+            <figcaption class="diagram-caption"><span data-zh="同一规格生成中英文 SVG；页面按当前语言显示对应产物。" data-en="One specification generates both SVG locales; the page displays the active locale's asset.">同一规格生成中英文 SVG；页面按当前语言显示对应产物。</span><a href="media/article-workflow.drawio" download data-zh="下载 .drawio" data-en="Download .drawio">下载 .drawio</a></figcaption>
+          </figure>
+        </section>
+
+        <section id="sequence" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="06 / 交互时序" data-en="06 / Interaction Sequence">06 / 交互时序</p>
+            <h2 data-zh="五个模块通过十一条消息完成生成、加载、验收与返修" data-en="Five Modules Use Eleven Messages for Generation, Loading, Acceptance, and Revision">五个模块通过十一条消息完成生成、加载、验收与返修</h2>
+            <p data-zh="架构图说明谁拥有什么，流程图说明工作经过哪些闸门，时序图则说明模块在一次生成迭代中如何交互。AI 内容 Agent 提交 DiagramSpec；Diagram Engine 在内部完成校验、布局、几何检查与序列化；资产仓库向文章运行时提供当前语言 SVG；浏览器验收把页面问题返回内容 Agent，再触发下一轮生成。虚线消息表示诊断或反馈返回。" data-en="The architecture diagram shows ownership, the workflow shows gates, and the sequence diagram shows how modules interact during one generation iteration. The AI content agent submits DiagramSpec. Diagram Engine validates, lays out, checks geometry, and serializes internally. The artifact store supplies the active-locale SVG to article runtime. Browser acceptance returns page issues to the content agent and triggers another generation run. Dashed messages represent diagnostics or feedback responses.">架构图说明谁拥有什么，流程图说明工作经过哪些闸门，时序图则说明模块在一次生成迭代中如何交互。AI 内容 Agent 提交 DiagramSpec；Diagram Engine 在内部完成校验、布局、几何检查与序列化；资产仓库向文章运行时提供当前语言 SVG；浏览器验收把页面问题返回内容 Agent，再触发下一轮生成。虚线消息表示诊断或反馈返回。</p>
+          </div>
+          <figure class="generated-diagram" data-present-step data-present-surface="unframed" data-step-title="图表能力融入 Knowledge Hub 的交互时序" data-step-title-en="Interaction Sequence for Integrating Diagrams into Knowledge Hub" data-step-label="06 / 交互时序" data-step-label-en="06 / INTERACTION SEQUENCE">
+            <img class="diagram-zh" src="media/integration-sequence.zh.svg" alt="AI 内容 Agent、Diagram Engine、图表资产仓库、文章运行时和浏览器验收之间的十一条交互消息" />
+            <img class="diagram-en" src="media/integration-sequence.en.svg" alt="Eleven interactions among AI Content Agent, Diagram Engine, Diagram Artifact Store, Article Runtime, and Browser Acceptance" />
+            <figcaption class="diagram-caption"><span data-zh="实线表示调用或写入，虚线表示诊断与视觉反馈返回。" data-en="Solid lines are calls or writes; dashed lines are diagnostics and visual feedback responses.">实线表示调用或写入，虚线表示诊断与视觉反馈返回。</span><a href="media/integration-sequence.drawio" download data-zh="下载 .drawio" data-en="Download .drawio">下载 .drawio</a></figcaption>
+          </figure>
+        </section>
+
+        <section id="quality" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="07 / 质量闸门" data-en="07 / Quality Gates">07 / 质量闸门</p>
+            <h2 data-zh="机器检查结构，人审查信息层级与阅读体验" data-en="Automation Checks Structure; Reviewers Judge Hierarchy and Reading Experience">机器检查结构，人审查信息层级与阅读体验</h2>
+            <p data-zh="当前编译器检查版本、类型、方向、节点数量、ID、layer、角色、双语、边引用、自连接、循环与节点重叠。发布前必须检查五个具体组合：中文亮色桌面阅读、英文深色桌面阅读、英文深色手机阅读、中文亮色桌面演示、英文深色桌面演示。任何后续修改只要改变 DiagramSpec、编译器、图像容器或演示元数据，就必须使相应检查重新失效并重跑。" data-en="The current compiler checks version, type, direction, node count, IDs, layers, roles, locales, edge references, self-connections, cycles, and node overlap. Before publication, five concrete combinations must pass: Chinese light desktop reading, English dark desktop reading, English dark mobile reading, Chinese light desktop presentation, and English dark desktop presentation. Any later change to DiagramSpec, the compiler, the image container, or presentation metadata invalidates the corresponding check and requires it to run again.">当前编译器检查版本、类型、方向、节点数量、ID、layer、角色、双语、边引用、自连接、循环与节点重叠。发布前必须检查五个具体组合：中文亮色桌面阅读、英文深色桌面阅读、英文深色手机阅读、中文亮色桌面演示、英文深色桌面演示。任何后续修改只要改变 DiagramSpec、编译器、图像容器或演示元数据，就必须使相应检查重新失效并重跑。</p>
+          </div>
+          <div data-present-step data-step-title="结构检查与视觉验收分工" data-step-title-en="Structural Checks and Visual Acceptance" data-step-label="07 / 质量闸门" data-step-label-en="07 / QUALITY GATES">
+            <div class="table-scroll"><table class="simple-table"><thead><tr><th data-zh="检查层" data-en="Gate">检查层</th><th data-zh="当前判据" data-en="Current Criterion">当前判据</th><th data-zh="失败时处理" data-en="Failure Handling">失败时处理</th></tr></thead><tbody>
+              <tr><td data-zh="Schema" data-en="Schema">Schema</td><td data-zh="版本、类型、节点数、唯一 ID、layer、双语、边引用全部有效" data-en="Version, type, node count, unique IDs, layers, locales, and edge references are valid">版本、类型、节点数、唯一 ID、layer、双语、边引用全部有效</td><td data-zh="停止编译并指出字段" data-en="Stop compilation and report the field">停止编译并指出字段</td></tr>
+              <tr><td data-zh="几何" data-en="Geometry">几何</td><td data-zh="任意两个节点矩形不相交" data-en="No two node rectangles intersect">任意两个节点矩形不相交</td><td data-zh="修改布局算法或规格层级" data-en="Change the layout algorithm or specification layers">修改布局算法或规格层级</td></tr>
+              <tr><td data-zh="发布" data-en="Publication">发布</td><td data-zh="生成命令成功，人工确认每张图存在 .drawio、zh.svg、en.svg" data-en="The generation command succeeds and a reviewer confirms .drawio, zh.svg, and en.svg for every diagram">生成命令成功，人工确认每张图存在 .drawio、zh.svg、en.svg</td><td data-zh="禁止注册文章" data-en="Do not register the article">禁止注册文章</td></tr>
+              <tr><td data-zh="页面" data-en="Page">页面</td><td data-zh="两种语言、亮暗主题、桌面与手机无截断或导航侵入" data-en="No clipping or navigation intrusion across locales, themes, desktop, and mobile">两种语言、亮暗主题、桌面与手机无截断或导航侵入</td><td data-zh="修编译器或图像容器后重测" data-en="Fix the compiler or image container, then retest">修编译器或图像容器后重测</td></tr>
+            </tbody></table></div>
+            <p data-zh="取舍：质量闸门不采用整图像素快照作为唯一自动判据，因为字体渲染、主题和浏览器差异会产生与信息质量无关的变化。结构错误由代码阻断，页面上下文由五个具体组合人工验收；如果标签在英文深色演示页被截断，先修规格或节点宽度，再重跑结构检查和受影响页面。" data-en="Tradeoff: the quality gate does not use whole-image pixel snapshots as its only automated criterion because font rendering, themes, and browsers create changes unrelated to information quality. Code blocks structural errors, while five concrete manual combinations cover page context. If a label is clipped in the English dark presentation, fix the specification or node width, then rerun structural checks and the affected page state.">取舍：质量闸门不采用整图像素快照作为唯一自动判据，因为字体渲染、主题和浏览器差异会产生与信息质量无关的变化。结构错误由代码阻断，页面上下文由五个具体组合人工验收；如果标签在英文深色演示页被截断，先修规格或节点宽度，再重跑结构检查和受影响页面。</p>
+          </div>
+        </section>
+
+        <section id="boundary" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="08 / 边界与演进" data-en="08 / Boundary and Evolution">08 / 边界与演进</p>
+            <h2 data-zh="首版覆盖重复需求，复杂拓扑再接入 Draw.io 官方布局" data-en="The Initial Release Covers Repeated Needs; Complex Topologies Can Add Official Draw.io Layouts">首版覆盖重复需求，复杂拓扑再接入 Draw.io 官方布局</h2>
+            <p data-zh="本次实现已经完成规格验证、顶层架构容器、横向和纵向分层流程、时序生命线与消息、正交连接、Draw.io XML、双语 SVG 与文章嵌入。它不处理循环图、嵌套容器、云厂商图标和连接线避障。Draw.io Embed 可以调用 JSON Layout Specification 定义的布局并负责 SVG 导出；布局规范分别提供 ELK layered/tree/radial/organic 和独立的 orthogonalEdge/libavoid 避障路由，可在这些需求真实出现时作为几何适配器接入。[1][2]" data-en="This implementation completes specification validation, top-level architecture containers, horizontal and vertical layered flows, sequence lifelines and messages, orthogonal connectors, Draw.io XML, bilingual SVG, and article embedding. It does not handle cyclic graphs, nested containers, cloud-provider icons, or obstacle-avoiding routes. Draw.io Embed can invoke layouts defined by the JSON Layout Specification and perform SVG export. The layout specification separately provides ELK layered, tree, radial, and organic layouts and the orthogonalEdge/libavoid obstacle router; these can become a geometry adapter when those needs appear.[1][2]">本次实现已经完成规格验证、顶层架构容器、横向和纵向分层流程、时序生命线与消息、正交连接、Draw.io XML、双语 SVG 与文章嵌入。它不处理循环图、嵌套容器、云厂商图标和连接线避障。Draw.io Embed 可以调用 JSON Layout Specification 定义的布局并负责 SVG 导出；布局规范分别提供 ELK layered/tree/radial/organic 和独立的 orthogonalEdge/libavoid 避障路由，可在这些需求真实出现时作为几何适配器接入。[1][2]</p>
+          </div>
+          <div data-present-step data-step-title="已实现边界与按需扩展点" data-step-title-en="Implemented Boundary and Demand-Driven Extensions" data-step-label="08 / 边界与演进" data-step-label-en="08 / BOUNDARY &amp; EVOLUTION">
+            <div class="table-scroll"><table class="simple-table"><thead><tr><th data-zh="能力" data-en="Capability">能力</th><th data-zh="状态" data-en="Status">状态</th><th data-zh="采用判据" data-en="Adoption Criterion">采用判据</th></tr></thead><tbody>
+              <tr><td data-zh="架构、流程与时序图" data-en="Architecture, flow, and sequence diagrams">架构、流程与时序图</td><td class="status-pass" data-zh="已实现" data-en="Implemented">已实现</td><td data-zh="容器化架构、有向分层流程或按消息排序的模块交互" data-en="Container architecture, directed layered flow, or message-ordered module interaction">容器化架构、有向分层流程或按消息排序的模块交互</td></tr>
+              <tr><td data-zh="Draw.io 人工编辑" data-en="Manual Draw.io editing">Draw.io 人工编辑</td><td class="status-pass" data-zh="已实现" data-en="Implemented">已实现</td><td data-zh="打开生成的 .drawio 文件" data-en="Open the generated .drawio file">打开生成的 .drawio 文件</td></tr>
+              <tr><td data-zh="ELK 自动布局" data-en="ELK automatic layout">ELK 自动布局</td><td class="status-next" data-zh="按需接入" data-en="Demand-Driven">按需接入</td><td data-zh="出现循环图、复合图或三层以上分支" data-en="Cyclic, compound, or deeply branching graphs appear">出现循环图、复合图或三层以上分支</td></tr>
+              <tr><td data-zh="libavoid 连线避障" data-en="libavoid edge routing">libavoid 连线避障</td><td class="status-next" data-zh="按需接入" data-en="Demand-Driven">按需接入</td><td data-zh="自动检查发现连接线穿越非目标节点" data-en="Automated checks detect connectors crossing unrelated nodes">自动检查发现连接线穿越非目标节点</td></tr>
+              <tr><td data-zh="Next AI Draw.io 应用" data-en="Next AI Draw.io application">Next AI Draw.io 应用</td><td data-zh="不引入" data-en="Not Adopted">不引入</td><td data-zh="AI 编排已由内容协作 Agent 提供，无需第二套聊天与模型配置" data-en="The content agent already provides AI orchestration, so a second chat and model configuration is unnecessary">AI 编排已由内容协作 Agent 提供，无需第二套聊天与模型配置</td></tr>
+            </tbody></table></div>
+            <p class="quote-block" data-zh="选择标准：新增图表类型必须由至少一篇真实文章提出，并且无法由现有 flow-list、Mermaid、数据 SVG 或 DiagramSpec v1 清晰表达；否则不扩展引擎。" data-en="Extension criterion: a new diagram type must be required by a real article and cannot be expressed clearly by the existing flow list, Mermaid, data SVG, or DiagramSpec v1. Otherwise, the engine does not expand.">选择标准：新增图表类型必须由至少一篇真实文章提出，并且无法由现有 flow-list、Mermaid、数据 SVG 或 DiagramSpec v1 清晰表达；否则不扩展引擎。</p>
+          </div>
+        </section>
+
+        <section id="references" class="section" data-reveal data-density-exempt="references">
+          <div class="section-head">
+            <p class="section-kicker" data-zh="References" data-en="References">References</p>
+            <h2 data-zh="官方协议与实现依据" data-en="Official Protocol and Implementation Sources">官方协议与实现依据</h2>
+            <p data-zh="外部能力只引用 Draw.io 官方文档和 Next AI Draw.io 项目仓库；本文的实现状态以同目录 DiagramSpec、生成资产和 tools/diagram-engine/compiler.js 为准。" data-en="External capabilities are supported only by official Draw.io documentation and the Next AI Draw.io repository. Implementation status is grounded in the adjacent DiagramSpec files, generated assets, and tools/diagram-engine/compiler.js.">外部能力只引用 Draw.io 官方文档和 Next AI Draw.io 项目仓库；本文的实现状态以同目录 DiagramSpec、生成资产和 tools/diagram-engine/compiler.js 为准。</p>
+          </div>
+          <div class="layer-list" data-present-step data-step-title="官方协议与实现依据" data-step-title-en="Official Protocol and Implementation Sources" data-step-label="09 / 参考资料" data-step-label-en="09 / REFERENCES">
+            <div class="layer-row"><span class="layer-number">1</span><div><strong>Draw.io Embed Mode</strong><p><a href="https://www.drawio.com/docs/reference/embed-mode/" target="_blank" rel="noopener">drawio.com/docs/reference/embed-mode</a></p><p data-zh="支撑 JSON 协议的 load、layout、export、autosave 与静态 SVG 导出能力。" data-en="Supports the claims about JSON load, layout, export, autosave, and static SVG export.">支撑 JSON 协议的 load、layout、export、autosave 与静态 SVG 导出能力。</p></div></div>
+            <div class="layer-row"><span class="layer-number">2</span><div><strong>Draw.io JSON Layout Specification</strong><p><a href="https://www.drawio.com/docs/reference/json-layout-specification/" target="_blank" rel="noopener">drawio.com/docs/reference/json-layout-specification</a></p><p data-zh="支撑 ELK layered/tree/radial/organic、parallel edge 与 libavoid 的布局和连线路由能力。" data-en="Supports ELK layered, tree, radial, and organic layouts, parallel-edge spacing, and libavoid routing.">支撑 ELK layered/tree/radial/organic、parallel edge 与 libavoid 的布局和连线路由能力。</p></div></div>
+            <div class="layer-row"><span class="layer-number">3</span><div><strong>Next AI Draw.io MCP Server</strong><p><a href="https://github.com/DayuanJiang/next-ai-draw-io/blob/main/packages/mcp-server/README.md" target="_blank" rel="noopener">packages/mcp-server/README.md</a></p><p data-zh="支撑 Agent 创建 Draw.io XML、按 cell ID 执行 add/update/delete、浏览器预览并导出 .drawio、SVG 和 PNG 的可行性判断。" data-en="Supports the feasibility of agent-created Draw.io XML, cell-ID add, update, and delete operations, browser preview, and .drawio, SVG, and PNG export.">支撑 Agent 创建 Draw.io XML、按 cell ID 执行 add/update/delete、浏览器预览并导出 .drawio、SVG 和 PNG 的可行性判断。</p></div></div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer"><span data-zh="Knowledge Hub Diagram Engine · 设计与实证" data-en="Knowledge Hub Diagram Engine · Design and Validation">Knowledge Hub Diagram Engine · 设计与实证</span></footer>
+    </div>
+  </div>
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

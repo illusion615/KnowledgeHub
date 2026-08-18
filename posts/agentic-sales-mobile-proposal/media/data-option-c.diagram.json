@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "type": "architecture",
+  "title": {
+    "zh": "方案 C：反向近实时投影与同步校验架构",
+    "en": "Option C: Reverse Near-Real-Time Projection and Live Validation"
+  },
+  "layout": {
+    "direction": "down",
+    "width": 1500,
+    "height": 950,
+    "marginX": 40,
+    "marginY": 24,
+    "nodeWidth": 380,
+    "nodeHeight": 88,
+    "rowGap": 40,
+    "groupGap": 32,
+    "groupPadding": 24,
+    "groupTitleHeight": 48,
+    "showTitle": false,
+    "showCanvas": false
+  },
+  "groups": [
+    { "id": "client", "order": 0, "label": { "zh": "Power Platform 消费端", "en": "Power Platform Consumer" } },
+    { "id": "dataverse", "order": 1, "label": { "zh": "Microsoft Dataverse", "en": "Microsoft Dataverse" } },
+    { "id": "integration", "order": 2, "label": { "zh": "双路集成中台 [我们实施]", "en": "Dual-Path Sync Hub [We Implement]" } },
+    { "id": "crm", "order": 3, "label": { "zh": "既有 CRM [职责：开放两类边界约束]", "en": "Legacy CRM [Provides Boundaries]" } }
+  ],
+  "nodes": [
+    {
+      "id": "apps", "layer": 0, "order": 0, "group": "client", "role": "interface", 
+      "label": { "zh": "Power Apps Code App / Agents", "en": "Power Apps Code App / Agents" },
+      "detail": { "zh": "基于新鲜度标识降级，分离关键动作路由", "en": "Smart Degradation on Freshness, Routes Criticals" }
+    },
+    {
+      "id": "proj", "layer": 1, "order": 0, "group": "dataverse", "role": "data", 
+      "label": { "zh": "Dataverse Projection", "en": "Dataverse Projection" },
+      "detail": { "zh": "只读投影 (附带来源版本号与同步时间戳)", "en": "Read-Only Projection Built with Version/Timestamp" }
+    },
+    {
+      "id": "apim", "layer": 2, "order": 1, "group": "integration", "role": "service", 
+      "label": { "zh": "Azure API Management", "en": "Azure API Management" },
+      "detail": { "zh": "订单库存等强校验拦截动作提交的网关", "en": "Live Gateway for Inventory/Order Validations" }
+    },
+    {
+      "id": "async", "layer": 2, "order": 0, "group": "integration", "role": "control", 
+      "label": { "zh": "Azure Service Bus + Functions", "en": "Azure Service Bus + Functions" },
+      "detail": { "zh": "事件缓冲对列、提取最新版本以防倒旧写", "en": "Event Queuing, Version Extract, Idempotency" }
+    },
+    {
+      "id": "crm-api", "layer": 3, "order": 1, "group": "crm", "role": "data", 
+      "label": { "zh": "Legacy CRM REST API", "en": "Legacy CRM REST API" },
+      "detail": { "zh": "提供源版本号 (RowVersion) 的乐观锁接口", "en": "Provides Transactional Auth Enforcing Locks" }
+    },
+    {
+      "id": "crm-event", "layer": 3, "order": 0, "group": "crm", "role": "service", 
+      "label": { "zh": "Legacy CRM Event Publisher", "en": "Legacy CRM Event Publisher" },
+      "detail": { "zh": "基于 CDC / Webhook 吐出规范化主件流", "en": "Emits Live Versioned Events From Master Source" }
+    }
+  ],
+  "edges": [
+    { "from": "apps", "to": "proj", "label": { "zh": "默认超高响应读取链路", "en": "Default Read Path" } },
+    { "from": "apps", "to": "apim", "label": { "zh": "强一致性验证提交", "en": "Live Validation" } },
+    { "from": "apim", "to": "crm-api", "label": { "zh": "防脏读与防旧值写入", "en": "Block Stale Data" } },
+    { "from": "crm-event", "to": "async", "label": { "zh": "源头变更扇出", "en": "Stream Fan-Out" } },
+    { "from": "async", "to": "proj", "label": { "zh": "应用严格新版本", "en": "Strict Overlay" } }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "type": "architecture",
+  "title": {
+    "zh": "方案 B：实时接口直连数据架构",
+    "en": "Option B: Live API Data Architecture"
+  },
+  "layout": {
+    "direction": "down",
+    "width": 1400,
+    "height": 720,
+    "marginX": 40,
+    "marginY": 24,
+    "nodeWidth": 360,
+    "nodeHeight": 88,
+    "rowGap": 40,
+    "groupGap": 32,
+    "groupPadding": 24,
+    "groupTitleHeight": 48,
+    "showTitle": false,
+    "showCanvas": false
+  },
+  "groups": [
+    { "id": "client", "order": 0, "label": { "zh": "Power Platform 客户端", "en": "Power Platform Client" } },
+    { "id": "integration", "order": 1, "label": { "zh": "API 访问网关 [我们实施]", "en": "API Access Gateway [We Implement]" } },
+    { "id": "crm", "order": 2, "label": { "zh": "既有 CRM [需开放高可用接口]", "en": "Legacy CRM [Require High-Avail APIs]" } }
+  ],
+  "nodes": [
+    {
+      "id": "apps", "layer": 0, "order": 0, "group": "client", "role": "interface",
+      "label": { "zh": "Power Apps Code App / Agents", "en": "Power Apps Code App / Agents" },
+      "detail": { "zh": "发起读写指令响应用户（不持久化业务副本）", "en": "Issue Commands and Display Response (No Replica)" }
+    },
+    {
+      "id": "apim", "layer": 1, "order": 0, "group": "integration", "role": "service",
+      "label": { "zh": "Azure API Management", "en": "Azure API Management" },
+      "detail": { "zh": "统一凭据转换、流量熔断与可观测性打点", "en": "Identity Exchange, Circuit Breaking, Telemetry" }
+    },
+    {
+      "id": "crm-api", "layer": 2, "order": 0, "group": "crm", "role": "data",
+      "label": { "zh": "Legacy CRM REST API", "en": "Legacy CRM REST API" },
+      "detail": { "zh": "权威业务逻辑处理，完全承担实时吞吐并发", "en": "Authoritative Logic, Absorbs Full Live Throughput" }
+    }
+  ],
+  "edges": [
+    { "from": "apps", "to": "apim", "label": { "zh": "发起带 JWT 的请求", "en": "Issue Authenticated Operations" } },
+    { "from": "apim", "to": "crm-api", "label": { "zh": "强制路由与身份透传", "en": "Route with Identity Passthrough" } }
+  ]
+}

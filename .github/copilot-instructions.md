@@ -40,6 +40,8 @@
 - **Summary length**: `knowledge-data.js` 中的 `summary.zh` / `summary.en` 必须控制在 4 行以内（中文 ≤ 100 字符，英文 ≤ 160 字符）。保留核心信息，去除冗余细节和枚举列表
 - If quantitative evidence is missing, state the gap explicitly instead of filling it with vague language
 - When updating a published article, keep the article body and its `knowledge-data.js` summary/metadata synchronized in the same change
+- Narration scripts are publish artifacts, not editing-time artifacts. Never call AI to regenerate narration during ordinary saves, previews, or iterative validation. Immediately before commit/push, compare each changed article's narration source hash; regenerate the complete bilingual narration once per stale article, then include the updated script and hash in the same commit. Unchanged hashes require zero AI calls.
+- Runtime narration precedence is: published narration → configured live LLM. When neither exists, disable automatic narration; never synthesize a script by concatenating slide text.
 
 ## Coding Conventions
 - Pure vanilla JS — no jQuery, no React, no npm

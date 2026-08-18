@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "type": "architecture",
+  "title": {
+    "zh": "方案 A：全量复制数据集成架构",
+    "en": "Option A: Full Replication Integration Architecture"
+  },
+  "layout": {
+    "direction": "down",
+    "width": 1400,
+    "height": 900,
+    "marginX": 40,
+    "marginY": 24,
+    "nodeWidth": 360,
+    "nodeHeight": 88,
+    "rowGap": 40,
+    "groupGap": 32,
+    "groupPadding": 24,
+    "groupTitleHeight": 48,
+    "showTitle": false,
+    "showCanvas": false
+  },
+  "groups": [
+    { "id": "dataverse", "order": 0, "label": { "zh": "Microsoft Dataverse", "en": "Microsoft Dataverse" } },
+    { "id": "integration", "order": 1, "label": { "zh": "双向同步中台 [我们实施]", "en": "Bidirectional Sync Hub [We Implement]" } },
+    { "id": "crm", "order": 2, "label": { "zh": "既有 CRM [需提供接口]", "en": "Legacy CRM [Required Interfaces]" } }
+  ],
+  "nodes": [
+    {
+      "id": "dataverse-db", "layer": 0, "order": 0, "group": "dataverse", "role": "data",
+      "label": { "zh": "Microsoft Dataverse", "en": "Microsoft Dataverse" },
+      "detail": { "zh": "全量业务记录副本与本地事务边界", "en": "Full Business Replica and Local Transaction Boundary" }
+    },
+    {
+      "id": "sb", "layer": 1, "order": 0, "group": "integration", "role": "service",
+      "label": { "zh": "Azure Service Bus", "en": "Azure Service Bus" },
+      "detail": { "zh": "变更事件队列、削峰与死信", "en": "Event Queue, Shaping and DLQ" }
+    },
+    {
+      "id": "fn", "layer": 2, "order": 0, "group": "integration", "role": "control",
+      "label": { "zh": "Azure Functions Sync Worker", "en": "Azure Functions Sync Worker" },
+      "detail": { "zh": "字段映射与冲突合并（双向执行器）", "en": "Field Mapping and Conflict Merging (Bidirectional)" }
+    },
+    {
+      "id": "crm-sys", "layer": 3, "order": 0, "group": "crm", "role": "data",
+      "label": { "zh": "Legacy CRM System of Record", "en": "Legacy CRM System of Record" },
+      "detail": { "zh": "提供增量变更暴露、全量导入导出能力", "en": "Provides Incremental Feeds and Bulk Export/Import" }
+    }
+  ],
+  "edges": [
+    { "from": "dataverse-db", "to": "sb", "label": { "zh": "推送本地或 CRM 变更", "en": "Push Local or Target Changes" } },
+    { "from": "sb", "to": "fn", "label": { "zh": "可靠消费带锁消息", "en": "Reliable Peek-Lock Consume" } },
+    { "from": "fn", "to": "crm-sys", "label": { "zh": "同步至源端或目标端（避免闭环）", "en": "Apply State to Targets" } }
+  ]
+}

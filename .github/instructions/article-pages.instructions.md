@@ -409,6 +409,28 @@ Boss 只关心**内容与业务**。技术问题（CSS 选择器范围、是否�
 3. 在浏览器中确认：阅读模式右下角出现 chat FAB（需本地 LLM 设置）
 4. 进入演示模式 → hover capsule → 确认 settings / record / chat / narrator 四个按钮均可见
 
+## Generated Diagram Workflow
+
+当文章需要架构图、流程图、时序图或层级图时，先加载 `.github/skills/study-room-diagrams/SKILL.md`，按图意复杂度选择现有组件、Mermaid、数据 SVG 或 DiagramSpec。复杂的架构图、分层流程图与模块交互时序默认使用 `tools/diagram-engine/compiler.js`，不得让模型直接手算 Draw.io 坐标或手改生成的 SVG。
+
+生成图表必须提交同一目录中的语义源、可编辑源和双语发布资产：
+
+```text
+media/<name>.diagram.json
+media/<name>.drawio
+media/<name>.zh.svg
+media/<name>.en.svg
+```
+
+文章只嵌入 SVG；`.drawio` 供人工编辑；`.diagram.json` 是节点、关系和双语文本的权威来源。修改语义后必须重新运行编译器和 `compiler.test.js`。发布前按 §0.5 完成中文亮色、英文深色、桌面演示和手机阅读检查，并确认两种语言的图表标签完整显示。
+
+**所有 DiagramSpec 文章图表必须遵守统一视觉契约**：
+
+1. `layout.showTitle` 与 `layout.showCanvas` 默认均为 `false`。文章 section / presentation slide 已经提供标题和 surface，SVG 内禁止重复标题或再包一层不透明大背景。
+2. 架构图、流程图、时序图统一使用文章式低对比语义色、细边框、12px 节点圆角和无阴影节点；禁止某一图类型自行恢复厚边框、投影或独立视觉主题。
+3. 架构图默认自上而下排列 full-width groups，组件在每层内横向排布；平铺 DAG 不得标为架构图。
+4. 只有脱离文章单独发布的图像，才可显式设置 `showTitle: true` 或 `showCanvas: true`，并必须在规格中说明发布场景。
+
 ## Forbidden JS in Inline Scripts
 
 `article-common.js` already handles the following — **NEVER** re-implement them inline:

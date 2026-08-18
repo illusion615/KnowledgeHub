@@ -195,6 +195,34 @@ var knowledgeTree = [
   // 文章 — Business AI Solution
   // ════════════════════════════════════════
   {
+    id: 'copilot-studio-customer-innovation',
+    parentId: 'business-ai-solution',
+    type: 'topic',
+    label: { zh: 'Agentic AI Innovation Accelerator', en: 'Agentic AI Innovation Accelerator' },
+    color: '#0d8f8c',
+    phase: 5.5, speed: 0.86
+  },
+  {
+    id: 'copilot-studio-innovation-activation-program',
+    parentId: 'copilot-studio-customer-innovation',
+    type: 'article',
+    title: {
+      zh: 'Agentic AI Innovation Accelerator',
+      en: 'Agentic AI Innovation Accelerator'
+    },
+    summary: {
+      zh: '基于 Deloitte 证据分析 AI ROI 挑战与根因，并用五阶段、六道决策门推进试点验证和 CoE 接管。',
+      en: 'A Deloitte-grounded diagnosis of AI ROI barriers, followed by a five-phase, six-gate path to pilot evidence and CoE handoff.'
+    },
+    tags: ['Copilot Studio', 'Customer Enablement', 'Operating Guide', 'AI Innovation', 'Decision Gates', 'CoE'],
+    date: '2026-08-14',
+    url: 'posts/copilot-studio-innovation-activation-program/index.html',
+    color: '#0d8f8c',
+    phase: 0.4, speed: 0.88,
+    relations: ['agentic-business-process-platform', 'agentic-ai-adoption-practice', 'copilot-studio-overview']
+  },
+
+  {
     id: 'evidence-grounded-rfp-review',
     parentId: 'business-ai-solution',
     type: 'article',
@@ -1249,10 +1277,10 @@ var knowledgeTree = [
       en: 'Verifying Copilot Studio Streaming Across Classic and New Agent Runtimes'
     },
     summary: {
-      zh: '区分 Classic 与 New Agent D2E 路径，并给出 /3p 鉴权、thought/toolCall/answer 归一化、Work panel 状态机与验收标准。',
-      en: 'Separates Classic and New Agent D2E paths and specifies /3p auth, thought/toolCall/answer normalization, Work panel states, and acceptance tests.'
+      zh: '区分 Classic/New Agent 与 D2E 身份模式，定义 app-only S2S Gateway 的挑战、定位、架构、API、会话隔离、SSE 与验收规范。',
+      en: 'Separates Classic/New Agent paths and defines the challenges, role, architecture, API, isolation, SSE, and acceptance contract for an app-only S2S gateway.'
     },
-    tags: ['Copilot Studio', 'Livestreaming', 'Direct Line', 'Direct Engine'],
+    tags: ['Copilot Studio', 'Livestreaming', 'Direct Line', 'Direct Engine', 'S2S Gateway'],
     date: '2026-06-15',
     url: 'posts/copilot-studio-streaming-verification/index.html',
     color: '#0ea5e9',
@@ -1490,6 +1518,25 @@ var knowledgeTree = [
     color: '#0fb5ae',
     phase: 2.8, speed: 0.75,
     relations: ['study-room-design', 'study-room-standards']
+  },
+  {
+    id: 'knowledge-hub-diagram-engine',
+    parentId: 'knowledge-hub-design-docs',
+    type: 'article',
+    title: {
+      zh: 'Knowledge Hub 图表引擎：从文章语义到 Draw.io 与双语 SVG',
+      en: 'Knowledge Hub Diagram Engine: From Article Semantics to Draw.io and Bilingual SVG'
+    },
+    summary: {
+      zh: '用 DiagramSpec、确定性布局和质量闸门生成可编辑 Draw.io 与双语 SVG，以真实架构图、流程图和时序图验证完整链路。',
+      en: 'Turns article semantics into editable Draw.io and bilingual SVG through DiagramSpec, validated by real architecture, flow, and sequence diagrams.'
+    },
+    tags: ['Architecture', 'DiagramSpec', 'Draw.io', 'Content Pipeline'],
+    date: '2026-08-08',
+    url: 'posts/knowledge-hub-diagram-engine/index.html',
+    color: '#0d8f8c',
+    phase: 3.2, speed: 0.78,
+    relations: ['study-room-design', 'article-design-system', 'markdown-rendering-pipeline']
   },
 
   // ════════════════════════════════════════
@@ -2344,198 +2391,6 @@ var knowledgeTree = [
     color: '#dc2626',
     phase: 1.8, speed: 0.85,
     hidden: true
-  },
-  {
-    id: 'shanghai-zhongkao',
-    parentId: 'edu-subject',
-    type: 'topic',
-    label: { zh: '上海中考', en: 'Shanghai Zhongkao' },
-    color: '#dc2626',
-    phase: 0.8, speed: 0.85
-  },
-  {
-    id: 'shanghai-gaokao',
-    parentId: 'edu-subject',
-    type: 'topic',
-    label: { zh: '上海高考', en: 'Shanghai Gaokao' },
-    color: '#b91c1c',
-    phase: 2.4, speed: 0.83
-  },
-
-  // ════════════════════════════════════════
-  // 文章 — 上海高考升学规划
-  // ════════════════════════════════════════
-  {
-    id: 'jianping-clubs-gaokao-planning',
-    parentId: 'shanghai-gaokao',
-    type: 'article',
-    title: {
-      zh: '建平中学社团活动与高考升学：选择、投入与三年规划',
-      en: 'Jianping High School Clubs and Gaokao Planning: Selection, Commitment, and a Three-Year Plan'
-    },
-    summary: {
-      zh: '核验 9 个重点社团与六大学科主教练体系，比较投入、竞争力、报名路径、官方资源、升学资格与退出条件。',
-      en: 'Evaluates nine clubs and six coach-led olympiad tracks by workload, standing, entry route, official resources, admissions eligibility, and exit criteria.'
-    },
-    tags: ['高考规划', '建平中学', '社团活动', '学科竞赛', '综合评价', '强基计划'],
-    date: '2026-07-26',
-    url: 'posts/jianping-clubs-gaokao-planning/index.html',
-    color: '#e11d48',
-    phase: 3.8, speed: 0.81,
-    relations: ['four-schools-profile', 'sh-top12-gaokao', 'shanghai-zizhao-2026']
-  },
-  {
-    id: 'jianping-class-14-dali',
-    parentId: 'shanghai-gaokao',
-    type: 'article',
-    title: {
-      zh: '建平中学14班「大理班」：选拔、培养、出口与适配边界',
-      en: 'Jianping High School Class 14: Selection, Training, Outcomes, and Fit'
-    },
-    summary: {
-      zh: '区分建平14班的官方事实与跨届传言，核验分班、选科重组、课表、师资和出口，并给出优势、风险与当届核验清单。',
-      en: 'Separates official evidence from recurring claims about Jianping Class 14, covering placement, curriculum, staffing, outcomes, risks, and verification.'
-    },
-    tags: ['建平中学', '14班', '大理班', '理科创新班', '学科竞赛', '高考出口'],
-    date: '2026-07-29',
-    url: 'posts/jianping-class-14-dali/index.html',
-    color: '#be123c',
-    phase: 4.2, speed: 0.80,
-    relations: ['jianping-clubs-gaokao-planning', 'sh-top12-gaokao', 'shanghai-zizhao-2026']
-  },
-  {
-    id: 'zhongkao-volunteer-strategy',
-    parentId: 'shanghai-zhongkao',
-    type: 'article',
-    title: {
-      zh: '上海中考志愿填报策略：建平地杰考生冲击四校的路径规划',
-      en: 'Shanghai Zhongkao Volunteer Strategy: Path Planning for Jianping Dijie Students Targeting Top 4 Schools'
-    },
-    summary: {
-      zh: '基于建平地杰考生二模与考后估分，校准到区、到校、统一批次志愿策略与安全链。',
-      en: 'Updates quota, school-quota, and unified-batch choices using second-mock data plus post-exam score estimates.'
-    },
-    tags: ['中考', '志愿填报', '四校', '策略规划'],
-    date: '2026-06-23',
-    url: 'posts/zhongkao-volunteer-strategy/index.html',
-    color: '#dc2626',
-    phase: 0.4, speed: 0.9,
-    relations: ['zhongkao-policy-data', 'zhongkao-scoreline-2026-forecast']
-  },
-  {
-    id: 'zhongkao-policy-data',
-    parentId: 'shanghai-zhongkao',
-    type: 'article',
-    title: {
-      zh: '上海中考政策解读与四校录取数据分析（2022–2026）',
-      en: 'Shanghai Zhongkao Policy Analysis & Top 4 Schools Admission Data (2022–2026)'
-    },
-    summary: {
-      zh: '梳理新中考招录制度，汇总四校 2022–2025 各批次分数线，并补充 2026 浦东名额分配到区与到校计划数及年度趋势，提供量化决策依据。',
-      en: 'Reviews reformed admission system, Top 4 score data (2022–2025), plus 2026 Pudong quota allocation counts and year-over-year trends.'
-    },
-    tags: ['中考', '四校', '录取数据', '政策分析'],
-    date: '2026-04-12',
-    url: 'posts/zhongkao-policy-data/index.html',
-    color: '#f43f5e',
-    phase: 2.6, speed: 0.86,
-    relations: ['zhongkao-volunteer-strategy', 'four-schools-profile']
-  },
-  {
-    id: 'four-schools-profile',
-    parentId: 'shanghai-zhongkao',
-    type: 'article',
-    title: {
-      zh: '上海四校及分校全景画像：特色、升学、学风与资源深度对比',
-      en: 'Shanghai Top 4 Schools & Branch Campuses: Academics, Culture & Resources Deep Dive'
-    },
-    summary: {
-      zh: '从学术、高考、竞赛、学风、大学资源和设施六维度画像四校本部及 10 所分校，含性格适配指南。',
-      en: 'Profiles 4 top schools and 10 branches across 6 dimensions with personality-school matching guide.'
-    },
-    tags: ['中考', '四校', '学校画像', '择校'],
-    date: '2026-04-12',
-    url: 'posts/four-schools-profile/index.html',
-    color: '#e11d48',
-    phase: 4.8, speed: 0.82,
-    relations: ['zhongkao-volunteer-strategy', 'zhongkao-policy-data', 'sh-top12-gaokao']
-  },
-  {
-    id: 'sh-top12-gaokao',
-    parentId: 'shanghai-zhongkao',
-    type: 'article',
-    title: {
-      zh: '上海四校八大 · 近三年高考出口数据全景（2023–2025）',
-      en: 'Shanghai Top 12 High Schools: 3-Year Gaokao Outcomes (2023–2025)'
-    },
-    summary: {
-      zh: '汇总四校与八大 2023–2025 清北、复交、综评、重本率四项指标，标注来源档次并指出公开数据缺口。',
-      en: 'Compiles 2023–2025 Tsinghua/Peking, Fudan/SJTU, comprehensive and top-tier rates for 12 Shanghai schools with sourced citations.'
-    },
-    tags: ['中考', '高考', '四校', '八大', '出口数据'],
-    date: '2026-04-15',
-    url: 'posts/sh-top12-gaokao/index.html',
-    color: '#be123c',
-    phase: 5.2, speed: 0.80,
-    relations: ['four-schools-profile', 'zhongkao-policy-data', 'zhongkao-volunteer-strategy']
-  },
-  {
-    id: 'shanghai-zizhao-2026',
-    parentId: 'shanghai-zhongkao',
-    type: 'article',
-    title: {
-      zh: '2026 上海四校・四校分校・八大自主招生指南：名额、报名、流程与材料',
-      en: 'Shanghai 2026 Self-Admission Guide: Top 4, Branches & Eight Schools'
-    },
-    summary: {
-      zh: '汇总 2026 上海四校、四校分校与八大共 21 校自主招生名额（合计 1580），并逐校列出报名时间、材料投递系统与综合测试日期（6/23 填报、材料 6/21 起投、测试 7/1–3、7/5 签约）。',
-      en: '2026 self-admission quotas for 21 top Shanghai high schools (1580 total) plus per-school registration dates, submission systems, and test dates.'
-    },
-    tags: ['中考', '自主招生', '四校', '八大', '名额'],
-    date: '2026-06-10',
-    url: 'posts/shanghai-zizhao-2026/index.html',
-    color: '#9f1239',
-    phase: 3.4, speed: 0.84,
-    relations: ['four-schools-profile', 'zhongkao-policy-data', 'zhongkao-volunteer-strategy']
-  },
-  {
-    id: 'zhongkao-quota-2025-analysis',
-    parentId: 'shanghai-zhongkao',
-    type: 'article',
-    title: {
-      zh: '2025 上海中考名额分配数据分析：浦东初中到校录取分与到区线对比',
-      en: 'Shanghai 2025 Quota Admission Analysis: Pudong School-Quota Scores vs District Lines'
-    },
-    summary: {
-      zh: '基于官方两份分数线，提取浦东 138 所初中在 14 所目标高中的到校最低分并与到区线对比，配可交互的高中排名与初中横向对比工具。',
-      en: 'Extracts Pudong 138 junior-high school-quota floors at 14 target high schools vs district lines, with interactive ranking and comparison tools.'
-    },
-    tags: ['中考', '名额分配', '浦东', '录取数据', '交互工具'],
-    date: '2026-06-20',
-    url: 'posts/zhongkao-quota-2025-analysis/index.html',
-    color: '#e11d48',
-    phase: 1.6, speed: 0.83,
-    relations: ['zhongkao-policy-data', 'four-schools-profile', 'shanghai-zizhao-2026']
-  },
-
-  {
-    id: 'zhongkao-scoreline-2026-forecast',
-    parentId: 'shanghai-zhongkao',
-    type: 'article',
-    title: {
-      zh: '2026 上海中考分数线预测：浦东到区、统一批次与控分线区间',
-      en: 'Shanghai 2026 Zhongkao Scoreline Forecast: Pudong Quota and Unified Batch'
-    },
-    summary: {
-      zh: '交叉核验官方专家点评、2023-2025 分数与 2026 计划，预测浦东控分线 / 到区 / 统招区间，并核查「偏易上浮」给出上升区间。',
-      en: 'Cross-checks expert reviews, 2023-2025 scores and 2026 seats to forecast Pudong cutoffs, and tests the easier-2026 claim with upward ranges.'
-    },
-    tags: ['中考', '分数线预测', '浦东', '名额分配', '试卷难度'],
-    date: '2026-06-22',
-    url: 'posts/zhongkao-scoreline-2026-forecast/index.html',
-    color: '#dc2626',
-    phase: 2.1, speed: 0.82,
-    relations: ['zhongkao-policy-data', 'zhongkao-quota-2025-analysis', 'shanghai-zizhao-2026']
   },
 
   {
