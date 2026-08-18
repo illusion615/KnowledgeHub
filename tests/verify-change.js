@@ -34,7 +34,8 @@ var LEVELS = {
       sectionScan: true,
       readingModes: ['zh light desktop', 'en dark desktop', 'mobile'],
       presentation: 'full zh-light and en-dark deck',
-      screenshots: 'key structure pages'
+      screenshots: 'key structure pages',
+      deckRender: 'node tests/render-deck.js --article <slug> — required when pptx-export.js, article-presentation.js or a presentation layout changed; review every PNG'
     }
   }
 };

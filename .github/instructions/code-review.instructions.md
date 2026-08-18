@@ -111,9 +111,9 @@ Grade **A**/**B**/**C**/**D** with `file:line` evidence.
 
 ```
 # Review baselines (L3 — project state)
-- Baseline date: 2026-06-13
-- Articles (posts/ dirs): 111 ; article html files: 112
-- Shared assets (lines): article.css 4918, article-presentation.js 4485, knowledge-data.js 2371, article-common.js 257 (+ ~20 more behavior assets: article-renderer, article-narration*, article-math, article-lightbox, pan-zoom, pptx-export, article-email-share, article-screen-recording, infographic-view/mobile, cell-game, color-schemes, scrollbar)
+- Baseline date: 2026-08-18
+- Articles (posts/ dirs): 147 ; article html files: 147
+- Shared assets (lines): article.css 5039, article-presentation.js 4470, knowledge-data.js 2870, article-common.js 485, pptx-export.js 448 (+ ~20 more behavior assets: article-renderer, article-narration*, article-math, article-lightbox, pan-zoom, article-email-share, article-screen-recording, infographic-view/mobile, cell-game, color-schemes, scrollbar)
 - Architecture review trigger: article count or any shared asset grows ~25% from baseline
 - Validator: node tests/validate.js must exit 0 (known WARN baseline)
 - Calendar trigger: review if >6 weeks since baseline date

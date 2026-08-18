@@ -445,11 +445,11 @@
                 <table class="spec-table">
                   <thead><tr><th>模块</th><th>行数</th><th>职责</th></tr></thead>
                   <tbody>
-                    <tr><td><code>article-common.js</code></td><td>96</td><td>scroll-reveal、accordion toggle、nav 高亮、localStorage 主题/语言/字体同步</td></tr>
-                    <tr><td><code>article-presentation.js</code></td><td>1,314</td><td>演示模式：步骤收集、deck overlay、PPT 导出调度、分享按钮</td></tr>
+                    <tr><td><code>article-common.js</code></td><td>485</td><td>scroll-reveal、accordion toggle、nav 高亮、localStorage 主题/语言/字体同步</td></tr>
+                    <tr><td><code>article-presentation.js</code></td><td>4,489</td><td>演示模式：步骤收集、deck overlay、PPT 导出调度、分享按钮</td></tr>
                     <tr><td><code>article-lightbox.js</code></td><td>63</td><td>图片点击放大灯箱</td></tr>
-                    <tr><td><code>article-assistant.js</code></td><td>619</td><td>LLM 辅助阅读：摘要、追问、内容解释（需连接 LLM Provider）</td></tr>
-                    <tr><td><code>pptx-export.js</code></td><td>199</td><td>PptxGenJS 组件渲染器：10+ 组件类型到可编辑 PPTX</td></tr>
+                    <tr><td><code>article-assistant.js</code></td><td>708</td><td>LLM 辅助阅读：摘要、追问、内容解释（需连接 LLM Provider）</td></tr>
+                    <tr><td><code>pptx-export.js</code></td><td>718</td><td>PptxGenJS 几何渲染器（v5）：度量契约 R1/R2，逐视觉行发射，含密度上报</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -521,8 +521,15 @@
               <div class="subsection-content">
                 <ul class="reference-list">
                   <li><strong>逐页激活</strong> — 导出时 JS 逐页调用 <code>setPresentationStep</code> 确保内容可见后再提取文本。否则隐藏元素的 <code>innerText</code> 返回空字符串，导致 PPTX 损坏。</li>
-                  <li><strong>原生对象渲染</strong> — 使用 PptxGenJS 生成可编辑的文本框/形状，不截图。每种组件（insight-grid、comparison-grid、flow-list、timeline-card 等）在 pptx-export.js 中有专用渲染函数。</li>
-                  <li><strong>新增组件时</strong> — 若文章引入新的 CSS 组件类型，需在 pptx-export.js 的 renderStep dispatcher 中添加对应的渲染分支，否则导出时该组件会 fallback 为纯文本。</li>
+                  <li><strong>原生对象渲染</strong> — 使用 PptxGenJS 生成可编辑的文本框/形状，不截图。渲染器不识别 CSS class 名，而是读取演示态元素已渲染的几何（<code>getBoundingClientRect</code> + <code>getComputedStyle</code>），按背景层 → 文本层 → 图片层三趟重放到 13.333×7.5in 画布。</li>
+                  <li><strong>度量契约（v5，两条规则须同时成立）</strong> — <b>R1 声明字体必须等于测量字体</b>：导出声明的字体取自元素实际渲染的字族（<code>FONT_STACK</code>），不得重映射为其他字体，否则消费端按不同度量重新断行、单行框变两行并压住下方内容。<b>R2 一行一个文本框</b>：按 <code>Range.getClientRects()</code> 逐视觉行发射并关闭自动换行，消费端不再做任何断行决策。</li>
+                  <li><strong>新增字体时</strong> — 若 <code>article.css</code> 引入新字族，必须同步加入 <code>pptx-export.js</code> 的 <code>FONT_STACK</code>，否则该文本回退到 BODY 字体并重新换行（违反 R1）。</li>
+                  <li><strong>两趟共用同一矩形</strong> — 背景层与文本层必须由同一个 <code>getBoundingClientRect()</code> 推导。曾尝试按估算基线单独校正文本位置以对齐行内 <code>&lt;code&gt;</code> 标签，结果文字与其背景色块分离，反而更糟。行内盒之间的亚像素基线差异可以接受，图层错位不可接受。</li>
+                  <li><strong>新增组件时</strong> — 无需改动 <code>pptx-export.js</code>。几何渲染是通用的，任何新 CSS 组件或定制版式都会自动导出。</li>
+                  <li><strong>密度只报告、不自动纠正</strong> — 填充率低于 40% 或超过 100% 的步骤由 <code>getOverflowReports()</code> 上报。稀疏页的正解是<b>合并相邻步骤或补一个视觉元素</b>（图表、示意图、配图），而非把文字放大填满版面——后者既是 AI 生成感的典型特征，也会让 PPT 与网页不一致，破坏几何重放前提。</li>
+                  <li><strong>懒加载图片须预先解码</strong> — 导出时步骤在屏幕外测量，<code>&lt;img loading="lazy"&gt;</code> 若从未进入视口就不会被加载，<code>currentSrc</code> 为空，<b>图片会静默从 deck 中消失</b>（网页上滚动到时正常显示，因此极难发现）。<code>article-presentation.js</code> 在几何捕获前统一清除 lazy 标记并 <code>await decode()</code>，使导出结果与读者滚动位置无关。</li>
+                  <li><strong>图片必须同源</strong> — 导出时 PptxGenJS 用 XHR 逐张拉取图片写入 pptx，跨域图片被 CORS 拒绝。而 <code>&lt;img&gt;</code> 标签不受此限制，<b>网页上完全正常、导出却整篇失败</b>。渲染器现已改为跳过并上报（<code>getSkippedImages()</code>），但正解是<b>把外链图片下载到文章自己的 <code>media/</code> 目录并改为相对路径</b>。canvas 转码不是出路——绘制跨域图会污染 canvas，<code>toDataURL()</code> 随即抛错。</li>
+                  <li><strong>已知失真</strong> — CSS 渐变、<code>box-shadow</code>、<code>filter</code>、<code>backdrop-filter</code> 会被拍平为纯色；伪元素 <code>::before</code>/<code>::after</code> 不捕获；<code>canvas</code>/<code>video</code> 跳过。<code>&lt;svg&gt;</code> 需由调用方填充祖先元素的 <code>data-svg-png</code> 属性才能导出。逐行发射意味着换行的段落在 PowerPoint 中需逐行编辑——保真度优先于导出后的编辑便利。</li>
                 </ul>
               </div>
             </article>

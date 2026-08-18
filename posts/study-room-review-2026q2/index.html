@@ -168,8 +168,8 @@
               </article>
               <article class="insight-card">
                 <span class="card-index">PPT</span>
-                <h3>pptx-export.js: 529 行</h3>
-                <p>原生 PptxGenJS 对象渲染器，支持 insight-grid、comparison-grid、flow-list、timeline-card、verdict-box 等 10+ 组件类型。</p>
+                <h3>pptx-export.js: 448 行</h3>
+                <p>通用 DOM 几何渲染器，读取演示态元素的 getBoundingClientRect / getComputedStyle，按背景 → 文本 → 图片三趟重放为原生 PptxGenJS 对象，不依赖组件类型识别。</p>
               </article>
               <article class="insight-card">
                 <span class="card-index">首页</span>
@@ -470,21 +470,22 @@
             </article>
 
             <article class="subsection-item" data-accordion>
-              <button class="subsection-toggle" aria-expanded="false">6.3 中风险：pptx-export.js 组件覆盖</button>
+              <button class="subsection-toggle" aria-expanded="false">6.3 低风险：pptx-export.js 几何渲染保真度</button>
               <div class="subsection-content">
                 <table class="score-table">
                   <thead>
                     <tr><th>指标</th><th>当前基线</th><th>触发阈值</th></tr>
                   </thead>
                   <tbody>
-                    <tr><td>已支持组件类型</td><td>12 种（insight-grid, comparison-grid, flow-list, accordion, quote-block, bib-list, table, tabs, timeline-card, verdict-box, arch-diagram, metrics-dashboard）</td><td>—</td></tr>
-                    <tr><td>未支持 inline 组件</td><td>signal-map, quadrant-board, mesh-board</td><td>导出时 fallback 为纯文本占比 >20%</td></tr>
-                    <tr><td>pptx-export.js 行数</td><td>529 行 / 49 函数</td><td>800 行</td></tr>
+                    <tr><td>渲染策略</td><td>通用 DOM 几何重放（v4），不按组件类型分支</td><td>—</td></tr>
+                    <tr><td>组件覆盖</td><td>全覆盖：任意 CSS 组件与定制版式自动导出</td><td>—</td></tr>
+                    <tr><td>已知失真</td><td>渐变 / box-shadow / filter 拍平；伪元素不捕获；flex 垂直居中按顶部对齐</td><td>失真样式影响正式对外 deck</td></tr>
+                    <tr><td>pptx-export.js 行数</td><td>448 行 / 30 函数</td><td>800 行</td></tr>
                   </tbody>
                 </table>
                 <div class="quote-block">
                   <strong>预案</strong>
-                  <span>新增 CSS 组件时同步在 pptx-export.js 的 renderStep dispatcher 中添加渲染分支。未支持的组件 fallback 为纯文本（功能降级不崩溃），仅当纯文本 fallback 占比影响 PPT 可用性时才强制要求实现渲染器。导出脚本突破 800 行时考虑按组件类别拆分为独立模块。</span>
+                  <span>v4 起渲染器改为几何驱动，新增 CSS 组件无需改动 pptx-export.js。风险转移到样式保真：使用渐变、阴影、伪元素装饰的版式导出后会退化为纯色块，正式对外 deck 需导出后逐页视觉复核。导出脚本突破 800 行时考虑按渲染趟次（背景 / 文本 / 图片）拆分为独立模块。</span>
                 </div>
               </div>
             </article>

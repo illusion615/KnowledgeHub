@@ -19,7 +19,47 @@ node tests/verify-change.js --changed --level L1
 
 # Stable change set and pre-commit gate
 node tests/verify-change.js --final
+
+# Visual self-check for the PPT export pipeline
+node tests/render-deck.js --article <slug>
 ```
+
+## Deck Render Self-Check
+
+`render-deck.js` closes the loop on `assets/pptx-export.js`. It drives the
+real browser export path (headless Chrome → the article's own PPT export
+button → the exported blob), converts the `.pptx` with LibreOffice, and
+splits it into one PNG per slide under `tmp/deck-render/<slug>/`.
+
+```bash
+node tests/render-deck.js --article <slug>                  # zh / light
+node tests/render-deck.js --article <slug> --lang en --theme dark
+node tests/render-deck.js --article <slug> --keep-pptx      # keep the .pptx
+node tests/render-deck.js --pptx path/to/deck.pptx          # render only
+node tests/render-deck.js --article <slug> --json           # machine-readable
+```
+
+Run it whenever `pptx-export.js`, `article-presentation.js`, or a
+presentation-heavy layout changes — geometry replay failures (text
+overflow, collapsed rows, letterboxing, flattened gradients) are invisible
+to the deterministic checks and only show up in the rendered image.
+**Review every PNG visually; a non-zero exit only means the pipeline ran.**
+
+The run also prints a DENSITY section listing steps that are too sparse
+(< 40% fill) or overflowing (> 100%). These are reported, never
+auto-corrected: fix them in the article by merging adjacent steps or
+adding a visual element, not by rescaling in the renderer.
+
+A SKIPPED IMAGES section lists images left out of the deck. Cross-origin
+images cannot be embedded (PptxGenJS fetches them by XHR and CORS refuses);
+download them into the article's `media/` folder and reference them
+locally. Before this was handled, a single remote image failed the whole
+export with a generic "please retry" alert.
+
+Requires Chrome/Chromium (auto-detected from the Playwright cache or an
+installed browser), `soffice`, and poppler. Missing `soffice`/poppler
+degrades to `{"rendered": false, "missing": [...]}` with exit 0 and keeps
+the `.pptx` so the export itself is still verifiable.
 
 Use `--json` for machine-readable timing and browser plans. Use `--serial` only to benchmark or troubleshoot concurrency.
 
