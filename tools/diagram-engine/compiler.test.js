@@ -198,4 +198,71 @@ var wrapped = compiler.compileSpec(wrappingSpec, 'en');
 assert.ok(wrapped.svg.indexOf('<tspan') !== -1, 'overflowing detail must render as tspan lines');
 assert.ok(wrapped.svg.indexOf('Dedicated user account and encrypted MSAL cache stored as a local mode 600 file') === -1, 'overflowing detail must not render as a single run');
 
+var crowdedGroupSpec = {
+  version: 1,
+  type: 'architecture',
+  title: { zh: '多行分组', en: 'Multi-Row Group' },
+  layout: { direction: 'down', width: 1600, nodeWidth: 280, nodeHeight: 96, rowGap: 28 },
+  groups: [
+    { id: 'outside', order: 0, label: { zh: '外部', en: 'Outside' } },
+    { id: 'inside', order: 1, label: { zh: '内部', en: 'Inside' } }
+  ],
+  nodes: [
+    { id: 'caller', layer: 0, order: 0, group: 'outside', role: 'service', label: { zh: '调用方', en: 'Caller' } },
+    { id: 'n1', layer: 1, order: 0, group: 'inside', role: 'required', label: { zh: '一', en: 'One' } },
+    { id: 'n2', layer: 2, order: 1, group: 'inside', role: 'required', label: { zh: '二', en: 'Two' } },
+    { id: 'n3', layer: 3, order: 2, group: 'inside', role: 'required', label: { zh: '三', en: 'Three' } },
+    { id: 'n4', layer: 4, order: 3, group: 'inside', role: 'required', label: { zh: '四', en: 'Four' } },
+    { id: 'n5', layer: 5, order: 4, group: 'inside', role: 'required', label: { zh: '五', en: 'Five' } },
+    { id: 'n6', layer: 6, order: 5, group: 'inside', role: 'required', label: { zh: '六', en: 'Six' } }
+  ],
+  edges: [
+    { from: 'caller', to: 'n1' },
+    { from: 'n1', to: 'n2' },
+    { from: 'n1', to: 'n3' }
+  ]
+};
+var crowded = compiler.layoutSpec(crowdedGroupSpec, 'zh');
+var insideNodes = crowded.nodes.filter(function (node) { return node.group === 'inside'; });
+var distinctRows = insideNodes.map(function (node) { return node.y; }).filter(function (y, index, all) { return all.indexOf(y) === index; });
+assert.ok(distinctRows.length > 1, 'a group too wide for one row must wrap onto multiple rows');
+insideNodes.forEach(function (node) {
+  var group = crowded.groups.filter(function (candidate) { return candidate.id === 'inside'; })[0];
+  assert.ok(node.y + node.height <= group.y + group.height, 'wrapped nodes must stay inside the group band: ' + node.id);
+});
+
+function segments(d) {
+  var points = [];
+  var cursor = { x: 0, y: 0 };
+  d.split(/(?=[MVH])/).forEach(function (token) {
+    var kind = token.charAt(0);
+    var numbers = token.slice(1).trim().split(/\s+/).map(Number);
+    if (kind === 'M') cursor = { x: numbers[0], y: numbers[1] };
+    else if (kind === 'V') { points.push([cursor, { x: cursor.x, y: numbers[0] }]); cursor = { x: cursor.x, y: numbers[0] }; }
+    else if (kind === 'H') { points.push([cursor, { x: numbers[0], y: cursor.y }]); cursor = { x: numbers[0], y: cursor.y }; }
+  });
+  return points;
+}
+
+function crossesNode(segment, node) {
+  var minX = Math.min(segment[0].x, segment[1].x);
+  var maxX = Math.max(segment[0].x, segment[1].x);
+  var minY = Math.min(segment[0].y, segment[1].y);
+  var maxY = Math.max(segment[0].y, segment[1].y);
+  return minX < node.x + node.width - 2 && maxX > node.x + 2
+    && minY < node.y + node.height - 2 && maxY > node.y + 2;
+}
+
+var routed = compiler.compileSpec(crowdedGroupSpec, 'zh');
+var paths = routed.svg.match(/<path d="M[^"]+"/g) || [];
+assert.ok(paths.length >= 3, 'every edge must produce a path');
+paths.forEach(function (raw) {
+  var d = raw.slice('<path d="'.length, -1);
+  segments(d).forEach(function (segment) {
+    crowded.nodes.forEach(function (node) {
+      assert.ok(!crossesNode(segment, node), 'edge segment must not cross node ' + node.id + ' in ' + d);
+    });
+  });
+});
+
 console.log('diagram-engine compiler tests passed');

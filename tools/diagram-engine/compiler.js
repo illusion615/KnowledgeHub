@@ -100,6 +100,124 @@ function renderTextBlock(lines, x, firstBaseline, lineHeight, attributes) {
   return '<text x="' + x + '" text-anchor="middle" font-family="Noto Sans SC, sans-serif" ' + attributes + '>' + spans + '</text>';
 }
 
+function blocksHorizontalRun(model, source, target) {
+  var left = Math.min(source.x + source.width, target.x + target.width);
+  var right = Math.max(source.x, target.x);
+  return model.nodes.some(function (node) {
+    if (node.id === source.id || node.id === target.id) return false;
+    if (node.group !== source.group) return false;
+    if (Math.abs(node.y - source.y) > 2) return false;
+    return node.x < right && node.x + node.width > left;
+  });
+}
+
+function blocksVerticalDrop(model, source, x) {
+  return model.nodes.some(function (node) {
+    if (node.id === source.id) return false;
+    if (node.group !== source.group) return false;
+    if (node.y <= source.y) return false;
+    return node.x - 8 < x && node.x + node.width + 8 > x;
+  });
+}
+
+function groupById(model, id) {
+  return model.groups.filter(function (group) { return group.id === id; })[0] || null;
+}
+
+function routeEdge(model, source, target) {
+  var sourceCenterX = Math.round(source.x + source.width / 2);
+  var targetCenterX = Math.round(target.x + target.width / 2);
+  var sameGroup = model.type === 'architecture' && source.group && source.group === target.group;
+  var sameRow = Math.abs(source.y - target.y) <= 2;
+
+  if (sameGroup && sameRow) {
+    var goingRight = target.x > source.x;
+    var edgeY = Math.round(source.y + source.height / 2);
+    if (!blocksHorizontalRun(model, source, target)) {
+      var startX = goingRight ? source.x + source.width : source.x;
+      var endX = goingRight ? target.x : target.x + target.width;
+      return {
+        d: 'M ' + startX + ' ' + edgeY + ' H ' + endX,
+        labelX: Math.round((startX + endX) / 2),
+        labelY: edgeY - 8,
+        labelAnchor: 'middle'
+      };
+    }
+    // Siblings sit between the pair, so dip into the gutter under the row.
+    var gutterY = Math.round(source.y + source.height + Math.max(12, (model.rowGap || 28) / 2));
+    return {
+      d: 'M ' + sourceCenterX + ' ' + (source.y + source.height)
+        + ' V ' + gutterY + ' H ' + targetCenterX + ' V ' + (target.y + target.height),
+      labelX: Math.round((sourceCenterX + targetCenterX) / 2),
+      labelY: gutterY - 6,
+      labelAnchor: 'middle'
+    };
+  }
+
+  if (sameGroup) {
+    var downwardInGroup = target.y > source.y;
+    var innerExitY = downwardInGroup ? source.y + source.height : source.y;
+    var innerEntryY = downwardInGroup ? target.y : target.y + target.height;
+    var innerMiddleY = Math.round((innerExitY + innerEntryY) / 2);
+    if (Math.abs(sourceCenterX - targetCenterX) <= 2) {
+      return {
+        d: 'M ' + sourceCenterX + ' ' + innerExitY + ' V ' + innerEntryY,
+        labelX: sourceCenterX + 14,
+        labelY: innerMiddleY + 4,
+        labelAnchor: 'start'
+      };
+    }
+    return {
+      d: 'M ' + sourceCenterX + ' ' + innerExitY + ' V ' + innerMiddleY + ' H ' + targetCenterX + ' V ' + innerEntryY,
+      labelX: Math.round((sourceCenterX + targetCenterX) / 2),
+      labelY: innerMiddleY - 6,
+      labelAnchor: 'middle'
+    };
+  }
+
+  if (model.direction === 'down') {
+    var sourceGroup = groupById(model, source.group);
+    var targetGroup = groupById(model, target.group);
+    var downward = target.y >= source.y;
+    var exitY = downward ? source.y + source.height : source.y;
+    var entryY = downward ? target.y : target.y + target.height;
+    // Leave the owning group before travelling sideways, otherwise the run crosses sibling nodes.
+    var middleY = sourceGroup && targetGroup && downward
+      ? Math.round((sourceGroup.y + sourceGroup.height + targetGroup.y) / 2)
+      : Math.round((exitY + entryY) / 2);
+    var runX = sourceCenterX;
+    var detour = '';
+    if (downward && blocksVerticalDrop(model, source, sourceCenterX)) {
+      var sideX = source.x + source.width + 24;
+      if (blocksVerticalDrop(model, source, sideX)) sideX = source.x - 24;
+      runX = Math.round(sideX);
+      exitY = Math.round(source.y + source.height / 2);
+      detour = 'M ' + (runX > sourceCenterX ? source.x + source.width : source.x) + ' ' + exitY + ' H ' + runX + ' V ' + middleY;
+    }
+    var d = detour
+      ? detour + ' H ' + targetCenterX + ' V ' + entryY
+      : 'M ' + runX + ' ' + exitY + ' V ' + middleY + ' H ' + targetCenterX + ' V ' + entryY;
+    return {
+      d: d,
+      labelX: targetCenterX + 14,
+      labelY: middleY - 8,
+      labelAnchor: 'start'
+    };
+  }
+
+  var rightStartX = source.x + source.width;
+  var rightEndX = target.x;
+  var rightStartY = Math.round(source.y + source.height / 2);
+  var rightEndY = Math.round(target.y + target.height / 2);
+  var middleX = Math.round((rightStartX + rightEndX) / 2);
+  return {
+    d: 'M ' + rightStartX + ' ' + rightStartY + ' H ' + middleX + ' V ' + rightEndY + ' H ' + rightEndX,
+    labelX: middleX,
+    labelY: Math.min(rightStartY, rightEndY) - 8,
+    labelAnchor: 'middle'
+  };
+}
+
 function validateSpec(spec) {
   var ids = Object.create(null);
   var groupIds = Object.create(null);
@@ -289,19 +407,37 @@ function layoutSpec(spec, lang) {
     var groupTitleHeight = options.groupTitleHeight || 48;
     if (direction === 'down') {
       var bandWidth = options.width - options.marginX * 2;
-      var bandHeight = groupTitleHeight + groupPadding * 2 + options.nodeHeight;
-      options.height = Math.max(spec.layout && spec.layout.height || 0, options.marginY * 2 + sortedGroups.length * bandHeight + (sortedGroups.length - 1) * groupGap);
+      var innerWidth = bandWidth - groupPadding * 2;
+      // Reserve enough horizontal room between siblings for an edge label to stay legible.
+      var minColumnGap = options.minColumnGap || 84;
+      var fitColumns = Math.max(1, Math.floor((innerWidth + minColumnGap) / (options.nodeWidth + minColumnGap)));
+      var cursorY = options.marginY;
       groups = sortedGroups.map(function (group, index) {
-        return {
+        var members = spec.nodes.filter(function (node) { return node.group === group.id; });
+        var columns = group.columns
+          ? Math.max(1, Math.min(group.columns, members.length))
+          : Math.min(members.length, fitColumns);
+        if (!group.columns && columns > 2 && members.length > columns && members.length % columns === 1) columns -= 1;
+        var explicitRows = members.filter(function (node) { return Number.isInteger(node.gridRow); });
+        var rows = Math.ceil(members.length / columns);
+        explicitRows.forEach(function (node) { rows = Math.max(rows, node.gridRow + 1); });
+        var height = groupTitleHeight + groupPadding * 2 + rows * options.nodeHeight
+          + Math.max(0, rows - 1) * options.rowGap;
+        var band = {
           id: group.id,
           label: localized(group.label, lang, 'group ' + group.id),
           x: options.marginX,
-          y: Math.round(options.marginY + index * (bandHeight + groupGap)),
+          y: Math.round(cursorY),
           width: bandWidth,
-          height: bandHeight,
+          height: height,
+          columns: columns,
+          rows: rows,
           styleIndex: index % GROUP_STYLES.length
         };
+        cursorY += height + groupGap;
+        return band;
       });
+      options.height = Math.max(spec.layout && spec.layout.height || 0, Math.round(cursorY - groupGap + options.marginY));
     } else {
       var groupWidth = Math.floor((options.width - options.marginX * 2 - groupGap * (sortedGroups.length - 1)) / sortedGroups.length);
       var maxMembers = sortedGroups.reduce(function (max, group) {
@@ -343,17 +479,24 @@ function layoutSpec(spec, lang) {
     var group = spec.groups ? groups.find(function (candidate) { return candidate.id === node.group; }) : null;
     var groupMembers = spec.groups ? spec.nodes.filter(function (candidate) { return candidate.group === node.group; }).sort(function (a, b) { return (a.order || 0) - (b.order || 0) || a.id.localeCompare(b.id); }) : null;
     var groupIndex = groupMembers ? groupMembers.indexOf(node) : -1;
-    var groupSlotWidth = group && direction === 'down' ? (group.width - groupPadding * 2) / groupMembers.length : 0;
+    var groupColumn = 0;
+    var groupRow = 0;
+    var groupSlotWidth = 0;
+    if (group && direction === 'down') {
+      groupSlotWidth = (group.width - groupPadding * 2) / group.columns;
+      groupColumn = Number.isInteger(node.gridColumn) ? node.gridColumn : groupIndex % group.columns;
+      groupRow = Number.isInteger(node.gridRow) ? node.gridRow : Math.floor(groupIndex / group.columns);
+    }
     var x = group
       ? direction === 'down'
-        ? group.x + groupPadding + groupIndex * groupSlotWidth + (groupSlotWidth - (node.width || options.nodeWidth)) / 2
+        ? group.x + groupPadding + groupColumn * groupSlotWidth + (groupSlotWidth - (node.width || options.nodeWidth)) / 2
         : group.x + (group.width - (node.width || options.nodeWidth)) / 2
       : direction === 'down'
         ? (options.width - layerWidth) / 2 + index * (options.nodeWidth + options.rowGap)
         : options.marginX + node.layer * columnWidth;
     var y = group
       ? direction === 'down'
-        ? group.y + (options.groupTitleHeight || 48) + (options.groupPadding || 22)
+        ? group.y + (options.groupTitleHeight || 48) + (options.groupPadding || 22) + groupRow * (options.nodeHeight + options.rowGap)
         : group.y + (options.groupTitleHeight || 48) + (options.groupPadding || 22) + groupIndex * (options.nodeHeight + options.rowGap)
       : direction === 'down'
         ? options.marginY + node.layer * (options.nodeHeight + options.columnGap)
@@ -392,6 +535,7 @@ function layoutSpec(spec, lang) {
     direction: direction,
     width: options.width,
     height: options.height,
+    rowGap: options.rowGap,
     showTitle: !!(spec.layout && spec.layout.showTitle === true),
     showCanvas: !!(spec.layout && spec.layout.showCanvas === true),
     groups: groups,
@@ -466,20 +610,9 @@ function renderSvg(model) {
   model.edges.forEach(function (edge) {
     var source = byId[edge.from];
     var target = byId[edge.to];
-    var sameArchitectureGroup = model.type === 'architecture' && source.group === target.group;
-    var startX = sameArchitectureGroup ? source.x + source.width : model.direction === 'down' ? source.x + source.width / 2 : source.x + source.width;
-    var startY = sameArchitectureGroup ? source.y + source.height / 2 : model.direction === 'down' ? source.y + source.height : source.y + source.height / 2;
-    var endX = sameArchitectureGroup ? target.x : model.direction === 'down' ? target.x + target.width / 2 : target.x;
-    var endY = sameArchitectureGroup ? target.y + target.height / 2 : model.direction === 'down' ? target.y : target.y + target.height / 2;
-    var middleX = Math.round((startX + endX) / 2);
-    var middleY = Math.round((startY + endY) / 2);
-    var d = sameArchitectureGroup
-      ? 'M ' + startX + ' ' + startY + ' H ' + endX
-      : model.direction === 'down'
-      ? 'M ' + startX + ' ' + startY + ' V ' + middleY + ' H ' + endX + ' V ' + endY
-      : 'M ' + startX + ' ' + startY + ' H ' + middleX + ' V ' + endY + ' H ' + endX;
-    parts.push('<path d="' + d + '" fill="none" stroke="#64748B" stroke-width="2" marker-end="url(#arrow)"/>');
-    if (edge.label) parts.push('<text x="' + (model.direction === 'down' ? endX + 14 : middleX) + '" y="' + (model.direction === 'down' ? middleY - 8 : Math.min(startY, endY) - 8) + '" text-anchor="' + (model.direction === 'down' ? 'start' : 'middle') + '" font-family="Noto Sans SC, sans-serif" font-size="12" fill="#475569">' + escapeXml(edge.label) + '</text>');
+    var route = routeEdge(model, source, target);
+    parts.push('<path d="' + route.d + '" fill="none" stroke="#64748B" stroke-width="2" marker-end="url(#arrow)"/>');
+    if (edge.label) parts.push('<text x="' + route.labelX + '" y="' + route.labelY + '" text-anchor="' + route.labelAnchor + '" font-family="Noto Sans SC, sans-serif" font-size="12" fill="#475569">' + escapeXml(edge.label) + '</text>');
   });
 
   model.nodes.forEach(function (node) {
