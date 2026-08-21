@@ -1113,7 +1113,7 @@ var knowledgeTree = [
   },
   {
     id: 'dataverse-security-roles',
-    parentId: 'power-apps',
+    parentId: 'power-platform',
     type: 'article',
     title: {
       zh: 'Dataverse Security Role 完全指南：概念、预定义角色与最佳实践',
@@ -1190,7 +1190,7 @@ var knowledgeTree = [
   },
   {
     id: 'power-platform-pricing-quote-tool',
-    parentId: 'microsoft-ai',
+    parentId: 'power-platform',
     type: 'article',
     title: {
       zh: 'Power Platform 报价体系与互动估算器：从需求到产品配置',
@@ -1315,11 +1315,11 @@ var knowledgeTree = [
       en: 'Microsoft Copilot Studio: Positioning, Capabilities, Adoption & Pricing'
     },
     summary: {
-      zh: '从定位、能力、竞品对比、成本估算、安全治理、快速启动和许可路径七个维度提供 Copilot Studio 选型决策依据。',
-      en: 'Decision guide across 7 dimensions: positioning, capabilities, comparison, cost, governance, quickstart, and licensing.'
+      zh: '按 2026 年 8 月官方许可指南刷新：三种 harness 的选型与计费起点、Credits 费率、四条购买路径与场景成本换算。',
+      en: 'Refreshed to the August 2026 licensing guide: three harnesses, Copilot Credit rates, four purchasing paths, and scenario cost math.'
     },
     tags: ['Copilot Studio', 'Platform Overview', 'Licensing'],
-    date: '2026-04-09',
+    date: '2026-08-20',
     url: 'posts/copilot-studio-overview/index.html',
     color: '#6d28d9',
     phase: 1.6, speed: 0.85,
