@@ -203,6 +203,14 @@ var knowledgeTree = [
     phase: 5.5, speed: 0.86
   },
   {
+    id: 'agentic-ai-innovation-governance',
+    parentId: 'copilot-studio-customer-innovation',
+    type: 'topic',
+    label: { zh: '治理', en: 'Governance' },
+    color: '#c9a227',
+    phase: 1.1, speed: 0.87
+  },
+  {
     id: 'copilot-studio-innovation-activation-program',
     parentId: 'copilot-studio-customer-innovation',
     type: 'article',
@@ -211,15 +219,72 @@ var knowledgeTree = [
       en: 'Agentic AI Innovation Accelerator'
     },
     summary: {
-      zh: '基于 Deloitte 证据分析 AI ROI 挑战与根因，并用五阶段、六道决策门推进试点验证和 CoE 接管。',
-      en: 'A Deloitte-grounded diagnosis of AI ROI barriers, followed by a five-phase, six-gate path to pilot evidence and CoE handoff.'
+      zh: '基于 Deloitte 证据分析 AI ROI 挑战与根因，并用五阶段、五道决策闸推进试点验证和 CoE 交接。',
+      en: 'A Deloitte-grounded diagnosis of AI ROI barriers, followed by a five-phase, five-gate path to pilot evidence and CoE handoff.'
     },
     tags: ['Copilot Studio', 'Customer Enablement', 'Operating Guide', 'AI Innovation', 'Decision Gates', 'CoE'],
     date: '2026-08-14',
     url: 'posts/copilot-studio-innovation-activation-program/index.html',
     color: '#0d8f8c',
     phase: 0.4, speed: 0.88,
-    relations: ['agentic-business-process-platform', 'agentic-ai-adoption-practice', 'copilot-studio-overview']
+    relations: ['agentic-business-process-platform', 'agentic-ai-adoption', 'copilot-studio-overview']
+  },
+  {
+    id: 'agentic-ai-innovation-governance-guide',
+    parentId: 'agentic-ai-innovation-governance',
+    type: 'article',
+    title: {
+      zh: 'Copilot Studio Agent 企业治理体系：平台基座与专项控制',
+      en: 'Copilot Studio Agent Enterprise Governance: Platform Foundation and Specialized Controls'
+    },
+    summary: {
+      zh: '面向 CoE 与 IT：在项目启动前建立 Zone、环境、数据、访问、发布与监督规则。',
+      en: 'For CoE and IT: establish zones, environments, data, access, release, and oversight rules before projects begin.'
+    },
+    tags: ['Copilot Studio', 'Agent Governance', 'Power Platform', 'CoE', 'Security'],
+    date: '2026-08-27',
+    url: 'posts/agentic-ai-innovation-governance/index.html',
+    color: '#c9a227',
+    phase: 1.2, speed: 0.87,
+    relations: ['copilot-studio-innovation-activation-program', 'copilot-studio-agent-project-management', 'agentic-ai-adoption', 'power-platform-governance', 'copilot-studio-overview']
+  },
+  {
+    id: 'copilot-studio-agent-project-management',
+    parentId: 'agentic-ai-innovation-governance',
+    type: 'article',
+    title: {
+      zh: 'Copilot Studio Agent 项目管理：在治理框架内交付',
+      en: 'Copilot Studio Agent Project Management: Delivery Within Governance'
+    },
+    summary: {
+      zh: '面向业务 Owner 和项目团队：在既定 Zone、环境和控制规则内申请、构建、测试、发布和运营 Agent。',
+      en: 'For business owners and delivery teams: request, build, test, release, and operate agents within established zones and controls.'
+    },
+    tags: ['Copilot Studio', 'Agent Delivery', 'Project Management', 'ALM', 'Governance'],
+    date: '2026-08-28',
+    url: 'posts/copilot-studio-agent-project-management/index.html',
+    color: '#0d8f8c',
+    phase: 1.55, speed: 0.89,
+    relations: ['agentic-ai-innovation-governance-guide', 'copilot-studio-innovation-activation-program', 'agentic-ai-adoption']
+  },
+  {
+    id: 'agentic-ai-adoption',
+    parentId: 'copilot-studio-customer-innovation',
+    type: 'article',
+    title: {
+      zh: 'Agentic AI 导入实践：用成熟度模型规划企业落地',
+      en: 'Agentic AI Adoption Practice: Planning Enterprise Rollout with a Maturity Model'
+    },
+    summary: {
+      zh: '梳理企业导入 Agentic AI 的五级成熟度模型与五大能力支柱，规划从试点到规模化运营的落地节奏。',
+      en: 'Maps the five maturity levels and capability pillars for enterprise agentic AI adoption, from pilot to scalable operations.'
+    },
+    tags: ['Agentic AI', 'Adoption', 'Maturity Model', 'Copilot Studio', 'Operating Model'],
+    date: '2026-04-09',
+    url: 'posts/agentic-ai-adoption-practice/index.html',
+    color: '#14b8a6',
+    phase: 0.6, speed: 0.87,
+    relations: ['copilot-studio-innovation-activation-program', 'enterprise-agent-arch', 'agentic-skill-exec']
   },
 
   {
@@ -543,6 +608,25 @@ var knowledgeTree = [
     phase: 0.8, speed: 0.85,
     relations: ['medtech-agent-platform-blueprint', 'enterprise-agent-arch', 'copilot-studio-overview']
   },
+  {
+    id: 'zava-claims-360-solution',
+    parentId: 'industry-solution',
+    type: 'article',
+    title: {
+      zh: 'Zava Claims 360：Power Platform + Copilot Studio 解决方案架构',
+      en: 'Zava Claims 360: Power Platform + Copilot Studio Solution Architecture'
+    },
+    summary: {
+      zh: '面向能源企业 Zava 的解决方案：用 Power Platform 现代化理赔系统，Copilot Studio 构建 AI 客服，Managed Environments 保障合规治理。',
+      en: 'Solution architecture for Zava: modernize claims with Power Platform, deploy AI agent via Copilot Studio, enforce governance with Managed Environments.'
+    },
+    tags: ['Copilot Studio', 'Power Platform', 'Solution Architecture', 'Enterprise ALM', 'Energy', 'Industry Solution'],
+    date: '2026-04-22',
+    url: 'posts/zava-claims-360-solution/index.html',
+    color: '#c084fc',
+    phase: 1.2, speed: 0.84,
+    relations: ['copilot-studio-overview', 'copilot-studio-vs-agent-sdk', 'dataverse-security-roles']
+  },
 
   // ════════════════════════════════════════
   // 文章 — 企业智能体架构
@@ -565,25 +649,6 @@ var knowledgeTree = [
     color: '#ff9340',
     phase: 0, speed: 1,
     relations: ['copilot-harness-eng', 'agentic-skill-exec']
-  },
-  {
-    id: 'agentic-ai-adoption',
-    parentId: 'fc-agentic',
-    type: 'article',
-    title: {
-      zh: 'Agentic AI 导入实践：用成熟度模型规划企业落地',
-      en: 'Agentic AI Adoption Practice: Planning Enterprise Rollout with a Maturity Model'
-    },
-    summary: {
-      zh: '梳理企业导入 Agentic AI 的五级成熟度模型与五大能力支柱，规划从试点到规模化运营的落地节奏。',
-      en: 'Maps the five maturity levels and capability pillars for enterprise agentic AI adoption, from pilot to scalable operations.'
-    },
-    tags: ['Agentic AI', 'Adoption', 'Maturity Model'],
-    date: '2026-04-09',
-    url: 'posts/agentic-ai-adoption-practice/index.html',
-    color: '#ff9d5c',
-    phase: 2.3, speed: 0.88,
-    relations: ['enterprise-agent-arch', 'agentic-skill-exec']
   },
 
   // ════════════════════════════════════════
@@ -683,6 +748,25 @@ var knowledgeTree = [
     color: '#8b5cf6',
     phase: 4.7, speed: 0.83,
     relations: ['open-design-research', 'copilot-deep-dive', 'ai-era-app-evolution']
+  },
+  {
+    id: 'copilot-model-benchmark',
+    parentId: 'ai-research-vibe-coding',
+    type: 'article',
+    title: {
+      zh: 'GitHub Copilot 模型基准评测：DeepSeek V4 Pro vs GPT 5.6 Sol vs Gemini 3.1 Pro vs Grok 4.6',
+      en: 'GitHub Copilot Model Benchmark: DeepSeek V4 Pro vs GPT 5.6 Sol vs Gemini 3.1 Pro vs Grok 4.6'
+    },
+    summary: {
+      zh: '五维 CLI 基准对比 GPT、Gemini 与 Grok，覆盖质量、长程稳定性和速度；说明 DeepSeek 当前不可用。',
+      en: 'Five-dimension CLI benchmark of GPT, Gemini, and Grok across quality, long-horizon stability, and speed; DeepSeek is currently unavailable.'
+    },
+    tags: ['GitHub Copilot', 'Benchmark', 'Model Comparison', 'DeepSeek', 'GPT', 'Gemini', 'Grok'],
+    date: '2026-08-25',
+    url: 'posts/copilot-model-benchmark/index.html',
+    color: '#f59e0b',
+    phase: 5.2, speed: 0.82,
+    relations: ['copilot-deep-dive']
   },
   {
     id: 'text-to-image-prompting',
@@ -1400,25 +1484,6 @@ var knowledgeTree = [
     color: '#8b5cf6',
     phase: 5.8, speed: 0.82,
     relations: ['copilot-studio-mcp-cross-tenant', 'copilot-studio-constraints', 'dataverse-security-roles']
-  },
-  {
-    id: 'zava-claims-360-solution',
-    parentId: 'copilot-studio',
-    type: 'article',
-    title: {
-      zh: 'Zava Claims 360：Power Platform + Copilot Studio 解决方案架构',
-      en: 'Zava Claims 360: Power Platform + Copilot Studio Solution Architecture'
-    },
-    summary: {
-      zh: '面向能源企业 Zava 的解决方案：用 Power Platform 现代化理赔系统，Copilot Studio 构建 AI 客服，Managed Environments 保障合规治理。',
-      en: 'Solution architecture for Zava: modernize claims with Power Platform, deploy AI agent via Copilot Studio, enforce governance with Managed Environments.'
-    },
-    tags: ['Copilot Studio', 'Power Platform', 'Solution Architecture', 'Enterprise ALM'],
-    date: '2026-04-22',
-    url: 'posts/zava-claims-360-solution/index.html',
-    color: '#6d28d9',
-    phase: 2.2, speed: 0.84,
-    relations: ['copilot-studio-overview', 'copilot-studio-vs-agent-sdk', 'dataverse-security-roles']
   },
 
   // ════════════════════════════════════════

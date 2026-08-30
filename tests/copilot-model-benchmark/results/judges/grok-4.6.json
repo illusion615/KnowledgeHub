@@ -1,0 +1,282 @@
+{
+  "answers": {
+    "12C8814F": {
+      "architecture": {
+        "score": 12,
+        "max": 20,
+        "reasons": [
+          "Architecture/latency 2/3: collab-node pin and broadcast are sketched, but the live ack/fan-out path is thin.",
+          "Data model 1/3: tenant/document/update/snapshot exist; ACL identity and client idempotency are missing.",
+          "Conflict 2/3: CRDT chosen for offline/determinism; scaling claim is loosely supported.",
+          "Scaling 2/3: sticky ownership and batch writes appear; hot-doc fan-out math, memory, and backpressure are weak.",
+          "Isolation 1/2: JWT/RLS only; object store, streams, caches, and encryption boundaries are absent.",
+          "Failure 1/2: node rebuild is described; duplicates, fencing, and region behavior are not coherent.",
+          "SLO 1/2: p95 method exists, but Yjs/RLS 'measured facts' and 99.99% are unsupported.",
+          "Trade-offs 2/2: four material trade-offs with costs."
+        ]
+      },
+      "longContext": {
+        "score": 9,
+        "max": 25,
+        "summaryScore": 3,
+        "bugs": [
+          {
+            "label": "Bug 1",
+            "confirmed": false,
+            "score": 0,
+            "reason": "Stated trigger is false: capsule chat only toggles an existing .assistant-dialog and never creates one. Without a pre-existing dialog, restoreAssistantFab removes a presentation-owned FAB, so the play-icon leftover does not occur as described."
+          },
+          {
+            "label": "Bug 2",
+            "confirmed": true,
+            "score": 6,
+            "reason": "Custom TTS rebuilds recordStream from display video + TTS audio only (3837-3859), dropping getDisplayMedia audio. Trigger, impact, and mix/append fix are valid."
+          },
+          {
+            "label": "Bug 3",
+            "confirmed": false,
+            "score": 0,
+            "reason": "langChanged calls setPresentationStep only when state.enabled; goToStep is also gated. The reading-mode language/pagination sequence does not hit the stale wasOpen path."
+          }
+        ],
+        "precisionScore": 0,
+        "reasons": [
+          "Summary covers the main machines but omits step collection and export/restore.",
+          "Two of three bugs fail nearby-code checks (chat does not create the dialog; reading-mode lang/pager does not resync details)."
+        ]
+      }
+    },
+    "349D485E": {
+      "architecture": {
+        "score": 19,
+        "max": 20,
+        "reasons": [
+          "Architecture/latency 3/3: shard pin, apply, persist, and coalesce path are concrete for the SLO.",
+          "Data model 3/3: tenant/document/snapshot/op/ACL plus client_op_id idempotency.",
+          "Conflict 3/3: CRDT from offline and 1k-peer needs; no universal claim.",
+          "Scaling 3/3: fan-out, coalescing, memory, reject-overflow backpressure, hash ownership.",
+          "Isolation 2/2: gateway+shard authz, prefixed stores/streams/cache, tenant KMS.",
+          "Failure 2/2: fencing, replay, reconnect WAL, labeled regional RPO.",
+          "SLO 2/2: assumptions labeled; client-to-client p95 and soak criteria.",
+          "Trade-offs 2/2: more than four costs/criteria.",
+          "Minus 1: diagram still says OT/CRDT apply and WebRTC SFU, which is not the decided live path."
+        ]
+      },
+      "longContext": {
+        "score": 25,
+        "max": 25,
+        "summaryScore": 4,
+        "bugs": [
+          {
+            "label": "Bug 1",
+            "confirmed": true,
+            "score": 6,
+            "reason": "populateVibeVoices rebuilds options with vibe values; populateBrowserVoices only relabels option 0 and never clears value. Auto then submits a VibeVoice id. Fix is complete."
+          },
+          {
+            "label": "Bug 2",
+            "confirmed": true,
+            "score": 6,
+            "reason": "restorePresentationSnapshot is only on loader rejection or the success path after renderStep. A post-load throw leaves enterPresentation() in place. .finally is the right fix."
+          },
+          {
+            "label": "Bug 3",
+            "confirmed": true,
+            "score": 6,
+            "reason": "Playing aria-label is pause, but handleAutoPlayClick stops; Space correctly pauses. Fix matches the existing pause branch."
+          }
+        ],
+        "precisionScore": 3,
+        "reasons": [
+          "Summary matches collect/enter/exit/narration/recording control flow.",
+          "All three defects are real, nearby-code-checked, and limited to three."
+        ]
+      }
+    },
+    "75F98478": {
+      "architecture": {
+        "score": 12,
+        "max": 20,
+        "reasons": [
+          "Architecture/latency 2/3: leader session node and 50ms batch are present; end-to-end edit path is coarse.",
+          "Data model 1/3: docs/ops/snapshots only; no ACL; idempotency not explicit.",
+          "Conflict 2/3: CRDT for offline and 1k editors; 'faster merges' is unsupported.",
+          "Scaling 2/3: 2M-message fan-out and batching; little backpressure or memory/socket policy.",
+          "Isolation 1/2: JWT/RLS/network; no object-store/stream/cache/encryption map.",
+          "Failure 1/2: leader rebuild only; duplicates and region behavior missing.",
+          "SLO 1/2: client origin timestamps; weak assumption labeling and acceptance criteria.",
+          "Trade-offs 2/2: four explicit costs."
+        ]
+      },
+      "longContext": {
+        "score": 17,
+        "max": 25,
+        "summaryScore": 2,
+        "bugs": [
+          {
+            "label": "Bug 1",
+            "confirmed": true,
+            "score": 6,
+            "reason": "Pregen catch starts MediaRecorder with ondataavailable only; stopRecording never builds a blob. Confirmed vs 3866-3884 success path."
+          },
+          {
+            "label": "Bug 2",
+            "confirmed": true,
+            "score": 3,
+            "reason": "recordingStream is assigned only after countdown, so pending capture cannot be cancelled. Stated Stop path actually re-enters toggleRecording (isRecording is false), and assigning recordingStream alone does not cover that branch."
+          },
+          {
+            "label": "Bug 3",
+            "confirmed": true,
+            "score": 5,
+            "reason": "Global stepScrollTimer is cleared when another step schedules, leaving is-step-scrolling on the prior step. Impact is overstated as permanent; a later scroll on that step reschedules clear."
+          }
+        ],
+        "precisionScore": 1,
+        "reasons": [
+          "Summary is generic and barely names the narration/recording machines.",
+          "Bug 2 mis-identifies the Stop control-flow; nearby toggleRecording was not fully checked."
+        ]
+      }
+    },
+    "7C1F2F5F": {
+      "architecture": {
+        "score": 19,
+        "max": 20,
+        "reasons": [
+          "Architecture/latency 3/3: gateway, authority, WAL, snapshot, and coalesce budget are concrete.",
+          "Data model 3/3: tenant/replica/op/snapshot/ACL and persist-before-ack idempotency.",
+          "Conflict 3/3: CRDT from offline and 1k concurrency; OT scoped as a non-fit.",
+          "Scaling 2/3: fan-out, coalescing, interest, dedicated hot pods; backpressure is mostly rate limits.",
+          "Isolation 2/2: session tenant_id, prefixes, KMS, WAL isolation.",
+          "Failure 2/2: epoch fencing, replay, reconnect, labeled region RPO.",
+          "SLO 2/2: assumptions labeled; client apply timestamps and soak gates.",
+          "Trade-offs 2/2: six explicit trade-offs."
+        ]
+      },
+      "longContext": {
+        "score": 25,
+        "max": 25,
+        "summaryScore": 4,
+        "bugs": [
+          {
+            "label": "Bug 1",
+            "confirmed": true,
+            "score": 6,
+            "reason": "Catch recorder omits onstop; stopRecording only stops tracks. Shared armRecorder fix covers both branches."
+          },
+          {
+            "label": "Bug 2",
+            "confirmed": true,
+            "score": 6,
+            "reason": "WeChat click closes the menu then shareToWeChat hides an already-flex QR. Nearby open-path auto-show is correctly used as proof."
+          },
+          {
+            "label": "Bug 3",
+            "confirmed": true,
+            "score": 6,
+            "reason": "FAB playing click always stopNarration; Space pauses. Label/control mismatch is proven."
+          }
+        ],
+        "precisionScore": 3,
+        "reasons": [
+          "Summary tracks presentation, narration, and the recording failure split.",
+          "All three bugs match source and stay within the three-bug limit."
+        ]
+      }
+    },
+    "C5248760": {
+      "architecture": {
+        "score": 19,
+        "max": 20,
+        "reasons": [
+          "Architecture/latency 3/3: validate, actor append, apply, per-gateway fan-out is concrete.",
+          "Data model 3/3: composite keys, ACL membership, actor_counter uniqueness.",
+          "Conflict 3/3: CRDT for offline/failover; OT rejected for rebase risk.",
+          "Scaling 3/3: hot-doc rate, gateway fan-out, admission, mailbox-based scale signals.",
+          "Isolation 2/2: server-derived tenant, RLS, KMS, keys on DB/cache/stream/object.",
+          "Failure 2/2: durable-before-ack, lease replay, residency-aware region failover.",
+          "SLO 1/2: strong measurement plan, but extra p99 budgets sit beside the required p95<200ms without a clear single acceptance gate.",
+          "Trade-offs 2/2: six trade-offs with costs.",
+          "Live path slightly tensions optimistic broadcast vs durable-before-ack."
+        ]
+      },
+      "longContext": {
+        "score": 25,
+        "max": 25,
+        "summaryScore": 4,
+        "bugs": [
+          {
+            "label": "Bug 1",
+            "confirmed": true,
+            "score": 6,
+            "reason": "Outer .then rejection only handles loader failure; renderStep/nested rejects skip restore. .finally is correct."
+          },
+          {
+            "label": "Bug 2",
+            "confirmed": true,
+            "score": 6,
+            "reason": "exitPresentation/stopNarration do not cancel pregenerate, 300ms delay, or showCountdown; success path starts the controller without state.enabled. Token/abort fix covers delayed branches."
+          },
+          {
+            "label": "Bug 3",
+            "confirmed": true,
+            "score": 6,
+            "reason": "Fallback recorder lacks onstop/ended; chunks are never saved. Shared helper fix is complete."
+          }
+        ],
+        "precisionScore": 3,
+        "reasons": [
+          "Summary matches enter/exit, narration, recording, and PPT snapshot flow.",
+          "All three defects are source-backed with nearby contrast paths."
+        ]
+      }
+    },
+    "EE814065": {
+      "architecture": {
+        "score": 19,
+        "max": 20,
+        "reasons": [
+          "Architecture/latency 3/3: router, single actor, quorum append, batched broadcast tree.",
+          "Data model 3/3: ACL, epoch, actor_seq uniqueness, checksummed snapshots.",
+          "Conflict 3/3: sequence CRDT and deterministic tie-break from offline branches.",
+          "Scaling 3/3: 10GB/s naive fan-out, 10-20ms batch, presence drop, admission caps.",
+          "Isolation 2/2: claim-derived tenant, KMS, keys on DB/log/object/cache/metrics.",
+          "Failure 2/2: fencing, reconnect resend, residency failover, snapshot checksum fallback.",
+          "SLO 1/2: assumptions labeled, but p95 is defined from gateway receipt, not sender submit.",
+          "Trade-offs 2/2: six explicit trade-offs."
+        ]
+      },
+      "longContext": {
+        "score": 22,
+        "max": 25,
+        "summaryScore": 3,
+        "bugs": [
+          {
+            "label": "Bug 1",
+            "confirmed": true,
+            "score": 6,
+            "reason": "Share-open shows QR; WeChat item closes wrapper then hides the visible panel. Reproducible and nearby-code proven."
+          },
+          {
+            "label": "Bug 2",
+            "confirmed": true,
+            "score": 5,
+            "reason": "Post-load restore hole is real for renderStep throws. Trigger overreaches: svg/lazy-image promises resolve on error, and pptx.write runs after restore."
+          },
+          {
+            "label": "Bug 3",
+            "confirmed": true,
+            "score": 6,
+            "reason": "Fallback path has no onstop; stopRecording does not download. Shared helper fix is correct."
+          }
+        ],
+        "precisionScore": 2,
+        "reasons": [
+          "Summary is accurate but thinner on recording/export state.",
+          "PPT trigger list is imprecise versus nearby decode/write control flow."
+        ]
+      }
+    }
+  }
+}

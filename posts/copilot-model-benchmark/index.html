@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GitHub Copilot 模型基准评测：GPT 5.6 Sol、Gemini 3.1 Pro、Grok 4.6</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    .hero-copy h1 { font-size: clamp(1.8rem, 4.2vw, 2.9rem); line-height: 1.08; max-width: 23ch; }
+    .hero-metrics { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+    .result-table-wrap { margin-top: 18px; overflow-x: auto; border: 1px solid rgba(15, 23, 42, 0.08); border-radius: 8px; background: rgba(255,255,255,0.76); }
+    .result-table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+    .result-table th, .result-table td { padding: 12px 14px; text-align: left; vertical-align: top; border-bottom: 1px solid rgba(15,23,42,0.07); }
+    .result-table th { font-family: "Space Grotesk", "Noto Sans SC", sans-serif; font-size: 0.75rem; color: var(--muted); background: rgba(15,23,42,0.035); white-space: nowrap; }
+    .result-table tr:last-child td { border-bottom: 0; }
+    .rank { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; font-family: "Space Grotesk", sans-serif; font-weight: 700; }
+    .rank-1 { color: #92400e; background: rgba(245,158,11,0.2); }
+    .rank-2 { color: #475569; background: rgba(148,163,184,0.2); }
+    .rank-3 { color: #9a3412; background: rgba(234,88,12,0.14); }
+    .model-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 18px; }
+    .model-card { padding: 20px; border: 1px solid rgba(15,23,42,0.08); border-radius: 8px; background: rgba(255,255,255,0.76); }
+    .model-card h3 { margin: 0 0 4px; font-size: 1.08rem; }
+    .model-card .score { font: 700 2rem/1 "Space Grotesk", sans-serif; color: var(--accent); margin: 14px 0; }
+    .model-card p { font-size: 0.9rem; line-height: 1.7; color: var(--muted); }
+    .score-row { display: grid; grid-template-columns: 92px 1fr 42px; align-items: center; gap: 8px; margin-top: 9px; font-size: 0.8rem; }
+    .bar { height: 7px; border-radius: 999px; background: rgba(15,23,42,0.08); overflow: hidden; }
+    .bar > span { display: block; height: 100%; border-radius: inherit; background: #0f8f88; }
+    .w-100 { width: 100%; }
+    .w-96 { width: 96%; }
+    .w-95 { width: 95%; }
+    .w-625 { width: 62.5%; }
+    .w-52 { width: 52%; }
+    .w-50 { width: 50%; }
+    .scenario-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin-top: 18px; }
+    .scenario-card { padding: 19px; border-left: 4px solid #0f8f88; border-radius: 6px; background: rgba(15,143,136,0.06); }
+    .scenario-card h3 { margin: 0 0 6px; font-size: 1rem; }
+    .scenario-card strong { color: var(--accent); }
+    .evidence-list { display: grid; gap: 10px; margin-top: 16px; }
+    .evidence-item { padding: 14px 16px; border: 1px solid rgba(15,23,42,0.08); border-radius: 8px; background: rgba(255,255,255,0.64); }
+    .evidence-item strong { display: block; margin-bottom: 4px; }
+    .evidence-item span { font-size: 0.86rem; line-height: 1.65; color: var(--muted); }
+    .status-note { margin-top: 18px; padding: 18px; border-radius: 8px; border-left: 4px solid #d97706; background: rgba(245,158,11,0.08); }
+    .status-note p { margin: 0; line-height: 1.75; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    [data-theme="dark"] .result-table-wrap, [data-theme="dark"] .model-card, [data-theme="dark"] .evidence-item { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.09); }
+    [data-theme="dark"] .result-table th { background: rgba(255,255,255,0.04); }
+    [data-theme="dark"] .result-table th, [data-theme="dark"] .result-table td { border-bottom-color: rgba(255,255,255,0.07); }
+    [data-theme="dark"] .bar { background: rgba(255,255,255,0.09); }
+    [data-theme="dark"] .scenario-card { background: rgba(45,212,191,0.07); }
+    [data-theme="dark"] .status-note { background: rgba(245,158,11,0.1); }
+    @media (max-width: 640px) { .model-grid, .scenario-grid { grid-template-columns: 1fr; } .result-table { min-width: 720px; } }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true"><span class="orb orb-a"></span><span class="orb orb-b"></span><span class="orb orb-c"></span></div>
+    <div class="site">
+      <header class="hero" data-present-step data-step-title="评测总览">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand"><span class="brand-mark"></span>Vibe Coding</div>
+          <div class="topbar-actions">
+            <nav class="nav-links" aria-label="页面章节导航">
+              <a href="#verdict">结论</a><a href="#protocol">协议</a><a href="#quality">质量</a><a href="#stability">稳定性</a><a href="#speed">速度</a><a href="#scenarios">推荐</a><a href="#limits">限制</a>
+            </nav>
+          </div>
+        </div>
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Copilot CLI Benchmark v1 · 2026-08-25</span>
+            <h1>GitHub Copilot 模型基准评测：GPT 5.6 Sol、Gemini 3.1 Pro、Grok 4.6</h1>
+            <p>通过 CLI 精确指定模型，在相同 prompt、fixture、工具权限和锁定源码下各运行两次。代码与长程实现使用隐藏测试，架构与 4,489 行代码审查由三模型匿名盲评；速度由 CLI JSON 事件计算。</p>
+            <div class="hero-actions"><a class="button button-primary" href="#verdict">查看排名</a><a class="button button-secondary" href="#scenarios">分场景推荐</a></div>
+          </div>
+          <aside class="hero-panel load-in">
+            <span class="panel-label">结论</span>
+            <h2>Grok 4.6 综合 99.0 分居首；GPT 5.6 Sol 质量并列第一，但完整 agent 耗时更长。</h2>
+            <ul class="layer-list section-grid-spaced">
+              <li><span class="layer-number">1</span>Grok：质量 94/95，agent 中位耗时 9.55 分钟，综合第一。</li>
+              <li><span class="layer-number">2</span>GPT：质量 94/95，两轮均满自动测试，耗时波动较大。</li>
+              <li><span class="layer-number">3</span>Gemini：TTFT 最短，但两轮质量 79 与 45，稳定性不足。</li>
+              <li><span class="layer-number">4</span>DeepSeek：当前 Copilot CLI 服务端拒绝该模型 ID，不生成伪结果。</li>
+            </ul>
+          </aside>
+        </div>
+        <div class="hero-metrics load-in">
+          <div class="metric"><div class="metric-label">正式运行</div><strong>6 次</strong><span>3 模型 × 2 轮</span></div>
+          <div class="metric"><div class="metric-label">隐藏断言</div><strong>22 项</strong><span>deepMerge 12 + scheduler 10</span></div>
+          <div class="metric"><div class="metric-label">匿名评分</div><strong>3 judges</strong><span>每份答案取中位数</span></div>
+          <div class="metric"><div class="metric-label">源码规模</div><strong>4,489 行</strong><span>完整 presentation runtime</span></div>
+        </div>
+      </header>
+
+      <main>
+        <section id="verdict" class="section" data-reveal data-present-step data-step-title="综合排名">
+          <div class="section-head"><p class="section-kicker">01 / Verdict</p><h2>1. Grok 4.6 以速度优势赢得综合第一</h2><p>质量分满分 95，速度满分 5。质量取两轮平均；速度按 agent 中位耗时相对最快模型折算。</p></div>
+          <div class="result-table-wrap">
+            <table class="result-table"><thead><tr><th>排名</th><th>模型</th><th>代码 /25</th><th>架构 /20</th><th>长上下文 /25</th><th>长程执行 /25</th><th>速度 /5</th><th>综合 /100</th></tr></thead><tbody>
+              <tr><td><span class="rank rank-1">1</span></td><td><strong>Grok 4.6</strong></td><td>25.0</td><td>19.0</td><td>25.0</td><td>25.0</td><td>5.0</td><td><strong>99.0</strong></td></tr>
+              <tr><td><span class="rank rank-2">2</span></td><td><strong>GPT 5.6 Sol</strong></td><td>25.0</td><td>19.0</td><td>25.0</td><td>25.0</td><td>3.7</td><td><strong>97.7</strong></td></tr>
+              <tr><td><span class="rank rank-3">3</span></td><td><strong>Gemini 3.1 Pro Preview</strong></td><td>12.5</td><td>12.5</td><td>13.0</td><td>24.0</td><td>4.5</td><td><strong>66.5</strong></td></tr>
+              <tr><td>—</td><td>DeepSeek V4 Pro</td><td colspan="6">当前 Copilot CLI 1.0.80 / 账户 entitlement 不可用</td></tr>
+            </tbody></table>
+          </div>
+          <div class="status-note"><p><strong>DeepSeek 说明：</strong><code>copilot --model deepseek-v4-pro</code> 返回 <span class="mono">Model ... is not available</span>，CLI 日志显示随后会 fallback 到 GPT 5.6 Sol。为避免把 GPT 输出冒充 DeepSeek，本文不填写 DeepSeek 分数。</p></div>
+        </section>
+
+        <section id="protocol" class="section" data-reveal data-present-step data-step-title="固定评测协议">
+          <div class="section-head"><p class="section-kicker">02 / Protocol</p><h2>2. 固定协议把模型能力与测试过程分开</h2><p>协议在正式运行前冻结；每轮创建全新 CLI 会话与隔离目录，关闭项目 custom instructions 和内置 MCP，不复用其他模型答案。</p></div>
+          <div class="evidence-list">
+            <div class="evidence-item"><strong>可执行正确性 · 25 分</strong><span>12 组隐藏断言检查数组、递归合并、不可变性、Date、null prototype 与 <code>__proto__</code> 安全。</span></div>
+            <div class="evidence-item"><strong>架构推理 · 20 分</strong><span>多租户实时协作系统，覆盖 CRDT/OT、1,000 并发、200 ms SLO、隔离、故障与权衡；三 judge 匿名评分。</span></div>
+            <div class="evidence-item"><strong>长上下文 · 25 分</strong><span>阅读完整 4,489 行 runtime，提交恰好三个可复现 bug；误报直接失分，三 judge 对照源码验证。</span></div>
+            <div class="evidence-item"><strong>长程执行 · 25 分</strong><span>实现无依赖任务调度器。10 组隐藏测试覆盖并发 claim、租约回收、退避、幂等、快照隔离与循环输入。</span></div>
+            <div class="evidence-item"><strong>速度 · 5 分</strong><span>TTFT：<code>model.call_start</code> 到首 assistant/tool 事件；agent duration：用户消息到最后 <code>assistant.turn_end</code>。</span></div>
+          </div>
+        </section>
+
+        <section id="quality" class="section" data-reveal data-present-step data-step-title="质量与盲评结果">
+          <div class="section-head"><p class="section-kicker">03 / Quality</p><h2>3. GPT 与 Grok 在四项质量任务上并列</h2><p>两者每轮均得 94/95：代码与 scheduler 隐藏测试全过，架构 19/20，长上下文 25/25。架构 judge 区间均为 16–20 或 19–20，长上下文基本一致满分。</p></div>
+          <div class="model-grid">
+            <article class="model-card"><h3>Grok 4.6</h3><div class="score">94 / 95</div><div class="score-row"><span>代码</span><div class="bar"><span class="w-100"></span></div><b>25</b></div><div class="score-row"><span>架构</span><div class="bar"><span class="w-95"></span></div><b>19</b></div><div class="score-row"><span>长上下文</span><div class="bar"><span class="w-100"></span></div><b>25</b></div><div class="score-row"><span>长程执行</span><div class="bar"><span class="w-100"></span></div><b>25</b></div><p>两轮代码 12/12、scheduler 10/10；长上下文三 judge 均给 25。</p></article>
+            <article class="model-card"><h3>GPT 5.6 Sol</h3><div class="score">94 / 95</div><div class="score-row"><span>代码</span><div class="bar"><span class="w-100"></span></div><b>25</b></div><div class="score-row"><span>架构</span><div class="bar"><span class="w-95"></span></div><b>19</b></div><div class="score-row"><span>长上下文</span><div class="bar"><span class="w-100"></span></div><b>25</b></div><div class="score-row"><span>长程执行</span><div class="bar"><span class="w-100"></span></div><b>25</b></div><p>两轮自动测试全过；第二轮长上下文 judge 区间为 22–25，中位数仍为 25。</p></article>
+            <article class="model-card"><h3>Gemini 3.1 Pro Preview</h3><div class="score">62 / 95</div><div class="score-row"><span>代码</span><div class="bar"><span class="w-50"></span></div><b>12.5</b></div><div class="score-row"><span>架构</span><div class="bar"><span class="w-625"></span></div><b>12.5</b></div><div class="score-row"><span>长上下文</span><div class="bar"><span class="w-52"></span></div><b>13</b></div><div class="score-row"><span>长程执行</span><div class="bar"><span class="w-96"></span></div><b>24</b></div><p>第二轮把函数导出为对象，违反指定接口，代码隐藏测试 0/12；scheduler 漏验循环 payload，9/10。</p></article>
+          </div>
+        </section>
+
+        <section id="stability" class="section" data-reveal data-present-step data-step-title="长程稳定性">
+          <div class="section-head"><p class="section-kicker">04 / Stability</p><h2>4. 两轮重复测试揭示 Gemini 的质量波动</h2><p>平均分不足以描述 agent。本文同时报告最低轮与两轮差值：GPT、Grok 均为 94 / 94；Gemini 为 79 / 45。</p></div>
+          <div class="result-table-wrap"><table class="result-table"><thead><tr><th>模型</th><th>Run 1</th><th>Run 2</th><th>最低轮</th><th>波动</th><th>平均模型调用</th><th>平均工具执行</th></tr></thead><tbody>
+            <tr><td><strong>Grok 4.6</strong></td><td>94</td><td>94</td><td>94</td><td>0</td><td>18</td><td>46</td></tr>
+            <tr><td><strong>GPT 5.6 Sol</strong></td><td>94</td><td>94</td><td>94</td><td>0</td><td>14.5</td><td>33.5</td></tr>
+            <tr><td><strong>Gemini 3.1 Pro Preview</strong></td><td>79</td><td>45</td><td>45</td><td>34</td><td>59</td><td>58</td></tr>
+          </tbody></table></div>
+          <div class="status-note"><p><strong>稳定性判读：</strong>Gemini 第一轮用了 92 次模型调用并完成全部自动测试；第二轮降至 26 次调用但漏掉接口和循环输入。更短的执行链没有换来同等质量，说明在复杂长程任务上需要更强的验收门禁。</p></div>
+        </section>
+
+        <section id="speed" class="section" data-reveal data-present-step data-step-title="响应速度">
+          <div class="section-head"><p class="section-kicker">05 / Speed</p><h2>5. Gemini 首次响应最快，Grok 完整交付最快</h2><p>每个模型两轮取中位数。TTFT 衡量首次可见反馈；agent duration 衡量从收到任务到最终完成的端到端时间。</p></div>
+          <div class="result-table-wrap"><table class="result-table"><thead><tr><th>模型</th><th>TTFT 中位数</th><th>Agent 中位耗时</th><th>进程中位耗时</th><th>速度分 /5</th></tr></thead><tbody>
+            <tr><td><strong>Grok 4.6</strong></td><td>7.54 秒</td><td>9.55 分钟</td><td>9.65 分钟</td><td><strong>5.0</strong></td></tr>
+            <tr><td><strong>GPT 5.6 Sol</strong></td><td>15.35 秒</td><td>12.80 分钟</td><td>12.94 分钟</td><td>3.7</td></tr>
+            <tr><td><strong>Gemini 3.1 Pro Preview</strong></td><td><strong>4.54 秒</strong></td><td>10.62 分钟</td><td>10.77 分钟</td><td>4.5</td></tr>
+          </tbody></table></div>
+          <div class="status-note"><p><strong>不要只看 TTFT：</strong>Gemini 最快开始回复，但最终质量最低。GPT run 1 为 6.2 分钟、run 2 为 19.4 分钟，服务与执行路径波动显著；Grok 两轮为 10.4 与 8.7 分钟。</p></div>
+        </section>
+
+        <section id="scenarios" class="section" data-reveal data-present-step data-step-title="分场景模型推荐">
+          <div class="section-head"><p class="section-kicker">06 / Scenario Recommendations</p><h2>6. 场景推荐：默认选 Grok，质量敏感场景可选 GPT</h2><p>推荐使用透明权重计算；分数只适用于本次 CLI 任务组合，不外推到补全、视觉或通用问答。</p></div>
+          <div class="scenario-grid">
+            <article class="scenario-card"><h3>日常编码</h3><p><strong>Grok 4.6 · 100.0</strong></p><p>代码正确性、长程执行与速度同时领先；GPT 94.8 居次。</p></article>
+            <article class="scenario-card"><h3>快速原型</h3><p><strong>Grok 4.6 · 100.0</strong></p><p>完整交付中位耗时最短；不要因 Gemini TTFT 最快就忽略其质量波动。</p></article>
+            <article class="scenario-card"><h3>系统架构</h3><p><strong>GPT / Grok · 97.3 并列</strong></p><p>两者架构中位分相同；偏交付速度选 Grok，偏少工具轮次选 GPT。</p></article>
+            <article class="scenario-card"><h3>大型代码库</h3><p><strong>GPT / Grok · 100.0 并列</strong></p><p>两者长上下文两轮均 25/25；GPT 工具调用更少，Grok 总耗时更短。</p></article>
+            <article class="scenario-card"><h3>复杂长程交付</h3><p><strong>GPT / Grok · 99.3 并列</strong></p><p>两轮质量与最低轮一致；优先按团队对速度、调用次数和输出风格的偏好选择。</p></article>
+          </div>
+        </section>
+
+        <section id="limits" class="section" data-reveal data-present-step data-step-title="证据与限制">
+          <div class="section-head"><p class="section-kicker">07 / Evidence &amp; Limits</p><h2>7. 结果可复算，但不能替代更大样本</h2><p>协议、prompt、fixture、隐藏 grader、脱敏 run 元数据、三 judge JSON 与聚合器均位于 <code>tests/copilot-model-benchmark/</code>。原始 CLI 事件不入库，以避免保存 prompt 和工具细节。</p></div>
+          <ol class="limitation-list">
+            <li><strong>样本量：</strong>每模型两轮，只能识别明显波动；发布级结论应扩展到至少 5–10 轮。</li>
+            <li><strong>judge 分歧：</strong>Gemini 长上下文答案的单轮 judge 区间达到 9–25；中位数降低单点评分偏差，但不能消除主观性。</li>
+            <li><strong>速度口径：</strong>agent duration 包含服务负载、模型调用、工具执行与修复，不是纯 token 生成速度。</li>
+            <li><strong>DeepSeek 缺席：</strong>当前账户/CLI 不提供该模型。获得 entitlement 后可用同一冻结协议补跑，不能用 fallback 结果补位。</li>
+            <li><strong>版本边界：</strong>结果对应 Copilot CLI 1.0.80 和 2026-08-25 可用模型，后续模型更新需要重新执行。</li>
+          </ol>
+        </section>
+      </main>
+
+      <script src="../../assets/article-common.js"></script>
+      <script src="../../assets/article-presentation.js"></script>
+      <script src="../../assets/scrollbar.js"></script>
+      <script src="../../assets/article-lightbox.js"></script>
+      <script src="../../assets/article-assistant.js"></script>
+    </div>
+  </div>
+</body>
+</html>

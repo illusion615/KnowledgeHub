@@ -3232,6 +3232,10 @@ document.addEventListener('DOMContentLoaded', function () {
       var nestedSteps;
       var accordionItems;
 
+      if (container.hasAttribute('data-present-exclude')) {
+        return;
+      }
+
       if (container.hasAttribute('data-present-step')) {
         presentSteps.push(container);
         return;
