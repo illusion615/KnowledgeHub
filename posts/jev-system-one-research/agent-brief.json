@@ -1,0 +1,351 @@
+{
+  "schema": "study-room.research-brief.v1",
+  "notice": "Research guidance, not the TypeSafe request schema, a vendor guarantee, or permission to run tools.",
+  "topic": "Structured Decision Models",
+  "framing": "Start from Jev's launch, distinguish rapid community implementations and precision artifacts, then assess the decision problem, system role, use cases, contracts, live evaluation, and deployment readiness. This is an analytical scope, not a standardized model taxonomy.",
+  "article_order": ["news", "positioning", "architectures", "contract", "playground", "evidence", "alternatives", "nanojev", "nanojev-integration", "mlx-local", "integration", "workflow", "agent", "retrieval", "limits", "evaluation", "agent-brief", "references"],
+  "as_of": "2026-09-19",
+  "verified_model_id": "jev-1.13.0",
+  "verified_model_scope": "This model ID applies only to the Jev case study, not to the whole category.",
+  "research_mode": "Public-document review; no live paid inference benchmark",
+  "role": "Typed semantic judgments over bounded answer spaces, implemented by hosted or local models; application code owns exact rules, authorization and execution. Validate each implementation rather than inferring capabilities from the category name.",
+  "appropriate_uses": [
+    "Semantic ticket classification with explicit review fallback",
+    "Model or skill selection from known candidates",
+    "Advisory tool-risk screening in addition to deterministic authorization",
+    "RAG passage relevance, contradiction, and citation-support checks",
+    "Selection among pre-parsed extraction candidates",
+    "Batch document feature extraction with queues and rate limiting"
+  ],
+  "not_a_replacement_for": [
+    "Exact arithmetic, counting, date comparison, SQL, or deterministic rules",
+    "Free-text or code generation and general long-horizon planning",
+    "Authentication, authorization, sandboxing, or human approval",
+    "OCR, speech recognition, embedding index, durable workflow execution",
+    "Locally hosted model weights or contractual privacy guarantees"
+  ],
+  "api": {
+    "endpoint": "https://api.typesafe.ai/v1/systemone",
+    "method": "POST",
+    "authentication": "Bearer token from backend TYPESAFE_API_KEY",
+    "request_fields": ["model", "state", "questions"],
+    "question_types": ["noul", "choice", "score"],
+    "constraints": [
+      "Use criteria, not invented options/min/max fields.",
+      "Question IDs are not visible to model inference; instructions must stand alone.",
+      "Questions share state and are evaluated independently, not sequentially.",
+      "Choice/Score confidence summarizes the distribution, not probability of correctness.",
+      "Noul has no separate confidence field."
+    ]
+  },
+  "dated_limits": {
+    "input": "Text only, including structured JSON state",
+    "input_usd_per_million_tokens": 0.042,
+    "output_usd_per_million_tokens": 0,
+    "context_total": "64k tokens: state plus all questions",
+    "context_longest": "32k tokens: state plus the longest question",
+    "choice_max_options": 255,
+    "published_tokens_per_second": 250000,
+    "published_requests_per_minute": 1200,
+    "warning": "Rate limits are dynamic; recheck the official models page. English is the primary training language."
+  },
+  "design_requirements": [
+    "Compare deterministic rules, supervised classifiers, Jev, and structured-output LLM baselines.",
+    "Enumerate other/none/unknown where the candidate set is not exhaustive.",
+    "Keep precision calculations and authorization in code.",
+    "Fail closed or route to review on errors, uncertainty, or destructive actions.",
+    "Calibrate thresholds on held-out task and language data; never copy example thresholds as guarantees.",
+    "Pin model, SDK and question/policy configuration; re-evaluate changes.",
+    "Measure end-to-end quality, calibration, automation coverage, tail latency, retries and total cost.",
+    "Minimize input and logs; no customer-data training does not imply zero retention."
+  ],
+  "agent_expected_deliverables": [
+    "Adopt/reject recommendation with alternatives and evidence",
+    "State schema and complete questions/criteria",
+    "Deterministic responsibilities and execution boundary",
+    "Review, outage and rollback paths",
+    "Evaluation dataset plan, risk metrics and threshold acceptance criteria",
+    "Latency and total-cost assumptions",
+    "Versioned architecture decision record"
+  ],
+  "requires_explicit_user_approval": [
+    "Install skills or dependencies into a project",
+    "Create credentials or call billable APIs",
+    "Transmit real sensitive or private data",
+    "Execute business writes or change production configuration"
+  ],
+  "revalidate_on": [
+    "New model or SDK version",
+    "Changed questions, criteria, candidate set or policy",
+    "New language, domain or input distribution",
+    "Changed price, quota, hosting or data-processing terms"
+  ],
+  "playground": {
+    "article_anchor": "#playground",
+    "mode": "Live evaluation through a same-origin local backend; synthetic fixtures require an explicit separate action",
+    "visible_output": "Input and an always-visible output panel are paired. Explicit idle/running/completed/failed/cancelled/invalidated states are separate from service readiness. Successful calls show three answers and backend-normalized result JSON immediately. Policy suggestions live in an optional collapsed section; demo/import provenance stays explicit. Mobile runs reveal the output panel.",
+    "backend_command": "node scripts/jev-playground-server.js --port 8000",
+    "cloud_backend_command": "node scripts/jev-playground-server.js --port 8001 --prompt-key vercel",
+    "readiness_command": "node scripts/jev-playground-server.js --check vercel",
+    "readiness_scope": "Read-only GET /v1/credits authentication probe, never model inference. Validates the response shape but does not expose balances. A pass does not prove Jev access, billing eligibility, or payment-method verification. Explicit credit-card-required 403 responses are classified separately from invalid credentials, unrelated forbidden responses, and insufficient credits.",
+    "payment_method_boundary": "When Gateway explicitly requires a valid credit card on file, the user must review Billing / Payment Method for the API key's owning team. Do not add cards, upgrade plans, buy credits, or assume promotional pricing waives account verification.",
+    "secret_entry": "--prompt-key uses hidden terminal input with no history or file storage; do not paste a multiline shell block into an interactive read command.",
+    "runtime": "Node.js >=22. Local routes use the isolated Python/MLX service documented below; Vercel SDK is not required. Optional cloud route: AI SDK 7.0.107 and @ai-sdk/gateway 4.0.87 installed outside the repository.",
+    "live_providers": {
+      "vercel": { "model": "typesafe-ai/jev", "api": "AI SDK experimental_evaluate", "key_environment_variable": "AI_GATEWAY_API_KEY" },
+      "typesafe": { "model": "jev-1.13.0", "api": "POST https://api.typesafe.ai/v1/systemone", "key_environment_variable": "TYPESAFE_API_KEY" },
+      "nanojev-fp32": { "model": "C-Tianyu/NanoJev", "api": "local MLX /api/evaluate", "cloud_key_required": false },
+      "nanojev-4bit": { "model": "ZeroDegress/NanoJev-mlx-4bit", "api": "local MLX /api/evaluate", "cloud_key_required": false }
+    },
+    "gateway_mapping": "boolean.probability maps to Noul; independent confidence comes only from providerMetadata.typesafe.confidence; Score legend comes from the request. Missing values remain null, not synthesized.",
+    "live_measurements": "Backend upstream round-trip latency, browser round-trip latency, and provider-reported input/output tokens; not GPU-only time, benchmark accuracy, or verified billing",
+    "authentication_test_status": "Cloud key/SDK configuration and read-only authentication do not prove model access. Successful cloud Jev inference remains unestablished. Both local MLX weight profiles have completed real GPU inference, HTTP checks, and same-weight numerical validation; these are not accuracy benchmarks.",
+    "local_backend_command": "node scripts/jev-playground-server.js --port 8000",
+    "local_mapping": "states[].answers Boolean p_true maps to Noul. Choice/Score confidence stays null. Tokens count actual candidate paths with repeated prefixes; output 0 means no autoregressive decoding. Defaults to FP32 when ready, otherwise local 4-bit; never falls back after an evaluation failure.",
+    "synthetic_case_count": 8,
+    "metrics": "Synthetic automation coverage and error rate among automated cases, never Jev benchmark accuracy",
+    "input_edits": "Invalidate previous results, cancel waiting, and discard late responses; threshold changes do not make new inference calls",
+    "response_import": "Checks normalized response shape, optional finite distributions with declared rounding, choice argmax, and Score consistency. Import never becomes a live API receipt or verifies model identity.",
+    "privacy": "Cloud keys remain in server environment variables. Local model-service tokens stay in owner-only 0600 cache files, never the browser. Local inference needs only an explicit Run click, not a checkbox. Cloud consent is revocable and retained separately per route in page memory until reload; input edits do not reset it. No input persistence or automatic inference; loopback binding, origin/CSRF checks, body limits, deadlines and rate limits. Not a public authenticated deployment."
+  },
+  "open_source_alternatives": [
+    {
+      "name": "GLiNER2",
+      "repository": "https://github.com/fastino-ai/GLiNER2",
+      "code_license_checked": "Apache-2.0",
+      "scope": "Local text classification, entity and structured extraction",
+      "checked_checkpoint": "fastino/gliner2-base-v1: 205M, English, Apache-2.0",
+      "caveat": "The repository also lists 2.5 and multilingual variants; check each card. Not an RLCD or calibration reproduction."
+    },
+    {
+      "name": "GLiClass",
+      "repository": "https://github.com/knowledgator/GLiClass",
+      "code_license_checked": "Apache-2.0",
+      "scope": "Zero-shot classification with dynamic labels",
+      "checked_checkpoint": "knowledgator/gliclass-small-v1.0: 144M, English, Apache-2.0",
+      "caveat": "Multi-label scores are not necessarily a normalized Choice distribution. Calibrate independently."
+    },
+    {
+      "name": "SetFit",
+      "repository": "https://github.com/huggingface/setfit",
+      "code_license_checked": "Apache-2.0",
+      "scope": "Few-shot training of Sentence Transformers with classification heads",
+      "caveat": "Needs labels and training. Base-model language and license must be checked separately."
+    },
+    {
+      "name": "Outlines",
+      "repository": "https://github.com/dottxt-ai/outlines",
+      "code_license_checked": "Apache-2.0",
+      "scope": "Typed or JSON-constrained generation with supported model backends",
+      "caveat": "A library, not model weights. Valid structure does not imply semantic accuracy or calibrated probabilities."
+    },
+    {
+      "name": "RouteLLM",
+      "repository": "https://github.com/lm-sys/RouteLLM",
+      "code_license_checked": "Apache-2.0",
+      "scope": "Cost/quality routing between stronger and weaker LLMs",
+      "caveat": "Not a business classifier. Documented mf/sw_ranking routers use external OpenAI embeddings even when generation models are local."
+    },
+    {
+      "name": "NanoJev (TianyuCodings)",
+      "repository": "https://github.com/TianyuCodings/NanoJev",
+      "source_commit": "71a513bb0163b5634467842b523ee0c0ed6fb1c7",
+      "code_license_checked": "MIT",
+      "model_repository": "https://huggingface.co/C-Tianyu/NanoJev",
+      "model_revision": "4a19595eada0857133c0d2be024f879a4077054b",
+      "scope": "Qwen3-0.6B batched candidate scoring, local decision heads, public checkpoints, and independent probability-learning experiments",
+      "caveat": "Not an established replica of TypeSafe architecture or RLCD. Current inference is CUDA-only; native API differs; fine-tuned-weight licensing needs clarification. Do not confuse it with novvoo/nanojev."
+    },
+    {
+      "name": "Jevlike",
+      "repository": "https://github.com/vinnylarouge/jevlike",
+      "code_license_checked": "MIT",
+      "scope": "Research starter for one-pass scoring over dynamic text options",
+      "caveat": "Not a reproduction of Jev or RLCD. Default byte encoder truncates context/options to 192/32 bytes; train and evaluate on domain data."
+    }
+  ],
+  "nanojev_research": {
+    "as_of": "2026-09-19",
+    "primary_repository": "TianyuCodings/NanoJev",
+    "repository_created_at": "2026-09-17T16:08:30Z",
+    "source_commit": "71a513bb0163b5634467842b523ee0c0ed6fb1c7",
+    "model_revision": "4a19595eada0857133c0d2be024f879a4077054b",
+    "base_model": "Qwen/Qwen3-0.6B",
+    "base_revision": "c1899de289a04d12100db370d81485cdf75e47ca",
+    "architecture": [
+      "Each state/question/candidate is a separate token path; one backbone call batches those paths.",
+      "Last EOS representation, LayerNorm, shared scalar head, optional set attention for Choice only.",
+      "Boolean uses one semantic path and logits [0,z]; Score returns the expected ordered level.",
+      "Reference inference repeats prefixes. One forward call does not imply shared state computation or constant candidate cost."
+    ],
+    "training_interpretation": {
+      "status": "Independent RLCD-inspired candidate, not a recovered TypeSafe training recipe",
+      "paired_reward": "For independent draws and an independent observed event: E[R] = 2 p.q - ||p||^2. The paired policy-gradient estimator targets the expected Brier gradient.",
+      "controls_required": ["Observed cross-entropy", "Direct Brier", "Matched initialization/data/compute/seeds"],
+      "do_not_infer": "Unbiased raw gradients do not establish optimizer equivalence, empirical calibration, or superiority. Actions that change the outcome violate the simple independent-event premise."
+    },
+    "navigation_evidence": {
+      "source": "Project-author community evaluation, not an independent rerun by this report",
+      "checkpoint": "v3_teacher_coords_multi_seed17 (teacher-distribution training, not the paired-reward event checkpoint)",
+      "maps_per_split": 20,
+      "test_grid": "4x4",
+      "ood_grid": "6x6",
+      "horizon": "2 * size^2 steps",
+      "sampling_seed": 20260917,
+      "rows": [
+        {"system": "NanoJev", "controller": "greedy", "test_successes": 18, "ood_successes": 10},
+        {"system": "Jev", "controller": "greedy", "test_successes": 20, "ood_successes": 16},
+        {"system": "Qwen3-0.6B", "controller": "greedy", "test_successes": 6, "ood_successes": 1},
+        {"system": "NanoJev", "controller": "T=1 sampling", "test_successes": 19, "ood_successes": 18},
+        {"system": "Jev", "controller": "T=1 sampling", "test_successes": 20, "ood_successes": 19},
+        {"system": "Qwen3-0.6B", "controller": "T=1 sampling", "test_successes": 7, "ood_successes": 3}
+      ],
+      "limitations": "One checkpoint/seed; systems differ in training, head and input. Videos are replays, may be outcome-selected, and synchronize environment steps, not latency. Source-file consistency is not independent proof of remote inference."
+    },
+    "event_probability_evidence": {
+      "metric": "Squared L2 to simulator-known event probabilities q, not accuracy, ECE, or observed-outcome Brier",
+      "seed": 17,
+      "training_steps": 100,
+      "test_questions": 364,
+      "ood_questions": 128,
+      "ce": {"test": 0.124226, "ood": 0.072497},
+      "direct_brier": {"test": 0.138445, "ood": 0.067186},
+      "paired_reward_pg": {"test": 0.118444, "ood": 0.062022},
+      "limitations": "One seed and narrow events; 64 OOD Snake questions all have q(true)=1. Direct Brier wins on OOD NLL. No general method ranking established."
+    },
+    "deployment": {
+      "device": "Current DecisionPredictor rejects non-CUDA devices; no built-in CPU or Apple MPS fallback",
+      "parameter_storage": "float32",
+      "default_forward_precision": "bfloat16 autocast",
+      "declared_bytes_per_weights_file": 2385039280,
+      "size_evidence": "Six required root-checkpoint files were verified against pinned public sizes and hashes; reused the already-downloaded weights. Not a minimum-memory estimate.",
+      "checkpoint_selection": "Root is the older navigation/initialization model. Choose local_atomic_seed17 for its local-maze setup, games_gold_seed17 for Snake, or the matched event-control variant.",
+      "endpoint": "POST http://127.0.0.1:8765/api/evaluate",
+      "request_shape": "{states:[{id,state,questions}]}",
+      "response_shape": "{schema_version,checkpoint,execution,states:[{id,answers}]}",
+      "local_server_limits": {"states": 32, "questions": 96, "candidate_paths": 256},
+      "max_length": "Read from the checkpoint configuration; oversized candidate paths fail without silent truncation",
+      "api_gaps": [
+        "Use boolean, not noul; map response p_true to Noul's yes probability.",
+        "Choice/Score omit native confidence and Score legend. Do not invent confidence from max probability; identify request-derived labels as such.",
+        "Instructions/criteria currently require nonempty strings; object state uses Python str representation, not canonical JSON.",
+        "A changed serialization is a changed model input; version and re-evaluate it.",
+        "Add authentication, workload limits, queueing and path redaction before public deployment."
+      ],
+      "playground_status": "Upstream CUDA service was not deployed. A separate native MLX service is implemented, numerically verified, and integrated with original FP32 and quantized 4-bit profiles. No recorded or synthetic fallback."
+    },
+    "licensing": "Repository code MIT; Qwen base Apache-2.0. The pinned HF card has no license field and no standalone LICENSE was found. Confirm fine-tuned-weight, dataset and teacher API terms before commercial use.",
+    "name_collision": {
+      "repository": "https://github.com/novvoo/nanojev",
+      "commit": "05acd4d5493d34ee6e8b072f90d24e10cfddf2af",
+      "differences": "Separate implementation: Noul is an abstention slot, Score is Gaussian mean/std; not TypeSafe's Noul and ordered-Score semantics. No LICENSE found. Its performance claims were not adopted."
+    },
+    "checks_executed_here": {
+      "upstream_stdlib_contract_tests_passed": 17,
+      "tokenizer": "Initial stdlib tests used a character tokenizer. Subsequent real-weight MLX/PyTorch comparisons used the actual pinned tokenizer with exact candidate-token agreement.",
+      "formula_check": "Independent M=2 enumeration for K=2,3,5; reward/gradient identities, not a full PyTorch training verification",
+      "formula_example": "examples/nanojev_reward_check.py",
+      "request_example": "examples/nanojev-request.json (validated against the pinned upstream validator)",
+      "weights_downloaded": false,
+      "existing_local_weights_reused_and_hashed": true,
+      "gpu_inference_performed": true,
+      "paid_inference_performed": false
+    }
+  },
+  "local_mlx_audit": {
+    "scope": "Historical read-only artifact/installed-oMLX audit. Its no-load/no-inference flags describe that audit only; see native_mlx_runtime for later successful standalone inference.",
+    "artifact": "ZeroDegress/NanoJev-mlx-4bit",
+    "revision": "b4e52f32426451f9535fcfe3582bfdd526695b16",
+    "artifact_created_at": "2026-09-18T14:54:12.000Z",
+    "checked_at": "2026-09-19",
+    "download_integrity": "All 9 published files match sizes and Git/LFS hashes; no missing release files in the audited oMLX directory.",
+    "weights_bytes": 335857708,
+    "weights_sha256": "332d47eb23c81b0370f580e87e0e55ef737ba1baa206a8d300eadf9617307b62",
+    "tensors": {"count": 716, "U32": 197, "F16": 519, "decision_head_parameter_tensors": 12, "all_byte_ranges_valid": true},
+    "runtime_observed": {"omlx": "0.5.3", "mlx_lm": "0.31.3", "mlx": "0.32.0"},
+    "blockers": [
+      "Discovery can see *.safetensors, but the selected chat loader uses model*.safetensors and misses best.safetensors.",
+      "Root config is a training record; architecture and tokenizer are in subfolders, with no root model_type or quantization configuration.",
+      "backbone.* and .weight.scales/.weight.biases need explicit mapping to the chosen MLX graph and per-module quantization; do not quantize the fp16 decision heads blindly.",
+      "A Qwen3 hidden-state forward plus norm, scalar, set_project, set_attention and set_output must be implemented, preserving input construction, final valid EOS, padding, candidate grouping and log(K).",
+      "Standard chat generation produces vocabulary logits and decoding, not the required typed decision API. oMLX needs dedicated engine/protocol support or an independently served decision runtime."
+    ],
+    "shape_correction": "Actual q_proj packed U32 shape is [2048,128], with [2048,16] scales/biases. The model card's packed [2048,16] example is a documentation error, not a reason to alter matching weights.",
+    "do_not_do": [
+      "Do not redownload or rename files as a substitute for runtime implementation.",
+      "Do not use strict=False to discard trained decision heads or treat backbone model_type=qwen3 as the complete architecture.",
+      "Do not interpret lm_head absence as a missing download; tied embeddings may omit it.",
+      "Do not fetch the author's private training paths from config.json; they are not inference dependencies.",
+      "Do not equate author-reported dequantized agreement, file size, or matmul throughput with native MLX decision quality, memory, or latency."
+    ],
+    "next_steps": [
+      "Standalone MLX forward, strict weight loading, bounded authenticated service, and playground integration are now implemented.",
+      "Same-weight MLX/PyTorch numerical comparisons passed for both profiles; quantization versus original FP32 has observable differences.",
+      "Domain accuracy, calibration, representative latency and broader numerical coverage remain to be validated.",
+      "If integrating into oMLX, add discovery, a decision engine and an evaluation endpoint; clear cached load failures only after the runtime is actually compatible."
+    ],
+    "audit_command": "python3 scripts/audit-nanojev-mlx.py --model-dir <omlx-model-directory>",
+    "audit_record": "examples/nanojev-mlx-local-audit.json",
+    "reference_inventory": "examples/nanojev-mlx-reference.json",
+    "model_loaded": false,
+    "model_inference_performed": false,
+    "omlx_or_model_files_modified": false,
+    "licensing": "The quantized artifact declares no separate weight license; confirm upstream and derivative terms before production use."
+  },
+  "native_mlx_runtime": {
+    "status": "Implemented and exercised on Apple Silicon, 2026-09-19; not an oMLX chat-engine modification",
+    "runbook": "../../scripts/nanojev_mlx/README.md",
+    "implementation": "scripts/nanojev_mlx/{contract,model,engine}.py; scripts/serve-nanojev-mlx.py; scripts/jev-local-provider.js",
+    "environment": "$HOME/.cache/study-room/nanojev-mlx",
+    "activation_dtype_validated": "float32",
+    "device": "Metal GPU",
+    "service_commands": [
+      "$HOME/.cache/study-room/nanojev-mlx/bin/python scripts/serve-nanojev-mlx.py --variant fp32",
+      "$HOME/.cache/study-room/nanojev-mlx/bin/python scripts/serve-nanojev-mlx.py --variant 4bit"
+    ],
+    "default_ports": {"fp32": 8767, "4bit": 8766},
+    "limits": {"states": 8, "questions": 32, "candidate_paths": 128, "candidate_path_tokens": 16384, "tokens_per_path": 512},
+    "numerical_record": "examples/nanojev-mlx-numerical-validation.json",
+    "http_record": "examples/nanojev-mlx-http-example.json",
+    "numerical_scope": "4 states / 12 questions / 28 paths. Real tokenizer, unchanged pinned upstream PyTorch DecisionModel, strict loading. Numerical fidelity only; not business accuracy, calibration, or bitwise equality.",
+    "same_quantized_weights_max_probability_error": 0.000003725290298461914,
+    "same_original_fp32_weights_max_probability_error": 0.0000016689300537109375,
+    "same_weight_argmax_flips": 0,
+    "quantized_vs_original_max_probability_difference": 0.21208202838897705,
+    "quantized_vs_original_argmax_flips": "3 of 12 questions; not a population estimate",
+    "business_example": "Both profiles really chose other for the public HTTP-500 routing example. These outputs are preserved, not corrected to technical. The root navigation checkpoint is not established as a reliable business classifier.",
+    "external_model_calls": 0,
+    "cost_scope": "No external model API charge; excludes hardware, electricity, and maintenance",
+    "omlx_and_original_model_files_changed": false,
+    "remaining": "Business evaluation/calibration, broader parity and performance tests, weight licensing clarification. Dedicated oMLX engine/protocol support is a separate optional project."
+  },
+  "primary_sources": {
+    "models": "https://docs.typesafe.ai/models",
+    "api": "https://docs.typesafe.ai/api",
+    "confidence": "https://docs.typesafe.ai/confidence",
+    "failure_modes": "https://docs.typesafe.ai/model-jaggedness/jev-1.13",
+    "langchain": "https://docs.langchain.com/oss/python/integrations/providers/typesafe",
+    "legal": "https://docs.typesafe.ai/legal",
+    "agent_skill": "https://docs.typesafe.ai/agent-skill",
+    "gateway_evaluation": "https://vercel.com/docs/ai-gateway/modalities/evaluation",
+    "gateway_jev_release": "https://vercel.com/changelog/typesafe-ai-jev-now-available-on-ai-gateway",
+    "gateway_model": "https://vercel.com/ai-gateway/models/jev",
+    "ai_sdk_evaluate": "https://ai-sdk.dev/docs/reference/ai-sdk-core/evaluate",
+    "gateway_keys": "https://vercel.com/docs/ai-gateway/authentication-and-byok/api-keys",
+    "gateway_authentication_probe": "https://vercel.com/docs/ai-gateway/sdks-and-apis/rest-api#check-credit-balance",
+    "nanojev_repository": "https://github.com/TianyuCodings/NanoJev/tree/71a513bb0163b5634467842b523ee0c0ed6fb1c7",
+    "nanojev_rlcd": "https://github.com/TianyuCodings/NanoJev/blob/71a513bb0163b5634467842b523ee0c0ed6fb1c7/docs/RLCD_EXPERIMENT.md",
+    "nanojev_contract": "https://github.com/TianyuCodings/NanoJev/blob/71a513bb0163b5634467842b523ee0c0ed6fb1c7/docs/TYPESAFE_CONTRACT.md",
+    "nanojev_navigation": "https://github.com/TianyuCodings/NanoJev/blob/71a513bb0163b5634467842b523ee0c0ed6fb1c7/research/nanojev_comparison_zh.md",
+    "nanojev_model": "https://huggingface.co/C-Tianyu/NanoJev/tree/4a19595eada0857133c0d2be024f879a4077054b",
+    "nanojev_mlx_artifact": "https://huggingface.co/ZeroDegress/NanoJev-mlx-4bit/tree/b4e52f32426451f9535fcfe3582bfdd526695b16",
+    "nanojev_mlx_inventory": "https://huggingface.co/api/models/ZeroDegress/NanoJev-mlx-4bit/tree/b4e52f32426451f9535fcfe3582bfdd526695b16?recursive=true",
+    "mlx_lm_loader": "https://github.com/ml-explore/mlx-lm/blob/v0.31.3/mlx_lm/utils.py",
+    "omlx_discovery": "https://github.com/jundot/omlx/blob/main/omlx/model_discovery.py"
+  },
+  "evidence_gaps": [
+    "No independently reproduced neutral Jev benchmark was verified in this research.",
+    "No public weights, reproducible full RLCD training recipe or parameter count established by reviewed sources.",
+    "No project-specific Chinese accuracy, calibrated thresholds, production SLA or end-to-end savings measured."
+  ]
+}
