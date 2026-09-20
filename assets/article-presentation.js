@@ -2754,13 +2754,30 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // Pre-capture SVG diagrams as PNG data URLs
       var svgCaptures = [];
-      var svgContainers = document.querySelectorAll('.slide-mockup, .demo-block');
+      var svgContainers = document.querySelectorAll('.slide-mockup, .demo-block, figure');
       svgContainers.forEach(function (container) {
         var svg = container.querySelector('svg');
         if (!svg) return;
         svgCaptures.push(new Promise(function (resolve) {
           var serializer = new XMLSerializer();
-          var svgStr = serializer.serializeToString(svg);
+          var svgClone = svg.cloneNode(true);
+          // Standalone SVG images cannot resolve the article's CSS classes or
+          // inherited variables. Preserve the live diagram's labels and colors.
+          var sourceNodes = [svg].concat(Array.from(svg.querySelectorAll('*')));
+          var cloneNodes = [svgClone].concat(Array.from(svgClone.querySelectorAll('*')));
+          var svgStyleProperties = [
+            'fill', 'fill-opacity', 'stroke', 'stroke-opacity', 'stroke-width',
+            'stroke-dasharray', 'stroke-linecap', 'stroke-linejoin', 'opacity',
+            'font-family', 'font-size', 'font-weight', 'font-style',
+            'letter-spacing', 'text-anchor', 'dominant-baseline', 'color'
+          ];
+          sourceNodes.forEach(function (node, index) {
+            var computed = getComputedStyle(node);
+            svgStyleProperties.forEach(function (property) {
+              cloneNodes[index].style.setProperty(property, computed.getPropertyValue(property));
+            });
+          });
+          var svgStr = serializer.serializeToString(svgClone);
           var svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
           var blobUrl = URL.createObjectURL(svgBlob);
           var img = new Image();
@@ -2772,8 +2789,10 @@ document.addEventListener('DOMContentLoaded', function () {
             canvas.width = cw;
             canvas.height = ch;
             var ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#FCF6EE';
-            ctx.fillRect(0, 0, cw, ch);
+            if (container.tagName !== 'FIGURE') {
+              ctx.fillStyle = '#FCF6EE';
+              ctx.fillRect(0, 0, cw, ch);
+            }
             ctx.drawImage(img, 0, 0, cw, ch);
             container.setAttribute('data-svg-png', canvas.toDataURL('image/png'));
             URL.revokeObjectURL(blobUrl);
@@ -3203,6 +3222,13 @@ document.addEventListener('DOMContentLoaded', function () {
         if (btn) btn.setAttribute('aria-expanded', 'false');
         if (content) content.setAttribute('aria-hidden', 'true');
       }
+      // Restore the reading-mode sizing contract as well as classes/ARIA.
+      // Presentation activation (or a resize while presenting) may have
+      // removed article-common.js's inline close-state ceiling.
+      if (content) {
+        content.style.maxHeight = entry.wasOpen ? 'none' : '0px';
+        content.style.overflow = entry.wasOpen ? 'visible' : 'hidden';
+      }
     });
     savedAccordionStates = [];
   };
@@ -3519,38 +3545,32 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   var ensureAccordionStepVisible = function (activeStep) {
-    var btn;
-    var content;
-    var parentAccordion;
-
     if (!state.enabled || !activeStep) {
       return;
     }
 
-    if (activeStep.hasAttribute('data-accordion')) {
-      btn = activeStep.querySelector('.subsection-toggle');
-      content = activeStep.querySelector('.subsection-content');
-      activeStep.classList.add('is-open');
-      if (btn) {
-        btn.setAttribute('aria-expanded', 'true');
-      }
-      if (content) {
-        content.setAttribute('aria-hidden', 'false');
-      }
-    }
+    main.querySelectorAll('[data-accordion]').forEach(function (item) {
+      // A slide may be the accordion, a substep inside it, or a wrapper
+      // containing it. Do not expand bodies on overview slides or inside
+      // other, inactive steps. Existing step CSS still owns visibility.
+      var ownsActiveStep = item === activeStep || item.contains(activeStep);
+      var belongsToActiveStep = !activeStep.hasAttribute('data-present-overview')
+        && activeStep.contains(item)
+        && item.closest('[data-present-step]') === activeStep;
+      if (!ownsActiveStep && !belongsToActiveStep) return;
 
-    parentAccordion = activeStep.parentElement ? activeStep.parentElement.closest('[data-accordion]') : null;
-    if (parentAccordion) {
-      btn = parentAccordion.querySelector('.subsection-toggle');
-      content = parentAccordion.querySelector('.subsection-content');
-      parentAccordion.classList.add('is-open');
+      var btn = item.querySelector('.subsection-toggle');
+      var content = item.querySelector('.subsection-content');
+      item.classList.add('is-open');
       if (btn) {
         btn.setAttribute('aria-expanded', 'true');
       }
       if (content) {
         content.setAttribute('aria-hidden', 'false');
+        content.style.maxHeight = 'none';
+        content.style.overflow = 'visible';
       }
-    }
+    });
   };
 
   var syncStepOverflowState = function (activeStep) {

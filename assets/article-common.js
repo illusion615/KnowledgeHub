@@ -6,6 +6,29 @@
 (function () {
   'use strict';
 
+  // ── Draft reading mode ──
+  // ?draft=1 renders the article as continuous prose with every disclosure
+  // open, for content review. Set before the accordion binds so nothing has to
+  // be undone afterwards.
+  if (/[?&]draft=1\b/.test(window.location.search)) {
+    document.documentElement.setAttribute('data-article-style', 'draft');
+  }
+
+  // ── Cover title scale ──
+  // CJK glyphs occupy roughly twice the advance width of Latin ones, so tiers
+  // key on weighted length rather than character count. Paired with the
+  // [data-title-scale] rules in article.css.
+  var coverTitle = document.querySelector('.hero .hero-copy h1');
+  if (coverTitle) {
+    var titleText = (coverTitle.textContent || '').trim();
+    var weighted = 0;
+    for (var ci = 0; ci < titleText.length; ci++) {
+      weighted += /[\u2E80-\u9FFF\u3000-\u303F\uFF00-\uFFEF]/.test(titleText.charAt(ci)) ? 1 : 0.5;
+    }
+    if (weighted <= 24) coverTitle.setAttribute('data-title-scale', 'short');
+    else if (weighted > 34) coverTitle.setAttribute('data-title-scale', 'long');
+  }
+
   // ── Scroll-reveal (load-in + data-reveal) ──
   // Content must remain readable even if IntersectionObserver misses a section
   // during reload, hash navigation, or long-page screenshot capture. The observer
@@ -103,7 +126,10 @@
       content.style.overflow = 'hidden';
       return;
     }
-    content.style.maxHeight = (content.scrollHeight + 48) + 'px';
+    // Keep expanded panels intrinsic: open-state padding can still be
+    // transitioning here, and translation, resizing, or fonts can reflow text
+    // afterwards. A sampled pixel ceiling clips that later layout.
+    content.style.maxHeight = 'none';
     content.style.overflow = 'visible';
   };
 
@@ -117,19 +143,41 @@
     setAccordionContentHeight(targetContent, expanded);
   };
 
-  document.querySelectorAll('[data-accordion]').forEach(function (item) {
+  document.querySelectorAll('[data-accordion]').forEach(function (item, itemIndex) {
     var button = item.querySelector('.subsection-toggle');
     var content = item.querySelector('.subsection-content');
     if (!button || !content) return;
+
+    // Draft disclosures are prose: retain their title as a real heading,
+    // expose the panel to assistive technology, and bind no control.
+    if (document.documentElement.getAttribute('data-article-style') === 'draft') {
+      var heading = document.createElement('h3');
+      heading.className = button.className;
+      while (button.firstChild) heading.appendChild(button.firstChild);
+      if (!heading.textContent.trim()) heading.hidden = true;
+      button.replaceWith(heading);
+      item.classList.add('is-open');
+      content.setAttribute('aria-hidden', 'false');
+      setAccordionContentHeight(content, true);
+      return;
+    }
+
+    // USWDS accordion contract: the control must reference the region it owns
+    // through aria-controls, and that region needs a unique id.
+    if (!content.id) content.id = 'accordion-panel-' + (itemIndex + 1);
+    button.setAttribute('aria-controls', content.id);
 
     syncAccordionState(item, item.classList.contains('is-open'));
 
     button.addEventListener('click', function () {
       var isExpanded = item.classList.contains('is-open');
       var topBefore = button.getBoundingClientRect().top;
-      if (!isExpanded) {
+      // Multiselectable groups (USWDS data-allow-multiple) keep siblings open,
+      // so a reader who opens a second panel does not lose the first.
+      var allowsMultiple = !!item.closest('[data-allow-multiple]');
+      if (!isExpanded && !allowsMultiple) {
         document.querySelectorAll('[data-accordion]').forEach(function (otherItem) {
-          if (otherItem === item) return;
+          if (otherItem === item || otherItem.closest('[data-allow-multiple]')) return;
           syncAccordionState(otherItem, false);
         });
       }
@@ -141,11 +189,19 @@
     });
   });
 
-  window.addEventListener('resize', function () {
+  // Reassert intrinsic sizing after language, viewport, and font changes,
+  // including panels that ship open before preferences are applied.
+  var refreshOpenAccordionHeights = function () {
     document.querySelectorAll('[data-accordion].is-open .subsection-content').forEach(function (content) {
       setAccordionContentHeight(content, true);
     });
-  });
+  };
+
+  window.addEventListener('resize', refreshOpenAccordionHeights);
+  document.addEventListener('langChanged', refreshOpenAccordionHeights);
+  if (document.fonts && document.fonts.ready && document.fonts.ready.then) {
+    document.fonts.ready.then(refreshOpenAccordionHeights);
+  }
 
   // ── Apply homepage preferences from localStorage ──
   var root = document.documentElement;
@@ -181,6 +237,7 @@
     var val = el.getAttribute('data-' + lang);
     if (val !== null) el.innerHTML = val;
   });
+  refreshOpenAccordionHeights();
 
   var savedFont = localStorage.getItem('readingFontFamily');
   if (savedFont) root.style.setProperty('--reading-font', savedFont);

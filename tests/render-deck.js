@@ -192,32 +192,66 @@ function startServer() {
 // ───────────────── minimal CDP client ─────────────────
 // Avoids a Playwright/Puppeteer dependency: Node 22 has global WebSocket.
 
-function cdpConnect(wsUrl) {
+function cdpConnect(wsUrl, timeoutMs) {
+  timeoutMs = timeoutMs || 180000;
   return new Promise(function (resolve, reject) {
     var ws = new WebSocket(wsUrl);
     var nextId = 1;
     var pending = new Map();
     var listeners = [];
+    var failure = null;
+    var connectTimer = setTimeout(function () {
+      abort(new Error('CDP websocket connection timed out'));
+    }, Math.min(timeoutMs, 20000));
+    function abort(err) {
+      if (failure) return;
+      failure = err;
+      clearTimeout(connectTimer);
+      reject(err);
+      pending.forEach(function (slot) {
+        clearTimeout(slot.timer);
+        slot.rej(err);
+      });
+      pending.clear();
+      try { ws.close(); } catch (e) {}
+    }
     ws.onopen = function () {
+      clearTimeout(connectTimer);
+      if (failure) return;
       resolve({
         send: function (method, params, sessionId) {
+          if (failure) return Promise.reject(failure);
           var id = nextId++;
           var msg = { id: id, method: method, params: params || {} };
           if (sessionId) msg.sessionId = sessionId;
-          ws.send(JSON.stringify(msg));
-          return new Promise(function (res, rej) { pending.set(id, { res: res, rej: rej }); });
+          return new Promise(function (res, rej) {
+            var timer = setTimeout(function () {
+              abort(new Error('CDP call timed out: ' + method));
+            }, Math.max(timeoutMs, msg.params.timeout ? msg.params.timeout + 10000 : 0));
+            pending.set(id, { res: res, rej: rej, timer: timer });
+            try { ws.send(JSON.stringify(msg)); }
+            catch (e) { abort(new Error('CDP websocket send failed: ' + e.message)); }
+          });
         },
         on: function (fn) { listeners.push(fn); },
-        close: function () { try { ws.close(); } catch (e) {} }
+        close: function () { abort(new Error('CDP client closed')); }
       });
     };
-    ws.onerror = function () { reject(new Error('CDP websocket error')); };
+    ws.onerror = function (event) {
+      var detail = event && (event.error || event.message);
+      abort(new Error('CDP websocket error' + (detail ? ': ' + (detail.message || detail) : '')));
+    };
+    ws.onclose = function (event) {
+      abort(new Error('CDP websocket closed (code ' + event.code + ')' +
+        (event.reason ? ': ' + event.reason : '')));
+    };
     ws.onmessage = function (event) {
       var msg;
       try { msg = JSON.parse(event.data); } catch (e) { return; }
       if (msg.id && pending.has(msg.id)) {
         var slot = pending.get(msg.id);
         pending.delete(msg.id);
+        clearTimeout(slot.timer);
         if (msg.error) slot.rej(new Error(msg.error.message || 'CDP error'));
         else slot.res(msg.result);
         return;
@@ -342,6 +376,87 @@ var EXPORT_DRIVER = function () {
   });
 };
 
+// Keep the Blob's base64 in Chrome: Node 22's WebSocket rejects large
+// incoming messages. Only metadata and <= 1 MiB ASCII slices cross CDP.
+async function readExportResult(send, timeoutMs) {
+  var objectId;
+  var failure;
+  function remoteResult(response, label) {
+    if (!response || typeof response !== 'object') throw new Error(label + ': missing response');
+    if (response.exceptionDetails) {
+      var d = response.exceptionDetails;
+      throw new Error(label + ': ' +
+        ((d.exception && (d.exception.description || d.exception.value)) || d.text));
+    }
+    if (!response.result || typeof response.result !== 'object') {
+      throw new Error(label + ': missing result');
+    }
+    return response.result;
+  }
+  try {
+    var response = await send('Runtime.evaluate', {
+      expression: '(' + EXPORT_DRIVER.toString() + ')()',
+      awaitPromise: true,
+      returnByValue: false,
+      timeout: timeoutMs || 180000
+    });
+    // Capture even an exceptional response's handle so cleanup still runs.
+    if (response && response.result && typeof response.result.objectId === 'string') {
+      objectId = response.result.objectId;
+    }
+    var result = remoteResult(response, 'in-page export failed');
+    if (result.type !== 'object' || !objectId || result.subtype === 'null') {
+      throw new Error('export produced no result object');
+    }
+    var metadata = remoteResult(await send('Runtime.callFunctionOn', {
+      objectId: objectId,
+      functionDeclaration: 'function () {' +
+        'if (typeof this.base64 !== "string") throw new Error("export base64 must be a string");' +
+        'return { bytes: this.bytes, base64Length: this.base64.length,' +
+        'density: this.density, skipped: this.skipped }; }',
+      returnByValue: true
+    }), 'export metadata failed').value;
+    if (!metadata || !Number.isSafeInteger(metadata.bytes) || metadata.bytes <= 0 ||
+        !Number.isSafeInteger(metadata.base64Length) ||
+        metadata.base64Length !== 4 * Math.ceil(metadata.bytes / 3) ||
+        !Array.isArray(metadata.density) || !Array.isArray(metadata.skipped)) {
+      throw new Error('invalid export metadata (bytes, base64Length, density, skipped required)');
+    }
+    var chunks = [];
+    var chunkSize = 1024 * 1024;
+    for (var offset = 0; offset < metadata.base64Length; offset += chunkSize) {
+      var end = Math.min(offset + chunkSize, metadata.base64Length);
+      var part = remoteResult(await send('Runtime.callFunctionOn', {
+        objectId: objectId,
+        functionDeclaration: 'function (start, end) { return this.base64.slice(start, end); }',
+        arguments: [{ value: offset }, { value: end }],
+        returnByValue: true
+      }), 'export base64 slice failed');
+      if (part.type !== 'string' || typeof part.value !== 'string' || part.value.length !== end - offset) {
+        throw new Error('invalid export base64 slice at ' + offset);
+      }
+      chunks.push(part.value);
+    }
+    // Decode once after joining: never introduce padding at chunk boundaries.
+    var base64 = chunks.join('');
+    var buf = Buffer.from(base64, 'base64');
+    if (buf.length !== metadata.bytes || buf.toString('base64') !== base64) {
+      throw new Error('invalid export base64 or byte count');
+    }
+    buf.density = metadata.density;
+    buf.skipped = metadata.skipped;
+    return buf;
+  } catch (err) {
+    failure = err;
+    throw err;
+  } finally {
+    if (objectId) {
+      try { await send('Runtime.releaseObject', { objectId: objectId }); }
+      catch (err) { if (!failure) throw err; }
+    }
+  }
+}
+
 // ─────────────────────── steps ───────────────────────
 
 function exportDeck(opts, log) {
@@ -440,25 +555,7 @@ function exportDeck(opts, log) {
           });
         })
         .then(function () {
-          return send('Runtime.evaluate', {
-            expression: '(' + EXPORT_DRIVER.toString() + ')()',
-            awaitPromise: true,
-            returnByValue: true,
-            timeout: opts.timeout || 180000
-          });
-        })
-        .then(function (res) {
-          if (res.exceptionDetails) {
-            var d = res.exceptionDetails;
-            throw new Error('in-page export failed: ' +
-              ((d.exception && (d.exception.description || d.exception.value)) || d.text));
-          }
-          var value = res.result && res.result.value;
-          if (!value || !value.base64) throw new Error('export produced no blob');
-          var buf = Buffer.from(value.base64, 'base64');
-          buf.density = value.density || [];
-          buf.skipped = value.skipped || [];
-          return buf;
+          return readExportResult(send, opts.timeout);
         });
     });
   }).then(function (buf) {
@@ -539,8 +636,8 @@ function main() {
         var target = path.join(outdir, name + '.pptx');
         fs.writeFileSync(target, buf);
         log('pptx     ' + (buf.length / 1024).toFixed(0) + ' KB');
-        density = buf.density || [];
-        skipped = buf.skipped || [];
+        density = buf.density;
+        skipped = buf.skipped;
         return target;
       });
 
@@ -592,4 +689,5 @@ function main() {
   });
 }
 
-main();
+if (require.main === module) main();
+module.exports = { cdpConnect: cdpConnect, readExportResult: readExportResult };

@@ -31,8 +31,8 @@ var childProcess = require('child_process');
 var ROOT = path.resolve(__dirname, '..');
 var POSTS = path.join(ROOT, 'posts');
 var ASSETS = path.join(ROOT, 'assets');
-var ALL_CHECKS = ['knowledge', 'scripts', 'inline-styles', 'inline-js', 'assets', 'css', 'structure', 'quotes', 'gap', 'surface', 'i18n', 'density', 'customizations'];
-var ARTICLE_CHECKS = ['scripts', 'inline-styles', 'inline-js', 'structure', 'quotes', 'gap', 'surface', 'i18n', 'density'];
+var ALL_CHECKS = ['knowledge', 'scripts', 'inline-styles', 'inline-js', 'assets', 'css', 'structure', 'quotes', 'gap', 'surface', 'i18n', 'density', 'citations', 'customizations'];
+var ARTICLE_CHECKS = ['scripts', 'inline-styles', 'inline-js', 'structure', 'quotes', 'gap', 'surface', 'i18n', 'density', 'citations'];
 var validationOptions = parseValidationOptions(process.argv.slice(2));
 
 var totalErrors = 0;
@@ -422,13 +422,14 @@ function testInlineStyles() {
       if (line.indexOf('<style') !== -1 || line.indexOf('</style') !== -1) return;
       if (line.indexOf('<script') !== -1 || line.indexOf('</script') !== -1) return;
 
-      // Look for style= on HTML elements
-      var styleMatch = /\bstyle\s*=\s*["']/i;
+      // Look for style= on HTML elements.
+      // Lookbehind excludes attributes merely ending in -style (e.g. data-article-style=).
+      var styleMatch = /(?<![\w-])style\s*=\s*["']/i;
       if (!styleMatch.test(line)) return;
 
       // Check if this line is inside a <style> or <script> block content
       // by checking if it looks like actual element attribute
-      if (/<[a-z][^>]*\bstyle\s*=\s*["']/i.test(line)) {
+      if (/<[a-z][^>]*(?<![\w-])style\s*=\s*["']/i.test(line)) {
         // Check exemptions
         var exempt = exemptPatterns.some(function (p) { return p.test(line); });
         if (!exempt) {
@@ -955,6 +956,48 @@ function testSectionDensityContract() {
     return pages;
   }
 
+  // Only section-level drawers decompose a chapter. A [data-accordion] inside a
+  // [data-allow-multiple] group is an inline reveal on one block, not a subsection.
+  function countSectionDrawers(sectionHtml) {
+    var tagPattern = /<\/?([a-z][\w-]*)\b[^>]*>/gi;
+    var voidTags = { area: true, base: true, br: true, col: true, embed: true, hr: true, img: true, input: true, link: true, meta: true, param: true, source: true, track: true, wbr: true };
+    var stack = [];
+    var groupDepth = 0;
+    var drawers = 0;
+    var match;
+
+    while ((match = tagPattern.exec(sectionHtml)) !== null) {
+      var token = match[0];
+      var tagName = match[1].toLowerCase();
+      var isClosing = /^<\//.test(token);
+      var isSelfClosing = /\/\s*>$/.test(token) || voidTags[tagName];
+      var isGroup;
+      var index;
+
+      if (isClosing) {
+        for (index = stack.length - 1; index >= 0; index--) {
+          if (stack[index].tagName !== tagName) continue;
+          while (stack.length > index) {
+            if (stack.pop().isGroup) groupDepth--;
+          }
+          break;
+        }
+        continue;
+      }
+
+      isGroup = /\bdata-allow-multiple\b/i.test(token);
+
+      if (groupDepth === 0 && !isGroup && /\bdata-accordion\b/i.test(token)) drawers++;
+
+      if (!isSelfClosing) {
+        stack.push({ tagName: tagName, isGroup: isGroup });
+        if (isGroup) groupDepth++;
+      }
+    }
+
+    return drawers;
+  }
+
   articles.forEach(function (article) {
     var html = readFile(article.path);
     var mainMatch = html.match(/<main\b[^>]*>([\s\S]*?)<\/main>/i);
@@ -984,7 +1027,7 @@ function testSectionDensityContract() {
       if (exempt) continue;
 
       presentationPages = countEffectivePresentationPages(body);
-      accordionCount = (body.match(/\bdata-accordion\b/gi) || []).length;
+      accordionCount = countSectionDrawers(body);
       text = body
         .replace(/<!--[\s\S]*?-->/g, '')
         .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
@@ -995,12 +1038,15 @@ function testSectionDensityContract() {
       textChars = text.length;
 
       if (presentationPages > 7) hits.push(presentationPages + ' presentation pages (>7)');
-      if (accordionCount > 3) hits.push(accordionCount + ' accordions (>3)');
+      if (accordionCount > 3) hits.push(accordionCount + ' section-level drawers (>3)');
       if (textChars > 3000) hits.push(textChars + ' text chars (>3000)');
 
       if (hits.length >= 2) {
         warnedSections++;
         warn(article.path, 'Section #' + id + ' (' + heading + ') needs decomposition review: ' + hits.join(', ') + ' (see instructions §0.7-F)');
+      } else if (textChars > 4500 && accordionCount === 0) {
+        warnedSections++;
+        warn(article.path, 'Section #' + id + ' (' + heading + ') carries ' + textChars + ' text chars flat on the main line with no section-level drawer; move optional depth into a subsection-accordion (see instructions §0.4)');
       }
     }
   });
@@ -1035,10 +1081,17 @@ function testCustomAgentContract() {
     var filePath = path.join(agentsDir, fileName);
     var content = readFile(filePath);
     var frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---\n/);
+    var readOnlyRoles = /^(?:article-(?:evidence|structure)-review|industry-advisory-board|skeptical-customer)\.agent\.md$/;
+    var orchestratorRole = /^article-program-manager\.agent\.md$/;
+    var authorRole = /^article-author\.agent\.md$/;
     var frontmatter;
     var toolsMatch;
     var tools;
     var failures = [];
+
+    function forbids(tool) {
+      return tools && tools.indexOf(tool) !== -1;
+    }
 
     if (!frontmatterMatch) {
       error(filePath, 'Missing YAML frontmatter');
@@ -1052,14 +1105,18 @@ function testCustomAgentContract() {
       failures.push('missing explicit tools list');
     } else {
       tools = toolsMatch[1].split(',').map(function (tool) { return tool.trim(); });
-      if (/article-(?:evidence|structure)-review\.agent\.md$/.test(fileName) &&
-          (tools.indexOf('edit') !== -1 || tools.indexOf('execute') !== -1)) {
-        failures.push('article review agents must remain read-only');
+      if (readOnlyRoles.test(fileName) && (forbids('edit') || forbids('execute'))) {
+        failures.push('read-only review and challenge roles must not carry edit or execute');
+      }
+      if (orchestratorRole.test(fileName) && (forbids('edit') || forbids('execute'))) {
+        failures.push('the program manager must delegate: no edit, no execute');
+      }
+      if (authorRole.test(fileName) && forbids('execute')) {
+        failures.push('the author must not run commands; gates belong to the verification engineer');
       }
     }
-    if (/article-(?:evidence|structure)-review\.agent\.md$/.test(fileName) &&
-        !/^user-invocable:\s*false\s*$/m.test(frontmatter)) {
-      failures.push('article review agents must be subagent-only');
+    if (!orchestratorRole.test(fileName) && !/^user-invocable:\s*false\s*$/m.test(frontmatter)) {
+      failures.push('only the program manager is user-invocable; every other role is subagent-only');
     }
 
     if (failures.length > 0) {
@@ -1073,6 +1130,79 @@ function testCustomAgentContract() {
     pass('All ' + files.length + ' custom agent(s) valid');
   } else {
     pass(validCount + '/' + files.length + ' custom agents valid');
+  }
+}
+
+// ── Test 14: citation integrity ──
+
+function testCitationIntegrity() {
+  console.log('\n\x1b[36m[14] Citation integrity\x1b[0m');
+  var articles = findArticles();
+  var checked = 0;
+  var flagged = 0;
+
+  articles.forEach(function (article) {
+    var html = readFile(article.path);
+    var refIds = {};
+    var refCount = 0;
+    var idPattern = /\bid="ref-(\d+)"/gi;
+    // Lookbehind keeps consecutive markers such as [1][2] matchable while excluding array indices like arr[1].
+    var markerPattern = /(?<![\w\)])\[(\d{1,2})\]/g;
+    var idMatch;
+    var markerMatch;
+    var body;
+    var used = {};
+    var missing = [];
+    var orphan = [];
+
+    // New contract: enforced on articles that opted into strict authoring; legacy articles opt in when revisited.
+    if (!/<html\b[^>]*\bdata-section-density="strict"/i.test(html)) return;
+
+    while ((idMatch = idPattern.exec(html)) !== null) {
+      if (!refIds[idMatch[1]]) refCount++;
+      refIds[idMatch[1]] = true;
+    }
+    if (refCount === 0) return;
+    checked++;
+
+    // The bibliography restates its own numbers; only prose outside it counts as a citation.
+    body = html
+      .replace(/<ol\b[^>]*\bbib-list\b[^>]*>[\s\S]*?<\/ol>/gi, '')
+      .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<pre\b[^>]*>[\s\S]*?<\/pre>/gi, '')
+      .replace(/<code\b[^>]*>[\s\S]*?<\/code>/gi, '');
+
+    while ((markerMatch = markerPattern.exec(body)) !== null) {
+      var num = String(parseInt(markerMatch[1], 10));
+      if (num === '0') continue;
+      used[num] = true;
+      if (!refIds[num] && missing.indexOf(num) === -1) missing.push(num);
+    }
+
+    Object.keys(refIds).forEach(function (num) {
+      if (!used[num]) orphan.push(num);
+    });
+
+    // An article that carries no inline markers at all uses its list as further reading, not as citations.
+    if (Object.keys(used).length === 0) orphan.length = 0;
+
+    if (missing.length > 0) {
+      flagged++;
+      error(article.path, 'Citation marker(s) with no matching reference entry: [' + missing.join('] [') + ']');
+    }
+    if (orphan.length > 0) {
+      flagged++;
+      warn(article.path, 'Reference entr(ies) never cited in the body: ref-' + orphan.join(', ref-'));
+    }
+  });
+
+  if (checked === 0) {
+    pass('No strict articles with a reference list found');
+  } else if (flagged === 0) {
+    pass('All ' + checked + ' strict article(s) with references have consistent citation markers');
+  } else {
+    pass(flagged + ' citation issue(s) across ' + checked + ' strict article(s) with references');
   }
 }
 
@@ -1092,6 +1222,7 @@ function checkDefinitions() {
     { name: 'surface', run: testPresentationSurfaceContract },
     { name: 'i18n', run: testPresentationI18nContract },
     { name: 'density', run: testSectionDensityContract },
+    { name: 'citations', run: testCitationIntegrity },
     { name: 'customizations', run: testCustomAgentContract }
   ];
 }

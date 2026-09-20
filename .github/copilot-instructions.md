@@ -58,7 +58,17 @@
 - During iteration, run `node tests/verify-change.js --article <slug> --level L0|L1|L2`; it executes independent read-only checks concurrently and returns a browser plan
 - Use `node tests/verify-change.js --changed --level <level>` when changed-file scope is reliable; shared assets automatically force full validation
 - Run `node tests/verify-change.js --final` once after the change set is stable and before commit
-- Test suite covers: knowledge-data.js integrity, script order, inline style violations, arrow function bans, asset syntax, CSS known issues, article structural checks
+- Test suite covers: knowledge-data.js integrity, script order, inline style violations, arrow function bans, asset syntax, CSS known issues, article structural checks, section density, citation integrity, custom agent contract
+
+## Role System for Article Work
+- Article research/writing/revision runs through the role cycle led by `Article Program Manager` (`.github/agents/`). Select it from the agent picker to start a cycle
+- Roles: `Article Program Manager` (only role that talks to the boss), `Article Author` (only role that edits `posts/**`, `assets/**`, `index.html`), `Article Verification Engineer` (edits only `tests/**`, `scripts/**`, `tools/**`), `Industry Advisory Board` (read-only external evidence), `Skeptical Customer` (read-only, issues the GO / NO-GO verdict), plus the existing `Article Evidence Reviewer` and `Article Structure Reviewer`
+- **Five stage gates, cheapest artifact first**: S1 outline (reviewed before any prose) → S2 evidence (claim-to-source map reviewed before any sentence) → S3 content (Chinese prose only; the revision loop lives here) → S4 presentation (bilingual, step metadata, accordions, deck and browser matrix, run once) → S5 release
+- No presentation, bilingual or deck work before S3 passes; any substantive change found after S4 returns the work to S3 and S4 is redone in full
+- Validation depth follows the gate: narrow article checks at S3, full browser and deck matrix once at S4, `verify-change.js --final` once at S5
+- Consensus requires all five: customer `GO`, zero `Critical` evidence findings, structure pass or `Minor` only, `verify-change.js --final` exit 0 with no new warnings, and every hero metric delivered with zero placeholders
+- The boss is consulted at exactly three points: intake, loop-control escalation, and the final report. Never hand the boss a defect list to arbitrate item by item
+- Never run two write-capable roles in the same batch; read-only roles may run in parallel, at most two per turn
 
 ## Efficient Execution & Delegation
 - Classify article changes as L0 text, L1 local behavior, or L2 structure/shared runtime; follow the validation matrix in `article-pages.instructions.md` §0.5

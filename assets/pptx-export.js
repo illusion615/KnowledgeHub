@@ -294,10 +294,10 @@
     var slideLabel = '';
     var slideTitle = '';
     if (!skipHeader) {
-      slideLabel = step.getAttribute('data-step-label')
-        || (deriveLabel ? deriveLabel(step, stepIndex || 0) : '') || '';
-      slideTitle = step.getAttribute('data-step-title')
-        || (deriveTitle ? deriveTitle(step, stepIndex || 0) : '') || '';
+      slideLabel = (deriveLabel ? deriveLabel(step, stepIndex || 0) : '')
+        || step.getAttribute('data-step-label') || '';
+      slideTitle = (deriveTitle ? deriveTitle(step, stepIndex || 0) : '')
+        || step.getAttribute('data-step-title') || '';
       if (slideLabel || slideTitle) headerH = HEADER_H;
     }
 

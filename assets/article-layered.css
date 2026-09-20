@@ -1,0 +1,309 @@
+/**
+ * article-layered.css — Opt-in layered reading style.
+ *
+ * Activated by <html data-article-style="layered">. Absent the attribute this
+ * file changes nothing, so it is safe to load anywhere and to toggle at runtime.
+ *
+ * Information model (two disclosure levels, never nested — beyond two levels
+ * readers lose their place):
+ *   L1  claim      always visible: one assertion carried by a number or a curve
+ *   L2  evidence   one click, in place, attached to that specific claim
+ *   L3  caliber    section-level drawer: denominators, intervals, disclosures
+ *
+ * Adopted rather than invented:
+ *   - IBM Carbon "expandable tile": no elevation, border signals operability,
+ *     button-triggered expansion whenever the tile holds interactive elements,
+ *     vertical masonry layout.
+ *   - USWDS accordion: button control, aria-controls to a uniquely identified
+ *     region, meaningful expansion labels, data-allow-multiple for groups whose
+ *     panels stay independent.
+ */
+
+/* ── L1: claim card ── */
+
+/* Explicit column counts, not auto-fit: a four-card group must never resolve to
+   a 3 + 1 row. */
+[data-article-style="layered"] .claim-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: start;
+  gap: 18px;
+  margin-top: 26px;
+}
+
+@media (min-width: 560px) {
+  [data-article-style="layered"] .claim-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 900px) {
+  [data-article-style="layered"] .claim-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+}
+
+/* Carbon expandable tile: a tile sits on the page plane and carries no drop
+   shadow — elevation is reserved for modals and popovers. The border is what
+   signals the tile is operable. Vertical masonry: equal width, free height. */
+[data-article-style="layered"] .claim-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 22px 22px 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.62);
+  overflow: hidden;
+  transition: border-color 0.18s ease;
+}
+
+[data-article-style="layered"] .claim-card:hover {
+  border-color: var(--accent);
+}
+
+/* Visual trace of what the reader has already opened. */
+[data-article-style="layered"] .claim-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--accent), var(--teal));
+  opacity: 0;
+  transition: opacity 0.24s ease;
+}
+
+[data-article-style="layered"] .claim-card.is-open::before {
+  opacity: 1;
+}
+
+/* Label and line both wrap to a variable line count at four columns; a fixed
+   line floor on each is what keeps collapsed cards level. */
+[data-article-style="layered"] .claim-label {
+  display: block;
+  min-height: 2.9em;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+[data-article-style="layered"] .claim-value {
+  display: block;
+  margin-top: 10px;
+  font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+  font-size: clamp(2.2rem, 4vw, 3rem);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Two-line floor so collapsed cards in a row end at the same height. */
+[data-article-style="layered"] .claim-line {
+  margin: 12px 0 16px;
+  min-height: calc(1.7em * 3);
+  font-size: 0.94rem;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+/* CJK allows a break between any two characters, which strands the citation
+   marker on its own line at narrow column widths. */
+[data-article-style="layered"] .claim-line sup::before {
+  content: "\2060";
+}
+
+/* ── L2: in-place reveal ── */
+
+/* The trigger is the chevron alone: a label that only announced "here is the
+   source" was noise on top of a card whose value already states the subject.
+   The bar stays full-width so the hit area remains large, per the GOV.UK
+   details finding that readers skip triggers that read as navigation. */
+[data-article-style="layered"] .claim-card .subsection-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(100% + 44px);
+  margin: 0 -22px;
+  padding: 11px 22px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  font: inherit;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.18s ease, background 0.18s ease;
+}
+
+[data-article-style="layered"] .claim-card .subsection-toggle:hover,
+[data-article-style="layered"] .claim-card .subsection-toggle:focus-visible {
+  color: var(--accent);
+  background: var(--accent-soft);
+  outline: none;
+}
+
+/* The card reuses the accordion contract but not the .subsection-item skin, so
+   the base +/- badge is suppressed in favour of the chevron. */
+[data-article-style="layered"] .claim-card .subsection-toggle::after {
+  display: none;
+}
+
+[data-article-style="layered"] .claim-chevron {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-right: 1.6px solid currentColor;
+  border-bottom: 1.6px solid currentColor;
+  transform: rotate(45deg) translate(-2px, -2px);
+  transition: transform 0.24s ease;
+}
+
+[data-article-style="layered"] .claim-card.is-open .claim-chevron {
+  transform: rotate(-135deg) translate(-2px, -2px);
+}
+
+[data-article-style="layered"] .claim-card .subsection-content {
+  padding: 0 22px;
+  margin: 0 -22px;
+  background: rgba(255, 255, 255, 0.34);
+  border-top: 1px solid var(--line);
+  font-size: 0.9rem;
+  line-height: 1.75;
+  color: var(--muted);
+  transition: max-height 0.28s ease;
+}
+
+[data-article-style="layered"] .claim-card.is-open .subsection-content {
+  opacity: 1;
+  padding: 16px 22px 20px;
+}
+
+[data-article-style="layered"] .claim-card .subsection-content > :first-child { margin-top: 0; }
+[data-article-style="layered"] .claim-card .subsection-content > :last-child { margin-bottom: 0; }
+
+/* ── L1: trend strip ──
+   Inline SVG only: no chart library, and every plotted value stays readable in
+   the page source so the figure can be audited against the parameter table. */
+
+[data-article-style="layered"] .trend-strip {
+  margin-top: 26px;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.62);
+}
+
+[data-article-style="layered"] .trend-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 18px;
+  margin-bottom: 16px;
+}
+
+[data-article-style="layered"] .trend-title {
+  font-size: 0.95rem;
+}
+
+[data-article-style="layered"] .trend-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+[data-article-style="layered"] .trend-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+[data-article-style="layered"] .trend-swatch {
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+[data-article-style="layered"] .trend-key-a { color: var(--accent); }
+[data-article-style="layered"] .trend-key-b { color: var(--teal); }
+
+[data-article-style="layered"] .trend-plot {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+[data-article-style="layered"] .trend-axis {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+[data-article-style="layered"] .trend-line-a {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.4;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+[data-article-style="layered"] .trend-line-b {
+  fill: none;
+  stroke: var(--teal);
+  stroke-width: 2.4;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  stroke-dasharray: 6 4;
+}
+
+[data-article-style="layered"] .trend-tick {
+  fill: var(--muted);
+  font-size: 11px;
+}
+
+[data-article-style="layered"] .trend-note {
+  margin: 14px 0 0;
+  font-size: 0.84rem;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+/* ── Theme ── */
+
+[data-theme="dark"][data-article-style="layered"] .claim-card,
+[data-theme="dark"][data-article-style="layered"] .trend-strip {
+  background: rgba(255, 255, 255, 0.045);
+}
+
+[data-theme="dark"][data-article-style="layered"] .claim-card .subsection-content {
+  background: rgba(0, 0, 0, 0.16);
+}
+
+/* ── Print and presentation: disclosure has no meaning without a pointer ── */
+
+@media print {
+  [data-article-style="layered"] .claim-card .subsection-toggle { display: none; }
+  [data-article-style="layered"] .claim-card .subsection-content {
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 16px 22px 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-article-style="layered"] .claim-card::before,
+  [data-article-style="layered"] .claim-chevron,
+  [data-article-style="layered"] .claim-card .subsection-content {
+    transition: none;
+  }
+}
+
+@media (max-width: 720px) {
+  [data-article-style="layered"] .claim-grid {
+    grid-template-columns: 1fr;
+  }
+}

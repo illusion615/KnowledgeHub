@@ -9,7 +9,7 @@ applyTo: "posts/**/*.html"
 > **设计系统入口**（写组件前必读）：
 > - 可视化文档：[posts/article-design-system/index.html](../../posts/article-design-system/index.html) §04 Core Components — 列出每个共享组件的 markup、padding、字号、阴影、暗色模式
 > - 样式实现源：[assets/article.css](../../assets/article.css) — 所有 canonical class 的真身
-> - 验证器：`node tests/validate.js`（必须 exit 0；当前已知 14 条无关 WARN 基线）
+> - 验证器：`node tests/validate.js`（必须 exit 0；当前已知 27 条无关 WARN 基线）
 
 ## §0 Authoring Pre-Flight (READ FIRST, every time)
 
@@ -90,7 +90,7 @@ L2 研究若同时存在事实证据与文章结构两条独立不确定性，�
 1. 目标文章快速验证必须通过；优先使用 `node tests/verify-change.js --article <slug> --level <level>`，或用 `--changed` 自动选择当前改动。
 2. `assets/knowledge-data.js` 的 `summary.zh ≤ 100` 字符、`summary.en ≤ 160` 字符。
 3. 按上表完成 built-in browser 检查；HTML/CSS 变更至少自动遍历全部 section，并对受影响区域截图。
-4. 内容稳定后运行一次 `node tests/verify-change.js --final`；其中全仓 `validate.js` 与 staged/unstaged diff 检查必须全部通过，warnings 不得新增（当前基线 22 条无关 WARN）。
+4. 内容稳定后运行一次 `node tests/verify-change.js --final`；其中全仓 `validate.js` 与 staged/unstaged diff 检查必须全部通过，warnings 不得新增（当前基线 27 条无关 WARN）。
 5. 回头扫一遍 §0.1–§0.4 自检。
 
 ### 0.6 组件复用纪律（NO ROGUE COMPONENTS）
@@ -467,6 +467,45 @@ Rules:
 - The toggle `<button>` contains a `<span>` with text only — no extra child elements
 - To default an item open on page load, add `class="subsection-item is-open"`
 - Numbering (e.g., `<span class="subsection-number">1</span>`) is optional and placed as a sibling span inside the toggle, before the title span
+- Accordions are **mutually exclusive by default**: opening one closes the others. To let panels in one group stay open independently, put `data-allow-multiple` on the **group** element, never on an item — this follows the USWDS accordion contract
+- `aria-controls` and the panel `id` are wired automatically by `article-common.js`. Do not hand-write either, and do not hand-write `aria-expanded` or `aria-hidden` — the script derives all four from `is-open`
+
+### Layered reading style (opt-in)
+
+An article opts in with `data-article-style="layered"` on `<html>` plus the `article-layered.css` link. Without the attribute the stylesheet is inert, so the style can be toggled per article and legacy articles are unaffected.
+
+The style implements three layers, and **the two disclosure levels must never nest** — past two levels readers lose their place:
+
+| Layer | Content | Visibility |
+|---|---|---|
+| L1 claim | one assertion carried by a number | always visible |
+| L2 evidence | why that number holds | one click, in place, on that card |
+| L3 caliber | denominators, intervals, disclosures | section-level accordion |
+
+```html
+<div class="claim-grid" data-allow-multiple data-present-step data-step-title="…" data-step-label="01 / …">
+  <article class="claim-card is-open" data-accordion>
+    <span class="claim-label" data-zh="交付稳定性下降" data-en="Delivery Stability Decline">交付稳定性下降</span>
+    <strong class="claim-value">7.2%</strong>
+    <p class="claim-line" data-zh="…" data-en="…">…</p>
+    <button class="subsection-toggle" type="button">
+      <span class="claim-chevron" aria-hidden="true"></span>
+      <span data-zh="7.2% 是怎么测出来的" data-en="How the 7.2% was measured">7.2% 是怎么测出来的</span>
+    </button>
+    <div class="subsection-content"><p data-zh="…" data-en="…">…</p></div>
+  </article>
+</div>
+```
+
+Rules:
+- **`claim-card` is only for a card that carries a number.** A concept card with no figure stays an `insight-card`. Per Carbon, do not mix tile variants inside one group
+- No `box-shadow` on `.claim-card` — a tile shares the page plane; elevation belongs to modals and popovers. The border and its hover colour signal that it is operable
+- **Trigger text must promise the content behind it**: `7.2% 是怎么测出来的`, not `详情` / `了解更多` / `查看` / `…`. GOV.UK research found readers skip such links when they expect to be navigated away
+- `.claim-value` carries no `data-zh` / `data-en` — numerals are identical in both languages and the attributes would only create a sync liability
+- Default the first card in a group to `is-open` so the affordance demonstrates itself
+- Put `data-present-step` on the grid, not the cards, so the deck renders the group as one slide with every detail collapsed
+- The card reuses the accordion contract but not the `.subsection-item` skin, so any new open-state styling must be restated for `.claim-card`
+
 
 ### Section structure
 
