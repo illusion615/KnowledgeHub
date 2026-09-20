@@ -5,7 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Knowledge Hub — 学习与研究笔记</title>
   <script>
-    var isPrivateHub = new URLSearchParams(window.location.search).get('knowledge') === 'private';
+    var isLocalHub = window.location.protocol === 'file:' ||
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
+      window.location.hostname === '[::1]';
+    var isPrivateHub = isLocalHub && new URLSearchParams(window.location.search).get('knowledge') === 'private';
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -942,6 +946,7 @@
       display: flex; align-items: center; justify-content: space-between;
       padding: 6px 0;
     }
+    .settings-toggle[hidden] { display: none; }
     .settings-toggle-label {
       font-size: 0.85rem; color: var(--ink); font-weight: 500;
     }
@@ -2199,6 +2204,13 @@
           <span class="settings-toggle-label" data-zh="显示隐藏项目" data-en="Show Hidden Items">显示隐藏项目</span>
           <label class="toggle-switch">
             <input type="checkbox" id="toggle-show-hidden" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="settings-toggle" id="private-hub-setting" hidden>
+          <span class="settings-toggle-label" data-zh="私人知识库" data-en="Private Knowledge Hub">私人知识库</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="toggle-private-hub" />
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -4003,6 +4015,9 @@
       var statusEl = document.getElementById('llm-status');
       var saveBtn = document.getElementById('llm-save');
       var showModelNameToggle = document.getElementById('llm-show-model-name');
+      var hiddenToggle = document.getElementById('toggle-show-hidden');
+      var privateHubSetting = document.getElementById('private-hub-setting');
+      var privateHubToggle = document.getElementById('toggle-private-hub');
 
       function openSettings() {
         panel.classList.add('is-open');
@@ -4021,13 +4036,24 @@
       backdrop.addEventListener('click', closeSettings);
 
       // Show-hidden toggle
-      var hiddenToggle = document.getElementById('toggle-show-hidden');
       hiddenToggle.checked = showHidden;
       hiddenToggle.addEventListener('change', function () {
         showHidden = hiddenToggle.checked;
         localStorage.setItem('showHidden', showHidden ? 'true' : 'false');
         applyHiddenFilter();
       });
+
+      // Private Hub toggle — local files and local development servers only.
+      if (isLocalHub) {
+        privateHubSetting.hidden = false;
+        privateHubToggle.checked = isPrivateHub;
+        privateHubToggle.addEventListener('change', function () {
+          var targetUrl = new URL(window.location.href);
+          if (privateHubToggle.checked) targetUrl.searchParams.set('knowledge', 'private');
+          else targetUrl.searchParams.delete('knowledge');
+          window.location.assign(targetUrl.href);
+        });
+      }
 
       // Load saved settings
       var saved = null;
