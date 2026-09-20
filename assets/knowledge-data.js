@@ -190,6 +190,33 @@ var knowledgeTree = [
     color: '#14b8a6',
     phase: 2.2, speed: 0.86
   },
+  {
+    id: 'aye-aye-captain',
+    parentId: 'ai-project-practice',
+    type: 'topic',
+    label: { zh: 'Aye aye Captain', en: 'Aye aye Captain' },
+    color: '#b11f4b',
+    phase: 3.1, speed: 0.84
+  },
+  {
+    id: 'aye-aye-captain-architecture-review',
+    parentId: 'aye-aye-captain',
+    type: 'article',
+    title: {
+      zh: 'Aye aye Captain 阶段架构评审：问题、方案与整改台账',
+      en: 'Aye aye Captain Architecture Review: Findings, Options, and Remediation'
+    },
+    summary: {
+      zh: '基于当前工作树的阶段评审：10 项发现、源码证据、方案取舍与整改台账，优先修复状态门禁、执行生命周期和目标偏差。',
+      en: 'A source-grounded stage review: 10 findings, solution tradeoffs, and a remediation ledger covering state gates, execution lifecycle, and goal alignment.'
+    },
+    tags: ['Architecture Review', 'Local-First', 'Agent Engineering', 'SQLite', 'Quality Gates'],
+    date: '2026-09-08',
+    url: 'posts/aye-aye-captain-architecture-review/index.html',
+    color: '#b11f4b',
+    phase: 0.7, speed: 0.86,
+    relations: []
+  },
 
   // ════════════════════════════════════════
   // 文章 — Business AI Solution
@@ -316,7 +343,7 @@ var knowledgeTree = [
       en: 'Agentic Business Process Platform: Approval Agents on Copilot Studio'
     },
     summary: {
-      zh: '以 Source Adapter 对接可改造与不可改造业务系统，结合 Copilot Studio Workflow 统一审批，提供接入矩阵、架构、容量、SKU 与 ROI 评估。',
+      zh: '以 Copilot Studio 与 Dataverse 构建审批智能体平台，涵盖独立规则、动态任务、版本发布、运营与驻留条件，并提供产品及收益评估。',
       en: 'Connects extensible and fixed systems through source adapters, then unifies approvals with Copilot Studio Workflows, integration sizing, pricing, and ROI.'
     },
     tags: ['Copilot Studio', 'Copilot Studio Workflows', 'Source Integration', 'Desktop Flows', 'Power Pages', 'Human-in-the-Loop', 'Approvals', 'Dataverse', 'Business Process'],
@@ -325,6 +352,26 @@ var knowledgeTree = [
     color: '#a855f7',
     phase: 0.44, speed: 0.87,
     relations: ['power-platform-governance', 'power-platform-pricing-quote-tool', 'dataverse-intelligence', 'agentic-crm-business-cycle']
+  },
+
+  {
+    id: 'ai-era-build-route-decision',
+    parentId: 'business-ai-solution',
+    type: 'article',
+    title: {
+      zh: 'AI时代业务应用战法：基于微软业务平台的策略、方法与实践',
+      en: 'AI-Era Business Application Playbook: Strategy, Method, and Practice on Microsoft Business Platforms'
+    },
+    summary: {
+      zh: '四案例对照平台复用与自研责任，覆盖七层风险、参考架构、五年成本与选型判据；不提供通用实测占比。',
+      en: 'Four cases: platform reuse vs custom duties; seven risk layers, reference architecture, five-year costs, selection criteria. No universal measured shares.'
+    },
+    tags: ['Power Platform', 'Copilot Studio', 'AI-Assisted Development', 'Platform Strategy', 'TCO', 'Governance'],
+    date: '2026-09-02',
+    url: 'posts/ai-era-build-route-decision/index.html',
+    color: '#7c3aed',
+    phase: 0.46, speed: 0.88,
+    relations: ['agentic-business-process-platform', 'evidence-grounded-rfp-review', 'copilot-studio-innovation-activation-program', 'agentic-crm-business-cycle']
   },
 
   {
@@ -786,6 +833,25 @@ var knowledgeTree = [
     color: '#0ea5e9',
     phase: 3.8, speed: 0.9,
     relations: ['mlx-optimization']
+  },
+  {
+    id: 'jev-system-one-research',
+    parentId: 'ai-research-model',
+    type: 'article',
+    title: {
+      zh: '结构化决策模型研究',
+      en: 'Structured Decision Models'
+    },
+    summary: {
+      zh: '从 Jev 与 NanoJev 研究模型定位、场景与评估；提供真实 Playground、可运行的本地 MLX FP32 / 4-bit 服务，以及数值对照和量化局限。',
+      en: 'Study Jev and NanoJev positioning, scenarios, and evaluation, with a live playground, working local MLX FP32/4-bit services, numerical parity, and quantization limits.'
+    },
+    tags: ['Structured Decision Models', 'Jev', 'NanoJev', 'MLX', 'oMLX', 'Playground', 'AI Architecture', 'Model Evaluation'],
+    date: '2026-09-19',
+    url: 'posts/jev-system-one-research/index.html',
+    color: '#0ea5e9',
+    phase: 2.6, speed: 0.88,
+    relations: ['fc-best-practices', 'enterprise-agent-arch', 'hermes-open-model', 'm4-max-local-models']
   },
   {
     id: 'hermes-open-model',
@@ -1319,11 +1385,11 @@ var knowledgeTree = [
       en: 'Power Apps Code App: A New Managed App Path for Pro Developers'
     },
     summary: {
-      zh: '梳理 Code App 的定位、三层架构、与 Canvas/Model-driven 的差异、开发流程、数据连接、限制和最佳实践。',
-      en: 'Covers Code App positioning, 3-layer architecture, comparison with Canvas/Model-driven, dev workflow, data connection, limitations, and best practices.'
+      zh: '梳理 Code App 架构、开发与部署，并提供 2026 年 8 月官方 Copilot Studio Agent 基础连接流程。',
+      en: 'Covers Code App architecture, development, deployment, and the August 2026 official workflow for basic Copilot Studio Agent connectivity.'
     },
-    tags: ['Power Apps', 'Code App', 'React', 'TypeScript', 'Pro Developer'],
-    date: '2026-05-20',
+    tags: ['Power Apps', 'Code App', 'Copilot Studio', 'AI Agent', 'React', 'TypeScript'],
+    date: '2026-09-03',
     url: 'posts/power-apps-code-app/index.html',
     color: '#7c3aed',
     phase: 4.5, speed: 0.84,

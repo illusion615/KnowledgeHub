@@ -12,6 +12,17 @@
   <link rel="stylesheet" href="../../assets/article-narration.css" />
   <link rel="stylesheet" href="../../assets/article-diagram.css" />
   <style>
+    .approval-diagram { margin: var(--rhythm-card) 0; }
+    .approval-diagram [data-diagram-scroll] { overflow-x: auto; }
+    .approval-diagram [data-diagram-output] { min-width: 640px; }
+    .approval-diagram [data-diagram-output][hidden] { display: none; }
+    .approval-diagram [data-diagram-output][aria-busy="true"] { visibility: hidden; }
+    .approval-diagram [data-diagram-output] svg { display: block; max-width: none; height: auto; }
+    #approval-state-output svg circle.state-start,
+    #approval-state-output svg circle.state-end { fill: var(--ink) !important; }
+    #approval-state-output svg circle.state-start { stroke: var(--ink) !important; }
+    .approval-diagram figcaption { margin-top: var(--rhythm-inline); color: var(--muted); }
+
     .hero-copy h1 {
       max-width: 24ch;
       font-size: clamp(2rem, 4.2vw, 3.35rem);
@@ -1569,12 +1580,16 @@
             <a href="#principles" data-zh="理念与收益" data-en="Principles">理念与收益</a>
             <a href="#architecture" data-zh="逻辑架构" data-en="Architecture">逻辑架构</a>
             <a href="#source-integration" data-zh="来源接入" data-en="Integration">来源接入</a>
-            <a href="#runtime" data-zh="运行时" data-en="Runtime">运行时</a>
-            <a href="#governance" data-zh="可靠性与治理" data-en="Governance">可靠性与治理</a>
-            <a href="#configuration" data-zh="配置工具" data-en="Configuration">配置工具</a>
-            <a href="#roi" data-zh="ROI 计算" data-en="ROI">ROI 计算</a>
-            <a href="#delivery" data-zh="交付计划" data-en="Delivery">交付计划</a>
-            <a href="#case" data-zh="客户案例" data-en="Case">客户案例</a>
+            <a href="#runtime">审批规则与流转</a>
+            <a href="#governance">安全与治理</a>
+            <a href="#admin-lifecycle">客户自助与版本发布</a>
+            <a href="#platform-operations">运行监控与故障处理</a>
+            <a href="#deployment-boundary">部署与数据驻留</a>
+            <a href="#configuration">产品配置</a>
+            <a href="#roi">成本与收益测算</a>
+            <a href="#delivery">实施与交接</a>
+            <a href="#case">组合案例</a>
+            <a href="#capability-acceptance">能力验收</a>
             <a href="#references" data-zh="参考资料" data-en="References">参考资料</a>
           </nav>
         </div>
@@ -1584,7 +1599,7 @@
             <span class="eyebrow" data-zh="Microsoft Business AI Solution · 审批现代化" data-en="Microsoft Business AI Solution · Approval Modernization">Microsoft Business AI Solution · 审批现代化</span>
             <h1 data-zh="Agentic Business Process Platform" data-en="Agentic Business Process Platform">Agentic Business Process Platform</h1>
             <p class="platform-subtitle" data-zh="基于 Microsoft Copilot Studio 的企业审批 Agent 平台" data-en="An Enterprise Approval Agent Platform on Microsoft Copilot Studio">基于 Microsoft Copilot Studio 的企业审批 Agent 平台</p>
-            <p data-zh="员工继续在 ERP、CRM、HR 和专业业务系统中提交表单。Source Adapter 按系统能力通过 Connector、Webhook、轮询、批量或 RPA 接收变化，并向平台提供统一事件、读取与回写契约。Copilot Studio 流程 Agent 根据 IntegrationEvent 引用整合上下文并选择已批准的 Copilot Studio Workflow；Copilot Studio Workflow 按规则执行 AI、Human-in-the-Loop 与幂等回写。Dataverse 保存事件、状态与审计，整套运行时统一按 Copilot Credits 计量。[1][2][3][11][23][24][25][28][29][30]" data-en="Employees keep submitting in ERP, CRM, HR, and specialist systems. Source adapters receive changes through connectors, webhooks, polling, batch, or RPA and expose normalized event, read, and writeback contracts. A Copilot Studio process agent uses IntegrationEvent references to select an approved Copilot Studio Workflow; the workflow executes AI, human gates, and idempotent writeback. Dataverse retains events, state, and audit, while Copilot Credits meter runtime.[1][2][3][11][23][24][25][28][29][30]">员工继续在 ERP、CRM、HR 和专业业务系统中提交表单。Source Adapter 按系统能力通过 Connector、Webhook、轮询、批量或 RPA 接收变化，并向平台提供统一事件、读取与回写契约。Copilot Studio 流程 Agent 根据 IntegrationEvent 引用整合上下文并选择已批准的 Copilot Studio Workflow；Copilot Studio Workflow 按规则执行 AI、Human-in-the-Loop 与幂等回写。Dataverse 保存事件、状态与审计，整套运行时统一按 Copilot Credits 计量。[1][2][3][11][23][24][25][28][29][30]</p>
+            <p>员工可沿用 ERP、CRM、HR 和专业系统的现有表单；没有合适入口的业务可采用平台表单。Copilot Studio 提供确定性 agent flows 和事件触发能力。[1][2] 本方案据此提出通用审批设计：Source Adapter 统一来源事件与读写契约，Agent 整理上下文，确定性审批服务计算规则并管理 HumanTask，Workflow 调用受控执行步骤，Dataverse 保存案件、任务、材料和执行版本。规则引擎、任务控制、管理应用及恢复机制均为拟交付扩展，需实施与验收，不是已经完成的原生产品。Copilot Studio 的相关用量按 Copilot Credits 计量。[3] Power Apps、Power Pages、Dataverse 容量、Power Automate／RPA 及其他服务的许可和费用分别核算。</p>
             <div class="hero-actions">
               <a class="button button-primary" href="#architecture" data-zh="查看端到端架构" data-en="Explore the End-to-End Architecture">查看端到端架构</a>
               <a class="button button-secondary" href="#configuration" data-zh="配置产品组合" data-en="Configure the Product Stack">配置产品组合</a>
@@ -1595,9 +1610,9 @@
             <span class="panel-label" data-zh="方案边界" data-en="Solution Boundary">方案边界</span>
             <h2 data-zh="Agent 负责理解与分派，Workflow 负责确定性执行，人负责关键决定。" data-en="Agents Interpret and Route, Workflows Execute Deterministically, and People Own Material Decisions">Agent 负责理解与分派，Workflow 负责确定性执行，人负责关键决定。</h2>
             <ul class="layer-list">
-              <li><span class="layer-number">1</span><span data-zh="提交入口不迁移：业务人员继续使用熟悉的来源系统和表单" data-en="No intake migration: employees retain familiar source systems and forms">提交入口不迁移：业务人员继续使用熟悉的来源系统和表单</span></li>
+              <li><span class="layer-number">1</span><span>优先沿用来源表单；缺少合适入口时采用平台表单，并明确申请主记录的唯一归属</span></li>
               <li><span class="layer-number">2</span><span data-zh="Agent 只调用已注册工具：流程选择可生成，金额计算、权限和写入路径保持确定" data-en="The agent calls registered tools only: workflow selection can be generative, while calculations, authorization, and writes stay deterministic">Agent 只调用已注册工具：流程选择可生成，金额计算、权限和写入路径保持确定</span></li>
-              <li><span class="layer-number">3</span><span data-zh="Human in the loop：缺信息时请求补充，关键决定进入 Approval，Agent 不代替审批人" data-en="Human in the loop: request missing information and route material decisions to approval; the agent never replaces the approver">Human in the loop：缺信息时请求补充，关键决定进入 Approval，Agent 不代替审批人</span></li>
+              <li><span class="layer-number">3</span><span>人工参与分为补件与审批两类任务，由 HumanTask 统一记录和授权，Agent 不代替审批人</span></li>
               <li><span class="layer-number">4</span><span data-zh="来源系统保持权威：审批结果经过幂等回写后才完成闭环" data-en="Source systems remain authoritative: the process closes only after idempotent writeback">来源系统保持权威：审批结果经过幂等回写后才完成闭环</span></li>
             </ul>
           </aside>
@@ -1612,7 +1627,7 @@
           <div class="metric">
             <div class="metric-label" data-zh="Human-in-the-Loop Gate" data-en="Human-in-the-Loop Gates">Human-in-the-Loop Gate</div>
             <strong>2</strong>
-            <span data-zh="Approval · Request information" data-en="Approval · Request Information">Approval · Request information</span>
+            <span>审批任务 · 补件任务</span>
           </div>
           <div class="metric">
             <div class="metric-label" data-zh="确定性执行层" data-en="Deterministic Execution Layer">确定性执行层</div>
@@ -1620,9 +1635,9 @@
             <span data-zh="Copilot Studio Workflow" data-en="Copilot Studio Workflow">Copilot Studio Workflow</span>
           </div>
           <div class="metric">
-            <div class="metric-label" data-zh="首期来源表单替换" data-en="Phase-One Source-Form Replacements">首期来源表单替换</div>
+            <div class="metric-label">强制替换现有表单</div>
             <strong>0</strong>
-            <span data-zh="优先连接，不重做提交端" data-en="Connect first; do not rebuild intake">优先连接，不重做提交端</span>
+            <span>现有表单优先连接，新业务按需建表单</span>
           </div>
         </div>
       </header>
@@ -1732,7 +1747,7 @@
           <div class="section-head">
             <p class="section-kicker" data-zh="03 / 逻辑架构与职责" data-en="03 / Logical Architecture and Responsibilities">03 / 逻辑架构与职责</p>
             <h2 data-zh="Source Adapter 隔离系统差异，Agent 与 Workflow 分开理解和执行" data-en="Source Adapters Isolate System Differences While Agents and Workflows Separate Interpretation from Execution">Source Adapter 隔离系统差异，Agent 与 Workflow 分开理解和执行</h2>
-            <p data-zh="生产基线由四个职责层组成：Source Adapter 统一来源系统事件与读写契约，Copilot Studio 流程 Agent 理解上下文并选择已发布的 Copilot Studio Workflow，Copilot Studio Workflow 执行确定性规则与人员 gate，Dataverse 保存 IntegrationEvent 和 ApprovalCase。每层只拥有自己的决定，来源系统仍是业务权威；新 Workflows 画布目前仍是 public preview，不作为生产基线。[1][4][5][11]" data-en="The production baseline has four responsibility layers. Source adapters normalize source events and read-write contracts; the Copilot Studio process agent interprets context and selects published Copilot Studio Workflows; Copilot Studio Workflows execute deterministic rules and human gates; Dataverse retains IntegrationEvent and ApprovalCase. Each layer owns only its decisions, and source systems remain authoritative. The new Workflows canvas remains in public preview and is not the production baseline.[1][4][5][11]">生产基线由四个职责层组成：Source Adapter 统一来源系统事件与读写契约，Copilot Studio 流程 Agent 理解上下文并选择已发布的 Copilot Studio Workflow，Copilot Studio Workflow 执行确定性规则与人员 gate，Dataverse 保存 IntegrationEvent 和 ApprovalCase。每层只拥有自己的决定，来源系统仍是业务权威；新 Workflows 画布目前仍是 public preview，不作为生产基线。[1][4][5][11]</p>
+            <p>本文用 Copilot Studio Workflow 表示逻辑执行职责，实际基线采用 standard harness 的 agent flows；官方另有独立的 Workflows 体验说明，两者的能力不能混用。[1][4] 本方案设计为四层：Source Adapter 统一来源契约，Agent 理解上下文并建议已发布流程，确定性执行层调用独立规则与审批命令服务，Dataverse 保存 IntegrationEvent、ApprovalCase、HumanTask 及版本。生产清单须逐项固定实际 harness、区域、版本及文档支持的可用动作，不对整个画布笼统宣称预览或正式可用。来源业务主记录仍由原系统负责；平台表单新建的申请主记录则由 Dataverse 负责。</p>
           </div>
 
           <div class="comparison-grid platform-grid-four" data-present-step data-step-title="Source Adapter、Agent、Workflow 与状态层的职责" data-step-title-en="Responsibilities Across Source Adapter, Agent, Workflow, and State" data-step-label="03 / 职责边界" data-step-label-en="03 / Responsibilities">
@@ -1749,7 +1764,7 @@
             <article class="comparison-card">
               <span class="comparison-label" data-zh="确定性执行" data-en="Deterministic Execution">确定性执行</span>
               <h3 data-zh="Copilot Studio Workflow" data-en="Copilot Studio Workflow">Copilot Studio Workflow</h3>
-              <p data-zh="按规则完成校验、分支、循环、连接器调用、AI 节点、Approval、Request information 和幂等回写；相同输入走相同规则路径。" data-en="Runs validation, branches, loops, connector calls, AI nodes, approvals, requests for information, and idempotent writeback through rules; the same input follows the same rule path.">按规则完成校验、分支、循环、连接器调用、AI 节点、Approval、Request information 和幂等回写；相同输入走相同规则路径。</p>
+              <p>按已发布计划调用规则服务、审批命令服务和适配器，执行校验、分支及幂等回写；HumanTask 保存人员任务，原生 Approval 与 Request information 仅作为适用时的可选渠道。相同事实与规则版本产生相同审批要求。</p>
             </article>
             <article class="comparison-card">
               <span class="comparison-label" data-zh="持久状态" data-en="Durable State">持久状态</span>
@@ -2064,110 +2079,219 @@
 
         <section id="runtime" class="section" data-reveal>
           <div class="section-head">
-            <p class="section-kicker" data-zh="05 / 运行时与持久状态" data-en="05 / Runtime and Durable State">05 / 运行时与持久状态</p>
-            <h2 data-zh="IntegrationEvent 与 ApprovalCase 把事件、人员等待和来源落账分成可恢复状态" data-en="IntegrationEvent and ApprovalCase Separate Events, Human Waits, and Source Posting into Recoverable States">IntegrationEvent 与 ApprovalCase 把事件、人员等待和来源落账分成可恢复状态</h2>
-            <p data-zh="一笔事项依次经过事件登记、Agent 分派、确定性执行、人员等待和来源回写六步。IntegrationEvent 保存可去重、可重放的来源变化，ApprovalCase 保存 workflow 版本、Human Task、决定和回写凭证；任何长时间等待都落在 Dataverse，而不是依赖持续对话或单次 Flow 运行。[1][2][6][8][11]" data-en="A case moves through six steps: event registration, agent routing, deterministic execution, human waiting, and source writeback. IntegrationEvent retains deduplicated, replayable source changes, while ApprovalCase stores workflow versions, human tasks, decisions, and writeback receipts. Every long wait persists in Dataverse rather than relying on a live conversation or one flow run.[1][2][6][8][11]">一笔事项依次经过事件登记、Agent 分派、确定性执行、人员等待和来源回写六步。IntegrationEvent 保存可去重、可重放的来源变化，ApprovalCase 保存 workflow 版本、Human Task、决定和回写凭证；任何长时间等待都落在 Dataverse，而不是依赖持续对话或单次 Flow 运行。[1][2][6][8][11]</p>
+            <p class="section-kicker">05 / 审批规则与流转</p>
+            <h2>审批规则与流转</h2>
+            <p>模板定义步骤结构与流转规则，业务矩阵按条件启用必需步骤并确定审批责任，组织映射确定办理人；任务决定汇总为步骤结果，再推进案件与业务回写。以下 CASE／STEP／TASK 机制为拟交付方案，规则与任务模块仍需开发及组合验收，不代表 Copilot Studio 原生提供完整能力。</p>
           </div>
-
-          <div class="presentation-merged-detail">
-            <ol class="flow-list">
-              <li class="flow-step"><div class="flow-copy"><strong data-zh="1 · Source Adapter 接收并登记来源事件" data-en="1 · The Source Adapter Receives and Registers the Source Event">1 · Source Adapter 接收并登记来源事件</strong><p data-zh="ERP、CRM、HR 或专业系统保留原表单。适配器按系统能力使用 Connector、Webhook、轮询、批量或 RPA，验签并按 <code>sourceSystem + sourceEventId</code> 去重，再把最小事件引用写入 IntegrationEvent。Copilot Studio event trigger 当前使用 maker credentials，生产只发送事件引用，并使用专用低权限 maker 身份。[2][23][24][28][29]" data-en="ERP, CRM, HR, and specialist systems retain their forms. Based on source capability, the adapter uses connectors, webhooks, polling, batch, or RPA, verifies origin, deduplicates by <code>sourceSystem + sourceEventId</code>, and stores a minimal event reference in IntegrationEvent. Copilot Studio event triggers currently use maker credentials, so production sends only the event reference and uses a dedicated least-privileged maker identity.[2][23][24][28][29]">ERP、CRM、HR 或专业系统保留原表单。适配器按系统能力使用 Connector、Webhook、轮询、批量或 RPA，验签并按 <code>sourceSystem + sourceEventId</code> 去重，再把最小事件引用写入 IntegrationEvent。Copilot Studio event trigger 当前使用 maker credentials，生产只发送事件引用，并使用专用低权限 maker 身份。[2][23][24][28][29]</p></div></li>
-              <li class="flow-step"><div class="flow-copy"><strong data-zh="2 · Agent 读取受控上下文并选择 Workflow" data-en="2 · The Agent Reads Controlled Context and Selects a Workflow">2 · Agent 读取受控上下文并选择 Workflow</strong><p data-zh="Agent 用 IntegrationEvent 引用调用 ReadContext，读取允许字段、附件引用和数据截止时间，识别流程类型、风险级别与缺失信息，只选择发布清单中的 Copilot Studio Workflow；金额计算、审批矩阵和权限不交给生成式判断。[5]" data-en="The agent calls ReadContext with the IntegrationEvent reference to retrieve allowed fields, attachment references, and data freshness. It identifies process type, risk tier, and missing information and selects only a published Copilot Studio Workflow. Amount calculations, approval matrices, and authorization stay outside generative judgment.[5]">Agent 用 IntegrationEvent 引用调用 ReadContext，读取允许字段、附件引用和数据截止时间，识别流程类型、风险级别与缺失信息，只选择发布清单中的 Copilot Studio Workflow；金额计算、审批矩阵和权限不交给生成式判断。[5]</p></div></li>
-            </ol>
-          </div>
-
-          <div class="presentation-merged-detail">
-            <ol class="flow-list" start="3">
-              <li class="flow-step"><div class="flow-copy"><strong data-zh="3 · Copilot Studio Workflow 执行规则、适配器与 AI 节点" data-en="3 · The Copilot Studio Workflow Runs Rules, Adapters, and AI Nodes">3 · Copilot Studio Workflow 执行规则、适配器与 AI 节点</strong><p data-zh="Copilot Studio Workflow 用 <code>sourceSystem + sourceRecordId + sourceVersion</code> 阻止同一业务版本重复审批，通过 ReadContext 获取标准数据，再用原生 prompt / content processing 节点生成带来源和截止时间的证据简报。[6][7]" data-en="The Copilot Studio Workflow prevents duplicate approval of one business version with <code>sourceSystem + sourceRecordId + sourceVersion</code>, obtains normalized data through ReadContext, and uses native prompt or content-processing nodes to produce an evidence brief with sources and freshness.[6][7]">Copilot Studio Workflow 用 <code>sourceSystem + sourceRecordId + sourceVersion</code> 阻止同一业务版本重复审批，通过 ReadContext 获取标准数据，再用原生 prompt / content processing 节点生成带来源和截止时间的证据简报。[6][7]</p></div></li>
-            </ol>
-          </div>
-
-          <div class="presentation-merged-detail">
-            <ol class="flow-list" start="4">
-              <li class="flow-step"><div class="flow-copy"><strong data-zh="4 · 缺信息时 Request information" data-en="4 · Request Information When Evidence Is Missing">4 · 缺信息时 Request information</strong><p data-zh="Request information action 暂停 Copilot Studio Workflow，通过 Outlook 向指定人员收集字段，收到响应后把答案作为动态参数恢复执行。当前限制是仅支持 Outlook、采用首个响应且不能发送给租户外用户；外部补件改由 Power Pages Human Task 收集。[8][17][18]" data-en="The Request Information action pauses the Copilot Studio Workflow, collects fields from named reviewers through Outlook, and resumes with their responses as dynamic parameters. Current limits are Outlook-only delivery, first-response-wins processing, and no recipients outside the tenant; Power Pages Human Tasks collect evidence from external participants.[8][17][18]">Request information action 暂停 Copilot Studio Workflow，通过 Outlook 向指定人员收集字段，收到响应后把答案作为动态参数恢复执行。当前限制是仅支持 Outlook、采用首个响应且不能发送给租户外用户；外部补件改由 Power Pages Human Task 收集。[8][17][18]</p></div></li>
-              <li class="flow-step"><div class="flow-copy"><strong data-zh="5 · 人员决定进入 ApprovalCase" data-en="5 · Human Decisions Enter ApprovalCase">5 · 人员决定进入 ApprovalCase</strong><p data-zh="Copilot Studio Workflow 为租户内审批人生成 Approval；参与人数较多或包含外部人员时，Workflow 同时生成 Dataverse Human Task，由 Power Pages 统一工作台展示证据并收集决定。Outlook、Teams 与 Power Pages 的人员响应都写回 ApprovalCase；Agent 只能解释、提醒和升级。[1][9][10][17][18]" data-en="The Copilot Studio Workflow creates approvals for tenant-internal approvers. For high-volume or external participation, the workflow also creates Dataverse Human Tasks, and the Power Pages unified workbench presents evidence and collects decisions. Human responses from Outlook, Teams, and Power Pages return to ApprovalCase; the agent can only explain, remind, and escalate.[1][9][10][17][18]">Copilot Studio Workflow 为租户内审批人生成 Approval；参与人数较多或包含外部人员时，Workflow 同时生成 Dataverse Human Task，由 Power Pages 统一工作台展示证据并收集决定。Outlook、Teams 与 Power Pages 的人员响应都写回 ApprovalCase；Agent 只能解释、提醒和升级。[1][9][10][17][18]</p></div></li>
-            </ol>
-          </div>
-
-          <div class="presentation-merged-detail">
-            <ol class="flow-list" start="6">
-              <li class="flow-step"><div class="flow-copy"><strong data-zh="6 · Copilot Studio Workflow 调用 ApplyDecision，Agent 监督异常" data-en="6 · The Copilot Studio Workflow Calls ApplyDecision and the Agent Supervises Exceptions">6 · Copilot Studio Workflow 调用 ApplyDecision，Agent 监督异常</strong><p data-zh="Copilot Studio Workflow 先写入决定与运行遥测，再调用 Source Adapter 的 ApplyDecision。API、批量或 RPA 差异留在适配器内；只有返回业务凭证号和来源新版本，事项才进入 Closed。失败或结果未知时进入 Dataverse 异常队列，由 Agent 催办和解释。[11][29][30]" data-en="The Copilot Studio Workflow records the decision and runtime telemetry before calling ApplyDecision on the source adapter. API, batch, and RPA differences remain inside the adapter. A case enters Closed only after a business receipt and new source version return. Failures or unknown results enter the Dataverse exception queue for agent follow-up and explanation.[11][29][30]">Copilot Studio Workflow 先写入决定与运行遥测，再调用 Source Adapter 的 ApplyDecision。API、批量或 RPA 差异留在适配器内；只有返回业务凭证号和来源新版本，事项才进入 Closed。失败或结果未知时进入 Dataverse 异常队列，由 Agent 催办和解释。[11][29][30]</p></div></li>
-            </ol>
-          </div>
-
-          <div class="subsection-accordion">
-            <article class="subsection-item presentation-merged-detail" data-accordion>
-              <button class="subsection-toggle"><span data-zh="5.1 ApprovalCase 契约与 Agent/Workflow 状态机" data-en="5.1 ApprovalCase Contract and Agent/Workflow State Machine">5.1 ApprovalCase 契约与 Agent/Workflow 状态机</span></button>
-              <div class="subsection-content">
-                <div>
-                  <p data-zh="IntegrationEvent 保存可重放的最小事件引用，ApprovalCase 保存完成审批所需字段；业务明细仍按来源引用读取，避免把平台扩张为第二套 ERP。" data-en="IntegrationEvent stores a replayable minimal event reference, while ApprovalCase stores fields required for approval. Business detail remains source-referenced so the platform doesn't become a second ERP.">IntegrationEvent 保存可重放的最小事件引用，ApprovalCase 保存完成审批所需字段；业务明细仍按来源引用读取，避免把平台扩张为第二套 ERP。</p>
-                  <div class="table-scroll">
-                    <table class="simple-table">
-                      <thead><tr><th data-zh="字段组" data-en="Field Group">字段组</th><th data-zh="关键字段" data-en="Key Fields">关键字段</th><th data-zh="作用" data-en="Purpose">作用</th></tr></thead>
-                      <tbody>
-                        <tr><td data-zh="来源事件" data-en="Source Event">来源事件</td><td><code>sourceEventId</code>, <code>eventType</code>, <code>occurredAt</code>, <code>payloadHash</code></td><td data-zh="验签、去重、排序并重放来源变化" data-en="Verify, deduplicate, order, and replay source changes">验签、去重、排序并重放来源变化</td></tr>
-                        <tr><td data-zh="事项身份" data-en="Case Identity">事项身份</td><td><code>caseId</code>, <code>sourceSystem</code>, <code>sourceAdapterId</code>, <code>sourceRecordId</code>, <code>sourceVersion</code></td><td data-zh="定位事项并阻止同一业务版本重复审批" data-en="Locate the request and prevent duplicate approval of one business version">定位事项并阻止同一业务版本重复审批</td></tr>
-                        <tr><td data-zh="来源导航" data-en="Source Navigation">来源导航</td><td><code>sourceDisplayId</code>, <code>sourceDeepLink</code>, <code>dataAsOf</code></td><td data-zh="帮助审批人返回来源记录并识别数据截止时间" data-en="Return reviewers to the source record and expose data freshness">帮助审批人返回来源记录并识别数据截止时间</td></tr>
-                        <tr><td data-zh="Agent 上下文" data-en="Agent Context">Agent 上下文</td><td><code>processAgent</code>, <code>intent</code>, <code>riskTier</code>, <code>agentRunId</code></td><td data-zh="记录 Agent 如何分类事项及选择哪个 workflow" data-en="Record how the agent classified the case and selected a workflow">记录 Agent 如何分类事项及选择哪个 workflow</td></tr>
-                        <tr><td data-zh="人工任务" data-en="Human Task">人工任务</td><td><code>taskType</code>, <code>assignedTo</code>, <code>dueAt</code>, <code>humanTaskId</code></td><td data-zh="区分补充信息、审批、委派与升级" data-en="Distinguish information requests, approvals, delegation, and escalation">区分补充信息、审批、委派与升级</td></tr>
-                        <tr><td data-zh="Workflow 遥测" data-en="Workflow Telemetry">Workflow 遥测</td><td><code>workflowVersion</code>, <code>workflowRunId</code>, <code>workflowActions</code>, <code>aiToolUnits</code></td><td data-zh="关联确定性执行、版本和 Copilot Credits 估算" data-en="Link deterministic execution, version, and Copilot Credit estimates">关联确定性执行、版本和 Copilot Credits 估算</td></tr>
-                        <tr><td data-zh="决定与回写" data-en="Decision and Writeback">决定与回写</td><td><code>decision</code>, <code>idempotencyKey</code>, <code>writebackStatus</code>, <code>writebackReceipt</code>, <code>sourceVersionAfterWriteback</code></td><td data-zh="保存人员决定并证明来源系统已完成落账" data-en="Retain the human decision and prove source-system posting">保存人员决定并证明来源系统已完成落账</td></tr>
-                        <tr><td data-zh="追踪" data-en="Traceability">追踪</td><td><code>correlationId</code>, <code>adapterRunId</code>, <code>eventHistory</code>, <code>errorCode</code></td><td data-zh="串联适配器、短流程、重试和异常处理" data-en="Link adapters, short-running flows, retries, and exception handling">串联适配器、短流程、重试和异常处理</td></tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-                <div>
-                  <p data-zh="六个状态把 Agent 规划、workflow 执行、人员等待和来源系统落账分开；长时间等待保存在 Dataverse，不依赖一个持续对话。" data-en="Six states separate agent planning, workflow execution, human waiting, and source posting. Long waits persist in Dataverse rather than depend on a continuous conversation.">六个状态把 Agent 规划、workflow 执行、人员等待和来源系统落账分开；长时间等待保存在 Dataverse，不依赖一个持续对话。</p>
-                  <ol class="flow-list">
-                    <li class="flow-step"><div class="flow-copy"><strong data-zh="Received → Triggered → Planned" data-en="Received → Triggered → Planned">Received → Triggered → Planned</strong><p data-zh="Source Adapter 先把事件写入 IntegrationEvent；Agent 只在验签、去重和顺序检查通过后记录分类、风险、所选 workflow 与来源版本。" data-en="The source adapter first stores the event in IntegrationEvent. Only after origin, duplication, and ordering checks pass does the agent record classification, risk, selected workflow, and source version.">Source Adapter 先把事件写入 IntegrationEvent；Agent 只在验签、去重和顺序检查通过后记录分类、风险、所选 workflow 与来源版本。</p></div></li>
-                    <li class="flow-step"><div class="flow-copy"><strong data-zh="Running → WaitingHuman → Resumed" data-en="Running → WaitingHuman → Resumed">Running → WaitingHuman → Resumed</strong><p data-zh="Copilot Studio Workflow 执行到补件或审批 gate 后持久化 human task；人员响应触发恢复，原输入、响应与 workflow 版本保持关联。" data-en="The Copilot Studio Workflow persists a human task at an information or approval gate. The response resumes execution while preserving links to the original input, response, and workflow version.">Copilot Studio Workflow 执行到补件或审批 gate 后持久化 human task；人员响应触发恢复，原输入、响应与 workflow 版本保持关联。</p></div></li>
-                    <li class="flow-step"><div class="flow-copy"><strong data-zh="Writeback → Closed / Exception" data-en="Writeback → Closed / Exception">Writeback → Closed / Exception</strong><p data-zh="来源系统确认幂等回写后进入 Closed；权限拒绝、版本冲突、容量阻断或重试耗尽进入 Exception。" data-en="The case reaches Closed after the source confirms idempotent writeback. Authorization denial, version conflicts, capacity enforcement, or exhausted retries move it to Exception.">来源系统确认幂等回写后进入 Closed；权限拒绝、版本冲突、容量阻断或重试耗尽进入 Exception。</p></div></li>
-                  </ol>
-                </div>
-              </div>
+          <h3 id="approval-definitions">5.1 审批定义与维护入口</h3>
+          <div class="insight-grid platform-grid-three">
+            <article class="insight-card">
+              <span class="card-index">CASE</span>
+              <h4>申请模板</h4>
+              <p><strong>存放：</strong>Dataverse 流程类型与申请模板配置。</p>
+              <p><strong>定义：</strong>申请入口、表单、可用步骤、完成与撤回规则。</p>
+              <p><strong>维护：</strong>受训管理员通过 Power Apps 管理工作台配置，按版本发布。</p>
             </article>
-
+            <article class="insight-card">
+              <span class="card-index">STEP</span>
+              <h4>步骤模板</h4>
+              <p><strong>存放：</strong>Dataverse 步骤模板与流程步骤关系配置。</p>
+              <p><strong>定义：</strong>审批责任、先后或并行依赖、结果汇总规则；引用矩阵与任务模板。</p>
+              <p><strong>维护：</strong>管理员通过 Power Apps 调整已支持的步骤与规则。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">TASK</span>
+              <h4>任务模板</h4>
+              <p><strong>存放：</strong>Dataverse 任务模板配置。</p>
+              <p><strong>定义：</strong>加签、改派、委托等可用动作，以及期限、角色范围与材料要求。</p>
+              <p><strong>维护：</strong>平台团队提供支持能力，管理员通过 Power Apps 配置选项。</p>
+            </article>
           </div>
-        </section>
+          <h4>从定义到实际办理</h4>
+          <div class="insight-grid platform-grid-three">
+            <article class="insight-card">
+              <span class="card-index">01</span>
+              <h4>审批矩阵：选择责任</h4>
+              <p><strong>存放：</strong>Dataverse 独立矩阵与角色组织映射配置。</p>
+              <p><strong>判断：</strong>按产品、价格、地区、客户与合同条件启用步骤；按角色和组织解析合资格人员，不固定姓名。</p>
+              <p><strong>边界：</strong>模板管结构，矩阵管条件；政策不重复维护，与模板组成同一版本发布集。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">02</span>
+              <h4>运行实例：记录本次审批</h4>
+              <p><strong>存放：</strong>Dataverse 案件、步骤执行记录和人员任务。</p>
+              <p><strong>生成：</strong>申请通过校验后引用已发布定义，生成本次 CASE、STEP 和 TASK。</p>
+              <p><strong>加签：</strong>A 加签 B 只新增关联任务实例，不修改模板，也不新建案件。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">03</span>
+              <h4>执行服务：推进与恢复</h4>
+              <p><strong>执行：</strong>共享 Workflow 与审批服务读取已发布配置，校验授权、推进状态并恢复加签依赖。</p>
+              <p><strong>复用：</strong>不为每个申请人或任务手工建流；管理员改参数，新增办理机制由平台团队开发。</p>
+              <p><strong>交付：</strong>上述自定义配置与服务为拟建模块，不是微软原生完整审批引擎。</p>
+            </article>
+          </div>
 
-        <div class="presentation-only" data-present-step data-present-surface="unframed" data-step-title="端到端运行时流程" data-step-title-en="End-to-End Runtime Journey" data-step-label="05 / 运行时" data-step-label-en="05 / Runtime">
+          <h3 id="approval-levels">5.2 案件、步骤与任务</h3>
+          <p>CASE 是一笔申请，STEP 是销售或财务等业务审批责任，TASK 是人员待办。同一步骤可有多个并行任务；完成任务不等于批准，也不代表步骤通过或案件完成。</p>
+          <figure class="approval-diagram" aria-labelledby="approval-levels-caption">
+            <div id="approval-levels-scroll" data-diagram-scroll tabindex="0" role="region" aria-label="审批层级包含关系图，可横向滚动">
+              <div id="approval-levels-output" data-diagram-output hidden aria-hidden="true"></div>
+            </div>
+            <p id="approval-levels-fallback" role="status">案件包含销售与财务步骤；财务步骤包含主审 A 与并行复核 D 的任务。各层责任见下表。</p>
+            <script type="text/plain" id="approval-levels-source">
+flowchart TB
+    application["CASE · 一笔申请"]
+    salesStep["STEP · 销售审批"]
+    financeStep["STEP · 财务审批"]
+    primaryTask["TASK · 主审 A"]
+    peerTask["TASK · 并行复核 D"]
+    application -->|包含| salesStep
+    application -->|包含| financeStep
+    financeStep -->|包含| primaryTask
+    financeStep -->|包含| peerTask
+            </script>
+            <figcaption id="approval-levels-caption">箭头仅表示包含关系，不表示状态转换或办理先后。销售任务省略；人员间的加签依赖不改变 TASK 所属层级。</figcaption>
+          </figure>
+          <div class="table-scroll">
+            <table class="simple-table">
+              <thead><tr><th>层级</th><th>回答的问题</th><th>状态</th><th>推进要求</th></tr></thead>
+              <tbody>
+                <tr><td>CASE · 案件</td><td>一笔申请是否达成目标？</td><td>待校验、审批中、待补件、待回写、已完成、已拒绝、已撤回</td><td>必需 STEP 全部通过且无有效否决才可回写；权威记录更新确认后完成</td></tr>
+                <tr><td>STEP · 步骤</td><td>某项业务审批责任是否满足？</td><td>未开始、进行中、已通过、未通过</td><td>按本步骤任一批准／全部批准及拒绝、否决规则汇总有效 TASK 结果</td></tr>
+                <tr><td>TASK · 任务</td><td>谁可以办理、是否已提交决定？</td><td>待处理、处理中、等待加签、已完成、已取消</td><td>前置条件满足且人员获授权才可办理；完成时另记批准或拒绝结果</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3 id="approval-policy">5.3 审批条件与人员分配</h3>
+          <p>产品、价格、地区、客户和合同条件经矩阵计算，确定 CASE 启用的必需 STEP 及角色／组织责任；先后／并行依赖取自流程—步骤关系，任一／全部批准、拒绝和否决规则取自所引用的步骤模板。矩阵独立于 Workflow 管理，不重复维护模板规则，也不直接指定用户名；任务生成与办理时再按角色和组织确定合资格人员。</p>
+          <div class="insight-grid platform-grid-three">
+            <article class="insight-card"><span class="card-index">01</span><h4>业务政策</h4><p>按多维条件确定必需审批及条件加签。已支持的阈值和条件可独立调整，不改主流程；金额、币种、汇率与来源材料须先核验。</p></article>
+            <article class="insight-card"><span class="card-index">02</span><h4>角色与组织</h4><p>矩阵引用角色、组织及有效期。岗位无人或匹配冲突停止分派；组织变动通过留痕改派处理，不能自动降低审批要求。</p></article>
+            <article class="insight-card"><span class="card-index">03</span><h4>发布前验证</h4><p>覆盖阈值以下、等于及以上样本，检查漏审与冲突。Agent 建议的流程和风险等级须按事实校验，避免选错流程降低审批要求。</p></article>
+          </div>
           <ol class="flow-list">
-            <li class="flow-step"><div class="flow-copy"><strong data-zh="1 · 登记可信来源事件" data-en="1 · Register a Trusted Source Event">1 · 登记可信来源事件</strong><p data-zh="Source Adapter 验签、去重并保存最小 IntegrationEvent 引用，来源表单和业务主数据保持不变。" data-en="The source adapter verifies, deduplicates, and stores a minimal IntegrationEvent reference while source forms and authoritative business data remain unchanged.">Source Adapter 验签、去重并保存最小 IntegrationEvent 引用，来源表单和业务主数据保持不变。</p></div></li>
-            <li class="flow-step"><div class="flow-copy"><strong data-zh="2 · Agent 理解上下文并分派" data-en="2 · The Agent Interprets Context and Routes">2 · Agent 理解上下文并分派</strong><p data-zh="Agent 读取允许字段、识别流程与风险，只从发布清单中选择受控 Workflow；金额、权限和审批矩阵保持确定。" data-en="The agent reads allowed fields, identifies process and risk, and selects only a published controlled workflow; amounts, authorization, and approval matrices remain deterministic.">Agent 读取允许字段、识别流程与风险，只从发布清单中选择受控 Workflow；金额、权限和审批矩阵保持确定。</p></div></li>
-            <li class="flow-step"><div class="flow-copy"><strong data-zh="3 · Workflow 执行规则与 AI 节点" data-en="3 · The Workflow Executes Rules and AI Nodes">3 · Workflow 执行规则与 AI 节点</strong><p data-zh="Copilot Studio Workflow 校验业务版本、执行规则并生成带来源与数据截止时间的证据简报。" data-en="The Copilot Studio Workflow validates the business version, executes rules, and produces an evidence brief with sources and data freshness.">Copilot Studio Workflow 校验业务版本、执行规则并生成带来源与数据截止时间的证据简报。</p></div></li>
-            <li class="flow-step"><div class="flow-copy"><strong data-zh="4 · 缺失信息进入补件" data-en="4 · Missing Evidence Enters an Information Request">4 · 缺失信息进入补件</strong><p data-zh="内部人员通过 Outlook 补件，外部参与者通过 Power Pages Human Task 提交；响应写回 ApprovalCase 后恢复 Workflow。" data-en="Internal participants respond through Outlook, while external participants use Power Pages Human Tasks; responses return to ApprovalCase and resume the workflow.">内部人员通过 Outlook 补件，外部参与者通过 Power Pages Human Task 提交；响应写回 ApprovalCase 后恢复 Workflow。</p></div></li>
-            <li class="flow-step"><div class="flow-copy"><strong data-zh="5 · 人员决定进入持久状态" data-en="5 · Human Decisions Enter Durable State">5 · 人员决定进入持久状态</strong><p data-zh="审批人通过 Outlook、Teams 或 Power Pages 决定，平台保存人员、时间、意见和证据版本；Agent 只解释、提醒和升级。" data-en="Approvers decide through Outlook, Teams, or Power Pages. The platform stores actor, time, rationale, and evidence version; the agent only explains, reminds, and escalates.">审批人通过 Outlook、Teams 或 Power Pages 决定，平台保存人员、时间、意见和证据版本；Agent 只解释、提醒和升级。</p></div></li>
+            <li class="flow-step"><div class="flow-copy"><strong>维护</strong><p>管理员修改政策与岗位映射，预览审批责任变化；Agent 可建议，不得发布或授权。</p></div></li>
+            <li class="flow-step"><div class="flow-copy"><strong>验证</strong><p>回归样本通过后，由独立发布人批准，保留旧政策和命中结果供追溯。</p></div></li>
+            <li class="flow-step"><div class="flow-copy"><strong>应用</strong><p>新案件使用有效版本，在途案件保留原计划；关键事实变化形成新提交版本，受影响步骤重新计算并授权。</p></div></li>
           </ol>
-        </div>
+          <p><strong>实施边界：</strong>Dataverse business rules 支持字段验证和赋值。[31] 本方案仍需实现受限审批矩阵；超出约定条件、复杂计算或执行语义的变化进入专业开发评估。</p>
 
-        <section class="section comparison-grid platform-grid-four presentation-only" data-present-step data-present-surface="unframed" data-step-title="运行时控制模型" data-step-title-en="Runtime Control Model" data-step-label="05 / 控制模型" data-step-label-en="05 / Control Model">
-          <article class="comparison-card">
-            <span class="comparison-label" data-zh="闭环" data-en="Closure">闭环</span>
-            <h3 data-zh="回写凭证决定是否完成" data-en="Writeback Receipts Determine Completion">回写凭证决定是否完成</h3>
-            <p data-zh="人员批准后先进入 WritebackPending；只有来源系统返回业务凭证和新版本才进入 Closed。失败或结果未知进入异常队列。" data-en="After human approval, the case enters WritebackPending. It reaches Closed only after the source returns a business receipt and new version; failures or unknown outcomes enter the exception queue.">人员批准后先进入 WritebackPending；只有来源系统返回业务凭证和新版本才进入 Closed。失败或结果未知进入异常队列。</p>
-          </article>
-          <article class="comparison-card">
-            <span class="comparison-label" data-zh="数据" data-en="Data">数据</span>
-            <h3>IntegrationEvent + ApprovalCase</h3>
-            <p data-zh="IntegrationEvent 保存可重放的最小来源引用；ApprovalCase 保存 workflow 版本、人工任务、决定、遥测和回写凭证，业务明细仍留在来源系统。" data-en="IntegrationEvent stores replayable minimal source references. ApprovalCase stores workflow versions, human tasks, decisions, telemetry, and writeback receipts while business detail remains in the source.">IntegrationEvent 保存可重放的最小来源引用；ApprovalCase 保存 workflow 版本、人工任务、决定、遥测和回写凭证，业务明细仍留在来源系统。</p>
-          </article>
-          <article class="comparison-card">
-            <span class="comparison-label" data-zh="状态" data-en="State">状态</span>
-            <h3 data-zh="长时间等待持久化" data-en="Long Waits Persist as State">长时间等待持久化</h3>
-            <p data-zh="Received、Planned、Running、WaitingHuman、Writeback 与 Closed/Exception 分开管理；人员等待不依赖持续对话或单次运行存活。" data-en="Received, Planned, Running, WaitingHuman, Writeback, and Closed or Exception remain distinct. Human waits do not depend on a live conversation or one continuing run.">Received、Planned、Running、WaitingHuman、Writeback 与 Closed/Exception 分开管理；人员等待不依赖持续对话或单次运行存活。</p>
-          </article>
-          <article class="comparison-card next">
-            <span class="comparison-label" data-zh="决定权" data-en="Authority">决定权</span>
-            <h3 data-zh="Agent、Workflow 与人各自负责" data-en="Agent, Workflow, and People Own Separate Decisions">Agent、Workflow 与人各自负责</h3>
-            <p data-zh="Agent 理解、解释并选择受控工具；Workflow 负责计算、校验、授权与回写；人员补充事实并承担最终审批责任。" data-en="The agent interprets, explains, and selects controlled tools. Workflows calculate, validate, authorize, and write back. People supply facts and own final approval.">Agent 理解、解释并选择受控工具；Workflow 负责计算、校验、授权与回写；人员补充事实并承担最终审批责任。</p>
-          </article>
+          <h3>5.4 案件状态</h3>
+          <p>CASE 状态描述整笔申请进度，不随单个人员任务同步变化。例如前加签使 TASK 等待时，CASE 仍在审批中；审批结束后，还须确认业务记录更新。</p>
+          <figure class="approval-diagram" aria-labelledby="approval-state-caption">
+            <div id="approval-state-scroll" data-diagram-scroll tabindex="0" role="region" aria-label="CASE 案件状态图，可横向滚动">
+              <div id="approval-state-output" data-diagram-output hidden aria-hidden="true"></div>
+            </div>
+            <p id="approval-state-fallback" role="status">案件提交后校验，缺材料则补件重提；审批满足全部必需步骤后待回写，更新确认后完成。拒绝与授权撤回分别终止案件。</p>
+            <script type="text/plain" id="approval-state-source">
+stateDiagram-v2
+    direction TB
+    state "待校验" as validation
+    state "审批中" as approval
+    state "待回写" as writeback
+    state "待补件" as supplement
+    state "已完成" as completed
+    state "已拒绝" as rejected
+    state "已撤回" as withdrawn
+
+    [*] --> validation : 正式提交
+    validation --> approval : 校验通过
+    validation --> supplement : 材料待补充
+    approval --> writeback : [必需步骤全部通过且无有效否决]
+    writeback --> completed : 记录更新确认
+    approval --> supplement : 退回补件
+    supplement --> validation : 重新提交
+    approval --> rejected : 满足拒绝或否决规则
+    validation --> withdrawn : 授权撤回
+    approval --> withdrawn : 授权撤回
+    supplement --> withdrawn : 授权撤回
+    completed --> [*]
+    rejected --> [*]
+    withdrawn --> [*]
+            </script>
+            <figcaption id="approval-state-caption">
+              <strong>CASE 图例：</strong>实心圆表示案件起始，双圈终止标记表示案件结束，包括已完成、已拒绝、已撤回；方括号表示条件。图不含 TASK 内层状态、草稿与技术异常恢复分支。
+            </figcaption>
+          </figure>
+          <ul>
+            <li><strong>完成与异常：</strong>外部业务确认来源系统落账，自有业务确认 Dataverse 权威记录更新。失败或结果未知进入异常待处理，核实后从原阶段恢复，禁止重复落账。</li>
+            <li><strong>拒绝与撤回：</strong>按规则拒绝或按阶段权限撤回后终止案件；再申请创建关联历史的新案件。已生效业务另走撤销或补偿，不能靠改状态撤销交易；抄送仅通知，不授予批准权。</li>
+          </ul>
+
+          <h3>5.5 步骤推进与结果汇总</h3>
+          <div class="table-scroll">
+            <table class="simple-table">
+              <thead><tr><th>推进环节</th><th>条件与结果</th></tr></thead>
+              <tbody>
+                <tr><td>步骤内与跨步骤流转</td><td>跨 STEP 按审批计划检查先后及并行前置条件，满足后才启动步骤；同一 STEP 内按 TASK 依赖开放可办理任务。独立并行任务可同时办理，不强制排成串行。</td></tr>
+                <tr><td>步骤结果汇总</td><td>直属 TASK 的有效决定须满足任一批准或全部批准，同时全部必需加签依赖均满足规则，才可判定 STEP 通过。拒绝按政策处理；否决独立判断，有效否决阻止通过，不被任一／全部批准覆盖。嵌套加签 B、C 只解除依赖，不作为额外票数替代 A。</td></tr>
+                <tr><td>后续推进与退回</td><td>STEP 有效通过后重新检查后续步骤的启动条件；全部必需 STEP 通过且无有效否决，CASE 才进入待回写。退回／复审开启新轮次，冻结受影响后续步骤及任务；退申请人时补件重提并重新校验，保留未受影响的决定与全部历史。</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3 id="human-task-control">5.6 任务操作与加签</h3>
+          <h4>任务状态与审批决定</h4>
+          <div class="table-scroll">
+            <table class="simple-table">
+              <thead><tr><th>任务状态</th><th>操作与下一状态</th><th>结果边界</th></tr></thead>
+              <tbody>
+                <tr><td>待处理</td><td>领取／打开 → 处理中</td><td>仅当前有效且前置条件满足的任务可办理</td></tr>
+                <tr><td>处理中</td><td>前加签 → 等待加签；提交有效决定 → 已完成</td><td>已完成同时记录批准或拒绝，二者不能混用</td></tr>
+                <tr><td>等待加签</td><td>全部必需前置满足规则 → 待处理</td><td>恢复本人办理，不自动批准；拒绝按政策处置</td></tr>
+                <tr><td>已完成</td><td>本轮办理结束</td><td>决定参与 STEP 汇总，复审另开新轮次</td></tr>
+                <tr><td>已取消</td><td>待处理／处理中／等待加签可因撤回或失效转入</td><td>取消不等于批准，迟到结果不得重新激活任务</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h4>连续前加签示例：A、B、C 依次等待与恢复</h4>
+          <p>财务主审 A 前加签 B，B 再前加签 C；三项 TASK 同属财务 STEP。A 等 B，B 等 C。财务步骤汇总直属任务 A 与并行复核 D；B、C 的批准只解除依赖，不能代替 A 投票。</p>
+          <div class="table-scroll">
+            <table class="simple-table">
+              <thead><tr><th>事件</th><th>A</th><th>B</th><th>C</th><th>STEP / CASE</th></tr></thead>
+              <tbody>
+                <tr><td>两次前加签已建立</td><td>等待 B</td><td>等待 C</td><td>待处理</td><td>财务进行中；案件审批中</td></tr>
+                <tr><td>C 办理并批准</td><td>仍等待 B</td><td>待处理，尚未决定</td><td>已完成·批准</td><td>C 不自动批准 B 或 A；财务仍进行中</td></tr>
+                <tr><td>B 办理并批准</td><td>待处理，尚未决定</td><td>已完成·批准</td><td>已完成·批准</td><td>B 不自动批准 A；案件仍审批中</td></tr>
+                <tr><td>A 办理并批准</td><td>已完成·批准</td><td>已完成·批准</td><td>已完成·批准</td><td>汇总 A、D，不重复计入 B、C；尚有必需步骤时 CASE 仍审批中</td></tr>
+                <tr><td>另一分支：C 拒绝</td><td>不能自动通过</td><td>不能自动恢复常规审批</td><td>已完成·拒绝</td><td>按政策终结步骤、退回，或交授权人处理；不得按批准链继续</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <ul class="layer-list">
+            <li><span class="layer-number">1</span><span><strong>统一处理：</strong>审批运行时服务校验身份、任务资格、轮次及有效决定，重评等待中的直接父任务及其全部必需前置任务。全部满足才恢复父任务，否则继续等待或按拒绝／否决政策处置，再汇总 STEP 与 CASE。</span></li>
+            <li><span class="layer-number">2</span><span><strong>可恢复同步：</strong>持久保存依赖和业务事件，支持失败后重新评估、重复事件去重及幂等推进，防止漏恢复或重复生效。终止案件、取消任务与失效轮次不接受迟到结果重新开启。</span></li>
+            <li><span class="layer-number">3</span><span><strong>受控续办：</strong>恢复后可以再次申请加签，但须检查资格、职责分离、循环依赖与配置的深度限制并留痕。各入口只提交操作；Agent 仅解释和建议，无权批准或代人授权。</span></li>
+          </ul>
+
+          <h4>任务操作及其影响</h4>
+          <div class="table-scroll">
+          <table class="simple-table">
+            <thead><tr><th>动作与层级</th><th>原任务与新增任务</th><th>STEP / CASE 影响</th></tr></thead>
+            <tbody>
+              <tr><td>条件追加审批 · STEP</td><td>例如命中金额条件新增财务责任，通常新增 STEP 及其 TASK</td><td>CASE 增加必需步骤，按计划设置先后或并行；不等同于人员加签</td></tr>
+              <tr><td>前加签 · TASK</td><td>原任务等待；新增必需前置任务先办理</td><td>同一 STEP 保持进行中；前置满足后恢复原任务，CASE 仍审批中</td></tr>
+              <tr><td>后加签 · TASK</td><td>原任务可完成本人意见，再由新增后继任务办理</td><td>同一 STEP 等后继满足规则才通过，CASE 不提前回写</td></tr>
+              <tr><td>并行加签 · TASK</td><td>原任务仍可办理，新增任务同时可用</td><td>修订当前 STEP 汇总规则；不移除强制审批，终局确定后其余任务失效</td></tr>
+              <tr><td>改派／转交 · TASK</td><td>同一任务更换合资格处理人，不新增审批任务、不算完成</td><td>责任要求不变；记录前后人员、操作者、时间和原因，旧处理人的响应失效</td></tr>
+              <tr><td>外出委托 · TASK</td><td>授权代理人办理，默认不新增审批任务；记录实际与被代理身份</td><td>规则不变；核验范围、期限，拒绝自批、循环与职责冲突，撤销后禁止新代理操作</td></tr>
+              <tr><td>退回／复审 · STEP、CASE</td><td>退申请人进入待补件并重新校验；退前序开新轮次，暂停受影响后续任务</td><td>保留历史及未受影响决定；关键事实变化重算要求，受影响 STEP 重审，不抹去旧轮次</td></tr>
+            </tbody>
+          </table>
+          </div>
+          <p><strong>续办保障：</strong>Dataverse 保存唯一有效状态、材料、政策、决定与轮次；使用兼容版本恢复，失配转异常并通知流程负责人，由授权人员核实处理，不依赖原运行持续存活。所有加签记录原因；撤回与批准并发时只接受一个有效终局。</p>
+          <p><strong>原生能力：</strong>prompt 支持内容生成。[7] Approvals 支持 Outlook、Teams 响应。[9][10] Power Pages 提供认证与表权限。[17][18]</p>
+          <p>Request information 经 Outlook 收集租户内首个响应后继续运行。[8] First to respond 由首个批准或拒绝结束，不等于任一批准。[32]</p>
+          <p><strong>方案扩展：</strong>跨入口补件、加签依赖、指定前序退回、分层汇总与长期续办须另行实现；上述原生能力不构成这些机制的交付证明。</p>
         </section>
 
         <section id="governance" class="section" data-reveal>
           <div class="section-head">
-            <p class="section-kicker" data-zh="06 / 可靠性与治理" data-en="06 / Reliability and Governance">06 / 可靠性与治理</p>
-            <h2 data-zh="决定权、失败恢复和发布控制必须独立于生成式判断" data-en="Decision Authority, Failure Recovery, and Release Controls Must Remain Independent of Generative Judgment">决定权、失败恢复和发布控制必须独立于生成式判断</h2>
+            <p class="section-kicker">06 / 安全与治理</p>
+            <h2>安全与治理</h2>
             <p data-zh="生产环境用三组横切控制约束全部组件：Agent、Workflow 与人员分别拥有明确决定权；回写失败保持 WritebackPending 或进入 Exception，不能伪装成完成；身份、DLP、Dataverse 权限、Credits 容量和 Dev → Test → Prod 发布门分别设定生产阈值。任何未授权访问或重复过账都直接触发试点停止条件。[2][3][5][12][13][14][15]" data-en="Three cross-cutting controls constrain every production component. Agents, workflows, and people hold explicit decision authority; failed writeback remains WritebackPending or enters Exception rather than appearing complete; identity, DLP, Dataverse authorization, credit capacity, and Dev-to-Test-to-Prod release gates each have production thresholds. Any unauthorized access or duplicate posting stops the pilot.[2][3][5][12][13][14][15]">生产环境用三组横切控制约束全部组件：Agent、Workflow 与人员分别拥有明确决定权；回写失败保持 WritebackPending 或进入 Exception，不能伪装成完成；身份、DLP、Dataverse 权限、Credits 容量和 Dev → Test → Prod 发布门分别设定生产阈值。任何未授权访问或重复过账都直接触发试点停止条件。[2][3][5][12][13][14][15]</p>
           </div>
 
@@ -2178,7 +2302,7 @@
                 <p data-zh="三类执行者各自拥有明确决定权；Agent 的生成式规划不能覆盖 workflow 规则，也不能覆盖人员审批。" data-en="Each executor owns explicit decisions. Generative agent planning can't override workflow rules or human approvals.">三类执行者各自拥有明确决定权；Agent 的生成式规划不能覆盖 workflow 规则，也不能覆盖人员审批。</p>
                 <div class="comparison-grid platform-grid-three">
                   <article class="comparison-card next"><span class="comparison-label" data-zh="Agent" data-en="Agent">Agent</span><h3 data-zh="理解、解释与选择受控工具" data-en="Interpret, Explain, and Select Controlled Tools">理解、解释与选择受控工具</h3><p data-zh="可分类事项、整合证据、识别缺失、选择已发布 workflow、解释状态与发起催办；不能自创工具、金额或审批规则。[5]" data-en="Can classify cases, assemble evidence, identify gaps, select a published workflow, explain status, and initiate follow-up. It can't invent tools, amounts, or approval policy.[5]">可分类事项、整合证据、识别缺失、选择已发布 workflow、解释状态与发起催办；不能自创工具、金额或审批规则。[5]</p></article>
-                  <article class="comparison-card"><span class="comparison-label" data-zh="Workflow" data-en="Workflow">Workflow</span><h3 data-zh="计算、校验、授权与回写" data-en="Calculate, Validate, Authorize, and Write Back">计算、校验、授权与回写</h3><p data-zh="拥有金额公式、审批矩阵、SLA、连接器输入、幂等键、重试和补偿逻辑；生成式输出只能作为显式字段进入规则判断。" data-en="Owns amount formulas, approval matrices, SLAs, connector inputs, idempotency keys, retries, and compensation. Generated output enters rules only through explicit fields.">拥有金额公式、审批矩阵、SLA、连接器输入、幂等键、重试和补偿逻辑；生成式输出只能作为显式字段进入规则判断。</p></article>
+                  <article class="comparison-card"><span class="comparison-label" data-zh="Workflow" data-en="Workflow">Workflow</span><h3 data-zh="计算、校验、授权与回写" data-en="Calculate, Validate, Authorize, and Write Back">计算、校验、授权与回写</h3><p>执行层调用版本化规则服务计算金额和审批计划，由审批命令服务校验身份、任务与期限，适配器处理幂等回写和对账。规则内容独立配置，生成式提取必须经事实核验才能参与计算，不能直接成为授权依据。</p></article>
                   <article class="comparison-card"><span class="comparison-label" data-zh="Human" data-en="Human">Human</span><h3 data-zh="补充事实并承担最终责任" data-en="Supply Facts and Own Final Accountability">补充事实并承担最终责任</h3><p data-zh="信息提供者确认缺失字段；审批人完成批准、拒绝、退回或委派。每次操作保存身份、时间、意见和所见证据版本。" data-en="Information providers confirm missing fields; approvers approve, reject, return, or delegate. Every action stores identity, time, rationale, and the evidence version shown.">信息提供者确认缺失字段；审批人完成批准、拒绝、退回或委派。每次操作保存身份、时间、意见和所见证据版本。</p></article>
                 </div>
                 <p class="quote-block" data-zh="失败样例：合同读取失败时，Agent 标记「合同内容未知」，workflow 转入 Request information 或人工审阅；禁止 Agent 根据供应商历史补写本合同条款。" data-en="Failure example: if contract extraction fails, the agent marks Contract content unknown and the workflow enters Request information or manual review. The agent must not infer this contract's terms from supplier history.">失败样例：合同读取失败时，Agent 标记「合同内容未知」，workflow 转入 Request information 或人工审阅；禁止 Agent 根据供应商历史补写本合同条款。</p>
@@ -2201,28 +2325,111 @@
             <article class="subsection-item" data-accordion data-present-step data-step-title="安全、DLP 与 ALM 边界" data-step-title-en="Security, DLP, and ALM Boundaries" data-step-label="06 / 治理" data-step-label-en="06 / Governance">
               <button class="subsection-toggle"><span data-zh="6.3 安全、DLP 与 ALM 边界" data-en="6.3 Security, DLP, and ALM Boundaries">6.3 安全、DLP 与 ALM 边界</span></button>
               <div class="subsection-content">
-                <p data-zh="Agentic 运行时增加了触发身份、工具权限、Credits 容量和 preview 边界；四项必须分别设定生产门槛。" data-en="The agentic runtime adds trigger identity, tool authorization, credit capacity, and preview boundaries. Each requires its own production gate.">Agentic 运行时增加了触发身份、工具权限、Credits 容量和 preview 边界；四项必须分别设定生产门槛。</p>
+                <p>触发身份、工具权限、Credits 容量与实际功能可用性分别设置生产门槛；以下配置之外，还需实现身份、职责分离、数据生命周期和 AI 停用控制。</p>
                 <ul class="layer-list">
                   <li><span class="layer-number">1</span><span data-zh="触发身份：event trigger 当前只使用 agent maker credentials；生产使用专用低权限 maker 账号，并把 payload 缩到最小字段。[2]" data-en="Trigger identity: event triggers currently use agent-maker credentials only. Production uses a dedicated least-privileged maker account and minimizes trigger payloads.[2]">触发身份：event trigger 当前只使用 agent maker credentials；生产使用专用低权限 maker 账号，并把 payload 缩到最小字段。[2]</span></li>
                   <li><span class="layer-number">2</span><span data-zh="工具与数据：DLP 控制 connector 组合，Dataverse 角色限制表、列与记录；Agent 只获得完成当前流程所需工具。[12][14]" data-en="Tools and data: DLP governs connector combinations, Dataverse roles restrict tables, columns, and records, and the agent receives only the tools needed for the current process.[12][14]">工具与数据：DLP 控制 connector 组合，Dataverse 角色限制表、列与记录；Agent 只获得完成当前流程所需工具。[12][14]</span></li>
                   <li><span class="layer-number">3</span><span data-zh="容量：每 100 个 Copilot Studio Workflow action 消耗 13 Copilot Credits；预付容量耗尽会阻止新 Workflow run，生产环境启用告警、月度上限和 PAYG 连续性方案。[3]" data-en="Capacity: every 100 Copilot Studio Workflow actions consume 13 Copilot Credits. Exhausted prepaid capacity blocks new workflow runs, so production uses alerts, monthly limits, and a pay-as-you-go continuity plan.[3]">容量：每 100 个 Copilot Studio Workflow action 消耗 13 Copilot Credits；预付容量耗尽会阻止新 Workflow run，生产环境启用告警、月度上限和 PAYG 连续性方案。[3]</span></li>
                   <li><span class="layer-number">4</span><span data-zh="发布与风险：Agent、Copilot Studio Workflow、prompt、connector 与 Dataverse 表进入 Solution，经 Dev → Test → Prod；preview action 不进入关键生产路径，AI 风险按持续治理、测量和处置执行。[13][15]" data-en="Release and risk: agents, Copilot Studio Workflows, prompts, connectors, and Dataverse tables enter Solutions and move through Dev → Test → Prod. Preview actions stay out of critical production paths, and AI risk follows continuous governance, measurement, and treatment.[13][15]">发布与风险：Agent、Copilot Studio Workflow、prompt、connector 与 Dataverse 表进入 Solution，经 Dev → Test → Prod；preview action 不进入关键生产路径，AI 风险按持续治理、测量和处置执行。[13][15]</span></li>
                 </ul>
+                <p>以下为拟交付控制及验收要求，不是产品认证或已实现声明。</p>
+                <table class="simple-table">
+                  <thead><tr><th>控制</th><th>实施要求</th><th>验收判据</th></tr></thead>
+                  <tbody>
+                    <tr><td>身份与职责分离</td><td>按实际身份、角色、组织及任务资格授权；规则编制与发布分权，maker 连接身份不代表业务操作者</td><td>拒绝冒名、自批、过期或循环代理、委托冲突、跨组织越权及自行发布；代理保留双方身份</td></tr>
+                    <tr><td>传输与静态加密</td><td>逐服务确认传输、存储、备份加密及密钥责任；客户管理密钥以服务和许可支持为前提</td><td>提供配置与合同证据，拒绝未加密入口；核验密钥权限，演练轮换与恢复，不承诺统一 CMK</td></tr>
+                    <tr><td>审计与独立留存</td><td>Dataverse 审计需配置环境、表、列及容量、保留和权限；有权管理员可删除记录，读取／导出可能需额外日志。[37]</td><td>核验实际身份、关键字段和删除权限；按需另建独立归档并对账，审批运营账号无删除权，不称原生审计不可删除</td></tr>
+                    <tr><td>保留、删除与 GDPR</td><td>按目的与数据类别约定期限、责任及法律保留，覆盖案件、附件、提示词、索引、日志和备份；不宣称方案获 GDPR 认证</td><td>演练数据主体查找、导出、更正与删除请求；记录法律及备份到期限制，恢复后重施删除清单，合同明确双方责任</td></tr>
+                    <tr><td>AI 隔离与停用</td><td>服务端限制工具与数据权限；停用须阻断新 Agent 触发、AI 工具调用及在途输出提交，已发生业务影响另行对账</td><td>提示注入与停用后迟到输出均不得推进审批；确定性规则、事件处理及人工工作台继续办理</td></tr>
+                  </tbody>
+                </table>
               </div>
             </article>
 
           </div>
         </section>
 
+        <section id="admin-lifecycle" class="section">
+          <div class="section-head">
+            <p class="section-kicker">07 / 客户自助与版本发布</p>
+            <h2>客户自助与版本发布</h2>
+            <p>无代码自助限于受训管理员可完成的约定变更，平台初建仍需开发。规则、表单、Workflow 与连接配置分别保留版本，并共同验证发布兼容性。</p>
+          </div>
+          <div class="comparison-grid">
+            <article class="comparison-card"><span class="comparison-label">客户管理员</span><h3>配置常用变化</h3><p>调整已支持的条件、阈值、角色、组织和表单校验，预览影响；通过培训独立完成配置、发布申请及回滚演练。</p></article>
+            <article class="comparison-card"><span class="comparison-label">专业开发</span><h3>扩展能力边界</h3><p>负责新增执行语义、复杂计算、系统接入与破坏性数据变更；评估迁移方案，交付测试样本、操作及恢复手册。</p></article>
+          </div>
+          <ol class="flow-list">
+            <li class="flow-step"><div class="flow-copy"><strong>开发环境设计</strong><p>保存规则、表单与流程版本，明确新旧兼容范围；配置数据单独纳入交付，Solution 部署不迁移表中业务数据。[33]</p></div></li>
+            <li class="flow-step"><div class="flow-copy"><strong>测试环境验证</strong><p>使用合成或脱敏样本验证政策差异、历史材料、在途续办及回滚；不兼容版本不得晋级。</p></div></li>
+            <li class="flow-step"><div class="flow-copy"><strong>生产环境发布</strong><p>由独立发布人批准新案件入口，保留旧表单与兼容流程供在途案件使用，保留成本纳入运营预算。</p></div></li>
+          </ol>
+          <h3>回滚边界</h3>
+          <ul>
+            <li>新案件恢复到已验证的默认发布版本。</li>
+            <li>在途案件沿用原版本；迁移须另经测试与业务批准，无法兼容时暂停办理。</li>
+            <li>回退定义不撤销历史决定、破坏性数据变更或外部交易；另作兼容修复、数据迁移或业务补偿。</li>
+          </ul>
+          <table class="simple-table">
+            <thead><tr><th>表单来源</th><th>版本与权威边界</th></tr></thead>
+            <tbody>
+              <tr><td>来源系统表单</td><td>保留原入口与业务权威；须有可读历史版本或授权快照，否则不能承诺重现当时材料。</td></tr>
+              <tr><td>平台表单</td><td>Power Apps／Power Pages 办理内外部申请，Dataverse 为主记录；表单、提交材料及附件共同留版，历史只读呈现需实施。</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="platform-operations" class="section">
+          <div class="section-head">
+            <p class="section-kicker">08 / 运行监控与故障处理</p>
+            <h2>运行监控与故障处理</h2>
+            <p>技术运行成功不等于案件完成。方案拟提供实例运营工作台，帮助管理员识别等待、补件与集成故障；干预须经过授权并留痕，不直接修改数据库状态。</p>
+          </div>
+          <div class="insight-grid platform-grid-three">
+            <article class="insight-card"><span class="card-index">01</span><h3>搜索案件</h3><p>按业务标识、组织、负责人、状态和超期情况查询，查看当前阶段、采用版本及待办责任人。</p></article>
+            <article class="insight-card"><span class="card-index">02</span><h3>双向追踪</h3><p>从案件追溯入站事件、审批决定与出站调用结果；区分尚未处理、失败和结果未知，日志脱敏且不记录令牌。</p></article>
+            <article class="insight-card"><span class="card-index">03</span><h3>受控恢复</h3><p>授权人员可补齐岗位映射、改派、重试或停止案件，记录影响、身份与原因；Agent 仅准备摘要，不自行重放业务操作。</p></article>
+          </div>
+          <ol class="flow-list">
+            <li class="flow-step"><div class="flow-copy"><strong>发现</strong><p>分别监控人员超期、缺少审批人、集成故障与容量风险。Credits 预付容量耗尽可能阻止新执行。[3]</p></div></li>
+            <li class="flow-step"><div class="flow-copy"><strong>诊断</strong><p>核对来源状态和业务凭证；结果不可确认或无法防止重复落账时，转人工对账。</p></div></li>
+            <li class="flow-step"><div class="flow-copy"><strong>恢复</strong><p>修复后核验案件与来源一致，确保不重复过账；演练执行中断及备份恢复，实测约定的数据丢失容忍度和恢复时间。</p></div></li>
+          </ol>
+          <p><strong>接入与服务边界：</strong>拟交付受控 REST 接口和事件接入，连接 CRM、ERP 与主数据系统（MDM）；渠道、容量及恢复目标逐项验收，单项产品 SLA 不代表端到端服务承诺。</p>
+        </section>
+
+        <section id="deployment-boundary" class="section">
+          <div class="section-head">
+            <p class="section-kicker">09 / 部署与数据驻留</p>
+            <h2>部署与数据驻留</h2>
+            <p>EU 托管、指定国家部署和外部 AI 限制须分别核验。每个部署组合都要提供数据流及合同证据；本方案尚未证明严格 EU 成员国限定的端到端部署可行。</p>
+          </div>
+          <table class="simple-table">
+            <thead><tr><th>数据路径</th><th>目标控制</th><th>必须取得的证据</th></tr></thead>
+            <tbody>
+              <tr><td>Dataverse、应用与 Workflow</td><td>选择符合约束的服务与环境，隔离开发、测试和生产</td><td>服务适用条件、处理与存储位置、备份和恢复地区</td></tr>
+              <tr><td>Agent、模型与知识</td><td>仅启用批准的模型、知识源及出口；相关 AI 设置影响数据流向。[36]</td><td>提示词、附件、索引、会话和遥测位置；方案须逐路径核验，单一 AI 开关不足以证明全链路受限</td></tr>
+              <tr><td>Teams、Outlook、Power Pages 与来源系统</td><td>通知与文件链接最小化，限制接收及访问范围</td><td>Microsoft 365、站点、外部接口与附件副本的位置及访问条件</td></tr>
+              <tr><td>日志、支持与分包</td><td>限制诊断导出及远程访问，约定人员与服务地点</td><td>子处理者、支持升级、安全运营、备份删除及境外访问条款</td></tr>
+            </tbody>
+          </table>
+          <p><strong>地域边界：</strong>微软 EU Data Boundary 包含 EU 与 EFTA，且有持续传输及境外人员访问例外。[34][35] 因此，本方案不能据此承诺严格 EU-only；合法跨境传输依据也不能替代客户的驻留要求。</p>
+          <ul class="layer-list">
+            <li><span class="layer-number">1</span><span><strong>可用服务：</strong>固定执行体验、版本与区域。agent flows 与另一套 Workflows 体验分别提供。[1][4] 预览／试用不自动适用正式付费服务的驻留承诺。[35]</span></li>
+            <li><span class="layer-number">2</span><span><strong>AI 降级：</strong>模型不可用或未获批准时，保留人工和确定性审批，不自动转向未经批准的境外模型。</span></li>
+            <li><span class="layer-number">3</span><span><strong>合同准入：</strong>法务须确认处理、存储及远程访问满足原始约束；必要服务证据不足或无法满足时不准入，增加审批模块不能解除该限制。</span></li>
+          </ul>
+        </section>
+
         <section id="configuration" class="section" data-reveal>
           <div class="section-head">
-            <p class="section-kicker" data-zh="07 / 产品配置工具" data-en="07 / Product Configuration Workbench">07 / 产品配置工具</p>
-            <h2 data-zh="先识别来源系统接入能力，再估算运行容量与产品组合" data-en="Classify Source Integration Before Sizing Runtime Capacity and Products">先识别来源系统接入能力，再估算运行容量与产品组合</h2>
+            <p class="section-kicker">10 / 产品配置</p>
+            <h2>产品配置</h2>
             <p data-zh="基础组合固定为 Source Adapter、Copilot Studio 流程 Agent、Copilot Studio Workflow、Dataverse、Power Pages 统一工作台与 Microsoft 365 内部审批入口。配置向导依次采集接入能力、流程规模、Credits 用量和可选能力，下方实时生成容量摘要与完整产品清单。Copilot Studio PAYG、Power Apps Premium、Power Pages、Power BI Pro 与 Power Automate Process 进入已计价合计；APIM 区域 SKU、RPA 运行机器、外部身份提供商、税费和合同折扣另行核算。[3][16][19][20][21][22][25][27][29][30]" data-en="The core stack is a source adapter, Copilot Studio process agent, Copilot Studio Workflow, Dataverse, a Power Pages unified workbench, and Microsoft 365 internal approval surfaces. The wizard captures integration capabilities, process scale, Copilot Credit usage, and optional capabilities in sequence, while the full-width results below update the capacity summary and product list in real time. Priced totals include Copilot Studio pay-as-you-go, Power Apps Premium, Power Pages, Power BI Pro, and Power Automate Process; regional APIM SKUs, RPA runtime machines, external identity providers, taxes, and contract discounts remain separate.[3][16][19][20][21][22][25][27][29][30]">基础组合固定为 Source Adapter、Copilot Studio 流程 Agent、Copilot Studio Workflow、Dataverse、Power Pages 统一工作台与 Microsoft 365 内部审批入口。配置向导依次采集接入能力、流程规模、Credits 用量和可选能力，下方实时生成容量摘要与完整产品清单。Copilot Studio PAYG、Power Apps Premium、Power Pages、Power BI Pro 与 Power Automate Process 进入已计价合计；APIM 区域 SKU、RPA 运行机器、外部身份提供商、税费和合同折扣另行核算。[3][16][19][20][21][22][25][27][29][30]</p>
           </div>
 
           <div class="config-tool" data-gap-managed>
-            <div class="tool-panel" data-present-step data-present-surface="unframed" data-step-title="配置流程特征" data-step-title-en="Configure Process Characteristics" data-step-label="07 / 配置" data-step-label-en="07 / Configure">
+            <div class="tool-panel" data-present-step data-present-surface="unframed" data-step-title="配置流程特征" data-step-title-en="Configure Process Characteristics" data-step-label="10 / 配置" data-step-label-en="10 / Configure">
               <div class="config-wizard-nav" role="tablist" aria-label="产品配置步骤">
                 <button class="config-wizard-tab" type="button" role="tab" id="cfgWizardTab0" aria-selected="true" aria-controls="cfgWizardStep0" data-config-wizard-tab="0"><span>01</span><strong data-zh="接入能力" data-en="Integration">接入能力</strong></button>
                 <button class="config-wizard-tab" type="button" role="tab" id="cfgWizardTab1" aria-selected="false" aria-controls="cfgWizardStep1" data-config-wizard-tab="1"><span>02</span><strong data-zh="流程与用户" data-en="Process and Users">流程与用户</strong></button>
@@ -2331,7 +2538,7 @@
               </div>
             </div>
 
-            <div class="tool-panel" data-present-step data-present-surface="unframed" data-step-title="Agentic 产品栈、Credits 与 Power Pages 容量" data-step-title-en="Recommended Agentic Stack, Credits, and Power Pages Capacity" data-step-label="07 / 推荐方案" data-step-label-en="07 / Recommendation">
+            <div class="tool-panel" data-present-step data-present-surface="unframed" data-step-title="Agentic 产品栈、Credits 与 Power Pages 容量" data-step-title-en="Recommended Agentic Stack, Credits, and Power Pages Capacity" data-step-label="10 / 推荐方案" data-step-label-en="10 / Recommendation">
               <div data-present-substep data-step-title="容量与计费摘要" data-step-title-en="Capacity and Billing Summary">
                 <h3 data-zh="推荐 Agentic 运行基线与容量估算" data-en="Recommended Agentic Runtime and Capacity Estimate">推荐 Agentic 运行基线与容量估算</h3>
                 <p data-zh="Copilot Credits 分别计算 Agent actions、Generative answers、Workflow actions、AI tool tokens 和文档页；Power Apps Premium 按流程管理员人数配置，Power Pages 按每个网站每月唯一认证用户数估算。[3][16]" data-en="Copilot Credits separately meter agent actions, generative answers, workflow actions, AI tool tokens, and document pages. Power Apps Premium follows the process-administrator count, while Power Pages capacity follows unique authenticated users per website per month.[3][16]">Copilot Credits 分别计算 Agent actions、Generative answers、Workflow actions、AI tool tokens 和文档页；Power Apps Premium 按流程管理员人数配置，Power Pages 按每个网站每月唯一认证用户数估算。[3][16]</p>
@@ -2367,13 +2574,13 @@
 
         <section id="roi" class="section" data-reveal>
           <div class="section-head">
-            <p class="section-kicker" data-zh="08 / ROI 评估计算器" data-en="08 / ROI Assessment Calculator">08 / ROI 评估计算器</p>
-            <h2 data-zh="分别输入管理层时间价值、资料返工和项目成本" data-en="Model Management Time, Evidence Rework, and Project Cost Separately">分别输入管理层时间价值、资料返工和项目成本</h2>
+            <p class="section-kicker">11 / 成本与收益测算</p>
+            <h2>成本与收益测算</h2>
             <p data-zh="计算器统一使用 USD。收益分为三类：节省不同管理层的审批时间、减少资料不全造成的返工、减少审批延误造成的损失。成本分为产品年费、项目一次性实施费用、客户侧可选增量支持和报价单外费用。上方产品报价自动带入，不需要重复填写。默认值仅用于方案测算，正式立项前应由客户业务和财务团队确认。" data-en="The calculator uses USD throughout. Benefits come from three sources: management time saved, less rework caused by incomplete evidence, and lower losses from approval delay. Costs consist of annual product fees, one-time project implementation, optional incremental customer support, and costs outside the quote. Product pricing flows in automatically and is not entered twice. Defaults support proposal modeling and must be confirmed by customer business and finance teams before funding.">计算器统一使用 USD。收益分为三类：节省不同管理层的审批时间、减少资料不全造成的返工、减少审批延误造成的损失。成本分为产品年费、项目一次性实施费用、客户侧可选增量支持和报价单外费用。上方产品报价自动带入，不需要重复填写。默认值仅用于方案测算，正式立项前应由客户业务和财务团队确认。</p>
           </div>
 
           <div class="roi-calc" data-gap-managed>
-            <div class="roi-panel" data-present-step data-present-surface="unframed" data-step-title="ROI 测算参数" data-step-title-en="ROI Assumptions" data-step-label="08 / 输入参数" data-step-label-en="08 / Inputs">
+            <div class="roi-panel" data-present-step data-present-surface="unframed" data-step-title="ROI 测算参数" data-step-title-en="ROI Assumptions" data-step-label="11 / 输入参数" data-step-label-en="11 / Inputs">
               <div class="config-wizard-nav roi-wizard-nav" role="tablist" aria-label="ROI 测算步骤">
                 <button class="config-wizard-tab" type="button" role="tab" id="roiWizardTab0" aria-selected="true" aria-controls="roiWizardStep0" data-roi-wizard-tab="0"><span>01</span><strong data-zh="业务量与时间" data-en="Volume and Time">业务量与时间</strong></button>
                 <button class="config-wizard-tab" type="button" role="tab" id="roiWizardTab1" aria-selected="false" aria-controls="roiWizardStep1" data-roi-wizard-tab="1"><span>02</span><strong data-zh="返工与延误" data-en="Rework and Delay">返工与延误</strong></button>
@@ -2439,7 +2646,7 @@
               </div>
             </div>
 
-            <div class="roi-panel" data-present-step data-present-surface="unframed" data-step-title="ROI 结果与投资门槛" data-step-title-en="ROI Results and Investment Gate" data-step-label="08 / 测算结果" data-step-label-en="08 / Results">
+            <div class="roi-panel" data-present-step data-present-surface="unframed" data-step-title="ROI 结果与投资门槛" data-step-title-en="ROI Results and Investment Gate" data-step-label="11 / 测算结果" data-step-label-en="11 / Results">
               <div data-present-substep data-step-title="ROI 指标总览" data-step-title-en="ROI Metrics Overview">
                 <h3 data-zh="收益与投资判断" data-en="Benefits and Investment View">收益与投资判断</h3>
                 <p data-zh="上方只保留在估算区间内固定的一次性实施费用和结论性指标；每年的预计收益、产品费用与持续投入统一在下方逐年表中展示。回收期按累计年度净收益抵扣一次性净投入计算。" data-en="The overview retains only one-time implementation cost, which is fixed across the selected horizon, and decision metrics. Expected benefit, product cost, and recurring investment by year appear only in the year-by-year table below. Payback applies cumulative annual net benefit against net one-time investment.">上方只保留在估算区间内固定的一次性实施费用和结论性指标；每年的预计收益、产品费用与持续投入统一在下方逐年表中展示。回收期按累计年度净收益抵扣一次性净投入计算。</p>
@@ -2525,14 +2732,14 @@
 
         <section id="delivery" class="section" data-reveal>
           <div class="section-head">
-            <p class="section-kicker" data-zh="09 / 分阶段交付计划" data-en="09 / Phased Delivery Plan">09 / 分阶段交付计划</p>
-            <h2 data-zh="从一个流程开始，按验证结果逐步扩展到企业平台" data-en="Start with One Process and Scale to an Enterprise Platform Through Evidence">从一个流程开始，按验证结果逐步扩展到企业平台</h2>
+            <p class="section-kicker">12 / 实施与交接</p>
+            <h2>实施与交接</h2>
             <p data-zh="首期只选一个流程、一个责任部门和一组明确指标；每阶段都有交付范围和退出条件，未达标时保留原审批入口并停止扩展。" data-en="Phase one selects one process, one accountable function, and one explicit measure set. Every phase has a defined delivery scope and exit gate; when a gate fails, the original approval path remains available and expansion stops.">首期只选一个流程、一个责任部门和一组明确指标；每阶段都有交付范围和退出条件，未达标时保留原审批入口并停止扩展。</p>
           </div>
 
-          <ol class="flow-list" data-present-step data-step-title="四阶段交付计划" data-step-title-en="Four-Phase Delivery Plan" data-step-label="09 / 交付" data-step-label-en="09 / Delivery">
+          <ol class="flow-list" data-present-step data-step-title="四阶段交付计划" data-step-title-en="Four-Phase Delivery Plan" data-step-label="12 / 交付" data-step-label-en="12 / Delivery">
             <li class="flow-step"><div class="flow-copy"><strong data-zh="阶段 1 · 2 周发现与基线" data-en="Phase 1 · Two-Week Discovery and Baseline">阶段 1 · 2 周发现与基线</strong><p data-zh="选定一个月审批量足够、风险可控的流程；完成 4 项基线、ApprovalCase 字段映射、身份边界和回写接口评审。" data-en="Select one sufficiently frequent, controllable-risk process. Complete four baselines, ApprovalCase mapping, identity boundaries, and writeback API review.">选定一个月审批量足够、风险可控的流程；完成 4 项基线、ApprovalCase 字段映射、身份边界和回写接口评审。</p></div></li>
-            <li class="flow-step"><div class="flow-copy"><strong data-zh="阶段 2 · 4–6 周 Agent + Workflow PoC" data-en="Phase 2 · Four-to-Six-Week Agent and Workflow PoC">阶段 2 · 4–6 周 Agent + Workflow PoC</strong><p data-zh="用 PAYG 建立流程 Agent、一个 Copilot Studio Workflow、Prompt、Approval、Request information 与模拟回写；验证 Outlook-only、首个响应和租户边界。" data-en="Use pay-as-you-go to build the process agent, one Copilot Studio Workflow, a prompt, approval, Request information, and simulated writeback; validate Outlook-only delivery, first-response behavior, and tenant boundaries.">用 PAYG 建立流程 Agent、一个 Copilot Studio Workflow、Prompt、Approval、Request information 与模拟回写；验证 Outlook-only、首个响应和租户边界。</p></div></li>
+            <li class="flow-step"><div class="flow-copy"><strong data-zh="阶段 2 · 4–6 周 Agent + Workflow PoC" data-en="Phase 2 · Four-to-Six-Week Agent and Workflow PoC">阶段 2 · 4–6 周 Agent + Workflow PoC</strong><p>在选定环境验证一个 standard harness agent flow、流程 Agent、规则服务、HumanTask 命令服务与模拟回写。按需验证原生 Approval／Request information 的渠道映射、取消与迟到响应；同时演练短时运行结束后的版本化续办。所列周期仅用于单流程 PoC 排期，不承诺在该周期交付全部通用模块。</p></div></li>
             <li class="flow-step"><div class="flow-copy"><strong data-zh="阶段 3 · 6–8 周生产试点" data-en="Phase 3 · Six-to-Eight-Week Production Pilot">阶段 3 · 6–8 周生产试点</strong><p data-zh="限制到一个部门和明确金额阈值，保留原审批入口回退；连续 4 周对照业务指标，并记录每笔 Agent actions、Copilot Studio Workflow actions、Prompt tokens 与文档页数。" data-en="Restrict production to one function and an explicit amount threshold while retaining the original approval path. Compare business measures for four weeks and record agent actions, Copilot Studio Workflow actions, prompt tokens, and document pages per case.">限制到一个部门和明确金额阈值，保留原审批入口回退；连续 4 周对照业务指标，并记录每笔 Agent actions、Copilot Studio Workflow actions、Prompt tokens 与文档页数。</p></div></li>
             <li class="flow-step"><div class="flow-copy"><strong data-zh="阶段 4 · 按模板逐流程扩展" data-en="Phase 4 · Expand Process by Process with Templates">阶段 4 · 按模板逐流程扩展</strong><p data-zh="复用 Agent instructions、Copilot Studio Workflow、Prompt、Connector、Human Gate、ApprovalCase、DLP 和 ALM 模板；一次只增加一个流程或组织范围。" data-en="Reuse agent instructions, Copilot Studio Workflows, prompts, connectors, human gates, ApprovalCase, DLP, and ALM templates, adding only one process or organizational scope at a time.">复用 Agent instructions、Copilot Studio Workflow、Prompt、Connector、Human Gate、ApprovalCase、DLP 和 ALM 模板；一次只增加一个流程或组织范围。</p></div></li>
           </ol>
@@ -2540,18 +2747,18 @@
 
         <section id="case" class="section" data-reveal>
           <div class="section-head">
-            <p class="section-kicker" data-zh="10 / 客户案例" data-en="10 / Customer Case">10 / 客户案例</p>
-            <h2 data-zh="组合采购案例说明如何设置生产试点门槛" data-en="A Composite Procurement Case Shows How to Set a Pilot Gate">组合采购案例说明如何设置生产试点门槛</h2>
+            <p class="section-kicker">13 / 组合案例</p>
+            <h2>组合案例</h2>
             <p data-zh="以下是基于常见制造业采购审批特征构造的组合示例，不对应任何单一真实客户，也不宣称已经实现结果。它用于展示如何把业务问题、产品配置、基线、目标和扩展条件放进同一份试点章程。所有数字都必须由客户日志、财务口径和安全评审替换。" data-en="The following composite combines common manufacturing-procurement approval characteristics. It does not represent one real customer and does not claim realized outcomes. Its purpose is to show how business problems, product configuration, baselines, targets, and scale gates fit into one pilot charter. Every figure must be replaced with customer logs, finance definitions, and security review.">以下是基于常见制造业采购审批特征构造的组合示例，不对应任何单一真实客户，也不宣称已经实现结果。它用于展示如何把业务问题、产品配置、基线、目标和扩展条件放进同一份试点章程。所有数字都必须由客户日志、财务口径和安全评审替换。</p>
           </div>
 
-          <div class="insight-grid platform-grid-three" data-present-step data-step-title="制造业采购组合示例" data-step-title-en="Composite Manufacturing Procurement Scenario" data-step-label="10 / 组合案例" data-step-label-en="10 / Composite Case">
+          <div class="insight-grid platform-grid-three" data-present-step data-step-title="制造业采购组合示例" data-step-title-en="Composite Manufacturing Procurement Scenario" data-step-label="13 / 组合案例" data-step-label-en="13 / Composite Case">
             <article class="insight-card"><span class="card-index">01</span><h3 data-zh="现状假设" data-en="Illustrative Baseline">现状假设</h3><p data-zh="3 个来源系统，180 名审批人，月均 20,000 笔；单笔主动处理 7 分钟，材料退回率 10%，审批人需要分别登录采购、ERP 和合同系统。" data-en="Three source systems, 180 approvers, and 20,000 monthly requests. Active handling averages seven minutes, evidence returns are 10%, and approvers separately enter procurement, ERP, and contract systems.">3 个来源系统，180 名审批人，月均 20,000 笔；单笔主动处理 7 分钟，材料退回率 10%，审批人需要分别登录采购、ERP 和合同系统。</p></article>
             <article class="insight-card"><span class="card-index">02</span><h3 data-zh="试点范围" data-en="Pilot Scope">试点范围</h3><p data-zh="选择一个工厂、一个间接采购流程和 30 名审批人；保留原提交表单，接入预算、供应商状态和合同附件，Outlook/Teams 处理内部审批。" data-en="Select one plant, one indirect-procurement process, and 30 approvers. Retain the original intake form, connect budget, supplier status, and contract evidence, and process internal decisions in Outlook/Teams.">选择一个工厂、一个间接采购流程和 30 名审批人；保留原提交表单，接入预算、供应商状态和合同附件，Outlook/Teams 处理内部审批。</p></article>
             <article class="insight-card"><span class="card-index">03</span><h3 data-zh="产品配置" data-en="Product Configuration">产品配置</h3><p data-zh="Copilot Studio 流程 Agent + Copilot Studio Workflow + Dataverse + Power Pages 统一工作台 + Teams Approvals；原生 Prompt 与 Content processing 生成简报并提取附件；Custom Connector 回写 ERP；Power BI 分析流程。" data-en="A Copilot Studio process agent, Copilot Studio Workflow, Dataverse, a Power Pages unified workbench, and Teams Approvals; native prompts and content processing for briefs and attachments; a custom connector for ERP writeback; and Power BI for process analysis.">Copilot Studio 流程 Agent + Copilot Studio Workflow + Dataverse + Power Pages 统一工作台 + Teams Approvals；原生 Prompt 与 Content processing 生成简报并提取附件；Custom Connector 回写 ERP；Power BI 分析流程。</p></article>
           </div>
 
-          <div data-present-step data-step-title="试点通过与停止条件" data-step-title-en="Pilot Gates and Failure Conditions" data-step-label="10 / 试点门槛" data-step-label-en="10 / Pilot Gates">
+          <div data-present-step data-step-title="试点通过与停止条件" data-step-title-en="Pilot Gates and Failure Conditions" data-step-label="13 / 试点门槛" data-step-label-en="13 / Pilot Gates">
             <div class="table-scroll">
               <table class="simple-table">
                 <thead><tr><th data-zh="维度" data-en="Dimension">维度</th><th data-zh="组合示例基线" data-en="Composite Baseline">组合示例基线</th><th data-zh="8 周试点通过条件" data-en="Eight-Week Pilot Gate">8 周试点通过条件</th><th data-zh="停止扩展条件" data-en="Stop Condition">停止扩展条件</th></tr></thead>
@@ -2567,8 +2774,8 @@
           </div>
 
           <div class="subsection-accordion">
-            <article class="subsection-item" data-accordion data-present-step data-step-title="案例决策与下一步范围" data-step-title-en="Case Decision and Next Scope" data-step-label="10 / 决策" data-step-label-en="10 / Decision">
-              <button class="subsection-toggle"><span data-zh="10.1 达标后如何扩展，未达标时如何处理" data-en="10.1 How to Scale After Passing and Respond After Failure">10.1 达标后如何扩展，未达标时如何处理</span></button>
+            <article class="subsection-item" data-accordion data-present-step data-step-title="案例决策与下一步范围" data-step-title-en="Case Decision and Next Scope" data-step-label="13 / 决策" data-step-label-en="13 / Decision">
+              <button class="subsection-toggle"><span data-zh="13.1 达标后如何扩展，未达标时如何处理" data-en="13.1 How to Scale After Passing and Respond After Failure">13.1 达标后如何扩展，未达标时如何处理</span></button>
               <div class="subsection-content">
                 <p data-zh="扩展依据是试点门槛，不是演示反馈；每轮只增加一个流程或组织范围。" data-en="Scale follows pilot gates rather than demo feedback, and each wave adds only one process or organizational scope.">扩展依据是试点门槛，不是演示反馈；每轮只增加一个流程或组织范围。</p>
                 <div class="comparison-grid">
@@ -2580,24 +2787,70 @@
           </div>
         </section>
 
+        <section id="capability-acceptance" class="section">
+          <div class="section-head">
+            <p class="section-kicker">14 / 能力验收</p>
+            <h2>能力验收</h2>
+            <p>按客户 Must／Should 要求验收拟交付能力。设计覆盖不代表产品原生支持或系统已交付；只有适用版本、责任方及测试证据明确，才能声明满足。</p>
+          </div>
+          <table class="simple-table">
+            <thead><tr><th>能力／优先级</th><th>交付范围</th><th>业务验收结果</th></tr></thead>
+            <tbody>
+              <tr><td>POL / Must</td><td>开发独立多维矩阵、角色／组织规则及条件加签</td><td>调整阈值和映射不改主模型，缺失或冲突阻断审批</td></tr>
+              <tr><td>TASK / Must</td><td>开发加签、改派、退回、委托及任一／全部审批</td><td>同案续办、关键修改重审；历史保留，代理不越权，重复响应不重复推进</td></tr>
+              <tr><td>LIFE / Must</td><td>受限自助、流程／表单版本及开发测试生产发布</td><td>管理员独立配置；回滚保留在途版本、旧材料与续办能力</td></tr>
+              <tr><td>OPS / Must</td><td>交付搜索、干预、REST、事件与双向追踪</td><td>CRM／ERP／MDM 实际接通，故障可定位，恢复不重复落账</td></tr>
+              <tr><td>SEC / Must</td><td>身份／单点登录、角色权限、职责分离、加密、审计及数据生命周期控制</td><td>拒绝越权、自批、代理冲突、停用账号和注入攻击；访问与删除覆盖关联数据及备份政策</td></tr>
+              <tr><td>RES / Must</td><td>逐服务及合同核验本次 EU 成员国限制</td><td>数据流及支持访问符合要求；证据不足则不准入</td></tr>
+              <tr><td>EXT / Should</td><td>撤回／撤销、抄送与外部 AI 限制</td><td>结论唯一，抄送无批准权；AI 停用阻断新调用及在途输出，人工可继续</td></tr>
+              <tr><td>DEL / 商务</td><td>本地支持、培训、专业服务及透明许可待合同确认</td><td>服务与报价有依据，管理员通过操作考核</td></tr>
+            </tbody>
+          </table>
+          <ol class="flow-list">
+            <li class="flow-step"><div class="flow-copy"><strong>验证可复用需求</strong><p>保留优先级与未满足项；多轮补件、任务冲突及跨渠道响应按同案组合验证。</p></div></li>
+            <li class="flow-step"><div class="flow-copy"><strong>配置项目差异</strong><p>明确行业政策、组织与接口范围，预先约定规模、最长等待、性能及恢复目标。</p></div></li>
+            <li class="flow-step"><div class="flow-copy"><strong>凭证据验收</strong><p>留存版本、责任方与测试记录，演练 AI 停用、响应丢失及灾备恢复；短时演示不能证明长期续办可靠。</p></div></li>
+          </ol>
+          <table class="simple-table">
+            <thead><tr><th>自建与复用</th><th>条件采购</th></tr></thead>
+            <tbody>
+              <tr><td>优先复用微软平台并开发通用规则／任务模块，不默认增加专业 BPM。</td><td>迁移、复杂审批或运维存在明确缺口，或全生命周期成本更高时，以相同用例比较商业套件、开源与自研；替换后仍保留唯一状态来源。</td></tr>
+            </tbody>
+          </table>
+          <h3>商务交付范围</h3>
+          <ul>
+            <li>德国／欧洲服务实体、德英语言、CET／CEST 时段、故障值守与升级 SLA、培训及专业变更边界写入合同。</li>
+            <li>列明全生命周期许可、容量与超额费，覆盖非生产、日志归档、模块开发维护及适用许可条件；配置器估算不代替完整报价。</li>
+            <li>明确数据、配置及源码权属／使用权、审计导出和在途案件退出安排。</li>
+          </ul>
+        </section>
+
         <section id="references" class="section" data-reveal data-density-exempt="references">
           <div class="section-head">
-            <p class="section-kicker" data-zh="11 / 参考资料" data-en="11 / References">11 / 参考资料</p>
+            <p class="section-kicker" data-zh="15 / 参考资料" data-en="15 / References">15 / 参考资料</p>
             <h2 data-zh="参考资料" data-en="References">参考资料</h2>
             <p data-zh="产品能力和限制以 Microsoft Learn 与 Microsoft Support 官方文档为准；AI 风险边界参考 NIST AI RMF。本文没有引用未经核验的客户收益数字。产品许可、功能可用性和服务限制可能随地区、云环境与发布时间变化，实施前应重新核验。" data-en="Product capabilities and limits rely on official Microsoft Learn and Microsoft Support documentation, while AI risk boundaries reference the NIST AI RMF. This proposal cites no unverified customer benefit figures. Licensing, feature availability, and service limits can vary by region, cloud, and release date and must be rechecked before implementation.">产品能力和限制以 Microsoft Learn 与 Microsoft Support 官方文档为准；AI 风险边界参考 NIST AI RMF。本文没有引用未经核验的客户收益数字。产品许可、功能可用性和服务限制可能随地区、云环境与发布时间变化，实施前应重新核验。</p>
           </div>
 
-          <div data-present-step data-step-title="Copilot Studio 运行时资料" data-step-title-en="Copilot Studio Runtime Documentation" data-step-label="11 / 参考资料" data-step-label-en="11 / References">
+          <div data-present-step data-step-title="Copilot Studio 运行时资料" data-step-title-en="Copilot Studio Runtime Documentation" data-step-label="15 / 参考资料" data-step-label-en="15 / References">
+            <ul class="bib-list">
+              <li><span class="bib-id">[31]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/power-apps/maker/data-platform/data-platform-create-business-rule" target="_blank" rel="noopener noreferrer">Microsoft Learn · Dataverse Business Rules</a><span class="bib-note">支持字段赋值、校验及适用范围，不证明通用审批矩阵执行能力。2026-09-14 核验。</span></li>
+              <li><span class="bib-id">[32]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/power-automate/all-assigned-must-approve" target="_blank" rel="noopener noreferrer">Microsoft Learn · Approval Completion Rules</a><span class="bib-note">支持 First to respond 与 Everyone must approve 的批准和拒绝语义，不证明动态任务控制原生可用。2026-09-14 核验。</span></li>
+              <li><span class="bib-id">[33]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/power-platform/alm/pipelines" target="_blank" rel="noopener noreferrer">Microsoft Learn · Power Platform Pipelines</a><span class="bib-note">支持 Solution 部署及按设置重部署历史版本，不含 Dataverse 表中业务数据，也不保证在途案件和外部副作用回滚。</span></li>
+              <li><span class="bib-id">[34]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/privacy/eudb/eu-data-boundary-learn" target="_blank" rel="noopener noreferrer">Microsoft Learn · EU Data Boundary</a><span class="bib-note">支持 EU＋EFTA 范围及服务适用条件，不等同于严格 EU 成员国驻留。</span></li>
+              <li><span class="bib-id">[35]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/privacy/eudb/eu-data-boundary-transfers-for-all-services" target="_blank" rel="noopener noreferrer">Microsoft Learn · Continuing Data Transfers</a><span class="bib-note">支持境外访问、支持与安全运营等例外；预览和免费试用不在相同承诺范围。2026-09-14 核验。</span></li>
+              <li><span class="bib-id">[36]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/power-platform/admin/geographical-availability-copilot" target="_blank" rel="noopener noreferrer">Microsoft Learn · Generative AI Data Movement</a><span class="bib-note">支持相关 AI 区域设置、Bing 与 flex routing 的处理边界；开关不能替代全链路核验。</span></li>
+            </ul>
             <ul class="bib-list">
               <li><span class="bib-id">[1]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/flows-overview" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Agent Flows Overview" data-en="Microsoft Learn · Agent Flows Overview">Microsoft Learn · Agent Flows Overview</a><span class="bib-note" data-zh="支撑确定性 Copilot Studio Workflow、AI 与 human-in-the-loop action、Solution 管理、Credits 计量及既有 cloud flow 单向转换。" data-en="Supports deterministic Copilot Studio Workflows, AI and human-in-the-loop actions, Solution management, credit metering, and one-way cloud-flow conversion.">支撑确定性 Copilot Studio Workflow、AI 与 human-in-the-loop action、Solution 管理、Credits 计量及既有 cloud flow 单向转换。</span></li>
               <li><span class="bib-id">[2]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/authoring-triggers-about" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Event Triggers Overview" data-en="Microsoft Learn · Event Triggers Overview">Microsoft Learn · Event Triggers Overview</a><span class="bib-note" data-zh="支撑 autonomous event trigger、payload、Activity Map、maker credentials 限制、DLP 与触发配额。" data-en="Supports autonomous event triggers, payloads, Activity Map, maker-credential limitations, DLP, and trigger quotas.">支撑 autonomous event trigger、payload、Activity Map、maker credentials 限制、DLP 与触发配额。</span></li>
               <li><span class="bib-id">[3]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/requirements-messages-management" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Copilot Studio Billing Rates and Management" data-en="Microsoft Learn · Copilot Studio Billing Rates and Management">Microsoft Learn · Copilot Studio Billing Rates and Management</a><span class="bib-note" data-zh="支撑 Generative answer、Agent action、Copilot Studio Workflow action、AI tool、文档页费率，以及容量耗尽、预付与 PAYG 边界。" data-en="Supports rates for generative answers, agent actions, Copilot Studio Workflow actions, AI tools, and document pages, plus capacity enforcement, prepaid, and PAYG boundaries.">支撑 Generative answer、Agent action、Copilot Studio Workflow action、AI tool、文档页费率，以及容量耗尽、预付与 PAYG 边界。</span></li>
-              <li><span class="bib-id">[4]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/workflows-experience/flows-overview" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Workflows Overview (Preview)" data-en="Microsoft Learn · Workflows Overview (Preview)">Microsoft Learn · Workflows Overview (Preview)</a><span class="bib-note" data-zh="支撑新 Workflows 画布、原生 AI action、Agent handoff 与 node-level testing；官方明确其为 public preview。" data-en="Supports the new Workflows canvas, native AI actions, agent handoffs, and node-level testing; Microsoft explicitly marks it public preview.">支撑新 Workflows 画布、原生 AI action、Agent handoff 与 node-level testing；官方明确其为 public preview。</span></li>
+              <li><span class="bib-id">[4]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/workflows-experience/flows-overview" target="_blank" rel="noopener noreferrer">Microsoft Learn · Workflows Overview</a><span class="bib-note">说明另一套 Workflows 体验；与 [1] 的 standard harness agent flows 分开适用，不据此笼统判定全部功能处于预览或正式可用。生产需核对实际体验、区域及受支持动作。</span></li>
               <li><span class="bib-id">[5]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/guidance/autonomous-agents" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Design Autonomous Agent Capabilities" data-en="Microsoft Learn · Design Autonomous Agent Capabilities">Microsoft Learn · Design Autonomous Agent Capabilities</a><span class="bib-note" data-zh="支撑最小权限、输入真实性、关键动作人工监督、审计和渐进扩权。" data-en="Supports least privilege, input authenticity, human oversight for critical actions, auditing, and gradual expansion of authority.">支撑最小权限、输入真实性、关键动作人工监督、审计和渐进扩权。</span></li>
             </ul>
           </div>
 
-          <div data-present-step data-step-title="Human-in-the-Loop 与集成资料" data-step-title-en="Human-in-the-Loop and Integration Documentation" data-step-label="11 / 参考资料" data-step-label-en="11 / References">
+          <div data-present-step data-step-title="Human-in-the-Loop 与集成资料" data-step-title-en="Human-in-the-Loop and Integration Documentation" data-step-label="15 / 参考资料" data-step-label-en="15 / References">
             <ul class="bib-list">
               <li><span class="bib-id">[6]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/advanced-connectors" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Use Connectors in Copilot Studio Agents" data-en="Microsoft Learn · Use Connectors in Copilot Studio Agents">Microsoft Learn · Use Connectors in Copilot Studio Agents</a><span class="bib-note" data-zh="支撑 connector 作为 Agent tool、topic action 和 Copilot Studio Workflow action，以及 user / maker credentials。" data-en="Supports connectors as agent tools, topic actions, and Copilot Studio Workflow actions, including user and maker credentials.">支撑 connector 作为 Agent tool、topic action 和 Copilot Studio Workflow action，以及 user / maker credentials。</span></li>
               <li><span class="bib-id">[7]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/prompts-overview" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Prompts Overview in Copilot Studio" data-en="Microsoft Learn · Prompts Overview in Copilot Studio">Microsoft Learn · Prompts Overview in Copilot Studio</a><span class="bib-note" data-zh="支撑 prompt 作为 Agent tool 或 workflow node，用于摘要、分类、实体提取与结构化生成，并要求人工监督。" data-en="Supports prompts as agent tools or workflow nodes for summarization, classification, entity extraction, and structured generation with human oversight.">支撑 prompt 作为 Agent tool 或 workflow node，用于摘要、分类、实体提取与结构化生成，并要求人工监督。</span></li>
@@ -2607,7 +2860,7 @@
             </ul>
           </div>
 
-          <div data-present-step data-step-title="来源 API、网关与嵌入式接入资料" data-step-title-en="Source API, Gateway, and Embedded Integration Documentation" data-step-label="11 / 参考资料" data-step-label-en="11 / References">
+          <div data-present-step data-step-title="来源 API、网关与嵌入式接入资料" data-step-title-en="Source API, Gateway, and Embedded Integration Documentation" data-step-label="15 / 参考资料" data-step-label-en="15 / References">
             <ul class="bib-list">
               <li><span class="bib-id">[23]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/connectors/custom-connectors/create-webhook-trigger" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Use a Webhook as a Trigger" data-en="Microsoft Learn · Use a Webhook as a Trigger">Microsoft Learn · Use a Webhook as a Trigger</a><span class="bib-note" data-zh="支撑用 Custom Connector 注册、接收和删除 Webhook，并通过 OpenAPI 定义最小通知 payload。" data-en="Supports registering, receiving, and deleting webhooks through a custom connector and defining a minimal notification payload with OpenAPI.">支撑用 Custom Connector 注册、接收和删除 Webhook，并通过 OpenAPI 定义最小通知 payload。</span></li>
               <li><span class="bib-id">[24]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/connectors/custom-connectors/create-polling-trigger" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Use a Polling Trigger" data-en="Microsoft Learn · Use a Polling Trigger">Microsoft Learn · Use a Polling Trigger</a><span class="bib-note" data-zh="支撑按时间间隔调用来源 API、保存状态水位并只返回上次检查后的新增数据。" data-en="Supports calling a source API on an interval, retaining a state watermark, and returning only data added since the previous check.">支撑按时间间隔调用来源 API、保存状态水位并只返回上次检查后的新增数据。</span></li>
@@ -2617,7 +2870,7 @@
             </ul>
           </div>
 
-          <div data-present-step data-step-title="Desktop Flow 与无人值守运行资料" data-step-title-en="Desktop Flow and Unattended Runtime Documentation" data-step-label="11 / 参考资料" data-step-label-en="11 / References">
+          <div data-present-step data-step-title="Desktop Flow 与无人值守运行资料" data-step-title-en="Desktop Flow and Unattended Runtime Documentation" data-step-label="15 / 参考资料" data-step-label-en="15 / References">
             <ul class="bib-list">
               <li><span class="bib-id">[28]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/power-automate/desktop-flows/introduction" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Introduction to Desktop Flows" data-en="Microsoft Learn · Introduction to Desktop Flows">Microsoft Learn · Introduction to Desktop Flows</a><span class="bib-note" data-zh="支撑通过 UI 元素、图像或坐标自动化现代与旧式 Web、桌面和终端应用。" data-en="Supports automating modern and legacy web, desktop, and terminal applications through UI elements, images, or coordinates.">支撑通过 UI 元素、图像或坐标自动化现代与旧式 Web、桌面和终端应用。</span></li>
               <li><span class="bib-id">[29]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/power-automate/desktop-flows/trigger-desktop-flows" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Trigger Desktop Flows from Cloud Flows" data-en="Microsoft Learn · Trigger Desktop Flows from Cloud Flows">Microsoft Learn · Trigger Desktop Flows from Cloud Flows</a><span class="bib-note" data-zh="支撑由 Cloud Flow 调用注册机器或机器组上的 Desktop Flow、传递输入输出，并记录无人值守失败录像。" data-en="Supports invoking desktop flows from cloud flows on registered machines or machine groups, passing inputs and outputs, and retaining unattended failure video.">支撑由 Cloud Flow 调用注册机器或机器组上的 Desktop Flow、传递输入输出，并记录无人值守失败录像。</span></li>
@@ -2625,7 +2878,7 @@
             </ul>
           </div>
 
-          <div data-present-step data-step-title="Power Apps、Power Pages 与许可资料" data-step-title-en="Power Apps, Power Pages, and Licensing Documentation" data-step-label="11 / 参考资料" data-step-label-en="11 / References">
+          <div data-present-step data-step-title="Power Apps、Power Pages 与许可资料" data-step-title-en="Power Apps, Power Pages, and Licensing Documentation" data-step-label="15 / 参考资料" data-step-label-en="15 / References">
             <ul class="bib-list">
               <li><span class="bib-id">[16]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/power-platform/admin/powerapps-flow-licensing-faq" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Power Platform Licensing FAQ" data-en="Microsoft Learn · Power Platform Licensing FAQ">Microsoft Learn · Power Platform Licensing FAQ</a><span class="bib-note" data-zh="支撑 Power Apps Premium 20 USD/用户/月、Dataverse 与 premium/custom connector 使用权，以及 Power Pages 月活认证用户和 100 人订阅容量包计量。" data-en="Supports Power Apps Premium at USD 20 per user per month, Dataverse and premium or custom connector use rights, plus Power Pages monthly authenticated-user metering and 100-user subscription capacity packs.">支撑 Power Apps Premium 20 USD/用户/月、Dataverse 与 premium/custom connector 使用权，以及 Power Pages 月活认证用户和 100 人订阅容量包计量。</span></li>
               <li><span class="bib-id">[17]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/power-pages/security/authentication/" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Power Pages Authentication Overview" data-en="Microsoft Learn · Power Pages Authentication Overview">Microsoft Learn · Power Pages Authentication Overview</a><span class="bib-note" data-zh="支撑 Entra ID、Entra External ID 等身份提供商、认证用户到 Dataverse Contact 的映射，以及 Web Role 授权。" data-en="Supports identity providers including Microsoft Entra ID and External ID, mapping authenticated users to Dataverse contacts, and authorization through web roles.">支撑 Entra ID、Entra External ID 等身份提供商、认证用户到 Dataverse Contact 的映射，以及 Web Role 授权。</span></li>
@@ -2633,7 +2886,7 @@
             </ul>
           </div>
 
-          <div data-present-step data-step-title="产品 SKU 与列表价资料" data-step-title-en="Product SKU and List-Price Documentation" data-step-label="11 / 参考资料" data-step-label-en="11 / References">
+          <div data-present-step data-step-title="产品 SKU 与列表价资料" data-step-title-en="Product SKU and List-Price Documentation" data-step-label="15 / 参考资料" data-step-label-en="15 / References">
             <ul class="bib-list">
               <li><span class="bib-id">[19]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/power-platform/admin/pay-as-you-go-meters" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Power Platform PAYG Meters" data-en="Microsoft Learn · Power Platform PAYG Meters">Microsoft Learn · Power Platform PAYG Meters</a><span class="bib-note" data-zh="支撑 Copilot Studio 每 Copilot Credit 0.01 USD、Power Pages 每月活认证用户/网站 4 USD，以及按量计费边界。" data-en="Supports the Copilot Studio rate of USD 0.01 per Copilot Credit, Power Pages at USD 4 per monthly authenticated user per website, and pay-as-you-go boundaries.">支撑 Copilot Studio 每 Copilot Credit 0.01 USD、Power Pages 每月活认证用户/网站 4 USD，以及按量计费边界。</span></li>
               <li><span class="bib-id">[20]</span><a class="bib-author" href="https://www.microsoft.com/en-us/power-platform/products/power-bi/pricing" target="_blank" rel="noopener noreferrer" data-zh="Microsoft · Power BI Pricing" data-en="Microsoft · Power BI Pricing">Microsoft · Power BI Pricing</a><span class="bib-note" data-zh="支撑 Power BI Pro 美国商业列表价 14 USD/用户/月；现有 Microsoft 365 或 Fabric 权益需在采购前核对。" data-en="Supports the US commercial list price of USD 14 per Power BI Pro user per month; verify existing Microsoft 365 or Fabric entitlements before purchase.">支撑 Power BI Pro 美国商业列表价 14 USD/用户/月；现有 Microsoft 365 或 Fabric 权益需在采购前核对。</span></li>
@@ -2642,8 +2895,9 @@
             </ul>
           </div>
 
-          <div data-present-step data-step-title="治理与风险资料" data-step-title-en="Governance and Risk Documentation" data-step-label="11 / 参考资料" data-step-label-en="11 / References">
+          <div data-present-step data-step-title="治理与风险资料" data-step-title-en="Governance and Risk Documentation" data-step-label="15 / 参考资料" data-step-label-en="15 / References">
             <ul class="bib-list">
+              <li><span class="bib-id">[37]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/power-platform/admin/manage-dataverse-auditing" target="_blank" rel="noopener noreferrer">Microsoft Learn · Manage Dataverse Auditing</a><span class="bib-note">支持环境、表与列审计配置、日志容量和保留管理；具备相应权限的管理员可删除审计记录，读取／导出活动可能需额外日志。不能据此宣称原生审计不可删除或已经满足全部合规要求。</span></li>
               <li><span class="bib-id">[11]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/connectors/custom-connectors/" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Custom Connectors Overview" data-en="Microsoft Learn · Custom Connectors Overview">Microsoft Learn · Custom Connectors Overview</a><span class="bib-note" data-zh="支撑使用 OpenAPI 或 Postman 把 REST API 包装为 Copilot Studio 可调用的 Custom Connector，并通过本地网关访问私有 API。" data-en="Supports wrapping REST APIs through OpenAPI or Postman as custom connectors callable from Copilot Studio and reaching private APIs through the on-premises gateway.">支撑使用 OpenAPI 或 Postman 把 REST API 包装为 Copilot Studio 可调用的 Custom Connector，并通过本地网关访问私有 API。</span></li>
               <li><span class="bib-id">[12]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/power-platform/admin/wp-data-loss-prevention" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Data Loss Prevention Policies" data-en="Microsoft Learn · Data Loss Prevention Policies">Microsoft Learn · Data Loss Prevention Policies</a><span class="bib-note" data-zh="支撑按业务、非业务和阻止分组治理 connector，控制 Agent、Flow 与应用之间的数据流动。" data-en="Supports connector governance through business, nonbusiness, and blocked classifications across agents, flows, and apps.">支撑按业务、非业务和阻止分组治理 connector，控制 Agent、Flow 与应用之间的数据流动。</span></li>
               <li><span class="bib-id">[13]</span><a class="bib-author" href="https://learn.microsoft.com/en-us/power-platform/alm/overview-alm" target="_blank" rel="noopener noreferrer" data-zh="Microsoft Learn · Application Lifecycle Management with Microsoft Power Platform" data-en="Microsoft Learn · Application Lifecycle Management with Microsoft Power Platform">Microsoft Learn · Application Lifecycle Management with Microsoft Power Platform</a><span class="bib-note" data-zh="支撑使用 Solutions、环境、源代码和管道管理 Agent、Flow、Prompt、Connector 与 Dataverse 组件。" data-en="Supports managing agents, flows, prompts, connectors, and Dataverse components through Solutions, environments, source control, and pipelines.">支撑使用 Solutions、环境、源代码和管道管理 Agent、Flow、Prompt、Connector 与 Dataverse 组件。</span></li>
@@ -2675,8 +2929,6 @@
       var sourceIntegrationSection;
       var sourceIntegrationDiagram;
       var sourceIntegrationDetails;
-      var runtimeSection;
-      var runtimeJourney;
       var roiResultPanel;
       var roiBreakEvenBlock;
 
@@ -2685,11 +2937,6 @@
       sourceIntegrationDetails = sourceIntegrationSection ? sourceIntegrationSection.querySelector('.subsection-accordion') : null;
       if (sourceIntegrationSection && sourceIntegrationDiagram && sourceIntegrationDetails) {
         sourceIntegrationSection.insertBefore(sourceIntegrationDetails, sourceIntegrationDiagram);
-      }
-      runtimeSection = document.getElementById('runtime');
-      runtimeJourney = document.querySelector('[data-step-title="端到端运行时流程"]');
-      if (runtimeSection && runtimeJourney) {
-        runtimeSection.appendChild(runtimeJourney);
       }
       roiResultPanel = document.querySelector('[data-step-title="ROI 结果与投资门槛"]');
       roiBreakEvenBlock = document.querySelector('[data-step-title="ROI 盈亏平衡门槛"]');
@@ -3511,6 +3758,110 @@
 
       updateConfiguration();
       updateRoi();
+    });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.3/dist/mermaid.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var diagrams;
+      var rendering;
+      var renderedTheme;
+      var requestedTheme;
+      var generation;
+      var observer;
+
+      diagrams = [];
+      ['approval-levels', 'approval-state'].forEach(function (prefix) {
+        var source;
+        var output;
+        var fallback;
+        source = document.getElementById(prefix + '-source');
+        output = document.getElementById(prefix + '-output');
+        fallback = document.getElementById(prefix + '-fallback');
+        if (source && output && fallback) {
+          diagrams.push({ source: source, output: output, fallback: fallback });
+        }
+      });
+      rendering = false;
+      renderedTheme = null;
+      requestedTheme = null;
+      generation = 0;
+      if (!diagrams.length || !window.mermaid) { return; }
+
+      function diagramTheme() {
+        return document.documentElement.getAttribute('data-theme') === 'dark' || document.documentElement.classList.contains('dark') ? 'dark' : 'neutral';
+      }
+
+      function renderDiagrams() {
+        var theme;
+        var currentGeneration;
+        var chain;
+        theme = diagramTheme();
+        if (requestedTheme !== theme) {
+          requestedTheme = theme;
+          generation += 1;
+        }
+        if (rendering || renderedTheme === theme) { return; }
+        rendering = true;
+        currentGeneration = generation;
+        diagrams.forEach(function (diagram) {
+          diagram.output.setAttribute('aria-busy', 'true');
+          diagram.output.setAttribute('aria-hidden', 'true');
+          diagram.fallback.hidden = false;
+        });
+        chain = Promise.resolve().then(function () {
+          window.mermaid.initialize({
+            startOnLoad: false,
+            securityLevel: 'strict',
+            suppressErrorRendering: true,
+            theme: theme,
+            fontFamily: 'Noto Sans SC, sans-serif',
+            flowchart: { htmlLabels: false, useMaxWidth: false, curve: 'linear', nodeSpacing: 24, rankSpacing: 36 }
+          });
+        });
+        diagrams.forEach(function (diagram) {
+          chain = chain.then(function () {
+            if (currentGeneration !== generation || diagramTheme() !== theme) { return; }
+            diagram.output.removeAttribute('data-processed');
+            diagram.output.textContent = diagram.source.textContent;
+            diagram.output.hidden = false;
+            return window.mermaid.run({ nodes: [diagram.output] }).then(function () {
+              if (!diagram.output.querySelector('svg')) { throw new Error('Diagram unavailable'); }
+              if (currentGeneration !== generation || diagramTheme() !== theme) { return; }
+              diagram.output.setAttribute('aria-busy', 'false');
+              diagram.output.setAttribute('aria-hidden', 'false');
+              diagram.fallback.hidden = true;
+            });
+          }).catch(function () {
+            diagram.output.hidden = true;
+            diagram.output.textContent = '';
+            diagram.output.setAttribute('aria-busy', 'false');
+            diagram.output.setAttribute('aria-hidden', 'true');
+            diagram.fallback.hidden = false;
+          });
+        });
+        chain.then(function () {
+          renderedTheme = theme;
+          rendering = false;
+          if (currentGeneration !== generation || diagramTheme() !== theme) {
+            renderedTheme = null;
+            renderDiagrams();
+          }
+        }).catch(function () {
+          diagrams.forEach(function (diagram) {
+            diagram.output.hidden = true;
+            diagram.output.setAttribute('aria-busy', 'false');
+            diagram.output.setAttribute('aria-hidden', 'true');
+            diagram.fallback.hidden = false;
+          });
+          rendering = false;
+          if (currentGeneration !== generation || diagramTheme() !== theme) { renderDiagrams(); }
+        });
+      }
+
+      observer = new MutationObserver(function () { renderDiagrams(); });
+      observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
+      renderDiagrams();
     });
   </script>
   <script src="../../assets/article-common.js"></script>

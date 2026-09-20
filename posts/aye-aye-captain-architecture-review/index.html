@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-section-density="strict" data-present-i18n="strict" data-aac-review>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title data-zh="Aye aye Captain 阶段架构评审：问题、方案与整改台账" data-en="Aye aye Captain Architecture Review: Findings, Options, and Remediation">Aye aye Captain 阶段架构评审：问题、方案与整改台账</title>
+  <meta name="description" content="A source-grounded architecture review of Aye aye Captain, with prioritized findings, solution tradeoffs, and a dated remediation ledger." />
+  <script>
+    (function () {
+      var param = new URLSearchParams(window.location.search).get('scoutTheme');
+      var theme = param || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    :root {
+      color-scheme: light;
+      --cp-bg: #f7f4ef;
+      --cp-bg-elevated: #fcfbf8;
+      --cp-surface: #ffffff;
+      --cp-surface-soft: #f5f5f5;
+      --cp-border: #dedede;
+      --cp-border-strong: #919191;
+      --cp-text: #242424;
+      --cp-text-muted: #5c5c5c;
+      --cp-text-soft: #6f6f6f;
+      --cp-accent: #b11f4b;
+      --cp-accent-hover: #9a1a41;
+      --cp-accent-soft: rgba(177, 31, 75, 0.08);
+      --cp-accent-fg: #ffffff;
+      --cp-success: #16a34a;
+      --cp-danger: #dc2626;
+      --cp-warning: #f59e0b;
+      --cp-link: #0078d4;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+      --cp-overlay: rgba(255, 255, 255, 0.8);
+      --cp-panel: rgba(255, 255, 255, 0.86);
+      --cp-panel-strong: rgba(255, 255, 255, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.55);
+      --cp-highlight: rgba(177, 31, 75, 0.12);
+    }
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --cp-bg: #3d3b3a;
+      --cp-bg-elevated: #343231;
+      --cp-surface: #292929;
+      --cp-surface-soft: #2e2e2e;
+      --cp-border: #474747;
+      --cp-border-strong: #5f5f5f;
+      --cp-text: #dedede;
+      --cp-text-muted: #919191;
+      --cp-text-soft: #b0b0b0;
+      --cp-accent: #fd8ea1;
+      --cp-accent-hover: #fb7b91;
+      --cp-accent-soft: rgba(253, 142, 161, 0.14);
+      --cp-accent-fg: #1a1a1a;
+      --cp-success: #4ade80;
+      --cp-danger: #f87171;
+      --cp-warning: #fbbf24;
+      --cp-link: #4da6ff;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+      --cp-overlay: rgba(41, 41, 41, 0.88);
+      --cp-panel: rgba(41, 41, 41, 0.72);
+      --cp-panel-strong: rgba(41, 41, 41, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.04);
+      --cp-highlight: rgba(253, 142, 161, 0.12);
+    }
+    html[data-aac-review] {
+      --bg-top: var(--cp-bg);
+      --bg-bottom: var(--cp-bg-elevated);
+      --ink: var(--cp-text);
+      --muted: var(--cp-text-soft);
+      --panel: var(--cp-panel);
+      --panel-strong: var(--cp-panel-strong);
+      --line: var(--cp-border);
+      --accent: var(--cp-accent);
+      --accent-soft: var(--cp-accent-soft);
+      --teal: var(--cp-accent);
+      --teal-soft: var(--cp-accent-soft);
+      --gold: var(--cp-warning);
+      --shadow: var(--cp-shadow);
+      --card-bg: var(--cp-surface);
+      --card-border: var(--cp-border);
+      --card-shadow: none;
+      --radius-md: 0.625rem;
+      --radius-lg: 16px;
+      --radius-xl: 16px;
+    }
+    html[data-aac-review] body {
+      background: var(--cp-bg);
+      color: var(--cp-text);
+      font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    html[data-aac-review] body::before,
+    html[data-aac-review] .insight-card::before,
+    html[data-aac-review] .hero-panel::before { display: none; }
+    html[data-aac-review] :is(h1, h2, h3, h4, button, .section-kicker, .metric strong) { font-family: inherit; }
+    html[data-aac-review] :is(.hero-panel, .metric, .insight-card, .comparison-card, .subsection-item, .subsection-item.is-open, .reference-list li, .layer-list li) {
+      background: var(--cp-surface);
+      color: var(--cp-text);
+      border-color: var(--cp-border);
+      box-shadow: none;
+    }
+    html[data-aac-review] :is(.eyebrow, .card-index, .layer-number, .comparison-label, .subsection-toggle::after) {
+      background: var(--cp-accent-soft);
+      color: var(--cp-accent);
+      border-color: var(--cp-border);
+    }
+    html[data-aac-review] .button-primary { background: var(--cp-accent); color: var(--cp-accent-fg); }
+    html[data-aac-review] .button-secondary { background: var(--cp-surface); color: var(--cp-text); }
+    html[data-aac-review] .quote-block { background: var(--cp-accent-soft); border-color: var(--cp-border); }
+    html[data-aac-review] .subsection-toggle:hover { background: var(--cp-surface-soft); }
+    html[data-aac-review] .nav-links a.active,
+    html[data-aac-review] .nav-links a.is-active,
+    html[data-aac-review] .flow-step::before,
+    html[data-aac-review] .panel-label::before { background: var(--cp-accent); color: var(--cp-accent-fg); }
+    html[data-aac-review] .flow-step > .layer-number { display: none; }
+    html[data-aac-review] code { font-family: Consolas, "Courier New", Courier, monospace; overflow-wrap: anywhere; }
+    html[data-aac-review] .hero .hero-copy h1 { font-size: clamp(2rem, 3.4vw, 3.25rem); line-height: 1.15; letter-spacing: 0; max-width: none; }
+    .simple-table { table-layout: fixed; }
+    .simple-table :is(th, td) { overflow-wrap: anywhere; }
+    .subsection-content .simple-table th { width: 24%; }
+    .reference-list code { font-size: 0.82rem; }
+    @media (max-width: 720px) {
+      .simple-table { display: block; overflow-x: auto; table-layout: auto; }
+      .simple-table :is(th, td) { min-width: 120px; overflow-wrap: normal; }
+      .simple-table :is(th, td):last-child { min-width: 240px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell"><div class="site">
+    <header class="hero">
+      <div class="topbar load-in">
+        <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="Back to home">←</a>
+        <div class="brand"><span class="brand-mark"></span><span data-zh="AI 项目实践 · 阶段评审" data-en="AI Project Practice · Stage Review">AI 项目实践 · 阶段评审</span></div>
+        <nav class="nav-links" aria-label="Article sections" data-nav-pager>
+          <a href="#goals" data-zh="目标" data-en="Goals">目标</a><a href="#structure" data-zh="结构" data-en="Structure">结构</a>
+          <a href="#state" data-zh="状态门禁" data-en="State Gates">状态门禁</a><a href="#execution" data-zh="执行" data-en="Execution">执行</a>
+          <a href="#recovery" data-zh="恢复" data-en="Recovery">恢复</a><a href="#page" data-zh="页面" data-en="Page Lifecycle">页面</a>
+          <a href="#alignment" data-zh="目标偏差" data-en="Alignment">目标偏差</a><a href="#ledger" data-zh="整改台账" data-en="Remediation">整改台账</a>
+          <a href="#baseline" data-zh="评分" data-en="Assessment">评分</a><a href="#references" data-zh="证据" data-en="Evidence">证据</a>
+        </nav>
+      </div>
+      <div class="hero-grid">
+        <div class="hero-copy load-in">
+          <span class="eyebrow" data-zh="2026-09-08 · 当前工作树 · 含未提交修改" data-en="2026-09-08 · Working Tree · Uncommitted Changes Included">2026-09-08 · 当前工作树 · 含未提交修改</span>
+          <h1 data-zh="Aye aye Captain：先恢复可信状态，再扩展功能" data-en="Aye aye Captain: Restore Trustworthy State Before Expanding Features">Aye aye Captain：先恢复可信状态，再扩展功能</h1>
+          <p data-zh="这份阶段架构评审供维护者对齐项目目标、清理冗余、评估问题与解决方案，并为下一轮开发建立可关闭的整改台账。审查对象是本地优先的 AI 协作项目操作系统；结论依据当前代码，不把已登记任务状态当作实现证据。" data-en="This stage review helps maintainers realign project goals, remove redundancy, assess findings and remedies, and define verifiable remediation for the next development cycle. It examines a local-first AI collaboration system using the current source, not backlog status as evidence of implementation.">这份阶段架构评审供维护者对齐项目目标、清理冗余、评估问题与解决方案，并为下一轮开发建立可关闭的整改台账。审查对象是本地优先的 AI 协作项目操作系统；结论依据当前代码，不把已登记任务状态当作实现证据。</p>
+          <div class="hero-actions"><a class="button button-primary" href="#ledger" data-zh="查看整改顺序" data-en="Review Remediation Priorities">查看整改顺序</a><a class="button button-secondary" href="#references" data-zh="核对源码证据" data-en="Inspect Source Evidence">核对源码证据</a></div>
+        </div>
+        <aside class="hero-panel load-in">
+          <span class="panel-label" data-zh="评审结论 · 建议优先专项整改" data-en="Verdict · Prioritize Targeted Remediation">评审结论 · 建议优先专项整改</span>
+          <h2 data-zh="保留本地单体与审批链，统一入口和执行契约" data-en="Keep the Local Monolith and Approval Chain; Unify Entry and Execution Contracts">保留本地单体与审批链，统一入口和执行契约</h2>
+          <ul class="layer-list">
+            <li><span class="layer-number">1</span><span data-zh="创建和更新不能拥有不同的质量门禁" data-en="Creation and updates must enforce the same quality requirements">创建和更新不能拥有不同的质量门禁</span></li>
+            <li><span class="layer-number">2</span><span data-zh="进程退出、结构化交付和人工验收须分开记录" data-en="Process exit, structured delivery, and human acceptance need distinct records">进程退出、结构化交付和人工验收须分开记录</span></li>
+            <li><span class="layer-number">3</span><span data-zh="先修页面生命周期，再补齐下一步、版本差异和快照入口" data-en="Repair page lifecycle before completing next-action, version-diff, and snapshot paths">先修页面生命周期，再补齐下一步、版本差异和快照入口</span></li>
+          </ul>
+        </aside>
+      </div>
+      <div class="hero-metrics load-in">
+        <div class="metric"><div class="metric-label" data-zh="主发现" data-en="Findings">主发现</div><strong>10</strong><span data-zh="F01–F10，子项不重复计数" data-en="F01–F10; subitems are not counted twice">F01–F10，子项不重复计数</span></div>
+        <div class="metric"><div class="metric-label" data-zh="建议优先级" data-en="Suggested Priority">建议优先级</div><strong>5 + 5</strong><span data-zh="5 项 P1 · 5 项 P2" data-en="5 P1 · 5 P2">5 项 P1 · 5 项 P2</span></div>
+        <div class="metric"><div class="metric-label" data-zh="本次修复关闭" data-en="Fixes Closed by This Review">本次修复关闭</div><strong>0 / 10</strong><span data-zh="仅评审，未修改项目代码或任务" data-en="Review only; no project code or task changes">仅评审，未修改项目代码或任务</span></div>
+        <div class="metric"><div class="metric-label" data-zh="风险最高维度" data-en="Highest-Risk Dimension">风险最高维度</div><strong>D</strong><span data-zh="数据完整性；不是安全渗透结论" data-en="Data integrity; not a penetration-test verdict">数据完整性；不是安全渗透结论</span></div>
+      </div>
+    </header>
+    <main>
+      <section id="goals" class="section" data-reveal>
+        <div class="section-head"><span class="section-kicker" data-zh="01 / 目标对齐" data-en="01 / Goal Alignment">01 / 目标对齐</span><h2 data-zh="下一阶段先兑现状态可信、执行可控和验收可追踪" data-en="Prioritize Trustworthy State, Controlled Execution, and Traceable Acceptance">下一阶段先兑现状态可信、执行可控和验收可追踪</h2><p data-zh="船长在本地规划工作，Agent 执行，船长根据验证记录验收。这要求状态可信、执行可停止，界面持续回答接下来做什么。现有基础可保留，缺口应按具体契约关闭。" data-en="The captain plans locally, agents execute, and the captain accepts results using validation records. State must be trustworthy, execution stoppable, and the UI clear about what comes next. Keep the existing foundation and close gaps against explicit contracts.">船长在本地规划工作，Agent 执行，船长根据验证记录验收。这要求状态可信、执行可停止，界面持续回答接下来做什么。现有基础可保留，缺口应按具体契约关闭。</p></div>
+        <div data-present-step data-step-title="目标与实现对照" data-step-title-en="Goals Against Implementation">
+          <table class="simple-table"><thead><tr><th data-zh="目标" data-en="Goal">目标</th><th data-zh="当前判断" data-en="Assessment">当前判断</th><th data-zh="后续动作" data-en="Next Action">后续动作</th></tr></thead><tbody>
+            <tr><td data-zh="本地持久化" data-en="Local Persistence">本地持久化</td><td data-zh="API 单写者、SQLite 已实现" data-en="API writer and SQLite implemented">API 单写者、SQLite 已实现</td><td data-zh="保留，不拆微服务" data-en="Retain; do not split into microservices">保留，不拆微服务</td></tr>
+            <tr><td data-zh="设计与架构审批" data-en="Design and Architecture Approval">设计与架构审批</td><td data-zh="设计门与原子变更单已实现" data-en="Design gates and atomic proposals implemented">设计门与原子变更单已实现</td><td data-zh="保留人工批准与来源关系" data-en="Preserve human approval and provenance">保留人工批准与来源关系</td></tr>
+            <tr><td data-zh="可信验收" data-en="Trustworthy Acceptance">可信验收</td><td>F01 / F02 / F05</td><td data-zh="统一入口，增强证据和交付契约" data-en="Unify entry, evidence, and delivery contracts">统一入口，增强证据和交付契约</td></tr>
+            <tr><td data-zh="受控执行与恢复" data-en="Controlled Execution and Recovery">受控执行与恢复</td><td>F03 / F04 / F06</td><td data-zh="明确权限、取消终态和持久编排" data-en="Define authority, cancellation, and durable orchestration">明确权限、取消终态和持久编排</td></tr>
+            <tr><td data-zh="下一步与版本审阅" data-en="Next Actions and Version Review">下一步与版本审阅</td><td>F07 / F08 / F09</td><td data-zh="修页面时序，完成现有能力接线" data-en="Repair page timing and connect existing capabilities">修页面时序，完成现有能力接线</td></tr>
+          </tbody></table>
+          <p><a href="#ref-1">[1]</a> <a href="#ref-2">[2]</a> <span data-zh="F10 导出是路线图已承认的未交付能力，不是已完成功能的退化。P1/P2 是下一轮开发的建议顺序，不是生产事故或外部攻击等级。" data-en="F10 export is an acknowledged roadmap gap, not a regression of a completed feature. P1/P2 indicate suggested development priority, not production incident or external attack severity.">F10 导出是路线图已承认的未交付能力，不是已完成功能的退化。P1/P2 是下一轮开发的建议顺序，不是生产事故或外部攻击等级。</span></p>
+        </div>
+      </section>
+      <section id="structure" class="section" data-reveal>
+        <div class="section-head"><span class="section-kicker" data-zh="02 / 结构与边界" data-en="02 / Structure and Boundaries">02 / 结构与边界</span><h2 data-zh="按职责收敛单体，不按文件长度重写系统" data-en="Consolidate Responsibilities Without Rewriting the Stack">按职责收敛单体，不按文件长度重写系统</h2><p data-zh="同步 SQLite 和单进程服务符合当前本地单人目标。多服务、消息中间件或前端框架迁移不能自动修复入口门禁；本轮也没有负载数据支持容量判断。" data-en="Synchronous SQLite and one service process fit the local, single-user scope. Microservices, a broker, or a frontend framework migration would not repair entry gates. This review has no load data from which to infer capacity.">同步 SQLite 和单进程服务符合当前本地单人目标。多服务、消息中间件或前端框架迁移不能自动修复入口门禁；本轮也没有负载数据支持容量判断。</p></div>
+        <div class="flow-list" data-present-step data-step-title="现有组件职责" data-step-title-en="Current Component Responsibilities">
+          <div class="flow-step"><span class="layer-number">1</span><div class="flow-copy"><strong data-zh="Dashboard → Fastify API → services → SQLite" data-en="Dashboard → Fastify API → Services → SQLite">Dashboard → Fastify API → services → SQLite</strong><p data-zh="浏览器经 HTTP 读写；API 持有 SQLite 单例，开启 WAL 与外键。UI 不承担持久化门禁。" data-en="The browser reads and writes over HTTP. The API owns a SQLite singleton with WAL and foreign keys. Persistence gates do not belong in the UI.">浏览器经 HTTP 读写；API 持有 SQLite 单例，开启 WAL 与外键。UI 不承担持久化门禁。</p></div></div>
+          <div class="flow-step"><span class="layer-number">2</span><div class="flow-copy"><strong data-zh="Delegation Engine → jobs → CLI → MCP → API" data-en="Delegation Engine → Jobs → CLI → MCP → API">Delegation Engine → jobs → CLI → MCP → API</strong><p data-zh="引擎组装 Playbook 与约束，jobs 管进程和日志。MCP 经 HTTP 回写，没有直接打开数据库。" data-en="The engine assembles playbooks and conventions; jobs manage processes and logs. MCP writes back over HTTP without opening the database.">引擎组装 Playbook 与约束，jobs 管进程和日志。MCP 经 HTTP 回写，没有直接打开数据库。</p></div></div>
+          <div class="flow-step"><span class="layer-number">3</span><div class="flow-copy"><strong data-zh="产品意图 → 设计 → 任务 → 证据 → 人工验收" data-en="Product Intent → Design → Task → Evidence → Human Acceptance">产品意图 → 设计 → 任务 → 证据 → 人工验收</strong><p data-zh="Blueprint、Solution、Scenario、Requirement 表达产品意图；批准 L2 后原子生成任务和 implements 关系。复杂任务增加 L3；架构变化通过 reconcile_runs 与 ADR 审批。" data-en="Blueprint, solution, scenario, and requirement express intent. Approved L2 designs atomically generate tasks and implements links. Complex tasks add L3 designs; architecture changes use reconcile_runs and ADR approval.">Blueprint、Solution、Scenario、Requirement 表达产品意图；批准 L2 后原子生成任务和 implements 关系。复杂任务增加 L3；架构变化通过 reconcile_runs 与 ADR 审批。</p></div></div>
+        </div>
+        <p><a href="#ref-1">[1]</a> <a href="#ref-2">[2]</a> <span data-zh="ADR 是架构决策记录；L2/L3 在此指功能设计和任务详细设计，不是审查框架的判据层。" data-en="ADR means architecture decision record. Here L2/L3 mean feature and task-detail designs, not the review framework's calibration layers.">ADR 是架构决策记录；L2/L3 在此指功能设计和任务详细设计，不是审查框架的判据层。</span></p>
+        <div class="subsection-accordion"><div class="subsection-item" data-accordion data-present-step data-step-title="拆分依据与保留边界" data-step-title-en="Decomposition Criteria and Preserved Boundaries">
+          <button class="subsection-toggle" type="button" aria-expanded="false"><span data-zh="拆分依据与保留边界" data-en="Decomposition Criteria and Preserved Boundaries">拆分依据与保留边界</span></button>
+          <div class="subsection-content"><p data-zh="app.js 的 4,538 行和 routes/index.ts 的 1,885 行是定位线索，不是预设超标；重复职责才是拆分依据。" data-en="The 4,538 lines in app.js and 1,885 in routes/index.ts locate review hotspots; they are not predefined violations. Repeated responsibilities justify decomposition.">app.js 的 4,538 行和 routes/index.ts 的 1,885 行是定位线索，不是预设超标；重复职责才是拆分依据。</p>
+            <table class="simple-table"><thead><tr><th data-zh="收敛对象" data-en="Consolidation Target">收敛对象</th><th data-zh="建议" data-en="Recommendation">建议</th></tr></thead><tbody>
+              <tr><td data-zh="导航提交与 Job 观察" data-en="Navigation Commits and Job Observation">导航提交与 Job 观察</td><td data-zh="先统一生命周期，再分离实体渲染模块；保留原生 JS。" data-en="Unify lifecycle first, then separate entity rendering; retain vanilla JS.">先统一生命周期，再分离实体渲染模块；保留原生 JS。</td></tr>
+              <tr><td data-zh="路由中的业务编排" data-en="Workflow Logic in Routes">路由中的业务编排</td><td data-zh="按产品意图、设计、执行和证据拆注册；可复用用例进入现有 services。" data-en="Separate registration by intent, design, execution, and evidence; move reusable use cases into existing services.">按产品意图、设计、执行和证据拆注册；可复用用例进入现有 services。</td></tr>
+              <tr><td data-zh="共享架构数据" data-en="Shared Architecture Data">共享架构数据</td><td data-zh="功能/集成投影继续复用构件和关系；保留子集批准、ADR 和事务回滚。" data-en="Keep functional/integration projections on shared components and links; preserve subset approval, ADRs, and rollback.">功能/集成投影继续复用构件和关系；保留子集批准、ADR 和事务回滚。</td></tr>
+            </tbody></table><p><a href="#ref-2">[2]</a> <a href="#ref-3">[3]</a> <span data-zh="不恢复直接需求执行，不增加第二个数据库写入者，也不为减少行数而改接口。" data-en="Do not restore direct requirement execution, add another database writer, or change interfaces merely to reduce line counts.">不恢复直接需求执行，不增加第二个数据库写入者，也不为减少行数而改接口。</span></p>
+          </div>
+        </div></div>
+      </section>
+      <section id="state" class="section" data-reveal>
+        <div class="section-head"><span class="section-kicker" data-zh="03 / 持久状态门禁" data-en="03 / Persistent-State Gates">03 / 持久状态门禁</span><h2 data-zh="创建入口和验收证据存在已复现缺口" data-en="Creation and Acceptance Evidence Have Reproduced Gaps">创建入口和验收证据存在已复现缺口</h2><p data-zh="同一工作项不能因使用 POST 或 PATCH 而获得不同的质量保证。以下两项在临时 SQLite 与 Fastify inject 中复现，没有启动真实 Agent，也未读写实际项目数据。" data-en="A work item must not receive different quality guarantees depending on POST versus PATCH. Both findings below were reproduced with temporary SQLite and Fastify inject, without a real agent or live project data.">同一工作项不能因使用 POST 或 PATCH 而获得不同的质量保证。以下两项在临时 SQLite 与 Fastify inject 中复现，没有启动真实 Agent，也未读写实际项目数据。</p></div>
+        <div data-present-step data-step-title="门禁对照结果" data-step-title-en="Gate Comparison Results"><table class="simple-table"><thead><tr><th data-zh="操作" data-en="Operation">操作</th><th data-zh="结果" data-en="Result">结果</th></tr></thead><tbody>
+          <tr><td data-zh="POST tasks/bugs，直接指定 done" data-en="POST tasks/bugs directly with done">POST tasks/bugs，直接指定 done</td><td data-zh="201；无验证命令或根因也能成为 done" data-en="201; done without a validation command or root cause">201；无验证命令或根因也能成为 done</td></tr>
+          <tr><td data-zh="PATCH task→done，无通过记录" data-en="PATCH task→done without a passing run">PATCH task→done，无通过记录</td><td data-zh="422；更新路径门禁确实生效" data-en="422; the update-path gate is active">422；更新路径门禁确实生效</td></tr>
+          <tr><td data-zh="先 POST pass-only run，再 PATCH done" data-en="POST a pass-only run, then PATCH done">先 POST pass-only run，再 PATCH done</td><td data-zh="201 + 200；无证据也能完成" data-en="201 + 200; completion without evidence">201 + 200；无证据也能完成</td></tr>
+        </tbody></table><p><a href="#ref-4">[4]</a> <a href="#ref-5">[5]</a></p></div>
+        <div class="subsection-accordion">
+          <div id="f01" class="subsection-item" data-accordion data-present-step data-step-title="F01：创建门禁" data-step-title-en="F01: Creation Gates"><button class="subsection-toggle" type="button" aria-expanded="false"><span data-zh="F01 / P1：创建可绕过完成门禁" data-en="F01 / P1: Creation Bypasses Completion Gates">F01 / P1：创建可绕过完成门禁</span></button><div class="subsection-content">
+            <p data-zh="普通创建直接调用 repo.create；质量门禁集中在更新服务，形成可复现的入口差异。" data-en="Ordinary creation calls repo.create directly, while quality gates live in the update service, producing a reproducible entry-path inconsistency.">普通创建直接调用 repo.create；质量门禁集中在更新服务，形成可复现的入口差异。</p>
+            <table class="simple-table"><tbody>
+              <tr><th data-zh="机制与影响" data-en="Mechanism and Impact">机制与影响</th><td data-zh="POST 接受 task/bug 的 done；fixture 中任务无 validation_command、Bug 无 root_cause，仍保存成功。完成率不再可靠。" data-en="POST accepts done for tasks/bugs. The fixture persisted a task without validation_command and a bug without root_cause. Completion metrics cannot be trusted on that basis.">POST 接受 task/bug 的 done；fixture 中任务无 validation_command、Bug 无 root_cause，仍保存成功。完成率不再可靠。</td></tr>
+              <tr><th data-zh="方案取舍" data-en="Options and Tradeoffs">方案取舍</th><td data-zh="建议普通创建固定 triage；历史状态重建使用独立、可验证来源的导入契约。只补 PATCH 无效；通用 POST 不应成为导入捷径。" data-en="Default ordinary creation to triage; reconstruct historical state only through a separate import contract with validated provenance. Patching PATCH alone does not fix POST.">建议普通创建固定 triage；历史状态重建使用独立、可验证来源的导入契约。只补 PATCH 无效；通用 POST 不应成为导入捷径。</td></tr>
+              <tr><th data-zh="关闭判据" data-en="Closure Criteria">关闭判据</th><td data-zh="普通创建不能直达 ready/in_progress/review/done/blocked；合法初态、明确批准的导入例外和设计任务原子生成都有回归。维护者需确认历史导入例外范围。" data-en="Ordinary creation cannot jump to ready/in_progress/review/done/blocked. Cover valid initial state, explicitly approved import exceptions, and atomic design-task creation. Maintainers must confirm import exceptions.">普通创建不能直达 ready/in_progress/review/done/blocked；合法初态、明确批准的导入例外和设计任务原子生成都有回归。维护者需确认历史导入例外范围。</td></tr>
+            </tbody></table><p><a href="#ref-4">[4]</a></p>
+          </div></div>
+          <div id="f02" class="subsection-item" data-accordion data-present-step data-step-title="F02：证据契约" data-step-title-en="F02: Evidence Contract"><button class="subsection-toggle" type="button" aria-expanded="false"><span data-zh="F02 / P1：pass 声明未绑定本次验证证据" data-en="F02 / P1: A Pass Claim Is Not Bound to Current Evidence">F02 / P1：pass 声明未绑定本次验证证据</span></button><div class="subsection-content">
+            <p data-zh="当前契约接受执行者声明；它没有保证执行证据与本次修改关联。这不等于已证明实现错误，也不否认 requirement 已实现状态的特例。" data-en="The contract accepts the executor's claim without ensuring that execution evidence belongs to the current change. This does not prove the implementation is wrong or invalidate the explicit implemented-requirement exception.">当前契约接受执行者声明；它没有保证执行证据与本次修改关联。这不等于已证明实现错误，也不否认 requirement 已实现状态的特例。</p>
+            <table class="simple-table"><tbody>
+              <tr><th data-zh="机制与影响" data-en="Mechanism and Impact">机制与影响</th><td data-zh="done 查询任意历史 pass；run 与 evidence 分开写。仅提交项目、任务和 test_result=pass，随后 done 即获批准。" data-en="The done gate accepts any historical pass; run and evidence are written separately. Providing only project, task, and test_result=pass was sufficient for subsequent completion.">done 查询任意历史 pass；run 与 evidence 分开写。仅提交项目、任务和 test_result=pass，随后 done 即获批准。</td></tr>
+              <tr><th data-zh="方案取舍" data-en="Options and Tradeoffs">方案取舍</th><td data-zh="run 绑定工作项版本或重开轮次、命令、退出码和输出来源；区分可信执行器记录与人工申报。只要求非空摘要仍允许自证。" data-en="Bind each run to a work-item version or reopen cycle, command, exit code, and output provenance. Distinguish trusted runner records from manual declarations. A nonempty summary alone still permits self-certification.">run 绑定工作项版本或重开轮次、命令、退出码和输出来源；区分可信执行器记录与人工申报。只要求非空摘要仍允许自证。</td></tr>
+              <tr><th data-zh="关闭判据与边界" data-en="Closure Criteria and Limits">关闭判据与边界</th><td data-zh="无证据 pass、其他工作项 run、重开前旧 pass 均不满足新的验收；有效结果和批准的人工例外可追踪。API 能校验记录契约，不能证明任意外部文件真实无伪造。" data-en="Reject evidence-free passes, runs for other items, and passes preceding a reopen cycle. Trace valid results and approved manual exceptions. API validation enforces a record contract; it cannot prove arbitrary external files are authentic.">无证据 pass、其他工作项 run、重开前旧 pass 均不满足新的验收；有效结果和批准的人工例外可追踪。API 能校验记录契约，不能证明任意外部文件真实无伪造。</td></tr>
+            </tbody></table><p><a href="#ref-5">[5]</a></p>
+          </div></div>
+        </div>
+      </section>
+      <section id="execution" class="section" data-reveal>
+        <div class="section-head"><span class="section-kicker" data-zh="04 / 执行生命周期" data-en="04 / Execution Lifecycle">04 / 执行生命周期</span><h2 data-zh="权限、取消和结构化交付需要独立的运行契约" data-en="Authority, Cancellation, and Structured Delivery Need Separate Contracts">权限、取消和结构化交付需要独立的运行契约</h2><p data-zh="现有消息交付门禁值得保留，但消息、工作记录与进程终态不是同一件事。以下为静态源码确认，未运行真实 CLI 权限或取消实验。" data-en="Retain the existing message-delivery gate, but distinguish messages, work records, and process termination. These findings are source-confirmed; real CLI permission and cancellation experiments were not run.">现有消息交付门禁值得保留，但消息、工作记录与进程终态不是同一件事。以下为静态源码确认，未运行真实 CLI 权限或取消实验。</p></div>
+        <div class="insight-grid" data-present-step data-step-title="执行契约总览" data-step-title-en="Execution Contract Overview">
+          <article class="insight-card"><span class="card-index">F03</span><h3 data-zh="P1 建议 · 只读边界" data-en="Suggested P1 · Read-Only Boundary">P1 建议 · 只读边界</h3><p data-zh="禁用 write 不等于禁止 shell 写入；默认权限仍广于分析任务用途。" data-en="Denying write does not prohibit shell writes; default authority exceeds an analysis task's stated purpose.">禁用 write 不等于禁止 shell 写入；默认权限仍广于分析任务用途。</p><a href="#ref-6">[6]</a></article>
+          <article class="insight-card"><span class="card-index">F04</span><h3 data-zh="P1 · 取消顺序" data-en="P1 · Cancellation Ordering">P1 · 取消顺序</h3><p data-zh="模型回退先于 canceled 检查；数据库终态不证明进程树已停止。" data-en="Model fallback precedes the canceled check; a database terminal state does not prove process-tree termination.">模型回退先于 canceled 检查；数据库终态不证明进程树已停止。</p><a href="#ref-7">[7]</a></article>
+          <article class="insight-card"><span class="card-index">F05</span><h3 data-zh="P2 · 结果契约" data-en="P2 · Output Contract">P2 · 结果契约</h3><p data-zh="消息门禁未覆盖所有声明的 work_run、变更单及目标话题。" data-en="The message gate does not enforce every declared work_run, proposal, or target topic.">消息门禁未覆盖所有声明的 work_run、变更单及目标话题。</p><a href="#ref-8">[8]</a></article>
+        </div>
+        <div class="subsection-accordion">
+          <div id="f03" class="subsection-item" data-accordion data-present-step data-step-title="F03：显式授权" data-step-title-en="F03: Explicit Authority"><button class="subsection-toggle" type="button" aria-expanded="false"><span data-zh="F03：显式授权优于零散拒绝" data-en="F03: Explicit Grants over Ad Hoc Denials">F03：显式授权优于零散拒绝</span></button><div class="subsection-content">
+            <p data-zh="buildCommand 默认传入 allow-all-tools 和 allow-all-paths；allowWrite=false 只拒绝 write，不建立文件系统只读边界。" data-en="buildCommand supplies allow-all-tools and allow-all-paths by default. allowWrite=false denies write but does not establish a read-only filesystem boundary.">buildCommand 默认传入 allow-all-tools 和 allow-all-paths；allowWrite=false 只拒绝 write，不建立文件系统只读边界。</p>
+            <table class="simple-table"><tbody>
+              <tr><th data-zh="优先级依据" data-en="Priority Rationale">优先级依据</th><td data-zh="只读分析不应修改工作区。P1 是基于该边界重要性的建议；安装版本的 CLI 实际权限行为仍需夹具确认，不作漏洞利用声明。" data-en="Read-only analysis should not modify the workspace. P1 is a recommendation based on that boundary's importance; installed CLI behavior still needs fixture confirmation. This is not an exploitation claim.">只读分析不应修改工作区。P1 是基于该边界重要性的建议；安装版本的 CLI 实际权限行为仍需夹具确认，不作漏洞利用声明。</td></tr>
+              <tr><th data-zh="方案取舍" data-en="Options and Tradeoffs">方案取舍</th><td data-zh="按 Playbook 授予工具和目录范围；必须运行任意命令时提供只读工作区。拒绝更多命令不能穷尽 shell 写入，系统级隔离则增加兼容和维护成本。" data-en="Grant tools and paths per playbook; use a read-only workspace when arbitrary commands are necessary. More denied commands cannot exhaust shell writes, while OS isolation adds compatibility and maintenance costs.">按 Playbook 授予工具和目录范围；必须运行任意命令时提供只读工作区。拒绝更多命令不能穷尽 shell 写入，系统级隔离则增加兼容和维护成本。</td></tr>
+              <tr><th data-zh="关闭判据" data-en="Closure Criteria">关闭判据</th><td data-zh="代表性只读任务无法通过文件工具或 shell 写入，但读取代码和允许的结构化提交仍可成功。" data-en="Representative read-only tasks cannot write through file tools or shell commands, while code reads and permitted structured submissions still succeed.">代表性只读任务无法通过文件工具或 shell 写入，但读取代码和允许的结构化提交仍可成功。</td></tr>
+            </tbody></table><p><a href="#ref-6">[6]</a></p>
+          </div></div>
+          <div id="f04" class="subsection-item" data-accordion data-present-step data-step-title="F04：取消与终止" data-step-title-en="F04: Cancellation and Termination"><button class="subsection-toggle" type="button" aria-expanded="false"><span data-zh="F04：终止确认先于回滚和终态" data-en="F04: Confirm Termination Before Rollback and Finalization">F04：终止确认先于回滚和终态</span></button><div class="subsection-content">
+            <p data-zh="取消先保存 canceled 并对直接子进程发 SIGTERM；close 回调先检查模型回退，满足条件时可能重启已取消任务。" data-en="Cancellation persists canceled and sends SIGTERM to the direct child. The close handler checks model fallback first, so matching conditions can restart a canceled job.">取消先保存 canceled 并对直接子进程发 SIGTERM；close 回调先检查模型回退，满足条件时可能重启已取消任务。</p>
+            <table class="simple-table"><tbody>
+              <tr><th data-zh="建议机制" data-en="Recommended Mechanism">建议机制</th><td data-zh="取消请求先禁止重试并撤销写入授权；canceling 表示停机中。确认进程树退出后才 canceled 和回滚，并增加可配置截止时间及有界升级终止。" data-en="On cancellation, block retries and revoke write authority. Use canceling while stopping. Finalize and roll back only after process-tree exit; add a configurable deadline and bounded termination escalation.">取消请求先禁止重试并撤销写入授权；canceling 表示停机中。确认进程树退出后才 canceled 和回滚，并增加可配置截止时间及有界升级终止。</td></tr>
+              <tr><th data-zh="取舍与边界" data-en="Tradeoff and Limits">取舍与边界</th><td data-zh="移动 canceled 判断可修回退复活，但不能解决后代进程存活。仅发 SIGTERM 也不能证明已停止；本轮未运行残留进程实验。" data-en="Moving the canceled check repairs fallback resurrection, not surviving descendants. Sending SIGTERM alone does not prove termination. No residual-process experiment was run here.">移动 canceled 判断可修回退复活，但不能解决后代进程存活。仅发 SIGTERM 也不能证明已停止；本轮未运行残留进程实验。</td></tr>
+              <tr><th data-zh="关闭判据" data-en="Closure Criteria">关闭判据</th><td data-zh="回退诊断后取消、忽略 SIGTERM、生成后代三种夹具均不重启、不遗留写入者；写入者未停不得回滚；截止时间行为可观察。" data-en="Fixtures for cancellation after fallback diagnostics, SIGTERM resistance, and child descendants must not restart or leave writers. Never roll back before writers stop; deadline behavior must be observable.">回退诊断后取消、忽略 SIGTERM、生成后代三种夹具均不重启、不遗留写入者；写入者未停不得回滚；截止时间行为可观察。</td></tr>
+            </tbody></table><p><a href="#ref-7">[7]</a></p>
+          </div></div>
+          <div id="f05" class="subsection-item" data-accordion data-present-step data-step-title="F05：结构化交付" data-step-title-en="F05: Structured Delivery"><button class="subsection-toggle" type="button" aria-expanded="false"><span data-zh="F05：按声明结果验证交付" data-en="F05: Validate Delivery Against Declared Outputs">F05：按声明结果验证交付</span></button><div class="subsection-content">
+            <p data-zh="outcome 声明尚未成为完整 postflight 门禁；消息存在性也未确认目标话题。现有缺消息失败处理应保留，而不是重新实现一套。" data-en="Declared outcomes do not yet form a complete postflight gate, and message existence does not confirm the target topic. Preserve the existing missing-message failure handling rather than introducing a parallel system.">outcome 声明尚未成为完整 postflight 门禁；消息存在性也未确认目标话题。现有缺消息失败处理应保留，而不是重新实现一套。</p>
+            <table class="simple-table"><tbody>
+              <tr><th data-zh="机制" data-en="Mechanism">机制</th><td data-zh="engine 向 jobs 传递是否必须发消息，未按 outcome 强制核对 work_run 或提案；消息查询只使用 job_id 和 Agent 角色。" data-en="The engine passes a message requirement to jobs but does not enforce work_run or proposal outcomes. The message query uses job_id and the agent role only.">engine 向 jobs 传递是否必须发消息，未按 outcome 强制核对 work_run 或提案；消息查询只使用 job_id 和 Agent 角色。</td></tr>
+              <tr><th data-zh="方案取舍" data-en="Options and Tradeoffs">方案取舍</th><td data-zh="持久化带类型的 expected_outputs，验证 Job、工作项、话题和来源。失败、部分完成、阻塞分别记录，不要求失败执行制造 pass。增加提示词不能替代检查。" data-en="Persist typed expected_outputs and validate job, item, topic, and provenance. Record failure, partial completion, and blocking separately; never require a failed run to manufacture a pass. Prompt changes cannot replace checks.">持久化带类型的 expected_outputs，验证 Job、工作项、话题和来源。失败、部分完成、阻塞分别记录，不要求失败执行制造 pass。增加提示词不能替代检查。</td></tr>
+              <tr><th data-zh="关闭判据" data-en="Closure Criteria">关闭判据</th><td data-zh="仅发消息却无所需 run、未交提案、发错话题均不能算交付完成；符合该 Playbook 声明的有效结果才通过。" data-en="A message without its required run, a missing proposal, or delivery to the wrong topic must not count as complete. Accept only valid outputs matching that playbook's declaration.">仅发消息却无所需 run、未交提案、发错话题均不能算交付完成；符合该 Playbook 声明的有效结果才通过。</td></tr>
+            </tbody></table><p><a href="#ref-8">[8]</a></p>
+          </div></div>
+        </div>
+      </section>
+      <section id="recovery" class="section" data-reveal>
+        <div class="section-head"><span class="section-kicker" data-zh="05 / 重启恢复" data-en="05 / Restart Recovery">05 / 重启恢复</span><h2 data-zh="持久化 Job 不等于持久化编排" data-en="Persisted Jobs Do Not Make Orchestration Durable">持久化 Job 不等于持久化编排</h2><p data-zh="F06 / P2 包含初始化后续任务和架构提取恢复互斥两个子项。两者需要批次身份和恢复状态，而不只是保存进程记录；以下为静态确认。" data-en="F06 / P2 covers initialization continuation and architecture-extraction recovery exclusion. Both need batch identity and recovery state, not just process records. These findings are source-confirmed.">F06 / P2 包含初始化后续任务和架构提取恢复互斥两个子项。两者需要批次身份和恢复状态，而不只是保存进程记录；以下为静态确认。</p></div>
+        <div class="comparison-grid" data-present-step data-step-title="两个恢复缺口" data-step-title-en="Two Recovery Gaps">
+          <article class="comparison-card"><span class="comparison-label">F06-A</span><h3 data-zh="初始化 continuation 在内存中" data-en="Initialization Continuation Lives in Memory">初始化 continuation 在内存中</h3><p data-zh="Set 和定时器保存后续一致性阶段；重启后缺少批次恢复。等待一小时后只要已有成功任务便可继续，即使其他任务仍运行。" data-en="A Set and timer hold the consistency continuation. Restart loses batch recovery. After one hour, any successful predecessor can allow continuation even while others still run.">Set 和定时器保存后续一致性阶段；重启后缺少批次恢复。等待一小时后只要已有成功任务便可继续，即使其他任务仍运行。</p></article>
+          <article class="comparison-card"><span class="comparison-label">F06-B</span><h3 data-zh="恢复失败未重建项目互斥" data-en="Failed Recovery Does Not Restore Project Exclusion">恢复失败未重建项目互斥</h3><p data-zh="提取回滚失败会保留快照，却没有重建项目锁；新提取可能与尚未完成的恢复冲突。" data-en="A failed extraction rollback retains its snapshot without reconstructing the project lock; new extraction can conflict with unresolved recovery.">提取回滚失败会保留快照，却没有重建项目锁；新提取可能与尚未完成的恢复冲突。</p></article>
+        </div><p><a href="#ref-9">[9]</a></p>
+        <div class="subsection-accordion"><div id="f06" class="subsection-item" data-accordion data-present-step data-step-title="F06：持久化恢复" data-step-title-en="F06: Durable Recovery"><button class="subsection-toggle" type="button" aria-expanded="false"><span data-zh="F06：在单写者内持久化依赖与恢复租约" data-en="F06: Persist Dependencies and Recovery Leases Within the Single Writer">F06：在单写者内持久化依赖与恢复租约</span></button><div class="subsection-content">
+          <p data-zh="先明确取消和结果终态，再把编排存入现有数据库；否则只是持久化错误状态。" data-en="Define cancellation and output terminal states before persisting orchestration; otherwise incorrect states merely become durable.">先明确取消和结果终态，再把编排存入现有数据库；否则只是持久化错误状态。</p>
+          <table class="simple-table"><tbody>
+            <tr><th data-zh="建议结构" data-en="Recommended Structure">建议结构</th><td data-zh="保存初始化批次、前置 Job、唯一后续任务声明及项目恢复租约。恢复失败保留阻塞；超时显式处理，不提前合并。" data-en="Persist initialization batches, predecessor jobs, a unique continuation claim, and project recovery leases. Keep failed recovery blocked; handle timeout explicitly rather than consolidating early.">保存初始化批次、前置 Job、唯一后续任务声明及项目恢复租约。恢复失败保留阻塞；超时显式处理，不提前合并。</td></tr>
+            <tr><th data-zh="取舍" data-en="Tradeoffs">取舍</th><td data-zh="无批次身份的启动扫描可能混合多次初始化；外部工作流平台则超出当前体量需要。复用同一 API 写入边界。" data-en="Startup scans without batch identity can mix separate initialization attempts; an external workflow platform exceeds current needs. Reuse the API writer boundary.">无批次身份的启动扫描可能混合多次初始化；外部工作流平台则超出当前体量需要。复用同一 API 写入边界。</td></tr>
+            <tr><th data-zh="关闭判据" data-en="Closure Criteria">关闭判据</th><td data-zh="前置完成与后续启动之间重启，后续恰好启动一次；前置未结束不合并；恢复失败禁新提取，恢复成功释放租约。依赖 F04/F05。" data-en="Restart between predecessor completion and continuation: launch exactly once. Do not consolidate unfinished predecessors. Block new extraction after recovery failure and release the lease after success. Depends on F04/F05.">前置完成与后续启动之间重启，后续恰好启动一次；前置未结束不合并；恢复失败禁新提取，恢复成功释放租约。依赖 F04/F05。</td></tr>
+          </tbody></table><p><a href="#ref-9">[9]</a></p>
+        </div></div></div>
+      </section>
+      <section id="page" class="section" data-reveal>
+        <div class="section-head"><span class="section-kicker" data-zh="06 / 页面生命周期" data-en="06 / Page Lifecycle">06 / 页面生命周期</span><h2 data-zh="异步结果必须归属于当前导航" data-en="Async Results Must Belong to the Current Navigation">异步结果必须归属于当前导航</h2><p data-zh="F07 / P1 合并两个页面生命周期子项，但分别记录证据与验收。修复共享时序比迁移前端框架更直接；两个子项都关闭才计主项完成。" data-en="F07 / P1 groups two page-lifecycle subitems with separate evidence and acceptance criteria. Repairing shared timing is more direct than migrating frameworks. Both subitems must close before the parent finding closes.">F07 / P1 合并两个页面生命周期子项，但分别记录证据与验收。修复共享时序比迁移前端框架更直接；两个子项都关闭才计主项完成。</p></div>
+        <div class="comparison-grid" data-present-step data-step-title="页面失败样例" data-step-title-en="Page Failure Cases">
+          <article class="comparison-card"><span class="comparison-label">F07-A</span><h3 data-zh="旧请求覆盖新页面" data-en="An Old Request Overwrites the New Page">旧请求覆盖新页面</h3><p data-zh="tasks 请求先启动，随后导航到 bugs；tasks 最后返回，重新查询全局 listArea 后写入。内存 mock 复现 Bugs 标题配 tasks 内容；不是源应用浏览器 E2E。" data-en="A tasks request starts, then navigation switches to bugs. Tasks resolves last and writes into the global listArea. An in-memory mock reproduced a Bugs heading with tasks content; this was not browser E2E on the source app.">tasks 请求先启动，随后导航到 bugs；tasks 最后返回，重新查询全局 listArea 后写入。内存 mock 复现 Bugs 标题配 tasks 内容；不是源应用浏览器 E2E。</p></article>
+          <article class="comparison-card"><span class="comparison-label">F07-B</span><h3 data-zh="修订观察器调用不存在" data-en="Revision Polling Calls an Undefined Function">修订观察器调用不存在</h3><p data-zh="方案/场景重新进入修订状态调用未定义的 startEntityRevisionPoll，异常被空 catch 吞掉。另有两个已有轮询器承担近似职责，属于静态确认的接线缺陷。" data-en="Reopening a revising solution/scenario calls undefined startEntityRevisionPoll, and an empty catch hides the error. Two existing pollers serve similar duties. This is a source-confirmed wiring defect.">方案/场景重新进入修订状态调用未定义的 startEntityRevisionPoll，异常被空 catch 吞掉。另有两个已有轮询器承担近似职责，属于静态确认的接线缺陷。</p></article>
+        </div><p><a href="#ref-10">[10]</a></p>
+        <div class="subsection-accordion"><div id="f07" class="subsection-item" data-accordion data-present-step data-step-title="F07：页面生命周期" data-step-title-en="F07: Page Lifecycle"><button class="subsection-toggle" type="button" aria-expanded="false"><span data-zh="F07：一个导航提交规则，一个 Job 观察器" data-en="F07: One Navigation Commit Rule and One Job Observer">F07：一个导航提交规则，一个 Job 观察器</span></button><div class="subsection-content">
+          <p data-zh="复用 dock 已有的请求序号思路；实体只定义刷新回调，不再各自管理完整轮询生命周期。" data-en="Reuse the request-generation approach already present in the dock. Entities should define refresh callbacks rather than each managing a full polling lifecycle.">复用 dock 已有的请求序号思路；实体只定义刷新回调，不再各自管理完整轮询生命周期。</p>
+          <table class="simple-table"><tbody>
+            <tr><th data-zh="方案与取舍" data-en="Mechanism and Tradeoff">方案与取舍</th><td data-zh="提交前校验 project/view/entity/generation；统一 Job 订阅、终态和退出清理。AbortController 可减少无效请求，但不能替代提交身份校验。" data-en="Validate project/view/entity/generation before committing. Centralize job subscriptions, terminal handling, and teardown. AbortController reduces wasted requests but does not replace commit-identity checks.">提交前校验 project/view/entity/generation；统一 Job 订阅、终态和退出清理。AbortController 可减少无效请求，但不能替代提交身份校验。</td></tr>
+            <tr><th data-zh="A 关闭判据" data-en="A Closure Criteria">A 关闭判据</th><td data-zh="乱序响应、快速下钻、返回及跨项目切换后，只能呈现当前导航结果与上下文。" data-en="Out-of-order responses, rapid drill-down, back navigation, and project switches can display only the current route's result and context.">乱序响应、快速下钻、返回及跨项目切换后，只能呈现当前导航结果与上下文。</td></tr>
+            <tr><th data-zh="B 关闭判据" data-en="B Closure Criteria">B 关闭判据</th><td data-zh="三类产品实体修订后离开再返回，恢复进度并在终态刷新；同一 Job 不重复轮询，失败可见。" data-en="Leaving and returning during revision of all three product entity types restores progress and refreshes terminal results. No duplicate polling per job; failures remain visible.">三类产品实体修订后离开再返回，恢复进度并在终态刷新；同一 Job 不重复轮询，失败可见。</td></tr>
+          </tbody></table><p><a href="#ref-10">[10]</a></p>
+        </div></div></div>
+      </section>
+      <section id="alignment" class="section" data-reveal>
+        <div class="section-head"><span class="section-kicker" data-zh="07 / 目标与冗余" data-en="07 / Alignment and Redundancy">07 / 目标与冗余</span><h2 data-zh="补齐使用路径，再清理无效表面" data-en="Complete User Paths, Then Remove Inactive Surfaces">补齐使用路径，再清理无效表面</h2><p data-zh="已有算法、已有接口或已有命令名字都不能单独证明能力已交付。F08 是目标偏差，F09 是接线缺口，F10 是未交付能力与失效命令；三者不能混称为回归。" data-en="An algorithm, endpoint, or command name alone does not establish delivery. F08 is goal drift, F09 a wiring gap, and F10 an undelivered capability with an invalid command. They are not all regressions.">已有算法、已有接口或已有命令名字都不能单独证明能力已交付。F08 是目标偏差，F09 是接线缺口，F10 是未交付能力与失效命令；三者不能混称为回归。</p></div>
+        <div data-present-step data-step-title="补齐或撤回的决策" data-step-title-en="Decisions to Complete or Withdraw"><table class="simple-table"><thead><tr><th data-zh="发现" data-en="Finding">发现</th><th data-zh="事实" data-en="Fact">事实</th><th data-zh="建议决定" data-en="Recommended Decision">建议决定</th></tr></thead><tbody>
+          <tr><td>F08 / P2</td><td data-zh="ai_next 已返回，首页未呈现" data-en="ai_next is returned but not rendered on home">ai_next 已返回，首页未呈现</td><td data-zh="恢复下一步入口与空态" data-en="Restore next actions and an empty state">恢复下一步入口与空态</td></tr>
+          <tr><td>F09 / P2</td><td data-zh="语义差异算法未接入版本页" data-en="Semantic diff is not connected to the version page">语义差异算法未接入版本页</td><td data-zh="接线并补页面回归，或批准撤回" data-en="Wire it with page coverage, or explicitly withdraw it">接线并补页面回归，或批准撤回</td></tr>
+          <tr><td>F10 / P2</td><td data-zh="export 指向不存在的 exporter.ts" data-en="export points to absent exporter.ts">export 指向不存在的 exporter.ts</td><td data-zh="批准最小导出，或移除无效命令" data-en="Approve minimal export, or remove the invalid command">批准最小导出，或移除无效命令</td></tr>
+        </tbody></table><p><a href="#ref-11">[11]</a> <a href="#ref-12">[12]</a> <a href="#ref-13">[13]</a></p></div>
+        <div class="subsection-accordion">
+          <div id="f08" class="subsection-item" data-accordion data-present-step data-step-title="F08：首页下一步" data-step-title-en="F08: Next Actions on Home"><button class="subsection-toggle" type="button" aria-expanded="false"><span data-zh="F08：让首页重新回答 AI 下一步" data-en="F08: Make Home Show the Next AI Action">F08：让首页重新回答 AI 下一步</span></button><div class="subsection-content">
+            <p data-zh="buildHome 产生 ai_next，但最终首页模板未使用，偏离已有验收目标；重复聚合也增加指标漂移的维护风险。" data-en="buildHome produces ai_next, but the final home template ignores it, departing from the acceptance goal. Repeated aggregation also increases metric-drift maintenance risk.">buildHome 产生 ai_next，但最终首页模板未使用，偏离已有验收目标；重复聚合也增加指标漂移的维护风险。</p>
+            <table class="simple-table"><tbody><tr><th data-zh="方案取舍" data-en="Options and Tradeoffs">方案取舍</th><td data-zh="恢复紧凑下一步列表与空态；首页组合多个聚合接口，验证命令覆盖率在不同分支重复计算，应复用指标口径。若删 ai_next，先修订目标。" data-en="Restore a compact next-action list and empty state. Home combines several aggregates, and validation-command coverage is computed in multiple branches; reuse one metric definition. Revise the goal before deleting ai_next.">恢复紧凑下一步列表与空态；首页组合多个聚合接口，验证命令覆盖率在不同分支重复计算，应复用指标口径。若删 ai_next，先修订目标。</td></tr><tr><th data-zh="关闭判据" data-en="Closure Criteria">关闭判据</th><td data-zh="有 ready_for_agent 任务时显示下一步和目标链接，无任务时有明确空态；不同页面的重复指标一致。" data-en="Show next actions and target links for ready_for_agent tasks, with an explicit empty state otherwise. Shared metrics must agree across pages.">有 ready_for_agent 任务时显示下一步和目标链接，无任务时有明确空态；不同页面的重复指标一致。</td></tr></tbody></table><p><a href="#ref-11">[11]</a></p>
+          </div></div>
+          <div id="f09" class="subsection-item" data-accordion data-present-step data-step-title="F09：版本差异" data-step-title-en="F09: Version Differences"><button class="subsection-toggle" type="button" aria-expanded="false"><span data-zh="F09：版本差异需要页面级交付" data-en="F09: Version Differences Need Page-Level Delivery">F09：版本差异需要页面级交付</span></button><div class="subsection-content">
+            <p data-zh="蓝图差异算法及纯函数测试存在，但阅读页没有消费；Job 变更摘要不能代替两份持久化版本的实际比较。" data-en="The blueprint diff algorithm and unit-level checks exist, but the reader does not consume it. A job summary cannot substitute for comparing two persisted versions.">蓝图差异算法及纯函数测试存在，但阅读页没有消费；Job 变更摘要不能代替两份持久化版本的实际比较。</p>
+            <table class="simple-table"><tbody><tr><th data-zh="方案取舍" data-en="Options and Tradeoffs">方案取舍</th><td data-zh="连接比较对象选择与现有算法，覆盖字段、列表和路线图；若取消能力，明确修订文档并删除失去用途的代码。" data-en="Connect comparison selection to the existing algorithm for fields, lists, and roadmaps. If the capability is canceled, explicitly revise documentation and remove unused code.">连接比较对象选择与现有算法，覆盖字段、列表和路线图；若取消能力，明确修订文档并删除失去用途的代码。</td></tr><tr><th data-zh="关闭判据" data-en="Closure Criteria">关闭判据</th><td data-zh="当前与历史版本选择正确比较对象，页面呈现实际差异；新增页面级断言，纯函数通过不算接线完成。" data-en="Current and historical versions select the correct comparison and render actual differences. Add page-level assertions; a passing pure function does not establish wiring.">当前与历史版本选择正确比较对象，页面呈现实际差异；新增页面级断言，纯函数通过不算接线完成。</td></tr></tbody></table><p><a href="#ref-12">[12]</a></p>
+          </div></div>
+          <div id="f10" class="subsection-item" data-accordion data-present-step data-step-title="F10：导出范围" data-step-title-en="F10: Export Scope"><button class="subsection-toggle" type="button" aria-expanded="false"><span data-zh="F10：导出能力须交付或撤回入口" data-en="F10: Deliver Export or Withdraw Its Entry Point">F10：导出能力须交付或撤回入口</span></button><div class="subsection-content">
+            <p data-zh="package.json 指向缺失的 exporter.ts；roadmap 已将 JSON/Markdown 导出列为待办，不能以阶段概括代替能力清单。" data-en="package.json points to missing exporter.ts. The roadmap already lists JSON/Markdown export as unfinished; a phase summary cannot replace a capability inventory.">package.json 指向缺失的 exporter.ts；roadmap 已将 JSON/Markdown 导出列为待办，不能以阶段概括代替能力清单。</p>
+            <table class="simple-table"><tbody><tr><th data-zh="方案取舍" data-en="Options and Tradeoffs">方案取舍</th><td data-zh="需要快照时先批准最小导出设计；否则移除无效命令并准确表述完成范围。快照不等于完整灾难恢复，不增加第二个 SQLite 写入者。" data-en="Approve a minimal export design if snapshots are needed; otherwise remove the invalid command and clarify delivered scope. Snapshots are not full disaster recovery. Do not add a second SQLite writer.">需要快照时先批准最小导出设计；否则移除无效命令并准确表述完成范围。快照不等于完整灾难恢复，不增加第二个 SQLite 写入者。</td></tr><tr><th data-zh="关闭判据" data-en="Closure Criteria">关闭判据</th><td data-zh="所有声明可运行的命令都有实现；若交付导出，以隔离数据集核对项目过滤、实体关系及 JSON/Markdown 输出。" data-en="Every advertised runnable command has an implementation. If export ships, verify project filtering, entity relationships, and JSON/Markdown output using isolated fixtures.">所有声明可运行的命令都有实现；若交付导出，以隔离数据集核对项目过滤、实体关系及 JSON/Markdown 输出。</td></tr></tbody></table><p><a href="#ref-13">[13]</a></p>
+          </div></div>
+        </div>
+      </section>
+      <section id="ledger" class="section" data-reveal>
+        <div class="section-head"><span class="section-kicker" data-zh="08 / 整改进度" data-en="08 / Remediation Tracking">08 / 整改进度</span><h2 data-zh="用稳定编号连接方案、执行和船长验收" data-en="Connect Findings, Implementation, and Captain Acceptance with Stable IDs">用稳定编号连接方案、执行和船长验收</h2><p data-zh="这是 2026-09-08 的静态评审快照，不是数据库的第二个看板。全部发现处于已发现，修复关闭 0/10。建议负责角色不是实际指派；没有承诺日期、批准排期或创建项目任务。" data-en="This is a static review snapshot dated 2026-09-08, not a second database-backed board. All findings are identified, with 0/10 fixes closed. Suggested roles are not assignments; there are no promised dates, approved schedules, or newly created project tasks.">这是 2026-09-08 的静态评审快照，不是数据库的第二个看板。全部发现处于已发现，修复关闭 0/10。建议负责角色不是实际指派；没有承诺日期、批准排期或创建项目任务。</p></div>
+        <div data-present-step data-step-title="阶段 A：正确性整改台账" data-step-title-en="Phase A: Correctness Ledger">
+          <table class="simple-table"><thead><tr><th data-zh="发现 / 优先级" data-en="Finding / Priority">发现 / 优先级</th><th data-zh="建议角色" data-en="Suggested Role">建议角色</th><th data-zh="状态" data-en="Status">状态</th><th data-zh="关闭依据" data-en="Closure Basis">关闭依据</th></tr></thead><tbody>
+            <tr><td><a href="#f01">F01 / P1</a></td><td>API</td><td data-zh="已发现" data-en="Identified">已发现</td><td data-zh="创建初态与导入例外契约" data-en="Initial-state and import-exception contract">创建初态与导入例外契约</td></tr>
+            <tr><td><a href="#f02">F02 / P1</a></td><td>API</td><td data-zh="已发现" data-en="Identified">已发现</td><td data-zh="本次版本的可追溯验证" data-en="Traceable validation for the current revision">本次版本的可追溯验证</td></tr>
+            <tr><td><a href="#f03">F03 / P1</a></td><td>Runner</td><td data-zh="已发现" data-en="Identified">已发现</td><td data-zh="只读文件及 shell 夹具" data-en="Read-only file and shell fixtures">只读文件及 shell 夹具</td></tr>
+            <tr><td><a href="#f04">F04 / P1</a></td><td>Runner</td><td data-zh="已发现" data-en="Identified">已发现</td><td data-zh="取消不重试、进程树终止" data-en="No retry after cancel; process-tree termination">取消不重试、进程树终止</td></tr>
+            <tr><td><a href="#f05">F05 / P2</a></td><td>Runner</td><td data-zh="已发现" data-en="Identified">已发现</td><td data-zh="按声明验证结构化结果" data-en="Declared structured outputs enforced">按声明验证结构化结果</td></tr>
+            <tr><td><a href="#f07">F07 / P1</a></td><td>Dashboard</td><td data-zh="已发现" data-en="Identified">已发现</td><td data-zh="A 导航隔离 + B 观察器恢复" data-en="A navigation isolation + B observer recovery">A 导航隔离 + B 观察器恢复</td></tr>
+          </tbody></table><p data-zh="先建立失败回归，再作最小修复。F05 虽为 P2，仍进入阶段 A，因为它决定后续编排采用什么完成信号。" data-en="Establish failing regression cases before minimal fixes. F05 is P2 but belongs in Phase A because it defines the completion signal used by subsequent orchestration.">先建立失败回归，再作最小修复。F05 虽为 P2，仍进入阶段 A，因为它决定后续编排采用什么完成信号。</p>
+        </div>
+        <div data-present-step data-step-title="阶段 B/C：恢复与目标补齐" data-step-title-en="Phases B/C: Recovery and Goal Completion">
+          <table class="simple-table"><thead><tr><th data-zh="发现 / 阶段" data-en="Finding / Phase">发现 / 阶段</th><th data-zh="建议角色" data-en="Suggested Role">建议角色</th><th data-zh="状态" data-en="Status">状态</th><th data-zh="依赖与关闭依据" data-en="Dependencies and Closure">依赖与关闭依据</th></tr></thead><tbody>
+            <tr><td><a href="#f06">F06 / P2 / B</a></td><td data-zh="Runner + 数据层" data-en="Runner + Data Layer">Runner + 数据层</td><td data-zh="已发现" data-en="Identified">已发现</td><td data-zh="依赖 F04/F05；批次恢复恰好一次，失败恢复保持互斥" data-en="After F04/F05: exactly-once continuation and exclusion during failed recovery">依赖 F04/F05；批次恢复恰好一次，失败恢复保持互斥</td></tr>
+            <tr><td><a href="#f08">F08 / P2 / C</a></td><td data-zh="产品 + Dashboard" data-en="Product + Dashboard">产品 + Dashboard</td><td data-zh="已发现" data-en="Identified">已发现</td><td data-zh="复用 F07；下一步、空态及指标一致" data-en="Reuse F07; next actions, empty state, and consistent metrics">复用 F07；下一步、空态及指标一致</td></tr>
+            <tr><td><a href="#f09">F09 / P2 / C</a></td><td>Dashboard</td><td data-zh="已发现" data-en="Identified">已发现</td><td data-zh="复用 F07；版本页真正消费差异算法" data-en="Reuse F07; the version page consumes the diff algorithm">复用 F07；版本页真正消费差异算法</td></tr>
+            <tr><td><a href="#f10">F10 / P2 / C</a></td><td data-zh="API + 文档" data-en="API + Documentation">API + 文档</td><td data-zh="已发现" data-en="Identified">已发现</td><td data-zh="先决定交付或撤回；已声明命令可用" data-en="Decide delivery or withdrawal first; advertised commands work">先决定交付或撤回；已声明命令可用</td></tr>
+          </tbody></table>
+        </div>
+        <div class="subsection-accordion"><div class="subsection-item" data-accordion data-present-step data-step-title="台账关闭协议" data-step-title-en="Ledger Closure Protocol"><button class="subsection-toggle" type="button" aria-expanded="false"><span data-zh="台账更新与关闭协议" data-en="Ledger Updates and Closure Protocol">台账更新与关闭协议</span></button><div class="subsection-content">
+          <p data-zh="文章保存审查事实；真实整改状态应进入现有项目系统，再按证据更新文章日期与快照。" data-en="The article preserves review facts. Actual remediation state belongs in the existing project system; update the article's date and snapshot from evidence.">文章保存审查事实；真实整改状态应进入现有项目系统，再按证据更新文章日期与快照。</p>
+          <ol class="layer-list">
+            <li data-zh="每条保存 finding_id、建议优先级、负责角色、状态、依赖、方案决定和关闭证据。" data-en="Track finding_id, suggested priority, role, status, dependencies, solution decision, and closure evidence.">每条保存 finding_id、建议优先级、负责角色、状态、依赖、方案决定和关闭证据。</li>
+            <li data-zh="已发现 → 已批准整改 → 实施中 → 待验收 → 已关闭；风险接受另列，不计作修复。" data-en="Identified → remediation approved → implementing → acceptance review → closed. Record risk acceptance separately; it is not a fix.">已发现 → 已批准整改 → 实施中 → 待验收 → 已关闭；风险接受另列，不计作修复。</li>
+            <li data-zh="finding_id → Bug 或批准设计/任务 → work_run/evidence → 船长验收 → 文章快照更新；review 不得误记为 done。" data-en="finding_id → bug or approved design/task → work_run/evidence → captain acceptance → article snapshot update. Review is not done.">finding_id → Bug 或批准设计/任务 → work_run/evidence → 船长验收 → 文章快照更新；review 不得误记为 done。</li>
+            <li data-zh="Bug 走根因优先；新能力与结构重构先批准 L2，复杂任务补 L3，架构变化附 ADR。公开页不写真实项目任务编号。" data-en="Bugs follow root-cause-first handling. New capabilities and structural refactoring require approved L2 designs, complex tasks need L3, and architecture changes need ADRs. Keep real project task IDs out of the public page.">Bug 走根因优先；新能力与结构重构先批准 L2，复杂任务补 L3，架构变化附 ADR。公开页不写真实项目任务编号。</li>
+          </ol>
+        </div></div></div>
+      </section>
+      <section id="baseline" class="section" data-reveal>
+        <div class="section-head"><span class="section-kicker" data-zh="09 / 评分与基线" data-en="09 / Assessment and Baseline">09 / 评分与基线</span><h2 data-zh="以已复现的数据完整性问题决定整改优先级" data-en="Prioritize Remediation Using Reproduced Data-Integrity Failures">以已复现的数据完整性问题决定整改优先级</h2><p data-zh="源仓库没有项目专用 L2 审查判据或 L3 历史基线。本次先依据 AGENTS 的单写者、门禁、交付和审批不变量标定临时判据，未补建源仓库配置。评分是首轮建议，不是既有标准认证。" data-en="The source repository has no project-specific L2 review rubric or L3 historical baseline. This review derives provisional criteria from AGENTS invariants for the single writer, gates, delivery, and approval. No source review configuration was added. These are initial recommendations, not certification against an established standard.">源仓库没有项目专用 L2 审查判据或 L3 历史基线。本次先依据 AGENTS 的单写者、门禁、交付和审批不变量标定临时判据，未补建源仓库配置。评分是首轮建议，不是既有标准认证。</p></div>
+        <div data-present-step data-step-title="结构与工程质量评分" data-step-title-en="Structure and Engineering Assessment"><table class="simple-table"><thead><tr><th data-zh="维度" data-en="Dimension">维度</th><th data-zh="等级" data-en="Grade">等级</th><th data-zh="依据与置信度" data-en="Basis and Confidence">依据与置信度</th></tr></thead><tbody>
+          <tr><td data-zh="架构一致性" data-en="Architecture Consistency">架构一致性</td><td>C</td><td data-zh="审批链可保留，创建入口未统一门禁；高置信。[1][2][4]" data-en="Keep the approval chain; creation gates are inconsistent. High confidence. [1][2][4]">审批链可保留，创建入口未统一门禁；高置信。[1][2][4]</td></tr>
+          <tr><td data-zh="代码重复度" data-en="Duplication">代码重复度</td><td>B</td><td data-zh="共享投影良好，观察器和统计局部重复；中置信。未证明三处大段重复。[2][10][11]" data-en="Shared projections are sound; observers and metrics have local duplication. Medium confidence; no three-way large clone established. [2][10][11]">共享投影良好，观察器和统计局部重复；中置信。未证明三处大段重复。[2][10][11]</td></tr>
+          <tr><td data-zh="命名与可读性" data-en="Naming and Readability">命名与可读性</td><td>B</td><td data-zh="领域命名可识别，热点集中多种职责；中置信。长度不单独定级。[3]" data-en="Domain names are recognizable; hotspots concentrate responsibilities. Medium confidence; length alone does not determine the grade. [3]">领域命名可识别，热点集中多种职责；中置信。长度不单独定级。[3]</td></tr>
+          <tr><td data-zh="错误处理与健壮性" data-en="Error Handling and Robustness">错误处理与健壮性</td><td>C</td><td data-zh="已有缺消息保护；取消顺序和结果契约仍有缺口。静态高置信，未宣称生产事故。[7][8]" data-en="Missing-message protection exists; cancellation ordering and output contracts remain incomplete. High source confidence; no production incident claimed. [7][8]">已有缺消息保护；取消顺序和结果契约仍有缺口。静态高置信，未宣称生产事故。[7][8]</td></tr>
+          <tr><td data-zh="可测试性" data-en="Testability">可测试性</td><td>C</td><td data-zh="隔离 API/服务脚本可复用，但入口和证据缺口未被现有检查发现；高置信。[4][5][14]" data-en="Isolated API/service scripts are reusable, but existing checks missed entry and evidence gaps. High confidence. [4][5][14]">隔离 API/服务脚本可复用，但入口和证据缺口未被现有检查发现；高置信。[4][5][14]</td></tr>
+        </tbody></table></div>
+        <div data-present-step data-step-title="资源、完整性与文档评分" data-step-title-en="Resources, Integrity, and Documentation Assessment"><table class="simple-table"><thead><tr><th data-zh="维度" data-en="Dimension">维度</th><th data-zh="等级" data-en="Grade">等级</th><th data-zh="依据与置信度" data-en="Basis and Confidence">依据与置信度</th></tr></thead><tbody>
+          <tr><td data-zh="性能与资源" data-en="Performance and Resources">性能与资源</td><td>B*</td><td data-zh="仅静态、低置信：单例 DB 与分块日志有基础，重复聚合值得测量；无延迟/吞吐/内存基线，运行性能不评级。[1][7][11]" data-en="Static only, low confidence: singleton DB and chunked log reads provide a foundation; measure repeated aggregation. No latency, throughput, or memory baseline; runtime performance is unrated. [1][7][11]">仅静态、低置信：单例 DB 与分块日志有基础，重复聚合值得测量；无延迟/吞吐/内存基线，运行性能不评级。[1][7][11]</td></tr>
+          <tr><td data-zh="安全与数据完整性" data-en="Security and Data Integrity">安全与数据完整性</td><td>D</td><td data-zh="数据完整性范围、高置信：普通 API 可制造无门禁 done。不是安全渗透结论。[4][5]" data-en="Data-integrity scope, high confidence: ordinary APIs can create ungated done records. Not a penetration-test verdict. [4][5]">数据完整性范围、高置信：普通 API 可制造无门禁 done。不是安全渗透结论。[4][5]</td></tr>
+          <tr><td data-zh="组件复用" data-en="Component Reuse">组件复用</td><td>B</td><td data-zh="实体阅读器、投影与 i18n 基础已存在，生命周期应收敛；中置信。[10][12][14]" data-en="Entity readers, projections, and i18n exist; consolidate lifecycle management. Medium confidence. [10][12][14]">实体阅读器、投影与 i18n 基础已存在，生命周期应收敛；中置信。[10][12][14]</td></tr>
+          <tr><td data-zh="文档健康" data-en="Documentation Health">文档健康</td><td>C</td><td data-zh="目标/接线不一致、阶段完成范围过宽；导出待办已有说明。高置信。[11][12][13]" data-en="Goals and wiring diverge; phase-completion claims are broad. Export is explicitly unfinished. High confidence. [11][12][13]">目标/接线不一致、阶段完成范围过宽；导出待办已有说明。高置信。[11][12][13]</td></tr>
+        </tbody></table><p data-zh="A=保持，B=局部改善，C=下一轮整改，D=先治理关键不变量。总体按最高风险取 D，不取平均；建议先专项整改，不表示删除现有功能或重做整个系统。" data-en="A: retain; B: local improvement; C: remediate next cycle; D: repair critical invariants first. Overall D follows the highest-risk dimension, not an average. Prioritize targeted remediation; do not remove existing features or rebuild the system.">A=保持，B=局部改善，C=下一轮整改，D=先治理关键不变量。总体按最高风险取 D，不取平均；建议先专项整改，不表示删除现有功能或重做整个系统。</p></div>
+        <div class="subsection-accordion"><div class="subsection-item" data-accordion data-present-step data-step-title="规模基线与验证范围" data-step-title-en="Size Baseline and Validation Scope"><button class="subsection-toggle" type="button" aria-expanded="false"><span data-zh="首轮规模基线与验证范围" data-en="Initial Size Baseline and Validation Scope">首轮规模基线与验证范围</span></button><div class="subsection-content">
+          <p data-zh="包含当前未提交文件，排除 src/public/vendor；按换行符统计代码及 SQL，不含 CSS/HTML。没有历史对照，不计算增长率。" data-en="Includes uncommitted files and excludes src/public/vendor. Counts newline characters in code and SQL, excluding CSS/HTML. There is no historical comparison or growth calculation.">包含当前未提交文件，排除 src/public/vendor；按换行符统计代码及 SQL，不含 CSS/HTML。没有历史对照，不计算增长率。</p>
+          <table class="simple-table"><thead><tr><th data-zh="范围" data-en="Scope">范围</th><th data-zh="文件数" data-en="Files">文件数</th><th data-zh="行数" data-en="Lines">行数</th></tr></thead><tbody><tr><td>src (.ts/.js/.mjs)</td><td>42</td><td>15,694</td></tr><tr><td>scripts (.mjs)</td><td>13</td><td>1,693</td></tr><tr><td>migrations (.sql)</td><td>20</td><td>766</td></tr><tr><td data-zh="合计" data-en="Total">合计</td><td>75</td><td>18,153</td></tr></tbody></table>
+          <p data-zh="Node v22.22.3 / macOS。现有 typecheck、design API、Bug resolution、conversation delivery、delegation tools 检查通过；Dashboard 审阅中的 entity-reader、blueprint-diff、i18n 检查通过。已有测试基础，不应把引入新框架作为前置条件。" data-en="Node v22.22.3 / macOS. Existing typecheck, design API, bug resolution, conversation delivery, and delegation tools checks passed; dashboard review also passed entity-reader, blueprint-diff, and i18n checks. Reuse this test foundation rather than requiring a new framework.">Node v22.22.3 / macOS。现有 typecheck、design API、Bug resolution、conversation delivery、delegation tools 检查通过；Dashboard 审阅中的 entity-reader、blueprint-diff、i18n 检查通过。已有测试基础，不应把引入新框架作为前置条件。</p><a href="#ref-14">[14]</a>
+        </div></div></div>
+      </section>
+      <section id="references" class="section" data-reveal data-density-exempt="references">
+        <div class="section-head"><span class="section-kicker" data-zh="10 / 源码证据与范围" data-en="10 / Source Evidence and Scope">10 / 源码证据与范围</span><h2 data-zh="行号属于工作树，提交号不能代替未提交快照" data-en="Line References Identify the Working Tree, Not Just Its Base Commit">行号属于工作树，提交号不能代替未提交快照</h2><p data-zh="证据仅包含源码位置和脱敏复现条件。没有公开项目数据库、真实任务编号、日志、提示词或令牌，也没有发布源代码副本。引用供持有相同工作树的维护者复核。" data-en="Evidence includes source locations and sanitized reproduction conditions only. No project database, real task IDs, logs, prompts, tokens, or source-code copies are published. References are for maintainers with the matching working tree.">证据仅包含源码位置和脱敏复现条件。没有公开项目数据库、真实任务编号、日志、提示词或令牌，也没有发布源代码副本。引用供持有相同工作树的维护者复核。</p></div>
+        <div data-present-step data-step-title="工作树身份与未验证范围" data-step-title-en="Snapshot Identity and Unverified Scope">
+          <p><strong data-zh="基底提交：" data-en="Base Commit: ">基底提交：</strong><code>27208f43d8e7ca96829a080970bf26e74a0f1170</code></p>
+          <p><strong data-zh="90 个文本文件的 SHA-256：" data-en="SHA-256 of 90 Text Files: ">90 个文本文件的 SHA-256：</strong><code>62e4f31881f2e78f00dd2a10f47d13060ea98446ecb09480208213ae3ca13269</code></p>
+          <p data-zh="指纹口径：排序 src/scripts/migrations/docs 下 ts,mjs,js,css,html,sql,md 文件，加 AGENTS.md、README.md、package.json；排除 src/public/vendor。顺序输入 path + NUL + bytes + NUL。指纹只用于识别，不替代源码归档。" data-en="Fingerprint recipe: sort ts,mjs,js,css,html,sql,md files under src/scripts/migrations/docs, plus AGENTS.md, README.md, and package.json; exclude src/public/vendor. Hash each path + NUL + bytes + NUL in order. The digest identifies a snapshot; it does not archive it.">指纹口径：排序 src/scripts/migrations/docs 下 ts,mjs,js,css,html,sql,md 文件，加 AGENTS.md、README.md、package.json；排除 src/public/vendor。顺序输入 path + NUL + bytes + NUL。指纹只用于识别，不替代源码归档。</p>
+          <p data-zh="F01/F02：临时 SQLite、Fastify inject，无监听端口、无真实 Agent，临时数据已清理。F07-A：内存 mock。未验证源应用真实浏览器 E2E、负载、崩溃恢复、权限隔离或真实 CLI 取消；不估算工期。" data-en="F01/F02 used temporary SQLite and Fastify inject, with no listening port or real agent; temporary data was removed. F07-A used an in-memory mock. Source-app browser E2E, load, crash recovery, permission isolation, and real CLI cancellation were not validated. No delivery-time estimates are given.">F01/F02：临时 SQLite、Fastify inject，无监听端口、无真实 Agent，临时数据已清理。F07-A：内存 mock。未验证源应用真实浏览器 E2E、负载、崩溃恢复、权限隔离或真实 CLI 取消；不估算工期。</p>
+        </div>
+        <div class="subsection-accordion">
+          <div class="subsection-item" data-accordion data-present-step data-step-title="证据 1–5：结构与状态" data-step-title-en="Evidence 1–5: Structure and State"><button class="subsection-toggle" type="button" aria-expanded="false"><span data-zh="证据 1–5：结构与状态" data-en="Evidence 1–5: Structure and State">证据 1–5：结构与状态</span></button><div class="subsection-content">
+            <p data-zh="每个编号标明其支持的机制；所有行号指本次工作树。" data-en="Each number identifies the mechanism it supports. All line references refer to this working tree.">每个编号标明其支持的机制；所有行号指本次工作树。</p>
+            <ul class="reference-list">
+              <li id="ref-1"><strong data-zh="[1] 单写者与分层" data-en="[1] Single Writer and Layers">[1] 单写者与分层</strong><br /><code>AGENTS.md:18–34; src/db/index.ts:7–16; src/mcp/server.mjs:8–35; src/server.ts:11–35</code></li>
+              <li id="ref-2"><strong data-zh="[2] 原子设计任务、变更单与共享投影" data-en="[2] Atomic Design Tasks, Proposals, and Shared Projections">[2] 原子设计任务、变更单与共享投影</strong><br /><code>src/services/designs.ts:473–496; src/services/reconcile.ts:176–193,246–260,623–638; src/services/blueprintViews.ts:133–202</code></li>
+              <li id="ref-3"><strong data-zh="[3] 职责热点与重复编排" data-en="[3] Responsibility Hotspots and Repeated Orchestration">[3] 职责热点与重复编排</strong><br /><code>src/public/app.js:1924–1982,2485–2551,3360–3393; src/routes/index.ts:1175–1245</code></li>
+              <li id="ref-4"><strong data-zh="[4] F01 创建与更新门禁不对称" data-en="[4] F01 Creation and Update Gate Asymmetry">[4] F01 创建与更新门禁不对称</strong><br /><code>src/routes/index.ts:1106–1124; src/services/transitions.ts:13–48; migrations/001_init.sql:115–165</code></li>
+              <li id="ref-5"><strong data-zh="[5] F02 pass 与证据写入契约" data-en="[5] F02 Pass and Evidence Contracts">[5] F02 pass 与证据写入契约</strong><br /><code>src/domain/qualityGates.ts:22–30,149–159; src/routes/index.ts:1763–1821; docs/05-roadmap.md:21–25</code></li>
+            </ul>
+          </div></div>
+          <div class="subsection-item" data-accordion data-present-step data-step-title="证据 6–10：运行时" data-step-title-en="Evidence 6–10: Runtime"><button class="subsection-toggle" type="button" aria-expanded="false"><span data-zh="证据 6–10：执行、恢复与页面" data-en="Evidence 6–10: Execution, Recovery, and Pages">证据 6–10：执行、恢复与页面</span></button><div class="subsection-content">
+            <p data-zh="区分可见控制流与尚未运行的真实进程实验，避免把风险写成事故。" data-en="Distinguish visible control flow from unrun process experiments; a risk is not an observed incident.">区分可见控制流与尚未运行的真实进程实验，避免把风险写成事故。</p>
+            <ul class="reference-list">
+              <li id="ref-6"><strong data-zh="[6] F03 默认授权与只读声明" data-en="[6] F03 Default Authority and Read-Only Declaration">[6] F03 默认授权与只读声明</strong><br /><code>src/services/delegation/engine.ts:228–235; src/services/delegation/types.ts:5–11</code></li>
+              <li id="ref-7"><strong data-zh="[7] F04 取消、回退与日志读取" data-en="[7] F04 Cancellation, Fallback, and Log Reads">[7] F04 取消、回退与日志读取</strong><br /><code>src/services/jobs.ts:15–16,105–164,226–256</code></li>
+              <li id="ref-8"><strong data-zh="[8] F05 outcome 与消息交付检查" data-en="[8] F05 Outcomes and Message Delivery Checks">[8] F05 outcome 与消息交付检查</strong><br /><code>src/services/delegation/types.ts:27–40; src/services/delegation/engine.ts:302–318; src/services/jobs.ts:48–57</code></li>
+              <li id="ref-9"><strong data-zh="[9] F06 内存 continuation 与恢复互斥" data-en="[9] F06 In-Memory Continuation and Recovery Exclusion">[9] F06 内存 continuation 与恢复互斥</strong><br /><code>src/services/delegation/initOrchestrator.ts:25–63; src/services/delegation/architectureExtraction.ts:190–242</code></li>
+              <li id="ref-10"><strong data-zh="[10] F07 导航、重复轮询与未定义调用" data-en="[10] F07 Navigation, Duplicate Polling, and Undefined Call">[10] F07 导航、重复轮询与未定义调用</strong><br /><code>src/public/app.js:764–780,1924–1982,2940–2954,3360–3393,3514–3523</code></li>
+            </ul>
+          </div></div>
+          <div class="subsection-item" data-accordion data-present-step data-step-title="证据 11–14：目标与验证" data-step-title-en="Evidence 11–14: Goals and Validation"><button class="subsection-toggle" type="button" aria-expanded="false"><span data-zh="证据 11–14：目标、缺失能力与测试基础" data-en="Evidence 11–14: Goals, Missing Capabilities, and Test Foundation">证据 11–14：目标、缺失能力与测试基础</span></button><div class="subsection-content">
+            <p data-zh="测试存在不代表页面或执行全链已覆盖；路线图中的待办也不能被当作已交付。" data-en="Existing tests do not prove page or execution coverage end to end; unfinished roadmap items must not be reported as delivered.">测试存在不代表页面或执行全链已覆盖；路线图中的待办也不能被当作已交付。</p>
+            <ul class="reference-list">
+              <li id="ref-11"><strong data-zh="[11] F08 首页目标与重复指标" data-en="[11] F08 Home Goals and Repeated Metrics">[11] F08 首页目标与重复指标</strong><br /><code>docs/01-requirements.md:23,63; src/services/stats.ts:51–54,126–141,256–259; src/public/app.js:2485–2551</code></li>
+              <li id="ref-12"><strong data-zh="[12] F09 语义差异承诺、算法与页面" data-en="[12] F09 Semantic-Diff Commitment, Algorithm, and Page">[12] F09 语义差异承诺、算法与页面</strong><br /><code>docs/07-blueprint-and-requirements.md:309; src/public/blueprint-diff.js:73–86; src/public/app.js:4,3242–3318</code></li>
+              <li id="ref-13"><strong data-zh="[13] F10 无效命令与未交付导出" data-en="[13] F10 Invalid Command and Undelivered Export">[13] F10 无效命令与未交付导出</strong><br /><code>package.json:31; docs/02-architecture.md:54,79; docs/05-roadmap.md:16; README.md:44</code><br /><span data-zh="文件存在性检查：src/services/exporter.ts 不存在。" data-en="Existence check: src/services/exporter.ts is absent.">文件存在性检查：src/services/exporter.ts 不存在。</span></li>
+              <li id="ref-14"><strong data-zh="[14] 可复用的隔离验证与检查范围" data-en="[14] Reusable Isolated Tests and Check Scope">[14] 可复用的隔离验证与检查范围</strong><br /><code>package.json:16–28; scripts/test-design-api.mjs:6–26,48–109; scripts/test-entity-reader.mjs:35–80</code></li>
+            </ul>
+          </div></div>
+        </div>
+      </section>
+    </main>
+    <footer class="footer"><span data-zh="评审快照：2026-09-08 · 未执行整改 · 无提交或推送" data-en="Review snapshot: 2026-09-08 · No remediation performed · No commit or push">评审快照：2026-09-08 · 未执行整改 · 无提交或推送</span></footer>
+  </div></div>
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

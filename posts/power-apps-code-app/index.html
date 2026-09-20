@@ -104,6 +104,15 @@
       margin-top: var(--rhythm-inline);
     }
 
+    .copilot-connection-guide .flow-copy {
+      min-width: 0;
+    }
+
+    .copilot-connection-guide p code {
+      overflow-wrap: anywhere;
+      white-space: normal;
+    }
+
     /* Practice card: 问题 / 根因分析 / 解决方案 三段式 */
     .practice {
       border: 1px solid rgba(15, 23, 42, 0.1);
@@ -1266,49 +1275,66 @@ if (result.success) {
 
             <article class="subsection-item" data-accordion>
               <button class="subsection-toggle">
-                <span>Copilot Studio Agent 集成</span>
+                <span data-zh="Copilot Studio Agent 基础连接（2026 年 8 月官方流程）" data-en="Basic Copilot Studio Agent Connection (August 2026 Official Workflow)">Copilot Studio Agent 基础连接（2026 年 8 月官方流程）</span>
               </button>
-              <div class="subsection-content">
-                <p>Code App 通过 Microsoft Copilot Studio 连接器调用已发布的 Agent，使用 <code>ExecuteCopilotAsyncV2</code> Action 同步获取 Agent 响应。</p>
+              <div class="subsection-content copilot-connection-guide">
+                <p data-zh="Microsoft 于 2026-08-13 发布并在 08-20 更新了 Code App 专用连接指南。基础集成使用 Microsoft Copilot Studio 连接器 <code>shared_microsoftcopilotstudio</code>，由 <code>pa</code> CLI 生成 <code>CopilotStudioService</code>，再通过 <code>ExecuteCopilotAsyncV2</code> 调用已发布 Agent。本节范围止于连接、最小调用与连接故障排查。" data-en="Microsoft published the Code App-specific connection guide on August 13, 2026 and updated it on August 20. The basic integration uses the Microsoft Copilot Studio connector <code>shared_microsoftcopilotstudio</code>, lets the <code>pa</code> CLI generate <code>CopilotStudioService</code>, and invokes a published agent through <code>ExecuteCopilotAsyncV2</code>. This section is limited to connection, minimal invocation, and connection troubleshooting.">Microsoft 于 2026-08-13 发布并在 08-20 更新了 Code App 专用连接指南。基础集成使用 Microsoft Copilot Studio 连接器 <code>shared_microsoftcopilotstudio</code>，由 <code>pa</code> CLI 生成 <code>CopilotStudioService</code>，再通过 <code>ExecuteCopilotAsyncV2</code> 调用已发布 Agent。本节范围止于连接、最小调用与连接故障排查。</p>
+
                 <div class="flow-list">
                   <div class="flow-step">
                     <div class="flow-copy">
-                      <strong>添加 Copilot Studio 连接器</strong>
-                      <p>在 make.powerapps.com 创建 Microsoft Copilot Studio 连接，然后运行下面命令添加到项目。此路径目前走 PAC CLI（api 名为 <code>shared_microsoftcopilotstudio</code>）。CLI 自动生成 <code>MicrosoftCopilotStudioService</code> TypeScript 文件（注意类名含 Microsoft 前缀）。</p>
-                      <div class="cmd-block">pac code add-data-source -a "shared_microsoftcopilotstudio" -c &lt;connectionId&gt;</div>
+                      <strong data-zh="1. 确认前置条件" data-en="1. Confirm Prerequisites">1. 确认前置条件</strong>
+                      <p data-zh="需要一个已初始化的 Code App 项目，以及同一 Power Platform 环境中已经发布的 Copilot Studio Agent。Agent 的创建、指令、知识与工具不属于连接步骤。" data-en="You need an initialized Code App project and a published Copilot Studio agent in the same Power Platform environment. Agent authoring, instructions, knowledge, and tools are outside the connection procedure.">需要一个已初始化的 Code App 项目，以及同一 Power Platform 环境中已经发布的 Copilot Studio Agent。Agent 的创建、指令、知识与工具不属于连接步骤。</p>
                     </div>
                   </div>
                   <div class="flow-step">
                     <div class="flow-copy">
-                      <strong>获取 Agent 名称</strong>
-                      <p>在 Copilot Studio 中发布 Agent，进入 Channels &gt; Web app，从连接字符串 URL 中提取 Agent 名称（如 <code>cr3e1_customerSupportAgent</code>）。名称区分大小写。</p>
+                      <strong data-zh="2. 查找或创建 Microsoft Copilot Studio 连接" data-en="2. Find or Create a Microsoft Copilot Studio Connection">2. 查找或创建 Microsoft Copilot Studio 连接</strong>
+                      <p data-zh="运行 <code>pa connection list</code>，查找 API ID 为 <code>/providers/Microsoft.PowerApps/apis/shared_microsoftcopilotstudio</code> 的连接并复制 <code>connectionId</code>。如果不存在，按官方 connection 管理流程创建，connector identifier 使用 <code>shared_microsoftcopilotstudio</code>。" data-en="Run <code>pa connection list</code>, find a connection whose API ID is <code>/providers/Microsoft.PowerApps/apis/shared_microsoftcopilotstudio</code>, and copy its <code>connectionId</code>. If none exists, create one through the official connection-management workflow using <code>shared_microsoftcopilotstudio</code> as the connector identifier.">运行 <code>pa connection list</code>，查找 API ID 为 <code>/providers/Microsoft.PowerApps/apis/shared_microsoftcopilotstudio</code> 的连接并复制 <code>connectionId</code>。如果不存在，按官方 connection 管理流程创建，connector identifier 使用 <code>shared_microsoftcopilotstudio</code>。</p>
+                      <div class="cmd-block">pa connection list</div>
                     </div>
                   </div>
                   <div class="flow-step">
                     <div class="flow-copy">
-                      <strong>调用 Agent</strong>
-                      <p>使用 <code>ExecuteCopilotAsyncV2</code> 方法发送消息并同步等待响应。返回 <code>{ responses, conversationId, lastResponse, completed }</code> 结构。</p>
-                      <div class="cmd-block">import { MicrosoftCopilotStudioService } from './generated/services/MicrosoftCopilotStudioService';
+                      <strong data-zh="3. 把连接器添加为 Code App 数据源" data-en="3. Add the Connector as a Code App Data Source">3. 把连接器添加为 Code App 数据源</strong>
+                      <p data-zh="使用 8 月官方文档中的 <code>pa app add data-source</code> 命令。该命令更新 <code>power.config.json</code>，并在 <code>src/generated</code> 下生成 TypeScript model 与 service。生成的调用类为 <code>CopilotStudioService</code>。" data-en="Use the <code>pa app add data-source</code> command documented in the August guide. The command updates <code>power.config.json</code> and generates TypeScript models and services under <code>src/generated</code>. The generated invocation class is <code>CopilotStudioService</code>.">使用 8 月官方文档中的 <code>pa app add data-source</code> 命令。该命令更新 <code>power.config.json</code>，并在 <code>src/generated</code> 下生成 TypeScript model 与 service。生成的调用类为 <code>CopilotStudioService</code>。</p>
+                      <div class="cmd-block">pa app add data-source \
+  --connector "shared_microsoftcopilotstudio" \
+  --connection-id &lt;connectionId&gt;</div>
+                    </div>
+                  </div>
+                  <div class="flow-step">
+                    <div class="flow-copy">
+                      <strong data-zh="4. 发布 Agent 并取得 agent name" data-en="4. Publish the Agent and Obtain Its Agent Name">4. 发布 Agent 并取得 agent name</strong>
+                      <p data-zh="在 Copilot Studio 发布 Agent，然后进入 <strong>Channels → Web app</strong>。从 connection string 的 <code>/bots/{agentName}/conversations</code> 段复制 <code>agentName</code>。名称区分大小写，通常包含 publisher prefix。" data-en="Publish the agent in Copilot Studio, then open <strong>Channels → Web app</strong>. Copy <code>agentName</code> from the <code>/bots/{agentName}/conversations</code> segment of the connection string. The value is case-sensitive and normally includes the publisher prefix.">在 Copilot Studio 发布 Agent，然后进入 <strong>Channels → Web app</strong>。从 connection string 的 <code>/bots/{agentName}/conversations</code> 段复制 <code>agentName</code>。名称区分大小写，通常包含 publisher prefix。</p>
+                      <div class="cmd-block">https://{id}.environment.api.powerplatform.com/
+  copilotstudio/dataverse-backed/authenticated/
+  bots/{agentName}/conversations?api-version=2022-03-01-preview</div>
+                    </div>
+                  </div>
+                  <div class="flow-step">
+                    <div class="flow-copy">
+                      <strong data-zh="5. 执行最小调用并读取响应" data-en="5. Make a Minimal Invocation and Read the Response">5. 执行最小调用并读取响应</strong>
+                      <p data-zh="调用 <code>ExecuteCopilotAsyncV2</code>，请求体包含必填的 <code>message</code>、固定占位值 <code>notificationUrl</code> 和区分大小写的 <code>agentName</code>。成功响应包含 <code>responses</code>、<code>conversationId</code>、<code>lastResponse</code> 和 <code>completed</code>。" data-en="Call <code>ExecuteCopilotAsyncV2</code> with the required <code>message</code>, the fixed placeholder <code>notificationUrl</code>, and the case-sensitive <code>agentName</code>. A successful response includes <code>responses</code>, <code>conversationId</code>, <code>lastResponse</code>, and <code>completed</code>.">调用 <code>ExecuteCopilotAsyncV2</code>，请求体包含必填的 <code>message</code>、固定占位值 <code>notificationUrl</code> 和区分大小写的 <code>agentName</code>。成功响应包含 <code>responses</code>、<code>conversationId</code>、<code>lastResponse</code> 和 <code>completed</code>。</p>
+                      <div class="cmd-block">import { CopilotStudioService } from './generated/services/CopilotStudioService';
 
-// 注意：第一个参数是 Agent schema name（字符串），第二个是 body 对象
-const response = await MicrosoftCopilotStudioService.ExecuteCopilotAsyncV2(
-  "cr3e1_customerSupportAgent",                    // Copilot (agent schema name)
-  { text: "What is the status of my order?" },      // body
-  undefined,                                        // x_ms_conversation_id (可选)
-  undefined                                         // environmentId (可选)
-);
-// response 类型为 IOperationResult&lt;void&gt;，实际响应需从 HTTP body 解析</div>
+const response = await CopilotStudioService.ExecuteCopilotAsyncV2({
+  message: "Hello",
+  notificationUrl: "https://notificationurlplaceholder",
+  agentName: "cr3e1_customerSupportAgent"
+});
+
+if (response.success &amp;&amp; response.data.completed) {
+  console.log(response.data.lastResponse);
+}</div>
                     </div>
                   </div>
                 </div>
                 <div class="quote-block">
-                  <p><strong>注意：</strong>必须使用 <code>ExecuteCopilotAsyncV2</code>（<code>/proactivecopilot/executeAsyncV2</code>）端点。<code>ExecuteCopilot</code>（<code>/execute</code>）只返回 ConversationId 不返回响应内容；<code>ExecuteCopilotAsync</code>（<code>/executeAsync</code>）可能返回 502 错误。响应属性大小写可能不一致（<code>conversationId</code> / <code>ConversationId</code>），建议使用可选链处理。<a href="https://learn.microsoft.com/en-us/power-apps/developer/code-apps/how-to/connect-to-copilot-studio" target="_blank" rel="noopener noreferrer">[10]</a></p>
+                  <p data-zh="<strong>端点选择：</strong>使用 <code>ExecuteCopilotAsyncV2</code> 对应的 <code>/proactivecopilot/executeAsyncV2</code>。官方文档指出，<code>ExecuteCopilot</code> 只返回 conversation ID，<code>ExecuteCopilotAsync</code> 可能返回 502。" data-en="<strong>Endpoint selection:</strong> Use <code>ExecuteCopilotAsyncV2</code>, which maps to <code>/proactivecopilot/executeAsyncV2</code>. The official guide states that <code>ExecuteCopilot</code> returns only a conversation ID and <code>ExecuteCopilotAsync</code> may return 502."><strong>端点选择：</strong>使用 <code>ExecuteCopilotAsyncV2</code> 对应的 <code>/proactivecopilot/executeAsyncV2</code>。官方文档指出，<code>ExecuteCopilot</code> 只返回 conversation ID，<code>ExecuteCopilotAsync</code> 可能返回 502。</p>
                 </div>
                 <div class="quote-block">
-                  <p><strong>多轮续接（实战补充）：</strong><code>x-ms-conversation-id</code> 参数标注为可选，但要让 Agent 在多轮对话中保留上下文，必须回传——首次调用后保存返回的 <code>conversationId</code>，后续每次调用把它作为第三个参数传入；否则每轮都是全新会话，Agent 侧没有记忆。此处与上面的大小写陷阱叠加：保存会话 ID 时必须 <code>conversationId ?? ConversationId</code> 两者都读，只读小写会在平台返回大写时丢失 ID，导致多轮续接静默失效（调用成功、但每轮都被当成新会话）。</p>
-                </div>
-                <div class="quote-block">
-                  <p><strong>同步限制 · 无 token 级流式：</strong>此连接器路径是 request/response 模型，<code>ExecuteCopilotAsyncV2</code> 会等 Agent 全部算完后才一次性返回 <code>lastResponse</code>，没有 SSE 或 WebSocket 增量推送；连接器本身也未暴露任何 streaming 动作。因此前端的「逐字打字」效果只能由客户端在拿到完整文本后用 <code>setInterval</code> 本地模拟，首字延迟等于 Agent 全程计算时间。需要真正的 token 级流式时，唯一路径是 Bot Framework Direct Line（Channels &gt; Mobile app 取 Token Endpoint，换 Direct Line token 后用 watermark 轮询或 WebSocket <code>streamUrl</code> 增量收 activity），代价是要自行管理 token 获取与刷新，且 Code App 环境的 CSP <code>connect-src</code> 需放行 Direct Line 域名。</p>
+                  <p data-zh="<strong>故障排查：</strong>空响应时依次确认 Agent 已发布、<code>agentName</code> 与 connection string 完全一致、message 格式符合 Agent 要求。不同实现可能返回 <code>conversationId</code>、<code>ConversationId</code> 或 <code>conversationID</code>；需要读取 conversation ID 时应兼容三种大小写。<a href='https://learn.microsoft.com/en-us/power-apps/developer/code-apps/how-to/connect-to-copilot-studio' target='_blank' rel='noopener noreferrer'>[10]</a>" data-en="<strong>Troubleshooting:</strong> For an empty response, confirm in order that the agent is published, <code>agentName</code> exactly matches the connection string, and the message format matches the agent's expectations. Implementations may return <code>conversationId</code>, <code>ConversationId</code>, or <code>conversationID</code>; code that needs the conversation ID should accept all three variants. <a href='https://learn.microsoft.com/en-us/power-apps/developer/code-apps/how-to/connect-to-copilot-studio' target='_blank' rel='noopener noreferrer'>[10]</a>"><strong>故障排查：</strong>空响应时依次确认 Agent 已发布、<code>agentName</code> 与 connection string 完全一致、message 格式符合 Agent 要求。不同实现可能返回 <code>conversationId</code>、<code>ConversationId</code> 或 <code>conversationID</code>；需要读取 conversation ID 时应兼容三种大小写。<a href="https://learn.microsoft.com/en-us/power-apps/developer/code-apps/how-to/connect-to-copilot-studio" target="_blank" rel="noopener noreferrer">[10]</a></p>
                 </div>
               </div>
             </article>
@@ -1640,40 +1666,40 @@ frame-src    'self'                          ← 禁止 iframe 外部页面</div
             </article>
             <article class="subsection-item" data-accordion>
               <button class="subsection-toggle">
-                <span>Published 环境的 iframe 运行时特性</span>
+                <span data-zh="Published 环境的 iframe 运行时与自动化" data-en="Published iframe Runtime and Automation">Published 环境的 iframe 运行时与自动化</span>
               </button>
               <div class="subsection-content">
-                <p>Code App 发布后运行在 Power Apps Host 的深层嵌套跨源 iframe 中。以下是实测验证的浏览器 API 兼容性和自动化测试约束。</p>
-                <h4>浏览器 API 可用性（实测）</h4>
+                <p data-zh="Code App 发布后运行在 Power Apps Host 的跨源 iframe 中。浏览器页面脚本仍受同源策略限制，但 Playwright 运行在浏览器自动化层，可以通过 frame 定位器操作该 iframe 内的控件。本节结论在 2026-09-03 的 Published Code App 上完成验证。" data-en="A published Code App runs in a cross-origin iframe hosted by Power Apps. In-page scripts remain subject to the same-origin policy, but Playwright operates through the browser automation layer and can use frame locators to control elements inside that iframe. The conclusions in this section were verified against a published Code App on September 3, 2026.">Code App 发布后运行在 Power Apps Host 的跨源 iframe 中。浏览器页面脚本仍受同源策略限制，但 Playwright 运行在浏览器自动化层，可以通过 frame 定位器操作该 iframe 内的控件。本节结论在 2026-09-03 的 Published Code App 上完成验证。</p>
+                <h4 data-zh="浏览器 API 可用性（实测）" data-en="Verified Browser API Availability">浏览器 API 可用性（实测）</h4>
                 <div class="flow-list">
                   <div class="flow-step">
                     <div class="flow-copy">
-                      <strong>localStorage / sessionStorage：可用</strong>
-                      <p>在 Published 环境的 iframe 中，<code>localStorage</code> 和 <code>sessionStorage</code> 均可正常读写。可用于持久化用户偏好（主题、语言设置）和会话状态（聊天记录、表单草稿）。</p>
+                      <strong data-zh="localStorage / sessionStorage：可用" data-en="localStorage / sessionStorage: Available">localStorage / sessionStorage：可用</strong>
+                      <p data-zh="在 Published 环境的 iframe 中，<code>localStorage</code> 和 <code>sessionStorage</code> 均可正常读写。可用于持久化用户偏好（主题、语言设置）和会话状态（聊天记录、表单草稿）。" data-en="Both <code>localStorage</code> and <code>sessionStorage</code> are readable and writable inside the published iframe. They can persist user preferences such as theme and language, and session state such as chat history and form drafts.">在 Published 环境的 iframe 中，<code>localStorage</code> 和 <code>sessionStorage</code> 均可正常读写。可用于持久化用户偏好（主题、语言设置）和会话状态（聊天记录、表单草稿）。</p>
                     </div>
                   </div>
                   <div class="flow-step">
                     <div class="flow-copy">
-                      <strong>Web Speech API（speechSynthesis）：可用</strong>
-                      <p><code>window.speechSynthesis</code> 在 Published iframe 中可用，可枚举 voices、创建 SpeechSynthesisUtterance 并播放。但部分浏览器可能需要用户交互后才能首次调用。</p>
+                      <strong data-zh="Web Speech API（speechSynthesis）：可用" data-en="Web Speech API (speechSynthesis): Available">Web Speech API（speechSynthesis）：可用</strong>
+                      <p data-zh="<code>window.speechSynthesis</code> 在 Published iframe 中可用，可枚举 voices、创建 SpeechSynthesisUtterance 并播放。但部分浏览器可能需要用户交互后才能首次调用。" data-en="<code>window.speechSynthesis</code> is available in the published iframe. The app can enumerate voices, create a SpeechSynthesisUtterance, and play it. Some browsers may require a user interaction before the first call."><code>window.speechSynthesis</code> 在 Published iframe 中可用，可枚举 voices、创建 SpeechSynthesisUtterance 并播放。但部分浏览器可能需要用户交互后才能首次调用。</p>
                     </div>
                   </div>
                   <div class="flow-step">
                     <div class="flow-copy">
-                      <strong>fetch() 外部 API：受 CSP 约束</strong>
-                      <p>直接 <code>fetch()</code> 调用外部 URL 是否成功取决于环境 CSP 的 <code>connect-src</code> 配置。平台可能内部白名单了部分域名（如微软自有服务域名），但第三方域名通常需要管理员配置 CSP 白名单或走 Custom Connector。</p>
+                      <strong data-zh="fetch() 外部 API：受 CSP 约束" data-en="fetch() to External APIs: Subject to CSP">fetch() 外部 API：受 CSP 约束</strong>
+                      <p data-zh="直接 <code>fetch()</code> 调用外部 URL 是否成功取决于环境 CSP 的 <code>connect-src</code> 配置。平台可能内部白名单了部分域名（如微软自有服务域名），但第三方域名通常需要管理员配置 CSP 白名单或走 Custom Connector。" data-en="Whether a direct <code>fetch()</code> call to an external URL succeeds depends on the environment's <code>connect-src</code> CSP configuration. The platform may allow selected Microsoft-owned domains internally, but third-party domains normally require an administrator-managed CSP allowlist or a Custom Connector.">直接 <code>fetch()</code> 调用外部 URL 是否成功取决于环境 CSP 的 <code>connect-src</code> 配置。平台可能内部白名单了部分域名（如微软自有服务域名），但第三方域名通常需要管理员配置 CSP 白名单或走 Custom Connector。</p>
                     </div>
                   </div>
                   <div class="flow-step">
                     <div class="flow-copy">
-                      <strong>Web Speech API（SpeechRecognition 语音识别）：可用（需用户授权）</strong>
-                      <p><code>SpeechRecognition</code> / <code>webkitSpeechRecognition</code> API 在 Published iframe 中可用。Power Apps Host 的 iframe 已声明 <code>allow="microphone"</code> Permissions Policy（同时还包含 <code>geolocation</code>、<code>camera</code>、<code>fullscreen</code>、<code>clipboard-write</code>）。实测中 <code>new SpeechRecognition()</code> 可以创建，但 <code>start()</code> 需要用户手势触发（如按钮点击回调内调用），否则浏览器会因缺少用户交互上下文而返回 <code>error: not-allowed</code>。建议将 <code>recognition.start()</code> 放在 <code>onClick</code> 或 <code>onPointerDown</code> 事件处理器内，并在 <code>onerror</code> 中处理权限拒绝的降级（提示用户使用文本输入）。</p>
+                      <strong data-zh="Web Speech API（SpeechRecognition 语音识别）：可用（需用户授权）" data-en="Web Speech API (SpeechRecognition): Available with User Permission">Web Speech API（SpeechRecognition 语音识别）：可用（需用户授权）</strong>
+                      <p data-zh="<code>SpeechRecognition</code> / <code>webkitSpeechRecognition</code> API 在 Published iframe 中可用。Power Apps Host 的 iframe 已声明 microphone Permissions Policy，同时还包含 <code>geolocation</code>、<code>camera</code>、<code>fullscreen</code>、<code>clipboard-write</code>。实测中 <code>new SpeechRecognition()</code> 可以创建，但 <code>start()</code> 需要用户手势触发，否则返回 <code>error: not-allowed</code>。建议在 <code>onClick</code> 或 <code>onPointerDown</code> 处理器内调用 <code>recognition.start()</code>，并在 <code>onerror</code> 中提示用户改用文本输入。" data-en="<code>SpeechRecognition</code> and <code>webkitSpeechRecognition</code> are available in the published iframe. Power Apps Host declares the microphone Permissions Policy together with <code>geolocation</code>, <code>camera</code>, <code>fullscreen</code>, and <code>clipboard-write</code>. Verification showed that <code>new SpeechRecognition()</code> can be created, but <code>start()</code> requires a user gesture or returns <code>error: not-allowed</code>. Call <code>recognition.start()</code> inside an <code>onClick</code> or <code>onPointerDown</code> handler and offer text input from <code>onerror</code> when permission is denied."><code>SpeechRecognition</code> / <code>webkitSpeechRecognition</code> API 在 Published iframe 中可用。Power Apps Host 的 iframe 已声明 <code>allow="microphone"</code> Permissions Policy（同时还包含 <code>geolocation</code>、<code>camera</code>、<code>fullscreen</code>、<code>clipboard-write</code>）。实测中 <code>new SpeechRecognition()</code> 可以创建，但 <code>start()</code> 需要用户手势触发（如按钮点击回调内调用），否则浏览器会因缺少用户交互上下文而返回 <code>error: not-allowed</code>。建议将 <code>recognition.start()</code> 放在 <code>onClick</code> 或 <code>onPointerDown</code> 事件处理器内，并在 <code>onerror</code> 中处理权限拒绝的降级（提示用户使用文本输入）。</p>
                     </div>
                   </div>
                 </div>
-                <h4>自动化测试约束</h4>
+                <h4 data-zh="自动化测试约束" data-en="Automation Constraints">自动化测试约束</h4>
                 <div class="quote-block">
-                  <p><strong>关键限制：</strong>Published Code App 运行在深层嵌套的跨源 iframe 中（<code>apps.powerapps.com → storageproxy → 你的 SPA</code>），Playwright 等浏览器自动化工具<strong>无法直接驱动 iframe 内的 input 元素</strong>。这意味着：(1) 端到端自动化测试只能在 <code>npm run dev</code> 本地模式下运行；(2) Published 环境只能手动测试或通过 Playwright 操作外层 Power Apps shell（但无法与 Code App 内容交互）；(3) AI 编程助手验证 Published 环境只能截图观察，不能自动化操作。</p>
+                  <p data-zh="<strong>正确做法：</strong>Published Code App 的内容 frame 名称为 <code>fullscreen-app-host</code>，其 URL 指向 <code>*.environment.api.powerplatformusercontent.com/.../storageproxy/...</code>。使用 <code>page.frame({ name: 'fullscreen-app-host' })</code> 或等价 frame locator 后，可以点击章节、填写聊天输入、等待 Agent 响应并读取 DOM。Power Apps Host 在导航、连接同意或 Local Play 重载时可能销毁并重建 frame；出现 <code>Frame was detached</code> 时，应等待新 frame 出现并重新获取 locator，而不是复用旧对象。" data-en="<strong>Correct approach:</strong> The published Code App content frame is named <code>fullscreen-app-host</code>, and its URL points to <code>*.environment.api.powerplatformusercontent.com/.../storageproxy/...</code>. After resolving <code>page.frame({ name: 'fullscreen-app-host' })</code> or an equivalent frame locator, automation can select a section, fill the chat composer, wait for the agent response, and inspect the DOM. Power Apps Host can destroy and recreate the frame during navigation, connection consent, or Local Play reloads; after a <code>Frame was detached</code> error, wait for the new frame and reacquire locators instead of reusing stale objects."><strong>正确做法：</strong>Published Code App 的内容 frame 名称为 <code>fullscreen-app-host</code>，其 URL 指向 <code>*.environment.api.powerplatformusercontent.com/.../storageproxy/...</code>。使用 <code>page.frame({ name: 'fullscreen-app-host' })</code> 或等价 frame locator 后，可以点击章节、填写聊天输入、等待 Agent 响应并读取 DOM。Power Apps Host 在导航、连接同意或 Local Play 重载时可能销毁并重建 frame；出现 <code>Frame was detached</code> 时，应等待新 frame 出现并重新获取 locator，而不是复用旧对象。</p>
                 </div>
               </div>
             </article>
@@ -1972,7 +1998,7 @@ npx power-apps push            # Code App 专用 npm CLI（推荐，必须用于
             <li id="ref-7"><span class="bib-id">[7]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/power-apps/developer/code-apps/how-to/npm-quickstart" target="_blank" rel="noopener noreferrer">"Quickstart: Create a code app from scratch by using the new npm CLI (preview),"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">npm CLI（npx power-apps）四命令速查和替代 PAC CLI 的使用教程。</span></li>
             <li id="ref-8"><span class="bib-id">[8]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/power-apps/developer/code-apps/system-limits-configuration" target="_blank" rel="noopener noreferrer">"System configuration,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">托管代码安全注意事项和 hideNavBar 参数配置说明。</span></li>
             <li id="ref-9"><span class="bib-id">[9]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/power-apps/developer/code-apps/how-to/add-flows" target="_blank" rel="noopener noreferrer">"Add Power Automate flows to a code app (preview),"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">npm CLI 发现、添加、调用和移除 Power Automate Flow 的完整教程及限制说明。</span></li>
-            <li id="ref-10"><span class="bib-id">[10]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/power-apps/developer/code-apps/how-to/connect-to-copilot-studio" target="_blank" rel="noopener noreferrer">"How to: Connect your code app to Microsoft Copilot Studio agents,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">通过 Copilot Studio 连接器调用 Agent 的完整教程，含 ExecuteCopilotAsyncV2 端点选择和故障排除。</span></li>
+            <li id="ref-10" data-zh="<span class='bib-id'>[10]</span> <span class='bib-author'>Microsoft.</span> <a href='https://learn.microsoft.com/en-us/power-apps/developer/code-apps/how-to/connect-to-copilot-studio' target='_blank' rel='noopener noreferrer'>How to: Connect your code app to Microsoft Copilot Studio agents,</a> <em>Microsoft Learn,</em> 2026.<span class='bib-note'>2026-08-13 发布、08-20 更新的 Code App 专用官方流程，覆盖 <code>pa connection list</code>、<code>shared_microsoftcopilotstudio</code>、<code>pa app add data-source</code>、agent name 和 <code>ExecuteCopilotAsyncV2</code>。</span>" data-en="<span class='bib-id'>[10]</span> <span class='bib-author'>Microsoft.</span> <a href='https://learn.microsoft.com/en-us/power-apps/developer/code-apps/how-to/connect-to-copilot-studio' target='_blank' rel='noopener noreferrer'>How to: Connect your code app to Microsoft Copilot Studio agents,</a> <em>Microsoft Learn,</em> 2026.<span class='bib-note'>The Code App-specific official workflow published on August 13 and updated on August 20, 2026, covering <code>pa connection list</code>, <code>shared_microsoftcopilotstudio</code>, <code>pa app add data-source</code>, agent name, and <code>ExecuteCopilotAsyncV2</code>.</span>"><span class="bib-id">[10]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/power-apps/developer/code-apps/how-to/connect-to-copilot-studio" target="_blank" rel="noopener noreferrer">"How to: Connect your code app to Microsoft Copilot Studio agents,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">2026-08-13 发布、08-20 更新的 Code App 专用官方流程，覆盖 <code>pa connection list</code>、<code>shared_microsoftcopilotstudio</code>、<code>pa app add data-source</code>、agent name 和 <code>ExecuteCopilotAsyncV2</code>。</span></li>
             <li id="ref-11"><span class="bib-id">[11]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/power-apps/developer/code-apps/how-to/add-dataverse-action-function" target="_blank" rel="noopener noreferrer">"How to: Add a Dataverse action or function to your code app,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">通过 npm CLI 发现和添加 Dataverse Action/Function 的完整教程。</span></li>
             <li id="ref-12"><span class="bib-id">[12]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/power-apps/developer/code-apps/how-to/create-basic-asset-management-api-azure-functions" target="_blank" rel="noopener noreferrer">"How to: Create a basic asset management API with Azure Functions,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">Azure Functions + API Management + Custom Connector 集成外部 API 的端到端示例。</span></li>
             <li id="ref-13"><span class="bib-id">[13]</span> <span class="bib-author">Microsoft.</span> <a href="https://learn.microsoft.com/en-us/power-apps/developer/code-apps/how-to/content-security-policy" target="_blank" rel="noopener noreferrer">"How to: Configure Content Security Policy,"</a> <em>Microsoft Learn,</em> 2026.<span class="bib-note">Code App 的默认 CSP 指令值、Admin Center 与 REST API 两种配置方式，以及指令合并规则。</span></li>
