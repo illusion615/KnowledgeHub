@@ -24,6 +24,61 @@ node tests/verify-change.js --final
 node tests/render-deck.js --article <slug>
 ```
 
+## Article Assistant Rendering Regression
+
+```bash
+node --test tests/assistant-markdown.test.js
+node tests/assistant-rendering.browser.js
+node tests/verify-change.js --changed --level L2
+```
+
+The browser command requires optional `playwright` (it may be supplied by an external
+`NODE_PATH`). `PLAYWRIGHT_CHROMIUM_EXECUTABLE` can point to an installed Chrome.
+It starts and stops its own ephemeral loopback server, creates fresh browser contexts,
+and mocks all assistant responses; it never reads user credentials or calls a model.
+Screenshots and geometry evidence are written to ignored `.tmp/assistant-evidence/`.
+
+Coverage: CommonMark plus tables/strikethrough, four math delimiter forms, nested
+containers, code protection, currency/escaped dollars, raw HTML and dangerous URLs,
+formula attribute injection, KaTeX trusted-command restrictions, remote image suppression,
+SSE/NDJSON UTF-8 byte splits, unfinished Markdown/math, EOF without newline, stream errors,
+delayed/failed JS and CSS, source fallback, automatic late rendering, and reading scroll.
+Real Chromium checks desktop/mobile × normal/expanded × light/dark, plus 320px real-article
+integration. These are rendering/transport fixtures, not real-inference evidence.
+
+Each assistant reply has a copy-source icon and a timestamp/metrics footer. Browser
+regressions also cover clipboard success/fallback/denial (mocked writes, never reads),
+copying during streaming, independent successive replies, frozen completion/error timing,
+OpenAI/Azure usage-only final frames, Ollama nanosecond counters, absent/invalid/zero data,
+and the explicit unsupported-usage-option compatibility retry. A deterministic monotonic
+clock asserts exact TTFT/output/total durations and rate formulas. The fixture's default
+Token counters are fictional and labeled as such; no inference is performed.
+
+Metric definitions (also available as footer tooltips):
+- Output timestamp: browser-local stream completion time; while streaming, shows start time.
+- Total duration: request start → stream EOF. Output duration: first nonempty content → EOF.
+- First-content latency (observed TTFT): request start → first nonempty content, not role/usage events.
+- Token counts: only provider-reported `prompt_tokens` / `completion_tokens` or Ollama
+  `prompt_eval_count` / `eval_count`; never guessed from characters or chunks.
+- OpenAI-compatible/Azure throughput: output tokens / browser total seconds, explicitly
+  labeled **end-to-end**, not decoder speed. `stream_options.include_usage` is requested;
+  exactly one retry without it is allowed only on HTTP 400/422 explicitly rejecting that
+  option. Auth/rate-limit/network/generic errors are not retried.
+- Ollama generation/prefill speed: `eval_count / (eval_duration / 1e9)` and
+  `prompt_eval_count / (prompt_eval_duration / 1e9)`; model load time uses `load_duration`.
+- Missing/invalid counters or unusable duration produce an unavailable label, not fake speed.
+  Failed streams retain partial text and report failure, without a success throughput claim.
+
+For manual review, serve this worktree on a separate loopback port and open
+`/tests/fixtures/assistant-preview.html`; send any question for the fixed streaming
+response. Do not use the main site's port: this fixture intentionally writes fictional
+settings to **its own test origin**. The page refuses non-loopback hosts.
+
+Dependencies are vendored with fixed versions, licenses, and hashes in `assets/vendor/`.
+The math contract is KaTeX-supported syntax, not arbitrary TeX. Dollar delimiters use
+whitespace/word/currency heuristics; use `\\(...\\)` / `\\[...\\]` for ambiguous text.
+Raw HTML is displayed as text, images as alt text, and invalid math as original source.
+
 ## Jev Playground Regression
 
 Run `node --test tests/jev-playground.test.js tests/jev-live.test.js tests/jev-readiness.test.js tests/jev-local-provider.test.js` for the

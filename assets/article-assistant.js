@@ -2,7 +2,7 @@
  * Article Assistant — LLM-powered Q&A widget for Knowledge Hub articles.
  * Reads LLM connection settings from localStorage('llm-settings').
  * Extracts current article text content as context for answering questions.
- * Features: thinking dots animation, lightweight Markdown rendering.
+ * Features: streamed safe Markdown/math, full-width assistant replies.
  */
 (function () {
   'use strict';
@@ -12,223 +12,210 @@
   try { settings = JSON.parse(localStorage.getItem('llm-settings')); } catch (e) {}
   if (!settings || settings.provider === 'none' || !settings.endpoint || !settings.model) return;
 
-  // ---- Ensure KaTeX is available for LaTeX rendering in chat ----
-  var KATEX_VERSION = '0.16.11';
-  if (!document.querySelector('link[href*="katex"]')) {
-    var katexLink = document.createElement('link');
-    katexLink.rel = 'stylesheet';
-    katexLink.href = 'https://cdn.jsdelivr.net/npm/katex@' + KATEX_VERSION + '/dist/katex.min.css';
-    katexLink.crossOrigin = 'anonymous';
-    document.head.appendChild(katexLink);
+  // Resolve relative to this script, so existing article script tags need no changes.
+  var assetBase = new URL('.', document.currentScript.src).href;
+  var messageSources = new WeakMap();
+  var messageViews = new WeakMap();
+  var messageStats = new WeakMap();
+  var mathEngine = null;
+  function loadScript(path) {
+    return new Promise(function (resolve, reject) {
+      var script = document.createElement('script');
+      script.src = assetBase + path;
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
   }
-  if (typeof katex === 'undefined' && !document.querySelector('script[src*="katex"]')) {
-    var katexScript = document.createElement('script');
-    katexScript.src = 'https://cdn.jsdelivr.net/npm/katex@' + KATEX_VERSION + '/dist/katex.min.js';
-    katexScript.crossOrigin = 'anonymous';
-    document.head.appendChild(katexScript);
-  }
+  loadScript('vendor/markdown-it-14.1.0/markdown-it.min.js')
+    .then(function () { return loadScript('assistant-markdown.js'); })
+    .then(refreshMessages).catch(function () { /* Readable plain-text fallback. */ });
 
-  // ---- Lightweight Markdown to HTML ----
+  // Use a pinned local copy, independent of the article's optional CDN math loader.
+  var katexLink = document.createElement('link');
+  katexLink.rel = 'stylesheet';
+  katexLink.href = assetBase + 'vendor/katex-0.16.11/katex.min.css';
+  var mathStylesReady = new Promise(function (resolve, reject) {
+    katexLink.onload = resolve;
+    katexLink.onerror = reject;
+  });
+  document.head.appendChild(katexLink);
+  var mathScriptReady = loadScript('vendor/katex-0.16.11/katex.min.js').then(function () {
+    return window.katex;
+  });
+  Promise.all([mathStylesReady, mathScriptReady]).then(function (loaded) {
+    mathEngine = loaded[1];
+    refreshMessages();
+  }).catch(function () { /* Formula source stays visible if JS or CSS loading fails. */ });
+
   function escapeHtml(str) {
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
-  /** Apply inline formatting: bold, italic, inline code */
-  function inlineFormat(str) {
-    return str
-      .replace(/`([^`]+)`/g, '<code class="md-code">$1</code>')
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.+?)\*/g, '<em>$1</em>');
+  function keepScroll(update) {
+    var pinned = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 48;
+    var top = messagesEl.scrollTop;
+    update();
+    messagesEl.scrollTop = pinned ? messagesEl.scrollHeight : top;
   }
 
-  /**
-   * Block-level Markdown renderer.
-   * Supports: code blocks, headings, unordered/ordered lists,
-   * tables, horizontal rules, and paragraphs.
-   */
-  function renderMarkdown(text) {
-    // 1a. Extract fenced code blocks into placeholders
-    var codeBlocks = [];
-    text = text.replace(/```(\w*)\n([\s\S]*?)```/g, function (_, lang, code) {
-      var idx = codeBlocks.length;
-      codeBlocks.push('<pre class="md-pre"><code>' + escapeHtml(code.replace(/\n$/, '')) + '</code></pre>');
-      return '\x00CODE' + idx + '\x00';
+  function messageView(el) {
+    if (messageViews.has(el)) return messageViews.get(el);
+    var content = document.createElement('div');
+    content.className = 'assistant-msg-content';
+    while (el.firstChild) content.appendChild(el.firstChild);
+    var footer = document.createElement('div');
+    footer.className = 'assistant-msg-footer';
+    footer.innerHTML = '<button type="button" class="assistant-copy" aria-label="复制回复原文" title="复制原文（Markdown / LaTeX）" disabled>' +
+      '<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg></button>' +
+      '<time class="assistant-message-time"></time><span class="assistant-copy-status" role="status"></span>' +
+      '<div class="assistant-message-metrics"></div>';
+    var error = document.createElement('div');
+    error.className = 'assistant-message-error';
+    error.setAttribute('role', 'status');
+    error.hidden = true;
+    el.appendChild(content);
+    el.appendChild(error);
+    el.appendChild(footer);
+    var view = { content: content, error: error, footer: footer, copy: footer.querySelector('button'),
+      time: footer.querySelector('time'), feedback: footer.querySelector('[role="status"]'),
+      metrics: footer.querySelector('.assistant-message-metrics'), copying: false };
+    messageViews.set(el, view);
+    view.copy.addEventListener('click', function () {
+      // Snapshot only this reply's original source, not rendered math or footer text.
+      var source = messageSources.get(el);
+      if (!source || view.copying) return;
+      view.copying = true;
+      view.copy.disabled = true;
+      view.feedback.textContent = '';
+      Promise.resolve().then(function () {
+        if (!navigator.clipboard || !navigator.clipboard.writeText) throw new Error('Clipboard unavailable');
+        return navigator.clipboard.writeText(source);
+      }).catch(function () {
+        // Legacy/insecure-context fallback; never read the existing clipboard.
+        var active = document.activeElement;
+        var textarea = document.createElement('textarea');
+        textarea.value = source;
+        textarea.readOnly = true;
+        textarea.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
+        document.body.appendChild(textarea);
+        try {
+          textarea.select();
+          if (!document.execCommand('copy')) throw new Error('Copy denied');
+        } finally {
+          textarea.remove();
+          if (active && active.focus) active.focus({ preventScroll: true });
+        }
+      }).then(function () {
+        view.feedback.textContent = '已复制';
+      }).catch(function () {
+        view.feedback.textContent = '复制失败，请选择正文手动复制';
+      }).finally(function () {
+        view.copying = false;
+        view.copy.disabled = !messageSources.get(el);
+      });
     });
-
-    // 1b. Extract LaTeX blocks ($$...$$ display and $...$ inline) into placeholders
-    var latexBlocks = [];
-    // Display math first (greedy $$)
-    text = text.replace(/\$\$([\s\S]+?)\$\$/g, function (_, latex) {
-      var idx = latexBlocks.length;
-      latexBlocks.push({ latex: latex.trim(), display: true });
-      return '\x00LATEX' + idx + '\x00';
-    });
-    // Inline math ($...$) — avoid matching $$ or currency-like patterns
-    text = text.replace(/\$([^\$\n]+?)\$/g, function (_, latex) {
-      var idx = latexBlocks.length;
-      latexBlocks.push({ latex: latex.trim(), display: false });
-      return '\x00LATEX' + idx + '\x00';
-    });
-
-    // 2. Normalise line endings and split into blocks by blank lines
-    var blocks = text.replace(/\r\n/g, '\n').split(/\n{2,}/);
-    var out = [];
-
-    for (var i = 0; i < blocks.length; i++) {
-      var block = blocks[i].replace(/^\n+|\n+$/g, '');
-      if (!block) continue;
-
-      // -- Code-block placeholder --
-      if (/^\x00CODE\d+\x00$/.test(block)) {
-        var ci = parseInt(block.replace(/\x00CODE|\x00/g, ''), 10);
-        out.push(codeBlocks[ci]);
-        continue;
-      }
-
-      var lines = block.split('\n');
-
-      // -- Heading --
-      if (lines.length === 1 && /^#{1,3} /.test(lines[0])) {
-        var m = lines[0].match(/^(#{1,3}) (.+)$/);
-        if (m) {
-          var lvl = m[1].length;
-          out.push('<strong class="md-h' + lvl + '">' + inlineFormat(escapeHtml(m[2])) + '</strong>');
-          continue;
-        }
-      }
-
-      // -- Horizontal rule --
-      if (lines.length === 1 && /^[-*_]{3,}$/.test(lines[0].trim())) {
-        out.push('<hr>');
-        continue;
-      }
-
-      // -- Table: first line contains pipes --
-      if (lines.length >= 2 && lines[0].indexOf('|') !== -1 && /^\|?\s*[-:]+[-| :]*$/.test(lines[1])) {
-        var tableHtml = '<table class="md-table">';
-        // header
-        var hCells = lines[0].split('|').map(function (c) { return c.trim(); }).filter(function (c) { return c !== ''; });
-        // alignment from separator row
-        var sepCells = lines[1].split('|').map(function (c) { return c.trim(); }).filter(function (c) { return c !== ''; });
-        var aligns = sepCells.map(function (s) {
-          if (s.charAt(0) === ':' && s.charAt(s.length - 1) === ':') return 'center';
-          if (s.charAt(s.length - 1) === ':') return 'right';
-          return 'left';
-        });
-        tableHtml += '<thead><tr>';
-        for (var h = 0; h < hCells.length; h++) {
-          tableHtml += '<th style="text-align:' + (aligns[h] || 'left') + '">' + inlineFormat(escapeHtml(hCells[h])) + '</th>';
-        }
-        tableHtml += '</tr></thead><tbody>';
-        for (var r = 2; r < lines.length; r++) {
-          if (!lines[r].trim()) continue;
-          var rCells = lines[r].split('|').map(function (c) { return c.trim(); }).filter(function (c) { return c !== ''; });
-          tableHtml += '<tr>';
-          for (var c = 0; c < hCells.length; c++) {
-            tableHtml += '<td style="text-align:' + (aligns[c] || 'left') + '">' + inlineFormat(escapeHtml(rCells[c] || '')) + '</td>';
-          }
-          tableHtml += '</tr>';
-        }
-        tableHtml += '</tbody></table>';
-        out.push(tableHtml);
-        continue;
-      }
-
-      // -- Unordered list: every line starts with - or * --
-      var isUL = lines.every(function (l) { return /^[\-*] /.test(l); });
-      if (isUL) {
-        var ulHtml = '<ul>';
-        lines.forEach(function (l) {
-          ulHtml += '<li>' + inlineFormat(escapeHtml(l.replace(/^[\-*] /, ''))) + '</li>';
-        });
-        ulHtml += '</ul>';
-        out.push(ulHtml);
-        continue;
-      }
-
-      // -- Ordered list: every line starts with digits. --
-      var isOL = lines.every(function (l) { return /^\d+\. /.test(l); });
-      if (isOL) {
-        var olHtml = '<ol>';
-        lines.forEach(function (l) {
-          olHtml += '<li>' + inlineFormat(escapeHtml(l.replace(/^\d+\. /, ''))) + '</li>';
-        });
-        olHtml += '</ol>';
-        out.push(olHtml);
-        continue;
-      }
-
-      // -- Mixed block: may contain headings + list items + text --
-      // Process line by line and group contiguous list items
-      var pending = [];
-      var listTag = '';
-
-      function flushList() {
-        if (pending.length === 0) return '';
-        var tag = listTag || 'ul';
-        var h = '<' + tag + '>' + pending.join('') + '</' + tag + '>';
-        pending = [];
-        listTag = '';
-        return h;
-      }
-
-      for (var k = 0; k < lines.length; k++) {
-        var ln = lines[k];
-        var headMatch = ln.match(/^(#{1,3}) (.+)$/);
-        if (headMatch) {
-          out.push(flushList());
-          out.push('<strong class="md-h' + headMatch[1].length + '">' + inlineFormat(escapeHtml(headMatch[2])) + '</strong>');
-          continue;
-        }
-        if (/^[\-*] /.test(ln)) {
-          if (listTag === 'ol') out.push(flushList());
-          listTag = 'ul';
-          pending.push('<li>' + inlineFormat(escapeHtml(ln.replace(/^[\-*] /, ''))) + '</li>');
-          continue;
-        }
-        if (/^\d+\. /.test(ln)) {
-          if (listTag === 'ul') out.push(flushList());
-          listTag = 'ol';
-          pending.push('<li>' + inlineFormat(escapeHtml(ln.replace(/^\d+\. /, ''))) + '</li>');
-          continue;
-        }
-        // Regular text line
-        out.push(flushList());
-        out.push('<p>' + inlineFormat(escapeHtml(ln)) + '</p>');
-      }
-      out.push(flushList());
-      continue;
-    }
-
-    var html = out.join('');
-
-    // Restore LaTeX placeholders as data-latex-render spans
-    html = html.replace(/\x00LATEX(\d+)\x00/g, function (_, idx) {
-      var entry = latexBlocks[parseInt(idx, 10)];
-      if (!entry) return '';
-      var tag = entry.display ? 'div' : 'span';
-      var cls = entry.display ? 'assistant-math-display' : 'assistant-math-inline';
-      return '<' + tag + ' class="' + cls + '" data-latex-render="' + escapeHtml(entry.latex) + '"></' + tag + '>';
-    });
-
-    return html;
+    return view;
   }
 
-  /** Post-process a DOM element to render LaTeX via KaTeX */
-  function renderLatexInEl(el) {
-    if (typeof katex === 'undefined') return;
-    var nodes = el.querySelectorAll('[data-latex-render]');
-    for (var i = 0; i < nodes.length; i++) {
-      var node = nodes[i];
-      var latex = node.getAttribute('data-latex-render');
-      var isDisplay = node.classList.contains('assistant-math-display');
-      try {
-        katex.render(latex, node, { displayMode: isDisplay, throwOnError: false, strict: false });
-        node.removeAttribute('data-latex-render');
-      } catch (e) {
-        node.textContent = latex;
-      }
+  function renderMessage(el, text) {
+    messageSources.set(el, text);
+    var view = messageView(el);
+    var renderer = window.AssistantMarkdown;
+    view.content.classList.toggle('assistant-plain-text', !renderer);
+    if (!renderer) {
+      view.content.textContent = text;
+    } else {
+      view.content.innerHTML = renderer.render(text);
+      renderer.renderMath(view.content, mathEngine);
     }
+    view.copy.disabled = view.copying || !text;
+    updateMessageStats(el);
+  }
+
+  function seconds(ms) { return (ms / 1000).toFixed(2) + 's'; }
+
+  function updateMessageStats(el) {
+    var stats = messageStats.get(el);
+    if (!stats) return;
+    var view = messageView(el);
+    var elapsed = Math.max(0, (stats.ended === null ? performance.now() : stats.ended) - stats.started);
+    var date = stats.finishedAt || stats.startedAt;
+    view.time.dateTime = date.toISOString();
+    view.time.textContent = (stats.status === 'streaming' ? '开始于 ' : stats.status === 'error' ? '结束于 ' : '输出于 ') +
+      date.toLocaleString('zh-CN', { hour12: false });
+    view.time.title = '浏览器本地时间；完成时间以响应流结束为准';
+    view.footer.dataset.state = stats.status;
+    var items = [];
+    function metric(text, title) { items.push({ text: text, title: title }); }
+    metric((stats.status === 'streaming' ? '输出中 · ' : stats.status === 'error' ? '失败 · ' : '') + '总耗时 ' + seconds(elapsed),
+      '浏览器计时：从请求发起到响应流结束（含网络、排队和生成）');
+    metric('输出时长 ' + (stats.first === null ? '—' : seconds(Math.max(0, (stats.ended === null ? performance.now() : stats.ended) - stats.first))),
+      '浏览器计时：从首个非空内容片段到响应流结束，不等于服务端纯推理耗时');
+    metric('首字延迟 ' + (stats.first === null ? '—' : seconds(stats.first - stats.started)),
+      '浏览器观测 TTFT：请求发起到首个非空内容片段，忽略角色、usage 和空片段');
+    if (stats.inputTokens !== null) metric('输入 ' + stats.inputTokens + ' token', '服务端报告的输入 token 数');
+    if (stats.outputTokens !== null) metric('输出 ' + stats.outputTokens + ' token', '服务端报告的输出 token 数；可能包含推理 token，并非字数估算');
+    if (stats.inputTokens === null && stats.outputTokens === null) {
+      metric(stats.status === 'streaming' ? 'Token：等待服务端统计' : 'Token：服务端未提供', '不以字符数或流式分块数冒充 token 数');
+    }
+    var speed = null;
+    var serverSpeed = stats.evalNs !== null && stats.evalNs > 0;
+    if (stats.status === 'complete' && stats.outputTokens !== null) {
+      var duration = serverSpeed ? stats.evalNs / 1e9 : elapsed / 1000;
+      if (duration > 0) speed = stats.outputTokens / duration;
+    }
+    metric('吞吐 ' + (speed !== null && Number.isFinite(speed) ? speed.toFixed(1) + ' token/s' + (serverSpeed ? '（服务端）' : '（端到端）') : '—'),
+      serverSpeed ? 'Ollama eval_count / eval_duration（纳秒换算秒），服务端生成速度' :
+        '输出 token / 浏览器总耗时；含网络和等待，不等于模型解码速度。缺少 token 或失败时不估算');
+    if (stats.promptEvalNs > 0 && stats.inputTokens !== null) {
+      var prefill = stats.inputTokens / (stats.promptEvalNs / 1e9);
+      if (Number.isFinite(prefill)) metric('预填充 ' + prefill.toFixed(1) + ' token/s', 'Ollama prompt_eval_count / prompt_eval_duration，服务端报告');
+    }
+    if (stats.loadNs !== null) metric('模型加载 ' + seconds(stats.loadNs / 1e6), 'Ollama load_duration，服务端报告');
+    view.metrics.replaceChildren();
+    items.forEach(function (item) {
+      var span = document.createElement('span');
+      span.textContent = item.text;
+      span.title = item.title;
+      view.metrics.appendChild(span);
+    });
+  }
+
+  function captureUsage(el, chunk) {
+    var stats = messageStats.get(el);
+    function count(value) { return Number.isSafeInteger(value) && value >= 0 ? value : null; }
+    function duration(value) { return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null; }
+    function assign(key, value) { if (value !== null) stats[key] = value; }
+    if (settings.provider === 'ollama') {
+      assign('inputTokens', count(chunk.prompt_eval_count));
+      assign('outputTokens', count(chunk.eval_count));
+      assign('evalNs', duration(chunk.eval_duration));
+      assign('promptEvalNs', duration(chunk.prompt_eval_duration));
+      assign('loadNs', duration(chunk.load_duration));
+    } else if (chunk.usage && typeof chunk.usage === 'object') {
+      assign('inputTokens', count(chunk.usage.prompt_tokens));
+      assign('outputTokens', count(chunk.usage.completion_tokens));
+    }
+  }
+
+  function finishMessage(el, status) {
+    var stats = messageStats.get(el);
+    if (!stats || stats.ended !== null) return;
+    stats.ended = performance.now();
+    stats.finishedAt = new Date();
+    stats.status = status;
+    clearInterval(stats.timer);
+    keepScroll(function () { updateMessageStats(el); });
+  }
+
+  function refreshMessages() {
+    if (!messagesEl) return;
+    keepScroll(function () {
+      messagesEl.querySelectorAll('.assistant-msg-ai').forEach(function (el) {
+        if (messageSources.has(el)) renderMessage(el, messageSources.get(el));
+      });
+    });
   }
 
   // ---- Inject CSS ----
@@ -271,7 +258,7 @@
     '}',
     '',
     '.assistant-header {',
-    '  display: flex; align-items: center; justify-content: space-between;',
+    '  display: flex; align-items: center; justify-content: space-between; gap: 8px;',
     '  padding: 14px 16px; border-bottom: 1px solid rgba(0,0,0,0.06);',
     '  flex-shrink: 0;',
     '}',
@@ -280,6 +267,7 @@
     '  font-family: "Space Grotesk", "Noto Sans SC", sans-serif;',
     '  font-size: 0.92rem; font-weight: 700; color: var(--ink, #172430); margin: 0;',
     '}',
+    '.assistant-header > div:first-child { min-width: 0; overflow-wrap: anywhere; }',
     '.assistant-header-meta {',
     '  font-size: 0.72rem; color: var(--muted, #5d6c76); margin-top: 2px;',
     '}',
@@ -301,7 +289,7 @@
     '.assistant-expand:hover { background: rgba(0,0,0,0.08); }',
     '[data-theme="dark"] .assistant-expand { background: rgba(255,255,255,0.06); }',
     '[data-theme="dark"] .assistant-expand:hover { background: rgba(255,255,255,0.1); }',
-    '.assistant-header-actions { display: flex; gap: 6px; align-items: center; }',
+    '.assistant-header-actions { display: flex; flex-shrink: 0; gap: 6px; align-items: center; }',
     '',
     '/* Expanded overlay mode */',
     '.assistant-backdrop {',
@@ -323,48 +311,65 @@
     '}',
     '',
     '.assistant-messages {',
-    '  flex: 1; overflow-y: auto; padding: 14px 16px;',
+    '  flex: 1; min-height: 0; min-width: 0; overflow-y: auto; padding: 14px 16px;',
     '  display: flex; flex-direction: column; gap: 12px;',
     '}',
     '.assistant-msg {',
-    '  max-width: 88%; padding: 10px 14px; border-radius: 14px;',
-    '  font-size: 0.88rem; line-height: 1.7; word-break: break-word;',
+    '  box-sizing: border-box; min-width: 0; flex-shrink: 0;',
+    '  font-size: 0.88rem; line-height: 1.7; overflow-wrap: anywhere;',
     '}',
     '.assistant-msg-user {',
-    '  align-self: flex-end;',
+    '  align-self: flex-end; max-width: 88%; padding: 10px 14px; border-radius: 14px;',
     '  background: var(--accent, #ff7a00); color: #fff;',
     '  border-bottom-right-radius: 4px;',
     '}',
     '.assistant-msg-ai {',
-    '  align-self: flex-start;',
-    '  background: rgba(0,0,0,0.04); color: var(--ink, #172430);',
-    '  border-bottom-left-radius: 4px;',
+    '  align-self: stretch; width: 100%; max-width: none; padding: 4px 0;',
+    '  background: transparent; color: var(--ink, #172430);',
+    '  border: 0; border-radius: 0; box-shadow: none;',
     '}',
-    '[data-theme="dark"] .assistant-msg-ai { background: rgba(255,255,255,0.06); }',
+    '.assistant-plain-text { white-space: pre-wrap; }',
+    '.assistant-msg-content { min-width: 0; }',
+    '.assistant-msg-footer { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-top: 12px; color: var(--muted, #5d6c76); font-size: 0.72rem; line-height: 1.6; }',
+    '.assistant-copy { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 30px; height: 30px; padding: 0; border: 1px solid var(--line, #ccd0d4); border-radius: 6px; background: transparent; color: inherit; cursor: pointer; }',
+    '.assistant-copy:hover { background: var(--accent-soft, rgba(255,122,0,0.14)); color: var(--ink, #172430); }',
+    '.assistant-copy:focus-visible { outline: 2px solid var(--accent, #ff7a00); outline-offset: 2px; }',
+    '.assistant-copy:disabled { opacity: 0.45; cursor: default; }',
+    '.assistant-message-metrics { flex-basis: 100%; min-width: 0; display: flex; flex-wrap: wrap; gap: 2px 12px; font-variant-numeric: tabular-nums; }',
+    '.assistant-message-error { color: #b91c1c; margin-top: 8px; white-space: pre-wrap; }',
+    '[data-theme="dark"] .assistant-message-error { color: #fca5a5; }',
     '',
     '.assistant-msg-ai p { margin: 0 0 8px; }',
     '.assistant-msg-ai p:last-child { margin-bottom: 0; }',
     '.assistant-msg-ai ul { margin: 4px 0 8px 18px; padding: 0; }',
     '.assistant-msg-ai li { margin-bottom: 2px; }',
-    '.assistant-msg-ai .md-pre {',
+    '.assistant-msg-ai pre {',
     '  margin: 8px 0; padding: 10px 12px; border-radius: 8px;',
-    '  background: rgba(0,0,0,0.06); overflow-x: auto;',
+    '  background: rgba(0,0,0,0.06); overflow-x: auto; max-width: 100%; box-sizing: border-box;',
+    '  white-space: pre; overflow-wrap: normal; word-break: normal;',
     '  font-size: 0.82rem; line-height: 1.5;',
     '}',
-    '[data-theme="dark"] .assistant-msg-ai .md-pre { background: rgba(255,255,255,0.08); }',
-    '.assistant-msg-ai .md-code {',
+    '[data-theme="dark"] .assistant-msg-ai pre { background: rgba(255,255,255,0.08); }',
+    '.assistant-msg-ai :not(pre) > code {',
     '  padding: 1px 5px; border-radius: 4px;',
     '  background: rgba(0,0,0,0.06); font-size: 0.84em;',
     '}',
-    '[data-theme="dark"] .assistant-msg-ai .md-code { background: rgba(255,255,255,0.08); }',
-    '.assistant-msg-ai .md-h1 { font-size: 1.1em; display: block; margin: 8px 0 4px; }',
-    '.assistant-msg-ai .md-h2 { font-size: 1.0em; display: block; margin: 6px 0 3px; }',
-    '.assistant-msg-ai .md-h3 { font-size: 0.95em; display: block; margin: 4px 0 2px; }',
+    '[data-theme="dark"] .assistant-msg-ai :not(pre) > code { background: rgba(255,255,255,0.08); }',
+    '.assistant-msg-ai pre code { padding: 0; background: transparent; color: inherit; font-size: inherit; }',
+    '.assistant-msg-ai :is(h1,h2,h3,h4,h5,h6) { color: inherit; line-height: 1.4; margin: 12px 0 6px; }',
+    '.assistant-msg-ai h1 { font-size: 1.4em; }',
+    '.assistant-msg-ai h2 { font-size: 1.25em; }',
+    '.assistant-msg-ai h3 { font-size: 1.15em; }',
+    '.assistant-msg-ai :is(h4,h5,h6) { font-size: 1em; }',
+    '.assistant-msg-ai blockquote { margin: 8px 0; padding: 0 12px; border-left: 3px solid var(--muted, #5d6c76); color: inherit; }',
+    '.assistant-msg-ai a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }',
+    '.assistant-table-scroll { max-width: 100%; overflow-x: auto; margin: 8px 0; }',
     '.assistant-msg-ai ol { margin: 4px 0 8px 18px; padding: 0; }',
     '.assistant-msg-ai hr { border: none; border-top: 1px solid rgba(0,0,0,0.1); margin: 10px 0; }',
     '[data-theme="dark"] .assistant-msg-ai hr { border-color: rgba(255,255,255,0.1); }',
     '.assistant-msg-ai .md-table {',
-    '  width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 0.84em;',
+    '  width: max-content; min-width: 100%; border-collapse: collapse; margin: 0; font-size: 0.84em;',
+    '  overflow-wrap: normal; word-break: normal;',
     '}',
     '.assistant-msg-ai .md-table th, .assistant-msg-ai .md-table td {',
     '  border: 1px solid rgba(0,0,0,0.12); padding: 5px 8px;',
@@ -378,8 +383,11 @@
     '[data-theme="dark"] .assistant-msg-ai .md-table th { background: rgba(255,255,255,0.06); }',
     '',
     '/* LaTeX math in chat */',
-    '.assistant-math-display { display: block; text-align: center; margin: 10px 0; overflow-x: auto; }',
-    '.assistant-math-inline { display: inline; }',
+    '.assistant-math-display { display: block; max-width: 100%; text-align: center; margin: 10px 0; overflow-x: auto; overflow-y: hidden; }',
+    '.assistant-math-inline { display: inline-block; max-width: 100%; overflow-x: auto; overflow-y: hidden; vertical-align: middle; }',
+    '.assistant-msg-ai [data-assistant-math] { white-space: pre-wrap; text-align: left; }',
+    '.assistant-msg-ai .katex-display { margin: 0; padding: 3px 0; }',
+    '.assistant-msg-ai .katex-display > .katex { text-align: left; width: max-content; min-width: 100%; }',
     '',
     '.thinking-dots {',
     '  display: inline-flex; align-items: center; gap: 5px; padding: 6px 2px;',
@@ -402,7 +410,7 @@
     '}',
     '[data-theme="dark"] .assistant-input-bar { border-color: rgba(255,255,255,0.06); }',
     '.assistant-input {',
-    '  flex: 1; padding: 9px 12px; border-radius: 10px;',
+    '  flex: 1; min-width: 0; padding: 9px 12px; border-radius: 10px;',
     '  border: 1px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.6);',
     '  color: var(--ink, #172430); font-size: 0.88rem; font-family: inherit;',
     '  outline: none; resize: none;',
@@ -533,6 +541,12 @@
     div.className = 'assistant-msg assistant-msg-ai';
     div.innerHTML = '<div class="thinking-dots"><span></span><span></span><span></span></div>';
     messagesEl.appendChild(div);
+    var stats = { started: performance.now(), startedAt: new Date(), first: null, ended: null,
+      finishedAt: null, status: 'streaming', inputTokens: null, outputTokens: null,
+      evalNs: null, promptEvalNs: null, loadNs: null, timer: null };
+    messageStats.set(div, stats);
+    updateMessageStats(div);
+    stats.timer = setInterval(function () { keepScroll(function () { updateMessageStats(div); }); }, 250);
     messagesEl.scrollTop = messagesEl.scrollHeight;
     return div;
   }
@@ -543,8 +557,7 @@
     if (role === 'user') {
       div.textContent = content;
     } else {
-      div.innerHTML = renderMarkdown(content);
-      renderLatexInEl(div);
+      renderMessage(div, content);
     }
     messagesEl.appendChild(div);
     messagesEl.scrollTop = messagesEl.scrollHeight;
@@ -593,99 +606,88 @@
       if (settings.apikey) headers['Authorization'] = 'Bearer ' + settings.apikey;
     }
 
-    fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) })
-    .then(function (res) {
+    if (settings.provider !== 'ollama') body.stream_options = { include_usage: true };
+    function request() { return fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) }); }
+    request().then(function (res) {
+      // Older compatible servers may explicitly reject usage options. Retry only that
+      // validation error, before any stream, never auth/rate-limit/network/server errors.
+      if (!body.stream_options || (res.status !== 400 && res.status !== 422)) return res;
+      return res.clone().text().then(function (errorText) {
+        if (/(stream_options|include_usage)/i.test(errorText) && /unknown|unsupported|unrecognized|unexpected|extra|not (supported|permitted|allowed)/i.test(errorText)) {
+          delete body.stream_options;
+          return request();
+        }
+        return res;
+      });
+    }).then(function (res) {
       if (!res.ok) throw new Error('HTTP ' + res.status);
-      handleStreamResponse(res, thinkingEl, query);
+      return handleStreamResponse(res, thinkingEl);
     })
     .catch(function (err) {
       handleSendError(err, thinkingEl);
     });
   }
 
-  function handleStreamResponse(res, thinkingEl, query) {
-      var aiDiv = null;
-      var fullText = '';
-      var reader = res.body.getReader();
-      var decoder = new TextDecoder();
-      var buffer = '';
-      var renderTimer = null;
+  function handleStreamResponse(res, thinkingEl) {
+    var fullText = '';
+    var reader = res.body.getReader();
+    var decoder = new TextDecoder();
+    var buffer = '';
+    var renderTimer = null;
 
-      function scheduleRender() {
-        if (renderTimer) return;
-        renderTimer = setTimeout(function () {
-          renderTimer = null;
-          if (aiDiv) {
-            aiDiv.innerHTML = renderMarkdown(fullText);
-            renderLatexInEl(aiDiv);
-            messagesEl.scrollTop = messagesEl.scrollHeight;
-          }
-        }, 80);
-      }
-
-      function processChunk(result) {
-        if (result.done) {
-          if (renderTimer) { clearTimeout(renderTimer); renderTimer = null; }
-          if (!aiDiv) {
-            if (thinkingEl.parentNode) messagesEl.removeChild(thinkingEl);
-            aiDiv = document.createElement('div');
-            aiDiv.className = 'assistant-msg assistant-msg-ai';
-            messagesEl.appendChild(aiDiv);
-          }
-          aiDiv.innerHTML = renderMarkdown(fullText || '(无回复)');
-          renderLatexInEl(aiDiv);
-          messagesEl.scrollTop = messagesEl.scrollHeight;
-          conversationHistory.push({ role: 'assistant', content: fullText });
-          isSending = false;
-          sendBtn.disabled = false;
-          return;
+    function paint() {
+      keepScroll(function () { renderMessage(thinkingEl, fullText || '(无回复)'); });
+    }
+    function scheduleRender() {
+      if (renderTimer) return;
+      renderTimer = setTimeout(function () { renderTimer = null; paint(); }, 80);
+    }
+    function processLine(line) {
+      line = line.trim();
+      if (!line || line === 'data: [DONE]') return;
+      var token = '';
+      try {
+        if (settings.provider === 'ollama') {
+          var obj = JSON.parse(line);
+          captureUsage(thinkingEl, obj);
+          token = obj.message && obj.message.content;
+        } else if (line.indexOf('data:') === 0) {
+          var chunk = JSON.parse(line.substring(5).trim());
+          captureUsage(thinkingEl, chunk);
+          var delta = chunk.choices && chunk.choices[0] && chunk.choices[0].delta;
+          token = delta && delta.content;
         }
-
-        buffer += decoder.decode(result.value, { stream: true });
-        var lines = buffer.split('\n');
-        buffer = lines.pop();
-
-        lines.forEach(function (line) {
-          line = line.trim();
-          if (!line) return;
-
-          var token = '';
-
-          if (settings.provider === 'ollama') {
-            try {
-              var obj = JSON.parse(line);
-              if (obj.message && obj.message.content) {
-                token = obj.message.content;
-              }
-            } catch (e) {}
-          } else {
-            if (line === 'data: [DONE]') return;
-            if (line.indexOf('data: ') === 0) {
-              try {
-                var chunk = JSON.parse(line.substring(6));
-                if (chunk.choices && chunk.choices[0] && chunk.choices[0].delta && chunk.choices[0].delta.content) {
-                  token = chunk.choices[0].delta.content;
-                }
-              } catch (e) {}
-            }
-          }
-
-          if (token) {
-            if (!aiDiv) {
-              if (thinkingEl.parentNode) messagesEl.removeChild(thinkingEl);
-              aiDiv = document.createElement('div');
-              aiDiv.className = 'assistant-msg assistant-msg-ai';
-              messagesEl.appendChild(aiDiv);
-            }
-            fullText += token;
-            scheduleRender();
-          }
-        });
-
-        return reader.read().then(processChunk);
+      } catch (e) { /* Ignore keep-alives and non-content events. */ }
+      if (typeof token === 'string' && token) {
+        var stats = messageStats.get(thinkingEl);
+        if (stats.first === null) stats.first = performance.now();
+        fullText += token;
+        scheduleRender();
       }
-
+    }
+    function processChunk(result) {
+      buffer += result.done ? decoder.decode() : decoder.decode(result.value, { stream: true });
+      var lines = buffer.split('\n');
+      buffer = lines.pop();
+      lines.forEach(processLine);
+      if (result.done) {
+        // Some SSE/NDJSON servers omit the trailing newline; don't drop that final token.
+        processLine(buffer);
+        if (renderTimer) { clearTimeout(renderTimer); renderTimer = null; }
+        finishMessage(thinkingEl, 'complete');
+        paint();
+        conversationHistory.push({ role: 'assistant', content: fullText });
+        isSending = false;
+        sendBtn.disabled = false;
+        return;
+      }
       return reader.read().then(processChunk);
+    }
+    return reader.read().then(processChunk).catch(function (err) {
+      if (renderTimer) clearTimeout(renderTimer);
+      if (fullText) paint();
+      throw err;
+    }).finally(function () { reader.releaseLock(); });
   }
 
   function handleSendError(err, thinkingEl) {
@@ -693,12 +695,15 @@
       if (msg === 'Failed to fetch' && window.location.protocol === 'file:') {
         msg = '无法连接。从 file:// 协议访问时浏览器可能阻止跨域请求。\n建议：使用 python3 -m http.server 启动本地服务器。\nOllama 用户：确认已设置 OLLAMA_ORIGINS=*';
       }
-      if (thinkingEl.parentNode) messagesEl.removeChild(thinkingEl);
-      var errDiv = appendMessage('ai', '错误: ' + msg);
-      errDiv.style.color = '#dc2626';
+      finishMessage(thinkingEl, 'error');
+      keepScroll(function () {
+        var view = messageView(thinkingEl);
+        if (!messageSources.has(thinkingEl)) view.content.replaceChildren();
+        view.error.hidden = false;
+        view.error.textContent = '错误: ' + msg;
+      });
       isSending = false;
       sendBtn.disabled = false;
-      messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
   sendBtn.addEventListener('click', sendMessage);

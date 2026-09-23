@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>文章助手渲染夹具（不调用模型）</title>
+  <link rel="stylesheet" href="../../assets/article.css">
+</head>
+<body>
+  <main style="padding:24px;max-width:720px">
+    <h1>文章助手渲染验收</h1>
+    <p>仅在独立 loopback 测试 origin 使用。点击右下角助手，输入任意问题，发送固定 Markdown / LaTeX 夹具，不调用模型。Token 和服务端性能数值也是测试夹具，不代表真实模型。</p>
+    <button id="theme" type="button">切换明暗主题</button>
+  </main>
+  <script>
+    // Never read credentials. This fixture overwrites only this isolated test origin's settings.
+    if (location.hostname !== '127.0.0.1' && location.hostname !== 'localhost') {
+      throw new Error('Fixture is loopback-only');
+    }
+    const params = new URLSearchParams(location.search);
+    const provider = ['ollama', 'azure-openai'].includes(params.get('provider')) ? params.get('provider') : 'openai-compatible';
+    document.documentElement.dataset.theme = params.get('theme') === 'dark' ? 'dark' : 'light';
+    document.getElementById('theme').onclick = () => {
+      document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    };
+    localStorage.setItem('llm-settings', JSON.stringify({ provider, endpoint: location.origin + '/__assistant_fixture', model: 'RENDER-ONLY-MOCK' }));
+    const responseText = fetch('./assistant-response.md').then(r => r.text());
+    window.fixtureRequests = 0;
+    window.fixtureBodies = [];
+    window.fetch = async function (url, options) {
+      if (!String(url).startsWith(location.origin + '/__assistant_fixture/')) throw new Error('Fixture blocks unexpected fetch');
+      window.fixtureRequests++;
+      const body = JSON.parse(options.body);
+      window.fixtureBodies.push(body);
+      if (params.has('reject-usage') && body.stream_options) return new Response('Unknown parameter: stream_options', { status: 400 });
+      if (params.has('http-error')) return new Response('HTTP test failure', { status: Number(params.get('http-error')) });
+      const text = await responseText;
+      return new Response(new ReadableStream({ start(controller) {
+        window.fixtureController = controller;
+        window.fixtureFrame = (obj, tail = false) => {
+          const wire = (provider === 'ollama' ? '' : 'data: ') + JSON.stringify(obj) + (tail ? '' : '\n');
+          // Split every UTF-8 byte: exercises transport buffering, including Chinese characters.
+          for (const byte of new TextEncoder().encode(wire)) controller.enqueue(new Uint8Array([byte]));
+        };
+        window.fixturePush = (content, tail = false) => {
+          window.fixtureFrame(provider === 'ollama' ? { message: { content } } : { choices: [{ delta: { content } }] }, tail);
+        };
+        if (!params.has('manual')) {
+          let offset = 0;
+          const timer = setInterval(() => {
+            if (offset >= text.length) {
+              clearInterval(timer);
+              window.fixtureFrame(provider === 'ollama' ? { done: true, prompt_eval_count: 128, eval_count: 256, eval_duration: 2000000000, prompt_eval_duration: 100000000, load_duration: 50000000 } :
+                { choices: [], usage: { prompt_tokens: 128, completion_tokens: 256 } });
+              controller.close(); return;
+            }
+            window.fixturePush(text.slice(offset, offset + 23)); offset += 23;
+          }, 10);
+        }
+      } }), { headers: { 'Content-Type': provider === 'ollama' ? 'application/x-ndjson' : 'text/event-stream' } });
+    };
+    // Guarded dynamic loading means a published non-loopback fixture cannot start the widget.
+    const assistant = document.createElement('script');
+    assistant.src = '../../assets/article-assistant.js';
+    document.head.appendChild(assistant);
+  </script>
+</body>
+</html>
