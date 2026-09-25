@@ -37,7 +37,7 @@ test('every overview card links to its own existing explanation exactly once', (
 test('dialog enhancement retains original details, aliases, and a no-script fallback', () => {
   assert.equal((html.match(/id="knowledge-dialog"/g) || []).length, 1);
   assert.match(html, /<dialog[^>]+aria-modal="true"/);
-  assert.match(html, /<script src="knowledge-dialog.js\?v=extensions-1"><\/script>/);
+  assert.match(html, /<script src="knowledge-dialog.js\?v=icon-close-1"><\/script>/);
   assert.match(overview, /<noscript>/);
   assert.doesNotMatch(html, /class="exam-prose" hidden/);
   const source = fs.readFileSync(path.join(__dirname, 'knowledge-dialog.js'), 'utf8');
@@ -52,7 +52,7 @@ test('dialog enhancement retains original details, aliases, and a no-script fall
 
 test('local styles provide responsive columns, distinct palettes and keyboard focus', () => {
   const css = fs.readFileSync(path.join(__dirname, 'knowledge-cards.css'), 'utf8');
-  assert.equal((html.match(/href="knowledge-cards.css\?v=shared-details-1"/g) || []).length, 1);
+  assert.equal((html.match(/href="knowledge-cards.css\?v=icon-close-1"/g) || []).length, 1);
   assert.match(css, /repeat\(4, minmax\(0, 1fr\)\)/);
   assert.match(css, /repeat\(2, minmax\(0, 1fr\)\)/);
   assert.match(css, /@media \(max-width: 699px\)/);

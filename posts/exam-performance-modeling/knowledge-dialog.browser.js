@@ -37,14 +37,20 @@ const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE;
             overflow: dialog.scrollWidth > dialog.clientWidth + 1,
             mathErrors: dialog.querySelectorAll('.katex-error,[data-math-error],.katex .katex').length,
             uniqueNotation: document.querySelectorAll('#notation-guide').length,
-            closeText: dialog.querySelector('button').textContent,
+            closeText: dialog.querySelector('button').textContent.trim(),
+            closeLabel: dialog.querySelector('button').getAttribute('aria-label'),
+            closeBorder: getComputedStyle(dialog.querySelector('button')).borderTopWidth,
+            closeIcon: dialog.querySelectorAll('button > svg').length,
             locked: document.documentElement.classList.contains('exam-knowledge-open')
           };
         });
         assert.equal(state.visible, 1); assert.equal(state.hidden, 10);
         assert.ok(state.labeled && state.focusInside && state.contained && state.locked);
         assert.equal(state.overflow, false); assert.equal(state.mathErrors, 0); assert.equal(state.uniqueNotation, 1);
-        assert.equal(state.closeText, lang === 'zh' ? '关闭 ×' : 'Close ×');
+        assert.equal(state.closeText, '');
+        assert.equal(state.closeLabel, lang === 'zh' ? '关闭' : 'Close');
+        assert.equal(state.closeBorder, '0px');
+        assert.equal(state.closeIcon, 1);
         for (let n = 0; n < 8; n++) {
           await page.keyboard.press(n % 2 ? 'Shift+Tab' : 'Tab');
           assert.ok(await page.locator('#knowledge-dialog').evaluate(d => d.contains(document.activeElement)));

@@ -51,6 +51,9 @@
       opener = null;
     }
     function syncTitle() {
+      var closeLabel = document.documentElement.lang.indexOf('en') === 0 ? 'Close' : '关闭';
+      closeButton.setAttribute('aria-label', closeLabel);
+      closeButton.setAttribute('title', closeLabel);
       if (!active) return;
       var zh = active.title.getAttribute('data-zh') || active.title.textContent;
       var en = active.title.getAttribute('data-en') || active.title.textContent;
