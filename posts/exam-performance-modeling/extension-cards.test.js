@@ -9,11 +9,11 @@ const expected = [
   ['threshold-probability-extension', 'reading'], ['model-selection-details', 'reading'],
   ['loss-metrics-extension', 'reading'], ['bounded-estimation-extension', 'audit'],
   ['coefficient-derivation-extension', 'derivation'], ['quadratic-maximum-extension', 'derivation'],
-  ['coefficient-numbers-extension', 'audit'], ['calculation-records-extension', 'audit'],
+  ['coefficient-numbers-extension', 'audit'], ['ability-mindset-methods-extension', 'reading'], ['calculation-records-extension', 'audit'],
   ['transfer-scenario-extension', 'reading'], ['proxy-model-extension', 'reading'], ['learning-answers-extension', 'answer']
 ];
 
-test('all eleven optional regions have book-style entry cards and addressable full details', () => {
+test('all twelve optional regions have book-style entry cards and addressable full details', () => {
   const cards = [...html.matchAll(/<article id="([^"]+)" class="extension-card" data-extension-type="([^"]+)"/g)];
   assert.deepEqual(cards.map(match => match.slice(1)), expected);
   assert.doesNotMatch(html, /class="subsection-(?:accordion|item|toggle|content)"|data-accordion/);
@@ -24,7 +24,7 @@ test('all eleven optional regions have book-style entry cards and addressable fu
   }
   for (const name of ['extension-kind', 'extension-title', 'extension-summary', 'extension-action']) {
     const spans = [...html.matchAll(new RegExp(`<span class="${name}" data-zh="[^"]+" data-en="[^"]+">`, 'g'))];
-    assert.equal(spans.length, 11, name);
+    assert.equal(spans.length, 12, name);
   }
   assert.ok(html.includes('data-extension-alias="model-selection-guide"'));
   assert.ok(html.includes('data-extension-alias="ability-mindset"'));

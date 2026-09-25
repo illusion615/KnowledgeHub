@@ -16,7 +16,7 @@ const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE;
       await page.route('**/*', route => new URL(route.request().url()).origin === origin ? route.continue() : route.abort());
       await page.goto(`${base}?lang=${lang}&theme=${theme}`, { waitUntil: 'networkidle' });
       await page.evaluate(() => document.fonts.ready);
-      assert.equal(await page.locator('.extension-detail[hidden]').count(), 11);
+      assert.equal(await page.locator('.extension-detail[hidden]').count(), 12);
       assert.equal(await page.locator('.knowledge-detail[hidden]').count(), 11);
       assert.equal(await page.locator('main [data-accordion]').count(), 0);
       assert.ok(await page.locator('#matched-score-results').isVisible());
@@ -52,7 +52,7 @@ const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE;
           };
         });
         assert.equal(state.id, href.slice(1)); assert.equal(state.text, source[state.id]);
-        assert.equal(state.openDialogs, 1); assert.equal(state.hidden, 10); assert.equal(state.hiddenKnowledge, 11);
+        assert.equal(state.openDialogs, 1); assert.equal(state.hidden, 11); assert.equal(state.hiddenKnowledge, 11);
         assert.equal(state.overflow, false); assert.ok(state.withinViewport && state.focusInside);
         assert.equal(state.mathErrors, 0); assert.equal(state.label, state.sourceLabel);
         // Long derivations remain scrollable and the current title/close stay visible.
@@ -68,7 +68,7 @@ const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE;
         else if (i % 3 === 1) await page.locator('[data-knowledge-close]').click();
         else await page.mouse.click(2, 2);
         await page.waitForFunction(() => !document.getElementById('knowledge-dialog').open);
-        assert.equal(await page.locator('.extension-detail[hidden]').count(), 11);
+        assert.equal(await page.locator('.extension-detail[hidden]').count(), 12);
         assert.ok(await link.evaluate(a => document.activeElement === a));
         assert.ok(Math.abs(await page.evaluate(() => scrollY) - scrollBefore) < 2);
       }

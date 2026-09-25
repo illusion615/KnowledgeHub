@@ -103,7 +103,10 @@ test('proxy construction belongs to the final extensions chapter, not the main s
   assert.ok(proxy.includes('class="extension-detail"'));
   assert.ok(!proxy.includes('data-accordion'));
   assert.ok(proxy.indexOf('data-latex=') > details);
-  assert.equal((proxy.match(/class="exam-prose"/g) || []).length, 7);
+  assert.equal((proxy.match(/class="exam-prose"/g) || []).length, 8);
+  assert.ok(proxy.includes('id="proxy-forecast-components"'));
+  assert.ok(proxy.includes('id="ability-mindset-components"'));
+  assert.ok(proxy.includes('这不是第一问的主线答案'));
   assert.ok(proxy.includes('不是纯能力测量'));
   assert.ok(proxy.includes('id="feedback-validation"'));
   assert.ok(proxy.includes('id="matched-proxy-results"'));
