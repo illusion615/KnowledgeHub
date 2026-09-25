@@ -38,7 +38,7 @@
       lead: ['参数由训练记录估计；估计值、观测值与目标情景采用不同记号。', 'Parameters are estimated from training records; estimates, observations, and target scenarios use distinct notation.'],
       columns: [
         { heading: ['模型参数', 'Model Parameters'], table: { headers: [['符号', 'Symbol'], ['含义', 'Definition']], rows: [['a, b, c', ['个人得分率模型的截距、阶段与难度系数', 'Score-rate intercept and two slopes']], ['u, v, w', ['分差模型的独立系数组', 'Margin-model coefficients']], ['A; t₀, d₀', ['参照水平；参照阶段与难度', 'Reference mean, stage, and difficulty']], ['εₜ', ['观测值相对模型均值的偏离', 'Deviation from the model mean']]] } },
-        { heading: ['估计与检验记号', 'Estimation and Evaluation'], table: { headers: [['符号', 'Symbol'], ['含义', 'Definition']], rows: [['μᵧ, μₘ; β', ['有界条件均值；参数向量', 'Bounded means; coefficient vector']], ['𝒯, n', ['训练集；记录数', 'Training set; record count']], ['ŷ, â; t̄, d̄', ['帽号表示估计；横线表示训练均值', 'Estimates; training means']], ['t*, d*; G(d)', ['目标情景；预计分差目标函数', 'Target conditions; expected margin']], ['MAE', ['平均绝对误差', 'Mean absolute error']]] } }
+        { heading: ['估计与检验记号', 'Estimation and Evaluation'], table: { headers: [['符号', 'Symbol'], ['含义', 'Definition']], rows: [['μᵧ, μₘ; β', ['同条件平均得分率；系数列表', 'Conditional means; coefficient list']], ['𝒯, n', ['训练集；记录数', 'Training set; record count']], ['ŷ, â; t̄, d̄', ['帽号表示估计；横线表示训练均值', 'Estimates; training means']], ['t*, d*; G(d)', ['目标情景；预计分差目标函数', 'Target conditions; expected margin']], ['MAE', ['平均绝对误差', 'Mean absolute error']]] } }
       ],
       takeaway: ['参数记号不代表直接测得的能力或心理量；误差指标不等于误差上限。', 'Parameter names do not denote measured ability or mindset; an error metric is not an upper error bound.'],
       source: ['仅列本演示主线使用的记号；具体损失与估计方法在第三章定义。', 'Notation covers the presentation mainline; losses and estimation methods are specified in Chapter 3.']
@@ -152,7 +152,7 @@
       lead: ['对训练样本中的全部观测联合估计 a、b、c，以残差平方和为目标函数。', 'The coefficients a, b, c are estimated jointly from all training observations by minimizing squared residuals.'],
       columns: [
         { heading: ['损失函数', 'Loss Function'], math: [String.raw`L(a,b,c)=\sum_{t\in\mathcal T}(y_t-a-bt-cd_t)^2`, String.raw`(0.800-a-b-0.25c)^2`], list: ['𝒯只包含当前可用训练记录|𝒯 contains only training records available at the cutoff'] },
-        { heading: ['估计步骤', 'Estimation Steps'], list: ['训练样本中心化|Centering of training observations', '计算平方和与交叉乘积，求解斜率|Calculation of sums of squares and cross-products; slope estimation', '由均值关系恢复截距|Recovery of the intercept from the mean relation'], math: [String.raw`\widehat a=\bar y-\widehat b\,\bar t-\widehat c\,\bar d`] }
+        { heading: ['估计步骤', 'Estimation Steps'], list: ['每条训练记录减去训练均值（中心化）|Subtract training means from each record (centering)', '计算平方和与交叉乘积，求解斜率|Calculation of sums of squares and cross-products; slope estimation', '由均值关系恢复截距|Recovery of the intercept from the mean relation'], math: [String.raw`\widehat a=\bar y-\widehat b\,\bar t-\widehat c\,\bar d`] }
       ],
       takeaway: ['参数估计使用训练样本；预测性能另由未参与该次拟合的观测评价。', 'Parameters are estimated on training data; predictive performance is assessed on observations excluded from that fit.'],
       source: ['依据：最小二乘；完整消元及计算脚本保留在阅读版。', 'Basis: least squares; complete elimination and code remain in the reading version.']
@@ -215,7 +215,7 @@
         { heading: ['目标函数', 'Objective Function'], math: [String.raw`\begin{aligned}\widehat r(t,d)&=0.235870-0.002885t\\&\quad-0.491460d\end{aligned}`, String.raw`G(d)=24.56335-73.71896d`], list: ['已固定 t*=25，分差单位为分|t*=25 is fixed; G is measured in points'] },
         { heading: ['单调性与端点解', 'Monotonicity and Endpoint Solution'], math: [String.raw`\begin{aligned}G(d_2)-G(d_1)&=-73.71896\\&\quad\times(d_2-d_1)\end{aligned}`, String.raw`\begin{aligned}d_2>d_1&\Rightarrow G(d_2)<G(d_1),\\d^\star=0.10,&\quad G(d^\star)\approx17.19.\end{aligned}`], list: ['在题设[0.10,0.30]内，直线在左端最大|On [0.10,0.30], the line is largest at the left endpoint'] }
       ],
-      takeaway: ['线性模型在 d=0.10 取得区间最大预期分差；该结论依赖外推与目标定义。', 'The linear model maximizes the expected margin at d=0.10; this result depends on extrapolation and the chosen objective.'],
+      takeaway: ['d=0.10为模型最大值；它低于历史最低难度，在观测范围外应用规则称为外推。', 'The model maximum is at d=0.10, below observed difficulty; applying a rule outside its observed range is extrapolation.'],
       source: ['来源：model-results.json；分差系数与端点代入。', 'Source: model-results.json; margin coefficients and endpoint substitution.']
     },
     {
@@ -231,11 +231,17 @@
     },
     {
       id: 'bounded-revision', label: ['5 / 迭代修正', '5 / Iterate'],
-      title: ['有界条件均值模型', 'Bounded Conditional Mean Models'],
-      lead: ['通过非线性映射将阶段—难度线性预测子约束于(0,1)，满足得分率边界。', 'A nonlinear mapping constrains the stage–difficulty linear predictor to (0,1), enforcing score-rate bounds.'],
+      title: ['有界函数的含义及模型构造', 'Bounded Functions and Model Construction'],
+      lead: ['先规定得分率的输出范围，再构造满足该范围的预测函数。', 'Define the permitted score-rate range before constructing the prediction function.'],
       columns: [
-        { heading: ['函数形式与边界', 'Functional Form and Bounds'], math: [String.raw`g(z)=\frac{1}{1+e^{-z}},\qquad0<g(z)<1`, String.raw`\mu_y=g(a_y+b_yt+c_yd)`, String.raw`\mu_m=g(a_m+b_mt+c_md)`], list: ['分别估计两条条件均值，预期分差为150(μᵧ−μₘ)|Separate conditional means yield expected margin 150(μᵧ−μₘ)'] },
-        { heading: ['结构变化与解释范围', 'Structural Changes and Interpretation'], list: ['不超过满分；允许靠近边界时变化放缓|Scores stay within bounds; changes can flatten near limits', '不增加心理解释，也未建立联合概率分布|No psychological interpretation or joint probability distribution is added', '两条同形式OLS直线相减，原本等价于直接拟合分差|Subtracting two matched OLS lines already equals a direct margin fit'] }
+        { heading: ['定义与具体函数', 'Definition and a Specific Function'],
+          intro: ['有界指函数值始终在固定上下限之间。这里要求0到1；z为实数输入，e≈2.718。', 'Bounded values stay between fixed limits. Here the limits are 0 and 1; z is a real input and e≈2.718.'],
+          math: [String.raw`g(z)=\frac{1}{1+e^{-z}},\qquad0<g(z)<1`],
+          list: ['e⁻ᶻ始终为正，因此分母大于1|Since e⁻ᶻ is positive, the denominator exceeds 1', 'g(0)=0.5是函数示例，不是本题拟合预测|g(0)=0.5 illustrates the function, not a fitted exam forecast'] },
+        { heading: ['代入本题的输入', 'Application to This Problem'],
+          intro: ['先把阶段与难度加权求和（线性预测子），再代入g；μ表示相同条件下的平均得分率。', 'First compute the weighted input sum (linear predictor), then apply g; μ denotes a mean rate at those inputs.'],
+          math: [String.raw`\mu_y=g(a_y+b_yt+c_yd)`, String.raw`\mu_m=g(a_m+b_mt+c_md)`],
+          list: ['分别估计两组系数，再计算150(μᵧ−μₘ)|Estimate both coefficient sets, then compute 150(μᵧ−μₘ)', '均值与范围约束不构成联合概率分布|Means and bounds do not specify a joint probability distribution'] }
       ],
       takeaway: ['边界可行性由函数形式保证；预测性能需通过同协议比较独立评价。', 'The functional form enforces feasible bounds; predictive performance requires a separate matched-protocol assessment.'],
       source: ['依据：Papke与Wooldridge分数响应均值；本文回顾性计算。', 'Basis: Papke and Wooldridge fractional-response means; retrospective calculations.']
@@ -246,11 +252,12 @@
       lead: ['个人与群体均分率分别拟合；不将150分视为150次独立试验。', 'Fit the two fractional responses separately; 150 marks are not independent binary trials.'],
       columns: [
         { heading: ['估计准则', 'Estimation Criterion'],
+          intro: ['损失J汇总模型与观测的差异；q为实际得分率，μ为模型均值，log为自然对数。', 'Loss J summarizes mismatch: q is the observed rate, μ the modeled mean, and log the natural logarithm.'],
           math: [String.raw`\begin{aligned}J(\beta)=-\sum_{t\in\mathcal T}\big[&q_t\log\mu_t\\&+(1-q_t)\log(1-\mu_t)\big]\end{aligned}`, String.raw`\mu_t=g(x_t^\mathsf T\beta),\qquad q_t=y_t\ \text{or}\ m_t`],
-          list: ['直接拟合分数响应均值，不变换观测值|Fit fractional-response means directly; no response transformation', '均值初始化→阻尼Newton更新→梯度收敛检查|Mean initialization → damped Newton → gradient convergence check'] },
+          list: ['以系数更新使J下降，不对观测值作变换|Update coefficients to reduce J without transforming observations'] },
         { heading: ['全量拟合示例：个人得分率', 'Full-Sample Illustration: Student Score Rate'],
           math: [String.raw`x_t=\left(1,\frac{t-16}{8},\frac{d_t-0.2}{0.1}\right)`, String.raw`\widehat\beta_y\approx(1.804924,\ 0.199709,\ -0.753691)`],
-          list: ['中心和尺度预先固定，不依赖目标成绩|Centers and scales are fixed independently of target outcomes', '全量拟合4次迭代收敛；预测检验在每个时点重新拟合|The full fit converges in four iterations; evaluation refits at each cutoff', '此处不给出小样本显著性或置信区间结论|No small-sample significance or confidence-interval claim is made'] }
+          list: ['反复用损失的斜率、曲率更新系数并控制步长，采用阻尼Newton法|Damped Newton iteratively uses loss slopes and curvature with step-size control', '检查损失变化率是否足够小；全量拟合4次更新达到准则|Check whether loss derivatives are small; the full fit meets the criterion after four updates', '数值收敛不等于预测有效，仍按时序重新拟合检验|Convergence does not validate forecasts; evaluation refits chronologically'] }
       ],
       takeaway: ['边界约束、数值收敛与预测性能是三个分别检验的条件。', 'Feasible bounds, numerical convergence, and forecast accuracy are assessed separately.'],
       source: ['来源：Papke与Wooldridge分数响应准似然；robustness-review.py及结果JSON。', 'Source: Papke and Wooldridge fractional-response quasi-likelihood; robustness-review.py and its results.']

@@ -174,6 +174,7 @@
       var column = document.createElement('article');
       column.className = 'defense-panel';
       column.appendChild(localized('h4', spec.heading));
+      if (spec.intro) column.appendChild(localized('p', spec.intro, 'defense-definition'));
       if (spec.chart) column.appendChild(makeChart(spec.chart));
       (spec.math || []).forEach(function (latex) {
         var math = document.createElement('div');

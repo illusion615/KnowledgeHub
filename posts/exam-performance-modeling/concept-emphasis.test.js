@@ -8,7 +8,7 @@ const html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
 const css = fs.readFileSync(path.join(__dirname, 'concept-emphasis.css'), 'utf8');
 
 test('definitions and key explanations are explicitly marked, not inferred at runtime', () => {
-  assert.equal((html.match(/class="concept-definition"/g) || []).length, 23);
+  assert.equal((html.match(/class="concept-definition"/g) || []).length, 24);
   assert.equal((html.match(/class="concept-explanation"/g) || []).length, 8);
   const knowledgeDefinitions = [...html.matchAll(/<p([^>]+)data-zh="是什么：/g)];
   assert.equal(knowledgeDefinitions.length, 11);
