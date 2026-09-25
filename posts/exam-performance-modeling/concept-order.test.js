@@ -24,7 +24,7 @@ test('bounded construction defines terms before using g and the mean equations',
 });
 
 test('technical estimation and transformation terms are explained where needed', () => {
-  const estimation = html.slice(html.indexOf('id="bounded-estimation-extension-content"'), html.indexOf('id="coefficients"'));
+  const estimation = html.slice(html.indexOf('id="bounded-estimation-extension-content"'), html.indexOf('id="matched-review"'));
   assert.ok(estimation.indexOf('称为损失') < estimation.indexOf('data-latex="J='));
   assert.ok(estimation.includes('数值迭代指反复更新系数'));
   assert.ok(estimation.includes('收敛检查则判断'));

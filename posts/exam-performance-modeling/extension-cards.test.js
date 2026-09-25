@@ -7,8 +7,8 @@ const html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
 
 const expected = [
   ['threshold-probability-extension', 'reading'], ['model-selection-details', 'reading'],
-  ['loss-metrics-extension', 'reading'], ['bounded-estimation-extension', 'audit'],
-  ['coefficient-derivation-extension', 'derivation'], ['quadratic-maximum-extension', 'derivation'],
+  ['loss-metrics-extension', 'reading'], ['coefficient-derivation-extension', 'derivation'],
+  ['bounded-estimation-extension', 'audit'], ['quadratic-maximum-extension', 'derivation'],
   ['coefficient-numbers-extension', 'audit'], ['ability-mindset-methods-extension', 'reading'], ['calculation-records-extension', 'audit'],
   ['transfer-scenario-extension', 'reading'], ['proxy-model-extension', 'reading'], ['learning-answers-extension', 'answer']
 ];
