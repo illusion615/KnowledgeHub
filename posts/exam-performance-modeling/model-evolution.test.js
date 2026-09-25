@@ -45,7 +45,7 @@ test('published figure specifies the conditional slice and preserves the ordinar
   assert.match(figure, /纵轴从0.50开始/);
   assert.match(figure, /<noscript>/);
   assert.match(figure, /min="0.10" max="0.40" step="0.01"/);
-  assert.match(html, /图 5｜拟合模型给出的优势曲线/);
+  assert.match(html, /图 6｜拟合模型给出的优势曲线/);
   assert.match(html, /<script src="model-evolution.js"><\/script>/);
   const source = read('model-evolution.js');
   assert.doesNotMatch(source, /innerHTML|eval\(|localStorage|apikey/);
