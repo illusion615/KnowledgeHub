@@ -1851,6 +1851,25 @@ var knowledgeTree = [
   // 高中数学专题文章（2025 日常修订版课程标准）
   // ════════════════════════════════════════
   {
+    id: 'exam-performance-modeling',
+    parentId: 'edu-high-school-math',
+    type: 'article',
+    title: {
+      zh: '从考试成绩到预测模型：如何分析试卷难度与个人优势',
+      en: 'From Exam Scores to Prediction: Modeling Difficulty and Relative Advantage'
+    },
+    summary: {
+      zh: '以24次考试记录说明变量定义、模型构建、参数估计与时序检验，区分条件预测和真实高考推断，并提供四章结构的答辩演示。',
+      en: 'Uses 24 exams to explain variables, model construction, estimation, and temporal evaluation, with explicit prediction limits and a four-chapter defense presentation.'
+    },
+    tags: ['High School Mathematics', 'Mathematical Modeling', 'Regression', 'Prediction', 'Uncertainty'],
+    date: '2026-09-25',
+    url: 'posts/exam-performance-modeling/index.html',
+    color: '#f59e0b',
+    phase: 0.85, speed: 0.9,
+    relations: []
+  },
+  {
     id: 'high-school-log-change-base',
     parentId: 'edu-high-school-algebra-functions',
     type: 'article',
