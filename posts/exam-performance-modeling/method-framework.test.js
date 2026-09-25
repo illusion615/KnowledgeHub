@@ -72,7 +72,11 @@ test('model selection is an optional solution 3.1 extension after candidates and
   assert.equal((html.match(/id="model-selection-guide"/g) || []).length, 1);
   const guide = models.slice(start, end);
   assert.ok(guide.includes('先明确用途和必须满足的条件'));
-  assert.ok(guide.indexOf('先明确用途和必须满足的条件') < guide.indexOf('class="extension-card-slot"'));
+  const detailStart = guide.indexOf('id="model-selection-details-content"');
+  assert.ok(guide.indexOf('先明确用途和必须满足的条件') > detailStart);
+  assert.ok(guide.indexOf('依据：本拓展') > detailStart);
+  assert.doesNotMatch(guide.slice(0, detailStart), /<h3|<p(?:\s|>)/);
+  assert.equal((guide.match(/依据：本拓展/g) || []).length, 2, 'one bilingual paragraph, not a duplicate outside the modal');
   assert.ok(guide.includes('id="model-selection-details"'));
   assert.ok(guide.includes('对待估系数线性'));
   assert.ok(guide.includes('f(x)=a+bx+cx^2'));
