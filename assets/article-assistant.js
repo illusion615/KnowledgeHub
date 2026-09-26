@@ -14,6 +14,9 @@
 
   // Resolve relative to this script, so existing article script tags need no changes.
   var assetBase = new URL('.', document.currentScript.src).href;
+  var copilotReady = settings.provider === 'github-copilot'
+    ? (window.KHCopilot ? Promise.resolve() : loadScript('copilot-provider.js')) : Promise.resolve();
+  var requestController = null;
   var messageSources = new WeakMap();
   var messageViews = new WeakMap();
   var messageStats = new WeakMap();
@@ -69,6 +72,7 @@
     footer.innerHTML = '<button type="button" class="assistant-copy" aria-label="复制回复原文" title="复制原文（Markdown / LaTeX）" disabled>' +
       '<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg></button>' +
       '<time class="assistant-message-time"></time><span class="assistant-copy-status" role="status"></span>' +
+      '<span class="assistant-request-model"></span>' +
       '<div class="assistant-message-metrics"></div>';
     var error = document.createElement('div');
     error.className = 'assistant-message-error';
@@ -146,6 +150,10 @@
       date.toLocaleString('zh-CN', { hour12: false });
     view.time.title = '浏览器本地时间；完成时间以响应流结束为准';
     view.footer.dataset.state = stats.status;
+    var attribution = view.footer.querySelector('.assistant-request-model');
+    attribution.hidden = stats.hideModel;
+    attribution.textContent = stats.hideModel ? '' : '请求模型：' + stats.model;
+    attribution.title = stats.hideModel ? '' : '发送时的模型标识；auto由provider自动选择，后续切换不改变本条记录';
     var items = [];
     function metric(text, title) { items.push({ text: text, title: title }); }
     metric((stats.status === 'streaming' ? '输出中 · ' : stats.status === 'error' ? '失败 · ' : '') + '总耗时 ' + seconds(elapsed),
@@ -268,9 +276,23 @@
     '  font-size: 0.92rem; font-weight: 700; color: var(--ink, #172430); margin: 0;',
     '}',
     '.assistant-header > div:first-child { min-width: 0; overflow-wrap: anywhere; }',
-    '.assistant-header-meta {',
-    '  font-size: 0.72rem; color: var(--muted, #5d6c76); margin-top: 2px;',
-    '}',
+    '.assistant-header-meta { font-size: 0.72rem; color: var(--muted, #5d6c76); margin-top: 2px; }',
+    '.assistant-model-toggle { display: block; max-width: 100%; min-height: 44px; padding: 4px 8px; border: 1px solid var(--line, #ccd0d4); border-radius: 6px; background: transparent; color: inherit; font: inherit; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }',
+    '.assistant-model-panel { position: absolute; z-index: 5; box-sizing: border-box; display: flex; flex-direction: column; min-width: 0; overflow: hidden; padding: 6px; border: 1px solid var(--line, #ccd0d4); border-radius: 10px; background: var(--paper, #fff); box-shadow: 0 8px 28px #0003; color: var(--ink, #172430); font: 0.78rem/1.4 system-ui; }',
+    '.assistant-model-panel[hidden] { display: none; }',
+    '.assistant-model-search { box-sizing: border-box; flex: 0 0 auto; width: 100%; min-width: 0; height: 34px; padding: 5px 8px; border: 1px solid var(--line, #ccd0d4); border-radius: 5px; background: transparent; color: inherit; font: inherit; }',
+    '.assistant-model-list { flex: 0 1 auto; min-height: 0; max-height: 260px; overflow-y: auto; overscroll-behavior: contain; margin: 4px 0; padding: 0; }',
+    '.assistant-model-option { box-sizing: border-box; display: flex; align-items: center; gap: 6px; width: 100%; height: 36px; padding: 0 8px; border: 0; border-radius: 5px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }',
+    '.assistant-model-option span:first-child { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }',
+    '.assistant-model-option.is-active, .assistant-model-option:hover { background: var(--accent-soft, #ff7a0022); }',
+    '.assistant-model-option[aria-selected="true"] { font-weight: 650; }',
+    '.assistant-model-check { width: 16px; flex-shrink: 0; text-align: center; }',
+    '.assistant-model-panel .assistant-model-status { flex: 0 0 auto; max-height: 64px; overflow: auto; margin: 4px 3px; overflow-wrap: anywhere; color: var(--muted, #5d6c76); font-size: 0.72rem; }',
+    '.assistant-model-actions { display: flex; justify-content: space-between; flex: 0 0 auto; gap: 8px; }',
+    '.assistant-model-actions button { min-height: 30px; padding: 3px 8px; border: 0; border-radius: 5px; background: transparent; color: inherit; font: inherit; cursor: pointer; }',
+    '.assistant-model-toggle:disabled, .assistant-model-panel button:disabled { opacity: 0.5; cursor: default; }',
+    '.assistant-model-toggle:focus-visible, .assistant-model-panel :focus-visible { outline: 2px solid var(--accent, #ff7a00); outline-offset: -2px; }',
+    '[data-theme="dark"] .assistant-model-panel { background: #172430; color: #eee; }',
     '.assistant-close {',
     '  width: 28px; height: 28px; border-radius: 6px;',
     '  border: none; background: rgba(0,0,0,0.04); color: var(--muted, #5d6c76);',
@@ -443,9 +465,31 @@
     var main = document.querySelector('main');
     if (!main) main = document.querySelector('.site');
     if (!main) main = document.body;
-    var text = main.innerText || main.textContent || '';
-    if (text.length > 6000) text = text.substring(0, 6000) + '\n...(内容已截断)';
-    return text;
+    // Work on a detached copy: collapsed details and modal articles are still
+    // article content. innerText omits them and depends on the current layout.
+    var copy = main.cloneNode(true);
+    copy.querySelectorAll('script, style, noscript, .assistant-dialog, .assistant-fab, .assistant-backdrop, .knowledge-dialog-toolbar, [data-assistant-exclude]').forEach(function (el) {
+      el.remove();
+    });
+    // Prefer author-owned LaTeX over KaTeX's duplicate visual/MathML trees.
+    copy.querySelectorAll('[data-latex]').forEach(function (el) {
+      var display = el.classList.contains('math-block');
+      el.textContent = (display ? '\n$$' : '$') + el.getAttribute('data-latex') + (display ? '$$\n' : '$');
+    });
+    copy.querySelectorAll('.katex').forEach(function (el) {
+      var source = el.querySelector('annotation[encoding="application/x-tex"]');
+      if (!source) return;
+      var display = el.parentElement && el.parentElement.classList.contains('katex-display');
+      el.replaceWith(document.createTextNode((display ? '\n$$' : '$') + source.textContent + (display ? '$$\n' : '$')));
+    });
+    // Retain paragraph and table boundaries without needing to show hidden DOM.
+    copy.querySelectorAll('p, div, section, article, h1, h2, h3, h4, h5, h6, li, blockquote, pre, table, tr, figure, figcaption, summary').forEach(function (el) {
+      el.prepend(document.createTextNode('\n'));
+      el.appendChild(document.createTextNode('\n'));
+    });
+    copy.querySelectorAll('td, th').forEach(function (el) { el.appendChild(document.createTextNode('\t')); });
+    copy.querySelectorAll('br').forEach(function (el) { el.replaceWith(document.createTextNode('\n')); });
+    return (copy.textContent || '').replace(/[ \t]+\n/g, '\n').replace(/\n[ \t]+/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
   }
 
   // ---- Build DOM ----
@@ -460,9 +504,7 @@
     '<div class="assistant-header">',
     '  <div>',
     '    <h3>AI Assistant</h3>',
-    (settings.showModelName === false
-      ? ''
-      : '    <div class="assistant-header-meta">' + escapeHtml(settings.model || '') + ' via ' + escapeHtml(settings.provider) + '</div>'),
+    '    <div class="assistant-header-meta"><button type="button" class="assistant-model-toggle" aria-expanded="false" aria-controls="assistant-model-panel">选择模型 ▾</button></div>',
     '  </div>',
     '  <div class="assistant-header-actions">',
     '    <button class="assistant-expand" id="assistant-expand" aria-label="Expand">',
@@ -473,6 +515,13 @@
     '    </button>',
     '  </div>',
     '</div>',
+    '<section class="assistant-model-panel" id="assistant-model-panel" aria-label="模型选择" hidden>',
+    '  <input type="search" class="assistant-model-search" role="combobox" aria-label="搜索模型" aria-autocomplete="list" aria-expanded="true" aria-controls="assistant-model-list" aria-describedby="assistant-model-status" placeholder="搜索模型…" autocomplete="off" />',
+    '  <div class="assistant-model-list" id="assistant-model-list" role="listbox" aria-label="当前provider的模型"></div>',
+    '  <p class="assistant-model-status" id="assistant-model-status" role="status" aria-live="polite"></p>',
+    '  <div class="assistant-model-actions"><button type="button" class="assistant-model-refresh">重新读取</button>',
+    '  <button type="button" class="assistant-model-close">关闭</button></div>',
+    '</section>',
     '<div class="assistant-messages" id="assistant-messages"></div>',
     '<div class="assistant-input-bar">',
     '  <input class="assistant-input" id="assistant-input" type="text" placeholder="针对本文提问..." />',
@@ -498,18 +547,211 @@
   var isExpanded = false;
   var isSending = false;
   var conversationHistory = [];
-  var articleContext = '';
+
+  // A compact anchored combobox overlays (never resizes) the conversation.
+  // Discovery is user-triggered and never sends article content.
+  var modelButton = dialog.querySelector('.assistant-model-toggle');
+  var modelPanel = dialog.querySelector('.assistant-model-panel');
+  var modelStatus = dialog.querySelector('.assistant-model-status');
+  var modelSearch = dialog.querySelector('.assistant-model-search');
+  var modelList = dialog.querySelector('.assistant-model-list');
+  var filteredModels = [], activeModel = -1, modelNotice = '';
+  var modelRefresh = dialog.querySelector('.assistant-model-refresh');
+  var modelGeneration = 0, modelController = null, modelsReady = null, listedModels = [];
+  function updateModelLabel() {
+    modelButton.textContent = settings.showModelName === false ? '选择模型 ▾' : settings.model + ' ▾';
+    modelButton.setAttribute('aria-label', settings.showModelName === false ? '选择模型' : '选择模型，当前请求模型：' + settings.model);
+    modelButton.title = '仅更改下一条请求的模型；保留对话';
+  }
+  function connectionKey(value) {
+    return JSON.stringify(['provider', 'endpoint', 'apikey', 'bearerToken', 'apiVersion', 'azureAuthType'].map(function (key) { return value[key] || ''; }));
+  }
+  function savedConnection() {
+    var saved;
+    try { saved = JSON.parse(localStorage.getItem('llm-settings')); }
+    catch (_) { throw new Error('无法读取连接设置，请检查浏览器存储权限或重新保存设置。'); }
+    if (!saved || connectionKey(saved) !== connectionKey(settings))
+      throw new Error('连接设置已在其他页面改变或清除。请先复制对话并刷新，避免把旧列表用于新provider。');
+    return saved;
+  }
+  function positionModelPicker() {
+    if (modelPanel.hidden) return;
+    var box = dialog.getBoundingClientRect(), anchor = modelButton.getBoundingClientRect();
+    var sx = box.width / dialog.offsetWidth || 1, sy = box.height / dialog.offsetHeight || 1;
+    var viewport = window.visualViewport;
+    var vx = viewport ? viewport.offsetLeft : 0, vy = viewport ? viewport.offsetTop : 0;
+    var vw = viewport ? viewport.width : innerWidth, vh = viewport ? viewport.height : innerHeight;
+    var leftEdge = Math.max(8, (vx - box.left) / sx + 8);
+    var rightEdge = Math.min(dialog.clientWidth - 8, (vx + vw - box.left) / sx - 8);
+    var topEdge = Math.max(8, (vy - box.top) / sy + 8);
+    var bottomEdge = Math.min(dialog.clientHeight - 8, (vy + vh - box.top) / sy - 8);
+    var below = (anchor.bottom - box.top) / sy + 4;
+    var above = (anchor.top - box.top) / sy - 4;
+    var upwards = bottomEdge - below < 140 && above - topEdge > bottomEdge - below;
+    var top = upwards ? topEdge : Math.max(topEdge, Math.min(below, bottomEdge));
+    var available = Math.max(0, (upwards ? above : bottomEdge) - top);
+    var width = Math.max(0, Math.min(320, rightEdge - leftEdge));
+    modelPanel.style.width = width + 'px';
+    modelPanel.style.left = Math.max(leftEdge, Math.min((anchor.left - box.left) / sx, rightEdge - width)) + 'px';
+    modelPanel.style.maxHeight = available + 'px';
+    modelPanel.style.top = top + 'px';
+    if (upwards) modelPanel.style.top = Math.max(topEdge, above - modelPanel.offsetHeight) + 'px';
+  }
+  function highlightModel(index) {
+    activeModel = index;
+    Array.from(modelList.children).forEach(function (option, i) { option.classList.toggle('is-active', i === index); });
+    if (index < 0 || !modelList.children[index]) { modelSearch.removeAttribute('aria-activedescendant'); return; }
+    var option = modelList.children[index];
+    modelSearch.setAttribute('aria-activedescendant', option.id);
+    // Scroll the list only, never the article or conversation behind the popup.
+    var top = option.offsetTop - modelList.offsetTop;
+    if (top < modelList.scrollTop) modelList.scrollTop = top;
+    else if (top + option.offsetHeight > modelList.scrollTop + modelList.clientHeight)
+      modelList.scrollTop = top + option.offsetHeight - modelList.clientHeight;
+  }
+  function filterModels() {
+    var query = modelSearch.value.trim().toLocaleLowerCase();
+    filteredModels = listedModels.filter(function (id) { return id.toLocaleLowerCase().indexOf(query) >= 0; });
+    modelList.replaceChildren();
+    filteredModels.forEach(function (id, index) {
+      var option = document.createElement('button');
+      option.type = 'button'; option.className = 'assistant-model-option'; option.tabIndex = -1;
+      option.id = 'assistant-model-option-' + index; option.setAttribute('role', 'option');
+      var current = settings.showModelName !== false && id === settings.model;
+      option.setAttribute('aria-selected', current ? 'true' : 'false');
+      var name = document.createElement('span'); name.textContent = id;
+      var check = document.createElement('span'); check.className = 'assistant-model-check';
+      check.setAttribute('aria-hidden', 'true'); check.textContent = current ? '✓' : '';
+      option.append(name, check);
+      option.addEventListener('mousedown', function (event) { event.preventDefault(); });
+      option.addEventListener('click', function () { applyModel(id); });
+      modelList.appendChild(option);
+    });
+    highlightModel(-1);
+    if (listedModels.length) modelStatus.textContent = filteredModels.length
+      ? filteredModels.length + ' 个模型 · 仅影响下一条请求' + (listedModels.indexOf(settings.model) < 0 ? '；当前模型未出现在列表，仍保留。' : '')
+      : '没有匹配模型；试试其他关键词。';
+    modelStatus.title = modelNotice;
+    positionModelPicker();
+  }
+  function cancelModelList() {
+    modelGeneration++;
+    if (modelController) modelController.abort();
+    modelController = null;
+    listedModels = []; filteredModels = []; activeModel = -1;
+    modelList.replaceChildren();
+    modelSearch.removeAttribute('aria-activedescendant');
+    modelNotice = ''; modelStatus.title = '';
+    modelRefresh.disabled = false;
+    modelPanel.removeAttribute('aria-busy');
+  }
+  function closeModelPicker(restoreFocus) {
+    cancelModelList();
+    modelPanel.hidden = true;
+    modelButton.setAttribute('aria-expanded', 'false');
+    if (restoreFocus && !modelButton.disabled) modelButton.focus();
+  }
+  function loadModelList() {
+    if (isSending || modelPanel.hidden) return;
+    cancelModelList();
+    var generation = modelGeneration;
+    var snapshot = Object.assign({}, settings);
+    modelController = new AbortController();
+    var signal = modelController.signal;
+    modelStatus.textContent = '读取模型列表中（不推理）…';
+    positionModelPicker();
+    modelPanel.setAttribute('aria-busy', 'true');
+    modelRefresh.disabled = true;
+    if (!modelsReady) modelsReady = window.KHModels ? Promise.resolve() : loadScript('llm-models.js').catch(function () {
+      modelsReady = null; throw new Error('模型列表组件加载失败，请重新读取。');
+    });
+    Promise.all([modelsReady, copilotReady]).then(function () {
+      if (generation !== modelGeneration || isSending || modelPanel.hidden) return;
+      savedConnection();
+      return window.KHModels.load(snapshot, { signal: signal });
+    }).then(function (result) {
+      if (!result || generation !== modelGeneration || isSending || modelPanel.hidden) return;
+      savedConnection();
+      listedModels = result.models;
+      modelNotice = result.notice;
+      modelStatus.textContent = listedModels.length ? '' : '没有可选模型，保留当前模型。' + result.notice;
+      filterModels();
+    }).catch(function (error) {
+      if (generation === modelGeneration && !modelPanel.hidden) { modelStatus.textContent = error.message; positionModelPicker(); }
+    }).finally(function () {
+      if (generation === modelGeneration) { modelPanel.removeAttribute('aria-busy'); modelRefresh.disabled = false; modelController = null; }
+    });
+  }
+  updateModelLabel();
+  modelButton.addEventListener('click', function () {
+    if (isSending) return;
+    if (!modelPanel.hidden) { closeModelPicker(true); return; }
+    modelPanel.hidden = false; modelButton.setAttribute('aria-expanded', 'true');
+    modelSearch.value = ''; positionModelPicker();
+    modelSearch.focus({ preventScroll: true }); loadModelList();
+  });
+  modelRefresh.addEventListener('click', loadModelList);
+  modelSearch.addEventListener('input', filterModels);
+  modelSearch.addEventListener('keydown', function (event) {
+    if (event.isComposing || !filteredModels.length || isSending) return;
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      highlightModel(event.key === 'ArrowDown' ? (activeModel + 1) % filteredModels.length : (activeModel < 0 ? filteredModels.length - 1 : (activeModel - 1 + filteredModels.length) % filteredModels.length));
+    } else if ((event.key === 'Home' || event.key === 'End') && activeModel >= 0) {
+      event.preventDefault(); highlightModel(event.key === 'Home' ? 0 : filteredModels.length - 1);
+    } else if (event.key === 'Enter') {
+      event.preventDefault(); applyModel(filteredModels[activeModel < 0 ? 0 : activeModel]);
+    }
+  });
+  function applyModel(selected) {
+    if (isSending || modelPanel.hidden || listedModels.indexOf(selected) < 0) return;
+    try {
+      var saved = savedConnection();
+      // Update exactly one field in the latest record, preserving unknown settings.
+      saved.model = selected;
+      localStorage.setItem('llm-settings', JSON.stringify(saved));
+      settings.model = selected;
+      updateModelLabel();
+      closeModelPicker(true);
+    } catch (error) { modelStatus.textContent = '未切换：' + error.message; positionModelPicker(); }
+  }
+  dialog.querySelector('.assistant-model-close').addEventListener('click', function () { closeModelPicker(true); });
+  dialog.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && !modelPanel.hidden) { event.preventDefault(); event.stopPropagation(); closeModelPicker(true); }
+  });
+  document.addEventListener('pointerdown', function (event) {
+    if (!modelPanel.hidden && !modelPanel.contains(event.target) && !modelButton.contains(event.target)) closeModelPicker(true);
+  }, true);
+  modelPanel.addEventListener('focusout', function () {
+    setTimeout(function () {
+      if (!modelPanel.hidden && !modelPanel.contains(document.activeElement) && document.activeElement !== modelButton) closeModelPicker(false);
+    }, 0);
+  });
+  window.addEventListener('resize', positionModelPicker);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', positionModelPicker);
+    window.visualViewport.addEventListener('scroll', positionModelPicker);
+  }
+  if (window.ResizeObserver) new ResizeObserver(positionModelPicker).observe(dialog);
+  dialog.addEventListener('transitionend', positionModelPicker);
+  window.addEventListener('storage', function (event) {
+    if ((event.key === 'llm-settings' || event.key === null) && !modelPanel.hidden) {
+      cancelModelList();
+      modelStatus.textContent = '连接设置已在其他页面更新，旧列表已作废。请重新读取；provider或端点改变时须刷新页面。';
+    }
+  });
 
   fab.addEventListener('click', function () {
     isOpen = !isOpen;
     dialog.classList.toggle('is-open', isOpen);
+    if (!isOpen) closeModelPicker(false);
     if (isOpen) {
       inputEl.focus();
-      if (!articleContext) articleContext = getArticleText();
     }
   });
 
   closeBtn.addEventListener('click', function () {
+    closeModelPicker(false);
     isOpen = false;
     isExpanded = false;
     dialog.classList.remove('is-open', 'is-expanded');
@@ -541,7 +783,8 @@
     div.className = 'assistant-msg assistant-msg-ai';
     div.innerHTML = '<div class="thinking-dots"><span></span><span></span><span></span></div>';
     messagesEl.appendChild(div);
-    var stats = { started: performance.now(), startedAt: new Date(), first: null, ended: null,
+    var stats = { model: settings.model, hideModel: settings.showModelName === false,
+      started: performance.now(), startedAt: new Date(), first: null, ended: null,
       finishedAt: null, status: 'streaming', inputTokens: null, outputTokens: null,
       evalNs: null, promptEvalNs: null, loadNs: null, timer: null };
     messageStats.set(div, stats);
@@ -565,6 +808,9 @@
   }
 
   function buildMessages(userQuery) {
+    // Refresh on every request so language/content changes do not leave stale context.
+    // Provider context limits remain provider errors, never silent local truncation.
+    var articleContext = getArticleText();
     var systemMsg = '你是一个知识文章助手。以下是当前文章的内容，请基于文章内容回答用户的问题。如果问题超出文章范围，请如实说明。回答时可使用 Markdown 格式，数学公式请使用 LaTeX 语法（行内公式用 $...$，独立公式用 $$...$$）。\n\n---\n' + articleContext + '\n---';
     var messages = [{ role: 'system', content: systemMsg }];
     conversationHistory.forEach(function (m) { messages.push(m); });
@@ -576,11 +822,21 @@
     var query = inputEl.value.trim();
     if (!query || isSending) return;
 
+    if (settings.provider === 'github-copilot') {
+      if (!window.KHCopilot) { copilotReady.then(sendMessage).catch(function () { alert('Copilot组件加载失败，请刷新专用测试站。'); }); return; }
+      if (!window.KHCopilot.consent()) return;
+    }
     appendMessage('user', query);
-    conversationHistory.push({ role: 'user', content: query });
     inputEl.value = '';
     isSending = true;
-    sendBtn.disabled = true;
+    closeModelPicker(false);
+    modelButton.disabled = true;
+    sendBtn.disabled = settings.provider !== 'github-copilot';
+    if (settings.provider === 'github-copilot') {
+      sendBtn.setAttribute('aria-label', '取消请求');
+      sendBtn.textContent = '停止';
+      requestController = new AbortController();
+    }
 
     var thinkingEl = createThinkingDots();
 
@@ -588,6 +844,13 @@
     var url, body;
     var headers = { 'Content-Type': 'application/json' };
 
+    if (settings.provider === 'github-copilot') {
+      var messages = buildMessages(query);
+      window.KHCopilot.chat(settings.model, messages, requestController.signal)
+        .then(function (res) { return handleStreamResponse(res, thinkingEl, query); })
+        .catch(function (err) { handleSendError(err, thinkingEl); });
+      return;
+    }
     if (settings.provider === 'ollama') {
       url = endpoint + '/api/chat';
       body = { model: settings.model, messages: buildMessages(query), stream: true };
@@ -621,19 +884,32 @@
       });
     }).then(function (res) {
       if (!res.ok) throw new Error('HTTP ' + res.status);
-      return handleStreamResponse(res, thinkingEl);
+      return handleStreamResponse(res, thinkingEl, query);
     })
     .catch(function (err) {
       handleSendError(err, thinkingEl);
     });
   }
 
-  function handleStreamResponse(res, thinkingEl) {
+  function resetSend() {
+    isSending = false;
+    modelButton.disabled = false;
+    sendBtn.disabled = false;
+    if (settings.provider === 'github-copilot') {
+      requestController = null;
+      sendBtn.textContent = '发送';
+      sendBtn.setAttribute('aria-label', 'Send');
+    }
+  }
+
+  function handleStreamResponse(res, thinkingEl, query) {
     var fullText = '';
     var reader = res.body.getReader();
     var decoder = new TextDecoder();
     var buffer = '';
     var renderTimer = null;
+    var streamError = null;
+    var streamDone = false;
 
     function paint() {
       keepScroll(function () { renderMessage(thinkingEl, fullText || '(无回复)'); });
@@ -644,7 +920,8 @@
     }
     function processLine(line) {
       line = line.trim();
-      if (!line || line === 'data: [DONE]') return;
+      if (line === 'data: [DONE]') { streamDone = true; return; }
+      if (!line) return;
       var token = '';
       try {
         if (settings.provider === 'ollama') {
@@ -653,6 +930,7 @@
           token = obj.message && obj.message.content;
         } else if (line.indexOf('data:') === 0) {
           var chunk = JSON.parse(line.substring(5).trim());
+          if (chunk.error && settings.provider === 'github-copilot') streamError = new Error(chunk.error.message || 'Copilot流式响应失败');
           captureUsage(thinkingEl, chunk);
           var delta = chunk.choices && chunk.choices[0] && chunk.choices[0].delta;
           token = delta && delta.content;
@@ -670,15 +948,18 @@
       var lines = buffer.split('\n');
       buffer = lines.pop();
       lines.forEach(processLine);
+      if (streamError) throw streamError;
       if (result.done) {
         // Some SSE/NDJSON servers omit the trailing newline; don't drop that final token.
         processLine(buffer);
+        if (streamError) throw streamError;
+        if (settings.provider === 'github-copilot' && !streamDone) throw new Error('Copilot连接中断，回复不完整；未自动重试。');
         if (renderTimer) { clearTimeout(renderTimer); renderTimer = null; }
         finishMessage(thinkingEl, 'complete');
         paint();
+        conversationHistory.push({ role: 'user', content: query });
         conversationHistory.push({ role: 'assistant', content: fullText });
-        isSending = false;
-        sendBtn.disabled = false;
+        resetSend();
         return;
       }
       return reader.read().then(processChunk);
@@ -691,7 +972,7 @@
   }
 
   function handleSendError(err, thinkingEl) {
-      var msg = err.message;
+      var msg = err.name === 'AbortError' ? '已取消本次请求。部分输出不会加入下一轮对话。' : err.message;
       if (msg === 'Failed to fetch' && window.location.protocol === 'file:') {
         msg = '无法连接。从 file:// 协议访问时浏览器可能阻止跨域请求。\n建议：使用 python3 -m http.server 启动本地服务器。\nOllama 用户：确认已设置 OLLAMA_ORIGINS=*';
       }
@@ -702,11 +983,13 @@
         view.error.hidden = false;
         view.error.textContent = '错误: ' + msg;
       });
-      isSending = false;
-      sendBtn.disabled = false;
+      resetSend();
   }
 
-  sendBtn.addEventListener('click', sendMessage);
+  sendBtn.addEventListener('click', function () {
+    if (isSending && requestController) { requestController.abort(); return; }
+    sendMessage();
+  });
   inputEl.addEventListener('keydown', function (e) {
     if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); sendMessage(); }
   });

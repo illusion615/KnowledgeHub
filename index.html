@@ -2336,7 +2336,13 @@
             <option value="ollama">Ollama</option>
             <option value="openai-compat">OpenAI 兼容</option>
             <option value="azure-openai">Azure OpenAI</option>
+            <option value="github-copilot">GitHub Copilot（本机桥接 / 云端）</option>
           </select>
+        </div>
+        <div class="settings-field" id="field-copilot" hidden>
+          <p>本机CLI桥接调用GitHub云端，非离线推理；文章和对话会离开本机，可能消耗Copilot额度。仅纯问答，无工具/MCP。</p>
+          <p>默认由官方组件尝试复用已有GitHub CLI身份；先检查状态，无需预先重新登录。gh已登录不等于有Copilot权限。无有效身份时，可在终端运行 <code>node scripts/copilot-login.mjs</code> 作可选专用登录（可能明文保存于受限profile）。不提取旧token、不自动换账号。</p>
+          <a href="copilot-test.html">打开Copilot测试说明与问答页</a>
         </div>
         <div class="settings-field" id="field-endpoint">
           <label class="settings-label" for="llm-endpoint" data-zh="API 端点" data-en="API Endpoint">API 端点</label>
@@ -2384,6 +2390,8 @@
   </aside>
 
   <script src="assets/scrollbar.js"></script>
+  <script src="assets/copilot-provider.js"></script>
+  <script src="assets/llm-models.js"></script>
   <script>
     document.write('<script src="' + (isPrivateHub ? 'private/assets/private-knowledge-data.js' : 'assets/knowledge-data.js') + '"><\/script>');
   </script>
@@ -4047,6 +4055,8 @@
       // Provider change → show/hide fields
       function syncFields() {
         var provider = providerSel.value;
+        document.getElementById('field-copilot').hidden = provider !== 'github-copilot';
+        testBtn.textContent = provider === 'github-copilot' ? '检查登录 / 模型（不推理）' : '测试连接';
         modelInput.hidden = false;
         modelSelect.hidden = true;
         modelSelect.innerHTML = '';
@@ -4062,6 +4072,14 @@
           fieldModel.hidden = true;
           fieldApikey.hidden = true;
           fieldApiVersion.hidden = true;
+        } else if (provider === 'github-copilot') {
+          fieldEndpoint.hidden = true;
+          fieldModel.hidden = false;
+          fieldApikey.hidden = true;
+          fieldApiVersion.hidden = true;
+          endpointInput.value = '/api/copilot';
+          modelInput.placeholder = 'auto 或官方模型ID';
+          if (!saved || saved.provider !== 'github-copilot') modelInput.value = 'auto';
         } else if (provider === 'ollama') {
           fieldEndpoint.hidden = false;
           fieldModel.hidden = false;
@@ -4104,63 +4122,46 @@
       providerSel.addEventListener('change', syncFields);
       syncFields();
 
-      // Test connection
+      // Settings and assistant use exactly the same read-only discovery adapter.
+      var listGeneration = 0, listController = null;
+      function cancelModelList() {
+        listGeneration++;
+        if (listController) listController.abort();
+        listController = null;
+        testBtn.disabled = false;
+      }
+      [providerSel, endpointInput, apikeyInput, apiVersionInput, azureAuthTypeSel, bearerTokenInput].forEach(function (field) {
+        field.addEventListener('input', function () {
+          cancelModelList(); modelSelect.hidden = true; modelInput.hidden = false;
+          statusEl.textContent = '';
+        });
+      });
       testBtn.addEventListener('click', function () {
-        var provider = providerSel.value;
-        var endpoint = endpointInput.value.replace(/\/+$/, '');
-        if (provider === 'none' || !endpoint) {
+        cancelModelList();
+        if (providerSel.value === 'none' || !endpointInput.value.trim()) {
           statusEl.textContent = '请先选择 Provider 并填写端点';
           statusEl.className = 'settings-status is-err';
           return;
         }
-
-        statusEl.textContent = '连接中...';
+        var generation = listGeneration;
+        listController = new AbortController();
+        var connection = { provider: providerSel.value, endpoint: endpointInput.value,
+          apikey: apikeyInput.value, apiVersion: apiVersionInput.value,
+          azureAuthType: azureAuthTypeSel.value, bearerToken: bearerTokenInput.value };
+        statusEl.textContent = '读取模型列表（不推理）...';
         statusEl.className = 'settings-status';
-
-        var testUrl = '';
-        var headers = { 'Content-Type': 'application/json' };
-        if (provider === 'ollama') {
-          testUrl = endpoint + '/api/tags';
-        } else if (provider === 'azure-openai') {
-          var apiVer = apiVersionInput.value || '2024-12-01-preview';
-          testUrl = endpoint + '/openai/models?api-version=' + apiVer;
-          var azAuthType = azureAuthTypeSel.value;
-          if (azAuthType === 'bearer') {
-            var bt = bearerTokenInput.value;
-            if (!bt) {
-              statusEl.textContent = '请填写 Bearer Token';
-              statusEl.className = 'settings-status is-err';
-              return;
-            }
-            headers['Authorization'] = 'Bearer ' + bt;
-          } else {
-            var azKey = apikeyInput.value;
-            if (azKey) headers['api-key'] = azKey;
-          }
-        } else {
-          testUrl = endpoint + '/models';
-          var key = apikeyInput.value;
-          if (key) headers['Authorization'] = 'Bearer ' + key;
-        }
-
-        fetch(testUrl, { method: 'GET', headers: headers })
-          .then(function (res) {
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-            return res.json();
-          })
-          .then(handleTestResult)
-          .catch(handleTestError);
+        modelSelect.hidden = true; modelInput.hidden = false;
+        testBtn.disabled = true;
+        window.KHModels.load(connection, { signal: listController.signal, checkAzure: true })
+          .then(function (result) { if (generation === listGeneration) handleTestResult(result); })
+          .catch(function (err) { if (generation === listGeneration) handleTestError(err); })
+          .finally(function () { if (generation === listGeneration) { testBtn.disabled = false; listController = null; } });
       });
 
       function handleTestResult(data) {
-            var models = [];
-            var provider = providerSel.value;
-            if (provider === 'ollama' && data.models) {
-              data.models.forEach(function (m) { models.push(m.name || m.model); });
-            } else if (data.data) {
-              data.data.forEach(function (m) { models.push(m.id); });
-            }
-            statusEl.textContent = '✓ 已连接，' + models.length + ' 个模型可用';
+            var models = data.models;
+            statusEl.textContent = (providerSel.value === 'github-copilot' ? (data.authSource === 'gh-cli' ? '✓ 已复用GitHub CLI身份；' : '✓ 官方登录有效；') : '✓ ') +
+              (models.length ? models.length + ' 个模型。' : '未返回可选模型；保留当前输入。') + data.notice;
             statusEl.className = 'settings-status is-ok';
 
             if (models.length > 0) {
@@ -4195,6 +4196,7 @@
 
       // Save settings
       saveBtn.addEventListener('click', function () {
+        cancelModelList();
         var settings = {
           provider: providerSel.value,
           endpoint: endpointInput.value,
@@ -4205,6 +4207,11 @@
           bearerToken: bearerTokenInput.value,
           showModelName: showModelNameToggle.checked
         };
+        if (settings.provider === 'github-copilot') {
+          settings.endpoint = '/api/copilot';
+          settings.model = settings.model.trim() || 'auto';
+          settings.apikey = ''; settings.bearerToken = ''; settings.apiVersion = '';
+        }
         localStorage.setItem('llm-settings', JSON.stringify(settings));
         statusEl.textContent = '✓ 已保存';
         statusEl.className = 'settings-status is-ok';
