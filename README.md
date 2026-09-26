@@ -2,6 +2,16 @@
 
 一个纯静态 HTML 知识站点，包含交互式知识图谱首页与结构化渐进披露文章页。通过 GitHub Pages 发布。
 
+## 本机文章助手（GitHub Copilot）
+
+```sh
+node scripts/serve-knowledge-hub.mjs
+```
+
+打开 http://127.0.0.1:8000/ → 设置 → GitHub Copilot，选择模型并保存；文章助手顶部可直接搜索切换模型。优先复用本机官方 GitHub CLI 登录，实际请求仍为云端推理，发送前需用户同意。静态 GitHub Pages 不提供此本机桥接。
+
+详细说明见 [Copilot provider](docs/copilot-provider.md)。不启动或停止其他模型服务。
+
 ## Change Log
 
 ### 2026-04-14

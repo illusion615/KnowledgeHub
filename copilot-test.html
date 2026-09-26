@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Knowledge Hub · Copilot测试站</title>
+<style>body{font:16px/1.7 system-ui;max-width:900px;margin:40px auto;padding:0 24px;color:#20242b}button,input,select{font:inherit;padding:8px;margin:5px}code{background:#eee;padding:3px}section{border:1px solid #ccc;padding:18px;margin:20px 0;border-radius:12px}#status{white-space:pre-wrap}a{color:#905000}</style>
+<script src="assets/copilot-provider.js"></script></head><body>
+<header data-assistant-exclude><h1>GitHub Copilot · 可测试站</h1><a href="/">Knowledge Hub首页 / Provider设置</a>
+<p><strong>本机桥接，实际云端推理。</strong>文章全文和对话会发送给GitHub及其模型服务，可能消耗Copilot额度；不是离线模型。仅纯问答，不开放Agent工具、文件、shell、MCP。首次点击发送会再次询问同意；不会自动发送测试问题。</p></header>
+<section data-assistant-exclude><h2>1. 先检查已有官方登录</h2>
+<p>默认由Copilot官方组件尝试复用本机GitHub CLI的有效身份，不要求先专用登录。<strong>gh已登录不等于Copilot权限</strong>：还需官方模型目录可读，实际模型权限/额度以发送结果为准。不会自动发问、登出或切换账号。</p>
+<details><summary>没有有效身份时的可选专用登录</summary>
+<p>先用 <code>gh auth status</code> 核查当前身份。需要新授权时，可在此工作区运行 <code>node scripts/copilot-login.mjs</code>，按官方设备代码流程授权；不提取或复制旧token。若gh已有身份但无Copilot权限，请先检查其套餐/组织策略；不会自动改用另一个账号。</p>
+<p>专用profile位于 <code>~/.local/share/knowledge-hub-copilot</code>，目录权限700。专用登录模式禁用keychain，官方CLI可能以<strong>明文</strong>保存专用凭证；不要上传或分享。默认复用gh时保留HOME供官方凭证管理，但Copilot配置、工作目录和工具权限独立隔离，应用不读取凭证。无须把任何token贴入网页。</p>
+</details>
+<h2>2. 检查状态并选择模型</h2>
+<button id="check" type="button">检查登录 / 模型（不推理）</button><p id="status" role="status">桥接尚未检查，未证明登录或推理连通。</p>
+<label>模型 <input id="model" value="auto" list="models" maxlength="100"></label><datalist id="models"></datalist>
+<p>auto是CLI自动选择，不是模型清单。检查成功后候选来自官方接口；可手填模型ID，实际权限及额度仍以发送结果为准。</p>
+<button id="save" type="button">保存Copilot设置并打开问答</button><p>这只修改本测试站origin的设置，不导入旧站API key。保存后可回首页打开任意文章使用右下角助手。</p></section>
+<main><h2>测试文章：贝叶斯公式</h2><p>这是一篇非私密测试文章，可供首次验证，无需发送真实私人内容。</p>
+<p>条件概率满足：$$P(A\mid B)=\frac{P(B\mid A)P(A)}{P(B)}.$$ 先验概率是观测之前的信念，后验概率是在证据之后更新的信念。</p>
+<table><tr><th>术语</th><th>含义</th></tr><tr><td>先验</td><td>观测前</td></tr><tr><td>后验</td><td>观测后</td></tr></table>
+<details><summary>补充说明（折叠内容也纳入上下文）</summary><p>若证据B的概率为零，通常的条件概率公式不能直接使用。</p></details>
+<p>建议问题：“用公式解释先验和后验，并概括表格。” 后续可问“上面提到的分母为什么不能为零？”</p></main>
+<script>
+(function(){
+ var model=document.getElementById('model'), status=document.getElementById('status');
+ try { var saved=JSON.parse(localStorage.getItem('llm-settings')); if(saved && saved.provider==='github-copilot') model.value=saved.model||'auto'; } catch(_){}
+ document.getElementById('check').onclick=async function(){
+  this.disabled=true;status.textContent='检查中（不推理）…';
+  try {var data=await KHCopilot.status();status.textContent=data.authenticated?(data.authSource==='gh-cli'?'已由官方组件复用GitHub CLI身份；模型目录可读，尚未做真实推理。':'官方登录有效；模型目录可读，尚未做真实推理。'):'未检测到有效身份。请先核查 gh auth status，必要时展开上面的可选登录指引。';
+   var list=document.getElementById('models');list.replaceChildren();data.models.forEach(function(m){var o=document.createElement('option');o.value=m.id;o.textContent=m.name;list.appendChild(o);});
+  }catch(e){status.textContent=e.message;}finally{this.disabled=false;}
+ };
+ document.getElementById('save').onclick=function(){
+  var id=model.value.trim()||'auto';if(!/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,99}$/.test(id)){status.textContent='模型ID无效';return;}
+  localStorage.setItem('llm-settings',JSON.stringify({provider:'github-copilot',endpoint:'/api/copilot',model:id,showModelName:true}));
+  location.hash='ask';location.reload();
+ };
+ if(location.hash==='#ask'){
+  var script=document.createElement('script');script.src='assets/article-assistant.js';script.onload=function(){document.querySelector('.assistant-fab')?.click();};document.body.appendChild(script);
+ }
+})();
+</script></body></html>

@@ -79,6 +79,34 @@ The math contract is KaTeX-supported syntax, not arbitrary TeX. Dollar delimiter
 whitespace/word/currency heuristics; use `\\(...\\)` / `\\[...\\]` for ambiguous text.
 Raw HTML is displayed as text, images as alt text, and invalid math as original source.
 
+## Article Assistant Full-Context Regression
+
+```bash
+# Generic suite: temporary loopback server for this checkout, closed on completion.
+node tests/assistant-context.browser.js
+
+# Explicit, optional integration with an existing math-article preview (no server changes).
+ASSISTANT_TEST_MATH=1 ASSISTANT_TEST_BASE_URL=http://127.0.0.1:52392 node tests/assistant-context.browser.js
+```
+
+Requires optional Playwright (external `NODE_PATH` is supported) and optionally
+`PLAYWRIGHT_CHROMIUM_EXECUTABLE`. Uses fresh browser contexts, the mock assistant
+fixture and intercepted responses; no real model calls, credentials or screenshots.
+An external loopback HTTP origin may be supplied via `ASSISTANT_TEST_BASE_URL`;
+its assistant asset must match this checkout byte-for-byte or the suite fails.
+The default suite does not require the unpublished math article or a running preview.
+
+Checks a 100,000-character article for OpenAI-compatible, Ollama and Azure OpenAI:
+full tail, hidden/closed details, single-source LaTeX, table separators, per-request
+language/content refresh, and `.site`/body fallbacks without assistant-history
+contamination. HTTP 413 and HTTP 400/422 `context_length_exceeded` responses must
+show a visible HTTP error, re-enable sending and make only one request with the
+full text. The existing unsupported-usage-option retry must preserve all messages.
+The current UI displays the HTTP status, not the provider's detailed error body.
+Optional math integration additionally checks all eleven hidden explanations and
+the article tail. These tests verify request construction and failure behavior,
+not a provider's context capacity, real-model acceptance, cost or answer quality.
+
 ## Jev Playground Regression
 
 Run `node --test tests/jev-playground.test.js tests/jev-live.test.js tests/jev-readiness.test.js tests/jev-local-provider.test.js` for the
