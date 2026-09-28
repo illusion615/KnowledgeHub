@@ -22,6 +22,19 @@ test('explicit formulas use valid LaTeX and accessible MathML', () => {
   assert.ok(expressions.some(s => s.includes('\\frac{RU-QV}{\\Delta}')));
 });
 
+test('the score-scale comparison explicitly marks only its two arithmetic expressions as math', () => {
+  const html = read('index.html');
+  const paragraph = html.match(/<p id="score-scale-comparison">[\s\S]*?<\/p>/)[0];
+  const formulas = [...paragraph.matchAll(/data-latex="([^"]+)"/g)].map(m => entities(m[1]));
+  assert.deepEqual(formulas, ['\\frac{80}{100}=0.80', '\\frac{130}{150}\\approx0.867']);
+  for (const expression of formulas) assert.match(render(expression), /<math\b/);
+  assert.ok(paragraph.includes('高一80分与高三130分'));
+  assert.ok(paragraph.includes("Year 1's score of 80 and Year 3's 130"));
+  assert.ok(paragraph.includes('不会自动消除试卷难度和知识范围的差异'));
+  assert.ok(paragraph.includes('does not remove differences in difficulty or content'));
+  for (const tag of paragraph.matchAll(/<span[^>]*data-latex=[^>]*>/g)) assert.doesNotMatch(tag[0], /data-zh=|data-en=/);
+});
+
 test('both language versions can reconstruct valid inline formulas', () => {
   const source = read('math-rendering.js');
   const marker = 'var pattern = new RegExp';
@@ -60,7 +73,7 @@ test('modeling flow, mathematics toolkit, and final skills check have distinct r
   const html = read('index.html');
   const section = id => html.match(new RegExp('<section id="' + id + '"[\\s\\S]*?</section>'))[0];
   const ids = [...html.matchAll(/<section id="([^"]+)"/g)].map(m => m[1]);
-  assert.deepEqual(ids.slice(0, 4), ['problem', 'readiness', 'math-toolkit', 'objectives']);
+  assert.deepEqual(ids.slice(0, 5), ['problem', 'readiness', 'modeling-overview', 'math-toolkit', 'objectives']);
   const flow = section('readiness');
   assert.equal((flow.match(/class="flow-item modeling-process-node/g) || []).length, 6);
   assert.ok(flow.includes('href="#process-data"') && flow.includes('href="#process-assumptions"'));

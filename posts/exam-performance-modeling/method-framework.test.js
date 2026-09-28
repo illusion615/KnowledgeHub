@@ -6,6 +6,7 @@ const path = require('node:path');
 const test = require('node:test');
 const html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
 const section = html.match(/<section id="readiness"[^>]*>[\s\S]*?<\/section>/)?.[0];
+const overview = html.match(/<section id="modeling-overview"[^>]*>[\s\S]*?<\/section>/)?.[0];
 
 test('method chapter attributes a specific edition and reading location', () => {
   assert.ok(section);
@@ -16,8 +17,10 @@ test('method chapter attributes a specific edition and reading location', () => 
   assert.match(section, /href="#method-source-gaimme"/);
 });
 
-test('six teaching-numbered components retain the source framework and separate examples', () => {
-  const headings = [...section.matchAll(/<strong data-zh="([^"]+)" data-en="([^"]+)">/g)];
+test('six general method components remain separate from the applied overview', () => {
+  const cards = section.match(/<figure class="modeling-process"[\s\S]*?<\/figure>/)?.[0];
+  assert.ok(cards);
+  const headings = [...cards.matchAll(/<strong data-zh="([^"]+)" data-en="([^"]+)">/g)];
   assert.equal(headings.length, 6);
   const names = ['Identify the Problem', 'Make Assumptions and Identify Variables',
     'Do the Math', 'Analyze and Assess the Solution', 'Iterate', 'Implement the Model'];
@@ -26,12 +29,11 @@ test('six teaching-numbered components retain the source framework and separate 
     assert.ok(heading[1].startsWith(`${i + 1} · `));
   });
   assert.equal((section.match(/class="flow-item modeling-process-node\b/g) || []).length, 6);
-  assert.equal((section.match(/data-en="Method:/g) || []).length, 6);
-  assert.equal((section.match(/data-en="(?:↩ )?Exam example:/g) || []).length, 6);
-  assert.match(section, /components may occur in parallel or repeat as needed/);
-  assert.match(section, /not numbers from the original GAIMME diagram/);
-  assert.match(section, /not universal prescriptions stated verbatim/);
-  assert.match(section, /not direct measurements of ability or mindset/);
+  assert.doesNotMatch(section, /本题例|Exam example|24次|132\.64|候选|心态|model-walkthrough|candidate-model-template/);
+  assert.match(section, /Components may occur in parallel or repeat as needed/);
+  assert.match(section, /按箭头顺序阅读六个环节/);
+  assert.match(section, /GAIMME/);
+  assert.match(overview, /24次考试记录/);
 });
 
 test('solution chapters follow all six components and match navigation and card links', () => {
@@ -49,18 +51,19 @@ test('solution chapters follow all six components and match navigation and card 
     assert.ok(content.includes(` / 求解 ${part} · `));
     assert.ok(content.includes(` / Solution ${part} · `));
   }
-  const destinations = [...section.matchAll(/class="modeling-case-link" href="#([^"]+)"/g)].map(match => match[1]);
+  const destinations = [...overview.matchAll(/class="modeling-case-link" href="#([^"]+)"/g)].map(match => match[1]);
   assert.deepEqual(destinations, expected.map(([id]) => id));
   assert.doesNotMatch(html, /案例|Case [1-6]/);
-  assert.equal((section.match(/class="modeling-case-links"/g) || []).length, 6);
+  assert.equal((section.match(/class="modeling-case-links"/g) || []).length, 0);
+  assert.equal((overview.match(/class="modeling-case-links"/g) || []).length, 1);
   assert.doesNotMatch(section, /class="modeling-process-arrow/);
   const iteration = html.match(/<section id="iteration"[^>]*>[\s\S]*?<\/section>/)[0];
   assert.doesNotMatch(iteration, /代理|反馈|Fₜ|λ|\b(?:proxy|proxies|feedback)\b/i);
   assert.ok(iteration.includes('href="#bounded-model"'));
   assert.ok(iteration.includes('id="matched-score-results"'));
-  assert.ok(iteration.includes('retrospective comparisons after the outcomes were known'));
+  assert.ok(iteration.includes('retrospective results under the matched one-step protocol'));
   const chapterNumbers = [...html.matchAll(/class="section-kicker" data-zh="(\d+) \//g)].map(match => Number(match[1]));
-  assert.deepEqual(chapterNumbers, Array.from({ length: 14 }, (_, i) => i + 1));
+  assert.deepEqual(chapterNumbers, Array.from({ length: 15 }, (_, i) => i + 1));
 });
 
 test('model selection is an optional solution 3.1 extension after candidates and before derivation', () => {
@@ -71,19 +74,19 @@ test('model selection is an optional solution 3.1 extension after candidates and
   assert.ok(!section.includes('id="model-selection-guide"'));
   assert.equal((html.match(/id="model-selection-guide"/g) || []).length, 1);
   const guide = models.slice(start, end);
-  assert.ok(guide.includes('先明确用途和必须满足的条件'));
+  assert.ok(guide.includes('模型选择依据用途约束、预测误差与稳定性'));
   const detailStart = guide.indexOf('id="model-selection-details-content"');
-  assert.ok(guide.indexOf('先明确用途和必须满足的条件') > detailStart);
+  assert.ok(guide.indexOf('模型选择依据用途约束、预测误差与稳定性') > detailStart);
   assert.ok(guide.indexOf('依据：本拓展') > detailStart);
   assert.doesNotMatch(guide.slice(0, detailStart), /<h3|<p(?:\s|>)/);
   assert.equal((guide.match(/依据：本拓展/g) || []).length, 2, 'one bilingual paragraph, not a duplicate outside the modal');
   assert.ok(guide.includes('id="model-selection-details"'));
   assert.ok(guide.includes('对待估系数线性'));
   assert.ok(guide.includes('f(x)=a+bx+cx^2'));
-  assert.ok(guide.includes('也不必强行选出赢家'));
+  assert.ok(guide.includes('证据不足以区分时，保留比较结果及其不确定性'));
   for (const target of ['#models', '#validation', '#matched-review']) assert.ok(guide.includes(`href="${target}"`));
   for (const part of ['selecting-predictors.html', 'tscv.html']) assert.ok(guide.includes(part));
-  assert.equal((section.match(/href="#model-selection-guide"/g) || []).length, 2);
+  assert.equal((overview.match(/href="#model-selection-guide"/g) || []).length, 1);
 });
 
 test('proxy construction belongs to the final extensions chapter, not the main solution sequence', () => {
@@ -120,12 +123,15 @@ test('parameter estimation follows chapter seven without requiring the end-of-ar
   assert.doesNotMatch(coefficients, /href="#ability-mindset"|Kₜ|Fₜ|Bₜ|α|γ|λ|\\\\(?:alpha|gamma|lambda)/);
 });
 
-test('method cards use responsive row-major columns without reducing the text size', () => {
+test('method cards form a directed serpentine flow with a vertical narrow-screen fallback', () => {
   const css = fs.readFileSync(path.join(__dirname, 'process-flow.css'), 'utf8');
   assert.match(css, /grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
-  assert.match(css, /grid-auto-flow: row/);
-  assert.match(css, /@media \(max-width: 1099px\)[\s\S]*repeat\(2, minmax\(0, 1fr\)\)/);
-  assert.match(css, /@media \(max-width: 699px\)[\s\S]*grid-template-columns: minmax\(0, 1fr\)/);
+  assert.match(css, /grid-template-areas: 'one two three' 'six five four'/);
+  assert.match(css, /@media \(max-width: 1099px\)[\s\S]*grid-template-columns: minmax\(0, 1fr\)/);
+  assert.match(css, /grid-template-areas: 'one' 'two' 'three' 'four' 'five' 'six'/);
+  assert.deepEqual([...section.matchAll(/data-method-step="(\d)"/g)].map(m => +m[1]), [1, 2, 3, 4, 5, 6]);
+  assert.deepEqual([...section.matchAll(/data-method-edge="([^"]+)"/g)].map(m => m[1]), ['1-2', '2-3', '3-4', '4-5', '5-6', '5-2']);
+  assert.match(css, /stroke-dasharray: 4 4/);
   assert.match(css, /font-size: 1rem/);
   assert.match(css, /:focus-visible/);
 });

@@ -16,7 +16,11 @@ const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE;
   const browser = await chromium.launch({ headless: true, ...(executablePath ? { executablePath } : {}) });
   const summary = [];
   try {
-    for (const [lang, width, height, theme] of [['zh', 1920, 1080, 'light'], ['en', 1920, 1080, 'dark'], ['zh', 1280, 720, 'light'], ['en', 1280, 720, 'dark'], ['zh', 390, 844, 'light']]) {
+    const selected = process.env.EXAM_DEFENSE_CASES?.split(',');
+    const cases = [['zh', 1920, 1080, 'light'], ['en', 1920, 1080, 'dark'], ['zh', 1280, 720, 'light'], ['en', 1280, 720, 'dark'], ['zh', 390, 844, 'light']]
+      .filter(([lang, width]) => !selected || selected.includes(`${lang}-${width}`));
+    assert.ok(cases.length, 'EXAM_DEFENSE_CASES must select an existing viewport case');
+    for (const [lang, width, height, theme] of cases) {
       const context = await browser.newContext({ viewport: { width, height }, reducedMotion: 'reduce', acceptDownloads: true });
       const page = await context.newPage();
       const errors = [];
@@ -35,7 +39,7 @@ const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE;
       await page.evaluate(() => document.fonts.ready);
       assert.equal(await page.locator('.exam-defense-slide').count(), 26);
       assert.equal(await page.locator('.exam-defense-slide:visible').count(), 0);
-      assert.equal(await page.locator('main > .section:not(.exam-defense-slide)').count(), 14);
+      assert.equal(await page.locator('main > .section:not(.exam-defense-slide)').count(), 15);
       const problem = await page.locator('#defense-problem-statement').evaluate(slide => {
         const sourceArticles = document.querySelectorAll('#problem .exam-body > article');
         const tables = [...slide.querySelectorAll('[data-source-table]')];
