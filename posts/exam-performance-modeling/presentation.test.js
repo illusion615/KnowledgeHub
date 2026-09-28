@@ -127,6 +127,8 @@ test('new comparisons, scenario answers and grid sensitivity match preserved res
   assert.ok(JSON.stringify(slide('margin-answer')).includes(original.difficulty_comparison.grid[0].expected_margin_points.toFixed(2)));
   assert.deepEqual(slide('stability').columns[1].table.rows,
     review.stability.bounded.window_checks.map(row => [String(row.last_n), row.forecast_points.toFixed(2), row.best_grid_d.toFixed(2)]));
-  assert.ok(slide('stability').takeaway[0].includes('不是连续精确最优'));
+  assert.ok(slide('stability').columns[0].heading[0].includes('步长0.01'));
+  assert.ok(slide('stability').takeaway[0].includes('最高网格位置'));
+  assert.ok(slide('stability').takeaway[0].includes('敏感'));
   assert.ok(slide('matched-evaluation').lead[0].includes('回顾性'));
 });

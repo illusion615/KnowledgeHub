@@ -31,8 +31,8 @@ test('the graph is attached to parameter estimation with explicit example and un
   assert.match(graph, /<noscript>/);
   assert.equal((graph.match(/data-ls-c="/g) || []).length, 3);
   assert.match(html, /图 4｜每次只用左边的过去/);
-  assert.match(html, /图 5｜模型如何演进/);
-  assert.match(html, /图 6｜拟合模型给出的优势曲线/);
+  assert.match(html, /结构对照：均值基线、线性方案与后续有界修订/);
+  assert.match(html, /图 5｜拟合模型给出的优势曲线/);
 });
 
 test('score and squared-loss axes map their different units independently', () => {

@@ -40,13 +40,13 @@
         { heading: ['模型参数', 'Model Parameters'], table: { headers: [['符号', 'Symbol'], ['含义', 'Definition']], rows: [['a, b, c', ['个人得分率模型的截距、阶段与难度系数', 'Score-rate intercept and two slopes']], ['u, v, w', ['分差模型的独立系数组', 'Margin-model coefficients']], ['A; t₀, d₀', ['参照水平；参照阶段与难度', 'Reference mean, stage, and difficulty']], ['εₜ', ['观测值相对模型均值的偏离', 'Deviation from the model mean']]] } },
         { heading: ['估计与检验记号', 'Estimation and Evaluation'], table: { headers: [['符号', 'Symbol'], ['含义', 'Definition']], rows: [['μᵧ, μₘ; β', ['同条件平均得分率；系数列表', 'Conditional means; coefficient list']], ['𝒯, n', ['训练集；记录数', 'Training set; record count']], ['ŷ, â; t̄, d̄', ['帽号表示估计；横线表示训练均值', 'Estimates; training means']], ['t*, d*; G(d)', ['目标情景；预计分差目标函数', 'Target conditions; expected margin']], ['MAE', ['平均绝对误差', 'Mean absolute error']]] } }
       ],
-      takeaway: ['参数记号不代表直接测得的能力或心理量；误差指标不等于误差上限。', 'Parameter names do not denote measured ability or mindset; an error metric is not an upper error bound.'],
+      takeaway: ['模型参数由训练记录估计，预测误差以150分制的MAE报告。', 'Model parameters are estimated from training records; forecast errors are reported as MAE on the 150-point scale.'],
       source: ['仅列本演示主线使用的记号；具体损失与估计方法在第三章定义。', 'Notation covers the presentation mainline; losses and estimation methods are specified in Chapter 3.']
     },
     {
       id: 'outlook', label: ['结论与展望', 'Conclusions and Outlook'],
       title: ['研究局限与后续验证', 'Study Limitations and Further Validation'],
-      lead: ['后续工作以补足可比数据和独立评价为优先，而非仅提高模型复杂度。', 'Further work prioritizes comparable data and independent evaluation rather than complexity alone.'],
+      lead: ['后续工作补充可比数据，并按固定协议开展独立评价。', 'Further work adds comparable data and independent evaluation under a fixed protocol.'],
       columns: [
         { heading: ['需补充的数据', 'Required Data'], list: ['考试日期、间隔、知识覆盖及限时条件|Exam dates, intervals, topic coverage, and time limits', '明确且可比较的年级或高考参考群体|A defined, comparable school or entrance-exam reference cohort', '若分析能力与心态，需独立能力与考前状态记录|Ability and mindset analysis requires independent ability and pre-exam state measures'] },
         { heading: ['验证安排', 'Validation Plan'], list: ['预先固定候选、窗口、预测跨度和评价指标|Prespecify candidates, windows, horizons, and metrics', '以新发生的考试检验，不重复使用旧结果确认|Evaluate newly occurring exams rather than reconfirm with old outcomes', '分别核对误差、边界与敏感性，必要时缩小用途|Assess error, bounds, and sensitivity separately; narrow the application where needed'] }
@@ -127,7 +127,7 @@
     {
       id: 'construct', label: ['3.1 / 构造模型', '3.1 / Formulate the Model'],
       title: ['时间—难度模型的参照形式', 'Reference Form of the Time–Difficulty Model'],
-      lead: ['在局部线性与可加性假设下，平均得分率由参照水平及两项调整构成。', 'Under local-linearity and additivity assumptions, the mean score rate consists of a reference level and two adjustments.'],
+      lead: ['在局部线性与可加性假设下，联合估计参照水平、阶段系数和难度系数。', 'Under local-linearity and additivity assumptions, estimate the reference level, stage slope and difficulty slope jointly.'],
       columns: [
         { heading: ['模型分量', 'Model Components'], list: ['A：参照阶段 t₀、难度 d₀ 下的平均得分率|A: mean score rate at reference stage t₀ and difficulty d₀', 'b(t−t₀)：难度可比时的阶段调整|b(t−t₀): stage adjustment at comparable difficulty', 'c(d−d₀)：同一阶段的难度调整|c(d−d₀): difficulty adjustment at the same stage'] },
         { heading: ['模型表达与假设', 'Specification and Assumptions'], math: [String.raw`f(t,d)\approx A+b(t-t_0)+c(d-d_0)`], list: ['假设阶段与难度效应可加，且斜率固定|Additive stage and difficulty effects with fixed slopes', 'A、b、c联合估计，变化方向由数据确定|Joint estimation of A, b, c; directions determined by the data', '系数表示条件关联，不作因果解释|Coefficients describe conditional associations, not causal effects'] }
@@ -180,7 +180,7 @@
       lead: ['按考试顺序划分训练、模型选择与最终检查阶段，目标难度作为给定条件。', 'Training, model selection, and final evaluation follow exam order, with target difficulty treated as given.'],
       columns: [
         { heading: ['原检验协议', 'Original Protocol'], list: ['1—16：初始训练|1–16: initial training', '17—20：每场重估，只预测下一场，用于选择|17–20: refit each time for one-step model selection', '21—24：选定形式后，用1—20一次预测四场|21–24: freeze the chosen form; fit 1–20 and forecast four exams together'] },
-        { heading: ['误差指标与可比条件', 'Error Metric and Comparability'], math: [String.raw`e_t=S_t-\widehat S_t`, String.raw`\operatorname{MAE}=\frac{1}{n}\sum_{t=1}^n|e_t|`], list: ['误差单位统一为150分制分数|Errors expressed on the 150-point scale', '一步预测与四场批量预测分别报告|Separate reporting of one-step and four-exam batch forecasts', '最终检查数据不参与模型选择|Final evaluation outcomes excluded from model selection'] }
+        { heading: ['误差指标与可比条件', 'Error Metric and Comparability'], math: [String.raw`e_t=S_t-\widehat S_t`, String.raw`\operatorname{MAE}=\frac{1}{n}\sum_{t=1}^n|e_t|`], list: ['误差单位统一为150分制分数|Errors expressed on the 150-point scale', '一步预测与四场批量预测分别报告|Separate reporting of one-step and four-exam batch forecasts', '原数值选择仅用17—20误差，不据此声称盲测|Original numerical selection uses 17–20 errors; this does not establish a blind test'] }
       ],
       takeaway: ['评价结果仅在预测时点、跨度及可用信息一致时具有直接可比性。', 'Evaluation results are directly comparable only under matching cutoffs, horizons, and information sets.'],
       source: ['来源：原计算协议；FPP3 §5.10。', 'Source: original calculation protocol; FPP3 §5.10.']
@@ -201,7 +201,7 @@
       title: ['第一问：条件成绩估计', 'Question 1: Conditional Score Estimation'],
       lead: ['采用全量重估系数，代入 t*=25、d*=0.20 与满分150分。', 'The full-sample coefficient estimates are evaluated at t*=25, d*=0.20, and a 150-point maximum.'],
       columns: [
-        { heading: ['已估计的得分率方程', 'Estimated Score-Rate Equation'], math: [String.raw`\begin{aligned}\widehat y(t,d)&=1.051951+0.003188t\\&\quad-1.236894d\end{aligned}`, String.raw`\begin{aligned}\widehat y(25,0.20)&\approx0.884276,\\\widehat S_*&=150\widehat y\approx132.64.\end{aligned}`] },
+        { heading: ['已估计的得分率方程', 'Estimated Score-Rate Equation'], math: [String.raw`\begin{aligned}\widehat y(t,d)&\approx1.051951+0.003188t\\&\quad-1.236894d\end{aligned}`, String.raw`\begin{aligned}\widehat y(25,0.20)&\approx0.884276,\\\widehat S_*&=150\widehat y\approx132.64.\end{aligned}`] },
         { heading: ['结果解释与适用条件', 'Interpretation and Applicability'], list: ['条件：目标紧接第24次、难度0.20、口径可比|Conditions: next exam after 24, d=0.20, comparable definitions', '约133分是时间—难度基准情景|About 133 points is a time–difficulty benchmark scenario', '并未直接测得能力或心态，不能完成心理贡献分离|Ability and mindset were not measured or separately identified'] }
       ],
       takeaway: ['132.64分为条件性基准估计；真实高考迁移能力尚未得到独立验证。', '132.64 points is a conditional benchmark estimate; transfer to the entrance exam has not been independently validated.'],
@@ -212,8 +212,8 @@
       title: ['第二问：预期分差的区间优化', 'Question 2: Interval Optimization of the Expected Margin'],
       lead: ['以 r=y−m 为响应变量单独估计系数，在固定阶段下比较不同难度。', 'Coefficients are estimated separately for response r=y−m, and difficulty is varied at a fixed stage.'],
       columns: [
-        { heading: ['目标函数', 'Objective Function'], math: [String.raw`\begin{aligned}\widehat r(t,d)&=0.235870-0.002885t\\&\quad-0.491460d\end{aligned}`, String.raw`G(d)=24.56335-73.71896d`], list: ['已固定 t*=25，分差单位为分|t*=25 is fixed; G is measured in points'] },
-        { heading: ['单调性与端点解', 'Monotonicity and Endpoint Solution'], math: [String.raw`\begin{aligned}G(d_2)-G(d_1)&=-73.71896\\&\quad\times(d_2-d_1)\end{aligned}`, String.raw`\begin{aligned}d_2>d_1&\Rightarrow G(d_2)<G(d_1),\\d^\star=0.10,&\quad G(d^\star)\approx17.19.\end{aligned}`], list: ['在题设[0.10,0.30]内，直线在左端最大|On [0.10,0.30], the line is largest at the left endpoint'] }
+        { heading: ['目标函数', 'Objective Function'], math: [String.raw`\begin{aligned}\widehat r(t,d)&\approx0.235870-0.002885t\\&\quad-0.491460d\end{aligned}`, String.raw`G(d)\approx24.56335-73.71896d`], list: ['已固定 t*=25，分差单位为分|t*=25 is fixed; G is measured in points'] },
+        { heading: ['单调性与端点解', 'Monotonicity and Endpoint Solution'], math: [String.raw`\begin{aligned}G(d_2)-G(d_1)&\approx-73.71896\\&\quad\times(d_2-d_1)\end{aligned}`, String.raw`\begin{aligned}d_2>d_1&\Rightarrow G(d_2)<G(d_1),\\d^\star=0.10,&\quad G(d^\star)\approx17.19.\end{aligned}`], list: ['在题设[0.10,0.30]内，直线在左端最大|On [0.10,0.30], the line is largest at the left endpoint'] }
       ],
       takeaway: ['d=0.10为模型最大值；它低于历史最低难度，在观测范围外应用规则称为外推。', 'The model maximum is at d=0.10, below observed difficulty; applying a rule outside its observed range is extrapolation.'],
       source: ['来源：model-results.json；分差系数与端点代入。', 'Source: model-results.json; margin coefficients and endpoint substitution.']
@@ -224,7 +224,7 @@
       lead: ['题设区间包含未观测的低难度区域，线性模型在该区域存在越界预测。', 'The requested interval includes unobserved low-difficulty values at which the linear score model exceeds its feasible range.'],
       columns: [
         { heading: ['可行性诊断', 'Feasibility Diagnostics'], list: ['历史难度[0.15,0.40]；0.10在观测范围之外|Observed difficulty is [0.15,0.40]; 0.10 is extrapolation', '个人成绩直线在0.10给出151.19分，超过150|The score line gives 151.19 at d=0.10, above 150', '事后截断只能消除数值越界，不能验证模型|Post-hoc clipping removes numerical violations, not model uncertainty'] },
-        { heading: ['观测支持范围内的条件解', 'Conditional Solution Within Observed Support'], math: [String.raw`[0.10,0.30]\cap[0.15,0.40]=[0.15,0.30]`, String.raw`G(0.15)\approx13.51`], list: ['该解增加了历史支持约束，与原区间解分别报告|This solution adds an observed-support constraint and is reported separately', '后续采用有界形式并重新评价预测性能|Subsequent revision uses bounded means and reassesses predictive performance', '难度在历史范围内也不保证第25次的联合条件可比|Difficulty within its observed range does not ensure comparable joint conditions at exam 25'] }
+        { heading: ['观测支持范围内的条件解', 'Conditional Solution Within Observed Support'], math: [String.raw`[0.10,0.30]\cap[0.15,0.40]=[0.15,0.30]`, String.raw`G(0.15)\approx13.51`], list: ['该解增加了历史支持约束，与原区间解分别报告|This solution adds an observed-support constraint and is reported separately', '有界修订另行拟合，并采用统一协议评价|The bounded revision is fitted separately and assessed under the matched protocol', '难度在历史范围内也不保证第25次的联合条件可比|Difficulty within its observed range does not ensure comparable joint conditions at exam 25'] }
       ],
       takeaway: ['形式最优值缺乏观测支持，不能据此确定真实考试的最优难度。', 'The formal optimum lacks observational support and does not establish an optimal real-exam difficulty.'],
       source: ['来源：原难度范围与model-results.json的越界检查。', 'Source: observed difficulty range and the original feasibility check.']
@@ -232,7 +232,7 @@
     {
       id: 'bounded-revision', label: ['5 / 迭代修正', '5 / Iterate'],
       title: ['有界函数的含义及模型构造', 'Bounded Functions and Model Construction'],
-      lead: ['先规定得分率的输出范围，再构造满足该范围的预测函数。', 'Define the permitted score-rate range before constructing the prediction function.'],
+      lead: ['采用分数响应logit均值作为有界修订；预测条件平均得分率，不是及格事件概率，也不预设精度更高。', 'Use fractional logit for conditional mean score rates, not binary pass probabilities.'],
       columns: [
         { heading: ['定义与具体函数', 'Definition and a Specific Function'],
           intro: ['有界指函数值始终在固定上下限之间。这里要求0到1；z为实数输入，e≈2.718。', 'Bounded values stay between fixed limits. Here the limits are 0 and 1; z is a real input and e≈2.718.'],
@@ -295,7 +295,7 @@
         { heading: ['难度网格：步长0.01', 'Difficulty Grid: Step 0.01'], table: { headers: [['难度', 'Difficulty'], ['预期分差', 'Expected margin']], rows: [['0.10', '11.68'], ['0.12', '11.72'], ['0.15', '11.56']] }, list: ['0.12仍低于历史最小难度0.15|0.12 is still below observed support, which begins at 0.15'] },
         { heading: ['拟合窗口敏感性', 'Sensitivity to the Fitting Window'], table: { headers: [['最近记录数', 'Last exams'], ['分数情景', 'Score scenario'], ['最高网格点', 'Grid maximum']], rows: [['24', '132.58', '0.12'], ['12', '135.95', '0.14'], ['8', '136.07', '0.16']] }, list: ['逐点影响检查中，最高位置在0.10—0.14变化|Single-record omissions move the maximum over 0.10–0.14'] }
       ],
-      takeaway: ['网格最高位置尚不稳定；该结果不是连续精确最优或预测区间。', 'The maximizing grid location is unstable; it is neither an exact continuous optimum nor a prediction interval.'],
+      takeaway: ['最高网格位置对拟合窗口和逐点删略敏感。', 'The maximizing grid point is sensitive to the fitting window and single-record omissions.'],
       source: ['来源：robustness-review-results.json；未删除任何原记录。', 'Source: robustness-review-results.json; original records are retained.']
     },
     {
@@ -303,7 +303,7 @@
       title: ['主要结论与研究局限', 'Principal Findings and Study Limitations'],
       lead: ['线性模型保留为条件性基准，有界模型作为可行性对照；不推荐真实高考最优难度。', 'Retain the line as a conditional benchmark and bounded means as a feasibility check; no real-exam optimum is recommended.'],
       columns: [
-        { heading: ['条件结果（线性 / 有界）', 'Conditional Results (Linear / Bounded)'], table: { headers: [['任务', 'Task'], ['条件结果', 'Result'], ['决策', 'Decision']], rows: [[['成绩预测', 'Score'], '132.64 / 132.58', ['条件对照，非区间', 'Scenarios, not an interval']], [['难度优化', 'Difficulty'], '0.10 / 0.12', ['不作实际推荐', 'No operational optimum']], [['能力与心态', 'Ability / mindset'], ['未识别', 'Unidentified'], ['需独立测量', 'Direct measures needed']]] } },
+        { heading: ['条件结果（线性 / 有界）', 'Conditional Results (Linear / Bounded)'], table: { headers: [['任务', 'Task'], ['条件结果', 'Result'], ['决策', 'Decision']], rows: [[['成绩预测', 'Score'], '132.64 / 132.58', ['模型点估计', 'Model point estimates']], [['难度优化', 'Difficulty'], '0.10 / 0.12', ['不作实际推荐', 'No operational optimum']], [['能力与心态', 'Ability / mindset'], ['未识别', 'Unidentified'], ['需独立测量', 'Direct measures needed']]] } },
         { heading: ['局限与后续验证', 'Limitations and Further Validation'], list: ['单人小样本与试卷差异限制外部有效性|Small single-student sample and unequal exams limit transfer', '需补充考试日期、内容可比性与参考群体信息|Further data are needed on dates, content comparability, and the reference cohort', '后续独立验证需固定方案并采集新考试记录|Independent validation requires a fixed protocol and newly collected exams'] }
       ],
       takeaway: ['第一问未完全识别；第二问的模型解仅针对期望分差目标。', 'Question 1 remains partly unidentified; Question 2 is solved only for the mean-margin objective.'],
