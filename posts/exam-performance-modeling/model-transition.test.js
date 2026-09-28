@@ -15,7 +15,7 @@ test('baseline-to-equation explanation distinguishes new assumptions from algebr
     assert.ok(at > previous, step);
     previous = at;
   }
-  assert.ok(models.includes('不是把均值公式化简成另一个公式'));
+  assert.ok(models.includes('三个参数由同一训练集联合估计'));
   assert.ok(models.includes('滚动均值会随新成绩更新'));
   assert.ok(models.includes('以下只做代数整理'));
   assert.ok(models.includes('本文没有新增它们的单独拟合结果'));
@@ -40,8 +40,8 @@ test('expansion and regrouping precede the new definition and shortened equation
   }
   assert.ok(models.includes('移动的是带着正负号的整项'));
   assert.ok(models.includes('目前还不知道参数值'));
-  assert.ok(models.includes('a 是这里新定义的简写'));
-  assert.ok(models.includes('没有增加第四个自由参数'));
+  assert.ok(models.includes('a 替代参照水平参数 A'));
+  assert.ok(models.includes('自由参数仍为三个'));
   assert.doesNotMatch(models, /熟悉的|the familiar/);
 });
 

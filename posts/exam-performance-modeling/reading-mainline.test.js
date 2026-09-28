@@ -30,9 +30,10 @@ test('examples connect scale, residuals, chronological fitting and conditional p
   assert.ok(coefficients.includes('预测第17次只能用前16次'));
   assert.ok(coefficients.includes('不是未来准确性的证明'));
   const validation = section('validation');
-  assert.ok(validation.includes('本文的原计算采用以下方案'));
+  assert.ok(validation.includes('id="historical-evaluation-scope"'));
+  assert.ok(validation.includes('原脚本用1—16次作初始拟合'));
   assert.ok(validation.includes('131.89'));
-  assert.ok(validation.includes('不能看完这四次结果后反选模型'));
+  assert.ok(validation.includes('本报告保留按第17—20次误差确定的线性方案'));
   assert.ok(section('results').includes('为计算第25次的情景'));
 });
 
