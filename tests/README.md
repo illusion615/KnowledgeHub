@@ -24,6 +24,34 @@ node tests/verify-change.js --final
 node tests/render-deck.js --article <slug>
 ```
 
+## Article Assistant: Rendering, Full Context and Copilot
+
+```bash
+node --test tests/assistant-markdown.test.js tests/copilot-bridge.test.mjs
+node tests/assistant-rendering.browser.js
+node tests/assistant-context.browser.js
+node tests/assistant-model-picker.browser.cjs
+node tests/copilot-provider.browser.cjs
+node tests/copilot-runtime-isolation.mjs
+```
+
+Browser tests require Playwright (an external `NODE_PATH` is supported) and may use
+`PLAYWRIGHT_CHROMIUM_EXECUTABLE` for installed Chrome. They use fresh browser
+contexts, local fixtures and mocked responses, not user credentials or cloud inference.
+Runtime isolation tests use the pinned official CLI with local fake responses.
+Rendering tests cover Markdown/math, full-width replies, streaming, copy/metrics,
+loading/error fallback and safe handling of untrusted content. Full-context checks
+cover untruncated article content, hidden details, formula deduplication and explicit
+limit errors. Picker checks cover per-provider discovery, compact search, keyboard,
+mobile, request-model attribution and race protection.
+
+The optional official authentication/model-list check requires explicit opt-in:
+`KH_COPILOT_READONLY_CHECK=1 node tests/copilot-auth-readonly.mjs`. It never sends a
+question, but does access the official credential manager and remote model catalog.
+See [provider setup](../docs/copilot-provider.md) and the
+[detailed test guide](../docs/copilot-provider-test-guide.md) for scope and limitations.
+A successful model list is not proof of every model's inference entitlement.
+
 ## Deck Render Self-Check
 
 `render-deck.js` closes the loop on `assets/pptx-export.js`. It drives the
