@@ -21,6 +21,8 @@ async function main() {
     const errors = []; page.on('pageerror', e => errors.push(e.message));
     let calls = 0, mode = 'success', release, sent;
     await page.route('**/api/jev/status', route => route.fulfill({ json: status }));
+    // This regression does not exercise discovery or contact GitHub metadata.
+    await page.route('**/api/jev/benchmark/status', route => route.fulfill({ json: { backend: 'study-room-jev-benchmark-v1', csrf: status.csrf, local: {}, copilot: { available: false, code: 'copilot_disabled' } } }));
     await page.route('**/api/jev/check', route => route.fulfill({ json: { check: { provider, authentication: 'verified', model_inference_performed: false }, providers: status.providers } }));
     await page.route('**/api/jev/evaluate', async route => {
       calls++;
@@ -30,9 +32,9 @@ async function main() {
       response.model = 'BROWSER-TEST-FIXTURE'; response.answers.team.confidence = null; response.answers.severity.confidence = null;
       response.usage = { input_tokens: 390, output_tokens: 0 };
       if (mode === 'deferred') { const gate = new Promise(resolve => { release = resolve; }); sent(); await gate; }
-      try { await route.fulfill({ json: { mode: 'live', provider, request: nativeRequest(request.state), response, latency_ms: 12, transport: 'browser-test-fixture', request_id: 'fixture-only' } }); } catch (_) { /* Cancelled browser request. */ }
+      try { await route.fulfill({ json: { mode: 'live', provider, request: nativeRequest(request.state), response, latency_ms: 12345, transport: 'browser-test-fixture', request_id: 'fixture-only' } }); } catch (_) { /* Cancelled browser request. */ }
     });
-    await page.goto(base + '/posts/jev-system-one-research/?lang=zh');
+    await page.goto(base + '/posts/jev-system-one-research/?lang=zh#jev-model-lab');
     await page.waitForFunction(() => document.getElementById('jev-provider').value === 'nanojev-fp32');
     const phase = value => page.waitForFunction(v => document.getElementById('jev-result-panel').dataset.runState === v, value);
     assert.equal(await page.locator('#jev-result-panel').isVisible(), true);
@@ -51,6 +53,8 @@ async function main() {
     let displayed = JSON.parse(await page.locator('#jev-result-json').textContent());
     assert.equal(displayed.answers.team.choice, 'technical'); assert.equal(displayed.answers.team.confidence, null);
     assert.equal(displayed.usage.output_tokens, 0); assert.match(await page.locator('#jev-result-team').textContent(), /technical/);
+    assert.match(await page.locator('#jev-result-receipt').textContent(), /12,345 ms/);
+    assert.equal(await page.locator('#jev-latency').textContent(), '12,345 ms');
     assert.ok(!(await page.locator('#jev-policy').getAttribute('class')).includes('is-open'));
     const priorCalls = calls;
     await page.locator('#jev-policy .subsection-toggle').click();
@@ -59,9 +63,9 @@ async function main() {
     await page.locator('#jev-state').fill('Edited input'); await phase('invalidated');
     assert.equal(await page.locator('#jev-result-json').textContent(), ''); assert.equal(await page.locator('#jev-result-values').isVisible(), false);
     mode = 'failure'; await run(); await phase('failed');
-    assert.match(await page.locator('#jev-result-note').textContent(), /512 tokens/);
+    assert.match(await page.locator('#jev-result-note').textContent(), /不会静默截断或换模型/);
     await page.locator('#jev-download-request').click(); await phase('failed');
-    assert.match(await page.locator('#jev-result-note').textContent(), /512 tokens/);
+    assert.match(await page.locator('#jev-result-note').textContent(), /不会静默截断或换模型/);
     mode = 'deferred'; waiting = new Promise(resolve => { sent = resolve; }); await run(); await waiting;
     await page.locator('#jev-state').fill('New input while waiting'); release(); await page.waitForTimeout(150);
     await phase('invalidated'); assert.equal(await page.locator('#jev-result-json').textContent(), '');
@@ -102,7 +106,7 @@ async function main() {
       for (const lang of ['zh', 'en']) for (const mobile of [false, true]) {
         const p = await browser.newPage({ viewport: mobile ? { width: 390, height: 844 } : { width: 1440, height: 1000 } });
         const failures = []; p.on('pageerror', e => failures.push(e.message));
-        await p.goto(base + '/posts/jev-system-one-research/?lang=' + lang + '&theme=' + (lang === 'en' ? 'dark' : 'light'));
+        await p.goto(base + '/posts/jev-system-one-research/?lang=' + lang + '&theme=' + (lang === 'en' ? 'dark' : 'light') + '#jev-model-lab');
         await p.waitForFunction(() => document.getElementById('jev-provider').value === 'nanojev-fp32');
         if (mobile) await p.locator('#jev-provider').selectOption('nanojev-4bit');
         assert.equal(await p.locator('#jev-result-panel').isVisible(), true);

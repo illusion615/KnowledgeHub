@@ -84,13 +84,19 @@ support would be a separate integration.
   ownership/permissions, rejects symlinks, and allows only fixed loopback hosts.
 - Inference limits: 64 KiB JSON; 8 states, 32 questions, 128 candidate paths,
   16,384 path tokens; each path ≤512 tokens. No silent truncation. One active
-  inference and 30 attempts/minute per model service. The website bridge has its
-  own 20/minute limit and 30-second deadline.
+  inference per model service, **no per-minute quota**. The website also exempts
+  local NanoJev from rate accounting on all evaluation/probe/arena routes; local
+  requests neither consume nor wait for the external-call budget. External calls
+  retain the website's 20/minute limit. Per-call deadlines remain (30 seconds for
+  standard local evaluations; separately configurable in the arena).
 - Cancelling a browser wait does not guarantee that an already-running GPU
   operation stops. These limits are for local use, **not public-hosting security**.
-- No inputs or tokens are logged or persisted by inference. Downloads are
-  explicit browser actions. Runtime model loading is offline, local-files-only,
-  with remote code disabled.
+- The inference service does not persist inputs or tokens. The optional website
+  backend now privately archives allowlisted arena diagnostics after all calls
+  settle; use `--no-arena-archive` to disable this. Archives stay outside the
+  served repository under `~/.cache/study-room/jev-evaluation/matches/` (0700
+  directory, 0600 files), with no uploads or automatic reruns. Runtime model
+  loading is offline, local-files-only, with remote code disabled.
 - Token usage counts actual candidate paths, including repeated prefixes;
   output tokens = 0 because there is no autoregressive decoding, not because the
   JSON response is empty. No external inference API charge; hardware/electricity
@@ -137,6 +143,44 @@ are preserved in `examples/nanojev-mlx-http-example.json`; nothing was corrected
 to match an expected answer. Its warm timings (36.1/60.084 ms for one request)
 are observations, not p50/p95 claims. Domain evaluation and calibration remain
 necessary before using decisions operationally.
+
+## Per-call timing metadata
+
+The `nanojev-stages-v1` execution metadata reports preparation/tokenization,
+forward (including existing internal MLX evaluation), final softmax/eval wait,
+decoding and response build/validation time. It does not add an extra forward
+pass or synchronization barrier, and is not a GPU-kernel profiler. Idle time is
+the gap since the previous prediction ended, including failed attempts; a
+`first_inference` flag and non-secret runtime instance ID distinguish service
+reloads from later slow calls. Padded batch shapes, candidate/path counts and
+MLX process-local active/cache/peak memory help investigate bimodal latency
+without assuming every slow call is cold compilation. Additive fields include
+`cache_limit_bytes`, `cache_before_bytes` and `active_before_bytes`.
+
+### Bound the allocator cache, not model precision
+
+The service now defaults to `--cache-limit-mb 2048` per process. This invokes
+MLX `set_cache_limit`; it bounds reusable **free allocator buffers**, not model
+weights, active working memory, KV context, or total system RAM. Reclamation is
+on allocation according to MLX semantics, not an OS hard memory limit. Set
+0 to disable this cache, or choose 0..8192 MiB explicitly. No cache clearing,
+extra inference, reduced precision or altered candidate selection is used.
+
+A bounded local experiment observed the previous default retaining 21.221 GiB
+(FP32) and 23.299 GiB (4-bit) after many differently shaped inputs. Six paired
+calls after restarting with 2048 MiB stayed at <=2 GiB reported cache per
+process, with exactly matching probabilities/choices on those inputs. A 512 MiB
+trial used less cache but ran slower than 2048 MiB. These runs are sequential
+observations on a shared machine, **not a causal speedup benchmark**. See
+`tests/experiments/jev-arena-20260920.md` for positive and negative results.
+
+Restart only the intended model-service terminals to load new runtime code.
+Restarting reloads the existing weights and resets the instance/call counter;
+there is no automatic warm-up or evaluation. Older running services simply lack
+these fields, which the website displays as unknown rather than zero.
+
+`python3 -m unittest discover -s tests -p 'test_nanojev_mlx_timing.py' -v`
+uses fake kernels/tokenizers and does not need MLX, weights or GPU inference.
 
 ## Tests
 

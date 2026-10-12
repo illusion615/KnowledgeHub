@@ -15,6 +15,7 @@ var PROVIDERS = {
   'nanojev-4bit': { model: 'ZeroDegress/NanoJev-mlx-4bit', local: true, transport: 'local-mlx-decision-http' },
   'nanojev-fp32': { model: 'C-Tianyu/NanoJev', local: true, transport: 'local-mlx-decision-http' }
 };
+for (var [id, spec] of Object.entries(localModels.MODELS)) if (!PROVIDERS[id]) PROVIDERS[id] = { model: spec.model, local: true, transport: 'local-laya-mlx-http' };
 function safeDiagnostic(value) {
   var clean = {};
   if (!value) return clean;
@@ -151,8 +152,8 @@ function createProviderRunner(options) {
       var key = env[PROVIDERS[provider].key], issue = credentialIssue(key), sdkReady = provider !== 'vercel' || Boolean(loaded);
       return { model: PROVIDERS[provider].model, configured: Boolean(key), credential_issue: issue, sdk_ready: sdkReady, ready: !issue && sdkReady, sdk_versions: provider === 'vercel' && loaded ? loaded.versions : null, readiness: readiness[provider] || null };
     }
-    var localStatuses = await Promise.all([local.status('nanojev-4bit'), local.status('nanojev-fp32')]);
-    return { vercel: providerStatus('vercel'), typesafe: providerStatus('typesafe'), 'nanojev-4bit': localStatuses[0], 'nanojev-fp32': localStatuses[1] };
+    var entries = await Promise.all(Object.keys(localModels.MODELS).map(async id => [id, await local.status(id)]));
+    return { vercel: providerStatus('vercel'), typesafe: providerStatus('typesafe'), ...Object.fromEntries(entries) };
   }
   async function checkAuthentication(provider) {
     if (!Object.prototype.hasOwnProperty.call(PROVIDERS, provider)) throw new LiveError('invalid_provider', 400);

@@ -67,6 +67,36 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(self.request()[0], 200)
         self.assertEqual(self.engine.calls, 1)
 
+    def test_no_per_minute_inference_quota(self):
+        for _ in range(45):
+            self.assertEqual(self.request()[0], 200)
+        self.assertEqual(self.engine.calls, 45)
+        limits = self.request('/api/health', 'GET')[1]['limits']
+        self.assertIsNone(limits['max_calls_per_minute'])
+        self.assertEqual(limits['max_concurrent_inferences'], 1)
+
+    def test_single_flight_gate_still_rejects_concurrent_inference(self):
+        entered, release = threading.Event(), threading.Event()
+        original = self.engine.predict
+        def blocking(payload):
+            entered.set()
+            release.wait(timeout=3)
+            return original(payload)
+        self.engine.predict = blocking
+        responses = []
+        worker = threading.Thread(target=lambda: responses.append(self.request()))
+        worker.start()
+        try:
+            self.assertTrue(entered.wait(timeout=1))
+            status, payload = self.request()
+            self.assertEqual(status, 429)
+            self.assertEqual(payload['error']['code'], 'busy')
+        finally:
+            release.set()
+            worker.join(timeout=3)
+        self.assertEqual(responses[0][0], 200)
+        self.assertEqual(self.engine.calls, 1)
+
     def test_auth_error_does_not_echo_input_or_token(self):
         status, payload = self.request(headers={'X-NanoJev-Token': 'wrong'})
         self.assertEqual(status, 401)
