@@ -1,0 +1,19 @@
+#!/usr/bin/env node
+'use strict';
+// Eight bounded local fixed-state calls: two checkpoints x two sides x two
+// health relationships. No cloud, no training, no warmup/retry or user interruption.
+const fs=require('node:fs'),path=require('node:path');
+const core=require('../posts/jev-system-one-research/arena-core'),planner=require('../posts/jev-system-one-research/arena-planner'),intent=require('../posts/jev-system-one-research/arena-intent'),progress=require('../posts/jev-system-one-research/arena-progress'),report=require('../posts/jev-system-one-research/arena-report'),{idle}=require('./jev-arena-local-optimization');
+async function run({output,consent=false,origin='http://127.0.0.1:62848'}){
+  if(!output||!consent)throw Error('consent_and_fresh_output_required');await idle(origin);fs.mkdirSync(output,{mode:0o700});const summaries=[];
+  fs.writeFileSync(path.join(output,'manifest.json'),JSON.stringify({date:new Date().toISOString(),revision:'exchange-aware-v5',providers:['nanojev-fp32','laya-typed-decisions'],sides:[0,1],relationships:['ahead','behind'],max_calls:8,cloud_calls:0,retries:0,warmups:0,scope:'Fixed-state transport/readout smoke; not model accuracy, symmetry of learned scores, full matches or equilibrium evidence.'},null,2),{flag:'wx',mode:0o600});
+  try{for(const side of [0,1])for(const relationship of ['ahead','behind']){
+    const g=core.create('exchange-live','step','utility-planner','friendly-fire');g.planner_revision='exchange-aware-v5';g.map=Array.from({length:9},(_,y)=>y===0||y===8?'#############':'#...........#');g.rewards=[];
+    g.tanks.forEach(t=>{t.x=t.side===0?3:9;t.y=t.side===0?(t.id.endsWith('0')?2:6):(t.id.endsWith('0')?6:2);t.hp=(t.side===side)===(relationship==='ahead')?100:25;t.recent_positions=[{x:t.x,y:t.y}];});progress.start(g);for(let t=0;t<16;t++)core.step(g);
+    const request=core.request(g,side),snapshot={...report.snapshot(g),intent_context:intent.prepare(g,side,intent.create())},wire=planner.build(request,snapshot,{decision_delay_ticks:0,cache_analysis:true,search_policy:'progress-obligation-v1'});
+    for(const provider of ['nanojev-fp32','laya-typed-decisions']){const s=await idle(origin);if(s.providers?.[provider]?.ready!==true)throw Error('model_unavailable');const index=summaries.length;
+      fs.writeFileSync(path.join(output,index+'-request.json'),JSON.stringify({provider,side,relationship,snapshot,wire},null,2),{flag:'wx',mode:0o600});const r=await fetch(origin+'/api/jev/arena/probe',{method:'POST',redirect:'error',signal:AbortSignal.timeout(35000),headers:{origin,'x-jev-csrf':s.csrf,'content-type':'application/json'},body:JSON.stringify({consent:true,jobs:[{provider,request:wire.request}]})}),body=await r.json();fs.writeFileSync(path.join(output,index+'-response.json'),JSON.stringify(body,null,2),{flag:'wx',mode:0o600});if(!r.ok||!body.results?.[0]?.ok)throw Error(body.error?.code||body.results?.[0]?.error||'probe_failed_no_retry');const result=body.results[0],chosen=planner.read(result.binary_gates,wire);core.validatePlan(chosen.decision,request);const audit=wire.plan_audit.find(a=>JSON.stringify(a.plan)===JSON.stringify(chosen.decision));const row={provider,side,relationship,model:result.requested_model,weights_sha256:result.weights_sha256,input_tokens:result.usage?.input_tokens??null,decision:chosen.decision,model_changed_plan:chosen.model_changed_plan,stance:audit.exchange.stance,robust_exchange_change:audit.exchange.robust_change,contract_passed:true};summaries.push(row);console.log(JSON.stringify(row));}
+  }}finally{fs.writeFileSync(path.join(output,'summary.json'),JSON.stringify(summaries,null,2),{flag:'wx',mode:0o600});}return summaries;
+}
+if(require.main===module){const a=process.argv.slice(2),get=k=>a.includes(k)?a[a.indexOf(k)+1]:undefined;run({output:get('--output'),consent:a.includes('--consent-local'),origin:get('--origin')}).catch(e=>{console.error(e.message);process.exitCode=1;});}
+module.exports={run};

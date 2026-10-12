@@ -1,0 +1,50 @@
+{
+  "schema": "study-room.health-exchange-validation.v1",
+  "date": "2026-09-24",
+  "planner_revision": "exchange-aware-v5",
+  "decision_protocol": "tank-exchange-aware-v5",
+  "ballistics": "tank-v7-friendly-fire",
+  "health_utility": {
+    "effective_health": "HP + shield of living tanks",
+    "nonterminal": "65*(own_alive-enemy_alive) + 100*(own_EHP-enemy_EHP)/(own_EHP+enemy_EHP) + 0.25*(own_EHP-enemy_EHP)",
+    "win": "1000 + own remaining EHP",
+    "loss": "-1000 - enemy remaining EHP",
+    "mutual_elimination": 0,
+    "response_aggregation": "0.7 * worst response value + 0.3 * mean response value across attack/evasive policies",
+    "boundary": "Health utility is antisymmetric under side swap for the same outcome. Total search retains positional, timing, wait and friendly-fire heuristics. This finite response ensemble is not an exhaustive minimax/Nash solution or calibrated win probability."
+  },
+  "examples": [
+    { "before_own_hp": 100, "before_enemy_hp": 20, "after_own_hp": 90, "after_enemy_hp": 10, "units_each": 1, "shields_each": 0, "classification": "favorable_trade", "health_utility_change_rounded": 13.333333 },
+    { "before_own_hp": 20, "before_enemy_hp": 100, "after_own_hp": 10, "after_enemy_hp": 90, "units_each": 1, "shields_each": 0, "classification": "unfavorable_trade", "health_utility_change_rounded": -13.333333 }
+  ],
+  "application_changes": [
+    "Both sides use the same relative health payoff and response aggregation.",
+    "Progress-triggered forced attacks must preserve the best risk-adjusted health exchange, rather than categorically maximizing own survivor count.",
+    "Ready attacks may accept own losses when the joint outcome is favorable; victory/defeat/mutual elimination remain explicit.",
+    "Material changes in approved route health advantage (>12 points) or either side's living count suspend continuation for reassessment.",
+    "Model descriptions use ally/enemy aliases instead of Blue/Red IDs; actual plan mappings remain intact in diagnostics.",
+    "Existing v4 persistence, low-level safety checks and historical v1-v4 protocols remain separately supported."
+  ],
+  "tokenizer_only": [
+    { "provider": "nanojev-fp32", "requests": 32, "paths": 144, "max_path_tokens": 483, "limit": 512, "forward_calls": 0 },
+    { "provider": "laya-typed-decisions", "requests": 32, "questions": 144, "max_sequence_tokens": 483, "limit": 1024, "forward_calls": 0 }
+  ],
+  "live_fixed_state_checks": {
+    "providers": ["nanojev-fp32", "laya-typed-decisions"],
+    "sides": [0, 1],
+    "relationships": ["ahead", "behind"],
+    "local_requests": 8,
+    "cloud_requests": 0,
+    "retries": 0,
+    "warmups": 0,
+    "input_tokens_total": 12298,
+    "contracts_passed": 8,
+    "model_changed_search_choices": 0,
+    "observed_ahead": "Both checkpoints, both sides: two immediate firing orders, press_advantage. The progress/exchange gate left a single candidate in these four calls; this is application selection, not evidence of model strategy skill.",
+    "observed_behind": "Both checkpoints, both sides: mirrored repositioning orders, balanced exchange instead of forcing unfavorable mutual damage.",
+    "boundary": "Eight fixed-state inference/readout checks with generated asymmetric health inputs, not completed battles, independent accuracy labels, learned-score symmetry or evidence of optimal tactics."
+  },
+  "adapter_checks": "Injected transport/parser tests cover both sides through NanoJev Boolean, Laya Noul and CLI 0..100 self-preferences. The same planner readout is used; native gates, raw Noul metadata and CLI self-scores keep distinct provenance.",
+  "tests": ["tests/jev-arena-exchange.test.js", "tests/jev-arena-exchange-provider.test.js", "tests/jev-arena-planner.browser.js"],
+  "privacy": "Synthetic aggregate only. Full fixed-state requests/responses remain in private local research receipts; no credentials published."
+}

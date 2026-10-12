@@ -788,6 +788,25 @@ var knowledgeTree = [
     relations: ['mlx-optimization']
   },
   {
+    id: 'jev-system-one-research',
+    parentId: 'ai-research-model',
+    type: 'article',
+    title: {
+      zh: '结构化决策模型研究',
+      en: 'Structured Decision Models'
+    },
+    summary: {
+      zh: '比较 Jev、NanoJev 与 Laya 的定位、架构与证据，结合本地运行时、客服与坦克对战实验，说明评估方法、应用边界和企业采用条件。',
+      en: 'Compares Jev, NanoJev, and Laya through architecture, evidence, local runtimes, support and tank-arena experiments, with evaluation limits and enterprise adoption conditions.'
+    },
+    tags: ['Structured Decision Models', 'Jev', 'NanoJev', 'Laya', 'MLX', 'Model Evaluation'],
+    date: '2026-10-03',
+    url: 'posts/jev-system-one-research/index.html',
+    color: '#0ea5e9',
+    phase: 2.6, speed: 0.88,
+    relations: ['fc-best-practices', 'enterprise-agent-arch', 'm4-max-local-models']
+  },
+  {
     id: 'hermes-open-model',
     parentId: 'fc-agentic',
     type: 'article',
