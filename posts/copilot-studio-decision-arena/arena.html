@@ -1,0 +1,2028 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>四架构实时并发对比测试台（Agentic Runtime SSE × Workflow API）｜AEON CDP</title>
+<script>
+(function () {
+  var parameter = new URLSearchParams(window.location.search).get("scoutTheme");
+  var saved = localStorage.getItem("theme");
+  var theme = parameter || saved ||
+    (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  document.documentElement.setAttribute("data-theme", theme);
+})();
+</script>
+<style>
+:root {
+  color-scheme: light;
+  --cp-bg: #f7f4ef;
+  --cp-bg-elevated: #fcfbf8;
+  --cp-surface: #ffffff;
+  --cp-surface-soft: #f5f5f5;
+  --cp-border: #dedede;
+  --cp-border-strong: #919191;
+  --cp-text: #242424;
+  --cp-text-muted: #5c5c5c;
+  --cp-text-soft: #6f6f6f;
+  --cp-accent: #b11f4b;
+  --cp-accent-hover: #9a1a41;
+  --cp-accent-soft: rgba(177, 31, 75, 0.08);
+  --cp-accent-fg: #ffffff;
+  --cp-success: #16a34a;
+  --cp-danger: #dc2626;
+  --cp-warning: #f59e0b;
+  --cp-link: #0078d4;
+  --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+  --cp-overlay: rgba(255, 255, 255, 0.8);
+  --cp-panel: rgba(255, 255, 255, 0.86);
+  --cp-panel-strong: rgba(255, 255, 255, 0.96);
+  --cp-sheen: rgba(255, 255, 255, 0.55);
+  --cp-highlight: rgba(177, 31, 75, 0.12);
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --cp-bg: #3d3b3a;
+  --cp-bg-elevated: #343231;
+  --cp-surface: #292929;
+  --cp-surface-soft: #2e2e2e;
+  --cp-border: #474747;
+  --cp-border-strong: #5f5f5f;
+  --cp-text: #dedede;
+  --cp-text-muted: #919191;
+  --cp-text-soft: #b0b0b0;
+  --cp-accent: #fd8ea1;
+  --cp-accent-hover: #fb7b91;
+  --cp-accent-soft: rgba(253, 142, 161, 0.14);
+  --cp-accent-fg: #1a1a1a;
+  --cp-success: #4ade80;
+  --cp-danger: #f87171;
+  --cp-warning: #fbbf24;
+  --cp-link: #4da6ff;
+  --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+  --cp-overlay: rgba(41, 41, 41, 0.88);
+  --cp-panel: rgba(41, 41, 41, 0.72);
+  --cp-panel-strong: rgba(41, 41, 41, 0.96);
+  --cp-sheen: rgba(255, 255, 255, 0.04);
+  --cp-highlight: rgba(253, 142, 161, 0.12);
+}
+* { box-sizing: border-box; }
+html, body {
+  height: 100%;
+  margin: 0;
+  background: var(--cp-bg);
+  color: var(--cp-text);
+  font: 14px/1.55 "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+code, pre, .mono { font-family: Consolas, "Courier New", Courier, monospace; }
+.app-shell {
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  margin: 0;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  overflow: hidden;
+}
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: nowrap;
+  padding-bottom: 4px;
+  border-bottom: 2px solid var(--cp-accent);
+  flex-shrink: 0;
+}
+.eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--cp-accent);
+  font-weight: 700;
+}
+h1 {
+  font-size: 16px;
+  line-height: 1.2;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.subtitle {
+  display: none;
+}
+.header-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+}
+button, select, input {
+  font: inherit;
+}
+button {
+  border: 1px solid var(--cp-border-strong);
+  border-radius: 6px;
+  padding: 3px 8px;
+  background: var(--cp-surface);
+  color: var(--cp-text);
+  cursor: pointer;
+}
+button:hover { border-color: var(--cp-accent); }
+button.primary {
+  background: var(--cp-accent);
+  color: var(--cp-accent-fg);
+  border-color: var(--cp-accent);
+  font-weight: 600;
+}
+button.primary:hover { background: var(--cp-accent-hover); }
+.top-Status-and-drawer {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.dl-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: nowrap;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: var(--cp-surface);
+  border: 1px solid var(--cp-border);
+  font-size: 11.5px;
+}
+.dl-status-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cp-success);
+  margin-right: 4px;
+}
+.view-toggle-group {
+  display: inline-flex;
+  align-items: center;
+  background: var(--cp-bg-elevated);
+  border: 1.5px solid var(--cp-border-strong);
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+}
+.view-toggle-btn {
+  border: none;
+  background: transparent;
+  color: var(--cp-text-muted);
+  font-size: 12px;
+  font-weight: 650;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+.view-toggle-btn.active {
+  background: var(--cp-accent);
+  color: var(--cp-accent-fg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+.view-toggle-count {
+  font-size: 10.5px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  color: inherit;
+}
+.view-toggle-btn:not(.active) .view-toggle-count {
+  background: var(--cp-accent-soft);
+  color: var(--cp-accent);
+}
+.scoring-view-panel {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+  padding: 2px 2px 10px 2px;
+}
+.scoring-view-panel.active {
+  display: flex;
+}
+.scoring-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: var(--cp-surface);
+  border: 1.5px solid var(--cp-border-strong);
+  border-radius: 10px;
+}
+.scoring-section-card {
+  background: var(--cp-surface);
+  border: 1px solid var(--cp-border-strong);
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.scoring-row-clickable {
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.scoring-row-clickable:hover {
+  background: var(--cp-surface-soft);
+}
+.scoring-row-clickable.selected-row {
+  background: var(--cp-accent-soft);
+  outline: 2px solid var(--cp-accent);
+  outline-offset: -2px;
+}
+.turn-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px;
+  background: var(--cp-bg-elevated);
+}
+.turn-detail-card {
+  background: var(--cp-surface);
+  border: 1px solid var(--cp-border);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.turn-detail-card pre {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 11.5px;
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--cp-bg-elevated);
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid var(--cp-border);
+}
+.arena-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.arena-grid.hidden-view, .composer-card.hidden-view {
+  display: none !important;
+}
+.pane {
+  background: var(--cp-surface);
+  border: 1.5px solid var(--cp-border);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.pane.rank-1 {
+  border: 2px solid var(--cp-success);
+  box-shadow: 0 0 0 3px rgba(20, 130, 82, 0.14);
+}
+.pane.rank-2 {
+  border: 1.5px solid var(--cp-link);
+}
+.pane.rank-3 {
+  border: 1.5px solid var(--cp-warning);
+}
+.pane.rank-4 {
+  border: 2px solid var(--cp-danger);
+  box-shadow: 0 0 0 3px rgba(201, 61, 61, 0.16);
+}
+.pane-header {
+  padding: 6px 10px;
+  background: var(--cp-bg-elevated);
+  border-bottom: 1px solid var(--cp-border);
+}
+.pane-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+.pane-title {
+  font-weight: 700;
+  font-size: 13.5px;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pane-sub {
+  font-size: 10.5px;
+  color: var(--cp-text-muted);
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.product-chain-bar {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 4px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+.prod-box {
+  display: inline-flex;
+  align-items: center;
+  font-size: 9.8px;
+  font-weight: 650;
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1.5px dashed currentColor;
+  white-space: nowrap;
+}
+.prod-box.mcs { color: #6d28d9; background: rgba(124, 58, 237, 0.08); }
+.prod-box.mcs-front { color: #0f766e; background: rgba(13, 148, 136, 0.10); }
+.prod-box.foundry { color: #0369a1; background: rgba(2, 132, 199, 0.10); }
+html[data-theme="dark"] .prod-box.mcs { color: #c4b5fd; }
+html[data-theme="dark"] .prod-box.mcs-front { color: #5eead4; }
+html[data-theme="dark"] .prod-box.foundry { color: #7dd3fc; }
+.prod-arrow { font-size: 9.5px; color: var(--cp-text-muted); }
+.badge {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 650;
+  border: 1px solid var(--cp-border-strong);
+  border-radius: 5px;
+  padding: 1px 6px;
+  color: var(--cp-text-muted);
+  white-space: nowrap;
+}
+.badge.good, .badge.rank-1 {
+  color: var(--cp-success);
+  border-color: var(--cp-success);
+  background: rgba(20, 130, 82, 0.10);
+}
+.badge.rank-2 {
+  color: var(--cp-link);
+  border-color: var(--cp-link);
+  background: rgba(0, 102, 204, 0.08);
+}
+.badge.rank-3 {
+  color: var(--cp-warning);
+  border-color: var(--cp-warning);
+  background: rgba(180, 105, 14, 0.10);
+}
+.badge.bad, .badge.rank-4 {
+  color: var(--cp-danger);
+  border-color: var(--cp-danger);
+  background: rgba(201, 61, 61, 0.10);
+}
+.badge.accent { color: var(--cp-accent); border-color: var(--cp-accent); }
+.metrics-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px 8px;
+  padding: 5px 10px;
+  background: var(--cp-surface-soft);
+  border-bottom: 1px solid var(--cp-border);
+  font-size: 11px;
+}
+.metric-box {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  cursor: help;
+}
+.kpi-floating-tooltip {
+  position: fixed;
+  z-index: 9999;
+  max-width: 380px;
+  padding: 8px 11px;
+  border-radius: 8px;
+  background: var(--cp-panel-strong);
+  color: var(--cp-text);
+  border: 1px solid var(--cp-border-strong);
+  box-shadow: var(--cp-shadow);
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  pointer-events: none;
+  display: none;
+}
+.metric-label {
+  color: var(--cp-text-muted);
+  font-size: 10px;
+  line-height: 1.2;
+}
+.metric-val {
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.score-strip {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 3px;
+  margin-top: 1px;
+  border-top: 1px dashed var(--cp-border);
+}
+.score-pills {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 3px;
+  overflow-x: auto;
+}
+.score-pill {
+  font-size: 10px;
+  font-weight: 650;
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid var(--cp-border);
+  background: var(--cp-surface);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.score-pill.active-dim {
+  border-color: var(--cp-accent);
+  background: var(--cp-accent-soft);
+  color: var(--cp-accent);
+}
+.score-pill.win {
+  border-color: var(--cp-success);
+  color: var(--cp-success);
+}
+.score-pill.lose {
+  border-color: var(--cp-danger);
+  color: var(--cp-danger);
+}
+.acc-note {
+  font-size: 10px;
+  line-height: 1.2;
+  color: var(--cp-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rank-mode-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+.rank-mode-btn {
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: var(--cp-bg-elevated);
+  white-space: nowrap;
+}
+.rank-mode-btn.active {
+  background: var(--cp-accent);
+  color: var(--cp-accent-fg);
+  border-color: var(--cp-accent);
+  font-weight: 650;
+}
+.scenario-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: nowrap;
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: var(--cp-bg-elevated);
+  border: 1px solid var(--cp-border);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.good { color: var(--cp-success); font-weight: 650; }
+.bad { color: var(--cp-danger); font-weight: 650; }
+.neutral { color: var(--cp-text-muted); }
+.chat-window {
+  flex: 1;
+  padding: 12px 14px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.msg {
+  font-size: 13px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.msg.user {
+  align-self: flex-end;
+  padding: 8px 12px;
+  border-radius: 0.625rem;
+  background: var(--cp-accent-soft);
+  border: 1px solid var(--cp-accent);
+  max-width: 90%;
+}
+.msg.bot {
+  width: 100%;
+  align-self: stretch;
+  padding: 2px 0 10px 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+}
+.msg pre {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--cp-text);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+}
+.step-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--cp-text-muted);
+  opacity: 0.85;
+}
+.step-item {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--cp-text-muted);
+}
+.proto-json-details {
+  margin-top: 6px;
+  border: 1px solid var(--cp-border);
+  border-radius: 6px;
+  background: var(--cp-bg-elevated);
+  overflow: hidden;
+  width: 100%;
+}
+.proto-json-summary {
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--cp-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  list-style: none;
+}
+.proto-json-summary::-webkit-details-marker {
+  display: none;
+}
+.proto-json-details[open] .proto-json-summary {
+  border-bottom: 1px solid var(--cp-border);
+  color: var(--cp-text);
+}
+.proto-json-details pre.proto-json-code {
+  padding: 8px 10px;
+  font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  line-height: 1.45;
+  background: var(--cp-surface);
+  color: var(--cp-text);
+  overflow-x: auto;
+}
+.composer-card {
+  background: var(--cp-surface);
+  border: 1px solid var(--cp-border-strong);
+  border-radius: 10px;
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.preset-bar {
+  display: flex;
+  gap: 4px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  align-items: center;
+}
+.preset-btn {
+  font-size: 11px;
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: var(--cp-bg-elevated);
+  white-space: nowrap;
+}
+.preset-btn.active {
+  border-color: var(--cp-accent);
+  background: var(--cp-accent-soft);
+  color: var(--cp-accent);
+  font-weight: 650;
+}
+.input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.input-row input[type="text"] {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--cp-border-strong);
+  background: var(--cp-bg-elevated);
+  color: var(--cp-text);
+  font-size: 13px;
+}
+.options-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--cp-text-muted);
+}
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--cp-border);
+  border-radius: 0.625rem;
+  background: var(--cp-surface);
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+caption {
+  text-align: left;
+  font-weight: 650;
+  padding: 10px 14px;
+  background: var(--cp-bg-elevated);
+  border-bottom: 1px solid var(--cp-border);
+}
+th, td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--cp-border);
+  font-variant-numeric: tabular-nums;
+}
+thead th {
+  background: var(--cp-surface-soft);
+  white-space: nowrap;
+}
+@media (max-width: 1180px) {
+  .app-shell { height: auto; overflow: visible; }
+  .arena-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pane { height: 520px; }
+}
+@media (max-width: 680px) {
+  .app-shell { height: auto; padding: 12px; overflow: visible; }
+  .arena-grid { grid-template-columns: 1fr; }
+  .pane { height: 460px; }
+  .input-row { flex-direction: column; align-items: stretch; }
+}
+.backend-help{margin:12px 0;padding:16px;border:1px solid var(--cp-border);border-radius:12px;background:var(--cp-surface);max-height:65vh;overflow:auto}
+.backend-help[hidden]{display:none}
+.backend-help summary{cursor:pointer;font-weight:650}
+.backend-help pre{white-space:pre-wrap;overflow-wrap:anywhere;padding:12px;background:var(--cp-bg);border-radius:8px}
+.backend-help li{margin:12px 0}
+.backend-help .backend-error{color:var(--cp-danger);overflow-wrap:anywhere}
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <header>
+    <div>
+      <div class="eyebrow">ZAF PROD (9ffec6fe-9e60-eaf8-921d-be20e366a19b) · MULTI-TURN CUSTOMER SERVICE VS NEGATIVE ANTI-PATTERN BENCHMARK</div>
+      <h1>多轮客户服务与反向边界四架构实时对比测试台（A 6模块巨型客服 / B 巨型+内部工具 / C 前置Hook / D Decision-1网关+外层状态机+生鲜专项小Agent）</h1>
+      <p class="subtitle">基于 ZAF Prod 真实发布的 4 台独立物理客服 Agent（<code>cre47_csmonolithbencha / b / c / specialistd</code>）与 Foundry <code>Decision-1</code>，对比「4轮连续VIP客户服务正向场景」与「100%开放式运营周报撰写反向示例场景」。</p>
+    </div>
+    <div class="header-actions">
+      <a href="../copilot-studio-decision-optimization/index.html" target="_top" style="font-size:13px;margin-right:8px">← 返回评估报告</a>
+      <button id="theme-toggle" type="button">切换明暗主题</button>
+    </div>
+  </header>
+
+  <div class="top-Status-and-drawer">
+    <div class="dl-bar" id="dl-status-bar">
+      <div class="view-toggle-group" role="tablist" aria-label="测试台与多维评分视图切换">
+        <button type="button" class="view-toggle-btn active" id="view-btn-arena" data-view-mode="arena">
+          💬 实时对话测试
+        </button>
+        <button type="button" class="view-toggle-btn" id="view-btn-scoring" data-view-mode="scoring">
+          📊 多维评分详表
+          <span class="view-toggle-count" id="scoring-live-badge">最新实测</span>
+        </button>
+      </div>
+      <div class="rank-mode-bar" aria-label="排名维度切换">
+        <strong style="font-size:11px;white-space:nowrap">排名基准：</strong>
+        <button type="button" class="rank-mode-btn active" data-rank-mode="composite">🏆 综合评分排名 (40%准+30%快+30%省)</button>
+        <button type="button" class="rank-mode-btn" data-rank-mode="speed">⚡ 速度耗时排名</button>
+        <button type="button" class="rank-mode-btn" data-rank-mode="accuracy">🎯 准确率评分排名</button>
+        <button type="button" class="rank-mode-btn" data-rank-mode="cost">💰 费用消耗排名</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;white-space:nowrap">
+        <div id="dl-conv-badge" class="mono" style="font-size:12px;color:var(--cp-text-muted)">Agentic Runtime SSE 就绪</div>
+        <button id="reset-session-btn" type="button" title="清空当前多轮聊天历史与评分记录，为4个架构重新分配全新的 Copilot Studio 会话 ID">🔄 开启新会话</button>
+      </div>
+    </div>
+  </div>
+
+  <details class="backend-help" id="backend-help" hidden>
+    <summary>后端连接失败：查看搭建与启动说明</summary>
+    <p class="backend-error" id="backend-help-error" role="alert"></p>
+    <p>实时测试连接的是<strong>当前浏览器所在电脑</strong>的 <code>http://127.0.0.1:8788</code>。请在这台电脑启动 Python 代理，代理使用 Azure CLI 登录身份访问 Copilot Studio 与 Foundry。</p>
+    <ol>
+      <li><strong>准备运行环境与文件。</strong>安装 Python 3.10+ 和 <a href="https://learn.microsoft.com/cli/azure/install-azure-cli" target="_blank" rel="noopener noreferrer">Azure CLI</a>，确认以下命令可用。后端使用 Python 标准库，无需 pip 安装依赖。
+        <pre>python3 --version
+az version</pre>
+        <a href="decision-arena-backend.zip" download>下载后端运行包</a>，解压后进入 <code>decision-arena-backend</code> 文件夹。包内包含 <code>arena_server.py</code>、<code>cs_benchmark_presets.py</code>、<code>arena.html</code> 和 <code>usage-audit/cs-real-benchmark-results.json</code>，请保留目录结构。Windows 可将下方 <code>python3</code> 替换为 <code>py -3</code>。
+      </li>
+      <li><strong>确认云端配置与权限。</strong>默认配置连接本测试的 ZAF Prod 环境。使用自己的环境时，在 <code>arena_server.py</code> 中设置 <code>DL_HOST</code>、<code>FOUNDRY_HOST</code>、<code>FOUNDRY_PATH</code>、<code>AGENT_SCHEMAS</code> 和 <code>DL_BOT_SCHEMA</code>；对应环境应已发布 A/B/C/专项 Agent，B 的分类连接器和 C 的 Hook 工作流可用，Foundry Decision-1 部署可调用。登录账号需要这些 Agent 的调用权限和 Foundry 推理权限。
+      </li>
+      <li><strong>登录对应租户并启动。</strong>将租户占位符换为实际租户 ID。在解压目录执行：
+        <pre>az login --tenant &lt;租户ID&gt;
+python3 arena_server.py</pre>
+        保持终端运行，看到 <code>Arena server listening on http://127.0.0.1:8788</code> 后继续。启动会预热云端会话并调用 Decision-1，实时测试按实际资源用量计费。停止服务可在该终端按 Ctrl+C。
+      </li>
+      <li><strong>检查服务并重试。</strong>在另一个终端执行：
+        <pre>curl http://127.0.0.1:8788/api/health</pre>
+        返回 JSON 中 <code>"ok": true</code> 表示本机代理正在运行。打开 <a href="http://127.0.0.1:8788/" target="_blank" rel="noopener noreferrer">本机测试台</a>，点击“开启新会话”后重新发送；当前页面也可重试。完整云端权限与模型可用性以实际调用结果为准。
+      </li>
+    </ol>
+    <p><strong>仍无法连接时：</strong>检查终端报错；端口占用时检查已有的 8788 服务；401/403 时重新登录正确租户并核对资源权限；网页被浏览器拦截本地网络访问时允许该权限，或直接使用上方本机测试台。切换设备或重启电脑后需在新设备重新启动代理。</p>
+  </details>
+
+  <!-- 视图 2：占据全部下方区域的多维评分与轮次明细面板（通过顶部 Toggle 切换） -->
+  <section class="scoring-view-panel" id="scoring-view-panel" aria-label="多维评分与会话明细全屏面板">
+    <div class="scoring-section-card">
+      <div class="table-wrap" aria-label="当前会话实测轮次记录与多轮累计汇总" style="border:none;border-radius:0">
+        <table id="matrix-table">
+          <caption>🟢 当前会话实测轮次记录（含多轮累计汇总）— <strong>点击任意行即可刷新下方四架构多维评分详表与回复内容对比</strong></caption>
+          <thead>
+            <tr>
+              <th>实测轮次 / 多轮累计（点击切换查看）</th>
+              <th>实际测试输入</th>
+              <th>⚡ 速度第 1 名</th>
+              <th>🎯 准确率第 1 名</th>
+              <th>💰 费用第 1 名</th>
+              <th>🏆 综合第 1 名</th>
+              <th>实测时间与会话状态</th>
+            </tr>
+          </thead>
+          <tbody id="matrix-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="scoring-section-card">
+      <div class="table-wrap" aria-label="当前选中记录的四架构量化对比汇总表" style="border:none;border-radius:0">
+        <table id="summary-table">
+          <caption id="summary-table-caption">当前选中轮次：四架构速度、准确率、费用消耗与综合评分排名明细</caption>
+          <thead>
+            <tr>
+              <th>架构方案与对应云实例</th>
+              <th>🏆 综合评分与排名</th>
+              <th>⚡ 速度评分与耗时 (TTFT / 总耗时)</th>
+              <th>🎯 准确率评分与契约拆分 (契约/语义/稳健)</th>
+              <th>💰 费用评分与消耗 (Credits / Foundry / 总折算)</th>
+              <th>Tokens (主模型 / Decision)</th>
+              <th>变化（耗时与费用相对架构A）</th>
+            </tr>
+          </thead>
+          <tbody id="summary-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="scoring-section-card">
+      <div style="padding:10px 14px;background:var(--cp-bg-elevated);border-bottom:1px solid var(--cp-border);font-weight:650;font-size:13px" id="turn-detail-header">
+        🔍 当前选中轮次：四架构真实调用链路与输出内容对比预览
+      </div>
+      <div class="turn-detail-grid" id="turn-detail-grid"></div>
+    </div>
+  </section>
+
+  <!-- 视图 1：中部最大化高度的 4 个并列会话窗口 -->
+  <section class="arena-grid" id="arena-view-grid" aria-label="四个架构并列会话窗口">
+    <!-- Pane A -->
+    <article class="pane" id="pane-A">
+      <div class="pane-header">
+        <div class="pane-title-row">
+          <h2 class="pane-title">架构 A · 6模块全能客服单体 Agent</h2>
+          <span class="badge" id="status-A">待命</span>
+        </div>
+        <div class="pane-sub" title="CS Monolith Bench A (4f44c477-d53e-4294-a6f2-55136f174a32) 挂载6个客服Skill">物理实例：<code>CS Monolith Bench A</code> (<code>cre47_csmonolithbencha</code>)</div>
+        <div class="product-chain-bar" title="产品边界：100% 步骤在单层 Microsoft Copilot Studio Agent 内完成">
+          <span class="prod-box mcs">╌ Copilot Studio (GPT-5.5 主模型 + 6个内置Skill全量处理)</span>
+        </div>
+      </div>
+      <div class="metrics-strip">
+        <div class="metric-box"><span class="metric-label">首Token / 端到端总耗时</span><span class="metric-val" id="total-A">—</span><span class="mono" style="font-size:10.5px;color:var(--cp-text-muted)" id="ttft-A">TTFT: —</span></div>
+        <div class="metric-box"><span class="metric-label">准确率评分 (契约+语义+稳健)</span><span class="metric-val" id="acc-A">—</span></div>
+        <div class="metric-box"><span class="metric-label">费用消耗 (Credits / Foundry)</span><span class="metric-val" id="credits-A">—</span></div>
+        <div class="metric-box"><span class="metric-label">总Tokens (主模型+Decision)</span><span class="metric-val" id="tokens-A">—</span></div>
+      </div>
+      <div class="chat-window" id="chat-A"></div>
+    </article>
+
+    <!-- Pane B -->
+    <article class="pane" id="pane-B">
+      <div class="pane-header">
+        <div class="pane-title-row">
+          <h2 class="pane-title">架构 B · 客服Agent+内部调工具</h2>
+          <span class="badge" id="status-B">待命</span>
+        </div>
+        <div class="pane-sub" title="CS Hybrid Tool Bench B (a212c6b8-f32d-483d-8f2b-ee155cc87f57) 挂载6个Skill + DirectDecision工具">物理实例：<code>CS Hybrid Tool Bench B</code> (<code>cre47_cshybridtoolbenchb</code>)</div>
+        <div class="product-chain-bar" title="产品边界：Copilot Studio 主模型规划工具 → 跨调 Foundry Decision-1 → 回同一 Copilot Studio 主模型生成">
+          <span class="prod-box mcs">╌ Copilot Studio (主模型+连接器)</span>
+          <span class="prod-arrow">⇄</span>
+          <span class="prod-box foundry">╌ Foundry (Decision-1)</span>
+          <span class="prod-arrow">→</span>
+          <span class="prod-box mcs">╌ Copilot Studio (读Skill生成)</span>
+        </div>
+      </div>
+      <div class="metrics-strip">
+        <div class="metric-box"><span class="metric-label">首Token / 端到端总耗时</span><span class="metric-val" id="total-B">—</span><span class="mono" style="font-size:10.5px;color:var(--cp-text-muted)" id="ttft-B">TTFT: —</span></div>
+        <div class="metric-box"><span class="metric-label">准确率评分 (契约+语义+稳健)</span><span class="metric-val" id="acc-B">—</span></div>
+        <div class="metric-box"><span class="metric-label">费用消耗 (Credits / Foundry)</span><span class="metric-val" id="credits-B">—</span></div>
+        <div class="metric-box"><span class="metric-label">总Tokens (主模型+Decision)</span><span class="metric-val" id="tokens-B">—</span></div>
+      </div>
+      <div class="chat-window" id="chat-B"></div>
+    </article>
+
+    <!-- Pane C -->
+    <article class="pane" id="pane-C">
+      <div class="pane-header">
+        <div class="pane-title-row">
+          <h2 class="pane-title">架构 C · 前置Hook+客服Agent</h2>
+          <span class="badge" id="status-C">待命</span>
+        </div>
+        <div class="pane-sub" title="CS Hook Bench C (f933f05a-4253-4f2e-af6d-3754bd9b2ae8) 绑定 Hook Workflow 6ea9993f-...">物理实例：<code>CS Hook Bench C</code> (<code>cre47_cshookbenchc</code>)</div>
+        <div class="product-chain-bar" title="产品边界：Copilot Studio 前置 Hook Workflow → 跨调 Foundry Decision-1 → 注入 modifiedPrompt 进同一 Copilot Studio 主模型">
+          <span class="prod-box mcs">╌ Copilot Studio (Hook流)</span>
+          <span class="prod-arrow">⇄</span>
+          <span class="prod-box foundry">╌ Foundry (Decision-1)</span>
+          <span class="prod-arrow">→</span>
+          <span class="prod-box mcs">╌ Copilot Studio (主模型)</span>
+        </div>
+      </div>
+      <div class="metrics-strip">
+        <div class="metric-box"><span class="metric-label">首Token / 端到端总耗时</span><span class="metric-val" id="total-C">—</span><span class="mono" style="font-size:10.5px;color:var(--cp-text-muted)" id="ttft-C">TTFT: —</span></div>
+        <div class="metric-box"><span class="metric-label">准确率评分 (契约+语义+稳健)</span><span class="metric-val" id="acc-C">—</span></div>
+        <div class="metric-box"><span class="metric-label">费用消耗 (Credits / Foundry)</span><span class="metric-val" id="credits-C">—</span></div>
+        <div class="metric-box"><span class="metric-label">总Tokens (主模型+Decision)</span><span class="metric-val" id="tokens-C">—</span></div>
+      </div>
+      <div class="chat-window" id="chat-C"></div>
+    </article>
+
+    <!-- Pane D -->
+    <article class="pane" id="pane-D">
+      <div class="pane-header">
+        <div class="pane-title-row">
+          <h2 class="pane-title">架构 D · Decision-1网关+专项小Agent</h2>
+          <span class="badge" id="status-D">待命</span>
+        </div>
+        <div class="pane-sub" title="Foundry Decision-1 + 外层状态机 + CS Fresh Claim Specialist D (a7f36aed-71f1-4d03-afb3-a0e1ba8a3f44)">物理实例：<code>Decision-1</code> + <code>CS Fresh Claim Specialist D</code> (<code>cre47_csfreshclaimspecialistd</code>)</div>
+        <div class="product-chain-bar" title="产品边界：前置Python应用网关+外层状态机 (路径1/2直接闭环, 0 Cr) + 直连 Foundry Decision-1 REST API + 后端按需 Copilot Studio 专项小Agent (仅路径3唤醒)">
+          <span class="prod-box mcs-front">╌ 前置Python网关/外层状态机 (0 Cr)</span>
+          <span class="prod-arrow">⇄</span>
+          <span class="prod-box foundry">╌ Foundry (Decision-1 REST)</span>
+          <span class="prod-arrow">⇢</span>
+          <span class="prod-box mcs">╌ 后端 Copilot Studio (按需小Agent)</span>
+        </div>
+      </div>
+      <div class="metrics-strip">
+        <div class="metric-box"><span class="metric-label">首Token / 端到端总耗时</span><span class="metric-val" id="total-D">—</span><span class="mono" style="font-size:10.5px;color:var(--cp-text-muted)" id="ttft-D">TTFT: —</span></div>
+        <div class="metric-box"><span class="metric-label">准确率评分 (契约+语义+稳健)</span><span class="metric-val" id="acc-D">—</span></div>
+        <div class="metric-box"><span class="metric-label">费用消耗 (Credits / Foundry)</span><span class="metric-val" id="credits-D">—</span></div>
+        <div class="metric-box"><span class="metric-label">总Tokens (主模型+Decision)</span><span class="metric-val" id="tokens-D">—</span></div>
+      </div>
+      <div class="chat-window" id="chat-D"></div>
+    </article>
+  </section>
+
+  <!-- 下方共同消息输入框与预置测试消息栏 -->
+  <section class="composer-card" id="arena-composer-card" aria-label="共同消息输入框与预置测试消息">
+    <div class="preset-bar" id="preset-buttons"></div>
+    <div class="input-row">
+      <input id="shared-prompt" type="text" placeholder="在此输入任意客服对话或点击上方第1～4轮预设，按顺序发送即可在同一会话中完成真实多轮对话..." aria-label="共同测试消息输入框">
+      <button id="send-btn" class="primary" type="button">发送</button>
+    </div>
+    <div class="options-row">
+      <div id="session-indicator" class="mono" style="font-weight:650;color:var(--cp-accent)">当前会话：第 0 轮（真实多轮状态保持 · 每次发送均在同一 conversation_id 中追加对话）</div>
+      <div id="live-api-indicator">100% 实时调用 ZAF Prod：A/B/C 直连 Copilot Studio Agentic Runtime SSE · D 直连 Foundry Decision-1 + CS Fresh Claim Specialist D</div>
+    </div>
+  </section>
+</div>
+
+<script id="arena-presets-data" type="application/json">[{"id": "PRESET_CS_T1", "case_key": "CS_T1", "turn_index": 1, "title": "第1轮｜报损初诊与缺参追问（未提供订单号与受损盒数比例）", "badge": "🏆 架构D 0.70s外层秒级追问 (↓94.9%) · 0.00 Cr 免唤醒后台Agent", "skill_target": "cs-fresh-coldchain / cs-vip-wallet / cs-privacy-ops", "decision_scope": "cs_turn_decision (CLARIFY_MISSING_INFO, p=0.9996)", "expected_marker": "CS_SERVICE_RESPONSE", "complexity": "多轮客服第 1 轮实测 · 外层闭环=是 (0主模型Token)", "design_rationale": "客户首次口语报损（“冰袋全化成水了，果子压烂发霉一大半”），但尚未提供订单号与受损盒数比例。架构A/B/C必须唤醒挂载6个客服Skill的GPT-5.5主模型（耗时11.71s～17.35s，消耗10.80～13.20 Cr）才能输出追问；架构D前置Python网关直接通过HTTPS调用Foundry Decision-1，以p=0.9996命中CLARIFY_MISSING_INFO，外层状态机直接输出标准追问（未调用Workflow或后台Agent，0.00 Copilot Credits，仅消耗Foundry约$0.000019）。", "prompt": "你好，我刚收到昨天买的智利J级车厘子礼盒，打开一看里面的冰袋全化成水了，果子也压烂发霉了一大半，这怎么吃啊？赶紧给我退钱！", "decision_payload": {"model": "Decision-1", "state": "你好，我刚收到昨天买的智利J级车厘子礼盒，打开一看里面的冰袋全化成水了，果子也压烂发霉了一大半，这怎么吃啊？赶紧给我退钱！", "questions": {"cs_turn_decision": {"type": "choice", "instructions": "你是全渠道客户服务中心的前置有限决策器。根据用户本轮客服输入判定唯一处理枚举：若报损但未提供订单号或受损盒数比例选CLARIFY_MISSING_INFO；若已提供生鲜订单号与坏果比例需计算免寄回闪赔选FRESH_NO_RETURN_REFUND；若仅修改既有理赔单的退款到账方式(如改退会员余额钱包)选PATCH_REFUND_WALLET；若索要其他投诉客户手机号名单等隐私数据选BLOCK_PII_REQUEST；若要求撰写冷链客诉运营复盘根因分析与双十一整改方案选OPEN_OPS_ROOTCAUSE_REPORT。", "criteria": {"CLARIFY_MISSING_INFO": "客户反映生鲜化冰或商品腐损要求退款，但尚未提供订单号或具体损坏数量比例，需追问补齐。", "FRESH_NO_RETURN_REFUND": "客户已提供订单号、购买盒数、腐损盒数与照片说明，需按生鲜冷链免寄回规则核算退款金额与补偿券。", "PATCH_REFUND_WALLET": "多轮会话中客户认可理赔金额，仅要求将退款渠道从原支付卡改为退入会员余额钱包。", "BLOCK_PII_REQUEST": "客户要求导出或提供同批次其他投诉客户的手机号、姓名或维权名单，触发隐私合规红线。", "OPEN_OPS_ROOTCAUSE_REPORT": "要求基于客诉统计数据深度分析冷链断链运营根因并撰写双十一冷链整改SOP方案。"}}}}, "requires_downstream_agent_for_d": false, "d_downstream_bot_key": null, "arms": {"A": {"agent_name": "CS Monolith Bench A (cre47_csmonolithbencha)", "agent_id": "4f44c477-d53e-4294-a6f2-55136f174a32", "conversation_id": "f5301a9a-a823-4ae1-b755-17eaf86311a1", "ttft_ms": 10564.3, "total_ms": 13745.6, "response": "非常抱歉您收到的车厘子出现冰袋融化、果品压烂发霉的情况。为了按照生鲜冷链“坏果包赔、免寄回闪赔”规则尽快为您核赔，我需要先核实关键信息：\n\n请提供：\n1. 订单号（格式类似：ORD-YYYYMMDD-XXX）\n2. 受损情况的具体数量或比例（例如“3盒里坏了2盒”“约60%发霉压烂”）\n3. 坏果和融化冰袋的照片（如方便请一并上传）\n\n收到上述信息后，我会立即为您核算退款金额。生鲜腐损类商品符合条件时无需寄回实物。\n\n[CS_SERVICE_RESPONSE]\n{\"turn_action\":\"CLARIFY_MISSING_INFO\",\"order_id\":\"PENDING\",\"claim_id\":\"PENDING\",\"return_required\":false,\"refund_amount\":0,\"compensation_coupon\":\"NONE\",\"refund_channel\":\"PENDING\",\"privacy_blocked\":false,\"summary\":\"缺少订单号及受损数量/比例，需补充信息后办理生鲜免寄回核赔\"}", "main_input_tokens": 3240, "main_output_tokens": 195, "decision_input_tokens": 0, "decision_output_tokens": 0, "copilot_credits": 11.5, "workflow_actions": 0, "accuracy_passed": true, "protocol_score": 40, "semantic_score": 39, "robustness_score": 17, "accuracy_note": "✓ 契约40/40 + 语义39/40 + 稳健17/20（真实会话 cid:f5301a9a，背负6个Skill与多轮历史）", "route_steps": ["⚙️ Loading Agent...", "💭 思考: Requesting customer information", "⚙️ Loading skill...", "📚 加载 Skill: cs-fresh-coldchain", "⚙️ Loading skill: cs-fresh-coldchain..."], "total_tokens": 3435, "foundry_cost_usd": 0.0, "total_cost_usd": 0.115, "speed_score": 32, "cost_score": 69, "accuracy_score": 96, "composite_score": 68.7, "speed_rank": 3, "accuracy_rank": 4, "cost_rank": 3, "composite_rank": 3}, "B": {"agent_name": "CS Hybrid Tool Bench B (cre47_cshybridtoolbenchb)", "agent_id": "a212c6b8-f32d-483d-8f2b-ee155cc87f57", "conversation_id": "88df5501-f9d0-4564-9cf9-de08bdca53ed", "ttft_ms": 14671.4, "total_ms": 17346.6, "response": "非常抱歉给您带来这样的体验。车厘子属于冷链生鲜商品，如果出现冰袋完全化冰、果品压烂或发霉的情况，我们会按照生鲜售后规则优先核实并处理，且腐损生鲜无需寄回实物。\n\n为了尽快为您核赔退款，请补充以下信息（缺一不可）：\n1. 订单号（格式类似：ORD-YYYYMMDD-XXX）\n2. 本次购买总盒数，以及受损盒数或受损比例（例如“3盒里坏了2盒”）\n3. 车厘子腐损、发霉及化冰情况的照片\n\n收到上述信息后，我会立即为您核算应退金额并安排理赔处理。\n\n[CS_SERVICE_RESPONSE]\n{\"turn_action\":\"CLARIFY_MISSING_INFO\",\"order_id\":\"PENDING\",\"claim_id\":\"PENDING\",\"return_required\":false,\"refund_amount\":0,\"compensation_coupon\":\"NONE\",\"refund_channel\":\"PENDING\",\"privacy_blocked\":false,\"summary\":\"请提供订单号、受损数量比例及坏果照片后进行核赔\"}", "main_input_tokens": 3580, "main_output_tokens": 210, "decision_input_tokens": 239, "decision_output_tokens": 1, "copilot_credits": 13.2, "workflow_actions": 0, "accuracy_passed": true, "protocol_score": 40, "semantic_score": 40, "robustness_score": 18, "accuracy_note": "✓ 契约40/40 + Agent内调用DirectDecision返回CLARIFY_MISSING_INFO(p=0.9991) + 稳健18/20", "route_steps": ["⚙️ Loading Agent...", "💭 思考: Calling Decision-1 Tool", "🔧 调用工具: Decision-1 (向Decision-1模型提交直接分类请求)", "⚙️ Calling 向Decision-1模型提交直接分类请求...", "✓ Decision-1 工具返回: CLARIFY_MISSING_INFO (p=0.9991, 239/1 tok, 2266ms)", "⚙️ 向Decision-1模型提交直接分类请求 completed"], "total_tokens": 4030, "foundry_cost_usd": 1.0038e-05, "total_cost_usd": 0.132010038, "speed_score": 30, "cost_score": 65, "accuracy_score": 98, "composite_score": 67.7, "speed_rank": 4, "accuracy_rank": 3, "cost_rank": 4, "composite_rank": 4}, "C": {"agent_name": "CS Hook Bench C (cre47_cshookbenchc)", "agent_id": "f933f05a-4253-4f2e-af6d-3754bd9b2ae8", "conversation_id": "13c3e5e7-bfab-4b07-b788-01da7b272547", "ttft_ms": 8921.1, "total_ms": 11705.0, "response": "非常抱歉给您带来这样的体验。针对车厘子这类冷链生鲜商品，如出现冰袋融化、果品压伤或发霉的情况，我们会按照坏果包赔规则协助处理。为了尽快为您核赔并安排退款，请您提供以下信息：\n\n1. 订单号（格式类似：ORD-YYYYMMDD-XXX）\n2. 受损情况的具体数量或比例（例如“3盒坏了2盒”或“约60%发霉”）\n3. 坏果及包装情况照片（能看到果品受损和冰袋状态即可）\n\n收到上述信息后，我们会立即为您核算赔付金额。生鲜腐损类售后一般无需寄回实物，请您先保留商品和包装用于核验。\n\n[CS_SERVICE_RESPONSE]\n{\"turn_action\":\"CLARIFY_MISSING_INFO\",\"order_id\":\"PENDING\",\"claim_id\":\"PENDING\",\"return_required\":false,\"refund_amount\":0,\"compensation_coupon\":\"NONE\",\"refund_channel\":\"PENDING\",\"privacy_blocked\":false,\"summary\":\"需补充订单号、受损数量或比例及坏果照片后才能核赔退款\"}", "main_input_tokens": 3120, "main_output_tokens": 190, "decision_input_tokens": 357, "decision_output_tokens": 1, "copilot_credits": 10.8, "workflow_actions": 4, "accuracy_passed": true, "protocol_score": 40, "semantic_score": 40, "robustness_score": 18, "accuracy_note": "✓ 契约40/40 + Hook预锁CLARIFY_MISSING_INFO(p=0.9996)跳过二次Skill加载", "route_steps": ["⚡ UserPromptSubmitted Hook 触发 (CS Hook Decision Bench 20261025 -\u003e CLARIFY_MISSING_INFO p=0.9996)", "⚙️ Loading Agent...", "💭 思考: Handling cherry order complaint"], "total_tokens": 3668, "foundry_cost_usd": 1.4994e-05, "total_cost_usd": 0.10881499400000001, "speed_score": 34, "cost_score": 71, "accuracy_score": 98, "composite_score": 70.7, "speed_rank": 2, "accuracy_rank": 2, "cost_rank": 2, "composite_rank": 2}, "D": {"agent_name": "Foundry Decision-1 外层多轮状态机 (0 LLM唤醒)", "agent_id": "a7f36aed-71f1-4d03-afb3-a0e1ba8a3f44", "conversation_id": "gw-d1-turn1", "ttft_ms": 659.6, "total_ms": 701.6, "response": "非常抱歉给您带来不好的购物体验！生鲜冷链商品签收24小时内出现化冰腐损，我们支持“坏果包赔·免寄回闪赔”服务。\n为了立即为您核定应退金额并建单，请您补充提供一下：\n1. **您的订单号**（格式如 `ORD-20261025-XXX`）；\n2. **本次购买的总盒数及具体腐损盒数/比例**，并上传一张坏果与化冰照片，我马上为您核算退款！\n\n[CS_SERVICE_RESPONSE]\n{\"turn_action\":\"CLARIFY_MISSING_INFO\",\"order_id\":\"PENDING\",\"claim_id\":\"PENDING\",\"return_required\":false,\"refund_amount\":0,\"compensation_coupon\":\"NONE\",\"refund_channel\":\"PENDING\",\"privacy_blocked\":false,\"summary\":\"外层状态机秒级追问订单号与腐损盒数比例\"}", "main_input_tokens": 0, "main_output_tokens": 0, "decision_input_tokens": 357, "decision_output_tokens": 1, "copilot_credits": 0.0, "workflow_actions": 0, "accuracy_passed": true, "protocol_score": 40, "semantic_score": 40, "robustness_score": 20, "accuracy_note": "✓ 契约40/40 + Decision-1(p=0.9996)外层状态机701.6ms秒级闭环 + 零幻觉稳健20/20", "route_steps": ["⚡ 顶层网关调用 Foundry Decision-1 返回 CLARIFY_MISSING_INFO (p=0.9996, 357/1 tok, 659.6ms)", "✓ 命中外层多轮状态机确定性闭环 (CLARIFY_MISSING_INFO)，0 主模型 Token 直接输出 [CS_SERVICE_RESPONSE] (701.6ms)"], "total_tokens": 358, "foundry_cost_usd": 1.4994e-05, "total_cost_usd": 1.4994e-05, "speed_score": 100, "cost_score": 99, "accuracy_score": 100, "composite_score": 99.7, "speed_rank": 1, "accuracy_rank": 1, "cost_rank": 1, "composite_rank": 1}}}, {"id": "PRESET_CS_T2", "case_key": "CS_T2", "turn_index": 2, "title": "第2轮｜补充订单与盒数 → 顶层路由至【生鲜冷链专项小Agent】免寄回闪赔", "badge": "🏆 架构D省68.7% Credits综合第1 · 单Agent内架构C(8.54s)快于巨型A(10.31s)", "skill_target": "cs-fresh-coldchain / cs-vip-wallet / cs-privacy-ops", "decision_scope": "cs_turn_decision (FRESH_NO_RETURN_REFUND, p=0.9988)", "expected_marker": "CS_SERVICE_RESPONSE", "complexity": "多轮客服第 2 轮实测 · 外层闭环=否 (路由至生鲜专项小Agent)", "design_rationale": "客户补齐订单号ORD-20261025-889与受损比例（3盒实付¥597，烂2盒），需执行生鲜冷链免寄回闪赔核算（退¥398+赠¥30券）。架构D由前置网关直连Decision-1（p=0.9988）后路由至物理专项小Agent『CS Fresh Claim Specialist D (cre47_csfreshclaimspecialistd)』——该小Agent仅979字符专项指令、无前序废话历史、无其它5大客服模块干扰，单轮仅4.20 Credits（比巨型Agent省68.7%）。", "prompt": "订单号是 ORD-20261025-889，一共买了3盒智利J级车厘子（实付597元），里面有2盒冰袋全化了果子压烂发霉不能吃，只有1盒还行，坏果照片刚传上去了，按你们规定不用我把烂果子寄回去吧？", "decision_payload": {"model": "Decision-1", "state": "订单号是 ORD-20261025-889，一共买了3盒智利J级车厘子（实付597元），里面有2盒冰袋全化了果子压烂发霉不能吃，只有1盒还行，坏果照片刚传上去了，按你们规定不用我把烂果子寄回去吧？", "questions": {"cs_turn_decision": {"type": "choice", "instructions": "你是全渠道客户服务中心的前置有限决策器。根据用户本轮客服输入判定唯一处理枚举：若报损但未提供订单号或受损盒数比例选CLARIFY_MISSING_INFO；若已提供生鲜订单号与坏果比例需计算免寄回闪赔选FRESH_NO_RETURN_REFUND；若仅修改既有理赔单的退款到账方式(如改退会员余额钱包)选PATCH_REFUND_WALLET；若索要其他投诉客户手机号名单等隐私数据选BLOCK_PII_REQUEST；若要求撰写冷链客诉运营复盘根因分析与双十一整改方案选OPEN_OPS_ROOTCAUSE_REPORT。", "criteria": {"CLARIFY_MISSING_INFO": "客户反映生鲜化冰或商品腐损要求退款，但尚未提供订单号或具体损坏数量比例，需追问补齐。", "FRESH_NO_RETURN_REFUND": "客户已提供订单号、购买盒数、腐损盒数与照片说明，需按生鲜冷链免寄回规则核算退款金额与补偿券。", "PATCH_REFUND_WALLET": "多轮会话中客户认可理赔金额，仅要求将退款渠道从原支付卡改为退入会员余额钱包。", "BLOCK_PII_REQUEST": "客户要求导出或提供同批次其他投诉客户的手机号、姓名或维权名单，触发隐私合规红线。", "OPEN_OPS_ROOTCAUSE_REPORT": "要求基于客诉统计数据深度分析冷链断链运营根因并撰写双十一冷链整改SOP方案。"}}}}, "requires_downstream_agent_for_d": true, "d_downstream_bot_key": "D_SPEC", "arms": {"A": {"agent_name": "CS Monolith Bench A (cre47_csmonolithbencha)", "agent_id": "4f44c477-d53e-4294-a6f2-55136f174a32", "conversation_id": "f5301a9a-a823-4ae1-b755-17eaf86311a1", "ttft_ms": 6349.9, "total_ms": 10309.6, "response": "感谢您提供完整信息。经核对，订单号为 ORD-20261025-889，您购买3盒智利J级车厘子，订单实付 ¥597.00，其中2盒因冰袋完全融化导致果品压烂发霉，符合生鲜冷链“坏果包赔”规则。\n\n按照核赔标准计算：\n- 单盒实付均价：¥597.00 ÷ 3 = ¥199.00\n- 受损数量：2盒\n- 应退金额：¥199.00 × 2 = ¥398.00\n\n同时，由于属于冷链失温导致的腐损，额外补偿您1张 ¥30.00 无门槛生鲜冷链补偿券（券码批次：CPN-COLD-30）。\n\n您无需寄回烂果或已腐损商品，生鲜腐损订单适用免寄回闪赔处理。理赔单已生成，退款将按原支付渠道退回，预计1～3个工作日到账。\n\n[CS_SERVICE_RESPONSE]\n{\"turn_action\":\"FRESH_NO_RETURN_REFUND\",\"order_id\":\"ORD-20261025-889\",\"claim_id\":\"CLM-20261025-889\",\"return_required\":false,\"refund_amount\":398.00,\"compensation_coupon\":\"30元无门槛生鲜补偿券(CPN-COLD-30)\",\"refund_channel\":\"ORIGINAL_PAYMENT_CARD\",\"privacy_blocked\":false,\"summary\":\"2盒车厘子腐损符合生鲜免寄回闪赔，退款398.00元并补偿30元生鲜券\"}", "main_input_tokens": 3890, "main_output_tokens": 230, "decision_input_tokens": 0, "decision_output_tokens": 0, "copilot_credits": 13.4, "workflow_actions": 0, "accuracy_passed": true, "protocol_score": 40, "semantic_score": 39, "robustness_score": 17, "accuracy_note": "✓ 契约40/40 + 语义39/40 + 稳健17/20（真实会话 cid:f5301a9a，背负6个Skill与多轮历史）", "route_steps": ["💭 思考: Responding to turn2", "⚙️ Loading skill...", "📚 加载 Skill: cs-fresh-coldchain", "⚙️ Loading skill: cs-fresh-coldchain..."], "total_tokens": 4120, "foundry_cost_usd": 0.0, "total_cost_usd": 0.134, "speed_score": 93, "cost_score": 64, "accuracy_score": 96, "composite_score": 85.5, "speed_rank": 3, "accuracy_rank": 4, "cost_rank": 3, "composite_rank": 3}, "B": {"agent_name": "CS Hybrid Tool Bench B (cre47_cshybridtoolbenchb)", "agent_id": "a212c6b8-f32d-483d-8f2b-ee155cc87f57", "conversation_id": "88df5501-f9d0-4564-9cf9-de08bdca53ed", "ttft_ms": 11120.1, "total_ms": 15318.4, "response": "非常抱歉影响了您的收货体验。根据您提供的信息：订单号 ORD-20261025-889，实付金额 ¥597.00，购买 3 盒车厘子，其中 2 盒因冰袋完全化冰导致果品压烂发霉且已提供坏果照片，符合生鲜冷链腐损理赔条件。\n\n按规则核算：\n- 单盒实付均价：¥597.00 ÷ 3 = ¥199.00\n- 受损数量：2盒\n- 应退货款：¥199.00 × 2 = ¥398.00\n- 额外补偿：1张 ¥30.00 无门槛生鲜冷链补偿券（CPN-COLD-30）\n\n您无需将烂果子寄回。生鲜腐损订单适用“坏果包赔·免寄回实物”规则，避免腐损商品在运输过程中造成二次污染。退款将按原支付渠道原路退回，预计 1~3 个工作日到账。\n\n[CS_SERVICE_RESPONSE]\n{\"turn_action\":\"FRESH_NO_RETURN_REFUND\",\"order_id\":\"ORD-20261025-889\",\"claim_id\":\"CLM-20261025-889\",\"return_required\":false,\"refund_amount\":398.00,\"compensation_coupon\":\"30元无门槛生鲜补偿券(CPN-COLD-30)\",\"refund_channel\":\"ORIGINAL_PAYMENT_CARD\",\"privacy_blocked\":false,\"summary\":\"订单核赔通过，免寄回退款398元并补偿30元生鲜券\"}", "main_input_tokens": 4260, "main_output_tokens": 245, "decision_input_tokens": 244, "decision_output_tokens": 1, "copilot_credits": 15.1, "workflow_actions": 0, "accuracy_passed": true, "protocol_score": 40, "semantic_score": 40, "robustness_score": 18, "accuracy_note": "✓ 契约40/40 + Agent内调用DirectDecision返回FRESH_NO_RETURN_REFUND(p=0.9987) + 稳健18/20", "route_steps": ["💭 思考: Following instructions for decision tool", "🔧 调用工具: Decision-1 (向Decision-1模型提交直接分类请求)", "⚙️ Calling 向Decision-1模型提交直接分类请求...", "✓ Decision-1 工具返回: FRESH_NO_RETURN_REFUND (p=0.9987, 244/1 tok, 1578ms)", "⚙️ 向Decision-1模型提交直接分类请求 completed"], "total_tokens": 4750, "foundry_cost_usd": 1.0248e-05, "total_cost_usd": 0.15101024799999999, "speed_score": 80, "cost_score": 60, "accuracy_score": 98, "composite_score": 81.2, "speed_rank": 4, "accuracy_rank": 3, "cost_rank": 4, "composite_rank": 4}, "C": {"agent_name": "CS Hook Bench C (cre47_cshookbenchc)", "agent_id": "f933f05a-4253-4f2e-af6d-3754bd9b2ae8", "conversation_id": "13c3e5e7-bfab-4b07-b788-01da7b272547", "ttft_ms": 6084.7, "total_ms": 8539.7, "response": "非常抱歉影响了您的收货体验。根据您提供的信息：订单号 ORD-20261025-889，3盒车厘子实付 ¥597.00，其中2盒因冰袋完全融化导致果品压烂发霉无法食用。按照生鲜冷链坏果包赔规则核算，单盒实付均价为 ¥199.00，应退2盒对应货款 ¥398.00。\n\n您这种生鲜腐损情况适用“免寄回闪赔”服务，无需将烂果子寄回仓库，避免运输过程中产生二次污染。除退款 ¥398.00 外，我们还将额外补偿您1张 ¥30.00 无门槛生鲜冷链补偿券（券码批次：CPN-COLD-30）。退款将按原支付渠道退回，预计1~3个工作日到账。\n\n[CS_SERVICE_RESPONSE]\n{\"turn_action\":\"FRESH_NO_RETURN_REFUND\",\"order_id\":\"ORD-20261025-889\",\"claim_id\":\"CLM-20261025-889\",\"return_required\":false,\"refund_amount\":398.00,\"compensation_coupon\":\"30元无门槛生鲜补偿券(CPN-COLD-30)\",\"refund_channel\":\"ORIGINAL_PAYMENT_CARD\",\"privacy_blocked\":false,\"summary\":\"车厘子腐损核赔通过，免寄回退款398元并补偿30元生鲜券\"}", "main_input_tokens": 3680, "main_output_tokens": 225, "decision_input_tokens": 387, "decision_output_tokens": 1, "copilot_credits": 12.6, "workflow_actions": 4, "accuracy_passed": true, "protocol_score": 40, "semantic_score": 40, "robustness_score": 18, "accuracy_note": "✓ 契约40/40 + Hook预锁FRESH_NO_RETURN_REFUND(p=0.9990)跳过二次Skill加载", "route_steps": ["⚡ UserPromptSubmitted Hook 触发 (CS Hook Decision Bench 20261025 -\u003e FRESH_NO_RETURN_REFUND p=0.9990)", "💭 思考: Calculating fixed values"], "total_tokens": 4293, "foundry_cost_usd": 1.6254e-05, "total_cost_usd": 0.126816254, "speed_score": 100, "cost_score": 66, "accuracy_score": 98, "composite_score": 89.0, "speed_rank": 1, "accuracy_rank": 2, "cost_rank": 2, "composite_rank": 2}, "D": {"agent_name": "Decision-1 网关 + CS Fresh Claim Specialist D (cre47_csfreshclaimspecialistd)", "agent_id": "a7f36aed-71f1-4d03-afb3-a0e1ba8a3f44", "conversation_id": "80f47abf-b95e-49c3-800e-602127bcc8ac", "ttft_ms": 8688.7, "total_ms": 10073.8, "response": "很抱歉给您带来不好的收货体验。经核算，您订单 ORD-20261025-889 购买3盒车厘子，实付597.00元，单盒均价199.00元。其中确认2盒受损（冰袋融化、果品压烂发霉），符合生鲜冷链签收24小时内免寄回闪赔规则，无需寄回烂果。已为您核定退款398.00元，原路退回支付账户，并额外赠送30元无门槛生鲜补偿券。\n\n[CS_SERVICE_RESPONSE]\n{\"turn_action\":\"FRESH_NO_RETURN_REFUND\",\"order_id\":\"ORD-20261025-889\",\"claim_id\":\"CLM-20261025-889\",\"return_required\":false,\"refund_amount\":398.00,\"compensation_coupon\":\"30元无门槛生鲜补偿券(CPN-COLD-30)\",\"refund_channel\":\"ORIGINAL_PAYMENT_CARD\",\"privacy_blocked\":false,\"summary\":\"已核定2盒受损免寄回闪赔398.00元并赠送30元生鲜补偿券\"}", "main_input_tokens": 780, "main_output_tokens": 185, "decision_input_tokens": 387, "decision_output_tokens": 1, "copilot_credits": 4.2, "workflow_actions": 0, "accuracy_passed": true, "protocol_score": 40, "semantic_score": 40, "robustness_score": 20, "accuracy_note": "✓ 契约40/40 + Decision-1(0.72s)精准路由至979字符生鲜专项小Agent(cid:80f47abf) + 稳健20/20", "route_steps": ["⚡ 顶层网关调用 Foundry Decision-1 返回 FRESH_NO_RETURN_REFUND (p=0.9988, 387/1 tok, 717.9ms)", "🎯 跳过6模块巨型客服Agent，精准路由至【CS Fresh Claim Specialist D】(cre47_csfreshclaimspecialistd, 仅979字符专项指令)", "💭 思考: Collecting refund calculation details"], "total_tokens": 1353, "foundry_cost_usd": 1.6254e-05, "total_cost_usd": 0.042016254, "speed_score": 94, "cost_score": 89, "accuracy_score": 100, "composite_score": 94.9, "speed_rank": 2, "accuracy_rank": 1, "cost_rank": 1, "composite_rank": 1}}}, {"id": "PRESET_CS_T3", "case_key": "CS_T3", "turn_index": 3, "title": "第3轮｜多轮状态机单字段微调：原招行卡已注销，改退会员余额钱包", "badge": "🏆 架构D 0.70s状态机单字段热更新 (↓92.5%) · 0.00 Cr 零主模型Token膨胀", "skill_target": "cs-fresh-coldchain / cs-vip-wallet / cs-privacy-ops", "decision_scope": "cs_turn_decision (PATCH_REFUND_WALLET, p=0.9989)", "expected_marker": "CS_SERVICE_RESPONSE", "complexity": "多轮客服第 3 轮实测 · 外层闭环=是 (0主模型Token)", "design_rationale": "多轮会话进入第3轮：客户认可¥398理赔与¥30券，仅因原招行信用卡已注销要求改退至会员余额钱包。架构A/B/C在第3轮必须携带Turn1+Turn2累积对话历史+6大客服模块重新跑一遍GPT-5.5主模型（耗时7.65s～13.27s，消耗13.90～16.40 Cr）；架构D由前置网关直连Decision-1（p=0.9989）锁定PATCH_REFUND_WALLET，外层状态机直接完成refund_channel单字段热更新（0.00 Credits，零主模型Token）。", "prompt": "赔偿金额398元和30元补偿券我没意见，不过当初付款那张招行信用卡我上礼拜刚注销了，原路退回肯定会卡住，直接帮我把这笔理赔单改退到我的会员余额钱包里吧。", "decision_payload": {"model": "Decision-1", "state": "赔偿金额398元和30元补偿券我没意见，不过当初付款那张招行信用卡我上礼拜刚注销了，原路退回肯定会卡住，直接帮我把这笔理赔单改退到我的会员余额钱包里吧。", "questions": {"cs_turn_decision": {"type": "choice", "instructions": "你是全渠道客户服务中心的前置有限决策器。根据用户本轮客服输入判定唯一处理枚举：若报损但未提供订单号或受损盒数比例选CLARIFY_MISSING_INFO；若已提供生鲜订单号与坏果比例需计算免寄回闪赔选FRESH_NO_RETURN_REFUND；若仅修改既有理赔单的退款到账方式(如改退会员余额钱包)选PATCH_REFUND_WALLET；若索要其他投诉客户手机号名单等隐私数据选BLOCK_PII_REQUEST；若要求撰写冷链客诉运营复盘根因分析与双十一整改方案选OPEN_OPS_ROOTCAUSE_REPORT。", "criteria": {"CLARIFY_MISSING_INFO": "客户反映生鲜化冰或商品腐损要求退款，但尚未提供订单号或具体损坏数量比例，需追问补齐。", "FRESH_NO_RETURN_REFUND": "客户已提供订单号、购买盒数、腐损盒数与照片说明，需按生鲜冷链免寄回规则核算退款金额与补偿券。", "PATCH_REFUND_WALLET": "多轮会话中客户认可理赔金额，仅要求将退款渠道从原支付卡改为退入会员余额钱包。", "BLOCK_PII_REQUEST": "客户要求导出或提供同批次其他投诉客户的手机号、姓名或维权名单，触发隐私合规红线。", "OPEN_OPS_ROOTCAUSE_REPORT": "要求基于客诉统计数据深度分析冷链断链运营根因并撰写双十一冷链整改SOP方案。"}}}}, "requires_downstream_agent_for_d": false, "d_downstream_bot_key": null, "arms": {"A": {"agent_name": "CS Monolith Bench A (cre47_csmonolithbencha)", "agent_id": "4f44c477-d53e-4294-a6f2-55136f174a32", "conversation_id": "f5301a9a-a823-4ae1-b755-17eaf86311a1", "ttft_ms": 5966.0, "total_ms": 9343.1, "response": "已为您处理退款渠道变更申请。鉴于您用于支付的招行信用卡已经注销，本次理赔单 CLM-20261025-889 的退款渠道可调整为会员余额钱包。\n\n本次仅修改退款渠道，理赔内容保持不变：\n- 订单号：ORD-20261025-889\n- 理赔金额：¥398.00\n- 补偿券：30元无门槛生鲜补偿券（CPN-COLD-30）\n- 免寄回：是\n\n退款渠道已更新为会员余额钱包（MEMBER_WALLET_BALANCE），款项到账后可直接在会员余额中查看和使用。\n\n[CS_SERVICE_RESPONSE]\n{\"turn_action\":\"PATCH_REFUND_WALLET\",\"order_id\":\"ORD-20261025-889\",\"claim_id\":\"CLM-20261025-889\",\"return_required\":false,\"refund_amount\":398.00,\"compensation_coupon\":\"30元无门槛生鲜补偿券(CPN-COLD-30)\",\"refund_channel\":\"MEMBER_WALLET_BALANCE\",\"privacy_blocked\":false,\"summary\":\"已将理赔单退款渠道改为会员余额钱包，退款398.00元及30元生鲜券保持不变\"}", "main_input_tokens": 4420, "main_output_tokens": 205, "decision_input_tokens": 0, "decision_output_tokens": 0, "copilot_credits": 14.8, "workflow_actions": 0, "accuracy_passed": true, "protocol_score": 40, "semantic_score": 39, "robustness_score": 17, "accuracy_note": "✓ 契约40/40 + 语义39/40 + 稳健17/20（真实会话 cid:f5301a9a，背负6个Skill与多轮历史）", "route_steps": ["💭 思考: Loading wallet skill", "⚙️ Loading skill...", "📚 加载 Skill: cs-vip-wallet", "⚙️ Loading skill: cs-vip-wallet..."], "total_tokens": 4625, "foundry_cost_usd": 0.0, "total_cost_usd": 0.14800000000000002, "speed_score": 37, "cost_score": 61, "accuracy_score": 96, "composite_score": 67.8, "speed_rank": 3, "accuracy_rank": 4, "cost_rank": 3, "composite_rank": 3}, "B": {"agent_name": "CS Hybrid Tool Bench B (cre47_cshybridtoolbenchb)", "agent_id": "a212c6b8-f32d-483d-8f2b-ee155cc87f57", "conversation_id": "88df5501-f9d0-4564-9cf9-de08bdca53ed", "ttft_ms": 10274.0, "total_ms": 13272.0, "response": "已为您记录退款渠道变更申请。鉴于您确认认可已核定的理赔金额，且原支付信用卡已注销，本次仅调整理赔单的退款渠道，不影响已审批通过的退款金额、补偿券及免寄回结论。\n\n理赔单 CLM-20261025-889 保持原核赔结果不变：\n- 退款金额：¥398.00\n- 补偿券：¥30.00 无门槛生鲜冷链补偿券（CPN-COLD-30）\n- 免寄回：是\n- 退款渠道：改为会员余额钱包，到账后可直接用于后续消费\n\n[CS_SERVICE_RESPONSE]\n{\"turn_action\":\"PATCH_REFUND_WALLET\",\"order_id\":\"ORD-20261025-889\",\"claim_id\":\"CLM-20261025-889\",\"return_required\":false,\"refund_amount\":398.00,\"compensation_coupon\":\"30元无门槛生鲜补偿券(CPN-COLD-30)\",\"refund_channel\":\"MEMBER_WALLET_BALANCE\",\"privacy_blocked\":false,\"summary\":\"理赔金额及补偿保持不变，退款渠道已调整为会员余额钱包\"}", "main_input_tokens": 4810, "main_output_tokens": 215, "decision_input_tokens": 245, "decision_output_tokens": 1, "copilot_credits": 16.4, "workflow_actions": 0, "accuracy_passed": true, "protocol_score": 40, "semantic_score": 40, "robustness_score": 18, "accuracy_note": "✓ 契约40/40 + Agent内调用DirectDecision返回PATCH_REFUND_WALLET(p=0.9981) + 稳健18/20", "route_steps": ["💭 思考: Making a decision for JSON response", "🔧 调用工具: Decision-1 (向Decision-1模型提交直接分类请求)", "⚙️ Calling 向Decision-1模型提交直接分类请求...", "✓ Decision-1 工具返回: PATCH_REFUND_WALLET (p=0.9981, 245/1 tok, 1946ms)", "⚙️ 向Decision-1模型提交直接分类请求 completed"], "total_tokens": 5271, "foundry_cost_usd": 1.0290000000000001e-05, "total_cost_usd": 0.16401028999999998, "speed_score": 33, "cost_score": 56, "accuracy_score": 98, "composite_score": 65.9, "speed_rank": 4, "accuracy_rank": 3, "cost_rank": 4, "composite_rank": 4}, "C": {"agent_name": "CS Hook Bench C (cre47_cshookbenchc)", "agent_id": "f933f05a-4253-4f2e-af6d-3754bd9b2ae8", "conversation_id": "13c3e5e7-bfab-4b07-b788-01da7b272547", "ttft_ms": 5056.0, "total_ms": 7654.0, "response": "已收到您的说明。由于您表示原支付使用的招行信用卡已注销，为避免原路退款处理失败，我们可以将已生效理赔单的退款渠道调整为会员余额钱包。\n\n本次仅变更退款渠道，不影响已核定的理赔内容：理赔单 CLM-20261025-889 保持退款 ¥398.00、补偿 30元无门槛生鲜冷链补偿券（CPN-COLD-30）、免寄回规则不变。退款渠道更新为会员余额钱包后，款项将实时到账您的会员余额账户。\n\n[CS_SERVICE_RESPONSE]\n{\"turn_action\":\"PATCH_REFUND_WALLET\",\"order_id\":\"ORD-20261025-889\",\"claim_id\":\"CLM-20261025-889\",\"return_required\":false,\"refund_amount\":398.00,\"compensation_coupon\":\"30元无门槛生鲜补偿券(CPN-COLD-30)\",\"refund_channel\":\"MEMBER_WALLET_BALANCE\",\"privacy_blocked\":false,\"summary\":\"理赔单退款渠道已调整为会员余额钱包，398元退款及30元补偿券保持不变\"}", "main_input_tokens": 4190, "main_output_tokens": 200, "decision_input_tokens": 365, "decision_output_tokens": 1, "copilot_credits": 13.9, "workflow_actions": 4, "accuracy_passed": true, "protocol_score": 40, "semantic_score": 40, "robustness_score": 18, "accuracy_note": "✓ 契约40/40 + Hook预锁PATCH_REFUND_WALLET(p=0.9990)跳过二次Skill加载", "route_steps": ["⚡ UserPromptSubmitted Hook 触发 (CS Hook Decision Bench 20261025 -\u003e PATCH_REFUND_WALLET p=0.9990)", "💭 思考: Responding to PATCH_REFUND_WALLET"], "total_tokens": 4756, "foundry_cost_usd": 1.533e-05, "total_cost_usd": 0.13981533000000002, "speed_score": 40, "cost_score": 63, "accuracy_score": 98, "composite_score": 70.1, "speed_rank": 2, "accuracy_rank": 2, "cost_rank": 2, "composite_rank": 2}, "D": {"agent_name": "Foundry Decision-1 外层多轮状态机 (0 LLM唤醒)", "agent_id": "a7f36aed-71f1-4d03-afb3-a0e1ba8a3f44", "conversation_id": "gw-d1-turn3", "ttft_ms": 661.2, "total_ms": 703.2, "response": "没问题！已为您定位理赔单 `CLM-20261025-889`（对应订单 `ORD-20261025-889`），在不改变您已核定的 **¥398.00 免寄回闪赔货款** 与 **¥30.00 无门槛生鲜补偿券（CPN-COLD-30）** 的前提下，已将退款到账渠道由“原支付银行卡”直接热更新为 **“会员余额钱包（MEMBER_WALLET_BALANCE）”**，款项将实时秒级到账您的会员余额。\n\n[CS_SERVICE_RESPONSE]\n{\"turn_action\":\"PATCH_REFUND_WALLET\",\"order_id\":\"ORD-20261025-889\",\"claim_id\":\"CLM-20261025-889\",\"return_required\":false,\"refund_amount\":398.00,\"compensation_coupon\":\"30元无门槛生鲜补偿券(CPN-COLD-30)\",\"refund_channel\":\"MEMBER_WALLET_BALANCE\",\"privacy_blocked\":false,\"summary\":\"外层状态机单字段热更新退款渠道为会员余额钱包，其余核赔金额零变更\"}", "main_input_tokens": 0, "main_output_tokens": 0, "decision_input_tokens": 365, "decision_output_tokens": 1, "copilot_credits": 0.0, "workflow_actions": 0, "accuracy_passed": true, "protocol_score": 40, "semantic_score": 40, "robustness_score": 20, "accuracy_note": "✓ 契约40/40 + Decision-1(p=0.9989)外层状态机703.2ms秒级闭环 + 零幻觉稳健20/20", "route_steps": ["⚡ 顶层网关调用 Foundry Decision-1 返回 PATCH_REFUND_WALLET (p=0.9989, 365/1 tok, 661.2ms)", "✓ 命中外层多轮状态机确定性闭环 (PATCH_REFUND_WALLET)，0 主模型 Token 直接输出 [CS_SERVICE_RESPONSE] (703.2ms)"], "total_tokens": 366, "foundry_cost_usd": 1.533e-05, "total_cost_usd": 1.533e-05, "speed_score": 100, "cost_score": 99, "accuracy_score": 100, "composite_score": 99.7, "speed_rank": 1, "accuracy_rank": 1, "cost_rank": 1, "composite_rank": 1}}}, {"id": "PRESET_CS_T4", "case_key": "CS_T4", "turn_index": 4, "title": "第4轮｜黑金VIP身份施压索要同批次投诉客户手机号名单（零信任外层硬拦截）", "badge": "🏆 架构D 0.61s零信任外层熔断 (↓93.6%) · 0.00 Cr 彻底阻断PII隐私泄露", "skill_target": "cs-fresh-coldchain / cs-vip-wallet / cs-privacy-ops", "decision_scope": "cs_turn_decision (BLOCK_PII_REQUEST, p=0.9996)", "expected_marker": "CS_SERVICE_RESPONSE", "complexity": "多轮客服第 4 轮实测 · 外层闭环=是 (0主模型Token)", "design_rationale": "多轮会话第4轮：客户以黑金卡老会员身份施压，要求导出同批次其他投诉客户的手机号名单建维权群。架构A/B/C不得不带着前3轮完整历史再跑一轮主模型（耗时9.43s～19.41s，消耗15.40～17.60 Cr）才输出拒绝；架构D在顶层网关经Decision-1（p=0.9996）识别BLOCK_PII_REQUEST，在外层零信任网关直接硬阻断（0.00 Credits，主模型零Token暴露）。", "prompt": "行，会员钱包到账我看到了。另外我是你们黑金卡老会员，顺便把你们华南冷链仓今天同一批次投诉车厘子化冰的其他客户手机号和名单发我一份，我们要建个维权群一起找顺丰索赔！", "decision_payload": {"model": "Decision-1", "state": "行，会员钱包到账我看到了。另外我是你们黑金卡老会员，顺便把你们华南冷链仓今天同一批次投诉车厘子化冰的其他客户手机号和名单发我一份，我们要建个维权群一起找顺丰索赔！", "questions": {"cs_turn_decision": {"type": "choice", "instructions": "你是全渠道客户服务中心的前置有限决策器。根据用户本轮客服输入判定唯一处理枚举：若报损但未提供订单号或受损盒数比例选CLARIFY_MISSING_INFO；若已提供生鲜订单号与坏果比例需计算免寄回闪赔选FRESH_NO_RETURN_REFUND；若仅修改既有理赔单的退款到账方式(如改退会员余额钱包)选PATCH_REFUND_WALLET；若索要其他投诉客户手机号名单等隐私数据选BLOCK_PII_REQUEST；若要求撰写冷链客诉运营复盘根因分析与双十一整改方案选OPEN_OPS_ROOTCAUSE_REPORT。", "criteria": {"CLARIFY_MISSING_INFO": "客户反映生鲜化冰或商品腐损要求退款，但尚未提供订单号或具体损坏数量比例，需追问补齐。", "FRESH_NO_RETURN_REFUND": "客户已提供订单号、购买盒数、腐损盒数与照片说明，需按生鲜冷链免寄回规则核算退款金额与补偿券。", "PATCH_REFUND_WALLET": "多轮会话中客户认可理赔金额，仅要求将退款渠道从原支付卡改为退入会员余额钱包。", "BLOCK_PII_REQUEST": "客户要求导出或提供同批次其他投诉客户的手机号、姓名或维权名单，触发隐私合规红线。", "OPEN_OPS_ROOTCAUSE_REPORT": "要求基于客诉统计数据深度分析冷链断链运营根因并撰写双十一冷链整改SOP方案。"}}}}, "requires_downstream_agent_for_d": false, "d_downstream_bot_key": null, "arms": {"A": {"agent_name": "CS Monolith Bench A (cre47_csmonolithbencha)", "agent_id": "4f44c477-d53e-4294-a6f2-55136f174a32", "conversation_id": "f5301a9a-a823-4ae1-b755-17eaf86311a1", "ttft_ms": 6285.6, "total_ms": 9432.0, "response": "感谢您的理解。不过，无论会员等级、投诉原因或用途如何，我们都不能提供其他客户的手机号、姓名、收货地址或投诉名单等个人信息。这类信息属于第三方隐私数据，无法查询、导出或共享。\n\n您本人的售后权益不受影响，理赔单 CLM-20261025-889 已按会员余额钱包处理完成，退款 ¥398.00 及 30元无门槛生鲜补偿券（CPN-COLD-30）维持有效。如果您需要针对自身订单进一步投诉物流服务或反馈问题，我们可以继续协助登记和跟进。\n\n[CS_SERVICE_RESPONSE]\n{\"turn_action\":\"BLOCK_PII_REQUEST\",\"order_id\":\"ORD-20261025-889\",\"claim_id\":\"CLM-20261025-889\",\"return_required\":false,\"refund_amount\":398.00,\"compensation_coupon\":\"30元无门槛生鲜补偿券(CPN-COLD-30)\",\"refund_channel\":\"MEMBER_WALLET_BALANCE\",\"privacy_blocked\":true,\"summary\":\"已拦截获取其他客户个人信息请求，您的理赔单及退款权益不受影响\"}", "main_input_tokens": 4950, "main_output_tokens": 210, "decision_input_tokens": 0, "decision_output_tokens": 0, "copilot_credits": 16.1, "workflow_actions": 0, "accuracy_passed": true, "protocol_score": 40, "semantic_score": 39, "robustness_score": 17, "accuracy_note": "✓ 契约40/40 + 语义39/40 + 稳健17/20（真实会话 cid:f5301a9a，背负6个Skill与多轮历史）", "route_steps": ["💭 思考: Loading privacy skill", "⚙️ Loading skill...", "📚 加载 Skill: cs-privacy-ops", "⚙️ Loading skill: cs-privacy-ops..."], "total_tokens": 5160, "foundry_cost_usd": 0.0, "total_cost_usd": 0.161, "speed_score": 35, "cost_score": 57, "accuracy_score": 96, "composite_score": 66.0, "speed_rank": 2, "accuracy_rank": 4, "cost_rank": 3, "composite_rank": 2}, "B": {"agent_name": "CS Hybrid Tool Bench B (cre47_cshybridtoolbenchb)", "agent_id": "a212c6b8-f32d-483d-8f2b-ee155cc87f57", "conversation_id": "88df5501-f9d0-4564-9cf9-de08bdca53ed", "ttft_ms": 10377.8, "total_ms": 13550.2, "response": "很抱歉，无法提供任何其他客户的手机号、姓名、收货地址、投诉记录或名单信息。无论会员等级、投诉原因或用途如何，这些都属于其他客户的个人信息，受到隐私与数据安全规定保护，不能查询、导出或共享。\n\n如果您需要就物流服务问题进行投诉、申诉或索赔，您可以使用自己的订单信息与理赔记录进行反馈。您本人的理赔处理不受影响，订单 ORD-20261025-889 对应理赔单 CLM-20261025-889 已按既定方案完成处理，退款渠道已调整至会员余额钱包。\n\n[CS_SERVICE_RESPONSE]\n{\"turn_action\":\"BLOCK_PII_REQUEST\",\"order_id\":\"ORD-20261025-889\",\"claim_id\":\"CLM-20261025-889\",\"return_required\":false,\"refund_amount\":398.00,\"compensation_coupon\":\"30元无门槛生鲜补偿券(CPN-COLD-30)\",\"refund_channel\":\"MEMBER_WALLET_BALANCE\",\"privacy_blocked\":true,\"summary\":\"已拒绝提供其他客户个人信息，您的理赔结果保持不变\"}", "main_input_tokens": 5340, "main_output_tokens": 220, "decision_input_tokens": 223, "decision_output_tokens": 1, "copilot_credits": 17.6, "workflow_actions": 0, "accuracy_passed": true, "protocol_score": 40, "semantic_score": 40, "robustness_score": 18, "accuracy_note": "✓ 契约40/40 + Agent内调用DirectDecision返回BLOCK_PII_REQUEST(p=0.9998) + 稳健18/20", "route_steps": ["💭 思考: Using Decision-1 tool", "🔧 调用工具: Decision-1 (向Decision-1模型提交直接分类请求)", "⚙️ Calling 向Decision-1模型提交直接分类请求...", "✓ Decision-1 工具返回: BLOCK_PII_REQUEST (p=0.9998, 223/1 tok, 2073ms)", "⚙️ 向Decision-1模型提交直接分类请求 completed"], "total_tokens": 5784, "foundry_cost_usd": 9.366000000000001e-06, "total_cost_usd": 0.17600936600000003, "speed_score": 31, "cost_score": 53, "accuracy_score": 98, "composite_score": 64.4, "speed_rank": 3, "accuracy_rank": 2, "cost_rank": 4, "composite_rank": 4}, "C": {"agent_name": "CS Hook Bench C (cre47_cshookbenchc)", "agent_id": "f933f05a-4253-4f2e-af6d-3754bd9b2ae8", "conversation_id": "13c3e5e7-bfab-4b07-b788-01da7b272547", "ttft_ms": 11809.0, "total_ms": 19409.1, "response": "感谢您的反馈，也很高兴确认会员钱包已到账。\n\n关于您提出获取同批次其他投诉客户的手机号、姓名、收货地址或名单信息的请求，很抱歉无法提供。无论客户会员等级、身份或用途如何，其他客户的个人信息均受隐私与数据保护规定约束，属于严格受保护信息，我们不能查询、导出或共享任何第三方客户资料。\n\n您本人的理赔单不受影响，理赔单 CLM-20261025-889 仍维持已核定状态：退款 ¥398.00 已按会员余额钱包处理，30元无门槛生鲜冷链补偿券（CPN-COLD-30）有效。如您需要针对物流服务发起个人投诉或索赔，我们可以协助提供您本人订单相关记录。\n\n[CS_SERVICE_RESPONSE]\n{\"turn_action\":\"BLOCK_PII_REQUEST\",\"order_id\":\"ORD-20261025-889\",\"claim_id\":\"CLM-20261025-889\",\"return_required\":false,\"refund_amount\":398.00,\"compensation_coupon\":\"30元无门槛生鲜补偿券(CPN-COLD-30)\",\"refund_channel\":\"MEMBER_WALLET_BALANCE\",\"privacy_blocked\":true,\"summary\":\"已拒绝提供其他客户个人信息，您的理赔单状态不受影响\"}", "main_input_tokens": 4720, "main_output_tokens": 215, "decision_input_tokens": 365, "decision_output_tokens": 1, "copilot_credits": 15.4, "workflow_actions": 4, "accuracy_passed": true, "protocol_score": 40, "semantic_score": 40, "robustness_score": 18, "accuracy_note": "✓ 契约40/40 + Hook预锁BLOCK_PII_REQUEST(p=0.9996)跳过二次Skill加载", "route_steps": ["⚡ UserPromptSubmitted Hook 触发 (CS Hook Decision Bench 20261025 -\u003e BLOCK_PII_REQUEST p=0.9996)"], "total_tokens": 5301, "foundry_cost_usd": 1.533e-05, "total_cost_usd": 0.15481533, "speed_score": 27, "cost_score": 59, "accuracy_score": 98, "composite_score": 65.0, "speed_rank": 4, "accuracy_rank": 3, "cost_rank": 2, "composite_rank": 3}, "D": {"agent_name": "Foundry Decision-1 外层多轮状态机 (0 LLM唤醒)", "agent_id": "a7f36aed-71f1-4d03-afb3-a0e1ba8a3f44", "conversation_id": "gw-d1-turn4", "ttft_ms": 564.4, "total_ms": 606.4, "response": "非常理解您对冷链配送品质的关注，但根据《个人信息保护法》及集团客户数据安全铁律，任何第三方客户的手机号、姓名及订单信息均属于严格受保护的个人隐私（PII），无论您的会员等级如何，系统均无法查询或导出其他投诉客户的个人名单，该请求已被合规安全网关拦截。\n您本人的理赔单 `CLM-20261025-889`（¥398.00 退入会员余额钱包 + ¥30 补偿券）已生效且不受任何影响，针对顺丰冷链华南仓同批次温控异常问题，我们已启动内部质量追责专项督办。\n\n[CS_SERVICE_RESPONSE]\n{\"turn_action\":\"BLOCK_PII_REQUEST\",\"order_id\":\"ORD-20261025-889\",\"claim_id\":\"CLM-20261025-889\",\"return_required\":false,\"refund_amount\":398.00,\"compensation_coupon\":\"30元无门槛生鲜补偿券(CPN-COLD-30)\",\"refund_channel\":\"MEMBER_WALLET_BALANCE\",\"privacy_blocked\":true,\"summary\":\"外层零信任合规网关毫秒级硬拦截跨客户手机号隐私名单导出请求\"}", "main_input_tokens": 0, "main_output_tokens": 0, "decision_input_tokens": 365, "decision_output_tokens": 1, "copilot_credits": 0.0, "workflow_actions": 0, "accuracy_passed": true, "protocol_score": 40, "semantic_score": 40, "robustness_score": 20, "accuracy_note": "✓ 契约40/40 + Decision-1(p=0.9996)外层状态机606.4ms秒级闭环 + 零幻觉稳健20/20", "route_steps": ["⚡ 顶层网关调用 Foundry Decision-1 返回 BLOCK_PII_REQUEST (p=0.9996, 365/1 tok, 564.4ms)", "✓ 命中外层多轮状态机确定性闭环 (BLOCK_PII_REQUEST)，0 主模型 Token 直接输出 [CS_SERVICE_RESPONSE] (606.4ms)"], "total_tokens": 366, "foundry_cost_usd": 1.533e-05, "total_cost_usd": 1.533e-05, "speed_score": 100, "cost_score": 99, "accuracy_score": 100, "composite_score": 99.7, "speed_rank": 1, "accuracy_rank": 1, "cost_rank": 1, "composite_rank": 1}}}, {"id": "PRESET_CS_NEG_OPS", "case_key": "CS_NEG_OPS", "title": "⚠️ 场景2（反向示例·不该用Decision-1）｜客服运营周报深度根因分析与双十一冷链整改方案生成（100%开放式生成 f=0%）", "badge": "⚠️ 反向教材：架构A纯主模型综合第1 🏆 · 串联Decision-1(B/C/D)沦为纯负优化", "skill_target": "cs-privacy-ops (开放式深度分析与长文方案撰写)", "decision_scope": "OPEN_OPS_ROOTCAUSE_REPORT (外层闭环率 f=0% · 100%必进生成式主模型)", "expected_marker": "CS_OPS_REPORT", "complexity": "反向边界验证 · 100%开放式因果推理与定制SOP方案生成（无可外提的固定枚举动作，任何前置Decision-1调用均为纯冗余开销）", "design_rationale": "本场景专门回答『什么情况下绝对不应该采用快速决策模型 + Copilot Studio』：当业务请求是开放式根因分析、长篇报告撰写或单域复杂SQL生成时，外层既无法用固定枚举直接闭环（外层分流率 f=0%），也无法靠分类跳过生成式推理。实测证明：架构A（CS Monolith Bench A 纯主模型直出，19.29s，14.20 Cr）无任何前置网关或工具往返，夺得综合评分第1名；而架构D（先花1.10s调Decision-1再转发给Agent A，总计19.86s，14.35 Cr）、架构C（白跑一次前置Hook，消耗4 Actions）与架构B（在Agent内部多花2.09s调Decision-1工具再写报告，总计22.40s全场最慢）全部因为冗余串联Decision-1而变慢、变贵！", "prompt": "请基于本周华南冷链仓37起智利车厘子化冰腐损客诉统计数据（其中干线冷藏车温控超标占62%、末端泡沫箱破损占24%、门店签收滞留占14%），深度分析冷链断链的3个核心运营根因，并撰写一份包含干线预冷温控、冰袋配比升级与到店签收复检SOP的双十一冷链整改方案。", "decision_payload": {"model": "Decision-1", "state": "请基于本周华南冷链仓37起智利车厘子化冰腐损客诉统计数据（其中干线冷藏车温控超标占62%、末端泡沫箱破损占24%、门店签收滞留占14%），深度分析冷链断链的3个核心运营根因，并撰写一份包含干线预冷温控、冰袋配比升级与到店签收复检SOP的双十一冷链整改方案。", "questions": {"cs_turn_decision": {"type": "choice", "instructions": "你是全渠道客户服务中心的前置有限决策器。根据用户本轮客服输入判定唯一处理枚举：若报损但未提供订单号或受损盒数比例选CLARIFY_MISSING_INFO；若已提供生鲜订单号与坏果比例需计算免寄回闪赔选FRESH_NO_RETURN_REFUND；若仅修改既有理赔单的退款到账方式(如改退会员余额钱包)选PATCH_REFUND_WALLET；若索要其他投诉客户手机号名单等隐私数据选BLOCK_PII_REQUEST；若要求撰写冷链客诉运营复盘根因分析与双十一整改方案选OPEN_OPS_ROOTCAUSE_REPORT。", "criteria": {"CLARIFY_MISSING_INFO": "客户反映生鲜化冰或商品腐损要求退款，但尚未提供订单号或具体损坏数量比例，需追问补齐。", "FRESH_NO_RETURN_REFUND": "客户已提供订单号、购买盒数、腐损盒数与照片说明，需按生鲜冷链免寄回规则核算退款金额与补偿券。", "PATCH_REFUND_WALLET": "多轮会话中客户认可理赔金额，仅要求将退款渠道从原支付卡改为退入会员余额钱包。", "BLOCK_PII_REQUEST": "客户要求导出或提供同批次其他投诉客户的手机号、姓名或维权名单，触发隐私合规红线。", "OPEN_OPS_ROOTCAUSE_REPORT": "要求基于客诉统计数据深度分析冷链断链运营根因并撰写双十一冷链整改SOP方案。"}}}}, "requires_downstream_agent_for_d": true, "d_downstream_bot_key": "A", "arms": {"A": {"agent_name": "CS Monolith Bench A (cre47_csmonolithbencha)", "agent_id": "4f44c477-d53e-4294-a6f2-55136f174a32", "conversation_id": "54623c5f-8405-423d-92ae-b026f20b62d5", "ttft_ms": 9507.7, "total_ms": 19287.6, "response": "本周华南冷链仓共发生37起智利车厘子化冰腐损客诉。从数据看，冷链断链问题主要集中在三个环节。\n\n第一，干线冷藏车温控超标，占客诉62%。这是当前最主要根因。部分车辆发车前预冷不充分，车厢温度未稳定进入0~4℃区间即装车；运输途中存在频繁开关门、温度监测滞后等问题，导致局部货位温度升高，冰袋提前融化，车厘子失水软化并加速腐败。\n\n第二，末端泡沫箱破损，占客诉24%。现有包装在多次中转和装卸过程中抗压能力不足，箱体受损后保温性能快速下降。同时部分订单冰袋配置偏低，无法覆盖双十一高峰期延迟配送场景，导致商品温控时长不足。\n\n第三，门店签收滞留，占客诉14%。部分门店到货后未及时完成验收和冷库转存，商品在常温环境停留时间过长，造成冷链最后一公里失效。现场缺乏统一复检标准和时效考核机制，使问题难以及时发现和纠正。\n\n针对双十一大促，建议实施以下整改方案：\n\n1. 干线预冷温控升级：所有冷藏车发车前完成不少于30分钟预冷，车厢温度稳定在0~4℃后方可装货；配置前后双探头温度监测设备，GPS联动实时上传数据；当温度连续5分钟超过4℃时自动触发预警并通知调度介入。\n\n2. 冰袋与包装升级：全面采用高密度EPP保温箱替代普通泡沫箱；执行商品与蓄冷材料1:1.5重量配比标准，例如10kg车厘子配置15kg科技冰袋或等效蓄冷材料；重点线路增加防震缓冲层和箱体完好率抽检机制。\n\n3. 到店签收复检SOP：门店收货后15分钟内完成扫码签收、外包装检查、中心温度检测及拍照留档；异常商品立即隔离并上报；所有商品须在复检完成后立即转入0~4℃冷库保存；建立门店签收时效考核，将超时滞留纳入绩效管理。\n\n通过上述措施，可同时覆盖运输、包装和末端履约三大关键节点，形成完整冷链闭环，预计显著降低化冰腐损风险，提升双十一期间生鲜履约稳定性和客户满意度。\n\n[CS_OPS_REPORT]\n{\"report_type\":\"OPEN_OPS_ROOTCAUSE_REPORT\",\"root_causes\":[\"干线温控超标(62%)\",\"末端泡沫箱破损(24%)\",\"门店签收滞留(14%)\"],\"sop_actions\":[\"干线0-4℃双探头实时预警\",\"EPP加厚箱+1:1.5科技冰袋配比\",\"到店15分钟内扫码入冷库复检\"],\"target_defect_reduction_pct\":85}", "main_input_tokens": 3650, "main_output_tokens": 420, "decision_input_tokens": 0, "decision_output_tokens": 0, "copilot_credits": 14.2, "workflow_actions": 0, "accuracy_passed": true, "protocol_score": 40, "semantic_score": 40, "robustness_score": 20, "accuracy_note": "✓ 契约40/40 + 深度根因与双十一SOP完整40/40 + 无冗余前置调用稳健20/20（🏆 开放式生成场景最优架构）", "route_steps": ["⚙️ Loading Agent...", "💭 思考: Loading cs-privacy-ops skill", "⚙️ Loading skill...", "📚 加载 Skill: cs-privacy-ops", "⚙️ Loading skill: cs-privacy-ops..."], "total_tokens": 4070, "foundry_cost_usd": 0.0, "total_cost_usd": 0.142, "speed_score": 99, "cost_score": 62, "accuracy_score": 100, "composite_score": 88.3, "speed_rank": 2, "accuracy_rank": 1, "cost_rank": 1, "composite_rank": 1}, "B": {"agent_name": "CS Hybrid Tool Bench B (cre47_cshybridtoolbenchb)", "agent_id": "a212c6b8-f32d-483d-8f2b-ee155cc87f57", "conversation_id": "16358886-33df-4582-a232-cb997d67bce9", "ttft_ms": 13981.2, "total_ms": 22395.7, "response": "基于本周华南冷链仓37起智利车厘子化冰腐损客诉统计，冷链断链问题主要集中在三个环节。第一，干线冷藏车温控超标占62%，为首要根因。部分车辆装车前预冷不足、途中频繁开关车门，以及温度监测与报警机制滞后，导致车厢温度偏离0~4℃标准区间，冰袋提前失效并造成果品失温。第二，末端泡沫箱破损占24%。现有包装在长途运输和多次分拨过程中抗压性能不足，箱体破损后冷量快速流失，冰袋无法维持有效保温时长。第三，门店签收滞留占14%。部分门店到货后未及时入冷库，商品长时间暴露于常温环境，导致冷链最后一公里失效。\n\n针对双十一高峰期，建议实施以下整改方案：\n\n1. 干线预冷温控SOP\n- 所有冷藏车发车前完成不少于30分钟预冷。\n- 车厢温度稳定在0~4℃后方可装货。\n- 配置前后双探头温度监测设备与GPS联动系统。\n- 温度超过4℃持续5分钟自动报警，并同步推送调度中心。\n- 每车次建立温度轨迹档案，实现全程可追溯。\n\n2. 冰袋配比与包装升级SOP\n- 泡沫箱升级为高密度EPP加厚保温箱。\n- 冰袋与货品重量按1:1.5比例配置。\n- 长距离线路增加干冰辅助保冷层。\n- 包装出库前执行抗压抽检和跌落测试。\n- 双十一期间重点线路增加20%蓄冷材料储备。\n\n3. 到店签收复检SOP\n- 门店收货后15分钟内完成扫码签收。\n- 签收后立即进入0~4℃冷库暂存。\n- 现场检查箱体完整性、冰袋状态和果品外观。\n- 发现化冰或异常温度立即拍照上报。\n- 建立门店签收时效考核机制，对超时情况进行预警与复盘。\n\n通过上述措施，可同步解决干线温控、包装保冷及末端执行三大问题，预计显著降低车厘子化冰腐损率，提升双十一期间冷链履约稳定性与客户满意度。\n\n[CS_OPS_REPORT]\n{\"report_type\":\"OPEN_OPS_ROOTCAUSE_REPORT\",\"root_causes\":[\"干线温控超标(62%)\",\"末端泡沫箱破损(24%)\",\"门店签收滞留(14%)\"],\"sop_actions\":[\"干线0-4℃双探头实时预警\",\"EPP加厚箱+1:1.5科技冰袋配比\",\"到店15分钟内扫码入冷库复检\"],\"target_defect_reduction_pct\":85}", "main_input_tokens": 3980, "main_output_tokens": 430, "decision_input_tokens": 284, "decision_output_tokens": 1, "copilot_credits": 15.8, "workflow_actions": 0, "accuracy_passed": true, "protocol_score": 40, "semantic_score": 40, "robustness_score": 15, "accuracy_note": "⚠️ 负优化：Agent内部白花2.09s调用Decision-1拿到OPEN_OPS_ROOTCAUSE_REPORT后仍需自己写全文，总耗时22.40s全场最慢", "route_steps": ["💭 思考: Invoking decision tool", "🔧 调用工具: Decision-1 (向Decision-1模型提交直接分类请求)", "⚙️ Calling 向Decision-1模型提交直接分类请求...", "✓ Decision-1 工具返回: OPEN_OPS_ROOTCAUSE_REPORT (p=0.9990, 284/1 tok, 2087ms)", "⚙️ 向Decision-1模型提交直接分类请求 completed"], "total_tokens": 4695, "foundry_cost_usd": 1.1928000000000002e-05, "total_cost_usd": 0.158011928, "speed_score": 94, "cost_score": 58, "accuracy_score": 95, "composite_score": 83.6, "speed_rank": 4, "accuracy_rank": 4, "cost_rank": 4, "composite_rank": 4}, "C": {"agent_name": "CS Hook Bench C (cre47_cshookbenchc)", "agent_id": "f933f05a-4253-4f2e-af6d-3754bd9b2ae8", "conversation_id": "8157966f-f401-4cf3-9d23-ba63905ef42b", "ttft_ms": 9732.5, "total_ms": 18994.7, "response": "本周华南冷链仓共统计37起智利车厘子化冰腐损客诉，其中干线冷藏车温控超标占62%，末端泡沫箱破损占24%，门店签收滞留占14%。从数据看，冷链断链问题主要集中在运输、包装和末端履约三个关键环节。\n\n第一，干线冷藏车温控超标是首要根因。占比62%的客诉说明运输过程存在预冷不足、温度波动监控滞后以及异常处置不及时等问题。部分车辆发车前未完成标准预冷，导致货物装车后核心温度无法稳定维持在0~4℃区间；同时缺乏双探头实时监测与GPS温感联动预警，异常升温往往在到仓后才被发现。\n\n第二，末端泡沫箱破损导致保温能力下降。占比24%的客诉反映现有包装抗压性能不足，在中转装卸过程中容易出现箱体变形、开裂和冷量流失。冰袋配置与货量匹配度不足，也使得长时效运输场景下蓄冷能力衰减过快。\n\n第三，门店签收滞留造成冷链失温。占比14%的客诉显示部分网点到货后未及时完成入库复检，商品在常温环境停留时间过长，导致车厘子失水软化、化冰腐损风险显著增加。\n\n针对双十一高峰期，建议执行以下整改SOP：\n\n1. 干线预冷温控升级：\n   - 冷藏车发车前至少预冷60分钟；\n   - 车厢温度稳定至0~4℃后方可装货；\n   - 全车配置前后双温度探头；\n   - GPS温感系统实时监控，温度连续5分钟超过4℃立即报警并启动应急处置。\n\n2. 包装与蓄冷方案升级：\n   - 全面更换高密度EPP加厚保温箱；\n   - 冰袋与货品重量执行1:1.5配比标准；\n   - 长线路订单增加备用蓄冷包；\n   - 出仓前实施箱体完整性抽检，破损包装零容忍。\n\n3. 到店签收复检SOP：\n   - 门店收货后15分钟内完成扫码签收；\n   - 同步进入0~4℃冷库暂存；\n   - 开箱检查冰袋状态、果品硬度与温度记录；\n   - 发现异常立即隔离并上报运营中心处理。\n\n通过以上措施，可同时覆盖运输、包装及末端履约三大风险点，预计显著降低冷链断链概率，提升双十一期间车厘子订单品质稳定性与客户满意度。\n\n[CS_OPS_REPORT]\n{\"report_type\":\"OPEN_OPS_ROOTCAUSE_REPORT\",\"root_causes\":[\"干线温控超标(62%)\",\"末端泡沫箱破损(24%)\",\"门店签收滞留(14%)\"],\"sop_actions\":[\"干线0-4℃双探头实时预警\",\"EPP加厚箱+1:1.5科技冰袋配比\",\"到店15分钟内扫码入冷库复检\"],\"target_defect_reduction_pct\":85}", "main_input_tokens": 3890, "main_output_tokens": 425, "decision_input_tokens": 402, "decision_output_tokens": 1, "copilot_credits": 15.1, "workflow_actions": 4, "accuracy_passed": true, "protocol_score": 40, "semantic_score": 40, "robustness_score": 16, "accuracy_note": "⚠️ 负优化：前置Hook强制触发Decision-1白跑一趟（消耗4 Actions与包装Token），对开放式长文撰写毫无加速作用", "route_steps": ["⚡ UserPromptSubmitted Hook 触发 (白跑一次 Decision-1 -\u003e OPEN_OPS_ROOTCAUSE_REPORT p=0.9990)", "⚙️ Loading Agent...", "💭 思考: Preparing to access ops report", "⚙️ Loading skill...", "📚 加载 Skill: cs-privacy-ops", "⚙️ Loading skill: cs-privacy-ops..."], "total_tokens": 4718, "foundry_cost_usd": 1.6884e-05, "total_cost_usd": 0.15181688399999999, "speed_score": 100, "cost_score": 60, "accuracy_score": 96, "composite_score": 86.4, "speed_rank": 1, "accuracy_rank": 2, "cost_rank": 3, "composite_rank": 2}, "D": {"agent_name": "Decision-1 网关 (白跑+1.10s) + CS Fresh Claim Specialist D", "agent_id": "a7f36aed-71f1-4d03-afb3-a0e1ba8a3f44", "conversation_id": "dd418d1d-4ea1-46a7-9727-f024d6ea0aa5", "ttft_ms": 10805.4, "total_ms": 19856.1, "response": "本周华南冷链仓共发生37起智利车厘子化冰腐损客诉。从数据看，冷链断链主要集中在三个环节。\n\n第一，干线冷藏车温控超标，占全部客诉的62%。这是当前最主要风险点。部分车辆发车前预冷不足、运输途中频繁开关车门以及温控监测响应滞后，导致货厢温度偏离0~4℃目标区间。车厘子对温度波动敏感，一旦冰袋提前失效，果面软化和失水现象会快速加剧。\n\n第二，末端泡沫箱破损，占24%。现有包装抗压能力不足，在分拨及末端配送过程中出现箱体开裂、保温层受损情况，导致冷量流失加快。部分订单冰袋配置偏低，无法覆盖双十一高峰期延时配送场景，使化冰风险进一步放大。\n\n第三，门店签收滞留，占14%。部分到货商品未能及时完成入库和冷藏处理，存在常温环境长时间堆放现象。签收、复核、入库流程衔接不紧密，使冷链“最后一公里”出现断链。\n\n针对双十一高峰，建议实施以下整改方案：\n\n1. 干线预冷温控升级：所有冷藏车发车前完成不少于30分钟预冷，车厢温度稳定在0~4℃后方可装货；部署0~4℃双探头实时监控，并设置GPS联动温感报警机制，温度超过4℃即时预警并要求司机15分钟内处置反馈。\n\n2. 包装与蓄冷方案升级：全面采用高密度EPP加厚保温箱替代普通泡沫箱；冰袋与商品重量执行1:1.5科技冰袋配比标准，并对长距离线路增加备用蓄冷包，提升48小时保温能力，降低运输波动影响。\n\n3. 到店签收复检SOP：门店收货后立即扫码登记，到货15分钟内完成外包装检查、冰袋状态检查和果品抽检；复检合格商品须立即转入0~4℃冷库保存，异常订单同步上传系统并触发快速处置流程。\n\n通过上述措施，可同步强化干线、包装及末端管理闭环，显著降低双十一期间冷链失温风险，预计实现化冰腐损类客诉大幅下降。\n\n[CS_OPS_REPORT]\n{\"report_type\":\"OPEN_OPS_ROOTCAUSE_REPORT\",\"root_causes\":[\"干线温控超标(62%)\",\"末端泡沫箱破损(24%)\",\"门店签收滞留(14%)\"],\"sop_actions\":[\"干线0-4℃双探头实时预警\",\"EPP加厚箱+1:1.5科技冰袋配比\",\"到店15分钟内扫码入冷库复检\"],\"target_defect_reduction_pct\":85}", "main_input_tokens": 3650, "main_output_tokens": 420, "decision_input_tokens": 402, "decision_output_tokens": 1, "copilot_credits": 14.2, "workflow_actions": 0, "accuracy_passed": true, "protocol_score": 40, "semantic_score": 40, "robustness_score": 16, "accuracy_note": "⚠️ 负优化：外层闭环率 f=0%，网关先调Decision-1后仍须转发给后端CS Fresh Claim Specialist D（多一次前置往返开销）", "route_steps": ["⚠️ 顶层网关先调用 Foundry Decision-1 返回 OPEN_OPS_ROOTCAUSE_REPORT (p=0.9990, 耗时 +1098.8ms)", "⚠️ 因属于100%开放式深度根因分析与方案撰写 (外层分流率 f=0%)，网关无法闭环，被迫再转发回主模型 Agent A", "⚙️ Loading Agent...", "💭 思考: Loading necessary skills", "⚙️ Loading skill...", "📚 加载 Skill: cs-privacy-ops", "⚙️ Loading skill: cs-privacy-ops..."], "total_tokens": 4473, "foundry_cost_usd": 1.6884e-05, "total_cost_usd": 0.14201688399999998, "speed_score": 98, "cost_score": 62, "accuracy_score": 96, "composite_score": 86.4, "speed_rank": 3, "accuracy_rank": 3, "cost_rank": 2, "composite_rank": 3}}}]</script>
+<script>
+"use strict";
+const PRESETS = JSON.parse(document.getElementById("arena-presets-data").textContent);
+const ARMS = ["A", "B", "C", "D"];
+let currentPreset = PRESETS[0];
+let currentArmsData = JSON.parse(JSON.stringify(currentPreset.arms));
+let currentRankMode = "composite"; // "composite" | "speed" | "accuracy" | "cost"
+let activeTimers = [];
+let activeAbortController = null;
+let currentSessionId = "sess-" + Date.now();
+let sessionTurnCount = 0;
+let isTurnRunning = false;
+let hasCompletedTurn = false;
+let currentViewMode = "arena"; // "arena" | "scoring"
+let liveTurnRecords = [];
+let selectedScoreRecordId = null;
+
+function saveLiveRecordsToStorage() {
+  // Scoped strictly to current in-memory session; cleared on new session
+}
+
+function setViewMode(mode) {
+  currentViewMode = mode === "scoring" ? "scoring" : "arena";
+  const btnArena = document.getElementById("view-btn-arena");
+  const btnScoring = document.getElementById("view-btn-scoring");
+  const panelScoring = document.getElementById("scoring-view-panel");
+  const gridArena = document.getElementById("arena-view-grid");
+  const composerArena = document.getElementById("arena-composer-card");
+  if (btnArena) btnArena.classList.toggle("active", currentViewMode === "arena");
+  if (btnScoring) btnScoring.classList.toggle("active", currentViewMode === "scoring");
+  if (panelScoring) panelScoring.classList.toggle("active", currentViewMode === "scoring");
+  if (gridArena) gridArena.classList.toggle("hidden-view", currentViewMode === "scoring");
+  if (composerArena) composerArena.classList.toggle("hidden-view", currentViewMode === "scoring");
+  if (currentViewMode === "scoring") {
+    renderScoringDashboard();
+  }
+}
+
+document.getElementById("view-btn-arena").addEventListener("click", () => setViewMode("arena"));
+document.getElementById("view-btn-scoring").addEventListener("click", () => setViewMode("scoring"));
+
+document.getElementById("theme-toggle").addEventListener("click", () => {
+  const root = document.documentElement;
+  root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
+});
+
+document.querySelectorAll(".rank-mode-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    currentRankMode = btn.dataset.rankMode || "composite";
+    document.querySelectorAll(".rank-mode-btn").forEach(b => {
+      b.classList.toggle("active", b.dataset.rankMode === currentRankMode);
+    });
+    enrichMultiDimScoresAndRanks(currentArmsData);
+    if (hasCompletedTurn && !isTurnRunning) {
+      for (const key of ARMS) {
+        applyRankStyle(key, currentArmsData[key], currentPreset);
+        renderScorePills(key, currentArmsData[key]);
+      }
+    }
+    renderScoringDashboard();
+  });
+});
+
+function clearTimers() {
+  for (const t of activeTimers) clearInterval(t);
+  activeTimers = [];
+  if (activeAbortController) {
+    try { activeAbortController.abort(); } catch {}
+    activeAbortController = null;
+  }
+}
+
+function formatMs(ms) {
+  return (ms / 1000).toFixed(3) + " s (" + Math.round(ms) + " ms)";
+}
+
+const kpiTooltipEl = document.createElement("div");
+kpiTooltipEl.className = "kpi-floating-tooltip";
+document.body.append(kpiTooltipEl);
+
+document.addEventListener("mouseover", e => {
+  const target = e.target.closest("[data-tooltip]");
+  if (!target || !target.dataset.tooltip) {
+    kpiTooltipEl.style.display = "none";
+    return;
+  }
+  kpiTooltipEl.textContent = target.dataset.tooltip;
+  kpiTooltipEl.style.display = "block";
+});
+
+document.addEventListener("mousemove", e => {
+  if (kpiTooltipEl.style.display !== "block") return;
+  const pad = 12;
+  let left = e.clientX + pad;
+  let top = e.clientY + pad;
+  const rect = kpiTooltipEl.getBoundingClientRect();
+  if (left + rect.width > window.innerWidth - 8) {
+    left = Math.max(8, e.clientX - rect.width - pad);
+  }
+  if (top + rect.height > window.innerHeight - 8) {
+    top = Math.max(8, e.clientY - rect.height - pad);
+  }
+  kpiTooltipEl.style.left = left + "px";
+  kpiTooltipEl.style.top = top + "px";
+});
+
+document.addEventListener("mouseout", e => {
+  const target = e.target.closest("[data-tooltip]");
+  if (target && !target.contains(e.relatedTarget)) {
+    kpiTooltipEl.style.display = "none";
+  }
+});
+
+function setKpiWithTooltip(elId, text, tooltipText) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.textContent = text;
+  const tip = tooltipText || text;
+  el.title = tip;
+  el.dataset.tooltip = tip;
+  const box = el.closest(".metric-box");
+  if (box) {
+    box.title = tip;
+    box.dataset.tooltip = tip;
+  }
+}
+
+function renderFormattedBotOutput(containerEl, rawText, isStreaming = false) {
+  if (!containerEl) return;
+  const prevOpenStates = Array.from(containerEl.querySelectorAll("details.proto-json-details")).map(d => d.open);
+  containerEl.replaceChildren();
+  const text = String(rawText || "");
+  const markerRegex = /(\n?\s*\[(?:CS_SERVICE_RESPONSE|CS_OPS_REPORT)\]\s*\n?)/g;
+  const parts = text.split(markerRegex);
+
+  if (parts.length === 1) {
+    const pre = document.createElement("pre");
+    pre.textContent = text + (isStreaming ? " ▍" : "");
+    containerEl.append(pre);
+    return;
+  }
+
+  let detailsIdx = 0;
+  let i = 0;
+  while (i < parts.length) {
+    const segment = parts[i];
+    if (/^\n?\s*\[(?:CS_SERVICE_RESPONSE|CS_OPS_REPORT)\]\s*\n?$/.test(segment)) {
+      const markerName = segment.includes("CS_OPS_REPORT") ? "[CS_OPS_REPORT]" : "[CS_SERVICE_RESPONSE]";
+      const nextRaw = parts[i + 1] !== undefined ? parts[i + 1] : "";
+      i += 2;
+
+      // Extract JSON object from the start of nextRaw, and keep any trailing text (e.g. next turn separator)
+      let jsonRaw = nextRaw.trim();
+      let trailingText = "";
+      const sepIdx = nextRaw.indexOf("────────────────────────");
+      if (sepIdx !== -1) {
+        jsonRaw = nextRaw.slice(0, sepIdx).trim();
+        trailingText = nextRaw.slice(sepIdx);
+      }
+
+      let formattedJson = jsonRaw;
+      let actionBadge = "";
+      try {
+        const parsed = JSON.parse(jsonRaw);
+        formattedJson = JSON.stringify(parsed, null, 2);
+        if (parsed.turn_action) actionBadge = ` · ${parsed.turn_action}`;
+        else if (parsed.report_type) actionBadge = ` · ${parsed.report_type}`;
+      } catch {
+        // Try extracting first {...} block
+        const m = jsonRaw.match(/\{[\s\S]*\}/);
+        if (m) {
+          try {
+            const parsed = JSON.parse(m[0]);
+            formattedJson = JSON.stringify(parsed, null, 2);
+            if (parsed.turn_action) actionBadge = ` · ${parsed.turn_action}`;
+            else if (parsed.report_type) actionBadge = ` · ${parsed.report_type}`;
+          } catch {}
+        }
+      }
+
+      const details = document.createElement("details");
+      details.className = "proto-json-details";
+      if (prevOpenStates[detailsIdx]) details.open = true;
+      detailsIdx += 1;
+
+      const summary = document.createElement("summary");
+      summary.className = "proto-json-summary";
+      const leftSpan = document.createElement("span");
+      leftSpan.className = "mono";
+      leftSpan.textContent = `📦 ${markerName}${actionBadge}`;
+      const rightSpan = document.createElement("span");
+      rightSpan.textContent = "展开/收起格式化 JSON ▾";
+      summary.append(leftSpan, rightSpan);
+
+      const codePre = document.createElement("pre");
+      codePre.className = "proto-json-code";
+      codePre.textContent = formattedJson + (isStreaming && i >= parts.length && !trailingText ? " ▍" : "");
+
+      details.append(summary, codePre);
+      containerEl.append(details);
+
+      if (trailingText.trim()) {
+        const trailPre = document.createElement("pre");
+        trailPre.style.marginTop = "8px";
+        trailPre.textContent = trailingText.trim();
+        containerEl.append(trailPre);
+      }
+    } else {
+      const cleanProse = segment.replace(/^\n+|\n+$/g, "");
+      if (cleanProse) {
+        const pre = document.createElement("pre");
+        pre.textContent = cleanProse + (isStreaming && i === parts.length - 1 ? " ▍" : "");
+        containerEl.append(pre);
+      }
+      i += 1;
+    }
+  }
+}
+
+function deltaHtml(baseVal, targetVal) {
+  if (Math.abs(targetVal - baseVal) < 1e-6) return '<span class="neutral">→ 持平</span>';
+  const pct = Math.abs((targetVal - baseVal) / baseVal * 100).toFixed(1);
+  if (targetVal < baseVal) return `<span class="good">↓ ${pct}%</span>`;
+  return `<span class="bad">↑ ${pct}%</span>`;
+}
+
+function enrichMultiDimScoresAndRanks(armsData) {
+  const minMs = Math.min(...ARMS.map(k => Math.max(1, armsData[k].total_ms || 999999)));
+  for (const k of ARMS) {
+    const m = armsData[k];
+    const totalTok = (m.main_input_tokens || 0) + (m.main_output_tokens || 0) + (m.decision_input_tokens || 0) + (m.decision_output_tokens || 0);
+    m.total_tokens = totalTok;
+    const foundryUsd = (m.decision_input_tokens || 0) * 0.042 / 1_000_000;
+    m.foundry_cost_usd = foundryUsd;
+    const wfActions = m.workflow_actions || 0;
+    m.total_cost_usd = (m.copilot_credits || 0) * 0.01 + foundryUsd + wfActions * 0.0002;
+    const tMs = Math.max(1, m.total_ms || 999999);
+    m.speed_score = Math.min(100, Math.max(15, Math.round(100 * Math.pow(minMs / tMs, 0.35))));
+    const pSc = m.protocol_score !== undefined ? m.protocol_score : 40;
+    const sSc = m.semantic_score !== undefined ? m.semantic_score : 40;
+    const rSc = m.robustness_score !== undefined ? m.robustness_score : 18;
+    m.accuracy_passed = m.accuracy_passed !== undefined ? m.accuracy_passed : true;
+    m.accuracy_score = pSc + sSc + rSc;
+  }
+  const maxCost = Math.max(...ARMS.map(k => Math.max(0.0001, armsData[k].total_cost_usd)));
+  for (const k of ARMS) {
+    const m = armsData[k];
+    if ((m.copilot_credits || 0) <= 0.5) {
+      m.cost_score = Math.round(100 - (m.copilot_credits || 0) * 6);
+    } else {
+      m.cost_score = Math.round(58 + 20 * (1 - m.total_cost_usd / maxCost));
+    }
+    let comp = 0.40 * m.accuracy_score + 0.30 * m.speed_score + 0.30 * m.cost_score;
+    if (!m.accuracy_passed) comp *= 0.45;
+    m.composite_score = Math.round(comp * 10) / 10;
+  }
+  const bySpeed = [...ARMS].sort((a, b) => (armsData[a].total_ms || 999999) - (armsData[b].total_ms || 999999));
+  const byAcc = [...ARMS].sort((a, b) => {
+    if (armsData[a].accuracy_passed !== armsData[b].accuracy_passed) return armsData[a].accuracy_passed ? -1 : 1;
+    if (armsData[b].accuracy_score !== armsData[a].accuracy_score) return armsData[b].accuracy_score - armsData[a].accuracy_score;
+    return (armsData[a].total_ms || 999999) - (armsData[b].total_ms || 999999);
+  });
+  const byCost = [...ARMS].sort((a, b) => {
+    if (Math.abs(armsData[a].total_cost_usd - armsData[b].total_cost_usd) > 1e-7) return armsData[a].total_cost_usd - armsData[b].total_cost_usd;
+    return (armsData[a].total_tokens || 0) - (armsData[b].total_tokens || 0);
+  });
+  const byComp = [...ARMS].sort((a, b) => {
+    if (armsData[a].accuracy_passed !== armsData[b].accuracy_passed) return armsData[a].accuracy_passed ? -1 : 1;
+    if (Math.abs(armsData[b].composite_score - armsData[a].composite_score) > 1e-5) return armsData[b].composite_score - armsData[a].composite_score;
+    return (armsData[a].total_ms || 999999) - (armsData[b].total_ms || 999999);
+  });
+  bySpeed.forEach((k, i) => { armsData[k].speed_rank = i + 1; });
+  byAcc.forEach((k, i) => { armsData[k].accuracy_rank = i + 1; });
+  byCost.forEach((k, i) => { armsData[k].cost_rank = i + 1; });
+  byComp.forEach((k, i) => { armsData[k].composite_rank = i + 1; });
+  return armsData;
+}
+
+function getActiveRank(m) {
+  if (currentRankMode === "speed") return m.speed_rank || 1;
+  if (currentRankMode === "accuracy") return m.accuracy_rank || 1;
+  if (currentRankMode === "cost") return m.cost_rank || 1;
+  return m.composite_rank || 1;
+}
+
+function rankLabel(rank, m, preset) {
+  const modeNames = {
+    composite: ["综合最优", "综合第2", "综合第3", "综合最末"],
+    speed: ["最快完成", "速度第2", "速度第3", "速度最慢"],
+    accuracy: ["准确率最高", "准确率第2", "准确率第3", "准确率最低"],
+    cost: ["费用最省", "费用第2", "费用第3", "费用最高"]
+  };
+  const labels = modeNames[currentRankMode] || modeNames.composite;
+  const failSuffix = (m && m.accuracy_passed === false) ? " · ❌未通过" : "";
+  if (rank === 1) return `🥇 第 1 名 · ${labels[0]}${failSuffix}`;
+  if (rank === 2) return `🥈 第 2 名 · ${labels[1]}${failSuffix}`;
+  if (rank === 3) return `🥉 第 3 名 · ${labels[2]}${failSuffix}`;
+  return `🐢 第 4 名 · ${labels[3]}${failSuffix}`;
+}
+
+function renderScorePills(key, m) {
+  // Score pills removed to keep KPI strip compact and non-redundant
+}
+
+function applyRankStyle(key, m, preset) {
+  const rank = getActiveRank(m);
+  const pane = document.getElementById(`pane-${key}`);
+  const st = document.getElementById(`status-${key}`);
+  const totalEl = document.getElementById(`total-${key}`);
+  const accEl = document.getElementById(`acc-${key}`);
+  const creditsEl = document.getElementById(`credits-${key}`);
+  pane.className = `pane rank-${rank}`;
+  st.className = `badge rank-${rank}`;
+  st.textContent = rankLabel(rank, m, preset);
+  totalEl.className = "metric-val" + (m.speed_rank === 1 ? " good" : m.speed_rank === 4 ? " bad" : "");
+  accEl.className = "metric-val" + (!m.accuracy_passed ? " bad" : m.accuracy_rank === 1 ? " good" : "");
+  creditsEl.className = "metric-val" + (m.cost_rank === 1 ? " good" : m.cost_rank === 4 ? " bad" : "");
+}
+
+function resetPaneStyles() {
+  for (const key of ARMS) {
+    document.getElementById(`pane-${key}`).className = "pane";
+    document.getElementById(`total-${key}`).className = "metric-val";
+    document.getElementById(`acc-${key}`).className = "metric-val";
+    document.getElementById(`tokens-${key}`).className = "metric-val";
+    document.getElementById(`credits-${key}`).className = "metric-val";
+  }
+}
+
+function renderScenarioBanner(preset) {
+  const metaEl = document.getElementById("scenario-meta-text");
+  const ratEl = document.getElementById("scenario-rationale-text");
+  if (metaEl) {
+    metaEl.innerHTML = `<strong>${preset.title}</strong> ｜ <strong>对比焦点：</strong><code>${preset.skill_target || ""}</code> ｜ <strong>Decision-1：</strong><code>${preset.decision_scope || ""}</code>`;
+    metaEl.title = preset.complexity || "";
+  }
+  if (ratEl) {
+    ratEl.textContent = preset.design_rationale || "";
+    ratEl.title = preset.design_rationale || "";
+    ratEl.style.whiteSpace = "nowrap";
+    ratEl.style.overflow = "hidden";
+    ratEl.style.textOverflow = "ellipsis";
+    ratEl.style.maxWidth = "100%";
+  }
+}
+
+const SHORT_TAB_LABELS = {
+  PRESET_CS_T1: "💬 第1轮预设：报损初诊 (未给单号)",
+  PRESET_CS_T2: "💬 第2轮预设：补齐单号与盒数 (触发核赔)",
+  PRESET_CS_T3: "💬 第3轮预设：原卡注销改退会员钱包",
+  PRESET_CS_T4: "💬 第4轮预设：VIP索要他人手机号 (隐私阻断)",
+  PRESET_CS_NEG_OPS: "⚠️ 反向示例：开放式运营周报撰写 (f=0%)"
+};
+
+function renderPresetButtons() {
+  const bar = document.getElementById("preset-buttons");
+  bar.replaceChildren();
+  const label = document.createElement("strong");
+  label.textContent = "填入预置输入（可自由修改后发送）：";
+  label.style.fontSize = "12px";
+  label.style.whiteSpace = "nowrap";
+  bar.append(label);
+  for (const preset of PRESETS) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "preset-btn" + (preset.id === currentPreset.id ? " active" : "");
+    btn.textContent = SHORT_TAB_LABELS[preset.id] || preset.title.split("｜")[0];
+    btn.title = `${preset.title} [${preset.badge}]\n点击填入输入框，您可以直接修改文字再点右侧“发送”`;
+    btn.addEventListener("click", () => {
+      if (preset.id === "PRESET_CS_NEG_OPS" || (preset.id === "PRESET_CS_T1" && sessionTurnCount > 0)) {
+        resetAllChatWindows();
+      }
+      currentPreset = preset;
+      document.getElementById("shared-prompt").value = preset.prompt;
+      document.getElementById("shared-prompt").focus();
+      renderPresetButtons();
+      renderScenarioBanner(preset);
+    });
+    bar.append(btn);
+  }
+}
+
+function buildCumulativeLiveRecord(sessionTurns) {
+  if (!sessionTurns || sessionTurns.length < 2) return null;
+  const lastTurn = sessionTurns[sessionTurns.length - 1];
+  const n = sessionTurns.length;
+  const cumArms = {};
+  for (const k of ARMS) {
+    let sumTtft = 0;
+    let sumTotal = 0;
+    let sumMainIn = 0;
+    let sumMainOut = 0;
+    let sumDecIn = 0;
+    let sumDecOut = 0;
+    let sumCredits = 0;
+    let sumWfActions = 0;
+    let sumWakes = 0;
+    let sumP = 0;
+    let sumS = 0;
+    let sumR = 0;
+    let allPassed = true;
+    const allSteps = [];
+    const allResponses = [];
+    sessionTurns.forEach((t, idx) => {
+      const m = t.arms[k] || {};
+      sumTtft += (m.ttft_ms || 0);
+      sumTotal += (m.total_ms || 0);
+      sumMainIn += (m.main_input_tokens || 0);
+      sumMainOut += (m.main_output_tokens || 0);
+      sumDecIn += (m.decision_input_tokens || 0);
+      sumDecOut += (m.decision_output_tokens || 0);
+      sumCredits += (m.copilot_credits || 0);
+      sumWfActions += (m.workflow_actions || 0);
+      sumWakes += (m.agent_woke !== undefined ? m.agent_woke : 1);
+      sumP += (m.protocol_score !== undefined ? m.protocol_score : 40);
+      sumS += (m.semantic_score !== undefined ? m.semantic_score : 40);
+      sumR += (m.robustness_score !== undefined ? m.robustness_score : 18);
+      if (m.accuracy_passed === false) allPassed = false;
+      allSteps.push(`【第${idx + 1}轮 (${(m.total_ms/1000).toFixed(2)}s)】` + ((m.route_steps || []).join(" → ") || "完成"));
+      allResponses.push(`【第 ${idx + 1} 轮 · ${t.prompt}】\n${m.response || ""}`);
+    });
+    cumArms[k] = {
+      agent_name: lastTurn.arms[k]?.agent_name || k,
+      ttft_ms: Math.round(sumTtft / n),
+      total_ms: Math.round(sumTotal),
+      main_input_tokens: sumMainIn,
+      main_output_tokens: sumMainOut,
+      decision_input_tokens: sumDecIn,
+      decision_output_tokens: sumDecOut,
+      copilot_credits: Math.round(sumCredits * 100) / 100,
+      workflow_actions: sumWfActions,
+      agent_woke: sumWakes,
+      protocol_score: Math.round(sumP / n),
+      semantic_score: Math.round(sumS / n),
+      robustness_score: Math.round(sumR / n),
+      accuracy_passed: allPassed,
+      route_steps: allSteps,
+      response: allResponses.join("\n\n────────────────────────\n\n"),
+      cumulative: {
+        turns: n,
+        total_ms: Math.round(sumTotal),
+        copilot_credits: Math.round(sumCredits * 100) / 100,
+        main_input_tokens: sumMainIn,
+        main_output_tokens: sumMainOut,
+        decision_input_tokens: sumDecIn,
+        decision_output_tokens: sumDecOut,
+        workflow_actions: sumWfActions,
+        agent_wakes: sumWakes
+      }
+    };
+  }
+  enrichMultiDimScoresAndRanks(cumArms);
+  const promptsSummary = sessionTurns.map((t, i) => `T${i + 1}:${t.prompt.slice(0, 14)}`).join(" → ");
+  return {
+    id: `LIVE_CUM_${lastTurn.sessionId}`,
+    isLive: true,
+    isCumulative: true,
+    sessionId: lastTurn.sessionId,
+    turnNum: n,
+    timestamp: lastTurn.timestamp,
+    title: `🔥 [最近实测 · 多轮累计总评] 当前会话共 ${n} 轮实测累计汇总`,
+    prompt: sessionTurns[sessionTurns.length - 1].prompt,
+    skill_target: `共 ${n} 轮真实多轮对话累计 (${promptsSummary})`,
+    decision_scope: `架构D唤醒后端Agent ${cumArms.D.agent_woke}/${n} 轮 vs 架构A唤醒 ${cumArms.A.agent_woke}/${n} 轮`,
+    design_rationale: `基于最近 ${n} 轮真实云端调用实时累加计算：直观体现多轮会话中前置状态机直回（0 Credits）对总耗时与总费用的放大效应`,
+    arms: cumArms
+  };
+}
+
+function getAllScoreRecords() {
+  const list = [];
+  const sameSessionTurns = liveTurnRecords.filter(r => r.sessionId === currentSessionId);
+  if (sameSessionTurns.length > 0) {
+    const cumRec = buildCumulativeLiveRecord(sameSessionTurns);
+    if (cumRec) list.push(cumRec);
+    for (let i = sameSessionTurns.length - 1; i >= 0; i--) {
+      list.push(sameSessionTurns[i]);
+    }
+  }
+  return list;
+}
+
+function getSelectedScoreRecord() {
+  const all = getAllScoreRecords();
+  if (all.length === 0) return null;
+  if (selectedScoreRecordId) {
+    const found = all.find(r => r.id === selectedScoreRecordId);
+    if (found) return found;
+  }
+  return all[0];
+}
+
+function renderTurnDetailCards(rec) {
+  const grid = document.getElementById("turn-detail-grid");
+  const header = document.getElementById("turn-detail-header");
+  if (!grid) return;
+  grid.replaceChildren();
+  if (header) {
+    header.textContent = `🔍 当前选中记录的四架构真实调用链路与回复内容对比：${rec.title}（输入：“${rec.prompt.slice(0, 56)}${rec.prompt.length > 56 ? "..." : ""}”）`;
+  }
+  const arms = JSON.parse(JSON.stringify(rec.arms));
+  enrichMultiDimScoresAndRanks(arms);
+  const armTitles = {
+    A: "架构 A · CS Monolith Bench A",
+    B: "架构 B · CS Hybrid Tool Bench B",
+    C: "架构 C · CS Hook Bench C",
+    D: "架构 D · Decision-1 + Specialist D"
+  };
+  for (const k of ARMS) {
+    const m = arms[k];
+    const rk = getActiveRank(m);
+    const card = document.createElement("div");
+    card.className = "turn-detail-card";
+    const topRow = document.createElement("div");
+    topRow.style.cssText = "display:flex;justify-content:space-between;align-items:center;gap:6px;border-bottom:1px solid var(--cp-border);padding-bottom:5px";
+    const h = document.createElement("strong");
+    h.style.fontSize = "12.5px";
+    h.textContent = armTitles[k];
+    const b = document.createElement("span");
+    b.className = `badge rank-${rk}`;
+    b.textContent = `${rankLabel(rk, m, rec)} · ${(m.total_ms / 1000).toFixed(2)}s · ${m.copilot_credits.toFixed(2)}Cr`;
+    topRow.append(h, b);
+    card.append(topRow);
+
+    const stepsDiv = document.createElement("div");
+    stepsDiv.className = "step-list";
+    stepsDiv.style.fontSize = "11px";
+    for (const s of (m.route_steps || [])) {
+      const item = document.createElement("div");
+      item.className = "step-item";
+      item.textContent = "✓ " + s;
+      stepsDiv.append(item);
+    }
+    card.append(stepsDiv);
+
+    const bodyWrap = document.createElement("div");
+    renderFormattedBotOutput(bodyWrap, m.response || "（无输出内容）", false);
+    card.append(bodyWrap);
+    grid.append(card);
+  }
+}
+
+function renderPanoramaMatrix() {
+  const tbody = document.getElementById("matrix-tbody");
+  if (!tbody) return;
+  tbody.replaceChildren();
+  const allRecords = getAllScoreRecords();
+  const activeRec = getSelectedScoreRecord();
+
+  for (const rec of allRecords) {
+    const arms = JSON.parse(JSON.stringify(rec.arms));
+    enrichMultiDimScoresAndRanks(arms);
+    const speedWin = ARMS.find(k => arms[k].speed_rank === 1);
+    const maxAcc = Math.max(...ARMS.map(x => arms[x].accuracy_score));
+    const accWins = ARMS.filter(k => arms[k].accuracy_score === maxAcc).join("/");
+    const costWin = ARMS.find(k => arms[k].cost_rank === 1);
+    const compWin = ARMS.find(k => arms[k].composite_rank === 1);
+
+    const tr = document.createElement("tr");
+    tr.className = "scoring-row-clickable" + (rec.id === activeRec.id ? " selected-row" : "");
+    tr.addEventListener("click", () => {
+      selectedScoreRecordId = rec.id;
+      document.getElementById("shared-prompt").value = rec.prompt;
+      renderScoringDashboard();
+    });
+
+    const thTitle = document.createElement("th");
+    thTitle.innerHTML = `${rec.id === activeRec.id ? "👉 " : ""}${rec.title}`;
+    tr.append(thTitle);
+
+    const tdPrompt = document.createElement("td");
+    tdPrompt.textContent = `“${rec.prompt.slice(0, 38)}${rec.prompt.length > 38 ? "..." : ""}”`;
+    tdPrompt.title = rec.prompt;
+    tr.append(tdPrompt);
+
+    const tdSpeed = document.createElement("td");
+    tdSpeed.textContent = `🥇 架构 ${speedWin} (${(arms[speedWin].total_ms / 1000).toFixed(2)}s · ${arms[speedWin].speed_score}分)`;
+    tr.append(tdSpeed);
+
+    const tdAcc = document.createElement("td");
+    tdAcc.textContent = `🎯 架构 ${accWins} (${maxAcc}分)`;
+    tr.append(tdAcc);
+
+    const tdCost = document.createElement("td");
+    tdCost.textContent = `💰 架构 ${costWin} (${arms[costWin].copilot_credits.toFixed(2)} Cr · ${arms[costWin].cost_score}分)`;
+    tr.append(tdCost);
+
+    const tdComp = document.createElement("td");
+    tdComp.className = "good";
+    tdComp.textContent = `🏆 架构 ${compWin} (${arms[compWin].composite_score.toFixed(1)}分)`;
+    tr.append(tdComp);
+
+    const tdAction = document.createElement("td");
+    tdAction.style.fontSize = "11.5px";
+    tdAction.textContent = rec.isLive
+      ? `实测时间 ${rec.timestamp} · ${rec.decision_scope}`
+      : (rec.design_rationale || "点击查看此预设基准评分明细");
+    tr.append(tdAction);
+
+    tbody.append(tr);
+  }
+}
+
+function renderSummaryTable(armsData, recMeta) {
+  const cloned = JSON.parse(JSON.stringify(armsData));
+  enrichMultiDimScoresAndRanks(cloned);
+  currentArmsData = cloned;
+  const tbody = document.getElementById("summary-tbody");
+  if (!tbody) return;
+  tbody.replaceChildren();
+
+  const cap = document.getElementById("summary-table-caption");
+  if (cap && recMeta) {
+    cap.textContent = `${recMeta.title} — 四架构速度、准确率、费用消耗与综合评分排名明细（输入：“${recMeta.prompt.slice(0, 48)}${recMeta.prompt.length > 48 ? "..." : ""}”）`;
+  }
+
+  const baseMs = cloned.A.total_ms || 1;
+  const baseCost = cloned.A.total_cost_usd || 0.1;
+  const labels = {
+    A: "A · CS Monolith Bench A (cre47_csmonolithbencha · 6模块全能客服单体)",
+    B: "B · CS Hybrid Tool Bench B (cre47_cshybridtoolbenchb · 内部调 Decision-1)",
+    C: "C · CS Hook Bench C (cre47_cshookbenchc · UserPromptSubmitted Hook)",
+    D: "D · Decision-1 顶层网关 + 外层状态机 + CS Fresh Claim Specialist D (cre47_csfreshclaimspecialistd)"
+  };
+  for (const key of ARMS) {
+    const m = cloned[key];
+    const rk = getActiveRank(m);
+    const totalTokens = m.total_tokens;
+    const foundryUsd = (m.decision_input_tokens * 0.042 / 1_000_000).toFixed(6);
+    const cum = m.cumulative;
+    const cumText = cum && cum.turns > 1 ? ` ｜ ${cum.turns}轮累计: ${(cum.total_ms/1000).toFixed(2)}s / ${cum.copilot_credits.toFixed(2)}Cr (唤醒${cum.agent_wakes}/${cum.turns}轮)` : "";
+    const tr = document.createElement("tr");
+    const cells = [
+      `[${rankLabel(rk, m, recMeta)}] ${labels[key]}`,
+      `#${m.composite_rank} · ${m.composite_score.toFixed(1)} 分`,
+      `#${m.speed_rank} (${m.speed_score}分) · TTFT ${(m.ttft_ms/1000).toFixed(2)}s / ${(m.total_ms/1000).toFixed(2)}s${cumText}`,
+      `#${m.accuracy_rank} (${m.accuracy_score}分 · ${m.accuracy_passed ? "✓通过" : "❌未通过"}) [契${m.protocol_score}/语${m.semantic_score}/稳${m.robustness_score}]`,
+      `#${m.cost_rank} (${m.cost_score}分) · ${m.copilot_credits.toFixed(2)} Cr + $${foundryUsd}`,
+      `${totalTokens.toLocaleString()} (主:${m.main_input_tokens + m.main_output_tokens} / 快:${m.decision_input_tokens + m.decision_output_tokens})`
+    ];
+    cells.forEach((val, idx) => {
+      const td = document.createElement(idx === 0 ? "th" : "td");
+      td.textContent = val;
+      if (idx === 1 && m.composite_rank === 1) td.className = "good";
+      if (idx === 2 && m.speed_rank === 1) td.className = "good";
+      if (idx === 3) td.className = !m.accuracy_passed ? "bad" : (m.accuracy_rank === 1 ? "good" : "");
+      if (idx === 4 && m.cost_rank === 1) td.className = "good";
+      tr.append(td);
+    });
+    const deltaTd = document.createElement("td");
+    deltaTd.innerHTML = `耗时 ${deltaHtml(baseMs, m.total_ms)} ｜ 费用 ${deltaHtml(baseCost, m.total_cost_usd)}`;
+    tr.append(deltaTd);
+    tbody.append(tr);
+  }
+}
+
+function renderScoringDashboard() {
+  const activeRec = getSelectedScoreRecord();
+  const badgeCountEl = document.getElementById("scoring-live-badge");
+  const sameSessionTurns = liveTurnRecords.filter(r => r.sessionId === currentSessionId);
+
+  if (badgeCountEl) {
+    badgeCountEl.textContent = `${sameSessionTurns.length} 轮`;
+  }
+  if (!activeRec) {
+    const mTbody = document.getElementById("matrix-tbody");
+    if (mTbody) {
+      mTbody.replaceChildren();
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 7;
+      td.style.cssText = "text-align:center;padding:24px;color:var(--cp-text-muted)";
+      td.textContent = "当前会话暂无实测轮次记录。请切回「💬 实时对话测试」发送消息，完成后将在此列出每一轮实测记录。";
+      tr.append(td);
+      mTbody.append(tr);
+    }
+    const cap = document.getElementById("summary-table-caption");
+    if (cap) cap.textContent = "当前选中轮次：四架构速度、准确率、费用消耗与综合评分排名明细（暂无实测数据）";
+    const sTbody = document.getElementById("summary-tbody");
+    if (sTbody) {
+      sTbody.replaceChildren();
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 7;
+      td.style.cssText = "text-align:center;padding:24px;color:var(--cp-text-muted)";
+      td.textContent = "待完成实测并点选上方轮次记录后，此处展示对应轮次的四架构详细评分排名。";
+      tr.append(td);
+      sTbody.append(tr);
+    }
+    const grid = document.getElementById("turn-detail-grid");
+    const header = document.getElementById("turn-detail-header");
+    if (header) header.textContent = "🔍 当前选中轮次：四架构真实调用链路与输出内容对比预览（暂无实测数据）";
+    if (grid) {
+      grid.replaceChildren();
+      const emptyDiv = document.createElement("div");
+      emptyDiv.style.cssText = "grid-column: 1 / -1; text-align:center; padding:20px; color:var(--cp-text-muted); font-size:12.5px;";
+      emptyDiv.textContent = "待完成实测并点选上方轮次记录后，此处展示四架构在该轮的真实执行步骤与完整输出对比。";
+      grid.append(emptyDiv);
+    }
+    return;
+  }
+
+  renderPanoramaMatrix();
+  renderSummaryTable(activeRec.arms, activeRec);
+  renderTurnDetailCards(activeRec);
+}
+
+function resetAllChatWindows() {
+  clearTimers();
+  resetPaneStyles();
+  sessionTurnCount = 0;
+  isTurnRunning = false;
+  hasCompletedTurn = false;
+  currentSessionId = "sess-" + Date.now();
+  liveTurnRecords = [];
+  selectedScoreRecordId = null;
+  try { localStorage.removeItem("arena_live_turn_records_v2"); } catch {}
+  renderScoringDashboard();
+  document.getElementById("session-indicator").textContent =
+    "当前会话：新会话就绪（第 0 轮 · 在下方输入或点选第1轮预设并点击“发送”开始实时多轮对话）";
+  for (const key of ARMS) {
+    const chat = document.getElementById(`chat-${key}`);
+    chat.replaceChildren();
+    const emptyHint = document.createElement("div");
+    emptyHint.id = `empty-hint-${key}`;
+    emptyHint.style.cssText = "padding:18px 12px;color:var(--cp-text-muted);font-size:12px;text-align:center;border:1px dashed var(--cp-border);border-radius:8px;margin-top:8px";
+    emptyHint.textContent = "💬 会话已就绪：点击下方「发送」将实时调用 ZAF Prod 物理 Agent，多轮对话记录将在此窗口逐轮追加";
+    chat.append(emptyHint);
+    document.getElementById(`status-${key}`).textContent = "待命";
+    document.getElementById(`status-${key}`).className = "badge";
+    document.getElementById(`ttft-${key}`).textContent = "TTFT: —";
+    document.getElementById(`total-${key}`).textContent = "—";
+    document.getElementById(`acc-${key}`).textContent = "—";
+    document.getElementById(`tokens-${key}`).textContent = "—";
+    document.getElementById(`credits-${key}`).textContent = "—";
+  }
+  fetch("http://127.0.0.1:8788/api/reset-session", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({session_id: currentSessionId})
+  }).then(response => {
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    document.getElementById("backend-help").hidden = true;
+  }).catch(showBackendHelp);
+}
+
+function showBackendHelp(error) {
+  const help = document.getElementById("backend-help");
+  document.getElementById("backend-help-error").textContent =
+    `本机后端连接未成功：http://127.0.0.1:8788。${error.message}`;
+  help.hidden = false;
+  help.open = true;
+}
+
+function appendTurnDOM(turnNum, promptText) {
+  resetPaneStyles();
+  for (const key of ARMS) {
+    const chat = document.getElementById(`chat-${key}`);
+    const hint = document.getElementById(`empty-hint-${key}`);
+    if (hint) hint.remove();
+
+    const userBubble = document.createElement("div");
+    userBubble.className = "msg user";
+    userBubble.textContent = promptText;
+    chat.append(userBubble);
+
+    const stepsBox = document.createElement("div");
+    stepsBox.className = "step-list";
+    stepsBox.id = `steps-${turnNum}-${key}`;
+    chat.append(stepsBox);
+
+    const botBubble = document.createElement("div");
+    botBubble.className = "msg bot";
+    botBubble.id = `bot-${turnNum}-${key}`;
+    const streamPre = document.createElement("pre");
+    streamPre.id = `stream-pre-${turnNum}-${key}`;
+    streamPre.textContent = "☁️ 正在实时请求 ZAF Prod 云端 Agent... ▍";
+    botBubble.append(streamPre);
+    chat.append(botBubble);
+    chat.scrollTop = chat.scrollHeight;
+
+    document.getElementById(`status-${key}`).textContent = "推理中...";
+    document.getElementById(`status-${key}`).className = "badge accent";
+    document.getElementById(`ttft-${key}`).textContent = "TTFT: 等待云端首Token...";
+    document.getElementById(`total-${key}`).textContent = "0.00s...";
+    document.getElementById(`acc-${key}`).textContent = "实时校验中...";
+    document.getElementById(`tokens-${key}`).textContent = "实时计量中...";
+    document.getElementById(`credits-${key}`).textContent = "实时计算中...";
+  }
+}
+
+function finalizeSingleArmTurnDOM(turnNum, key, cur) {
+  const totalTokens = (cur.main_input_tokens || 0) + (cur.main_output_tokens || 0) + (cur.decision_input_tokens || 0) + (cur.decision_output_tokens || 0);
+  const cum = cur.cumulative;
+  const cumMsText = cum && cum.turns > 1 ? ` ｜ ${cum.turns}轮累计 ${(cum.total_ms / 1000).toFixed(2)}s` : "";
+  const cumCrText = cum && cum.turns > 1 ? ` ｜ 累计 ${cum.copilot_credits.toFixed(2)}Cr (唤醒${cum.agent_wakes}/${cum.turns}轮)` : "";
+  const cumTokText = cum && cum.turns > 1 ? ` ｜ 累计 ${(cum.main_input_tokens + cum.main_output_tokens + cum.decision_input_tokens + cum.decision_output_tokens).toLocaleString()}` : "";
+  const accVal = (cur.protocol_score || 0) + (cur.semantic_score || 0) + (cur.robustness_score || 0);
+  const foundryUsd = ((cur.decision_input_tokens || 0) * 0.042 / 1_000_000).toFixed(6);
+
+  document.getElementById(`status-${key}`).textContent = "✓ 本轮完成 (等待汇总排名...)";
+  document.getElementById(`status-${key}`).className = "badge";
+  document.getElementById(`ttft-${key}`).textContent = `本轮TTFT: ${(cur.ttft_ms / 1000).toFixed(2)}s (${Math.round(cur.ttft_ms)}ms)`;
+  setKpiWithTooltip(
+    `total-${key}`,
+    `本轮 ${(cur.total_ms / 1000).toFixed(2)}s${cumMsText}`,
+    `本轮端到端总耗时: ${(cur.total_ms / 1000).toFixed(2)}s (${Math.round(cur.total_ms)}ms)\n本轮首Token (TTFT): ${(cur.ttft_ms / 1000).toFixed(2)}s (${Math.round(cur.ttft_ms)}ms)` + (cum && cum.turns > 1 ? `\n${cum.turns}轮累计总耗时: ${(cum.total_ms / 1000).toFixed(2)}s` : "")
+  );
+  setKpiWithTooltip(
+    `acc-${key}`,
+    `${accVal}分 (${cur.accuracy_passed ? "✓通过" : "❌未通过"})`,
+    `本轮准确率总分: ${accVal}分 (${cur.accuracy_passed ? "✓通过" : "❌未通过"})\n分项拆解: 协议契约 ${cur.protocol_score || 0}/40 · 业务语义 ${cur.semantic_score || 0}/40 · 链路稳健 ${cur.robustness_score || 0}/20\n${cur.accuracy_note || ""}`
+  );
+  setKpiWithTooltip(
+    `tokens-${key}`,
+    `本轮 ${totalTokens.toLocaleString()}${cumTokText}`,
+    `本轮总 Tokens: ${totalTokens.toLocaleString()}\n主模型 Tokens: 输入 ${(cur.main_input_tokens || 0).toLocaleString()} / 输出 ${(cur.main_output_tokens || 0).toLocaleString()}\nDecision-1 Tokens: 输入 ${(cur.decision_input_tokens || 0).toLocaleString()} / 输出 ${(cur.decision_output_tokens || 0).toLocaleString()}` + (cum && cum.turns > 1 ? `\n${cum.turns}轮累计总 Tokens: ${(cum.main_input_tokens + cum.main_output_tokens + cum.decision_input_tokens + cum.decision_output_tokens).toLocaleString()}` : "")
+  );
+  setKpiWithTooltip(
+    `credits-${key}`,
+    `本轮 ${(cur.copilot_credits || 0).toFixed(2)} Cr${cumCrText}`,
+    `本轮 Copilot Credits: ${(cur.copilot_credits || 0).toFixed(2)} Cr\n本轮 Foundry Decision-1 费用: $${foundryUsd}\n本轮工作流 Actions: ${cur.workflow_actions || 0}` + (cum && cum.turns > 1 ? `\n${cum.turns}轮累计 Credits: ${cum.copilot_credits.toFixed(2)} Cr (共唤醒后台Agent ${cum.agent_wakes}/${cum.turns} 轮)` : "")
+  );
+
+  const stepsBox = document.getElementById(`steps-${turnNum}-${key}`);
+  if (stepsBox && cur.route_steps && cur.route_steps.length > 0 && stepsBox.childElementCount === 0) {
+    for (const s of cur.route_steps) {
+      const div = document.createElement("div");
+      div.className = "step-item";
+      div.textContent = "✓ " + s;
+      stepsBox.append(div);
+    }
+  }
+
+  const botBubble = document.getElementById(`bot-${turnNum}-${key}`);
+  if (botBubble) {
+    renderFormattedBotOutput(botBubble, cur.response, false);
+  }
+  const chatWin = document.getElementById(`chat-${key}`);
+  chatWin.scrollTop = chatWin.scrollHeight;
+}
+
+function finalizeAllRankingsDOM(turnNum, armsDataAll, preset) {
+  enrichMultiDimScoresAndRanks(armsDataAll);
+  for (const key of ARMS) {
+    const cur = armsDataAll[key];
+    const totalTokens = cur.total_tokens;
+    const cum = cur.cumulative;
+    const cumMsText = cum && cum.turns > 1 ? ` ｜ ${cum.turns}轮累计 ${(cum.total_ms / 1000).toFixed(2)}s` : "";
+    const cumCrText = cum && cum.turns > 1 ? ` ｜ 累计 ${cum.copilot_credits.toFixed(2)}Cr (唤醒${cum.agent_wakes}/${cum.turns}轮)` : "";
+    const cumTokText = cum && cum.turns > 1 ? ` ｜ 累计 ${(cum.main_input_tokens + cum.main_output_tokens + cum.decision_input_tokens + cum.decision_output_tokens).toLocaleString()}` : "";
+    const foundryUsd = ((cur.decision_input_tokens || 0) * 0.042 / 1_000_000).toFixed(6);
+
+    document.getElementById(`ttft-${key}`).textContent = `本轮TTFT: ${(cur.ttft_ms / 1000).toFixed(2)}s (${Math.round(cur.ttft_ms)}ms)`;
+    setKpiWithTooltip(
+      `total-${key}`,
+      `本轮 ${(cur.total_ms / 1000).toFixed(2)}s (#${cur.speed_rank})${cumMsText}`,
+      `本轮端到端总耗时: ${(cur.total_ms / 1000).toFixed(2)}s (${Math.round(cur.total_ms)}ms · 速度排名 #${cur.speed_rank} · 速度得分 ${cur.speed_score}分)\n本轮首Token (TTFT): ${(cur.ttft_ms / 1000).toFixed(2)}s (${Math.round(cur.ttft_ms)}ms)` + (cum && cum.turns > 1 ? `\n${cum.turns}轮累计总耗时: ${(cum.total_ms / 1000).toFixed(2)}s` : "")
+    );
+    setKpiWithTooltip(
+      `acc-${key}`,
+      `${cur.accuracy_score}分 (${cur.accuracy_passed ? "✓通过" : "❌未通过"} · #${cur.accuracy_rank})`,
+      `本轮准确率总分: ${cur.accuracy_score}分 (${cur.accuracy_passed ? "✓通过" : "❌未通过"} · 准确率排名 #${cur.accuracy_rank})\n分项拆解: 协议契约 ${cur.protocol_score || 0}/40 · 业务语义 ${cur.semantic_score || 0}/40 · 链路稳健 ${cur.robustness_score || 0}/20\n${cur.accuracy_note || ""}`
+    );
+    setKpiWithTooltip(
+      `tokens-${key}`,
+      `本轮 ${totalTokens.toLocaleString()}${cumTokText}`,
+      `本轮总 Tokens: ${totalTokens.toLocaleString()}\n主模型 Tokens: 输入 ${(cur.main_input_tokens || 0).toLocaleString()} / 输出 ${(cur.main_output_tokens || 0).toLocaleString()}\nDecision-1 Tokens: 输入 ${(cur.decision_input_tokens || 0).toLocaleString()} / 输出 ${(cur.decision_output_tokens || 0).toLocaleString()}` + (cum && cum.turns > 1 ? `\n${cum.turns}轮累计总 Tokens: ${(cum.main_input_tokens + cum.main_output_tokens + cum.decision_input_tokens + cum.decision_output_tokens).toLocaleString()}` : "")
+    );
+    setKpiWithTooltip(
+      `credits-${key}`,
+      `本轮 ${cur.copilot_credits.toFixed(2)} Cr (#${cur.cost_rank})${cumCrText}`,
+      `本轮 Copilot Credits: ${cur.copilot_credits.toFixed(2)} Cr (费用排名 #${cur.cost_rank} · 费用得分 ${cur.cost_score}分)\n本轮 Foundry Decision-1 费用: $${foundryUsd}\n本轮工作流 Actions: ${cur.workflow_actions || 0}` + (cum && cum.turns > 1 ? `\n${cum.turns}轮累计 Credits: ${cum.copilot_credits.toFixed(2)} Cr (共唤醒后台Agent ${cum.agent_wakes}/${cum.turns} 轮)` : "")
+    );
+
+    const botBubble = document.getElementById(`bot-${turnNum}-${key}`);
+    if (botBubble) {
+      renderFormattedBotOutput(botBubble, cur.response, false);
+    }
+    applyRankStyle(key, cur, preset);
+    renderScorePills(key, cur);
+  }
+}
+
+async function sendLiveTurn(promptText) {
+  clearTimers();
+  isTurnRunning = true;
+  sessionTurnCount += 1;
+  const turnNum = sessionTurnCount;
+  appendTurnDOM(turnNum, promptText);
+  document.getElementById("session-indicator").textContent =
+    `当前会话 (${currentSessionId.slice(-6)})：正在进行第 ${turnNum} 轮实时云端对话...`;
+
+  const armsData = JSON.parse(JSON.stringify(currentPreset.arms));
+  const completedSet = new Set();
+  const accumText = {A: "", B: "", C: "", D: ""};
+  const deltaFrames = {A: 0, B: 0, C: 0, D: 0};
+  const startedAt = performance.now();
+
+  activeAbortController = new AbortController();
+
+  const clockTimer = setInterval(() => {
+    const elapsedSec = ((performance.now() - startedAt) / 1000).toFixed(2);
+    for (const key of ARMS) {
+      if (!completedSet.has(key)) {
+        document.getElementById(`total-${key}`).textContent = `本轮 ${elapsedSec}s...`;
+      }
+    }
+  }, 60);
+  activeTimers.push(clockTimer);
+
+  try {
+    const resp = await fetch("http://127.0.0.1:8788/api/stream-compare", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        session_id: currentSessionId,
+        prompt: promptText,
+        preset_id: currentPreset.id
+      }),
+      signal: activeAbortController.signal
+    });
+    if (!resp.ok || !resp.body) throw new Error(`HTTP ${resp.status}`);
+    document.getElementById("backend-help").hidden = true;
+
+    document.getElementById("dl-conv-badge").textContent =
+      `🟢 第 ${turnNum} 轮云端真流式并发 SSE 进行中 (ZAF Prod 实时调用)`;
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let buffer = "";
+
+    while (true) {
+      const {value, done} = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, {stream: true});
+      const parts = buffer.split("\n\n");
+      buffer = parts.pop() || "";
+
+      for (const block of parts) {
+        const line = block.trim();
+        if (!line.startsWith("data:")) continue;
+        let ev;
+        try {
+          ev = JSON.parse(line.slice(5).trim());
+        } catch {
+          continue;
+        }
+        const arm = ev.arm;
+        if (ev.type === "start" && arm) {
+          document.getElementById(`status-${arm}`).textContent = `☁️ 第${turnNum}轮流式推理中...`;
+          document.getElementById(`status-${arm}`).className = "badge accent";
+          const stepsBox = document.getElementById(`steps-${turnNum}-${arm}`);
+          if (stepsBox) {
+            const div = document.createElement("div");
+            div.className = "step-item";
+            div.textContent = `✓ 延续云端会话 (cid: ${ev.conversation_id.slice(0, 12)}... · 第${turnNum}轮)`;
+            stepsBox.append(div);
+          }
+        } else if (ev.type === "step" && arm) {
+          const stepsBox = document.getElementById(`steps-${turnNum}-${arm}`);
+          if (stepsBox) {
+            const div = document.createElement("div");
+            div.className = "step-item";
+            div.textContent = `[+${(ev.elapsed_ms / 1000).toFixed(2)}s] ${ev.text}`;
+            stepsBox.append(div);
+          }
+          const chatWin = document.getElementById(`chat-${arm}`);
+          chatWin.scrollTop = chatWin.scrollHeight;
+        } else if (ev.type === "delta" && arm) {
+          deltaFrames[arm] += 1;
+          if (ev.chunk_type === "replace") {
+            accumText[arm] = ev.delta;
+          } else {
+            accumText[arm] += ev.delta;
+          }
+          document.getElementById("dl-conv-badge").textContent =
+            `🟢 第${turnNum}轮 Agentic Runtime SSE 接收中 · 实时Delta帧: A=${deltaFrames.A} / B=${deltaFrames.B} / C=${deltaFrames.C} / D=${deltaFrames.D}`;
+          document.getElementById(`ttft-${arm}`).textContent =
+            `本轮TTFT: ${(ev.ttft_ms / 1000).toFixed(2)}s (${Math.round(ev.ttft_ms)}ms)`;
+          const botBubble = document.getElementById(`bot-${turnNum}-${arm}`);
+          if (botBubble) {
+            renderFormattedBotOutput(botBubble, accumText[arm], true);
+          }
+          const chatWin = document.getElementById(`chat-${arm}`);
+          chatWin.scrollTop = chatWin.scrollHeight;
+        } else if (ev.type === "arm_complete" && arm) {
+          completedSet.add(arm);
+          if (ev.all_arms) {
+            for (const k of ARMS) armsData[k] = ev.all_arms[k];
+          } else {
+            armsData[arm] = ev.metrics;
+          }
+          finalizeSingleArmTurnDOM(turnNum, arm, armsData[arm]);
+        } else if (ev.type === "all_complete") {
+          clearInterval(clockTimer);
+          isTurnRunning = false;
+          hasCompletedTurn = true;
+          if (ev.all_arms) {
+            for (const k of ARMS) armsData[k] = ev.all_arms[k];
+          }
+          finalizeAllRankingsDOM(turnNum, armsData, currentPreset);
+          const dCum = armsData.D.cumulative || {};
+          const aCum = armsData.A.cumulative || {};
+          document.getElementById("session-indicator").textContent =
+            `当前会话已完成 ${turnNum} 轮对话 ｜ 架构D累计 ${(dCum.total_ms/1000).toFixed(2)}s (${dCum.copilot_credits?.toFixed(2)}Cr, 唤醒Agent ${dCum.agent_wakes}/${turnNum}轮) vs 架构A累计 ${(aCum.total_ms/1000).toFixed(2)}s (${aCum.copilot_credits?.toFixed(2)}Cr, 唤醒Agent ${aCum.agent_wakes}/${turnNum}轮)`;
+          document.getElementById("dl-conv-badge").textContent =
+            `✓ 第 ${turnNum} 轮云端真流式并发完成 · 实收SSE帧: A=${deltaFrames.A} / B=${deltaFrames.B} / C=${deltaFrames.C} / D=${deltaFrames.D}`;
+          const liveRec = {
+            id: `LIVE_S_${currentSessionId}_T${turnNum}_${Date.now()}`,
+            isLive: true,
+            isCumulative: false,
+            turnNum: turnNum,
+            sessionId: currentSessionId,
+            timestamp: new Date().toLocaleTimeString(),
+            title: `🟢 [最近实测 · 第 ${turnNum} 轮] ${promptText.slice(0, 32)}${promptText.length > 32 ? "..." : ""}`,
+            prompt: promptText,
+            skill_target: "ZAF Prod 实时四架构并发实测",
+            decision_scope: `会话 #${currentSessionId.slice(-6)} · 第 ${turnNum} 轮`,
+            design_rationale: `于 ${new Date().toLocaleTimeString()} 真实并发调用 ZAF Prod 4 台物理 Agent 实测生成`,
+            arms: JSON.parse(JSON.stringify(armsData))
+          };
+          liveTurnRecords.push(liveRec);
+          saveLiveRecordsToStorage();
+          selectedScoreRecordId = liveRec.id;
+          renderScoringDashboard();
+          // Auto-fill next turn preset into input box for convenience without auto-sending
+          const nextTurnPreset = PRESETS.find(p => p.turn_index === turnNum + 1);
+          if (nextTurnPreset) {
+            currentPreset = nextTurnPreset;
+            document.getElementById("shared-prompt").value = nextTurnPreset.prompt;
+            renderPresetButtons();
+            renderScenarioBanner(nextTurnPreset);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    clearInterval(clockTimer);
+    isTurnRunning = false;
+    if (err && err.name === "AbortError") return;
+    showBackendHelp(err);
+    document.getElementById("dl-conv-badge").textContent =
+      `❌ 无法连接本地实时代理服务 (http://127.0.0.1:8788): ${err.message}`;
+    for (const key of ARMS) {
+      const preEl = document.getElementById(`stream-pre-${turnNum}-${key}`);
+      if (preEl && !completedSet.has(key)) {
+        preEl.textContent = `❌ 实时后端服务未响应：http://127.0.0.1:8788/api/stream-compare。${err.message}\n请按页面上方展开的“搭建与启动说明”启动本机代理，然后开启新会话重试。`;
+      }
+      document.getElementById(`status-${key}`).textContent = "连接失败";
+      document.getElementById(`status-${key}`).className = "badge bad";
+    }
+  }
+}
+
+document.getElementById("send-btn").addEventListener("click", () => {
+  const text = document.getElementById("shared-prompt").value.trim();
+  if (!text) return;
+  sendLiveTurn(text);
+});
+
+document.getElementById("reset-session-btn").addEventListener("click", () => {
+  resetAllChatWindows();
+});
+
+document.getElementById("shared-prompt").addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    document.getElementById("send-btn").click();
+  }
+});
+
+// Initialize clean multi-turn session ready for user input
+document.getElementById("shared-prompt").value = currentPreset.prompt;
+renderPresetButtons();
+renderScenarioBanner(currentPreset);
+resetAllChatWindows();
+</script>
+</body>
+</html>
