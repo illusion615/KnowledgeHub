@@ -95,6 +95,25 @@ var knowledgeTree = [
     phase: 4.5, speed: 0.84
   },
   {
+    id: 'multi-agent-swarm-practices',
+    parentId: 'fc-agentic',
+    type: 'article',
+    title: {
+      zh: '多智能体蜂群协作：从行业进展到可落地的最佳实践',
+      en: 'Multi-Agent Swarm Collaboration: Industry Progress and Practical Engineering Patterns'
+    },
+    summary: {
+      zh: '基于已复核的官方工程文档与多智能体失败研究，用技术选型案例解释模式选择、产物共享、单写者、权限隔离、成本和可验证交付。',
+      en: 'Uses verified engineering documentation and multi-agent failure research to explain topology selection, artifact sharing, single-writer boundaries, permissions, costs, and verified delivery.'
+    },
+    tags: ['Multi-Agent', 'Agent Swarm', 'Orchestration', 'AI Engineering', 'Best Practices'],
+    date: '2026-11-02',
+    url: 'posts/multi-agent-swarm-practices/index.html',
+    color: '#6366f1',
+    phase: 4.7, speed: 0.85,
+    relations: ['enterprise-agent-arch', 'pi-coding-harness', 'mcp-principles-development', 'fc-engineering-optimization']
+  },
+  {
     id: 'claw-code',
     parentId: 'ai-research-agent',
     type: 'topic',
@@ -1418,11 +1437,11 @@ var knowledgeTree = [
       en: 'Microsoft Copilot Studio: Positioning, Capabilities, Adoption & Pricing'
     },
     summary: {
-      zh: '按 2026 年 8 月官方许可指南刷新：三种 harness 的选型与计费起点、Credits 费率、四条购买路径与场景成本换算。',
-      en: 'Refreshed to the August 2026 licensing guide: three harnesses, Copilot Credit rates, four purchasing paths, and scenario cost math.'
+      zh: '按2026年11月微软官方资料更新：三大Harness、Apps与托管运行时预览、推理模型缓存及Computer Use计费、身份治理和可复算费用示例。',
+      en: 'Updated against November 2026 Microsoft documentation: three harnesses, Apps and Managed Runtime preview, reasoning cache and computer-use billing, identity governance, and reproducible cost examples.'
     },
     tags: ['Copilot Studio', 'Platform Overview', 'Licensing'],
-    date: '2026-08-20',
+    date: '2026-11-02',
     url: 'posts/copilot-studio-overview/index.html',
     color: '#6d28d9',
     phase: 1.6, speed: 0.85,
