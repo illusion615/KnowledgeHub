@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="多智能体蜂群协作的工程选型、编排模式、共享上下文、权限、成本、失败恢复与验收实践。" />
+  <title>多智能体蜂群协作：从行业进展到可落地的最佳实践</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <style>
+    :root { --swarm: #6366f1; --swarm-2: #22d3ee; --safe: #34d399; --warn: #f59e0b; --danger: #fb7185; --text-primary: var(--ink); --text-secondary: var(--muted); --surface: rgba(255,255,255,.72); }
+    [data-theme="dark"] { --surface: rgba(28,32,38,.8); }
+    .hero-copy h1 { font-size: clamp(2.7rem, 6vw, 4.8rem); line-height: .96; letter-spacing: -.055em; max-width: none; }
+    .hero-panel { overflow: hidden; }
+    .hero-swarm { position: relative; min-height: 300px; margin-top: 1.5rem; border: 1px solid rgba(148,163,184,.2); border-radius: 24px; background: radial-gradient(circle at 50% 48%, rgba(99,102,241,.24), transparent 35%), rgba(15,23,42,.28); }
+    .hero-swarm .core, .hero-swarm .node { position: absolute; display: grid; place-items: center; border-radius: 50%; text-align: center; }
+    .hero-swarm .core { width: 112px; height: 112px; left: calc(50% - 56px); top: calc(50% - 56px); color: #fff; background: linear-gradient(145deg, var(--swarm), #4338ca); box-shadow: 0 0 50px rgba(99,102,241,.46); font-weight: 800; }
+    .hero-swarm .node { width: 72px; height: 72px; color: var(--text-primary); background: var(--surface); border: 1px solid rgba(99,102,241,.36); font-size: .78rem; font-weight: 700; }
+    .hero-swarm .node::after { content: ""; position: absolute; width: 70px; height: 1px; right: 58px; top: 50%; background: linear-gradient(90deg, transparent, rgba(99,102,241,.65)); transform-origin: right; }
+    .hero-swarm .n1 { left: 8%; top: 12%; } .hero-swarm .n2 { right: 8%; top: 12%; }
+    .hero-swarm .n3 { left: 7%; bottom: 10%; } .hero-swarm .n4 { right: 7%; bottom: 10%; }
+    .hero-swarm .n1::after { transform: rotate(31deg); } .hero-swarm .n2::after { left: 58px; right: auto; transform: rotate(-31deg); }
+    .hero-swarm .n3::after { transform: rotate(-31deg); } .hero-swarm .n4::after { left: 58px; right: auto; transform: rotate(31deg); }
+    .verdict { display: grid; grid-template-columns: auto 1fr; gap: 1rem; align-items: start; padding: 1.25rem; border-radius: 20px; background: linear-gradient(135deg, rgba(52,211,153,.1), rgba(99,102,241,.08)); border: 1px solid rgba(52,211,153,.28); }
+    .verdict strong:first-child { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; color: #052e2b; background: var(--safe); font-size: 1.2rem; }
+    .spectrum { display: grid; grid-template-columns: repeat(4, 1fr); gap: .8rem; margin-top: 1.5rem; }
+    .spectrum article { position: relative; min-height: 210px; padding: 1.3rem; border-radius: 20px; background: var(--surface); border: 1px solid var(--line); }
+    .spectrum article::before { content: attr(data-step); display: block; color: var(--swarm); font: 700 .78rem/1 'Space Grotesk', sans-serif; letter-spacing: .08em; margin-bottom: 1rem; }
+    .spectrum article:nth-child(4) { border-color: rgba(251,113,133,.45); background: linear-gradient(145deg, rgba(251,113,133,.08), var(--surface)); }
+    .fit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.4rem; }
+    .fit-card { padding: 1.35rem; border-radius: 20px; border: 1px solid var(--line); background: var(--surface); }
+    .fit-card.good { border-top: 4px solid var(--safe); } .fit-card.bad { border-top: 4px solid var(--danger); }
+    .fit-card ul, .compact-list { padding-left: 1.2rem; }
+    .fit-card li, .compact-list li { margin: .62rem 0; }
+    .pattern-table { width: 100%; border-collapse: collapse; margin-top: 1.2rem; }
+    .pattern-table th, .pattern-table td { padding: .9rem; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    .pattern-table th { color: var(--text-secondary); font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; }
+    .pattern-table td:first-child { color: var(--swarm); font-weight: 800; white-space: nowrap; }
+    .case-shell { padding: clamp(1rem, 3vw, 2rem); border-radius: 28px; background: linear-gradient(145deg, rgba(99,102,241,.08), rgba(34,211,238,.05)); border: 1px solid rgba(99,102,241,.24); }
+    .artifact-flow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .7rem; align-items: stretch; margin: 1.5rem 0; }
+    .artifact-step { position: relative; padding: 1rem; min-height: 150px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); }
+    .artifact-step:not(:last-child)::after { content: "→"; position: absolute; z-index: 2; right: -.75rem; top: 43%; color: var(--swarm); font-weight: 800; }
+    .artifact-step span { display: inline-block; margin-bottom: .65rem; color: var(--swarm); font: 700 .75rem/1 'Space Grotesk', sans-serif; }
+    .artifact-step strong { display: block; margin-bottom: .55rem; }
+    .artifact-step p { margin: 0; font-size: .88rem; }
+    .rule-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: .8rem; }
+    .rule-strip article { padding: 1.1rem; border-left: 4px solid var(--swarm); border-radius: 12px; background: var(--surface); }
+    .economics { display: grid; grid-template-columns: .85fr 1.15fr; gap: 1.2rem; align-items: stretch; }
+    .bar-chart { padding: 1.3rem; border-radius: 20px; background: var(--surface); border: 1px solid var(--line); }
+    .bar-row { display: grid; grid-template-columns: 92px 1fr 48px; gap: .7rem; align-items: center; margin: 1rem 0; }
+    .bar-track { height: 20px; border-radius: 99px; background: rgba(148,163,184,.15); overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--swarm), var(--swarm-2)); }
+    .bar-row:nth-child(1) .bar-fill { width: 6.67%; } .bar-row:nth-child(2) .bar-fill { width: 26.67%; } .bar-row:nth-child(3) .bar-fill { width: 100%; }
+    .failure-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    .failure-card { padding: 1.3rem; border-radius: 20px; background: var(--surface); border: 1px solid var(--line); }
+    .failure-card b { color: var(--danger); }
+    .gate-list { counter-reset: gate; display: grid; gap: .85rem; padding: 0; list-style: none; }
+    .gate-list li { counter-increment: gate; display: grid; grid-template-columns: 42px 1fr; gap: 1rem; align-items: start; padding: 1rem; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); }
+    .gate-list li::before { content: counter(gate); display: grid; place-items: center; width: 38px; height: 38px; color: white; background: var(--swarm); border-radius: 12px; font-weight: 800; }
+    .check-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: .8rem; }
+    .check-item { padding: 1rem 1rem 1rem 3rem; position: relative; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); }
+    .check-item::before { content: "✓"; position: absolute; left: 1rem; top: 1rem; color: var(--safe); font-weight: 900; }
+    .site :not(pre) > code { white-space: normal; overflow-wrap: anywhere; }
+    .site pre { box-sizing: border-box; max-width: 100%; min-width: 0; overflow-x: auto; }
+    .source-note { margin-top: 1rem; padding: 1rem; border-radius: 14px; color: var(--text-secondary); background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.24); font-size: .9rem; }
+    @media (max-width: 900px) { .spectrum, .artifact-flow { grid-template-columns: repeat(2, 1fr); } .economics { grid-template-columns: 1fr; } .artifact-step::after { display: none; } }
+    @media (max-width: 640px) { .fit-grid, .rule-strip, .failure-grid, .check-grid, .spectrum, .artifact-flow { grid-template-columns: 1fr; } .pattern-table { min-width: 720px; } .table-scroll { overflow-x: auto; } .hero-swarm { min-height: 250px; } .hero-swarm .node { width: 62px; height: 62px; } }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true"><span class="orb orb-a"></span><span class="orb orb-b"></span><span class="orb orb-c"></span></div>
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" aria-label="返回首页">←</a>
+          <div class="brand"><span class="brand-mark"></span>智能体工程</div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#choice">是否需要</a><a href="#patterns">模式选型</a><a href="#case">案例流程</a><a href="#economics">成本失败</a><a href="#delivery">落地清单</a><a href="#references">来源</a>
+          </nav>
+        </div>
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow">Multi-Agent Engineering, Not Agent Theater</span>
+            <h1>多智能体蜂群协作</h1>
+            <p>蜂群不是“多开几个聊天窗口”。它是一套把任务分解、上下文边界、权限、写入权、预算和验收条件显式化的分布式工程方法。默认从单 Agent 起步，只在并行收益可证明时升级。</p>
+            <div class="hero-actions"><a class="button button-primary" href="#choice">先做选型判断</a><a class="button button-secondary" href="#case">看完整案例</a></div>
+            <p class="hero-note">本文结论基于少量已复核的官方工程文档与 MAST 失败研究；厂商内部评测不外推为通用性能承诺。</p>
+          </div>
+          <aside class="hero-panel load-in">
+            <span class="panel-label">一句话架构</span>
+            <h2>中心协调，边界自治，产物共享，门禁交付</h2>
+            <div class="hero-swarm" aria-label="协调器连接研究、财务、安全和审阅角色的示意图">
+              <div class="core">协调器<br />Orchestrator</div><div class="node n1">研究</div><div class="node n2">财务</div><div class="node n3">安全</div><div class="node n4">审阅</div>
+            </div>
+          </aside>
+        </div>
+        <div class="metric-row load-in">
+          <div class="metric"><div class="metric-label">研究场景内部评测</div><strong>+90.2%</strong><span>Anthropic 多 Agent 相对单 Agent；仅限其内部研究评测。</span></div>
+          <div class="metric"><div class="metric-label">Token 量级</div><strong>≈15×</strong><span>多 Agent 相对普通聊天交互，不是免费增益。</span></div>
+          <div class="metric"><div class="metric-label">失败分类</div><strong>14</strong><span>MAST 从 7 个框架、1600+ 轨迹归纳的失败模式。</span></div>
+        </div>
+      </header>
+
+      <main>
+        <section id="choice" class="section" data-reveal>
+          <div class="section-head"><p class="section-kicker">01 / Start With The Decision</p><h2>先问“为什么不能一个 Agent 做完？”</h2><p>Anthropic 的基础建议是寻找最简单可行方案：确定路径的任务优先 workflow，需要模型动态决定过程时才使用 agent。多智能体则应再多跨过一道门槛——任务必须可拆、可并行、可独立验证，而且价值足以覆盖额外成本。<sup>[1]</sup></p></div>
+          <div class="verdict"><strong>✓</strong><div><h3>默认判断</h3><p>如果一个强模型、清晰工具和一次审阅已经能稳定完成，就不要组蜂群。多 Agent 的目标不是角色扮演，而是获得独立上下文、并行吞吐、专业权限边界或无锚定复核。</p></div></div>
+          <div class="spectrum">
+            <article data-step="LEVEL 0"><h3>单次调用</h3><p>分类、抽取、改写。输入输出明确，不需要工具循环。</p></article>
+            <article data-step="LEVEL 1"><h3>确定性工作流</h3><p>步骤已知，代码负责路由、重试、超时与状态推进。</p></article>
+            <article data-step="LEVEL 2"><h3>单 Agent</h3><p>需要动态选工具和调整计划，但共享上下文仍可控。</p></article>
+            <article data-step="LEVEL 3"><h3>受控多 Agent</h3><p>存在真正并行子任务、专业边界或独立审阅，且有硬门禁。</p></article>
+          </div>
+          <div class="fit-grid">
+            <article class="fit-card good"><h3>适合升级</h3><ul><li>广度优先检索，可切成互不依赖的主题。</li><li>多个专业判断可并行，最终由一位整合者裁决。</li><li>每个分支都有独立验收条件和可保存产物。</li><li>任务价值高，延迟或 token 增长仍有正向 ROI。</li></ul></article>
+            <article class="fit-card bad"><h3>不适合升级</h3><ul><li>步骤强耦合，后一步必须看到全部前序细节。</li><li>多人必须同时修改同一文件或共享可变状态。</li><li>没有自动测试、证据要求或人工审批标准。</li><li>只是希望“多投票自然更聪明”，却没有视角差异。</li></ul></article>
+          </div>
+        </section>
+
+        <section id="patterns" class="section" data-reveal>
+          <div class="section-head"><p class="section-kicker">02 / Pick A Topology</p><h2>不要先选框架，先选控制权</h2><p>Azure Architecture Center 将常见编排归纳为 Sequential、Concurrent、Handoff、Group Chat 与 Magentic。OpenAI Agents SDK 则把常用多 Agent 关系压缩为“manager 把专家当工具调用”和“handoff 转交控制权”。这些名称不同，但关键问题相同：谁持有计划、谁持有最终答案、状态在哪里。<sup>[3][4]</sup></p></div>
+          <article class="comparison-card">
+            <span class="comparison-label">Topology Decision Matrix</span><h3>按控制需求选择，而不是按“自治感”选择</h3>
+            <div class="table-scroll"><table class="pattern-table"><thead><tr><th>模式</th><th>控制权</th><th>最适合</th><th>主要风险</th></tr></thead><tbody>
+              <tr><td>Sequential</td><td>代码预定义顺序</td><td>审稿、转换、合规检查流水线</td><td>早期错误逐级放大</td></tr>
+              <tr><td>Concurrent</td><td>协调器分发并汇总</td><td>独立研究、并行审阅、多方案比较</td><td>重复劳动、合并冲突</td></tr>
+              <tr><td>Agents as tools</td><td>manager 始终持有会话</td><td>统一口径、集中 guardrail、最终答案单一</td><td>manager 上下文和判断成为瓶颈</td></tr>
+              <tr><td>Handoff</td><td>当前 Agent 转交给专家</td><td>客服分诊、领域接力、长期会话</td><td>上下文泄漏、责任边界模糊</td></tr>
+              <tr><td>Group chat</td><td>聊天管理器协调讨论</td><td>需要互相质询的方案评审</td><td>回声室、循环、成本不可控</td></tr>
+              <tr><td>Magentic / Planner</td><td>模型动态重规划</td><td>开放式、路径未知、工具丰富的问题</td><td>最难测试、审计与预测预算</td></tr>
+            </tbody></table></div>
+          </article>
+          <div class="source-note"><strong>行业趋势：</strong>OpenAI 已把早期 <code>openai/swarm</code> 明确标为 experimental/educational，并建议生产场景迁移到 Agents SDK。信号不是“蜂群消失”，而是生态正从自由对话收敛到可追踪的 manager、handoff、session、guardrail 与 tracing 原语。<sup>[2][3]</sup></div>
+        </section>
+
+        <section id="case" class="section" data-reveal>
+          <div class="section-head"><p class="section-kicker">03 / One Case, End To End</p><h2>案例：企业技术选型研究如何分工</h2><p>目标：两天内给出“客服自动化平台”的选型建议。不是让四个 Agent 各写一份报告，而是让它们围绕同一验收契约产生可合并 artifact。</p></div>
+          <div class="case-shell">
+            <div class="artifact-flow" aria-label="从任务契约到验收交付的五步流程">
+              <article class="artifact-step"><span>01 CONTRACT</span><strong>协调器定义问题</strong><p>候选范围、评分维度、截止时间、预算和证据等级。</p></article>
+              <article class="artifact-step"><span>02 PARALLEL</span><strong>三个只读研究分支</strong><p>产品能力、成本运维、安全合规分别核验原始来源。</p></article>
+              <article class="artifact-step"><span>03 ARTIFACT</span><strong>写结构化产物</strong><p>每组提交证据表、风险、未知项和来源链接，不回传长对话。</p></article>
+              <article class="artifact-step"><span>04 SYNTHESIS</span><strong>单一写者整合</strong><p>一位作者拥有正文写入权，处理冲突并标注推论。</p></article>
+              <article class="artifact-step"><span>05 GATE</span><strong>独立审阅与门禁</strong><p>新上下文审阅证据覆盖、预算一致性和反例，再由人批准。</p></article>
+            </div>
+            <div class="rule-strip">
+              <article><h3>共享契约，不共享全部历史</h3><p>共享任务 ID、schema、来源等级和完成定义；原始页面与大表存 artifact，只返回路径和摘要。</p></article>
+              <article><h3>单写者，不共享可变正文</h3><p>研究者只写各自目录。最终报告、评分矩阵和决策记录各有唯一 owner。</p></article>
+              <article><h3>审阅者必须“新鲜”</h3><p>不要让原作者自我投票。独立审阅者只看交付物、证据和验收标准，降低锚定。</p></article>
+            </div>
+          </div>
+          <article class="comparison-card section-grid-spaced">
+            <span class="comparison-label">Artifact Contract</span><h3>每个分支只需返回这六项</h3>
+            <pre><code>{
+  "task_id": "security-review",
+  "status": "done | blocked | partial",
+  "claims": [{"text": "...", "evidence": "primary | secondary"}],
+  "artifacts": ["authoring/security-evidence.md"],
+  "risks": ["..."],
+  "next_action": "accept | verify | escalate"
+}</code></pre>
+            <p>Anthropic 的多 Agent 研究系统也建议让子 Agent 把输出持久化到外部系统，再向协调器返回轻量引用，以减少上下文溢出和“传话游戏”。<sup>[5]</sup></p>
+          </article>
+        </section>
+
+        <section id="economics" class="section" data-reveal>
+          <div class="section-head"><p class="section-kicker">04 / Economics, Failure And Recovery</p><h2>质量提升常常来自更多计算，不是群体魔法</h2><p>Anthropic 报告中，普通 agent 约使用聊天交互 4 倍 token，多 Agent 约 15 倍；其 BrowseComp 分析中，token usage 单项解释 80% 的性能方差。这说明预算本身就是架构变量。<sup>[5]</sup></p></div>
+          <div class="economics">
+            <div class="bar-chart" role="img" aria-label="聊天、单智能体和多智能体相对 token 使用量示意：1、4、15">
+              <h3>相对 Token 使用量</h3><div class="bar-row"><span>Chat</span><div class="bar-track"><div class="bar-fill"></div></div><strong>1×</strong></div><div class="bar-row"><span>Agent</span><div class="bar-track"><div class="bar-fill"></div></div><strong>4×</strong></div><div class="bar-row"><span>Multi-Agent</span><div class="bar-track"><div class="bar-fill"></div></div><strong>15×</strong></div><small>厂商生产数据的约数，只用于量级感知，不代表所有模型与任务。</small>
+            </div>
+            <article class="comparison-card"><span class="comparison-label">Budget Formula</span><h3>把预算写进任务契约</h3><p><strong>总成本 ≈ 分支数 × 每分支轮数 × 单轮 token + 工具/API + 审阅与重试。</strong></p><ul class="compact-list"><li>先设总预算，再分配分支预算，不允许无限续杯。</li><li>对低价值分支使用较小模型；最终整合和高风险审阅再升级。</li><li>预算到 70% 时触发摘要，90% 时停止新增分支，只完成已有交付。</li><li>比较“每个被接受结论的成本”，而非只看单次调用价格。</li></ul></article>
+          </div>
+          <div class="failure-grid section-grid-spaced">
+            <article class="failure-card"><b>系统设计问题</b><h3>角色多，责任空</h3><p>任务边界重叠、工具配置错误、没有全局终止条件。修复方式是重写 DAG、schema 和 hard limit。</p></article>
+            <article class="failure-card"><b>Agent 间失调</b><h3>信息到了，含义丢了</h3><p>错误转述、忽略同伴结果、循环委派。修复方式是 artifact 引用、版本号、去重键和最大委派深度。</p></article>
+            <article class="failure-card"><b>任务验证缺失</b><h3>完成了，但不可交付</h3><p>没有测试、来源或人工门禁。修复方式是把验收器作为流程节点，而不是提示词尾注。</p></article>
+          </div>
+          <p class="source-note">MAST 基于 7 个框架的 1600+ 条轨迹，人工深入分析 150 条（κ=0.88），归纳出 14 种失败模式和上述 3 大类。它提醒我们：多数故障不是“模型不够聪明”，而是系统没有协调与验证机制。<sup>[6]</sup></p>
+          <article class="comparison-card section-grid-spaced"><span class="comparison-label">Partial Recovery</span><h3>失败时只重跑未通过的节点</h3><ol class="gate-list"><li><div><strong>检查点</strong><p>每个节点保存输入版本、输出 artifact、模型、工具调用和验收结果。</p></div></li><li><div><strong>隔离</strong><p>失败节点不得覆盖已验收产物；写入使用临时路径，验收通过后再提升为正式版本。</p></div></li><li><div><strong>恢复</strong><p>优先重试单节点；输入已变化才重跑下游；权限或证据不足则升级人工，不让 Agent 自行放宽规则。</p></div></li></ol></article>
+        </section>
+
+        <section id="delivery" class="section" data-reveal>
+          <div class="section-head"><p class="section-kicker">05 / Minimum Production Loop</p><h2>最小可落地闭环：先做到 8 件事</h2><p>一个可靠的三 Agent 系统，通常胜过一个没有边界的三十 Agent 群聊。以下清单应在扩大规模前全部可回答。</p></div>
+          <div class="check-grid">
+            <div class="check-item"><strong>任务可拆</strong><br />依赖图明确，能指出哪些节点可并行。</div><div class="check-item"><strong>角色可删</strong><br />每个角色都有独有输入、工具或验收责任。</div>
+            <div class="check-item"><strong>状态外置</strong><br />关键进度和产物不只存在聊天上下文里。</div><div class="check-item"><strong>权限最小</strong><br />只读研究、写文件、执行命令和生产操作分离授权。</div>
+            <div class="check-item"><strong>单写者</strong><br />每个可变 artifact 同一时刻只有一个 owner。</div><div class="check-item"><strong>预算有闸</strong><br />有 token、轮数、时间、并发和工具费用硬上限。</div>
+            <div class="check-item"><strong>验证独立</strong><br />测试、证据检查或 fresh reviewer 不依赖原作者自评。</div><div class="check-item"><strong>恢复局部</strong><br />能从检查点重跑失败节点，而不是全群重来。</div>
+          </div>
+          <div class="verdict section-grid-spaced"><strong>→</strong><div><h3>推荐的第一次试点</h3><p><strong>1 个协调器 + 2 个只读专家 + 1 个独立审阅节点</strong>。选择高价值、可并行、可验证且无生产写权限的任务；连续记录单 Agent 基线、质量、延迟、token、人工返工和失败恢复成本。只有数据证明净收益，才增加角色或自治程度。</p></div></div>
+        </section>
+      </main>
+
+      <section id="references" class="section" data-reveal>
+        <div class="section-head"><p class="section-kicker">References & Evidence Boundary</p><h2>已核验的关键来源</h2><p>本文刻意只使用少量支撑主干的原始来源。定量结论均标明适用边界；示意图、选型矩阵与落地清单属于基于来源的工程综合，不是厂商原话。</p></div>
+        <ol class="bib-list">
+          <li id="ref-1"><span class="bib-id">[1]</span> <span class="bib-author">Anthropic.</span> <a href="https://www.anthropic.com/engineering/building-effective-agents" target="_blank" rel="noreferrer noopener">“Building effective agents.”</a><span class="bib-note">最简单方案优先；workflow 与 agent 的架构区分。</span></li>
+          <li id="ref-2"><span class="bib-id">[2]</span> <span class="bib-author">OpenAI.</span> <a href="https://github.com/openai/swarm" target="_blank" rel="noreferrer noopener">“Swarm (experimental, educational).”</a><span class="bib-note">官方 README 明确建议生产场景迁移至 Agents SDK。</span></li>
+          <li id="ref-3"><span class="bib-id">[3]</span> <span class="bib-author">OpenAI.</span> <a href="https://openai.github.io/openai-agents-python/multi_agent/" target="_blank" rel="noreferrer noopener">“Multi-agent orchestration.”</a><span class="bib-note">Agents as tools 与 handoffs 两类常用关系。</span></li>
+          <li id="ref-4"><span class="bib-id">[4]</span> <span class="bib-author">Microsoft Azure Architecture Center.</span> <a href="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/ai-agent-design-patterns" target="_blank" rel="noreferrer noopener">“AI agent orchestration patterns.”</a><span class="bib-note">Sequential、Concurrent、Handoff、Group chat、Magentic。</span></li>
+          <li id="ref-5"><span class="bib-id">[5]</span> <span class="bib-author">Anthropic.</span> <a href="https://www.anthropic.com/engineering/built-multi-agent-research-system" target="_blank" rel="noreferrer noopener">“How we built our multi-agent research system.”</a><span class="bib-note">内部研究评测、token 经济性、artifact 传递；不可外推为通用收益。</span></li>
+          <li id="ref-6"><span class="bib-id">[6]</span> <span class="bib-author">Cemri et al.</span> <a href="https://arxiv.org/abs/2503.13657" target="_blank" rel="noreferrer noopener">“Why Do Multi-Agent LLM Systems Fail?”</a><span class="bib-note">MAST 数据集与 14 种失败模式、3 大类别。</span></li>
+        </ol>
+      </section>
+      <footer>© 2026 illusion615's Knowledge Hub | 多智能体工程实践。</footer>
+    </div>
+  </div>
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>
