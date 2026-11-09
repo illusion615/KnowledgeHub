@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-section-density="strict" data-present-i18n="strict">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="面向产品选型决策者，区分 Copilot Studio 官方计划、预览、已发布标记和客户环境可用性，提供带官方引用的功能快照查询。" data-description-zh="面向产品选型决策者，区分 Copilot Studio 官方计划、预览、已发布标记和客户环境可用性，提供带官方引用的功能快照查询。" data-description-en="A deep reference for product selectors: query cited Copilot Studio plans and release evidence while separating preview, launch labels, and tenant availability." />
+  <title data-zh="Copilot Studio 官方路线图与发布状态" data-en="Copilot Studio Official Roadmap and Release Status">Copilot Studio 官方路线图与发布状态</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&amp;family=Space+Grotesk:wght@500;700&amp;display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <style>
+    /* Component: #query article-specific snapshot controls on canonical comparison cards.
+       Reading mode: two search/result panels; detail and constraints follow as separate blocks.
+       Presentation mode: query and export-scope steps inherit shared safe areas; no polling while hidden. */
+    .roadmap-table-wrap { overflow-x: auto; max-width: 100%; min-width: 0; }
+    .roadmap-table-wrap .simple-table { min-width: 620px; }
+    .roadmap-date-metric strong { font-size: 1.4rem; overflow-wrap: anywhere; }
+    .roadmap-source-note, .roadmap-official-title { overflow-wrap: anywhere; }
+    #roadmap-export-limit .button { max-width: 100%; box-sizing: border-box; white-space: normal; margin-top: var(--rhythm-inline); }
+    #roadmap-workspace { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: var(--rhythm-card); }
+    #roadmap-workspace .comparison-card { padding: 20px; min-width: 0; }
+    #query h3 { overflow-wrap: anywhere; }
+    #query [hidden] { display: none !important; }
+    .roadmap-controls { display: grid; gap: var(--rhythm-inline); margin-top: var(--rhythm-inline); }
+    .roadmap-controls label { display: grid; gap: var(--rhythm-tight); min-width: 0; font-size: 0.92rem; font-weight: 700; }
+    .roadmap-controls input, .roadmap-controls select {
+      width: 100%; min-width: 0; box-sizing: border-box; padding: 12px; border: 1px solid var(--line);
+      border-radius: 12px; background: var(--card-bg); color: var(--ink); font: inherit; font-weight: 400;
+    }
+    .roadmap-controls input:focus-visible, .roadmap-controls select:focus-visible,
+    #query button:focus-visible, #query a:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
+    .roadmap-control-actions, .roadmap-pager, .roadmap-related-records { display: flex; flex-wrap: wrap; gap: var(--rhythm-tight); align-items: center; }
+    #query button { white-space: normal; }
+    #query button:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+    #query .roadmap-hint, #query .roadmap-freshness { font-size: 0.85rem; line-height: 1.65; color: var(--muted); }
+    #query .roadmap-freshness, #query .roadmap-hint, #query .roadmap-official-title { margin-top: var(--rhythm-inline); }
+    #query .roadmap-load-status:empty, #query .roadmap-selection-note:empty { display: none; }
+    #query .roadmap-results { margin: var(--rhythm-inline) 0; gap: var(--rhythm-tight); }
+    #query .roadmap-record-button { display: block; width: 100%; padding: 12px; border-radius: 12px; text-align: left; font-weight: 400; }
+    #query .roadmap-record-button[aria-pressed="true"] { border-color: var(--teal); box-shadow: inset 0 0 0 1px var(--teal); }
+    #query .roadmap-record-title { display: block; font-size: 0.96rem; line-height: 1.4; color: var(--ink); }
+    #query .roadmap-record-meta { display: block; font-size: 0.82rem; line-height: 1.5; margin-top: var(--rhythm-tight); color: var(--muted); overflow-wrap: anywhere; }
+    #query .roadmap-record-button .comparison-label { margin-top: var(--rhythm-tight); padding: 4px 8px; font-size: 0.75rem; letter-spacing: 0; }
+    #query .roadmap-pager { margin-top: var(--rhythm-inline); justify-content: space-between; }
+    #query .roadmap-pager .button { padding: 10px 12px; font-size: 0.85rem; }
+    #query .roadmap-detail-body, #query .roadmap-constraints-body { display: grid; gap: var(--rhythm-inline); min-width: 0; }
+    #query .roadmap-detail-body p, #query .roadmap-constraints-body p { margin: 0; overflow-wrap: anywhere; }
+    #query .roadmap-detail-body h3, #query .roadmap-constraints-body h3 { margin: 0; }
+    #query .roadmap-detail-body .simple-table { margin: 0; }
+    #query .roadmap-detail-body .simple-table th { width: 34%; }
+    #query .roadmap-detail-body .simple-table td { overflow-wrap: anywhere; }
+    #query .roadmap-official-title { font-size: 0.9rem; line-height: 1.65; }
+    #query .roadmap-constraint-list { margin: 0; gap: var(--rhythm-tight); }
+    #query .roadmap-related-button { padding: 10px 12px; font-size: 0.85rem; text-align: left; }
+    #query .roadmap-selection-note { font-size: 0.85rem; }
+    #query .roadmap-document-links { display: grid; gap: var(--rhythm-tight); }
+    #query .roadmap-document-links p { font-size: 0.85rem; }
+    #query .roadmap-status-development { background: #fff2e2; color: #753b06; border: 1px solid #d9ba95; }
+    #query .roadmap-status-rolling-out { background: #edf4ff; color: #204a78; border: 1px solid #adc4e3; }
+    #query .roadmap-status-launched, #query .roadmap-status-ga-notice { background: #e8f6f0; color: #175d4e; border: 1px solid #93c7b4; }
+    #query .roadmap-status-cancelled { background: #fff0ee; color: #862e33; border: 1px solid #daa5a9; }
+    #query .roadmap-status-preview-notice { background: #f3edfb; color: #604080; border: 1px solid #bfadd5; }
+    [data-theme="dark"] #query .roadmap-controls input, [data-theme="dark"] #query .roadmap-controls select { background: #17212e; border-color: #556172; color: #edf2fa; }
+    [data-theme="dark"] #query .roadmap-controls option { background: #17212e; color: #edf2fa; }
+    [data-theme="dark"] #query .roadmap-status-development { background: #3a2b18; color: #f7d5a5; border-color: #8b6942; }
+    [data-theme="dark"] #query .roadmap-status-rolling-out { background: #1d304b; color: #c3dcff; border-color: #5478a9; }
+    [data-theme="dark"] #query .roadmap-status-launched, [data-theme="dark"] #query .roadmap-status-ga-notice { background: #17392f; color: #b8efdb; border-color: #518b77; }
+    [data-theme="dark"] #query .roadmap-status-cancelled { background: #46282e; color: #ffd0d3; border-color: #a45f68; }
+    [data-theme="dark"] #query .roadmap-status-preview-notice { background: #342644; color: #e4d2ff; border-color: #8a6ba6; }
+    [data-theme="dark"] .roadmap-source-note a, [data-theme="dark"] #query a:not(.button) { color: #8fdfd8; }
+    .is-presentation-mode #roadmap-workspace .comparison-card { padding: 18px; }
+    .is-presentation-mode #query .roadmap-record-title { font-size: 0.9rem; }
+    .is-presentation-mode #query .roadmap-record-meta { font-size: 0.78rem; }
+    .is-presentation-mode #query .roadmap-hint, .is-presentation-mode #query .roadmap-freshness { font-size: 0.8rem; }
+    @media (max-width: 900px) { #roadmap-workspace { grid-template-columns: minmax(0, 1fr); } }
+    @media (max-width: 480px) {
+      #sources .flow-copy code { white-space: normal; overflow-wrap: anywhere; word-break: break-word; }
+      #roadmap-workspace .comparison-card, #roadmap-detail-panel, #roadmap-constraints-panel { padding: 16px; }
+      #query .roadmap-control-actions .button { flex: 1 1 100%; }
+      #query .roadmap-results li { grid-template-columns: 32px minmax(0, 1fr); gap: var(--rhythm-tight); }
+      #query .roadmap-results .flow-step { width: 32px; height: 32px; font-size: 0.82rem; }
+      #query .roadmap-detail-body .simple-table th, #query .roadmap-detail-body .simple-table td { padding: 10px 6px; font-size: 0.84rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true"><span class="orb orb-a"></span><span class="orb orb-b"></span><span class="orb orb-c"></span></div>
+    <div class="site">
+      <header class="hero" data-present-step data-step-title="路线图与发布状态总览" data-step-title-en="Roadmap and Release Status Overview" data-step-label="选型参考" data-step-label-en="Selection Reference">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="Return to the Knowledge Hub">←</a>
+          <div class="brand"><span class="brand-mark"></span><span data-zh="Copilot Studio" data-en="Copilot Studio">Copilot Studio</span></div>
+          <nav class="nav-links" aria-label="Article sections" data-nav-pager>
+            <a href="#sources" data-zh="官方入口" data-en="Sources">官方入口</a>
+            <a href="#interpret" data-zh="状态解读" data-en="Status">状态解读</a>
+            <a href="#query" data-zh="功能查询" data-en="Query">功能查询</a>
+            <a href="#verify" data-zh="交付核验" data-en="Verify">交付核验</a>
+            <a href="#selection" data-zh="选型判断" data-en="Selection">选型判断</a>
+            <a href="#references" data-zh="参考资料" data-en="References">参考资料</a>
+          </nav>
+        </div>
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow" data-zh="官方计划 · 交付核验 · 产品选型" data-en="Official Plans · Release Evidence · Product Selection">官方计划 · 交付核验 · 产品选型</span>
+            <h1 data-zh="Copilot Studio 官方路线图与发布状态" data-en="Copilot Studio Official Roadmap and Release Status">Copilot Studio 官方路线图与发布状态</h1>
+            <p data-zh="选型需要同时回答三件事：微软准备提供什么，哪些能力已有发布依据，以及这些能力能否在目标环境按要求运行。这里把官方入口、状态解读和功能查询连在一起，帮助你把关键能力写成可核验的采购与实施条件。" data-en="Product selection needs three answers: what Microsoft plans to deliver, which capabilities have release evidence, and whether they work as required in the target environment. Use the official sources, status guide, and feature query to turn important capabilities into verifiable procurement and implementation conditions.">选型需要同时回答三件事：微软准备提供什么，哪些能力已有发布依据，以及这些能力能否在目标环境按要求运行。这里把官方入口、状态解读和功能查询连在一起，帮助你把关键能力写成可核验的采购与实施条件。</p>
+            <div class="hero-actions"><a class="button button-primary" href="#query" data-zh="查询功能快照" data-en="Query the Feature Snapshot">查询功能快照</a><a class="button button-secondary" href="#sources" data-zh="打开官方入口" data-en="Find the Official Sources">打开官方入口</a></div>
+          </div>
+          <aside class="hero-panel load-in">
+            <span class="panel-label" data-zh="选型原则" data-en="Selection Principle">选型原则</span>
+            <h2 data-zh="先确定能力范围，再判断交付状态" data-en="Verify Scope before Release Status">先确定能力范围，再判断交付状态</h2>
+            <ul class="layer-list">
+              <li data-zh="<span class='layer-number'>1</span>目标日期回答计划，不直接回答是否已经交付。" data-en="<span class='layer-number'>1</span>A target date describes a plan, not proof of delivery."><span class="layer-number">1</span>目标日期回答计划，不直接回答是否已经交付。</li>
+              <li data-zh="<span class='layer-number'>2</span>发布标记回答官方状态，不证明所有租户都已推出。" data-en="<span class='layer-number'>2</span>A release label states the official status, not rollout to every tenant."><span class="layer-number">2</span>发布标记回答官方状态，不证明所有租户都已推出。</li>
+              <li data-zh="<span class='layer-number'>3</span>生产依赖还需要渠道、权限、许可与真实流程验证。" data-en="<span class='layer-number'>3</span>Production reliance still requires channel, permission, licensing, and workflow validation."><span class="layer-number">3</span>生产依赖还需要渠道、权限、许可与真实流程验证。</li>
+            </ul>
+          </aside>
+        </div>
+        <div class="hero-metrics load-in">
+          <div class="metric"><div class="metric-label" data-zh="选取记录" data-en="Selected Records">选取记录</div><strong>16</strong><span data-zh="12 个路线图 ID，加 4 条公告／历史计划对照；不是完整功能目录。" data-en="12 roadmap IDs plus 4 notice/archived-plan comparisons; not an exhaustive feature list.">12 个路线图 ID，加 4 条公告／历史计划对照；不是完整功能目录。</span></div>
+          <div class="metric"><div class="metric-label" data-zh="官方路线图 ID" data-en="Official Roadmap IDs">官方路线图 ID</div><strong>12</strong><span data-zh="同名但状态不同的两条记录分别保留；ID 数量不是独立能力数量。[3][4]" data-en="Two same-title records with different states are retained; IDs are not a count of distinct capabilities.[3][4]">同名但状态不同的两条记录分别保留；ID 数量不是独立能力数量。[3][4]</span></div>
+          <div class="metric roadmap-date-metric"><div class="metric-label" data-zh="最近核对日期 · UTC" data-en="Last Verified · UTC">最近核对日期 · UTC</div><strong>2026-11-09</strong><span data-zh="快照不自动更新，也没有执行客户租户检测。" data-en="No automatic refresh and no customer tenant availability checks.">快照不自动更新，也没有执行客户租户检测。</span></div>
+        </div>
+      </header>
+      <main>
+        <section id="sources" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="01 / 官方入口" data-en="01 / Official Sources">01 / 官方入口</p>
+            <h2 data-zh="用当前路线图查计划，用产品文档查实施条件" data-en="Use the Current Roadmap for Plans and Product Docs for Implementation">用当前路线图查计划，用产品文档查实施条件</h2>
+            <p data-zh="Release Planner 公告已停止更新，内容截至 2026-09-01，并计划在 2026-11-15 退役。Copilot Studio 产品选择会导向 AI at Work Roadmap；旧 Power Platform 发布计划已标为历史归档。[1][2][6]" data-en="The Release Planner banner says updates have stopped, with content frozen as of September 1, 2026 and retirement scheduled by November 15. The Copilot Studio product selection directs readers to the AI at Work Roadmap; the older Power Platform plans are marked archived.[1][2][6]">Release Planner 公告已停止更新，内容截至 2026-09-01，并计划在 2026-11-15 退役。Copilot Studio 产品选择会导向 AI at Work Roadmap；旧 Power Platform 发布计划已标为历史归档。[1][2][6]</p>
+          </div>
+          <div class="subsection-accordion">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" type="button"><span data-zh="四类官方页面分别回答什么" data-en="What Each Official Source Can Establish">四类官方页面分别回答什么</span></button>
+              <div class="subsection-content">
+                <p data-zh="公开预览（Public preview）供提前体验；一般可用（GA，General Availability）是正式发布阶段标签，不能省略后续的环境核验。[5][8]" data-en="Public preview provides early access. General availability (GA) is a formal release-stage label, but it does not remove the need to verify the target environment.[5][8]">公开预览（Public preview）供提前体验；一般可用（GA，General Availability）是正式发布阶段标签，不能省略后续的环境核验。[5][8]</p>
+                <div class="roadmap-table-wrap" tabindex="0" aria-label="Scrollable official-source comparison"><table class="simple-table">
+                  <thead><tr><th data-zh="入口" data-en="Source">入口</th><th data-zh="适合回答" data-en="What It Establishes">适合回答</th><th data-zh="不能据此推定" data-en="What It Does Not Establish">不能据此推定</th></tr></thead>
+                  <tbody>
+                    <tr><td><a href="https://www.microsoft.com/en-us/microsoft-365/roadmap?filters=%5B%22Microsoft+Copilot+Studio%22%5D#Roadmap" target="_blank" rel="noopener noreferrer" data-zh="AI at Work Roadmap：Copilot Studio" data-en="AI at Work Roadmap: Copilot Studio">AI at Work Roadmap：Copilot Studio</a></td><td data-zh="当前条目、原始状态、预计月份、云与平台标签。[2][3]" data-en="Current records, original status, planned months, cloud and platform tags.[2][3]">当前条目、原始状态、预计月份、云与平台标签。[2][3]</td><td data-zh="精确部署日期；客户租户已经可用。" data-en="An exact deployment day or availability in a customer tenant.">精确部署日期；客户租户已经可用。</td></tr>
+                    <tr><td><a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/whats-new" target="_blank" rel="noopener noreferrer">What's new in Copilot Studio</a></td><td data-zh="按月查发布公告，保留 GA／Preview 原始标签。[5]" data-en="Monthly release notices with the original GA/Preview labels.[5]">按月查发布公告，保留 GA／Preview 原始标签。[5]</td><td data-zh="当月第一天就是交付日；公告覆盖每一项功能。" data-en="Release on the first day of the month or complete feature coverage.">当月第一天就是交付日；公告覆盖每一项功能。</td></tr>
+                    <tr><td data-zh="能力专属 Microsoft Learn 文档" data-en="Capability-Specific Microsoft Learn Guidance">能力专属 Microsoft Learn 文档</td><td data-zh="具体操作、支持范围、前提与已知限制；如 Dataverse 的 15 表上限。[12]" data-en="Implementation, scope, prerequisites, and limits, such as Dataverse's 15-table limit.[12]">具体操作、支持范围、前提与已知限制；如 Dataverse 的 15 表上限。[12]</td><td data-zh="出现配置步骤就代表整个能力已经 GA。" data-en="GA for the entire capability merely because setup steps exist.">出现配置步骤就代表整个能力已经 GA。</td></tr>
+                    <tr><td><a href="https://releaseplans.microsoft.com/en-US/?app=Microsoft+Copilot+Studio" target="_blank" rel="noopener noreferrer">Release Planner</a> / <a href="https://learn.microsoft.com/en-us/previous-versions/power-platform/release-plan/2024wave2/microsoft-copilot-studio/" target="_blank" rel="noopener noreferrer" data-zh="Learn 历史计划" data-en="Archived Learn Plans">Learn 历史计划</a></td><td data-zh="追溯旧波次、原计划和启用方式。[1][6][7]" data-en="Historical waves, original plans, and enablement conditions.[1][6][7]">追溯旧波次、原计划和启用方式。[1][6][7]</td><td data-zh="旧波次仍在维护；过去的 GA 日期已经兑现。" data-en="Continued maintenance or delivery of a past planned GA date.">旧波次仍在维护；过去的 GA 日期已经兑现。</td></tr>
+                  </tbody>
+                </table></div>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" type="button"><span data-zh="沿产品视图找到可复核的功能条目" data-en="Find a Traceable Feature in the Product View">沿产品视图找到可复核的功能条目</span></button>
+              <div class="subsection-content">
+                <p data-zh="先固定产品，再固定条目 ID，避免混入其他产品。harness 指负责模型调用与工具执行的运行时，不同 harness 的能力与计费可能不同。[20]" data-en="Fix the product and then the record ID to avoid mixing in other products. A harness is the runtime that manages model calls and tool execution; features and billing can differ between harnesses.[20]">先固定产品，再固定条目 ID，避免混入其他产品。harness 指负责模型调用与工具执行的运行时，不同 harness 的能力与计费可能不同。[20]</p>
+                <ol class="flow-list">
+                  <li><span class="flow-step">1</span><div class="flow-copy"><strong data-zh="从产品入口进入" data-en="Start from the Product View">从产品入口进入</strong><p data-zh="旧门户的实际产品参数是 <code>app=Microsoft+Copilot+Studio</code>；当前目标页的产品筛选是 Microsoft Copilot Studio。[1][2]" data-en="The legacy portal's actual product parameter is <code>app=Microsoft+Copilot+Studio</code>; the current destination filters for Microsoft Copilot Studio.[1][2]">旧门户的实际产品参数是 <code>app=Microsoft+Copilot+Studio</code>；当前目标页的产品筛选是 Microsoft Copilot Studio。[1][2]</p></div></li>
+                  <li><span class="flow-step">2</span><div class="flow-copy"><strong data-zh="保留 ID 和原文标题" data-en="Retain the ID and Official Title">保留 ID 和原文标题</strong><p data-zh="官方 RSS 给出逐条链接，例如 <a href='https://www.microsoft.com/microsoft-365/roadmap?id=576272' target='_blank' rel='noopener noreferrer'>576272：新 harness 的网页浏览</a>。同名条目不能只按标题合并。[3][4]" data-en="The official RSS supplies per-feature links, such as <a href='https://www.microsoft.com/microsoft-365/roadmap?id=576272' target='_blank' rel='noopener noreferrer'>576272: web browsing on the new harness</a>. Do not merge same-title records by title alone.[3][4]">官方 RSS 给出逐条链接，例如 <a href="https://www.microsoft.com/microsoft-365/roadmap?id=576272" target="_blank" rel="noopener noreferrer">576272：新 harness 的网页浏览</a>。同名条目不能只按标题合并。[3][4]</p></div></li>
+                  <li><span class="flow-step">3</span><div class="flow-copy"><strong data-zh="同时打开实施文档" data-en="Open Matching Implementation Guidance">同时打开实施文档</strong><p data-zh="条目没有文档链接时，需到 Learn 查对应能力；相近能力的文档不能当作同范围的交付证明。" data-en="If the record has no documentation link, find the matching capability on Learn. Guidance for a similar feature is not evidence of delivery in the same scope.">条目没有文档链接时，需到 Learn 查对应能力；相近能力的文档不能当作同范围的交付证明。</p></div></li>
+                </ol>
+              </div>
+            </article>
+          </div>
+        </section>
+        <section id="interpret" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="02 / 状态解读" data-en="02 / Interpret Status">02 / 状态解读</p>
+            <h2 data-zh="把目标日期、发布阶段与环境可用性分开" data-en="Separate Target Dates, Release Stages, and Tenant Availability">把目标日期、发布阶段与环境可用性分开</h2>
+            <p data-zh="同一条记录可能写着过去的 GA 目标月份，却仍标为 In development。查询保留这两个事实，不按日历自动升级状态，也不把记录修改时间当作发布日期。[2][3]" data-en="A record can show a past GA target month and still say In development. The query preserves both facts: dates do not automatically upgrade status, and a record's modified timestamp is not a release date.[2][3]">同一条记录可能写着过去的 GA 目标月份，却仍标为 In development。查询保留这两个事实，不按日历自动升级状态，也不把记录修改时间当作发布日期。[2][3]</p>
+          </div>
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion><button class="subsection-toggle" type="button"><span data-zh="日期字段不等于已交付证明" data-en="Date Fields Are Not Delivery Evidence">日期字段不等于已交付证明</span></button><div class="subsection-content">
+              <p data-zh="路线图通常给到月份，发布公告通常给到月份标题；只有来源明确给出某天时，才保留日级精度。Learn 日期取自 HTML 的 ms.date 元数据，不是页脚 Last updated；未采集 updated_at，也不据任何日期升级发布状态。" data-en="Roadmap targets and release notices usually have month precision; a day is retained only when supplied. Learn dates use HTML ms.date metadata, not the visible Last updated footer; updated_at is not collected. None of these dates upgrades release status.">路线图通常给到月份，发布公告通常给到月份标题；只有来源明确给出某天时，才保留日级精度。Learn 日期取自 HTML 的 ms.date 元数据，不是页脚 Last updated；未采集 updated_at，也不据任何日期升级发布状态。</p>
+              <div class="roadmap-table-wrap" tabindex="0" aria-label="Scrollable date-interpretation table"><table class="simple-table"><thead><tr><th data-zh="字段或标记" data-en="Field or Label">字段或标记</th><th data-zh="实际示例" data-en="Observed Example">实际示例</th><th data-zh="选型含义" data-en="Selection Implication">选型含义</th></tr></thead><tbody>
+                <tr><td data-zh="计划预览／GA 月份" data-en="Planned Preview/GA Month">计划预览／GA 月份</td><td data-zh="<a href='https://www.microsoft.com/microsoft-365/roadmap?id=576272' target='_blank' rel='noopener noreferrer'>576272</a>：2026-11／2027-01；In development。[3]" data-en="<a href='https://www.microsoft.com/microsoft-365/roadmap?id=576272' target='_blank' rel='noopener noreferrer'>576272</a>: 2026-11 / 2027-01; In development.[3]"><a href="https://www.microsoft.com/microsoft-365/roadmap?id=576272" target="_blank" rel="noopener noreferrer">576272</a>：2026-11／2027-01；In development。[3]</td><td data-zh="安排跟踪与试点窗口，不承诺该窗口已经交付。" data-en="Plan monitoring and a pilot window, not a claim of completed delivery.">安排跟踪与试点窗口，不承诺该窗口已经交付。</td></tr>
+                <tr><td data-zh="过去的目标日期" data-en="Past Target Date">过去的目标日期</td><td data-zh="<a href='https://www.microsoft.com/microsoft-365/roadmap?id=571305' target='_blank' rel='noopener noreferrer'>571305</a>：两个目标月份均为 2026-10；仍 In development。[3]" data-en="<a href='https://www.microsoft.com/microsoft-365/roadmap?id=571305' target='_blank' rel='noopener noreferrer'>571305</a>: both targets are 2026-10; still In development.[3]"><a href="https://www.microsoft.com/microsoft-365/roadmap?id=571305" target="_blank" rel="noopener noreferrer">571305</a>：两个目标月份均为 2026-10；仍 In development。[3]</td><td data-zh="保留状态与月份的差异；没有变更说明时，不断言延期原因。" data-en="Retain the discrepancy; without a change notice, do not assert why it occurred.">保留状态与月份的差异；没有变更说明时，不断言延期原因。</td></tr>
+                <tr><td data-zh="明确的发布标签" data-en="Explicit Release Label">明确的发布标签</td><td data-zh="2026 年 5 月公告：Computer use，(General availability)。[5]" data-en="May 2026 notice: Computer use, (General availability).[5]">2026 年 5 月公告：Computer use，(General availability)。[5]</td><td data-zh="证明公告所指能力的阶段，不覆盖另一种 harness 或工具形态。" data-en="Substantiates the announced scope, not another harness or tool form.">证明公告所指能力的阶段，不覆盖另一种 harness 或工具形态。</td></tr>
+                <tr><td data-zh="推出与来源元数据" data-en="Rollout and Source Metadata">推出与来源元数据</td><td data-zh="What's new 提醒更新会分多天推出。[5]" data-en="What's new says updates roll out over several days.[5]">What's new 提醒更新会分多天推出。[5]</td><td data-zh="ms.date 字段、开始推出与某个租户已经可用是不同判断。" data-en="The ms.date field, rollout start, and availability in a tenant are separate facts.">ms.date 字段、开始推出与某个租户已经可用是不同判断。</td></tr>
+              </tbody></table></div>
+              <p data-zh="General Availability、Preview、Targeted Release 等是路线图的发布阶段标签。Targeted release 如适用，Rollout start 表示它开始出现，随后才到 Standard release；这些标签不应改写成全量可用。[2][3]" data-en="General Availability, Preview, and Targeted Release are release-phase tags. Where Targeted release applies, Rollout start refers to its beginning, followed by Standard release. These tags should not be rewritten as complete availability.[2][3]">General Availability、Preview、Targeted Release 等是路线图的发布阶段标签。Targeted release 如适用，Rollout start 表示它开始出现，随后才到 Standard release；这些标签不应改写成全量可用。[2][3]</p>
+            </div></article>
+            <article class="subsection-item" data-accordion><button class="subsection-toggle" type="button"><span data-zh="筛选标签保留原始官方状态" data-en="Filter Labels Retain the Original Official State">筛选标签保留原始官方状态</span></button><div class="subsection-content">
+              <p data-zh="下面的中文标签只方便查询：路线图状态与 Learn 公告是两类来源，不组成自动推进的交付流水线。" data-en="These filter labels are query categories. Roadmap states and Learn notices are different sources, not an automatically advancing delivery pipeline.">下面的中文标签只方便查询：路线图状态与 Learn 公告是两类来源，不组成自动推进的交付流水线。</p>
+              <div class="roadmap-table-wrap" tabindex="0" aria-label="Scrollable status-label mapping"><table class="simple-table"><thead><tr><th data-zh="本页筛选" data-en="Query Label">本页筛选</th><th data-zh="保留的原文" data-en="Retained Original">保留的原文</th><th data-zh="解释边界" data-en="Interpretation Limit">解释边界</th></tr></thead><tbody>
+                <tr><td data-zh="开发中" data-en="In Development">开发中</td><td>In development</td><td data-zh="保留计划状态，即使描述写着 now 或目标月份已过。[3]" data-en="Keep this state even when the description says now or a target month is past.[3]">保留计划状态，即使描述写着 now 或目标月份已过。[3]</td></tr>
+                <tr><td data-zh="推出中" data-en="Rolling Out">推出中</td><td>Rolling out</td><td data-zh="推出正在进行；不代表所有目标环境都已完成。[3][5]" data-en="Rollout is underway, not complete in every target environment.[3][5]">推出正在进行；不代表所有目标环境都已完成。[3][5]</td></tr>
+                <tr><td data-zh="已发布标记" data-en="Launched Label">已发布标记</td><td>Launched</td><td data-zh="官方路线图的发布标记；实施范围仍需另查。[3]" data-en="An official roadmap release label; implementation scope still needs checking.[3]">官方路线图的发布标记；实施范围仍需另查。[3]</td></tr>
+                <tr><td data-zh="条目取消" data-en="Cancelled Item">条目取消</td><td>Cancelled</td><td data-zh="仅指该条目；不可推导整个产品能力被撤销。[3]" data-en="Applies to the item, not necessarily the whole product capability.[3]">仅指该条目；不可推导整个产品能力被撤销。[3]</td></tr>
+                <tr><td data-zh="GA 公告" data-en="GA Notice">GA 公告</td><td>(General availability)</td><td data-zh="明确公告标签；按公告与文档的能力范围使用。[5]" data-en="An explicit notice label, used within the notice's documented scope.[5]">明确公告标签；按公告与文档的能力范围使用。[5]</td></tr>
+                <tr><td data-zh="预览标签" data-en="Preview Label">预览标签</td><td data-zh="(Preview)／(Production-ready preview)／文档中的 preview" data-en="(Preview) / (Production-ready preview) / preview in guidance">(Preview)／(Production-ready preview)／文档中的 preview</td><td data-zh="保留各自限定，Production-ready preview 不改成 GA。[5][8]" data-en="Retain each qualification; Production-ready preview is not normalized to GA.[5][8]">保留各自限定，Production-ready preview 不改成 GA。[5][8]</td></tr>
+              </tbody></table></div>
+            </div></article>
+            <article class="subsection-item" data-accordion><button class="subsection-toggle" type="button"><span data-zh="用能力范围解释撤回、同名条目与状态冲突" data-en="Resolve Scope before Interpreting Conflicting States">用能力范围解释撤回、同名条目与状态冲突</span></button><div class="subsection-content">
+              <p data-zh="三种 harness 的支持范围不同。MCP（Model Context Protocol）是连接 agent 与工具的协议，也要按实际接入路径核验。[15][20]" data-en="The three harnesses have different scopes. MCP (Model Context Protocol) connects agents with tools; its availability also needs checking for the actual integration path.[15][20]">三种 harness 的支持范围不同。MCP（Model Context Protocol）是连接 agent 与工具的协议，也要按实际接入路径核验。[15][20]</p>
+              <div data-present-substep data-step-title="Computer use 的不同范围" data-step-title-en="Different Scopes of Computer Use" data-step-label="02 / 状态解读" data-step-label-en="02 / Interpret Status">
+                <p data-zh="Computer use 的 GA、预览、计划与取消记录对应不同范围，不能用一个状态概括整个能力。" data-en="GA, preview, planned, and cancelled Computer use records concern different scopes; one state cannot summarize the entire capability.">Computer use 的 GA、预览、计划与取消记录对应不同范围，不能用一个状态概括整个能力。</p>
+                <div class="comparison-grid">
+                  <article class="comparison-card"><span class="comparison-label" data-zh="当前 standard 工具" data-en="Standard Tool">当前 standard 工具</span><h3 data-zh="本地工具已有明确 GA 公告" data-en="The Local Tool Has an Explicit GA Notice">本地工具已有明确 GA 公告</h3><p data-zh="2026 年 5 月公告为 General availability；实施文档适用 standard harness 的工具，需开启 generative orchestration。standalone 工具则另标 preview，只能加入 agent flows，尚不能加入 workflows。[5][9][10]" data-en="The May 2026 notice says General availability. Its guidance covers the standard-harness tool and requires generative orchestration. The standalone tool is separately preview and can be added to agent flows, not workflows.[5][9][10]">2026 年 5 月公告为 General availability；实施文档适用 standard harness 的工具，需开启 generative orchestration。standalone 工具则另标 preview，只能加入 agent flows，尚不能加入 workflows。[5][9][10]</p></article>
+                  <article class="comparison-card"><span class="comparison-label" data-zh="新 harness 与旧计划" data-en="New Harness and Withdrawn Plan">新 harness 与旧计划</span><h3 data-zh="原生浏览仍在计划，撤回仅针对特定条目" data-en="Native Browsing Is Planned; Withdrawal Is Item-Specific">原生浏览仍在计划，撤回仅针对特定条目</h3><p data-zh="<a href='https://www.microsoft.com/microsoft-365/roadmap?id=576272' target='_blank' rel='noopener noreferrer'>576272</a> 仍为 In development；<a href='https://www.microsoft.com/microsoft-365/roadmap?id=562220' target='_blank' rel='noopener noreferrer'>562220</a> 为 Cancelled，并说明条目已不准确、将移除。它没有证明 Computer use 整体被取消。[3][11]" data-en="<a href='https://www.microsoft.com/microsoft-365/roadmap?id=576272' target='_blank' rel='noopener noreferrer'>576272</a> remains In development. <a href='https://www.microsoft.com/microsoft-365/roadmap?id=562220' target='_blank' rel='noopener noreferrer'>562220</a> is Cancelled and says the item is inaccurate and will be removed, not that all Computer use is cancelled.[3][11]"><a href="https://www.microsoft.com/microsoft-365/roadmap?id=576272" target="_blank" rel="noopener noreferrer">576272</a> 仍为 In development；<a href="https://www.microsoft.com/microsoft-365/roadmap?id=562220" target="_blank" rel="noopener noreferrer">562220</a> 为 Cancelled，并说明条目已不准确、将移除。它没有证明 Computer use 整体被取消。[3][11]</p></article>
+                </div>
+              </div>
+              <div data-present-substep data-step-title="同名 Agent node 的两个 ID" data-step-title-en="Two IDs for the Same Agent Node Title" data-step-label="02 / 状态解读" data-step-label-en="02 / Interpret Status">
+                <p data-zh="两个 Agent node 条目有相同标题与目标月份，但官方状态不同；分别保留可以防止误用发布依据。" data-en="Two Agent node items share a title and target months but have different official states. Keeping both prevents the release label from being applied to the wrong record.">两个 Agent node 条目有相同标题与目标月份，但官方状态不同；分别保留可以防止误用发布依据。</p>
+                <div class="comparison-grid">
+                  <article class="comparison-card"><span class="comparison-label">562222</span><h3 data-zh="仍为开发中" data-en="Still in Development">仍为开发中</h3><p data-zh="<a href='https://www.microsoft.com/microsoft-365/roadmap?id=562222' target='_blank' rel='noopener noreferrer'>官方记录</a>：In development；预览 2026-04、GA 2026-09 目标。修改时间为 2026-05-14，不是交付日。[3][4]" data-en="<a href='https://www.microsoft.com/microsoft-365/roadmap?id=562222' target='_blank' rel='noopener noreferrer'>Official record</a>: In development, with preview 2026-04 and GA 2026-09 targets. Modified on 2026-05-14, not a release date.[3][4]"><a href="https://www.microsoft.com/microsoft-365/roadmap?id=562222" target="_blank" rel="noopener noreferrer">官方记录</a>：In development；预览 2026-04、GA 2026-09 目标。修改时间为 2026-05-14，不是交付日。[3][4]</p></article>
+                  <article class="comparison-card"><span class="comparison-label">566998</span><h3 data-zh="已有 Launched 标记" data-en="Marked Launched">已有 Launched 标记</h3><p data-zh="<a href='https://www.microsoft.com/microsoft-365/roadmap?id=566998' target='_blank' rel='noopener noreferrer'>官方记录</a>：Launched；预览 2026-04、GA 2026-09 目标。修改时间为 2026-10-26，不用它自动覆盖另一条记录。[3][4]" data-en="<a href='https://www.microsoft.com/microsoft-365/roadmap?id=566998' target='_blank' rel='noopener noreferrer'>Official record</a>: Launched, with the same 2026-04/2026-09 targets. Modified on 2026-10-26; this does not overwrite the other record.[3][4]"><a href="https://www.microsoft.com/microsoft-365/roadmap?id=566998" target="_blank" rel="noopener noreferrer">官方记录</a>：Launched；预览 2026-04、GA 2026-09 目标。修改时间为 2026-10-26，不用它自动覆盖另一条记录。[3][4]</p></article>
+                </div>
+                <p data-zh="Learn 分别提供 standard agent flow 与 GitHub Copilot workflow 的文档，但没有证据把这两个 ID 自动分配到两种路径，也没有明确的替代关系。[15][16]" data-en="Learn has separate standard agent-flow and GitHub Copilot workflow guidance. The collected sources do not map these IDs to those paths or establish a replacement relationship.[15][16]">Learn 分别提供 standard agent flow 与 GitHub Copilot workflow 的文档，但没有证据把这两个 ID 自动分配到两种路径，也没有明确的替代关系。[15][16]</p>
+              </div>
+              <div data-present-substep data-step-title="历史防火墙日期与当前预览文档" data-step-title-en="Archived Firewall Dates and Current Preview Guidance" data-step-label="02 / 状态解读" data-step-label-en="02 / Interpret Status">
+                <p data-zh="过去的 GA 目标日期不能覆盖现有产品文档的预览警告与渠道限制。" data-en="A past GA target does not override preview warnings and channel exclusions in the available product guidance.">过去的 GA 目标日期不能覆盖现有产品文档的预览警告与渠道限制。</p>
+                <div class="comparison-grid">
+                  <article class="comparison-card"><span class="comparison-label" data-zh="归档计划" data-en="Archived Plan">归档计划</span><h3 data-zh="日期列是历史依据" data-en="Date Cells Are Historical Evidence">日期列是历史依据</h3><p data-zh="IP firewall 计划列出 Public preview：Jul 14, 2025；General availability：Dec 12, 2025。此页面已归档，不用这一天确认实际 GA 交付。[7]" data-en="The IP firewall plan lists Public preview: Jul 14, 2025 and General availability: Dec 12, 2025. The page is archived; the date alone does not confirm GA delivery.[7]">IP firewall 计划列出 Public preview：Jul 14, 2025；General availability：Dec 12, 2025。此页面已归档，不用这一天确认实际 GA 交付。[7]</p></article>
+                  <article class="comparison-card"><span class="comparison-label" data-zh="现有产品文档" data-en="Available Product Guidance">现有产品文档</span><h3 data-zh="预览警告与渠道限制仍需遵守" data-en="Preview Warnings and Channel Limits Remain">预览警告与渠道限制仍需遵守</h3><p data-zh="文档仍明确是 preview，要求 Managed Environment，并说明 Teams、Microsoft Copilot 等渠道不强制执行限制。所有渠道按 IP 隔离的采购要求不能由此支撑。[8]" data-en="The guidance explicitly says preview, requires a Managed Environment, and excludes enforcement on Teams, Microsoft Copilot, and other channels. It cannot support a requirement for mandatory IP isolation across all channels.[8]">文档仍明确是 preview，要求 Managed Environment，并说明 Teams、Microsoft Copilot 等渠道不强制执行限制。所有渠道按 IP 隔离的采购要求不能由此支撑。[8]</p></article>
+                </div>
+              </div>
+            </div></article>
+          </div>
+        </section>
+        <section id="query" class="section" data-reveal data-density-exempt="single-tool">
+          <div class="section-head">
+            <p class="section-kicker" data-zh="03 / 功能查询" data-en="03 / Feature Query">03 / 功能查询</p>
+            <h2 data-zh="按关键词和原始状态查询可追溯记录" data-en="Query Traceable Records by Keyword and Original State">按关键词和原始状态查询可追溯记录</h2>
+            <p data-zh="16 条选取记录覆盖知识源、协作、流程扩展、治理与计算机操作：12 个路线图 ID、3 条发布公告、1 条历史计划与现有文档对照。同名但 ID 不同的记录分别保留，ID 本身唯一；查询不代表完整路线图。[3][4][5][7]" data-en="The 16 selected records cover knowledge, collaboration, workflow extensions, governance, and computer use: 12 roadmap IDs, 3 release notices, and 1 archived-plan/current-guidance comparison. Same-title records with distinct IDs are retained; IDs are unique, and this is not the complete roadmap.[3][4][5][7]">16 条选取记录覆盖知识源、协作、流程扩展、治理与计算机操作：12 个路线图 ID、3 条发布公告、1 条历史计划与现有文档对照。同名但 ID 不同的记录分别保留，ID 本身唯一；查询不代表完整路线图。[3][4][5][7]</p>
+          </div>
+          <noscript><p data-zh="功能筛选需要 JavaScript。仍可阅读本文、打开官方入口，或下载 snapshot.json 查看收录数据。" data-en="Filtering requires JavaScript. You can still read the article, open the official sources, or download snapshot.json.">功能筛选需要 JavaScript。仍可阅读本文、打开官方入口，或下载 snapshot.json 查看收录数据。</p></noscript>
+          <div id="roadmap-workspace" class="comparison-grid" data-present-step data-present-surface="unframed" data-step-title="搜索快照并选择记录" data-step-title-en="Search the Snapshot and Select a Record" data-step-label="03 / 功能查询" data-step-label-en="03 / Feature Query">
+            <article class="comparison-card">
+              <span class="comparison-label" data-zh="本地快照" data-en="Local Snapshot">本地快照</span>
+              <h3 data-zh="关键词与状态交叉筛选" data-en="Combine Keyword and Status Filters">关键词与状态交叉筛选</h3>
+              <form id="roadmap-query-form" class="roadmap-controls">
+                <label for="roadmap-keyword"><span data-zh="关键词／功能 ID" data-en="Keyword / Feature ID">关键词／功能 ID</span><input id="roadmap-keyword" type="search" maxlength="180" autocomplete="off" spellcheck="false" placeholder="功能、限制或 ID，如 Dataverse、576272" aria-describedby="roadmap-query-hint" /></label>
+                <label for="roadmap-status-filter"><span data-zh="状态（来源归类）" data-en="Status (Source Category)">状态（来源归类）</span><select id="roadmap-status-filter">
+                  <option value="all" data-zh="全部状态" data-en="All Statuses">全部状态</option>
+                  <option value="development" data-zh="开发中 · In development" data-en="In Development · Roadmap">开发中 · In development</option>
+                  <option value="rolling-out" data-zh="推出中 · Rolling out" data-en="Rolling Out · Roadmap">推出中 · Rolling out</option>
+                  <option value="launched" data-zh="已发布标记 · Launched" data-en="Launched Label · Roadmap">已发布标记 · Launched</option>
+                  <option value="cancelled" data-zh="条目取消 · Cancelled" data-en="Cancelled Item · Roadmap">条目取消 · Cancelled</option>
+                  <option value="ga-notice" data-zh="GA 公告 · General availability" data-en="GA Notice · General Availability">GA 公告 · General availability</option>
+                  <option value="preview-notice" data-zh="预览标签 · 保留原始限定" data-en="Preview Label · Original Qualification Retained">预览标签 · 保留原始限定</option>
+                </select></label>
+                <div class="roadmap-control-actions"><button class="button button-primary" type="submit" data-zh="查询快照" data-en="Search Snapshot">查询快照</button><button id="roadmap-reset" class="button button-secondary" type="button" data-zh="清除筛选" data-en="Clear Filters">清除筛选</button></div>
+              </form>
+              <p id="roadmap-query-hint" class="roadmap-hint" data-zh="多个词按同时包含匹配；点击查询后应用。切换语言保留未提交输入、已应用筛选和所选记录。" data-en="Multiple terms must all match. Filters apply on Search; language changes preserve draft input, applied filters, and the selected record.">多个词按同时包含匹配；点击查询后应用。切换语言保留未提交输入、已应用筛选和所选记录。</p>
+              <p id="roadmap-snapshot-meta" class="roadmap-freshness">2026-11-09 UTC</p>
+              <p id="roadmap-snapshot-scope" class="roadmap-hint"></p>
+              <p id="roadmap-snapshot-limitations" class="roadmap-hint"></p>
+              <p class="roadmap-hint" data-zh="筛选不是租户检测；预览标签不自动变成 GA。本查询只读取本站快照，不向模型或微软发送关键词。" data-en="Filtering is not a tenant check; preview labels do not become GA. This query only reads the site's snapshot and sends no keywords to a model or Microsoft.">筛选不是租户检测；预览标签不自动变成 GA。本查询只读取本站快照，不向模型或微软发送关键词。</p>
+            </article>
+            <article class="comparison-card">
+              <h3 data-zh="收录顺序 · 每页 4 条" data-en="Curated Order · Four Records per Page">收录顺序 · 每页 4 条</h3>
+              <p id="roadmap-load-status" class="roadmap-load-status" role="status" aria-live="polite" data-zh="正在读取本站功能快照…" data-en="Loading the site's feature snapshot…">正在读取本站功能快照…</p>
+              <button id="roadmap-retry" class="button button-secondary" type="button" hidden data-zh="重试本地快照" data-en="Retry Local Snapshot">重试本地快照</button>
+              <p id="roadmap-result-count" role="status" aria-live="polite"></p>
+              <p id="roadmap-applied-query" class="roadmap-hint"></p>
+              <ol id="roadmap-results" class="flow-list roadmap-results" aria-label="Matching roadmap records"></ol>
+              <p id="roadmap-empty" class="roadmap-hint" hidden></p>
+              <div class="roadmap-pager"><button id="roadmap-previous" class="button button-secondary" type="button" disabled data-zh="上一组" data-en="Previous">上一组</button><span id="roadmap-page-label"></span><button id="roadmap-next" class="button button-secondary" type="button" disabled data-zh="下一组" data-en="Next">下一组</button></div>
+            </article>
+          </div>
+          <article id="roadmap-detail-panel" class="comparison-card" data-present-step data-present-surface="unframed" data-step-title="比较计划与发布依据" data-step-title-en="Compare Plans with Release Evidence" data-step-label="03 / 功能查询" data-step-label-en="03 / Feature Query">
+            <p id="roadmap-detail-empty" data-zh="选择匹配记录后显示计划与发布依据。" data-en="Select a matching record to see its plan and release evidence.">选择匹配记录后显示计划与发布依据。</p>
+            <div id="roadmap-detail-body" class="roadmap-detail-body" hidden>
+              <div><span id="roadmap-detail-badge" class="comparison-label"></span><h3 id="roadmap-detail-title"></h3></div>
+              <p id="roadmap-official-title" class="roadmap-official-title"></p>
+              <p id="roadmap-original-status"></p>
+              <p id="roadmap-detail-summary"></p>
+              <table class="simple-table" aria-label="Planned preview and GA dates"><tbody id="roadmap-date-rows"></tbody></table>
+              <p id="roadmap-phase-labels" class="roadmap-hint"></p>
+              <p id="roadmap-release-label" class="roadmap-hint"></p>
+              <p id="roadmap-release-summary"></p>
+              <div id="roadmap-primary-link"></div>
+              <p id="roadmap-detail-freshness" class="roadmap-freshness"></p>
+              <p id="roadmap-date-fields-note" class="roadmap-hint"></p>
+            </div>
+          </article>
+          <article id="roadmap-constraints-panel" class="comparison-card" data-present-step data-present-surface="unframed" data-step-title="核对实施条件与选型含义" data-step-title-en="Check Implementation and Selection Conditions" data-step-label="03 / 功能查询" data-step-label-en="03 / Feature Query">
+            <p id="roadmap-constraints-empty" data-zh="选择记录后显示实施条件与选型含义。" data-en="Select a record to see implementation conditions and selection implications.">选择记录后显示实施条件与选型含义。</p>
+            <div id="roadmap-constraints-body" class="roadmap-constraints-body" hidden>
+              <h3 id="roadmap-constraint-title"></h3>
+              <ul id="roadmap-constraint-list" class="layer-list roadmap-constraint-list"></ul>
+              <div class="quote-block"><strong data-zh="选型含义 · 本文建议" data-en="Selection Implication · Editorial Guidance">选型含义 · 本文建议</strong><span id="roadmap-selection-advice"></span></div>
+              <div id="roadmap-document-links" class="roadmap-document-links"></div>
+              <div id="roadmap-related-records" class="roadmap-related-records"></div>
+              <p id="roadmap-selection-note" class="roadmap-selection-note"></p>
+              <p id="roadmap-constraint-freshness" class="roadmap-freshness"></p>
+            </div>
+          </article>
+          <div id="roadmap-export-limit" class="quote-block" data-present-step data-present-surface="unframed" data-step-title="网页交付与导出限制" data-step-title-en="Web Delivery and Export Limits" data-step-label="03 / 功能查询" data-step-label-en="03 / Feature Query">
+            <strong data-zh="网页可读；中文 PPT 未验收" data-en="The Web Page Is Readable; Chinese PPT Is Not Accepted">网页可读；中文 PPT 未验收</strong>
+            <span data-zh="交付范围为网页和查询。本机转换的中文 PPT 字体显示未通过，不能把 PPT 当作已验收稿。需要中文稿时，可尝试浏览器打印完整阅读稿，先选择所需功能，再检查中文、引用和分页；不保证其他浏览器或配置的打印结果。" data-en="The deliverable is the web article and query. Chinese font rendering in this machine's PPT conversion has not passed; the PPT is not an accepted manuscript. For a Chinese copy, try browser printing the full reading view, select the required feature, and check Chinese text, references, and pagination. Results in other browsers or configurations are not guaranteed.">交付范围为网页和查询。本机转换的中文 PPT 字体显示未通过，不能把 PPT 当作已验收稿。需要中文稿时，可尝试浏览器打印完整阅读稿，先选择所需功能，再检查中文、引用和分页；不保证其他浏览器或配置的打印结果。</span>
+            <div><a class="button button-secondary" href="?draft=1&amp;lang=zh&amp;theme=light" target="_blank" rel="noopener noreferrer" data-zh="打开中文完整阅读稿以打印并核对" data-en="Open the Chinese Reading Copy to Print and Check">打开中文完整阅读稿以打印并核对</a></div>
+          </div>
+        </section>
+        <section id="verify" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="04 / 交付核验" data-en="04 / Verify Delivery">04 / 交付核验</p>
+            <h2 data-zh="用目标环境的完整流程验证关键能力" data-en="Verify the Critical Capability in the Target Workflow">用目标环境的完整流程验证关键能力</h2>
+            <p data-zh="看见功能菜单只证明当前账户能看到入口。选型依据还需要同范围文档，以及授权测试数据在目标渠道、身份和权限下完成流程的结果；这里提供核验步骤，不声称已检测你的租户。" data-en="A visible menu only shows that the account can see an entry point. Selection also needs matching guidance and results from authorized test data under the target channel, identity, and permissions. These are verification steps, not a claim that this site has checked your tenant.">看见功能菜单只证明当前账户能看到入口。选型依据还需要同范围文档，以及授权测试数据在目标渠道、身份和权限下完成流程的结果；这里提供核验步骤，不声称已检测你的租户。</p>
+          </div>
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion><button class="subsection-toggle" type="button"><span data-zh="以 Dataverse 知识源做一次完整核验" data-en="Verify a Dataverse Knowledge Source End to End">以 Dataverse 知识源做一次完整核验</span></button><div class="subsection-content">
+              <p data-zh="<a href='https://www.microsoft.com/microsoft-365/roadmap?id=568929' target='_blank' rel='noopener noreferrer'>568929</a> 仍为开发中，但公告和实施文档已有可操作内容；结构化数据与预览中的非结构化列应分开验收。[3][5][12]" data-en="<a href='https://www.microsoft.com/microsoft-365/roadmap?id=568929' target='_blank' rel='noopener noreferrer'>568929</a> remains in development while release notes and guidance provide usable implementation details. Validate structured data separately from preview unstructured columns.[3][5][12]"><a href="https://www.microsoft.com/microsoft-365/roadmap?id=568929" target="_blank" rel="noopener noreferrer">568929</a> 仍为开发中，但公告和实施文档已有可操作内容；结构化数据与预览中的非结构化列应分开验收。[3][5][12]</p>
+              <ol class="flow-list">
+                <li><span class="flow-step">1</span><div class="flow-copy"><strong data-zh="固定要验收的数据范围" data-en="Fix the Data Scope">固定要验收的数据范围</strong><p data-zh="先测试结构化表，最多 15 张表／知识源；Multiline Text 与 File 的非结构化检索另列预览依赖，不与普通表查询合并。[12]" data-en="Start with structured tables, up to 15 per knowledge source. Treat unstructured Multiline Text/File retrieval as a separate preview dependency.[12]">先测试结构化表，最多 15 张表／知识源；Multiline Text 与 File 的非结构化检索另列预览依赖，不与普通表查询合并。[12]</p></div></li>
+                <li><span class="flow-step">2</span><div class="flow-copy"><strong data-zh="确认搜索与身份前提" data-en="Check Search and Authentication">确认搜索与身份前提</strong><p data-zh="环境开启 Dataverse search，agent 使用 Authenticate with Microsoft；此知识源不支持 No authentication 或 Authenticate manually。底层权限不足会导致表不可选。[12]" data-en="Enable Dataverse search and use Authenticate with Microsoft. This source does not support No authentication or Authenticate manually; insufficient underlying permissions can hide tables.[12]">环境开启 Dataverse search，agent 使用 Authenticate with Microsoft；此知识源不支持 No authentication 或 Authenticate manually。底层权限不足会导致表不可选。[12]</p></div></li>
+                <li><span class="flow-step">3</span><div class="flow-copy"><strong data-zh="同时测允许和拒绝的数据" data-en="Test Both Authorized and Denied Data">同时测允许和拒绝的数据</strong><p data-zh="建议用两名授权测试账户分别验证应能访问和不应访问的数据，比较答案、引用与拒绝结果。不要只测试 maker 的权限；这是建议的测试，不是已执行结果。" data-en="Use two authorized test accounts to check intended access and denial, comparing answers, citations, and refusals. Do not test only the maker's access. This is a proposed test, not an executed result.">建议用两名授权测试账户分别验证应能访问和不应访问的数据，比较答案、引用与拒绝结果。不要只测试 maker 的权限；这是建议的测试，不是已执行结果。</p></div></li>
+                <li><span class="flow-step">4</span><div class="flow-copy"><strong data-zh="发布后再测真实目标渠道" data-en="Retest in the Published Target Channel">发布后再测真实目标渠道</strong><p data-zh="预览列先设为 Searchable 并加入 Quick Find View；先加知识源后配置列可能最多需要两天回填。记录测试日期、配置与结果，再决定生产依赖。[12]" data-en="Make preview columns Searchable and add them to the Quick Find View. Adding the source first can require up to two days of backfill. Record the date, configuration, and outcome before production reliance.[12]">预览列先设为 Searchable 并加入 Quick Find View；先加知识源后配置列可能最多需要两天回填。记录测试日期、配置与结果，再决定生产依赖。[12]</p></div></li>
+              </ol>
+            </div></article>
+            <article class="subsection-item" data-accordion><button class="subsection-toggle" type="button"><span data-zh="把六项条件写进功能核验记录" data-en="Record Six Conditions for Capability Verification">把六项条件写进功能核验记录</span></button><div class="subsection-content">
+              <p data-zh="保留环境范围、实施路径和可复现结果，避免以后只剩一个 GA 标签。" data-en="Retain the environment scope, implementation path, and reproducible result rather than only a GA label.">保留环境范围、实施路径和可复现结果，避免以后只剩一个 GA 标签。</p>
+              <div class="roadmap-table-wrap" tabindex="0" aria-label="Scrollable verification checklist"><table class="simple-table"><thead><tr><th data-zh="条件" data-en="Condition">条件</th><th data-zh="应记录的内容" data-en="What to Record">应记录的内容</th></tr></thead><tbody>
+                <tr><td data-zh="租户、云与地区" data-en="Tenant, Cloud, and Region">租户、云与地区</td><td data-zh="目标云／地区、环境与测试日期；本样本的 Worldwide 标签不证明每个云或租户均支持。[3][5]" data-en="Target cloud/region, environment, and test date. Worldwide tags in this sample do not prove support in every cloud or tenant.[3][5]">目标云／地区、环境与测试日期；本样本的 Worldwide 标签不证明每个云或租户均支持。[3][5]</td></tr>
+                <tr><td data-zh="harness 与渠道" data-en="Harness and Channel">harness 与渠道</td><td data-zh="运行时与网页、Teams 等部署渠道；不能跨范围套用发布结论。[9][11][20]" data-en="Runtime and deployment channel, such as web or Teams. Release conclusions do not transfer across scopes.[9][11][20]">运行时与网页、Teams 等部署渠道；不能跨范围套用发布结论。[9][11][20]</td></tr>
+                <tr><td data-zh="语言与数据类型" data-en="Language and Data Types">语言与数据类型</td><td data-zh="目标语言、文件／表类型和实际输入；未列出语言时，单独查文档与测试。[3][12]" data-en="Required language, file/table types, and representative inputs; check guidance and test languages not specified in the record.[3][12]">目标语言、文件／表类型和实际输入；未列出语言时，单独查文档与测试。[3][12]</td></tr>
+                <tr><td data-zh="许可与计费前提" data-en="Licensing and Billing">许可与计费前提</td><td data-zh="对应许可、可用容量与测试／生产预算口径；共享 agent 的接收者文档有 per-user license 前提。[17][20]" data-en="Applicable entitlement, capacity, and test/production budget basis. Sharing guidance requires a per-user license for recipients.[17][20]">对应许可、可用容量与测试／生产预算口径；共享 agent 的接收者文档有 per-user license 前提。[17][20]</td></tr>
+                <tr><td data-zh="身份、连接与治理" data-en="Identity, Connection, and Governance">身份、连接与治理</td><td data-zh="运行身份、连接权限与策略。SQL 依赖 maker 的连接与数据库权限；Entra Agent ID 不证明已具备独立邮箱。[13][19]" data-en="Execution identity, connection permissions, and policies. SQL uses the maker's connection/database permissions; an Entra Agent ID does not prove an agent-owned mailbox.[13][19]">运行身份、连接权限与策略。SQL 依赖 maker 的连接与数据库权限；Entra Agent ID 不证明已具备独立邮箱。[13][19]</td></tr>
+                <tr><td data-zh="端到端结果" data-en="End-to-End Result">端到端结果</td><td data-zh="发布版本、目标渠道、允许／拒绝样例、错误与复测时间。SQL 文档建议先测已知小数据集的 diagnostic view。[13]" data-en="Published version, channel, allow/deny cases, errors, and retest date. SQL guidance recommends a diagnostic view with a small known dataset.[13]">发布版本、目标渠道、允许／拒绝样例、错误与复测时间。SQL 文档建议先测已知小数据集的 diagnostic view。[13]</td></tr>
+              </tbody></table></div>
+            </div></article>
+          </div>
+        </section>
+        <section id="selection" class="section" data-reveal>
+          <div class="section-head">
+            <p class="section-kicker" data-zh="05 / 选型判断" data-en="05 / Selection Decisions">05 / 选型判断</p>
+            <h2 data-zh="把发布依据转成当前候选或有条件依赖" data-en="Turn Release Evidence into Candidates or Conditional Dependencies">把发布依据转成当前候选或有条件依赖</h2>
+            <p data-zh="计划适合跟踪方向；明确发布标签加同范围文档，适合启动验证；生产依赖还需要目标环境的验证结果。这是选型判据，不是对客户项目的验收结论。" data-en="Plans support tracking direction. An explicit release label and matching guidance justify starting validation; production reliance also needs target-environment results. These are selection criteria, not acceptance of a customer project.">计划适合跟踪方向；明确发布标签加同范围文档，适合启动验证；生产依赖还需要目标环境的验证结果。这是选型判据，不是对客户项目的验收结论。</p>
+          </div>
+          <div class="subsection-accordion">
+            <article class="subsection-item" data-accordion><button class="subsection-toggle" type="button"><span data-zh="三种依据支持三种决策" data-en="Three Evidence Conditions Support Three Decisions">三种依据支持三种决策</span></button><div class="subsection-content">
+              <p data-zh="先写出采购必须满足的动作，再决定采用、试点或排除某项依赖；不按路线图日期给产品打分。" data-en="Specify the required action first, then decide whether to validate, pilot, or exclude a dependency. Roadmap dates are not product scores.">先写出采购必须满足的动作，再决定采用、试点或排除某项依赖；不按路线图日期给产品打分。</p>
+              <ol class="flow-list">
+                <li><span class="flow-step">1</span><div class="flow-copy"><strong data-zh="当前方案候选" data-en="Candidate for the Current Solution">当前方案候选</strong><p data-zh="有 GA 公告或 Launched 标记，加同范围实施说明。例如 standard Computer use 有 GA 公告和工具说明；仍需验证目标机器、身份与渠道。[5][9]" data-en="An explicit GA notice or Launched label plus matching implementation guidance. Standard Computer use has both; still verify the machine, identity, and channel.[5][9]">有 GA 公告或 Launched 标记，加同范围实施说明。例如 standard Computer use 有 GA 公告和工具说明；仍需验证目标机器、身份与渠道。[5][9]</p></div></li>
+                <li><span class="flow-step">2</span><div class="flow-copy"><strong data-zh="试点／有条件依赖" data-en="Pilot or Conditional Dependency">试点／有条件依赖</strong><p data-zh="预览、推出中，或计划与实施说明有差异。REST evaluations 的 4 月公告是 Preview；standard harness API 文档要求 test set 与用户令牌，不能因已有 API 文档就升为 GA。[5][14]" data-en="Preview, rolling out, or a scope/status discrepancy. REST evaluations are Preview in April's notice; the standard-harness API requires a test set and user token. API documentation does not make it GA.[5][14]">预览、推出中，或计划与实施说明有差异。REST evaluations 的 4 月公告是 Preview；standard harness API 文档要求 test set 与用户令牌，不能因已有 API 文档就升为 GA。[5][14]</p></div></li>
+                <li><span class="flow-step">3</span><div class="flow-copy"><strong data-zh="不写入当前交付承诺" data-en="Exclude from Current Delivery Commitments">不写入当前交付承诺</strong><p data-zh="只有目标日期、条目取消，或范围不满足硬要求。例如 576272 新 harness 原生浏览仍开发中、562220 已取消；准备可用替代路径，分开未来能力与当前承诺。[3][9][11]" data-en="Only target dates, a cancelled item, or scope that fails a mandatory requirement. Native browsing in 576272 is in development and 562220 is cancelled. Verify an available alternative and separate future plans from current commitments.[3][9][11]">只有目标日期、条目取消，或范围不满足硬要求。例如 576272 新 harness 原生浏览仍开发中、562220 已取消；准备可用替代路径，分开未来能力与当前承诺。[3][9][11]</p></div></li>
+              </ol>
+            </div></article>
+            <article class="subsection-item" data-accordion><button class="subsection-toggle" type="button"><span data-zh="三个容易误判的采购要求" data-en="Three Procurement Requirements That Need Scope Checks">三个容易误判的采购要求</span></button><div class="subsection-content">
+              <p data-zh="要求越具体，越能看出相似名称之间是否真的可以替代。" data-en="Specific requirements expose whether similarly named capabilities are actually interchangeable.">要求越具体，越能看出相似名称之间是否真的可以替代。</p>
+              <div class="roadmap-table-wrap" tabindex="0" aria-label="Scrollable procurement-scope examples"><table class="simple-table"><thead><tr><th data-zh="采购要求" data-en="Requirement">采购要求</th><th data-zh="可查依据" data-en="Available Evidence">可查依据</th><th data-zh="应采用的判断" data-en="Decision">应采用的判断</th></tr></thead><tbody>
+                <tr><td data-zh="新 harness 本月原生浏览网页" data-en="Native Browsing on the New Harness This Month">新 harness 本月原生浏览网页</td><td data-zh="576272：2026-11 预览、2027-01 GA 目标，仍开发中；standard 工具另有 GA 公告。[3][5][11]" data-en="576272: preview 2026-11, GA 2027-01 targets, still in development. The standard tool has a separate GA notice.[3][5][11]">576272：2026-11 预览、2027-01 GA 目标，仍开发中；standard 工具另有 GA 公告。[3][5][11]</td><td data-zh="不用 standard 的 GA 替新 harness 背书；验证现有路径或连接器替代，保留迁移条件。" data-en="Standard GA does not establish new-harness support. Validate an existing path or connector alternative with migration conditions.">不用 standard 的 GA 替新 harness 背书；验证现有路径或连接器替代，保留迁移条件。</td></tr>
+                <tr><td data-zh="新分享界面直接给予编辑权限" data-en="Editor Access Directly through the New Sharing UI">新分享界面直接给予编辑权限</td><td data-zh="569475 为 Launched、描述有 Editor；现有文档说新界面只给 viewing rights，编辑需其他角色路径。[3][17]" data-en="569475 is Launched and mentions Editor. Current guidance says the new UI grants viewing rights; editing needs other role paths.[3][17]">569475 为 Launched、描述有 Editor；现有文档说新界面只给 viewing rights，编辑需其他角色路径。[3][17]</td><td data-zh="测试编辑、发布与角色分配；仅能查看／测试不足以满足协作编写要求。" data-en="Test editing, publishing, and role assignment. Viewing/testing does not satisfy collaborative authoring.">测试编辑、发布与角色分配；仅能查看／测试不足以满足协作编写要求。</td></tr>
+                <tr><td data-zh="所有渠道按 IP 强制隔离" data-en="Mandatory IP Isolation across All Channels">所有渠道按 IP 强制隔离</td><td data-zh="历史计划有 GA 日期；现有文档仍为 preview，并不在 Teams／Microsoft Copilot 等渠道执行限制。[7][8]" data-en="An archived GA date coexists with preview guidance and no enforcement on Teams/Microsoft Copilot and other channels.[7][8]">历史计划有 GA 日期；现有文档仍为 preview，并不在 Teams／Microsoft Copilot 等渠道执行限制。[7][8]</td><td data-zh="不作为全渠道隔离的唯一控制；另行满足安全要求。" data-en="Do not use it as the sole all-channel isolation control; meet the security requirement separately.">不作为全渠道隔离的唯一控制；另行满足安全要求。</td></tr>
+              </tbody></table></div>
+              <p data-zh="Agent Readiness 的路线图标记不能当作合规验收：相关 standard 文档仍为 preview，并说明状态摘要不替代管理员治理／合规报告。[3][18]" data-en="Agent Readiness's roadmap label is not compliance acceptance: related standard-harness guidance remains preview and says the summary does not replace admin governance/compliance reporting.[3][18]">Agent Readiness 的路线图标记不能当作合规验收：相关 standard 文档仍为 preview，并说明状态摘要不替代管理员治理／合规报告。[3][18]</p>
+            </div></article>
+            <article class="subsection-item" data-accordion><button class="subsection-toggle" type="button"><span data-zh="评审前重查条目与实施条件" data-en="Recheck Records and Conditions before the Decision">评审前重查条目与实施条件</span></button><div class="subsection-content">
+              <p data-zh="快照用于稳定引用，官方实时页面用于确认变化；两者一起保留。" data-en="Use the snapshot for a stable reference and official live pages to confirm changes. Retain both.">快照用于稳定引用，官方实时页面用于确认变化；两者一起保留。</p>
+              <ol class="flow-list">
+                <li><span class="flow-step">1</span><div class="flow-copy"><strong data-zh="按 ID 重开官方记录" data-en="Reopen the Official Record by ID">按 ID 重开官方记录</strong><p data-zh="核对状态、月份、描述与实施范围。条目消失不证明已经交付：官方说明 GA、取消或推迟都可能导致信息移除。[2][4]" data-en="Check state, months, description, and implementation scope. Disappearance is not delivery proof: the official policy permits removal after GA, cancellation, or postponement.[2][4]">核对状态、月份、描述与实施范围。条目消失不证明已经交付：官方说明 GA、取消或推迟都可能导致信息移除。[2][4]</p></div></li>
+                <li><span class="flow-step">2</span><div class="flow-copy"><strong data-zh="以具体变更为准" data-en="Use Specific Change Evidence">以具体变更为准</strong><p data-zh="日期或描述改变时，保留前后版本与核对日期；没有官方说明时，不虚构延期、替代或撤回原因。" data-en="Retain before/after versions and the verification date when dates or descriptions change. Without an official explanation, do not invent delay, replacement, or withdrawal reasons.">日期或描述改变时，保留前后版本与核对日期；没有官方说明时，不虚构延期、替代或撤回原因。</p></div></li>
+                <li><span class="flow-step">3</span><div class="flow-copy"><strong data-zh="保留未满足的选型条件" data-en="Retain the Unmet Selection Conditions">保留未满足的选型条件</strong><p data-zh="写清 ID、官方依据、目标环境结果、剩余前提、替代路径与复查触发条件。旧 Planner 已停更，不作为当前计划的回退来源。[1]" data-en="Record the ID, sources, target-environment result, unmet prerequisites, alternative, and recheck trigger. The frozen Planner is not a fallback for current plans.[1]">写清 ID、官方依据、目标环境结果、剩余前提、替代路径与复查触发条件。旧 Planner 已停更，不作为当前计划的回退来源。[1]</p></div></li>
+              </ol>
+              <p class="roadmap-source-note" data-zh="本页核对日期为 2026-11-09 UTC。RSS 当时的 lastBuildDate 为 2026-11-06 23:04:41 UTC；两者都不是功能交付日。[4] 可下载 <a href='snapshot.json'>功能快照</a> 或查看 <a href='evidence.json'>来源与支持范围</a>；没有自动刷新或客户环境检测。" data-en="Verified on 2026-11-09 UTC. The RSS lastBuildDate was 2026-11-06 23:04:41 UTC; neither is a feature release date.[4] Download the <a href='snapshot.json'>feature snapshot</a> or inspect the <a href='evidence.json'>sources and scope</a>. There is no automatic refresh or customer-environment check.">本页核对日期为 2026-11-09 UTC。RSS 当时的 lastBuildDate 为 2026-11-06 23:04:41 UTC；两者都不是功能交付日。[4] 可下载 <a href="snapshot.json">功能快照</a> 或查看 <a href="evidence.json">来源与支持范围</a>；没有自动刷新或客户环境检测。</p>
+            </div></article>
+          </div>
+        </section>
+        <section id="references" class="section" data-reveal data-density-exempt="references">
+          <div class="section-head">
+            <p class="section-kicker" data-zh="06 / 参考资料" data-en="06 / References">06 / 参考资料</p>
+            <h2 data-zh="按具体能力回到官方来源" data-en="Return to the Official Source for Each Capability">按具体能力回到官方来源</h2>
+            <p data-zh="以下来源均在 2026-11-09 公开访问核对。官方原文标题保留英文；每条路线图记录另有直接 ID 链接。公告月、计划日期、Learn ms.date、路线图 modified 与核对日分别保留。点击引用会展开对应来源，演示模式下返回阅读；其他手动披露状态不变。" data-en="These sources were publicly checked on 2026-11-09. Official titles remain in English and roadmap records have individual ID links. Notice months, planned dates, Learn ms.date, roadmap modified, and verification dates remain separate. Citation jumps reveal the source and return presentation mode to reading, preserving other manual disclosures.">以下来源均在 2026-11-09 公开访问核对。官方原文标题保留英文；每条路线图记录另有直接 ID 链接。公告月、计划日期、Learn ms.date、路线图 modified 与核对日分别保留。点击引用会展开对应来源，演示模式下返回阅读；其他手动披露状态不变。</p>
+          </div>
+          <div class="subsection-accordion" data-allow-multiple>
+            <article class="subsection-item" data-accordion><button class="subsection-toggle" type="button"><span data-zh="当前入口与发布记录" data-en="Current Sources and Release Records">当前入口与发布记录</span></button><div class="subsection-content"><p data-zh="当前入口、逐条记录和发布公告分别支持计划与发布判断。" data-en="Current sources, feature records, and release notices support different plan and release claims.">当前入口、逐条记录和发布公告分别支持计划与发布判断。</p><ol class="bib-list">
+              <li id="ref-1"><span class="bib-id">[1]</span><span class="bib-author">Microsoft</span><a href="https://releaseplans.microsoft.com/en-US/?app=Microsoft+Copilot+Studio" target="_blank" rel="noopener noreferrer">Release Planner: Copilot Studio Product View</a><span class="bib-note" data-zh="产品参数、停止更新与迁移公告；不作为当前功能状态来源。" data-en="Actual product parameter and freeze/migration banner; not a source of current feature state.">产品参数、停止更新与迁移公告；不作为当前功能状态来源。</span></li>
+              <li id="ref-2"><span class="bib-id">[2]</span><span class="bib-author">Microsoft</span><a href="https://www.microsoft.com/en-us/microsoft-365/roadmap?filters=%5B%22Microsoft+Copilot+Studio%22%5D#Roadmap" target="_blank" rel="noopener noreferrer">AI at Work Roadmap</a><span class="bib-note" data-zh="当前产品目标页、预计日期、Targeted／Standard 推出解释与移除政策。" data-en="Current product destination, estimated dates, Targeted/Standard rollout interpretation, and removal policy.">当前产品目标页、预计日期、Targeted／Standard 推出解释与移除政策。</span></li>
+              <li id="ref-3"><span class="bib-id">[3]</span><span class="bib-author">Microsoft</span><a href="https://www.microsoft.com/releasecommunications/api/v2/m365" target="_blank" rel="noopener noreferrer">Official Roadmap Public Data</a><span class="bib-note" data-zh="官方页面使用的数据；核对收录 ID 的原文、状态、日期与标签，不承诺稳定 API。" data-en="Data used by the official page; checks selected IDs, titles, states, dates, and tags. No stable API contract is asserted.">官方页面使用的数据；核对收录 ID 的原文、状态、日期与标签，不承诺稳定 API。</span></li>
+              <li id="ref-4"><span class="bib-id">[4]</span><span class="bib-author">Microsoft</span><a href="https://www.microsoft.com/releasecommunications/api/v2/m365/rss" target="_blank" rel="noopener noreferrer">Microsoft 365 Roadmap RSS</a><span class="bib-note" data-zh="逐条官方链接与匹配状态；lastBuildDate 不等于功能发布日。" data-en="Official per-record links and matching states; lastBuildDate is not a feature release date.">逐条官方链接与匹配状态；lastBuildDate 不等于功能发布日。</span></li>
+              <li id="ref-5"><span class="bib-id">[5]</span><span class="bib-author">Microsoft Learn</span><a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/whats-new" target="_blank" rel="noopener noreferrer">What's new in Copilot Studio</a><span class="bib-note" data-zh="相关 2026 年 4／5／6／8／9 月公告与 rollout 警告；所取 HTML 的 ms.date 日期部分为 2026-11-04，不用作页脚更新时间。" data-en="Relevant April/May/June/August/September 2026 notices and rollout caveat; the fetched HTML ms.date date portion is 2026-11-04, not labeled as the footer update date.">相关 2026 年 4／5／6／8／9 月公告与 rollout 警告；所取 HTML 的 ms.date 日期部分为 2026-11-04，不用作页脚更新时间。</span></li>
+            </ol></div></article>
+            <article class="subsection-item" data-accordion><button class="subsection-toggle" type="button"><span data-zh="历史计划与计算机操作范围" data-en="Archived Plans and Computer Use Scope">历史计划与计算机操作范围</span></button><div class="subsection-content"><p data-zh="历史日期、当前预览警告与工具形态需一起看。" data-en="Read historical dates, preview warnings, and tool forms together.">历史日期、当前预览警告与工具形态需一起看。</p><ol class="bib-list">
+              <li id="ref-6"><span class="bib-id">[6]</span><span class="bib-author">Microsoft Learn</span><a href="https://learn.microsoft.com/en-us/previous-versions/power-platform/release-plan/2024wave2/microsoft-copilot-studio/" target="_blank" rel="noopener noreferrer">Copilot Studio 2024 release wave 2</a><span class="bib-note" data-zh="实际历史产品计划入口、波次范围与 2026 年 10 月归档说明。" data-en="Verified historical product-plan view, wave scope, and October 2026 archive notice.">实际历史产品计划入口、波次范围与 2026 年 10 月归档说明。</span></li>
+              <li id="ref-7"><span class="bib-id">[7]</span><span class="bib-author">Microsoft Learn</span><a href="https://learn.microsoft.com/en-us/previous-versions/power-platform/release-plan/2025wave2/power-platform-governance-administration/extend-ip-firewall-copilot-studio" target="_blank" rel="noopener noreferrer">Extend IP firewall to Microsoft Copilot Studio</a><span class="bib-note" data-zh="历史预览／GA 日级日期与启用方式；不证明日期已经兑现。" data-en="Archived preview/GA day-level dates and enablement; not proof that dates were met.">历史预览／GA 日级日期与启用方式；不证明日期已经兑现。</span></li>
+              <li id="ref-8"><span class="bib-id">[8]</span><span class="bib-author">Microsoft Learn</span><a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/admin-network-isolation-firewall" target="_blank" rel="noopener noreferrer">Use IP firewalls for inbound connections to agents and Copilot Studio (preview)</a><span class="bib-note" data-zh="预览、Managed Environment、渠道例外与既有会话限制。" data-en="Preview, Managed Environment, channel exclusions, and existing-session limitations.">预览、Managed Environment、渠道例外与既有会话限制。</span></li>
+              <li id="ref-9"><span class="bib-id">[9]</span><span class="bib-author">Microsoft Learn</span><a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/computer-use" target="_blank" rel="noopener noreferrer">Automate web and desktop apps with computer use</a><span class="bib-note" data-zh="standard 工具机制、generative orchestration、机器身份与访问控制限制。" data-en="Standard tool mechanism, generative orchestration, machine identity, and access-control limits.">standard 工具机制、generative orchestration、机器身份与访问控制限制。</span></li>
+              <li id="ref-10"><span class="bib-id">[10]</span><span class="bib-author">Microsoft Learn</span><a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/computer-use-standalone" target="_blank" rel="noopener noreferrer">Add standalone computer use tools to agents and agent flows (preview)</a><span class="bib-note" data-zh="agent flows／workflows 限制、预览与按地区推出提示。" data-en="Agent-flow/workflow distinction, preview status, and regional rollout caveat.">agent flows／workflows 限制、预览与按地区推出提示。</span></li>
+            </ol></div></article>
+            <article class="subsection-item" data-accordion><button class="subsection-toggle" type="button"><span data-zh="知识源、评估与 workflow 实施" data-en="Knowledge, Evaluation, and Workflow Implementation">知识源、评估与 workflow 实施</span></button><div class="subsection-content"><p data-zh="实施文档支持具体前提，不统一承诺相同发布阶段。" data-en="Implementation guidance substantiates specific conditions, not a shared release stage.">实施文档支持具体前提，不统一承诺相同发布阶段。</p><ol class="bib-list">
+              <li id="ref-11"><span class="bib-id">[11]</span><span class="bib-author">Microsoft Learn</span><a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/overview" target="_blank" rel="noopener noreferrer">Agents powered by the GitHub Copilot Harness overview</a><span class="bib-note" data-zh="对照表：Computer use 在 standard 为 Supported，在 GitHub Copilot 为 Planned。" data-en="Comparison: Computer use is Supported on standard and Planned on GitHub Copilot.">对照表：Computer use 在 standard 为 Supported，在 GitHub Copilot 为 Planned。</span></li>
+              <li id="ref-12"><span class="bib-id">[12]</span><span class="bib-author">Microsoft Learn</span><a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/knowledge-add-dataverse-tables" target="_blank" rel="noopener noreferrer">Add Dataverse tables to your agent as a knowledge source (GitHub Copilot)</a><span class="bib-note" data-zh="15 表、Microsoft 身份验证、搜索、非结构化列预览与回填条件。" data-en="15 tables, Microsoft authentication, search, preview unstructured columns, and backfill conditions.">15 表、Microsoft 身份验证、搜索、非结构化列预览与回填条件。</span></li>
+              <li id="ref-13"><span class="bib-id">[13]</span><span class="bib-author">Microsoft Learn</span><a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/knowledge-add-azure-sql-tables" target="_blank" rel="noopener noreferrer">Add Azure SQL tables and views as a knowledge source (GitHub Copilot)</a><span class="bib-note" data-zh="网络、连接权限、主键、发布后测试与 diagnostic view 建议。" data-en="Network, connection permissions, primary keys, published testing, and diagnostic-view guidance.">网络、连接权限、主键、发布后测试与 diagnostic view 建议。</span></li>
+              <li id="ref-14"><span class="bib-id">[14]</span><span class="bib-author">Microsoft Learn</span><a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/analytics-agent-evaluation-rest-api" target="_blank" rel="noopener noreferrer">Automate agent evaluations with Power Platform API</a><span class="bib-note" data-zh="standard、test set、用户令牌与异步机制；不据此推定 GA。" data-en="Standard harness, test set, user token, and asynchronous operation; not an inferred GA claim.">standard、test set、用户令牌与异步机制；不据此推定 GA。</span></li>
+              <li id="ref-15"><span class="bib-id">[15]</span><span class="bib-author">Microsoft Learn</span><a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/workflows-experience/agent-node-workflow" target="_blank" rel="noopener noreferrer">Add an agent node to a workflow (GitHub Copilot)</a><span class="bib-note" data-zh="已发布／inline agent、MCP 与输出；不自动解释同名但 ID 不同的记录。" data-en="Published/inline agents, MCP, and outputs; does not resolve same-title records with distinct IDs.">已发布／inline agent、MCP 与输出；不自动解释同名但 ID 不同的记录。</span></li>
+            </ol></div></article>
+            <article class="subsection-item" data-accordion><button class="subsection-toggle" type="button"><span data-zh="运行时、协作与治理条件" data-en="Runtime, Collaboration, and Governance Conditions">运行时、协作与治理条件</span></button><div class="subsection-content"><p data-zh="相近名字的运行时、角色与治理能力仍有不同边界。" data-en="Similarly named runtimes, roles, and governance capabilities still have distinct boundaries.">相近名字的运行时、角色与治理能力仍有不同边界。</p><ol class="bib-list">
+              <li id="ref-16"><span class="bib-id">[16]</span><span class="bib-author">Microsoft Learn</span><a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/agent-node-workflow" target="_blank" rel="noopener noreferrer">Add an agent node to an agent flow</a><span class="bib-note" data-zh="standard agent flow 的范围与等待返回机制。" data-en="Standard agent-flow scope and the wait-for-response mechanism.">standard agent flow 的范围与等待返回机制。</span></li>
+              <li id="ref-17"><span class="bib-id">[17]</span><span class="bib-author">Microsoft Learn</span><a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/authoring-share-agent" target="_blank" rel="noopener noreferrer">Share agents with other users and makers (GitHub Copilot)</a><span class="bib-note" data-zh="查看权限、编辑替代路径与许可／环境前提。" data-en="Viewing rights, alternative editor-role paths, and license/environment prerequisites.">查看权限、编辑替代路径与许可／环境前提。</span></li>
+              <li id="ref-18"><span class="bib-id">[18]</span><span class="bib-author">Microsoft Learn</span><a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/authoring-agent-status" target="_blank" rel="noopener noreferrer">Review agent readiness and issue status in Microsoft Copilot Studio</a><span class="bib-note" data-zh="standard 的预览摘要，不替代管理员合规报告。" data-en="Standard-harness preview summary, not a substitute for admin compliance reporting.">standard 的预览摘要，不替代管理员合规报告。</span></li>
+              <li id="ref-19"><span class="bib-id">[19]</span><span class="bib-author">Microsoft Learn</span><a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/admin-use-entra-agent-identities" target="_blank" rel="noopener noreferrer">Microsoft Entra Agent IDs for Copilot Studio agents</a><span class="bib-note" data-zh="身份治理与连接器权限，不证明 570430 的邮箱／Teams／Office 交付。" data-en="Identity governance and connector permissions, not delivery evidence for 570430's mailbox/Teams/Office scope.">身份治理与连接器权限，不证明 570430 的邮箱／Teams／Office 交付。</span></li>
+              <li id="ref-20"><span class="bib-id">[20]</span><span class="bib-author">Microsoft Learn</span><a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/harnesses-overview" target="_blank" rel="noopener noreferrer">Harnesses in Copilot Studio</a><span class="bib-note" data-zh="harness 定义及 standard／GitHub Copilot／Customer Conversation 的范围与计费差异。" data-en="Harness definition and scope/billing differences for standard, GitHub Copilot, and Customer Conversation.">harness 定义及 standard／GitHub Copilot／Customer Conversation 的范围与计费差异。</span></li>
+            </ol></div></article>
+          </div>
+        </section>
+      </main>
+      <footer><p data-zh="© 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。" data-en="© 2026 illusion615's Knowledge Hub | Interactive HTML article.">© 2026 illusion615's Knowledge Hub | 交互式 HTML 页面。</p></footer>
+    </div>
+  </div>
+  <script src="roadmap-query.js"></script>
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+</body>
+</html>

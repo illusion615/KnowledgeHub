@@ -3035,5 +3035,24 @@ var knowledgeTree = [
     color: '#6366f1',
     phase: 4.1, speed: 0.83,
     relations: ['agent-platform-philosophy', 'copilot-harness-eng', 'hermes-agent-comparison', 'mcp-principles-development']
+  },
+  {
+    id: 'copilot-studio-release-roadmap',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Copilot Studio 官方路线图与发布状态',
+      en: 'Copilot Studio Official Roadmap and Release Status'
+    },
+    summary: {
+      zh: '查询 16 条官方路线图与发布对照记录，区分计划日期、预览、发布标记和租户可用性，并核对范围差异与选型条件。',
+      en: 'Query 16 cited roadmap and release records; separate plans, preview, launch labels, and tenant availability to validate product-selection conditions.'
+    },
+    tags: ['Copilot Studio', 'Official Roadmap', 'Release Status', 'Product Selection'],
+    date: '2026-11-09',
+    url: 'posts/copilot-studio-release-roadmap/index.html',
+    color: '#7c3aed',
+    phase: 2.4, speed: 0.84,
+    relations: ['copilot-studio-overview', 'copilot-studio-constraints', 'copilot-studio-cua', 'copilot-studio-vs-agent-sdk']
   }
 ];
