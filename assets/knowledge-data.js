@@ -1339,6 +1339,25 @@ var knowledgeTree = [
     relations: ['low-code-ai-era', 'copilot-studio-overview', 'agentic-sales-mobile-proposal']
   },
   {
+    id: 'power-platform-pay-as-you-go-billing-plan',
+    parentId: 'power-platform',
+    type: 'article',
+    title: {
+      zh: 'Power Platform按量付费开通指南',
+      en: 'Power Platform Pay-as-You-Go Billing Plan Setup Guide'
+    },
+    summary: {
+      zh: '面向客户团队，逐步交接开通前提、平台与 Azure 权限，完成计费计划、环境和产品核对，再安排成本告警与安全停用。',
+      en: 'A customer setup manual with per-step prerequisites and scoped roles for billing plans, environments, product checks, cost alerts, and safe disabling.'
+    },
+    tags: ['Power Platform', 'Pay-as-you-go', 'Azure', 'Billing', 'Permissions'],
+    date: '2026-11-11',
+    url: 'posts/power-platform-pay-as-you-go-billing-plan/index.html',
+    color: '#8b5cf6',
+    phase: 4.4, speed: 0.83,
+    relations: ['power-platform-governance', 'copilot-studio-overview']
+  },
+  {
     id: 'dynamics-365-ce-tenant-separation',
     parentId: 'power-platform',
     type: 'article',
