@@ -1,13 +1,12 @@
 import copy
-import importlib.util
 import json
 from pathlib import Path
+import runpy
+import types
 import unittest
 
 ROOT = Path(__file__).resolve().parent
-spec = importlib.util.spec_from_file_location('time_proxy', ROOT / 'time-proxy-calculation.py')
-proxy = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(proxy)
+proxy = types.SimpleNamespace(**runpy.run_path(str(ROOT / 'time-proxy-calculation.py')))
 
 
 def centered_prediction(past, target, with_stage):

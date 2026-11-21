@@ -1,12 +1,11 @@
-import importlib.util
 import json
 from pathlib import Path
+import runpy
+import types
 import unittest
 
 ROOT = Path(__file__).resolve().parent
-spec = importlib.util.spec_from_file_location('walkthrough_export', ROOT / 'model-walkthrough-calculation.py')
-export = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(export)
+export = types.SimpleNamespace(**runpy.run_path(str(ROOT / 'model-walkthrough-calculation.py')))
 
 
 class WalkthroughTrainingTests(unittest.TestCase):

@@ -48,14 +48,12 @@ class DecisionEngine:
         self.model_dir = Path(model_dir).expanduser().resolve(strict=True)
         # Require this audited artifact, including tokenizer/config hashes. This
         # does not load arbitrary remote Python or overwrite the download.
-        import importlib.util
+        import runpy
         audit_path = Path(__file__).resolve().parents[1] / 'audit-nanojev-mlx.py'
-        spec = importlib.util.spec_from_file_location('nanojev_artifact_audit', audit_path)
-        audit_module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(audit_module)
+        audit_module = runpy.run_path(str(audit_path))
         original = (self.model_dir / 'best.safetensors').stat().st_size == 2385039280
-        reference_path = (Path(__file__).resolve().parents[2] / 'posts/jev-system-one-research/examples/nanojev-fp32-reference.json') if original else audit_module.REFERENCE
-        audit = audit_module.audit(self.model_dir, reference_path)
+        reference_path = (Path(__file__).resolve().parents[2] / 'posts/jev-system-one-research/examples/nanojev-fp32-reference.json') if original else audit_module['REFERENCE']
+        audit = audit_module['audit'](self.model_dir, reference_path)
         if not audit['file_integrity_matches_pinned_release']:
             raise ValueError('Local model differs from the pinned audited artifact; inspect the audit before inference')
         self.model_id = 'C-Tianyu/NanoJev' if original else MODEL_ID

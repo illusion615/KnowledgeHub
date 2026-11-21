@@ -1,14 +1,13 @@
 import copy
-import importlib.util
 import json
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
+import runpy
+import types
 import unittest
 
 ROOT = Path(__file__).resolve().parent
-spec = importlib.util.spec_from_file_location('robustness_review', ROOT / 'robustness-review.py')
-review = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(review)
+review = types.SimpleNamespace(**runpy.run_path(str(ROOT / 'robustness-review.py')))
 
 
 class RobustnessReviewTests(unittest.TestCase):

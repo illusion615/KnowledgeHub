@@ -7,14 +7,15 @@ or changed. This is numerical parity testing, NOT business-accuracy evaluation.
 """
 import argparse
 import hashlib
-import importlib.util
 import importlib.metadata
 from datetime import datetime, timezone
 import platform
 import json
 import os
 from pathlib import Path
+import runpy
 import time
+import types
 import urllib.request
 
 os.environ['HF_HUB_OFFLINE'] = '1'
@@ -43,10 +44,7 @@ def reference_sources(directory, fetch=False):
             raise ValueError('Pinned reference source missing or changed; use --fetch-reference in a fresh cache')
     modules = []
     for name in ('train_toy_decisions.py', 'predict_toy_decisions.py'):
-        spec = importlib.util.spec_from_file_location('reference_' + name[:-3], directory / name)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        modules.append(module)
+        modules.append(types.SimpleNamespace(**runpy.run_path(str(directory / name))))
     return modules
 
 

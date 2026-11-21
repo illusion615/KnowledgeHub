@@ -1,17 +1,14 @@
 #!/usr/bin/env python3
 """Export the existing final-test training fit without replacing original results."""
 import hashlib
-import importlib.util
 import json
 from pathlib import Path
+import runpy
+import types
 
 ROOT = Path(__file__).resolve().parent
-spec = importlib.util.spec_from_file_location("exam_calculation", ROOT / "model-calculation.py")
-calculation = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(calculation)
-review_spec = importlib.util.spec_from_file_location("bounded_review", ROOT / "robustness-review.py")
-review = importlib.util.module_from_spec(review_spec)
-review_spec.loader.exec_module(review)
+calculation = types.SimpleNamespace(**runpy.run_path(str(ROOT / "model-calculation.py")))
+review = types.SimpleNamespace(**runpy.run_path(str(ROOT / "robustness-review.py")))
 
 
 def build():
