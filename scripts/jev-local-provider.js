@@ -4,15 +4,19 @@ var fs = require('node:fs');
 var path = require('node:path');
 var os = require('node:os');
 var core = require('../posts/jev-system-one-research/playground-core');
+var layaModule = require('./jev-laya-provider');
+var lane = require('./jev-local-queue');
 var MODELS = {
   'nanojev-4bit': { variant: '4bit', model: 'ZeroDegress/NanoJev-mlx-4bit', sha: '332d47eb23c81b0370f580e87e0e55ef737ba1baa206a8d300eadf9617307b62' },
   'nanojev-fp32': { variant: 'fp32', model: 'C-Tianyu/NanoJev', sha: 'fff62d1412685c1714eaa386acb603f9690371fb3cc8ad03dc41319302597c28' }
 };
+Object.assign(MODELS, layaModule.MODELS);
 function failure(code, status) { var error = new Error(code); error.code = code; error.status = status || 503; return error; }
 function isLocal(provider) { return typeof provider === 'string' && Object.prototype.hasOwnProperty.call(MODELS, provider); }
 function connectionFor(provider, env) {
   if (!isLocal(provider)) throw failure('invalid_provider', 400);
   var spec = MODELS[provider];
+  if (spec.family === 'laya') return layaModule.connectionFor(provider, env);
   var directory = env.NANOJEV_MLX_CONNECTION_DIR || path.join(os.homedir(), '.cache', 'study-room', 'nanojev-mlx');
   var file = path.join(directory, 'connection-' + spec.variant + '.json');
   var stat, connection;
@@ -30,6 +34,7 @@ function nativeRequest(state) {
   return { states: [{ id: 'playground', state: request.state.request, questions: request.questions }] };
 }
 function validateHealth(health, spec) {
+  if (spec.family === 'laya') return layaModule.validateHealth(health, spec);
   if (!health || health.backend !== 'study-room-nanojev-mlx-v1' || health.ready !== true || health.model_loaded !== true || health.model !== spec.model || health.weights_sha256 !== spec.sha || health.network_model_calls !== 0 || health.device !== 'mlx-metal-gpu' || !['float32', 'float16', 'bfloat16'].includes(health.activation_dtype) || !Number.isInteger(health.max_length) || health.max_length < 1 || health.max_length > 40960 || !Number.isFinite(health.model_memory_bytes) || health.model_memory_bytes < 0) throw failure('local_connection_invalid');
   return health;
 }
@@ -58,12 +63,14 @@ function createLocalProvider(options) {
   options = options || {};
   var env = options.env || process.env;
   var fetchImpl = options.localFetch || globalThis.fetch;
+  var laya = layaModule.createProvider(options);
   async function health(connection) {
     var res = await fetchImpl(connection.origin + '/api/health', { redirect: 'error', signal: AbortSignal.timeout(2500) });
     if (!res.ok) throw failure('local_service_unavailable');
     return validateHealth(await res.json(), connection.spec);
   }
   async function status(provider) {
+    if (MODELS[provider]?.family === 'laya') return laya.status(provider);
     var spec = MODELS[provider];
     try {
       var conn = connectionFor(provider, env), info = await health(conn);
@@ -73,6 +80,7 @@ function createLocalProvider(options) {
     } catch (error) { return { model: spec.model, local: true, configured: false, sdk_ready: false, ready: false, credential_issue: null, local_error: ['local_service_unavailable', 'local_connection_invalid'].includes(error.code) ? error.code : 'local_service_unavailable' }; }
   }
   async function checkAuthentication(provider) {
+    if (MODELS[provider]?.family === 'laya') return laya.checkAuthentication(provider);
     var conn = connectionFor(provider, env);
     await health(conn);
     var res = await fetchImpl(conn.origin + '/api/auth-check', { headers: { 'X-NanoJev-Token': conn.token }, redirect: 'error', signal: AbortSignal.timeout(2500) });
@@ -80,12 +88,13 @@ function createLocalProvider(options) {
     if (!res.ok || data.backend !== 'study-room-nanojev-mlx-v1' || data.authenticated !== true) throw failure('local_connection_invalid');
     return { provider: provider, authentication: 'verified', model_access: 'local_model_loaded', model_inference_performed: false, code: 'authentication_verified', checked_at: new Date().toISOString(), diagnostic: { upstream_status: 200, response_format: 'json' } };
   }
-  async function evaluate(provider, state, signal) {
+  async function evaluateNano(provider, state, signal) {
     var conn, payload;
     try {
       conn = connectionFor(provider, env); await health(conn); payload = nativeRequest(state);
+      if (signal && signal.aborted) throw failure('upstream_timeout', 504);
       var res = await fetchImpl(conn.origin + '/api/evaluate', {
-        method: 'POST', redirect: 'error', signal: signal,
+        method: 'POST', redirect: 'error', signal: AbortSignal.timeout(180000),
         headers: { 'Content-Type': 'application/json', 'X-NanoJev-Token': conn.token },
         body: JSON.stringify(payload)
       });
@@ -115,6 +124,10 @@ function createLocalProvider(options) {
       throw failure('local_service_unavailable');
     }
   }
+  async function evaluate(provider, state, signal) {
+    if (MODELS[provider]?.family === 'laya') return laya.evaluate(provider, state, signal);
+    return lane.run(signal, () => evaluateNano(provider, state, signal));
+  }
   return { status: status, evaluate: evaluate, checkAuthentication: checkAuthentication };
 }
-module.exports = { MODELS: MODELS, isLocal: isLocal, connectionFor: connectionFor, nativeRequest: nativeRequest, normalizeLocal: normalizeLocal, createLocalProvider: createLocalProvider };
+module.exports = { validateHealth: validateHealth, MODELS: MODELS, isLocal: isLocal, connectionFor: connectionFor, nativeRequest: nativeRequest, normalizeLocal: normalizeLocal, createLocalProvider: createLocalProvider };

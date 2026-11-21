@@ -1,0 +1,4 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),renderer=require('../posts/jev-system-one-research/arena-renderer');
+test('chassis follows actual movement while turret can aim independently',()=>{const tank={id:'B0',side:0,x:2,y:2,hp:100,order:'fire_R0',recent_positions:[{x:2,y:3},{x:2,y:2}]},enemy={id:'R0',side:1,x:5,y:2,hp:100},game={control:'step',tanks:[tank,enemy]},h=renderer.headings({before:game,game,alpha:1},tank);assert.equal(h.hull,-Math.PI/2);assert.equal(h.turret,0);tank.order='wait';assert.equal(renderer.hullAngle(tank),-Math.PI/2);});
+test('spawn hulls face inward and all four travel directions have correct longitudinal axes',()=>{assert.equal(renderer.hullAngle({side:0}),0);assert.equal(renderer.hullAngle({side:1}),Math.PI);for(const [dx,dy,a]of [[1,0,0],[-1,0,Math.PI],[0,1,Math.PI/2],[0,-1,-Math.PI/2]])assert.equal(renderer.hullAngle({side:0,recent_positions:[{x:4,y:4},{x:4+dx,y:4+dy}]}),a);});

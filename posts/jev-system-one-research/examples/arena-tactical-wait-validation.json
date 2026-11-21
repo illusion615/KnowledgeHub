@@ -1,0 +1,44 @@
+{
+  "schema": "study-room.arena-tactical-wait-validation.v1",
+  "date": "2026-09-23",
+  "planner_revision": "resource-tactics-v3",
+  "ballistics": "tank-v7-friendly-fire",
+  "action_change": "Explicit wait holds four simulation ticks (0.8s), no auto-fire; reload/projectiles continue. Legacy v1/v2 and raw input do not gain wait.",
+  "wait_admission": {
+    "required_advantage_over_safe_nonwait": 2,
+    "root_penalty": "3 * (1 + completed consecutive waits)",
+    "rollout_cost_per_wait_tank_tick": 0.75,
+    "max_consecutive_waits_normally_eligible": 2,
+    "exceptions": "Trapped tanks can wait. If the friendly-lane-safe roots contain no plan passing the wait gate, no_admissible_alternative is recorded and least-bad roots remain available. Not an optimality claim."
+  },
+  "roles": {
+    "recover": "HP <=35, prioritize useful reachable repair; a lethal shot may still win the utility comparison.",
+    "burst": "Active power, favor prompt firing/range access over further stockpiling.",
+    "assault": "Shield >=12 with HP >35, lower route exposure cost and higher approach utility; still subject to actual-engine combat and friendly-fire forecasts.",
+    "support": "Unbuffed healthy teammate of a recovering/assault/burst tank, prioritize firing positions against enemies threatening that ally."
+  },
+  "development_test_file": "tests/jev-arena-tactical-wait.test.js",
+  "development_tests": 11,
+  "beneficial_wait_fixture": "wait-check-2 after 20 actual-engine ticks of v3 continuation, side 0; search selects B1 wait, passes the +2 margin with no emergency fallback. Selected during development, not held out.",
+  "bounded_search_only_smoke": {
+    "seeds": ["wait-check-0", "wait-check-1", "wait-check-2", "wait-check-3"],
+    "rounds_per_seed": 8,
+    "sides": "Both use v3 search-only on shared snapshots",
+    "tank_actions": 128,
+    "moves": 123,
+    "shots_attempted": 5,
+    "waits": 0,
+    "max_consecutive_waits": 0,
+    "blocked_moves": 0,
+    "pickups": 14,
+    "enemy_hp_damage": 24,
+    "scope": "Short integration smoke, not full matches or evidence that waits improve combat. All four stop at the predefined eight-round budget, without declaring winners."
+  },
+  "tokenizer_only": [
+    { "provider": "laya-multilingual", "requests": 64, "questions": 344, "max_sequence_tokens": 366, "max_request_tokens": 2187, "rejected": 0 },
+    { "provider": "laya-typed-decisions", "requests": 64, "questions": 344, "max_sequence_tokens": 349, "max_request_tokens": 2090, "rejected": 0 }
+  ],
+  "model_forward_calls": 0,
+  "cloud_model_calls": 0,
+  "boundary": "Application heuristics and deterministic fixtures, not learned strategy, calibrated victory probabilities, global optimality, or held-out model quality evidence. Raw-map comparisons now differ in action space as well as input assistance. Same-revision search-only is the cleaner model-ranking ablation."
+}

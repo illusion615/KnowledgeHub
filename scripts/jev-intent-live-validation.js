@@ -1,0 +1,18 @@
+#!/usr/bin/env node
+'use strict';
+// Explicit short integration smoke. Two matches, two controller decisions each;
+// no more than four model attempts total, zero cloud calls, no retries or warmups.
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+async function run({output,consent=false,origin='http://127.0.0.1:62848'}){
+  if(!consent||!output)throw Error('consent_and_fresh_output_required');const u=new URL(origin);if(u.protocol!=='http:'||!['127.0.0.1','localhost'].includes(u.hostname)||u.pathname!=='/'||u.username||u.password||u.search||u.hash)throw Error('loopback_only');
+  fs.mkdirSync(output,{mode:0o700});const rows=[];fs.writeFileSync(path.join(output,'manifest.json'),JSON.stringify({date:new Date().toISOString(),providers:['nanojev-fp32','laya-typed-decisions'],seed:'intent-live-check',mode:'sync',planner_revision:'persistent-intent-v4',contract:'compact-intent-v2',max_decisions_per_side:2,max_model_requests:4,cloud_calls:0,retries:0,scope:'Contract/goal/route validation, not strategy-quality evidence.'},null,2),{flag:'wx',mode:0o600});
+  for(const provider of ['nanojev-fp32','laya-typed-decisions']){
+    const status=await(await fetch(origin+'/api/jev/status')).json();if(status.arena_busy||status.experiment_busy)throw Error('busy_do_not_interrupt');if(!status.capabilities.arena_planner_revisions.includes('persistent-intent-v4'))throw Error('backend_needs_restart');
+    async function post(route,body){const r=await fetch(origin+'/api/jev/arena/'+route,{method:'POST',headers:{origin,'x-jev-csrf':status.csrf,'content-type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(10000)}),data=await r.json();if(!r.ok)throw Error(data.error?.code||'http_failure');return data;}
+    let r=await post('start',{seed:'intent-live-check',mode:'sync',control:'step',input_profile:'utility-planner',ruleset:'friendly-fire',planner_revision:'persistent-intent-v4',duration_s:30,max_decisions:2,decision_timeout_s:30,teams:[{provider},{provider:'search-baseline'}],consent:true}),finished=false;
+    try{const end=Date.now()+90000;while((r.status==='running'||r.pending)&&Date.now()<end){await new Promise(r=>setTimeout(r,150));r=await post('state',{id:r.id});}if(r.status==='running'||r.pending)throw Error('wall_budget');finished=true;fs.writeFileSync(path.join(output,provider+'.json'),JSON.stringify(r,null,2),{flag:'wx',mode:0o600});assert.ok(!r.decisions.some(d=>d.error),JSON.stringify(r.decisions.map(d=>d.error)));const own=r.decisions.filter(d=>d.side===0),calls=own.filter(d=>d.decision_source!=='application_route_follow');assert.ok(calls.length<=2);assert.ok(own.every(d=>d.intent_trace));assert.ok(calls.every(d=>d.planner_trace?.intent_context));const row={provider,decision_protocol:r.decision_protocol,controller_decisions:own.length,model_attempts:calls.length,route_continuations:own.filter(d=>d.decision_source==='application_route_follow').length,input_tokens:own.reduce((n,d)=>n+(d.usage?.input_tokens||0),0),intent_counters:r.metrics[0].intent_counters,applied:own.filter(d=>d.applied).length,contract_passed:true};rows.push(row);console.log(JSON.stringify(row));}
+    finally{if(!finished)await post('stop',{id:r.id}).catch(()=>{});fs.writeFileSync(path.join(output,'summary.json'),JSON.stringify(rows,null,2),{mode:0o600});}
+  }return rows;
+}
+if(require.main===module){const a=process.argv.slice(2),get=k=>a.includes(k)?a[a.indexOf(k)+1]:undefined;run({output:get('--output'),origin:get('--origin'),consent:a.includes('--consent-local')}).catch(e=>{console.error(e.message);process.exitCode=1;});}
+module.exports={run};

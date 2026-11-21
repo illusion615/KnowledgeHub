@@ -1,0 +1,90 @@
+{
+  "schema": "study-room.tank-practice-summary.v1",
+  "as_of": "2026-09-21",
+  "provenance": "Project-authored summary of local experiment records and implementation checks; not a vendor benchmark or third-party reproduction.",
+  "publication_scope": "Aggregate results and limitations only. Private raw receipts, credentials, machine paths and user prompts are not published. This summary alone is not independent proof of model execution.",
+  "source_documents_in_repository": [
+    "tests/experiments/jev-arena-utility-20260921.md",
+    "tests/experiments/jev-arena-planner-20260921.md",
+    "tests/experiments/jev-arena-friendly-fire-20260921.md",
+    "tests/jev-arena-online.test.js",
+    "tests/jev-arena-online.browser.js"
+  ],
+  "model": {
+    "provider": "nanojev-fp32",
+    "checkpoint": "C-Tianyu/NanoJev",
+    "weights_trained_or_modified_for_arena": false,
+    "scope": "The following native match outcomes use FP32, not the 4-bit variant, TypeSafe Jev, or Copilot."
+  },
+  "representation_development": {
+    "observation": "An earlier engage-first FP32 match recorded 20 completed requests and zero firing attempts. Twelve tank decisions had a geometrically clear shot but chose movement. Compact text and neutral action names did not fix the sampled development inputs.",
+    "confounds": "That match also had 11855 ms of rate-admission wait while the opponent continued. Later input facts, candidate filtering, readout and rate handling changed together; no single-factor causal attribution is established."
+  },
+  "v6_sync_comparison": {
+    "ruleset": "tactical",
+    "physics": "tank-v6-tactical",
+    "planner_protocol": "tank-opponent-rollout-v1",
+    "mode": "sync",
+    "seeds": ["planner-holdout-01", "planner-holdout-02", "planner-holdout-03"],
+    "sides_per_seed": [0, 1],
+    "games_per_controller": 6,
+    "tick_limit": 450,
+    "all_finished_by_elimination": true,
+    "opponent": "rule-attack-baseline-v1",
+    "controllers": [
+      {"controller": "survival-utility-v2-plus-FP32", "wins": 3, "losses": 3, "draws": 0, "native_calls": 216},
+      {"controller": "rollout-search-only", "wins": 6, "losses": 0, "draws": 0, "native_calls": 0},
+      {"controller": "rollout-search-plus-FP32", "wins": 6, "losses": 0, "draws": 0, "native_calls": 114}
+    ],
+    "model_changed_search_choice_on_observed_snapshots": 2,
+    "negative_evidence": {
+      "seed": "planner-holdout-01",
+      "search_only_final_hp_by_side": [114, 112],
+      "search_plus_model_final_hp_by_side": [102, 106],
+      "conclusion": "Model scoring did not improve win count over pure search and left less HP in the two differing held-out outcomes."
+    },
+    "limitations": [
+      "Three new boards with shared effect templates, not disjoint textual generalization or a population win-rate estimate.",
+      "Survival v2 and the new planner differ in reload eligibility and other controller details: this is a package comparison, not an isolated model/search causal test.",
+      "Main observed improvement belongs to planning/controller changes; it does not establish newly learned combat skill."
+    ]
+  },
+  "v6_realtime_observations": {
+    "physics": "tank-v6-tactical",
+    "planner_protocol": "tank-opponent-rollout-v1",
+    "mode": "realtime",
+    "scope": "Actual HTTP arena, worker search and native local inference; physics continued during search/inference. No synthetic dispatch-delay substitution.",
+    "opponent": "rule-attack-baseline-v1",
+    "games": [
+      {"seed": "tank-2026", "model_side": 0, "outcome": "elimination_win", "survivors": 2, "hp": 92, "ticks": 107, "wall_ms": 21512, "native_calls": 24, "mean_all_in_decision_ms": 469.125},
+      {"seed": "tank-2026", "model_side": 1, "outcome": "elimination_win", "survivors": 2, "hp": 92, "ticks": 88, "wall_ms": 17721, "native_calls": 20, "mean_all_in_decision_ms": 535.4},
+      {"seed": "planner-live-holdout-01", "model_side": 0, "outcome": "elimination_win", "survivors": 2, "hp": 92, "ticks": 96, "wall_ms": 19301, "native_calls": 24, "mean_all_in_decision_ms": 331.125},
+      {"seed": "planner-live-holdout-01", "model_side": 1, "outcome": "elimination_win", "survivors": 1, "hp": 90, "ticks": 104, "wall_ms": 20919, "native_calls": 26, "mean_all_in_decision_ms": 249.1153846153846}
+    ],
+    "native_calls_total": 94,
+    "scope_limit": "Four observations, not a general win-rate or model-over-search superiority claim; decision times are not pure GPU inference latency."
+  },
+  "later_versions": {
+    "friendly_fire": {
+      "physics": "tank-v7-friendly-fire",
+      "planner_protocol": "tank-planner-friendly-fire-v1",
+      "verified": "Deterministic first-tank collision, friendly HP/shield accounting, joint firing-lane checks, replay/export and injected-score UI tests.",
+      "search_only_smoke_games": 4,
+      "real_model_calls_in_that_iteration": 0,
+      "scope_limit": "The earlier v6 model victories are not v7 evidence. Zero friendly contacts in four search-only smoke games is not a safety guarantee."
+    },
+    "online_scoring": {
+      "supported_profiles": ["utility-attack", "utility-tactics", "utility-planner"],
+      "verified": "Injected CLI replies through HTTP/worker/provider/parser/UI, including consent, exact score validation, cancellation and no native fallback.",
+      "scores": "Original 0..100 self-preferences, not native Boolean probabilities; division by 100 is application arithmetic only.",
+      "live_cloud_inference_in_compatibility_checks": false,
+      "scope_limit": "Compatibility tests do not establish cloud-model tactical quality, latency, access or quota."
+    }
+  },
+  "not_implemented_as_team_strategy": [
+    "Persistent shared target and multi-turn role assignment",
+    "Per-tank-ready partial-order scheduling within a team",
+    "A combat value head trained from search or self-play"
+  ],
+  "generalization_boundary": "These engineering practices are candidates for other bounded decision systems. Revalidate domain quality, latency, calibration, permissions and execution safety; do not transfer the game's coefficients or win counts as universal defaults."
+}

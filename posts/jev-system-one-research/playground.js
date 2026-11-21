@@ -2,11 +2,11 @@
 document.addEventListener('DOMContentLoaded', function () {
   'use strict';
   window.setTimeout(function () {
-    var core = window.JevPlayground;
-    var root = document.getElementById('playground');
+    var core = window.JevPlayground, registry = window.JevModelRegistry;
+    var root = document.getElementById('jev-model-lab') || document.getElementById('playground');
     var fixtures, selected, origin = 'pending', response = null, message = '', error = '';
     var connection = null, connectionFailed = false, connectionSequence = 0, providerTouched = false;
-    var isLocal = function (provider) { return provider === 'nanojev-4bit' || provider === 'nanojev-fp32'; };
+    var isLocal = function (provider) { return registry.isLocal(provider); };
     var busy = false, revision = 0, controller = null, liveRecord = null;
     var runState = 'idle', runError = '';
     var cloudApprovals = Object.create(null); // This page only; no persistent consent.
@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var number = function (v) { return v == null ? pick('未返回', 'Not Returned') : v.toFixed(3); };
     var percent = function (v) { return v == null ? pick('不适用', 'N/A') : (v * 100).toFixed(1) + '%'; };
     var teamLabel = function (v) { return { billing: pick('账务', 'Billing'), technical: pick('技术', 'Technical'), other: pick('其他 / 不确定', 'Other / Unclear') }[v]; };
-    var providerName = function () { return { vercel: 'Vercel AI Gateway → TypeSafe', typesafe: 'TypeSafe API', 'nanojev-4bit': 'NanoJev · MLX 4-bit · Local', 'nanojev-fp32': 'NanoJev · MLX FP32 · Local' }[$('provider').value] || 'Unknown'; };
+    var providerName = function () { if(isLocal($('provider').value))return registry.label($('provider').value)+' · Local';return { vercel: 'Vercel AI Gateway → TypeSafe', typesafe: 'TypeSafe API', 'nanojev-4bit': 'NanoJev · MLX 4-bit · Local', 'nanojev-fp32': 'NanoJev · MLX FP32 · Local' }[$('provider').value] || 'Unknown'; };
     var scenarioNames = {
       'clear-tech': ['部署后的 HTTP 500', 'HTTP 500 after Deployment'],
       'clear-billing': ['同一发票重复扣费', 'Duplicate Invoice Charge'],
@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', function () {
       local_service_unavailable: ['本地 MLX 服务未就绪，请启动对应权重的服务并刷新连接；不需要云 API key。', 'The local MLX service is not ready. Start its weight profile and refresh; no cloud API key is needed.'],
       local_connection_invalid: ['本地服务身份或私有令牌不匹配，请重新启动本地服务；不要把令牌贴到网页。', 'Local service identity or private token mismatch. Restart the service; never paste its token into the page.'],
       local_invalid_response: ['本地模型响应未通过契约检查，没有生成替代答案。', 'Local model response failed contract checks; no substitute answer was created.'],
-      local_input_limit: ['本地输入超出限制或契约不符：当前每条候选路径最多 512 tokens；请缩短输入，不会自动截断。', 'Local input limit/contract failure: each candidate path is limited to 512 tokens. Shorten input; it is never silently truncated.'],
+      local_input_limit: ['输入超出所选模型的问题、选项或正文预算；不会静默截断或换模型。请缩短输入并查看模型限制。', 'Input exceeds the selected model’s question, option or state budget; no truncation or model switch. Shorten input and inspect its limits.'],
       local_inference_failed: ['本地 MLX 推理失败；检查服务日志，不会回退到云端或教学结果。', 'Local MLX inference failed. Check the service log; no cloud or teaching fallback is used.'],
       backend_unavailable: ['没有可用的本地推理后端，请按下方说明启动 Node 服务。', 'No local inference backend. Start the Node server described below.'],
       key_missing: ['后端尚未配置此渠道的 API key；请用 --prompt-key 在终端隐藏输入。', 'No provider key. Use --prompt-key for hidden terminal input.'],
@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', function () {
       upstream_error: ['上游调用失败，请检查服务或网络；不会回退到合成答案。', 'Upstream call failed. Check service/network; no synthetic fallback is used.'],
       invalid_upstream: ['供应商响应未通过契约检查，未显示为有效结果。', 'The provider response failed contract checks and is not shown as a valid result.'],
       busy: ['本地后端正在处理另一请求，请稍后手动重试。', 'The local backend is busy. Retry manually later.'],
-      local_rate_limit: ['已达到本地每分钟请求上限，请稍后再试。', 'Local per-minute limit reached. Try later.'],
+      local_rate_limit: ['外部服务调用达到应用每分钟限速，请稍后再试；本地 NanoJev 不受此限制。', 'External calls reached the app rate limit; try later. Local NanoJev is exempt.'],
       client_timeout: ['浏览器等待超时；计算可能仍在进行，云端请求仍可能计费。', 'Browser wait timed out; computation may continue, and cloud requests may still be charged.'],
       cancelled: ['已取消等待并丢弃结果；计算可能仍在进行，云端请求仍可能计费。', 'Waiting cancelled and result discarded; computation may continue, and cloud requests may still be charged.'],
       unknown: ['无法处理响应；未使用合成结果替代。', 'Unable to process the response; no synthetic replacement was used.']
@@ -111,12 +111,14 @@ document.addEventListener('DOMContentLoaded', function () {
       return decision.action === 'review' ? pick('转人工复核 / 澄清', 'Request Review / Clarification') : pick('建议转', 'Suggest ') + teamLabel(decision.action.replace('suggest_', '')) + pick('队列（不执行）', ' Queue (Not Executed)');
     }
     function renderConnection(valid) {
+      registry.fill($('provider'), connection?.providers, 'playground');
       var p = connection && connection.providers[$('provider').value], detail, local = isLocal($('provider').value);
       $('local-note').hidden = !local;
+      if(local)text('local-note',registry.get($('provider').value).family==='laya'?pick('Laya 使用独立 MLX 引擎，当前完整序列上限 1,024 tokens；问题和选项也占预算。confidence 是运行时分布统计，不是业务正确率。Typed Decisions 与多语言检查点分别测试，不自动切换。','Laya uses a dedicated MLX engine with a 1,024-token full-sequence budget, including questions/options. Confidence is a runtime statistic, not correctness. Multilingual and Typed Decisions are separate checkpoints; no automatic switching.'):pick('NanoJev 使用独立 MLX 引擎；未返回的 confidence 不补造。运行成功不等于业务判断可靠；FP32 与 4-bit 是独立对照条件。','NanoJev uses a dedicated MLX engine; missing confidence is not fabricated. Executability is not task accuracy; FP32 and 4-bit remain separate conditions.'));
       $('consent-field').hidden = local;
       text('consent-label', pick('我同意本页中手动发起的调用将输入发送到所选云端渠道，并承担可能产生的费用；刷新页面后重新确认。', 'I approve sending inputs to this cloud route for calls I manually start on this page and accept possible charges. Approval resets on reload.'));
       text('route-note', local ? pick('本机路径：浏览器 → 本地网站后端 → 独立 MLX 决策服务。直接加载已下载权重，不依赖 Vercel 绑卡或云端 key；没有修改 oMLX 聊天引擎。', 'Local path: browser → local website backend → standalone MLX decision service. It loads downloaded weights without Vercel billing or cloud keys; the oMLX chat engine is unchanged.') : pick('Gateway 路径向 Vercel / TypeSafe 发送输入并请求 ZDR；直连遵循 TypeSafe 账户条款。不要发送未经批准的敏感数据。', 'Gateway sends input to Vercel/TypeSafe with ZDR requested; direct calls follow TypeSafe terms. Do not send unapproved sensitive data.'));
-      Array.prototype.forEach.call($('provider').options, function (option) { if (isLocal(option.value)) option.disabled = Boolean(connection && !connection.providers[option.value]); });
+      Array.prototype.forEach.call($('provider').options, function (option) { if (isLocal(option.value)) option.disabled = Boolean(connection && !connection.providers[option.value]?.ready); });
       if (!connection) detail = connectionFailed ? pick('未连接本地后端：静态服务器不能执行模型调用。', 'Local backend unavailable: a static server cannot call models.') : pick('正在检查本地后端配置…', 'Checking local backend configuration…');
       else if (!p) detail = pick('当前后端版本没有这个渠道，请打开更新后的本地网站或重启后端。', 'This backend version lacks the selected route. Use the updated website or restart the backend.');
       else if (local) detail = p.ready ? pick('本地模型已加载，可运行真实推理；没有云 API 调用费。模型业务质量仍需单独验证。', 'Local weights are loaded for real inference with no cloud API charge. Business quality still requires separate validation.') + ' ' + p.model : pick.apply(null, errors[p.local_error] || errors.local_service_unavailable);
@@ -164,7 +166,7 @@ document.addEventListener('DOMContentLoaded', function () {
       text('result-team', a.team.choice + ' · ' + teamLabel(a.team.choice) + (a.team.probabilities ? ' · ' + pick('候选概率 ', 'Option probability ') + percent(a.team.probabilities[a.team.choice]) : ''));
       text('result-sufficiency', pick('回答「是」的概率：', 'Probability of yes: ') + percent(a.enough_info.noul));
       text('result-severity', number(a.severity.score) + ' / 2');
-      text('result-receipt', pick('模型：', 'Model: ') + response.model + (origin === 'live' && liveRecord ? ' · ' + pick('后端往返 ', 'Backend round trip ') + liveRecord.latency_ms + ' ms' : ''));
+      text('result-receipt', pick('模型：', 'Model: ') + response.model + (origin === 'live' && liveRecord ? ' · ' + pick('后端往返 ', 'Backend round trip ') + liveRecord.latency_ms.toLocaleString('en-US', { maximumFractionDigits: 3 }) + ' ms' : ''));
       text('result-note', origin === 'live' ? pick('以下是这次调用返回的判断，不是程序的分流建议。运行完成不代表判断正确；JSON 中输出 Token 为 0 也不代表没有结果。', 'These judgments came from this call, not the page policy. Completion does not prove correctness; zero output tokens does not mean an empty result.') : origin === 'demo' ? pick('以下数据由人工编写，仅用于教学；不能证明模型运行过。', 'These authored values are for teaching only; they do not prove model execution.') : pick('以下为你导入的数据，只通过了格式校验，不是真实调用凭证。', 'These imported values passed format checks only; they are not a live-call receipt.'));
     }
     function renderBatch(t) {
@@ -228,10 +230,10 @@ document.addEventListener('DOMContentLoaded', function () {
         text('cost', origin === 'live' ? (isLocal(liveRecord.provider) ? pick('本次没有外部模型 API 调用费；设备、电力和维护成本不包含在内。Token 数为候选路径的实际编码总数，包含重复前缀，不是云端计费 Token。', 'No external model API charge. Hardware, electricity, and maintenance are excluded. Tokens count encoded candidate paths including repeated prefixes, not cloud-billed tokens.') : pick('费用以供应商账单为准；本页不把促销价或目录估算冒充实际扣费。', 'Billing is determined by the provider; promotions and catalog estimates are not presented as actual charges.')) : cost ? pick('按提供用量和 $0.042/M 估算：', 'Estimate at $0.042/M from supplied usage: ') + cost + pick('；不是核实的账单。', '; not a verified bill.') : pick('费用未知：没有可核实的适用定价与计费用量。', 'Cost unknown: applicable pricing and billed usage are unverified.'));
         if (origin === 'live' && liveRecord) {
           usage = response.usage || {};
-          text('latency', liveRecord.latency_ms + ' ms');
+          text('latency', liveRecord.latency_ms.toLocaleString('en-US', { maximumFractionDigits: 3 }) + ' ms');
           text('input-tokens', usage.input_tokens == null ? pick('未返回', 'Not Returned') : String(usage.input_tokens));
           text('output-tokens', usage.output_tokens == null ? pick('未返回', 'Not Returned') : String(usage.output_tokens));
-          text('live-detail', pick('浏览器往返 ', 'Browser round trip ') + liveRecord.client_roundtrip_ms + ' ms · ' + liveRecord.transport + ' · ' + liveRecord.request_id);
+          text('live-detail', pick('浏览器往返 ', 'Browser round trip ') + liveRecord.client_roundtrip_ms.toLocaleString('en-US', { maximumFractionDigits: 3 }) + ' ms · ' + liveRecord.transport + ' · ' + liveRecord.request_id);
           text('measurement-note', isLocal(liveRecord.provider) ? pick('本地输入 Token 含候选复制；输出 0 表示没有自回归解码，不表示 JSON 响应为空。计时包含本地服务与传输，完整执行信息和权重 SHA 在下载记录中。', 'Local input tokens include candidate duplication. Output 0 means no autoregressive decoding, not an empty JSON response. Timing includes local service/transport; execution details and weight SHA are in the download.') : pick('耗时包含网络和服务处理，不是纯模型推理时间；model 标识不证明底层权重修订号。缺失用量或 confidence 不补造。', 'Latency includes networking and service processing, not just model compute; model IDs do not verify underlying weight revisions. Missing usage or confidence is not synthesized.'));
         }
       }

@@ -15,7 +15,6 @@ import re
 import signal
 import tempfile
 import threading
-import time
 from urllib.parse import urlsplit
 
 from nanojev_mlx.contract import parse_json, validate_request
@@ -42,9 +41,8 @@ def write_connection(path, data):
             os.unlink(temporary)
 
 
-def create_server(engine, port, token):
+def create_server(engine, port, token, *, backend='study-room-nanojev-mlx-v1', token_header='X-NanoJev-Token'):
     gate = threading.Lock()
-    calls = []
 
     class Handler(BaseHTTPRequestHandler):
         def setup(self):
@@ -74,13 +72,13 @@ def create_server(engine, port, token):
                 return self.respond(403, {'error': {'code': 'invalid_host'}})
             route = urlsplit(self.path).path
             if route == '/api/auth-check':
-                supplied = self.headers.get('X-NanoJev-Token', '')
+                supplied = self.headers.get(token_header, '')
                 if not re.fullmatch('[a-f0-9]{64}', supplied) or not hmac.compare_digest(supplied, token):
                     return self.respond(401, {'error': {'code': 'local_auth_failed'}})
-                return self.respond(200, {'backend': 'study-room-nanojev-mlx-v1', 'authenticated': True, 'model_loaded': True})
+                return self.respond(200, {'backend': backend, 'authenticated': True, 'model_loaded': True})
             if route != '/api/health':
                 return self.respond(404, {'error': {'code': 'not_found'}})
-            self.respond(200, engine.health())
+            self.respond(200, {**engine.health(), 'limits': {'max_calls_per_minute': None, 'max_concurrent_inferences': 1}})
 
         def do_POST(self):
             if not self.trusted_host():
@@ -89,7 +87,7 @@ def create_server(engine, port, token):
                 return self.respond(403, {'error': {'code': 'use_local_backend'}})
             if urlsplit(self.path).path != '/api/evaluate':
                 return self.respond(404, {'error': {'code': 'not_found'}})
-            supplied = self.headers.get('X-NanoJev-Token', '')
+            supplied = self.headers.get(token_header, '')
             if not re.fullmatch('[a-f0-9]{64}', supplied) or not hmac.compare_digest(supplied, token):
                 return self.respond(401, {'error': {'code': 'local_auth_failed'}})
             if self.headers.get('Content-Type', '').split(';')[0].strip().lower() != 'application/json':
@@ -105,11 +103,7 @@ def create_server(engine, port, token):
             if not gate.acquire(blocking=False):
                 return self.respond(429, {'error': {'code': 'busy'}})
             try:
-                now = time.monotonic()
-                calls[:] = [t for t in calls if now - t < 60]
-                if len(calls) >= 30:
-                    return self.respond(429, {'error': {'code': 'local_rate_limit'}})
-                calls.append(now)
+                # Local compute is bounded by the single-flight gate, not RPM.
                 result = engine.predict(payload)
                 self.respond(200, result)
             except ValueError:
@@ -140,10 +134,13 @@ def main():
     parser.add_argument('--dtype', choices=['float32', 'float16', 'bfloat16'], default='float32')
     parser.add_argument('--path-batch-size', type=int, default=16)
     parser.add_argument('--connection-file', type=Path)
+    parser.add_argument('--cache-limit-mb', type=int, default=2048, help='MLX free allocator cache limit in MiB (0..8192, default 2048). Not a model-memory cap.')
     args = parser.parse_args()
     port = args.port if args.port is not None else (8766 if args.variant == '4bit' else 8767)
     if not 1 <= port <= 65535:
         parser.error('Invalid port')
+    if args.cache_limit_mb is not None and not 0 <= args.cache_limit_mb <= 8192:
+        parser.error('Cache limit must be 0..8192 MiB')
     connection = (args.connection_file or CACHE / f'connection-{args.variant}.json').expanduser()
     if connection.is_symlink():
         raise ValueError('Connection file must not be a symlink')
@@ -156,7 +153,7 @@ def main():
         else:
             raise RuntimeError('A recorded service process is still running; stop it explicitly before replacing its connection file')
     from nanojev_mlx.engine import DecisionEngine
-    engine = DecisionEngine(args.model_dir or PROFILES[args.variant], dtype=args.dtype, path_batch_size=args.path_batch_size)
+    engine = DecisionEngine(args.model_dir or PROFILES[args.variant], dtype=args.dtype, path_batch_size=args.path_batch_size, cache_limit_bytes=None if args.cache_limit_mb is None else args.cache_limit_mb * 1024**2)
     if (engine.weights_bits == 4) != (args.variant == '4bit'):
         raise ValueError('Variant and verified weight profile disagree')
     token = secrets.token_hex(32)

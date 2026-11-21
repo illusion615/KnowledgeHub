@@ -107,6 +107,26 @@ Optional math integration additionally checks all eleven hidden explanations and
 the article tail. These tests verify request construction and failure behavior,
 not a provider's context capacity, real-model acceptance, cost or answer quality.
 
+## Article Assistant: Copilot Bridge, Model Picker and Runtime Isolation
+
+```bash
+node --test tests/assistant-markdown.test.js tests/copilot-bridge.test.mjs
+node tests/assistant-model-picker.browser.cjs
+node tests/copilot-provider.browser.cjs
+node tests/copilot-runtime-isolation.mjs
+```
+
+Runtime isolation tests use the pinned official CLI with local fake responses.
+Picker checks cover per-provider discovery, compact search, keyboard, mobile,
+request-model attribution and race protection.
+
+The optional official authentication/model-list check requires explicit opt-in:
+`KH_COPILOT_READONLY_CHECK=1 node tests/copilot-auth-readonly.mjs`. It never sends a
+question, but does access the official credential manager and remote model catalog.
+See [provider setup](../docs/copilot-provider.md) and the
+[detailed test guide](../docs/copilot-provider-test-guide.md) for scope and limitations.
+A successful model list is not proof of every model's inference entitlement.
+
 ## Jev Playground Regression
 
 Run `node --test tests/jev-playground.test.js tests/jev-live.test.js tests/jev-readiness.test.js tests/jev-local-provider.test.js` for the

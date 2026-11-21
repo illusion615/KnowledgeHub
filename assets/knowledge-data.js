@@ -862,15 +862,15 @@ var knowledgeTree = [
       en: 'Structured Decision Models'
     },
     summary: {
-      zh: '从 Jev 与 NanoJev 研究模型定位、场景与评估；提供真实 Playground、可运行的本地 MLX FP32 / 4-bit 服务，以及数值对照和量化局限。',
-      en: 'Study Jev and NanoJev positioning, scenarios, and evaluation, with a live playground, working local MLX FP32/4-bit services, numerical parity, and quantization limits.'
+      zh: '比较 Jev、NanoJev 与 Laya 的定位、架构与证据，结合本地运行时、客服与坦克对战实验，说明评估方法、应用边界和企业采用条件。',
+      en: 'Compares Jev, NanoJev, and Laya through architecture, evidence, local runtimes, support and tank-arena experiments, with evaluation limits and enterprise adoption conditions.'
     },
-    tags: ['Structured Decision Models', 'Jev', 'NanoJev', 'MLX', 'oMLX', 'Playground', 'AI Architecture', 'Model Evaluation'],
-    date: '2026-09-19',
+    tags: ['Structured Decision Models', 'Jev', 'NanoJev', 'Laya', 'MLX', 'Model Evaluation'],
+    date: '2026-10-03',
     url: 'posts/jev-system-one-research/index.html',
     color: '#0ea5e9',
     phase: 2.6, speed: 0.88,
-    relations: ['fc-best-practices', 'enterprise-agent-arch', 'hermes-open-model', 'm4-max-local-models']
+    relations: ['fc-best-practices', 'enterprise-agent-arch', 'm4-max-local-models']
   },
   {
     id: 'hermes-open-model',
@@ -1946,25 +1946,6 @@ var knowledgeTree = [
     phase: 0.35, speed: 0.90
   },
   {
-    id: 'exam-performance-modeling',
-    parentId: 'edu-high-school-math',
-    type: 'article',
-    title: {
-      zh: '从考试成绩到预测模型：如何分析试卷难度与个人优势',
-      en: 'From Exam Scores to Prediction: Modeling Difficulty and Relative Advantage'
-    },
-    summary: {
-      zh: '以24次考试记录说明变量定义、模型构建、参数估计与时序检验，区分条件预测和真实高考推断，并提供四章结构的答辩演示。',
-      en: 'Uses 24 exams to explain variables, model construction, estimation, and temporal evaluation, with explicit prediction limits and a four-chapter defense presentation.'
-    },
-    tags: ['High School Mathematics', 'Mathematical Modeling', 'Regression', 'Prediction', 'Uncertainty'],
-    date: '2026-09-25',
-    url: 'posts/exam-performance-modeling/index.html',
-    color: '#f59e0b',
-    phase: 0.85, speed: 0.9,
-    relations: []
-  },
-  {
     id: 'edu-high-school-algebra-functions',
     parentId: 'edu-high-school-math',
     type: 'topic',
@@ -1992,6 +1973,25 @@ var knowledgeTree = [
   // ════════════════════════════════════════
   // 高中数学专题文章（2025 日常修订版课程标准）
   // ════════════════════════════════════════
+  {
+    id: 'exam-performance-modeling',
+    parentId: 'edu-high-school-math',
+    type: 'article',
+    title: {
+      zh: '从考试成绩到预测模型：如何分析试卷难度与个人优势',
+      en: 'From Exam Scores to Prediction: Modeling Difficulty and Relative Advantage'
+    },
+    summary: {
+      zh: '以24次考试记录说明变量定义、模型构建、参数估计与时序检验，区分条件预测和真实高考推断，并提供四章结构的答辩演示。',
+      en: 'Uses 24 exams to explain variables, model construction, estimation, and temporal evaluation, with explicit prediction limits and a four-chapter defense presentation.'
+    },
+    tags: ['High School Mathematics', 'Mathematical Modeling', 'Regression', 'Prediction', 'Uncertainty'],
+    date: '2026-09-25',
+    url: 'posts/exam-performance-modeling/index.html',
+    color: '#f59e0b',
+    phase: 0.85, speed: 0.9,
+    relations: []
+  },
   {
     id: 'high-school-log-change-base',
     parentId: 'edu-high-school-algebra-functions',
