@@ -1,13 +1,12 @@
 """Retrospective stage-term ablation; never overwrites the original result files."""
 import hashlib
-import importlib.util
 import json
 from pathlib import Path
+import runpy
+import types
 
 ROOT = Path(__file__).resolve().parent
-spec = importlib.util.spec_from_file_location('exam_calculation', ROOT / 'model-calculation.py')
-calculation = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(calculation)
+calculation = types.SimpleNamespace(**runpy.run_path(str(ROOT / 'model-calculation.py')))
 
 
 def fit_difficulty(records):

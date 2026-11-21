@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """Dedicated Laya worker; reuse audited loopback transport, not the NanoJev model."""
 import argparse
-import importlib.util
 import json
 import os
 from pathlib import Path
+import runpy
 import secrets
 import signal
+import types
 from laya_mlx_service import LayaEngine, PROFILES
 from nanojev_mlx.contract import parse_json
 
-spec=importlib.util.spec_from_file_location('local_http',Path(__file__).with_name('serve-nanojev-mlx.py'))
-transport=importlib.util.module_from_spec(spec);spec.loader.exec_module(transport)
+transport=types.SimpleNamespace(**runpy.run_path(str(Path(__file__).with_name('serve-nanojev-mlx.py'))))
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
