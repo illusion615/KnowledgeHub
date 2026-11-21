@@ -4,6 +4,7 @@ import { readFile, realpath, stat } from 'node:fs/promises';
 import { resolve, sep, extname, dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { openRuntime, BridgeError, publicError } from './copilot-runtime.mjs';
+import { createVideoStudio } from './video-studio.mjs';
 
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const MAX_BODY = 1024 * 1024;
@@ -39,8 +40,8 @@ async function readJSON(req) {
 const token = () => randomBytes(32).toString('hex');
 const equal = (a, b) => typeof a === 'string' && a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b));
 const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.ico': 'image/x-icon' };
-export function createBridge({ root = repo, runtimeFactory = openRuntime, timeoutMs = 120000, maxConcurrent = 2 } = {}) {
-  const sessions = new Map(); let active = 0;
+export function createBridge({ root = repo, runtimeFactory = openRuntime, timeoutMs = 120000, maxConcurrent = 2, studioOptions = {} } = {}) {
+  const sessions = new Map(); let active = 0, studio;
   const server = http.createServer(async (req, res) => {
     const origin = `http://127.0.0.1:${server.address().port}`;
     const json = (status, data) => { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(data)); };
@@ -59,7 +60,7 @@ export function createBridge({ root = repo, runtimeFactory = openRuntime, timeou
         if (req.method !== 'GET' && req.method !== 'HEAD') throw new BridgeError(405, 'METHOD', '方法不允许。');
         let pathname = decodeURIComponent(url.pathname);
         if (pathname === '/') pathname = '/index.html';
-        if (!/^\/(index\.html|settings\.html|copilot-test\.html|assets\/[^.].*|posts\/[^.].*)$/.test(pathname) || pathname.split('/').some(p => p.startsWith('.')))
+        if (!/^\/(index\.html|settings\.html|copilot-test\.html|video-studio\.html|assets\/[^.].*|posts\/[^.].*)$/.test(pathname) || pathname.split('/').some(p => p.startsWith('.')))
           throw new BridgeError(404, 'NOT_FOUND', '页面不存在。');
         let file = resolve(root, '.' + pathname);
         if ((await stat(file)).isDirectory()) file = join(file, 'index.html');
@@ -88,6 +89,12 @@ export function createBridge({ root = repo, runtimeFactory = openRuntime, timeou
       }
       if (!browser || !equal(req.headers['x-kh-csrf'], browser.csrf)) throw new BridgeError(403, 'CSRF', '会话已过期，请刷新页面后重试。');
       browser.expires = now + 3600000;
+      if (url.pathname.startsWith('/api/copilot/studio/')) {
+        if (req.method === 'POST' && req.headers.origin !== origin) throw new BridgeError(403, 'ORIGIN', '生成操作必须来自本站。');
+        if (!studio) studio = createVideoStudio({ root, runtimeFactory, ...studioOptions });
+        await studio.handle(req, res, url, req.method === 'POST' ? await readJSON(req) : null, json);
+        return;
+      }
       const isChat = url.pathname === '/api/copilot/chat' && req.method === 'POST';
       const isStatus = url.pathname === '/api/copilot/status' && req.method === 'GET';
       if (!isChat && !isStatus) throw new BridgeError(404, 'NOT_FOUND', '接口不存在。');

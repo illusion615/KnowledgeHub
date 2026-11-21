@@ -141,7 +141,7 @@
             <span class="eyebrow">Memory Architecture Reference</span>
             <h1>Copilot Studio 记忆管理机制：变量作用域、对话历史与知识检索</h1>
             <p>
-              Copilot Studio Agent 的"记忆"由四层机制组成：Topic 变量（单 Topic 作用域）、Global 变量（会话作用域）、对话历史（orchestrator 有限窗口）和知识源检索（4–6h 同步的外部文档）。本文系统整理各层的作用域、生命周期、控制手段和已知限制，为 Agent 状态管理方案设计提供量化依据。数据来源为 Microsoft Learn 官方文档（2026-04-09 核验）。
+              Copilot Studio Agent 的"记忆"由四层机制组成：Topic 变量（单 Topic 作用域）、Global 变量（会话作用域）、对话历史（orchestrator 有限窗口）和知识源检索（4–6h 同步的外部文档）。本文系统梳理各层的作用域、生命周期、控制手段与已知限制，作为 Agent 状态管理架构选型的量化参考。数据来源为 Microsoft Learn 官方文档（2026-04-09 核验）。
             </p>
             <div class="hero-actions">
               <a class="button button-primary" href="#variables">查看变量体系</a>
@@ -153,7 +153,7 @@
             <span class="panel-label">核心约束</span>
             <h2>无跨会话持久记忆、对话历史窗口有限、知识同步周期 4–6 小时</h2>
             <ul class="layer-list section-grid-spaced">
-              <li><span class="layer-number">1</span>Global 变量在会话结束时重置。平台不提供跨会话持久化变量的原生能力。</li>
+              <li><span class="layer-number">1</span>Global 变量在会话结束时重置，平台原生不支持跨会话持久化变量。</li>
               <li><span class="layer-number">2</span>Generative orchestration 下对话历史有限，长对话中 Agent 可能丢失早期上下文。</li>
               <li><span class="layer-number">3</span>知识源（SharePoint / OneDrive / Dataverse）同步周期 4–6 小时，非实时更新。</li>
             </ul>
@@ -189,7 +189,7 @@
           <div class="section-head">
             <p class="section-kicker">01 / Memory Architecture Overview</p>
             <h2>1. Copilot Studio 的四层"记忆"机制</h2>
-            <p>Copilot Studio 没有一个统一的"memory"子系统。Agent 的上下文感知能力由以下四层机制叠加构成，每层的作用域、生命周期和控制方式不同。</p>
+            <p>Copilot Studio 并未内置单一的"memory"子系统，Agent 的上下文感知能力由四层机制叠加而成，各层的作用域、生命周期与控制方式各不相同。</p>
           </div>
 
           <div class="memory-layer memory-layer-topic">
@@ -201,7 +201,7 @@
           <div class="memory-layer memory-layer-global">
             <span class="scope-tag scope-global">Layer 2: Global Variables</span>
             <h4>Global 变量 — 跨 Topic 的会话级状态</h4>
-            <p>通过将 Topic 变量提升为 Global 作用域（前缀 <code>Global.</code>）实现跨 Topic 共享。名称在 Agent 内全局唯一。生命周期：从创建到会话结束或 Reset Conversation 系统 Topic 触发时清除。可通过外部源（URL 参数、<code>pvaSetContext</code> 事件、Omnichannel 上下文）在会话启动时注入初始值。</p>
+            <p>将 Topic 变量提升为 Global 作用域（前缀 <code>Global.</code>）即可跨 Topic 共享，变量名在 Agent 内全局唯一。生命周期从创建持续至会话结束，或在触发 Reset Conversation 系统 Topic 时清空；也可在会话启动时通过外部源（URL 参数、<code>pvaSetContext</code> 事件、Omnichannel 上下文）注入初始值。</p>
           </div>
 
           <div class="memory-layer memory-layer-history">
@@ -213,7 +213,7 @@
           <div class="memory-layer memory-layer-knowledge">
             <span class="scope-tag scope-persistent">Layer 4: Knowledge Source Retrieval</span>
             <h4>知识源检索 — 基于外部文档的 RAG 式回答</h4>
-            <p>Agent 从配置的知识源（SharePoint / OneDrive / Dataverse / Salesforce / Confluence / ServiceNow / Zendesk / 网页 / 上传文件）检索信息生成回答。这不是 Agent 自身的"记忆"，而是每次查询时的检索增强。同步周期 4–6 小时。上下文窗口有限时可能性能降级（exhaustive retrieval 场景）。</p>
+            <p>Agent 从已配置的知识源（SharePoint / OneDrive / Dataverse / Salesforce / Confluence / ServiceNow / Zendesk / 网页 / 上传文件）检索信息并生成回答。这种机制本质上是按次触发的检索增强（RAG），而非 Agent 内部状态记忆。同步周期为 4–6 小时；当需要全量穷举检索（exhaustive retrieval）时，受限于上下文窗口容量可能出现回答降级。</p>
           </div>
         </section>
 
@@ -334,8 +334,8 @@
               <h3>知识源检索的约束</h3>
               <ul class="challenge-list">
                 <li><strong>非实时</strong> — 4–6h 同步意味着知识源更新后最多需要 6 小时才能被 Agent 检索到。</li>
-                <li><strong>只读</strong> — Agent 无法向知识源写入信息。无法实现"Agent 记住用户偏好并写入知识库"。</li>
-                <li><strong>无个性化</strong> — 知识源对所有用户相同。无法为不同用户提供个性化的知识子集（除非通过用户认证+权限过滤）。</li>
+                <li><strong>只读</strong> — Agent 无法向知识源回写信息，不支持"Agent 记住用户偏好并写回知识库"。</li>
+                <li><strong>无个性化</strong> — 知识源对所有用户返回相同视图，无法按用户返回差异化知识子集（除非配合用户认证与源端权限过滤）。</li>
                 <li><strong>超链接丢失</strong> — 知识源中的超链接在 Agent 回复中显示为纯文本。</li>
               </ul>
             </article>
@@ -346,7 +346,7 @@
           <div class="section-head">
             <p class="section-kicker">05 / State Lifecycle</p>
             <h2>5. 状态生命周期对照表</h2>
-            <p>以下汇总各层记忆机制的作用域、持久性和控制方式。</p>
+            <p>下表横向汇总四层记忆机制的作用域、持久性与控制方式。</p>
           </div>
 
           <div class="simple-table-wrap section-grid-spaced">
@@ -405,7 +405,7 @@
           <div class="section-head">
             <p class="section-kicker">06 / Missing Capabilities</p>
             <h2>6. 缺失能力与变通方案</h2>
-            <p>以下整理 Copilot Studio 原生记忆机制中不支持的场景，以及可行的架构变通方案。</p>
+            <p>针对 Copilot Studio 原生记忆机制暂不支持的四类典型场景，可采用外部存储与流编排作为架构变通方案。</p>
           </div>
 
           <div class="subsection-accordion">
@@ -428,7 +428,7 @@
             <article class="subsection-item" data-accordion>
               <button class="subsection-toggle" aria-expanded="false">6.3 无 Agent 可写知识库</button>
               <div class="subsection-content">
-                <p><strong>问题</strong>：Agent 不能在运行时向知识源写入信息。无法实现"Agent 从对话中学到的信息自动补充到知识库"。</p>
+                <p><strong>问题</strong>：Agent 无法在运行时向知识源回写数据，不支持"将对话中学到的新信息自动写回知识库"。</p>
                 <p><strong>变通</strong>：通过 Power Automate flow 将信息写入 Dataverse 表或 SharePoint 列表，但这些更新要等 4–6 小时后才会被知识源同步拾取。需要即时可用性时，应使用 API connector 直接查询 Dataverse 或外部 API。</p>
               </div>
             </article>
@@ -455,7 +455,7 @@
           <div class="section-head">
             <p class="section-kicker">07 / Competitive Comparison</p>
             <h2>7. 竞品记忆管理机制对比</h2>
-            <p>以下对比 Copilot Studio 与 Google Dialogflow CX 和 Amazon Lex V2 在状态管理方面的机制差异。数据来源为各平台官方文档（2026-04-09 核验）。</p>
+            <p>横向对比 Copilot Studio、Google Dialogflow CX 与 Amazon Lex V2 在状态管理机制上的关键差异。数据来源为各平台官方文档（2026-04-09 核验）。</p>
           </div>
 
           <div class="simple-table-wrap section-grid-spaced">
@@ -484,7 +484,7 @@
                 <tr>
                   <td>跨会话持久化</td>
                   <td>不支持（需 Power Automate + Dataverse 变通）</td>
-                  <td>不原生支持，但提供 API 级别的会话恢复机制：可通过 <code>QueryParameters.current_page</code> + <code>QueryParameters.parameters</code> 在新 session 中恢复旧状态</td>
+                  <td>不原生支持，但开放了 API 级会话恢复接口：可通过 <code>QueryParameters.current_page</code> + <code>QueryParameters.parameters</code> 在新 session 中还原旧状态</td>
                   <td>不原生支持（需 Lambda + DynamoDB 变通）</td>
                 </tr>
                 <tr>
@@ -548,7 +548,7 @@
           <div class="section-head">
             <p class="section-kicker">08 / Community Patterns & Extensions</p>
             <h2>8. 社区常见问题、实践模式与扩展方案</h2>
-            <p>以下整理 Power Platform 社区和 Microsoft Learn 文档中记录的记忆管理常见问题模式和对应的架构解决方案。</p>
+            <p>汇总 Power Platform 社区与 Microsoft Learn 文档中高频出现的记忆管理痛点及配套架构解法。</p>
           </div>
 
           <div class="subsection-accordion">
@@ -601,7 +601,7 @@
             <article class="subsection-item" data-accordion>
               <button class="subsection-toggle" aria-expanded="false">8.5 大规模部署的扩展架构</button>
               <div class="subsection-content">
-                <p><strong>场景</strong>：当原生记忆机制不满足需求时，可采用以下扩展架构层级：</p>
+                <p><strong>场景</strong>：当原生记忆机制无法满足业务需求时，可按四级扩展架构逐层演进：</p>
                 <ul class="challenge-list">
                   <li><strong>L1: Global 变量层（原生）</strong> — 适用于单次会话内的上下文传递。零额外成本。上限：会话结束即丢失。</li>
                   <li><strong>L2: Dataverse + Flow 层（低代码）</strong> — 适用于跨会话用户画像和偏好。每次会话 2 次 flow 调用。上限：Power Platform 请求配额。</li>

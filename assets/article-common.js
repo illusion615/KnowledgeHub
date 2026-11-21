@@ -539,4 +539,35 @@
 
   applyCitationLinks();
   document.addEventListener('langChanged', applyCitationLinks);
+
+  var addVideoStudioLink = function () {
+    var match = /^\/(?:[^/]+\/)?posts\/([a-z0-9-]+)\//.exec(window.location.pathname);
+    var bar = document.querySelector('.topbar');
+    var actions;
+    var link;
+    var syncLabel;
+    if (!match || !bar || document.querySelector('[data-video-studio]')) return;
+    actions = bar.querySelector('.topbar-actions') || bar;
+    link = document.createElement('a');
+    link.className = 'present-toggle';
+    link.setAttribute('data-video-studio', '');
+    link.href = '../../video-studio.html?article=' + encodeURIComponent(match[1]);
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.innerHTML = '<svg class="present-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4l4 5M14 4l4 5M10 12l5 3-5 3z"/></svg><span class="topbar-action-label" data-zh="视频工作室" data-en="Video Studio"></span>';
+    syncLabel = function () {
+      var label = document.documentElement.lang === 'en' ? 'Video Studio' : '视频工作室';
+      link.title = label;
+      link.setAttribute('aria-label', label);
+      link.querySelector('span').textContent = label;
+    };
+    syncLabel();
+    document.addEventListener('langChanged', syncLabel);
+    actions.appendChild(link);
+  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { window.setTimeout(addVideoStudioLink, 0); });
+  } else {
+    window.setTimeout(addVideoStudioLink, 0);
+  }
 })();

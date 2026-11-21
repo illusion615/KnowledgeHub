@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script>
+    (() => {
+      const param = new URLSearchParams(window.location.search).get("scoutTheme");
+      const theme =
+        param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Video Studio — Study-Room</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --cp-bg: #f7f4ef;
+      --cp-bg-elevated: #fcfbf8;
+      --cp-surface: #ffffff;
+      --cp-surface-soft: #f5f5f5;
+      --cp-border: #dedede;
+      --cp-border-strong: #919191;
+      --cp-text: #242424;
+      --cp-text-muted: #5c5c5c;
+      --cp-text-soft: #6f6f6f;
+      --cp-accent: #b11f4b;
+      --cp-accent-hover: #9a1a41;
+      --cp-accent-soft: rgba(177, 31, 75, 0.08);
+      --cp-accent-fg: #ffffff;
+      --cp-success: #16a34a;
+      --cp-danger: #dc2626;
+      --cp-warning: #f59e0b;
+      --cp-link: #0078d4;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+      --cp-overlay: rgba(255, 255, 255, 0.8);
+      --cp-panel: rgba(255, 255, 255, 0.86);
+      --cp-panel-strong: rgba(255, 255, 255, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.55);
+      --cp-highlight: rgba(177, 31, 75, 0.12);
+    }
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --cp-bg: #3d3b3a;
+      --cp-bg-elevated: #343231;
+      --cp-surface: #292929;
+      --cp-surface-soft: #2e2e2e;
+      --cp-border: #474747;
+      --cp-border-strong: #5f5f5f;
+      --cp-text: #dedede;
+      --cp-text-muted: #919191;
+      --cp-text-soft: #b0b0b0;
+      --cp-accent: #fd8ea1;
+      --cp-accent-hover: #fb7b91;
+      --cp-accent-soft: rgba(253, 142, 161, 0.14);
+      --cp-accent-fg: #1a1a1a;
+      --cp-success: #4ade80;
+      --cp-danger: #f87171;
+      --cp-warning: #fbbf24;
+      --cp-link: #4da6ff;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+      --cp-overlay: rgba(41, 41, 41, 0.88);
+      --cp-panel: rgba(41, 41, 41, 0.72);
+      --cp-panel-strong: rgba(41, 41, 41, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.04);
+      --cp-highlight: rgba(253, 142, 161, 0.12);
+    }
+  </style>
+  <link rel="stylesheet" href="assets/video-studio.css">
+  <script src="assets/copilot-provider.js" defer></script>
+  <script src="assets/video-studio-composition.js" defer></script>
+  <script src="assets/video-studio.js" defer></script>
+</head>
+<body>
+  <header class="studio-header">
+    <a href="./" aria-label="Home">←</a>
+    <div><p>STUDY ROOM</p><h1 data-zh="视频工作室" data-en="Video Studio">视频工作室</h1></div>
+    <div class="studio-controls">
+      <div class="studio-copilot">
+        <button id="studio-copilot-status" type="button" data-state="checking" aria-live="polite" disabled>Copilot · 检测中</button>
+        <label class="studio-copilot-model">
+          <span class="studio-visually-hidden" data-zh="Copilot 模型" data-en="Copilot Model">Copilot 模型</span>
+          <select id="studio-copilot-model" disabled><option value="" data-zh="正在读取模型…" data-en="Loading Models…">正在读取模型…</option></select>
+        </label>
+      </div>
+      <button id="studio-lang" type="button">EN</button>
+      <button id="studio-theme" type="button" data-zh="切换主题" data-en="Theme">切换主题</button>
+    </div>
+  </header>
+  <main>
+    <p id="studio-article" class="studio-article"></p>
+    <p id="studio-copilot-error" class="studio-connection-error" role="alert" hidden></p>
+    <div id="studio-message" role="status" aria-live="polite"></div>
+    <section id="studio-local" hidden class="studio-panel">
+      <h2 data-zh="生成需要本机服务" data-en="Generation Requires the Local Server">生成需要本机服务</h2>
+      <p data-zh="静态站点不读取本机登录，也不跨域调用本机工具。在仓库运行以下命令，然后在本机站点继续。" data-en="The static site cannot access local login or tools. Run this command in the repository, then continue on the local site.">静态站点不读取本机登录，也不跨域调用本机工具。在仓库运行以下命令，然后在本机站点继续。</p>
+      <pre>node scripts/serve-knowledge-hub.mjs</pre>
+      <label><span data-zh="本机端口" data-en="Local Port">本机端口</span><input id="studio-port" type="number" value="8000" min="1024" max="65535"></label>
+      <button id="studio-open-local" type="button" data-zh="在本机向导中打开" data-en="Open the Local Wizard">在本机向导中打开</button>
+    </section>
+    <div id="studio-workspace" hidden>
+      <nav id="studio-steps" aria-label="Video workflow"></nav>
+      <div class="studio-layout">
+        <section id="studio-stage" class="studio-panel" aria-live="polite"></section>
+        <aside id="studio-job-drawer" class="studio-panel" aria-label="Job History">
+          <button id="studio-close-jobs" type="button" data-action="close-jobs" data-zh="关闭作业记录" data-en="Close Jobs">关闭作业记录</button>
+          <h2 data-zh="作业记录" data-en="Job History">作业记录</h2>
+          <p class="studio-muted" data-zh="每一步独立保存。刷新不触发生成；服务中断后主动继续。" data-en="Every step is persisted. Refreshing never generates; interrupted work resumes only on request.">每一步独立保存。刷新不触发生成；服务中断后主动继续。</p>
+          <div id="studio-jobs"></div>
+          <button id="studio-reload" type="button" data-zh="重新载入保存状态" data-en="Reload Saved State">重新载入保存状态</button>
+          <details><summary data-zh="本机依赖与边界" data-en="Local Requirements">本机依赖与边界</summary><p id="studio-capabilities"></p><pre>node scripts/setup-video-studio.mjs</pre><p data-zh="媒体依赖安装到用户缓存，不改变静态站构建。自动检测已有 Copilot 登录；仅点击生成时发送文章与需求至云端，可能消耗额度。不向模型开放文件、shell或MCP。" data-en="Media dependencies live in the user cache, not the static-site build. Existing Copilot login is detected automatically. Only clicking Generate sends the article and brief to the cloud and may use credits. No file, shell or MCP tools are exposed.">媒体依赖安装到用户缓存，不改变静态站构建。自动检测已有 Copilot 登录；仅点击生成时发送文章与需求至云端，可能消耗额度。不向模型开放文件、shell或MCP。</p></details>
+        </aside>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

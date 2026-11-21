@@ -1,4 +1,4 @@
-// Official CLI 1.0.83 bundled SDK, pinned by content hash. No credential extraction.
+// Official bundled SDK and reviewed native runtimes, pinned by content hash.
 import { createHash } from 'node:crypto';
 import { readFile, realpath, mkdir, writeFile, lstat, mkdtemp, rm } from 'node:fs/promises';
 import { dirname, join, resolve, delimiter } from 'node:path';
@@ -9,6 +9,16 @@ import { pathToFileURL } from 'node:url';
 const exec = promisify(execFile);
 export const SDK_SHA = 'a978502e82586699422648e52c93fcbd9608b21edcdc21fe722e859290aff857';
 export const RUNTIME_SHA = '15f218a936f693a6b73df248824b9f7f528c2c61949ff446e4ca6062ee48b084';
+export const RUNTIME_VERSIONS = {
+  [RUNTIME_SHA]: '1.0.83',
+  '5fd7d15ff02deb08a58593b1b488015bb52c1686014b80b5509e28263cb3ad70': '1.0.105'
+};
+export function runtimeArgs(version) {
+  const args = ['--disable-builtin-mcps', '--no-custom-instructions', '--no-bash-env', '--no-experimental'];
+  // 1.0.105 removed these process flags; remoteSession stays off per session.
+  if (version === '1.0.83') args.push('--no-remote', '--no-remote-export');
+  return args;
+}
 export const profilePath = () => resolve(process.env.KH_COPILOT_PROFILE || join(homedir(), '.local/share/knowledge-hub-copilot'));
 export class BridgeError extends Error {
   constructor(status, code, message) { super(message); this.status = status; this.code = code; }
@@ -16,6 +26,7 @@ export class BridgeError extends Error {
 export function publicError(error) {
   if (error instanceof BridgeError) return error;
   const text = String(error?.message || ''); // Never return SDK/CLI error text or prompts.
+  if (/timeout|timed.out|ETIMEDOUT/i.test(text)) return new BridgeError(504, 'COPILOT_TIMEOUT', 'Copilot生成等待超时，本次请求已结束。现有内容未被替换；不会自动重试或切换模型。');
   if (/401|unauth|not.*logged|login|token.*(missing|expired)/i.test(text)) return new BridgeError(401, 'LOGIN_REQUIRED', '官方认证不可用或已过期。先用gh auth status检查现有身份；需要新授权时可运行 node scripts/copilot-login.mjs 作专用登录，再检查连接。');
   if (/413|context|token.*limit|too.large|too.long/i.test(text)) return new BridgeError(413, 'CONTEXT_LIMIT', '文章及对话超出模型上下文。未裁剪或重试，请换更大上下文模型或主动减少内容。');
   if (/429|rate.limit|quota|credit/i.test(text)) return new BridgeError(429, 'RATE_LIMIT', 'Copilot限流或额度不足。请检查套餐额度，稍后手动重试。');
@@ -30,7 +41,7 @@ export async function getInstallation() {
       try { cli = await realpath(join(dir, 'copilot')); break; } catch {}
     }
   }
-  if (!cli) throw new BridgeError(503, 'CLI_MISSING', '未安装Copilot CLI。需要官方CLI 1.0.83（本次审阅版本），不要自动升级。');
+  if (!cli) throw new BridgeError(503, 'CLI_MISSING', '未安装已审阅的官方Copilot CLI（1.0.83 / 1.0.105）。不要自动升级。');
   cli = await realpath(cli);
   // npm-loader.js sits above the platform package. Direct native paths are also supported.
   const nativeDir = cli.endsWith('npm-loader.js')
@@ -39,13 +50,14 @@ export async function getInstallation() {
   const runtime = join(nativeDir, process.platform === 'win32' ? 'copilot.exe' : 'copilot');
   const sdk = join(nativeDir, 'copilot-sdk/index.js');
   const source = await readFile(sdk);
-  if (createHash('sha256').update(await readFile(runtime)).digest('hex') !== RUNTIME_SHA)
-    throw new BridgeError(503, 'VERSION_REVIEW', '当前测试站仅支持已审阅的macOS arm64 CLI 1.0.83二进制；其他平台/版本需重新审阅。');
+  const version = RUNTIME_VERSIONS[createHash('sha256').update(await readFile(runtime)).digest('hex')];
+  if (!version)
+    throw new BridgeError(503, 'VERSION_REVIEW', '当前站点仅支持已审阅的macOS arm64 CLI 1.0.83 / 1.0.105二进制；其他平台/版本需重新审阅。');
   if (createHash('sha256').update(source).digest('hex') !== SDK_SHA)
     throw new BridgeError(503, 'VERSION_REVIEW', 'SDK版本不匹配，需重新审阅隔离能力；未启动推理。');
   const { stdout } = await exec(runtime, ['--version'], { timeout: 10000, env: { PATH: '/usr/bin:/bin' } });
-  if (!stdout.includes('GitHub Copilot CLI 1.0.83.')) throw new BridgeError(503, 'VERSION_REVIEW', '需要已审阅的CLI 1.0.83。');
-  return { runtime, sdk };
+  if (!stdout.includes('GitHub Copilot CLI ' + version + '.')) throw new BridgeError(503, 'VERSION_REVIEW', 'CLI版本与已审阅指纹不一致。');
+  return { runtime, sdk, version };
 }
 export async function prepareProfile(root = profilePath()) {
   // Credentials are owned/read/written by the official CLI only. Never inspect config.json.
@@ -135,10 +147,7 @@ export async function openRuntime(signal) {
     return new CopilotClient({
       mode: 'empty', baseDirectory: reuseGh ? freshState : join(root, 'state'), workingDirectory: work,
       env: runtimeEnv(root, reuseGh ? ghPath : null), logLevel: 'none', useLoggedInUser: true,
-      connection: RuntimeConnection.forStdio({ path: installation.runtime, args: [
-        '--disable-builtin-mcps', '--no-custom-instructions', '--no-bash-env',
-        '--no-remote', '--no-remote-export', '--no-experimental'
-      ] })
+      connection: RuntimeConnection.forStdio({ path: installation.runtime, args: runtimeArgs(installation.version) })
     });
   }
   let client = newClient(!!ghPath), session, auth, authSource = 'none';
@@ -190,7 +199,7 @@ export async function openRuntime(signal) {
       const models = await client.listModels();
       return { authenticated: true, authSource, models: models.map(m => ({ id: m.id, name: m.name || m.id })) };
     },
-    async chat(body, emit) {
+    async chat(body, emit, { timeoutMs = 115000 } = {}) {
       if (!auth.isAuthenticated) throw new BridgeError(401, 'LOGIN_REQUIRED', '未检测到可用官方身份。先用gh auth status检查已有登录；无有效身份时可运行 node scripts/copilot-login.mjs 作专用登录，再手动发送。');
       await isolatedSession(body.model, body.messages);
       let output = '', streamed = false;
@@ -204,7 +213,7 @@ export async function openRuntime(signal) {
         }
       });
       try {
-        await session.sendAndWait({ prompt: conversationPrompt(body.messages) }, 115000);
+        await session.sendAndWait({ prompt: conversationPrompt(body.messages) }, timeoutMs);
         if (signal.aborted) throw signal.reason;
         if (!output) throw new BridgeError(502, 'EMPTY_RESPONSE', 'Copilot未返回文本，请检查模型后手动重试。');
       } finally { off(); }

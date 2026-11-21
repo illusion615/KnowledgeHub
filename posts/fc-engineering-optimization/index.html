@@ -244,10 +244,10 @@
 
           <aside class="hero-panel load-in">
             <span class="panel-label">核心发现</span>
-            <h2>大多数 FC 失败不是模型不够聪明，而是我们给模型的信息不够好。</h2>
+            <h2>绝大多数 FC 失败源于输入给模型的 Schema 信息含糊，而非模型推理能力不足。</h2>
             <ul class="layer-list">
               <li><span class="layer-number">1</span>描述写清楚：一个好的 description 把调用准确率从 60% 拉到 90%</li>
-              <li><span class="layer-number">2</span>工具数量要克制：超过 20 个工具时准确率显著下降（OpenAI/Google 一致建议）</li>
+              <li><span class="layer-number">2</span>工具数量要克制：超过 20 个工具时调用准确率会明显下滑（OpenAI/Google 一致建议）</li>
               <li><span class="layer-number">3</span>开 Strict Mode（OpenAI/Anthropic）或 VALIDATED 模式（Gemini）：参数格式错误直接降为 0%</li>
               <li><span class="layer-number">4</span>错误要传回模型：模型能自我纠正，但需要你把错误信息告诉它</li>
             </ul>
@@ -412,11 +412,11 @@
               <div class="subsection-content">
                 <div class="event-field">
                   <div class="event-field-label">原则</div>
-                  <p>OpenAI 官方文档给出了一个极其实用的检验标准：<strong>"把你的函数定义交给一个实习生，如果他只看你提供的这些信息就能正确使用这个函数，那你的定义就是好的。如果他会问你问题——把那些问题的答案加到描述里。"</strong> <a href="https://developers.openai.com/api/docs/guides/function-calling" target="_blank" rel="noopener noreferrer">[1]</a></p>
+                  <p>OpenAI 官方文档给出了一条非常直观的检验标准：<strong>"把函数定义交给一位实习生，如果对方仅凭字面说明就能正确调用，说明定义合格；凡是对方还会追问的细节，都应直接补进描述里。"</strong> <a href="https://developers.openai.com/api/docs/guides/function-calling" target="_blank" rel="noopener noreferrer">[1]</a></p>
                 </div>
                 <div class="event-field">
                   <div class="event-field-label">具体操作</div>
-                  <p>拿上面退款函数的差版本去问同事："你知道 <code>r</code> 参数填什么吗？"——他一定会问你。那就把答案写到 description 里。这不是在帮模型偷懒，而是在消除歧义。歧义越少，模型选对工具和参数的概率越高。</p>
+                  <p>拿上面那版简陋的退款函数去问同事："你知道 <code>r</code> 参数填什么吗？"——对方势必会反问。把这些疑问的答案直接写进 description，核心目的是消除参数歧义。歧义越少，模型选对工具和参数的概率越高。</p>
                 </div>
               </div>
             </article>
@@ -428,7 +428,7 @@
               <div class="subsection-content">
                 <div class="event-field">
                   <div class="event-field-label">先厘清一个概念：Strict Mode 不是模型能力，是 API 平台的约束机制</div>
-                  <p>Strict Mode <strong>不是模型自身的一个参数</strong>，也不是所有支持 Function Calling 的模型都有的通用标准。它是<strong>特定 API 平台在模型输出解码阶段施加的格式约束</strong>——平台在模型逐 token 生成参数 JSON 的过程中，实时校验每个 token 是否符合你定义的 JSON Schema，不符合的 token 直接被拦截。这意味着约束发生在推理过程中，而非生成后校验。OpenAI 叫它 Strict Mode（<code>strict: true</code>），Anthropic 也支持同名参数（<code>strict: true</code>），但 <strong>Google Gemini API 没有这个参数</strong>——Gemini 用的是 <code>VALIDATED</code> 调用模式来实现类似效果（限制模型只输出符合 Schema 的函数调用或自然语言，但实现机制不同）。开源模型通过 vLLM / Outlines 等推理框架的 Guided Decoding 功能实现类似能力，但需要自己配置，不是开箱即用。<a href="https://developers.openai.com/api/docs/guides/function-calling" target="_blank" rel="noopener noreferrer">[1]</a> <a href="https://ai.google.dev/gemini-api/docs/function-calling" target="_blank" rel="noopener noreferrer">[2]</a></p>
+                  <p>Strict Mode <strong>并非模型自身的权重参数</strong>，也不是所有支持 Function Calling 的模型通用的标准，而是<strong>特定 API 平台在输出解码阶段施加的语法约束</strong>——平台在模型逐 token 生成参数 JSON 时，实时校验每个 token 是否符合给定的 JSON Schema，违规 token 会被当场屏蔽。也就是说，约束直接作用于推理解码期，而非生成后校验。OpenAI 称之为 Strict Mode（<code>strict: true</code>），Anthropic 也支持同名参数（<code>strict: true</code>），但 <strong>Google Gemini API 并无该参数</strong>——Gemini 改用 <code>VALIDATED</code> 调用模式达成同等约束（强制模型只输出符合 Schema 的函数调用或自然语言，底层机制不同）。开源模型则需借助 vLLM / Outlines 等推理框架的 Guided Decoding 功能自行配置受控解码，无法直接开箱即用。<a href="https://developers.openai.com/api/docs/guides/function-calling" target="_blank" rel="noopener noreferrer">[1]</a> <a href="https://ai.google.dev/gemini-api/docs/function-calling" target="_blank" rel="noopener noreferrer">[2]</a></p>
                 </div>
                 <div class="event-field">
                   <div class="event-field-label">问题场景：没有 Strict Mode 时会怎样</div>
@@ -599,7 +599,7 @@
                 </div>
                 <div class="event-field">
                   <div class="event-field-label">链式调用：一步的输出是下一步的输入</div>
-                  <p>用户说"如果伦敦现在温度超过 20°C 就把空调设到 20°C，否则设到 18°C"。模型需要先调 <code>get_weather(London)</code>，拿到 25°C，然后基于这个结果决定调 <code>set_thermostat(20)</code>。Google Gemini 3 原生支持这种链式调用，一次 API 请求内自动完成多步。其他厂商需要多轮对话来实现。<a href="https://ai.google.dev/gemini-api/docs/function-calling" target="_blank" rel="noopener noreferrer">[2]</a></p>
+                  <p>用户说"如果伦敦现在温度超过 20°C 就把空调设到 20°C，否则设到 18°C"。模型需要先调 <code>get_weather(London)</code>，拿到 25°C，再根据返回结果决定调用 <code>set_thermostat(20)</code>。Google Gemini 3 原生支持这种单请求内自动串联的多步调用，其他厂商则需靠客户端多轮对话循环驱动。<a href="https://ai.google.dev/gemini-api/docs/function-calling" target="_blank" rel="noopener noreferrer">[2]</a></p>
                 </div>
               </div>
             </article>
@@ -613,7 +613,7 @@
           <div class="section-head">
             <p class="section-kicker">04 / Error Recovery</p>
             <h2>错误恢复：把失败变成学习机会</h2>
-            <p>Function Calling 会失败——API 超时、参数不合法、权限不足。关键不是能不能避免所有错误，而是失败后模型能否自我纠正。</p>
+            <p>Function Calling 在生产中难免遇到 API 超时、参数不合法或权限不足。工程设计的重点在于报错后如何把上下文清晰传回，让模型自主修正。</p>
           </div>
 
           <div class="subsection-accordion">
@@ -701,7 +701,7 @@ try {
               <div class="subsection-content">
                 <div class="event-field">
                   <div class="event-field-label">哪些操作需要确认</div>
-                  <p>OpenAI 和 Google 文档都明确建议：<strong>有不可逆后果的操作（付款、删除、下单），必须在执行前获取用户确认</strong>。实现方式是：模型返回 <code>function_call</code> 后，应用层不立即执行，而是先向用户展示"即将执行：退款 ¥299 到订单 ORD-123，原因：商品损坏。确认？"，用户确认后再执行。<a href="https://developers.openai.com/api/docs/guides/function-calling" target="_blank" rel="noopener noreferrer">[1]</a> <a href="https://ai.google.dev/gemini-api/docs/function-calling" target="_blank" rel="noopener noreferrer">[2]</a></p>
+                  <p>OpenAI 和 Google 文档均明确建议：<strong>凡是带有不可逆后果的操作（付款、删除、下单），执行前必须先经用户确认</strong>。具体做法是：模型返回 <code>function_call</code> 后，应用层先暂停真实调用，向用户展示"即将执行：退款 ¥299 到订单 ORD-123，原因：商品损坏。确认？"，待用户明确授权后再触发执行。<a href="https://developers.openai.com/api/docs/guides/function-calling" target="_blank" rel="noopener noreferrer">[1]</a> <a href="https://ai.google.dev/gemini-api/docs/function-calling" target="_blank" rel="noopener noreferrer">[2]</a></p>
                 </div>
                 <div class="event-field">
                   <div class="event-field-label">只读函数 vs 读写函数的分类标准</div>
@@ -719,7 +719,7 @@ try {
           <div class="section-head">
             <p class="section-kicker">05 / Open-Source Frameworks</p>
             <h2>开源 FC 框架对比：自部署模型怎么选</h2>
-            <p>使用商业 API（OpenAI / Anthropic / Google）时，FC 能力开箱即用。但当你用开源模型自部署时，需要一个推理框架来提供 Tool Calling 解析和 Structured Output 约束。以下是主流开源方案的对比。</p>
+            <p>调用商业 API（OpenAI / Anthropic / Google）时，FC 能力开箱即用；而自部署开源模型时，则需要推理框架接管 Tool Calling 解析与 Structured Output 约束。下表横向对比四类主流开源方案。</p>
           </div>
 
           <div class="subsection-accordion">
@@ -908,7 +908,7 @@ try {
                 </div>
                 <div class="event-field">
                   <div class="event-field-label">关键设计决策分析</div>
-                  <p><strong>只读 Agent 模式</strong>：Data Model Architect、Table Permissions、Web API Settings 三个 Agent 被刻意设计为只读型——它们分析现有代码和数据，生成 Mermaid 图和 YAML 配置提案，但<em>绝不</em>直接创建或修改任何资源。所有变更必须经用户审批后由主 Skill 执行。这直接对应前面讲的"人工确认门控"，但做得更彻底——不是在函数调用前确认，而是在 Agent 层面就区分了"分析者"和"执行者"。<a href="https://github.com/microsoft/power-platform-skills/blob/main/plugins/power-pages/README.md" target="_blank" rel="noopener noreferrer">[6]</a></p>
+                  <p><strong>只读 Agent 模式</strong>：Data Model Architect、Table Permissions、Web API Settings 三个 Agent 被刻意设计为只读型——它们只负责分析现有代码和数据，生成 Mermaid 图与 YAML 配置提案，<em>绝不</em>直接创建或修改任何资源；所有变更必须经用户审批后交由主 Skill 执行。这种设计与"人工确认门控"一脉相承，而且隔离得更彻底：直接在 Agent 角色层将"分析者"与"执行者"拆开。<a href="https://github.com/microsoft/power-platform-skills/blob/main/plugins/power-pages/README.md" target="_blank" rel="noopener noreferrer">[6]</a></p>
                 </div>
                 <div class="event-field">
                   <div class="event-field-label">跟案例 B 的对比</div>
@@ -1013,11 +1013,11 @@ try {
                 </div>
                 <div class="event-field">
                   <div class="event-field-label">Step 3：自动化评估</div>
-                  <p>对比模型输出与 Ground Truth，按"工具名正确 + 参数正确 = 通过"的逻辑计算准确率。BFCL V4（Berkeley Function Calling Leaderboard）提供了标准化的测试集格式和评测方法，覆盖 Simple / Parallel / Multiple / Agentic / Multi-Turn / Hallucination 六个维度。<a href="https://gorilla.cs.berkeley.edu/leaderboard.html" target="_blank" rel="noopener noreferrer">[4]</a></p>
+                  <p>对比模型输出与 Ground Truth，按"工具名正确 + 参数正确 = 通过"的口径计算准确率。BFCL V4（Berkeley Function Calling Leaderboard）定义了标准化的测试集格式与评测基准，覆盖 Simple / Parallel / Multiple / Agentic / Multi-Turn / Hallucination 六个维度。<a href="https://gorilla.cs.berkeley.edu/leaderboard.html" target="_blank" rel="noopener noreferrer">[4]</a></p>
                 </div>
                 <div class="event-field">
                   <div class="event-field-label">Step 4：针对性优化</div>
-                  <p>如果某个函数持续被选错 → 改 description。如果参数格式经常出错 → 开 Strict Mode。如果特定领域准确率低 → OpenAI 支持对 Function Calling 做 Fine-Tuning，提供 (prompt, correct_function_call) 训练对来提升特定场景的准确率。<a href="https://developers.openai.com/api/docs/guides/function-calling" target="_blank" rel="noopener noreferrer">[1]</a></p>
+                  <p>如果某个函数持续被选错 → 改 description。如果参数格式经常出错 → 开 Strict Mode。如果特定领域准确率偏低 → OpenAI 支持针对 Function Calling 微调（Fine-Tuning），可通过构造 (prompt, correct_function_call) 训练对定向拉升特定场景的调用准确率。<a href="https://developers.openai.com/api/docs/guides/function-calling" target="_blank" rel="noopener noreferrer">[1]</a></p>
                 </div>
               </div>
             </article>

@@ -600,8 +600,8 @@
             <figure class="decision-figure section-grid-spaced">
               <div class="decision-head">
                 <span class="comparison-label">Framework Decision</span>
-                <h3>框架选择不只是性能问题，而是生命周期控制问题</h3>
-                <p>MLX 是 Apple ML Research 发布的面向 Apple Silicon 的数组框架（MIT 许可），核心设计包含 unified memory、lazy computation、dynamic graph 和 composable function transforms + compile。以下列出这四项特性与本项目具体需求的对应关系。</p>
+                <h3>框架选择不仅关乎性能，更取决于生命周期控制能力</h3>
+                <p>MLX 是 Apple ML Research 发布的面向 Apple Silicon 的数组框架（MIT 许可），核心设计包含 unified memory、lazy computation、dynamic graph 和 composable function transforms + compile。这四项特性与本项目工程需求的对应关系如下。</p>
               </div>
               <div class="decision-grid">
                 <article class="decision-card">
@@ -639,7 +639,7 @@
                 <ul class="challenge-list">
                   <li><strong>定位</strong> — 官方 `mlx-examples/stable_diffusion` 是 Stable Diffusion in MLX 的参考实现，核心入口是 `StableDiffusion` 类与 `txt2image.py`、`image2image.py` 脚本。</li>
                   <li><strong>架构</strong> — 它沿着“checkpoint 下载 → text encoding → latent reverse process → VAE decode”的路径组织，并展示 image2image 能力。</li>
-                  <li><strong>模型范围</strong> — 官方示例支持 `stabilityai/sdxl-turbo` 和 `stable-diffusion-2-1`，并明确说明实现是从 diffusers 移植而来、权重直接从 Hugging Face 下载。</li>
+                  <li><strong>模型范围</strong> — 官方示例支持 `stabilityai/sdxl-turbo` 和 `stable-diffusion-2-1`，并明确说明代码由 diffusers 移植而来、权重直接从 Hugging Face 下载。</li>
                   <li><strong>内存策略</strong> — 示例已经展示 float16 与量化思路，甚至给出 8GB Mac Mini 上通过量化运行 SDXL Turbo 的路径。</li>
                 </ul>
               </article>
@@ -656,7 +656,7 @@
             <div class="section-head present-inline-head">
               <p class="section-kicker">02B / Model Route</p>
               <h2>为什么选 FLUX 路线</h2>
-              <p>以下分析 FLUX.1-schnell 在模型架构层面满足本项目需求的具体原因。</p>
+              <p>从模型架构层面看，FLUX.1-schnell 满足本项目本地快速成图与组件拆解需求的核心机制在于采样范式与步数蒸馏。</p>
             </div>
 
             <div class="comparison-grid section-grid-spaced">
@@ -672,7 +672,7 @@
               <article class="comparison-card next">
                 <span class="comparison-label">Why The FLUX Family Fit</span>
                 <h3>FLUX 路线与当前目标的贴合点</h3>
-                <p>MLX 官方图像示例基于 Stable Diffusion / SDXL Turbo，采用传统 DDPM/DDIM 调度器，通常需要 20–50 步采样。FLUX.1-schnell 采用 rectified flow 范式（Liu et al., 2022）：通过学习噪声分布与数据分布之间的近似直线 ODE 轨迹，使 Euler 离散化在极少步数下即可获得高质量样本——模型卡标注 1–4 步即可完成推理。具体实现上，FLUX.1-schnell 使用 FlowMatchEulerScheduler 而非传统噪声调度器，并经 latent adversarial diffusion distillation 训练以进一步压缩所需步数。本管线设定 schnell 4-step 模式，在 9 步采样下进行 benchmark 以平衡质量与速度。</p>
+                <p>MLX 官方图像示例基于 Stable Diffusion / SDXL Turbo，采用传统 DDPM/DDIM 调度器，通常需要 20–50 步采样。FLUX.1-schnell 采用 rectified flow 范式（Liu et al., 2022）：通过学习噪声分布与数据分布之间的近似直线 ODE 轨迹，使 Euler 离散化在极少步数下即可获得高质量样本——模型卡标注 1–4 步即可完成推理。架构设计上，FLUX.1-schnell 使用 FlowMatchEulerScheduler 而非传统噪声调度器，并经 latent adversarial diffusion distillation 训练以进一步压缩所需步数。本管线设定 schnell 4-step 模式，并在 9 步采样下运行 benchmark 以平衡质量与速度。</p>
               </article>
             </div>
 
@@ -881,7 +881,7 @@
               <p class="section-kicker">04 / Iteration Path</p>
               <h2>4. 迭代路径：C-121 → C-127 六阶段递进——骨架、内存、速度、集成</h2>
               <p>
-                以下按时间线排列 C-121 至 C-127 各里程碑，每一阶段对准一个明确瓶颈：骨架搭建 → 内存压缩 → 推理加速 → 系统集成。</p>
+                C-121 至 C-127 各里程碑按时间线递进，每一阶段对准一个明确瓶颈：骨架搭建 → 内存压缩 → 推理加速 → 系统集成。</p>
             </div>
 
             <div class="milestone-grid">
@@ -893,7 +893,7 @@
               <article class="milestone-card">
                 <span class="milestone-meta">C-122a</span>
                 <h4>编码器层与权重加载链路</h4>
-                <p>实现 T5Encoder（24 层, d_model=4096）和 CLIPEncoder（23 层, d_model=768）的 MLX 前向推理，打通 tokenizer 与 safetensors 权重加载链路。</p>
+                <p>完成 T5Encoder（24 层, d_model=4096）和 CLIPEncoder（23 层, d_model=768）的 MLX 前向推理，打通 tokenizer 与 safetensors 权重加载链路。</p>
               </article>
               <article class="milestone-card">
                 <span class="milestone-meta">C-122b</span>
@@ -903,7 +903,7 @@
               <article class="milestone-card">
                 <span class="milestone-meta">C-122c</span>
                 <h4>VAE + scheduler 补齐，引入分阶段内存释放</h4>
-                <p>接入 AutoencoderKL decoder 和 FlowMatchEulerScheduler，同时实现 T5→DiT→VAE 的顺序执行与逐段释放。实测峰值内存从三组件同驻的 ~15GB 降至约 6GB。</p>
+                <p>接入 AutoencoderKL decoder 和 FlowMatchEulerScheduler，并打通 T5→DiT→VAE 的顺序执行与逐段释放。实测峰值内存从三组件同驻的 ~15GB 降至约 6GB。</p>
               </article>
               <article class="milestone-card">
                 <span class="milestone-meta">C-123 / C-124</span>
@@ -950,7 +950,7 @@
               <article class="subsection-item" data-accordion>
                 <button class="subsection-toggle" aria-expanded="false">4.4 MPS bfloat16：它是重要基线，不是终局答案</button>
                 <div class="subsection-content">
-                  <p>PyTorch MPS 启用 bfloat16 后端到端推理约 ~55 s/image（M4 Max），相比 fp32 有显著改善。但 PyTorch MPS 路线下，组件加载/释放、权重映射和编译优化均依赖 diffusers 内部实现，无法按项目需求自定义生命周期控制，因此被保留为 benchmark 对照而非主路径。</p>
+                  <p>PyTorch MPS 启用 bfloat16 后端到端推理约 ~55 s/image（M4 Max），相比 fp32 推理耗时明显缩短。但 PyTorch MPS 路线下，组件加载/释放、权重映射和编译优化均依赖 diffusers 内部实现，无法按项目需求自定义生命周期控制，因此被保留为 benchmark 对照而非主路径。</p>
                 </div>
               </article>
 
@@ -1026,7 +1026,7 @@
                     <td>RTX 3090 24GB</td>
                     <td>Z-Image-Turbo 6B (FLUX-based), 9 steps</td>
                     <td>~8s / image</td>
-                    <td>高端消费级 GPU 仍显著快于 Apple Silicon 本地生图。</td>
+                    <td>高端消费级 GPU 在生图速度上仍远快于 Apple Silicon 本地推理。</td>
                   </tr>
                   <tr>
                     <td>M4 Max 64GB</td>
@@ -1119,7 +1119,7 @@
             <li id="ref-2"><span class="bib-id">[2]</span> <span class="bib-author">Black Forest Labs.</span> <a href="https://huggingface.co/black-forest-labs/FLUX.1-schnell" target="_blank" rel="noopener noreferrer">"FLUX.1-schnell model card,"</a> <em>Hugging Face,</em> 2026.<span class="bib-note">用于锚定 FLUX.1-schnell 的 1-4 step 快速推理特性与开放使用边界，帮助解释当前路线为何重视短步数 rectified flow。</span></li>
             <li id="ref-3"><span class="bib-id">[3]</span> <span class="bib-author">Knowledge Hub.</span> <a href="../ai-mud-project-retro/index.html">"AI-MUD 项目回顾：产品级 Vibe Coding 实践,"</a> <em>Knowledge Hub,</em> 2026.<span class="bib-note">提供 MLX 图像引擎在 AI-MUD 中的阶段化位置，尤其是 C-121~C-127 的里程碑上下文。</span></li>
             <li id="ref-4"><span class="bib-id">[4]</span> <span class="bib-author">Hugging Face.</span> <a href="https://huggingface.co/illusion615/Z-Image-Turbo-MLX" target="_blank" rel="noopener noreferrer">"illusion615/Z-Image-Turbo-MLX,"</a> <em>Hugging Face,</em> 2026.<span class="bib-note">当前文章中提到的自建 MLX 产物发布位置，用于补充成果落点。</span></li>
-            <li id="ref-5"><span class="bib-id">[5]</span> <span class="bib-author">Apple ML Research.</span> <a href="https://github.com/ml-explore/mlx-examples/tree/main/stable_diffusion" target="_blank" rel="noopener noreferrer">"Stable Diffusion in MLX,"</a> <em>mlx-examples,</em> 2026.<span class="bib-note">MLX 官方图像生成示例：StableDiffusion 类、latent 生成、VAE decode、image2image，以及面向 8GB 设备的量化路径。本文用于对比自建 FLUX 管线与官方 SD baseline 的定位差异。</span></li>
+            <li id="ref-5"><span class="bib-id">[5]</span> <span class="bib-author">Apple ML Research.</span> <a href="https://github.com/ml-explore/mlx-examples/tree/main/stable_diffusion" target="_blank" rel="noopener noreferrer">"Stable Diffusion in MLX,"</a> <em>mlx-examples,</em> 2026.<span class="bib-note">MLX 官方图像生成示例：StableDiffusion 类、latent 生成、VAE decode、image2image，以及面向 8GB 设备的量化路径。本报告用于对比自建 FLUX 管线与官方 SD baseline 的定位差异。</span></li>
             <li id="ref-6"><span class="bib-id">[6]</span> <span class="bib-author">X. Liu, C. Gong, Q. Liu.</span> <a href="https://arxiv.org/abs/2209.03003" target="_blank" rel="noopener noreferrer">"Flow Straight and Fast: Learning to Generate and Transfer Data with Rectified Flow,"</a> <em>arXiv:2209.03003,</em> 2022.<span class="bib-note">Rectified flow 的理论基础：通过学习近似直线 ODE 轨迹，使 Euler 离散化在极少步数下即可获得高质量样本。FLUX.1-schnell 的 FlowMatchEulerScheduler 基于此范式。</span></li>
           </ol>
         </section>

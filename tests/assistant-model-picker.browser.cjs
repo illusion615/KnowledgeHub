@@ -86,6 +86,26 @@ fs.mkdirSync(evidence, { recursive: true });
     await page.waitForFunction(n => document.querySelectorAll('.assistant-msg-footer[data-state="complete"]').length === n, count);
   }
   try {
+    for (const mobile of [false, true]) {
+      const t = await make('github-copilot', false, mobile);
+      for (const expanded of [false, true]) {
+        if (expanded) await t.page.locator('.assistant-expand').click();
+        await t.page.locator('.assistant-model-toggle').evaluate(el => { el.textContent = 'very-long-model-name-'.repeat(8) + ' ▾'; });
+        await t.page.waitForTimeout(280);
+        const geometry = await t.page.evaluate(() => {
+          const title = document.querySelector('.assistant-header h3').getBoundingClientRect();
+          const model = document.querySelector('.assistant-model-toggle').getBoundingClientRect();
+          const tools = document.querySelector('.assistant-header-actions').getBoundingClientRect();
+          return { centerGap: Math.abs((title.top + title.bottom - model.top - model.bottom) / 2),
+            sameRow: model.left >= title.right + 6, separated: model.right <= tools.left - 6,
+            modelWidth: model.width, toolsVisible: tools.right <= innerWidth,
+            overflow: document.querySelector('.assistant-header').scrollWidth > document.querySelector('.assistant-header').clientWidth + 1 };
+        });
+        assert.ok(geometry.centerGap < 1 && geometry.sameRow && geometry.separated && geometry.toolsVisible && geometry.modelWidth > 20 && !geometry.overflow, JSON.stringify(geometry));
+      }
+      await t.context.close();
+    }
+    console.log('PASS title/model same row and vertically centered; long-name truncation, desktop/mobile normal/expanded');
     for (const provider of ['github-copilot', 'ollama', 'openai-compat']) {
       const t = await make(provider); const { page } = t;
       let consents = 0; page.on('dialog', async dialog => { consents++; await dialog.accept(); });

@@ -151,7 +151,7 @@
             <span class="panel-label">总体评级</span>
             <h2><span class="review-score score-b">B+</span> 可持续，但已进入平台化重构窗口</h2>
             <p>
-              <code>node tests/validate.js</code> 当前全量通过，说明基础约束有效；真正的风险集中在规模：<code>article-presentation.js</code> 4,485 行、<code>article.css</code> 4,918 行、<code>index.html</code> 4,957 行，三者已经成为主要维护热点。
+              <code>node tests/validate.js</code> 当前全量通过，表明基础约束运转正常；核心工程风险集中在单文件膨胀：<code>article-presentation.js</code> 4,485 行、<code>article.css</code> 4,918 行、<code>index.html</code> 4,957 行，三者已成为主要维护热点。
             </p>
           </aside>
         </div>
@@ -181,7 +181,7 @@
             <p class="section-kicker">01 / Executive Summary</p>
             <h2>1. 审查结论</h2>
             <p>
-              项目在静态站约束、共享组件复用、文章脚本顺序、基础语法与页面结构方面表现稳定。下一阶段不应再把所有能力继续塞进少数几个巨型文件，而应建立“平台内核、内容数据、文章运行时、可选增强模块”的分层边界。
+              项目在静态站约束、共享组件复用、文章脚本顺序、基础语法与页面结构方面表现稳定。下一阶段需避免将新增能力继续堆叠进少数巨型文件，转而建立“平台内核、内容数据、文章运行时、可选增强模块”的分层边界。
             </p>
           </div>
 
@@ -198,7 +198,7 @@
 
             <article class="comparison-card next">
               <span class="comparison-label">Concern</span>
-              <h3>维护热点开始集中</h3>
+              <h3>单文件体积越过维护阈值</h3>
               <ul class="reference-list">
                 <li><code>article-presentation.js</code> 已达 4,485 行，承担演示、样式、分享、导出、旁白、录屏等多种职责。</li>
                 <li><code>article.css</code> 已达 4,918 行，组件、布局、演示模式、响应式和主题规则继续混杂。</li>
@@ -214,7 +214,7 @@
               </thead>
               <tbody>
                 <tr><td>架构一致性</td><td><span class="review-score score-b">B</span></td><td>核心模式稳定，但首页和文章演示运行时仍是大文件中心化结构。</td></tr>
-                <tr><td>代码重复度</td><td><span class="review-score score-b">B+</span></td><td>共享脚本显著降低重复；剩余重复主要是文章内 <code>&lt;style&gt;</code> 与局部组件样式。</td></tr>
+                <tr><td>代码重复度</td><td><span class="review-score score-b">B+</span></td><td>共享脚本有效收敛了逻辑重复；剩余重复主要集中在文章内 <code>&lt;style&gt;</code> 与局部组件样式。</td></tr>
                 <tr><td>可维护性</td><td><span class="review-score score-c">C+</span></td><td>三个 4k+ 行文件会持续拖慢审查、定位和安全修改。</td></tr>
                 <tr><td>可测试性</td><td><span class="review-score score-b">B</span></td><td>静态验证覆盖好，但缺少首页交互、演示模式、PPT 导出、旁白等行为回归测试。</td></tr>
                 <tr><td>数据治理</td><td><span class="review-score score-b">B</span></td><td>知识树注册完整性对公开文章有效；私有/草稿文章是有意不曝光，但目前缺少机器可读状态。</td></tr>
@@ -232,7 +232,7 @@
             <p class="section-kicker">02 / Architecture</p>
             <h2>2. 架构现状</h2>
             <p>
-              当前系统由一个首页应用、一个知识树数据源、一组文章共享运行时和大量静态文章页组成。这个架构依然合理，但共享运行时已经从“工具脚本”升级成“前端平台内核”。
+              当前系统由一个首页应用、一个知识树数据源、一组文章共享运行时和大量静态文章页组成。整体拓扑保持清晰，但共享运行时已从早期的“辅助脚本”演进为“前端平台内核”。
             </p>
           </div>
 
@@ -249,7 +249,7 @@
                 <span class="flow-step">Home</span>
                 <div class="flow-copy">
                   <strong>index.html</strong>
-                  <p>4,957 行，包含 Galaxy、Cards、Infographic、Cell/Game 入口、主题、字体、模型配置等逻辑。它已经是单页应用，而不只是静态首页。</p>
+                  <p>4,957 行，包含 Galaxy、Cards、Infographic、Cell/Game 入口、主题、字体、模型配置等逻辑，实际承担了完整单页应用的职责。</p>
                 </div>
               </li>
               <li>
@@ -324,7 +324,7 @@
             <p class="section-kicker">04 / Findings</p>
             <h2>4. 关键发现</h2>
             <p>
-              以下按风险优先级排序。没有 D 级立即阻断项；最值得先修的是“共享运行时拆分”和“私有内容状态显式化”。
+              各项发现按风险优先级排列。当前无 D 级立即阻断项；最紧迫的治理任务是“共享运行时拆分”和“私有内容状态显式化”。
             </p>
           </div>
 
@@ -334,7 +334,7 @@
               <div class="subsection-content">
                 <div class="finding-card risk-high">
                   <h4>P1-1: <code>article-presentation.js</code> 职责过载</h4>
-                  <p>该文件 4,485 行，集中处理演示 UI、语言切换、样式面板、分享菜单、PPT/PDF、邮件、录屏、旁白、预加载和自动播放。任何修改都容易产生非局部回归。建议按功能拆成稳定内核 + 懒加载增强模块。</p>
+                  <p>该文件 4,485 行，集中处理演示 UI、语言切换、样式面板、分享菜单、PPT/PDF、邮件、录屏、旁白、预加载和自动播放，局部改动易触发跨功能回归。建议按职责拆分为稳定内核与按需加载的增强模块。</p>
                 </div>
                 <div class="finding-card risk-high">
                   <h4>P1-2: <code>article.css</code> 已突破历史红线</h4>
@@ -374,7 +374,7 @@
                 </div>
                 <div class="finding-card risk-low">
                   <h4>P3-2: 首页仍是单文件应用</h4>
-                  <p><code>index.html</code> 4,957 行，包含数据派生、状态、布局渲染、设置面板、动画与本地存储。建议在下一次首页功能改动时顺手拆分，而不是单独大爆破。</p>
+                  <p><code>index.html</code> 4,957 行，包含数据派生、状态、布局渲染、设置面板、动画与本地存储。建议结合下一次首页功能迭代渐进拆分，避免一次性大爆炸式重写。</p>
                 </div>
               </div>
             </article>
@@ -386,7 +386,7 @@
             <p class="section-kicker">05 / Remediation Roadmap</p>
             <h2>5. 整改路线图</h2>
             <p>
-              推荐采用小步治理，先补验证盲区，再拆高风险大文件。这样可以避免为了“架构漂亮”而引入新的回归风险。
+              建议采用小步迭代策略，先补齐验证盲区，再拆分高风险大文件，避免单纯追求结构整洁而引入额外回归风险。
             </p>
           </div>
 

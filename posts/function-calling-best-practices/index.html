@@ -294,7 +294,7 @@
             <span class="eyebrow">Engineering Best Practices</span>
             <h1>Function Calling 工程实践指南：最佳实践、模型差异与避坑手册</h1>
             <p>
-              Function calling 从"能调通"到"生产可靠"之间存在大量工程细节。本文系统梳理 OpenAI、Anthropic、Google 三大 vendor 的 function calling API 差异，总结函数 schema 设计、错误处理、调用模式配置、token 优化等工程最佳实践，并提供可直接落地的生产化检查清单。
+              Function calling 从"能调通"到"生产可靠"之间横亘着大量工程细节。本文系统梳理 OpenAI、Anthropic、Google 三大 vendor 的 function calling API 差异，总结函数 schema 设计、错误处理、调用模式配置与 token 优化等工程实践，并附上一份可直接对照执行的生产化检查清单。
             </p>
             <div class="hero-actions">
               <a class="button button-primary" href="#schema-design">从函数设计开始</a>
@@ -308,7 +308,7 @@
             <ul class="layer-list section-grid-spaced">
               <li><span class="layer-number">1</span>函数名称和描述的质量直接影响模型调用准确率 — 通过"实习生测试"验证。</li>
               <li><span class="layer-number">2</span>始终启用 strict mode（OpenAI / Anthropic / Gemini VALIDATED）确保 schema 一致性。</li>
-              <li><span class="layer-number">3</span>三大 vendor 的 tool_choice、parallel calling、结果回传格式存在显著差异 — 不可假设可移植。</li>
+              <li><span class="layer-number">3</span>三大 vendor 的 tool_choice、parallel calling、结果回传格式互不兼容 — 切勿假设代码可直接移植。</li>
               <li><span class="layer-number">4</span>生产系统必须处理：函数执行失败回传、hallucination 调用防护、token 预算控制。</li>
             </ul>
           </aside>
@@ -485,7 +485,7 @@
             <p class="section-kicker">02 / Protocol Differences</p>
             <h2>三大 Vendor 的 FC 协议差异：不可假设可移植</h2>
             <p>
-              虽然 OpenAI 的 function calling 格式已成为事实标准，但各 vendor 在 API 设计细节上存在显著差异。从一个 vendor 迁移到另一个时，以下差异是最常见的事故源。
+              尽管 OpenAI 的 function calling 格式已成为事实标准，三大 vendor 在 API 字段与交互状态机上仍有诸多关键分歧。跨 vendor 迁移时，这 12 项协议差异是最常见的线上事故源。
             </p>
           </div>
 
@@ -691,7 +691,7 @@
                     <h4>推理框架差异</h4>
                     <ul>
                       <li>vLLM：支持 <code>--tool-call-parser</code> 参数选择解析器（hermes/llama/qwen 等）</li>
-                      <li>Ollama：通过 OpenAI 兼容 API 提供 FC，但解析可靠性低于闭源</li>
+                      <li>Ollama：经由 OpenAI 兼容 API 支持 FC，但解析可靠性低于闭源商业模型</li>
                       <li>llama.cpp：需要 GBNF grammar 约束 JSON 输出格式</li>
                       <li>不同框架对同一模型的 FC 表现可能有 5-10% 差异</li>
                     </ul>
@@ -830,7 +830,7 @@
                     <span class="badge badge-do">DO</span>
                     <h4>客户端编排的最佳实践</h4>
                     <ul>
-                      <li>实现循环：发送请求 → 检查 stop_reason/finish_reason → 执行函数 → 回传结果 → 重复</li>
+                      <li>编排循环：发送请求 → 检查 stop_reason/finish_reason → 执行函数 → 回传结果 → 重复</li>
                       <li>设置最大循环次数（如 10 次）防止无限执行</li>
                       <li>记录每步的 input/output 用于调试和可观测性</li>
                       <li>对每次函数执行设置超时，防止单步阻塞整个链</li>
@@ -961,7 +961,7 @@
             <p class="section-kicker">05 / Advanced Features</p>
             <h2>高级特性：Streaming、MCP、多模态 Function Response</h2>
             <p>
-              这些特性在基础 FC 之上提供更丰富的能力，但各 vendor 的支持程度和实现方式差异显著。
+              流式输出、MCP 接入与多模态返回进一步拓展了基础 FC 的能力边界，但各家 vendor 的支持深度与接入机制大相径庭。
             </p>
           </div>
 
@@ -1004,7 +1004,7 @@
                   <article class="practice-card">
                     <span class="badge badge-vendor">ANTHROPIC</span>
                     <h4>原生 MCP Connector</h4>
-                    <p>Anthropic 提供 MCP connector 直接对接 MCP server。Claude 可发现和调用 MCP 工具，无需客户端桥接。适合已有 MCP 生态的场景。</p>
+                    <p>Anthropic 内置原生 MCP connector 直接对接 MCP server，Claude 可自主发现并调用 MCP 工具而无需客户端桥接，适合已有 MCP 生态的场景。</p>
                   </article>
                   <article class="practice-card">
                     <span class="badge badge-vendor">GEMINI</span>
@@ -1063,7 +1063,7 @@
                   <article class="practice-card">
                     <span class="badge badge-vendor">OPENAI GPT-5+</span>
                     <h4>自定义工具 — 自由文本输入</h4>
-                    <p>OpenAI Custom Tools 允许模型传递任意字符串（而非 JSON）作为工具输入。适合代码执行、自然语言指令等场景。可配合 Context-Free Grammar（Lark 或 Regex 语法）约束输出格式，实现比 JSON Schema 更灵活的结构化控制。</p>
+                    <p>OpenAI Custom Tools 允许模型直接传入任意字符串（而非 JSON）作为工具输入，适合代码执行与自然语言指令等场景；配合 Context-Free Grammar（Lark 或 Regex 语法）约束输出格式，可达成比 JSON Schema 更灵活的结构化控制。</p>
                   </article>
                   <article class="practice-card">
                     <span class="badge badge-warn">注意</span>
@@ -1087,7 +1087,7 @@
             <p class="section-kicker">06 / Production Checklist</p>
             <h2>生产化检查清单：从 Demo 到可靠上线</h2>
             <p>
-              以下是将 function calling 系统推向生产的关键检查项。每一项来自真实项目中的经验教训。
+              将 function calling 系统推向生产前，需逐一核验六项核心工程门禁——每一项均凝练自真实线上项目的排障教训。
             </p>
           </div>
 

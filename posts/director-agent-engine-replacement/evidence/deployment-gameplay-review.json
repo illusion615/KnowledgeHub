@@ -1,0 +1,90 @@
+{
+  "reviewed_utc": "2026-09-25T04:27:09.530483+00:00",
+  "baseline_head": "5e3c5ec49dc7e5ca286db138a4a1bd7a261aed3f",
+  "baseline_kind": "Uncommitted main filesystem configuration and source; not deployment acceptance",
+  "files": {
+    "docker-compose.yml": {
+      "sha256": "6b4ef00916d10cd92bee76b8d13463c09147732a17b6245e854abedbc7d3e194",
+      "bytes": 1593,
+      "lines": 54
+    },
+    "docker/director-api.Dockerfile": {
+      "sha256": "532e08d30a335fd251c5b45f5d5b43161a1c8a30a06b51d09f61481dd6a9a98f",
+      "bytes": 510,
+      "lines": 17
+    },
+    "docker/player-portal.Dockerfile": {
+      "sha256": "77cdf3742000f1b0a81282b56a323feb6dd0481196b72cbafe54787832a1eb16",
+      "bytes": 484,
+      "lines": 17
+    },
+    "tools/director-api/app/routers/conversations.py": {
+      "sha256": "07e0e3c7243fde8683239fe939150c720ad55dac793e89522e4789c83a69f5eb",
+      "bytes": 6106,
+      "lines": 160
+    },
+    "tools/director-api/app/routers/playtest.py": {
+      "sha256": "3147bb99aaebfb591ffba48d94f17d1ee437991f226545b91289222de9ea3609",
+      "bytes": 19077,
+      "lines": 518
+    },
+    "tools/director-api/app/services/playtest/__init__.py": {
+      "sha256": "e554983ad7aa7f5a2f74631e319ebc244b49cf60bb7c222547ad6612edecadc5",
+      "bytes": 81669,
+      "lines": 2055
+    },
+    "tools/director-api/app/services/decision_assist/__init__.py": {
+      "sha256": "e306b55fe16583247540ddb9c971d21c8d3ee57e38d41c6ac7273e5f2dffa0c1",
+      "bytes": 5353,
+      "lines": 114
+    },
+    "tools/director-api/app/services/decision_assist/config.py": {
+      "sha256": "1bf8e0a3ae07c7456a2b718f84527ae537b358e5e4ab6a653b240df47095208f",
+      "bytes": 792,
+      "lines": 25
+    },
+    "tools/director-api/app/services/decision_assist/client.py": {
+      "sha256": "c8eb2acc92be42c8c1212f7526002bde080dc97dd79cf73f4f92b7f9faae0631",
+      "bytes": 8698,
+      "lines": 143
+    }
+  },
+  "compose_observations": [
+    "Application service declarations: postgres, director-api, player-portal",
+    "No Pi service or Node startup integration in the inspected configuration",
+    "Actual API and Portal Dockerfiles use Python 3.13-slim",
+    "Host service endpoints are declared for image, voice, and Ollama; connectivity was not tested"
+  ],
+  "gameplay_observations": [
+    {
+      "source": "app/routers/conversations.py and app/routers/playtest.py",
+      "finding": "Authoring conversations and gameplay have distinct service entry paths."
+    },
+    {
+      "source": "app/services/decision_assist/config.py:DecisionSettings",
+      "finding": "Modes are off/manual/shadow, not an enabled authoritative fast path."
+    },
+    {
+      "source": "app/services/decision_assist/__init__.py:submit_exit_audit and app/services/playtest/__init__.py:_call_state_analyst",
+      "finding": "Exit audit is scheduled after original LLM analysis for explicit proposed exits with one matching structured condition. The advisory hook does not suppress the LLM result or write game state."
+    },
+    {
+      "source": "app/services/decision_assist/client.py:_connection/probe/evaluate",
+      "finding": "Owner-only file/UID checks, literal 127.0.0.1 host constraint, loopback HTTP origin, model/token identity checks; returns authoritative=False and calibrated=False."
+    }
+  ],
+  "design_status": {
+    "three_container_python_node_colocation": "Preferred proposal following user direction; not implemented",
+    "pi_authoring_only": "Proposed replacement boundary; game runtime must not depend on Pi",
+    "jev_fast_path": "Future task-specific experiment, not current C-158 behavior"
+  },
+  "coordination_gate": "Shared runtime/model/repository/event/config/Compose interfaces require cross-workspace coordination. This review defines proposals only.",
+  "not_performed": [
+    "No Docker build/up or service restart",
+    "No PG query, migration, or formal save write",
+    "No model or inference API call",
+    "No inspection of secret connection files",
+    "No modification of shared production interfaces"
+  ],
+  "privacy": "Contains relative source paths and hashes only; no credentials, connection-file contents, user messages, or production entity records"
+}

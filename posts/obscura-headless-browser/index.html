@@ -249,7 +249,7 @@
           <div class="hero-copy load-in">
             <span class="eyebrow">Open-Source · Rust · Headless Browser</span>
             <h1>Obscura：为 AI Agent 与抓取而生的 Rust 无头浏览器</h1>
-            <p>h4ckf0r0day/obscura 是一款用 Rust 编写、内嵌 V8、实现 Chrome DevTools Protocol 的无头浏览器，定位为 headless Chrome 的「替身」。仓库 3 周内积累 10.6k stars、688 forks、14 位贡献者，Apache-2.0 许可。本文基于其公开 README 与仓库结构整理设计要点、性能数据与适用边界。</p>
+            <p>h4ckf0r0day/obscura 是一款用 Rust 编写、内嵌 V8、兼容 Chrome DevTools Protocol 的无头浏览器，定位为 headless Chrome 的轻量「替身」。仓库 3 周内积累 10.6k stars、688 forks、14 位贡献者，Apache-2.0 许可。本篇基于其公开 README 与仓库结构梳理设计要点、性能数据与适用边界。</p>
             <div class="hero-actions">
               <a class="button button-primary" href="#positioning">从定位读起</a>
               <a class="button button-secondary" href="https://github.com/h4ckf0r0day/obscura" target="_blank" rel="noopener">GitHub 仓库 ↗</a>
@@ -298,7 +298,7 @@
         <section id="positioning" class="section" data-reveal>
           <div class="section-head">
             <p class="section-kicker">01 / 项目定位</p>
-            <h2>不是再造 Chromium，而是为机器流量重写浏览器</h2>
+            <h2>放弃桌面包袱，专为机器流量重写浏览器</h2>
             <p>Obscura 的 README 第一句即定义边界：<em>The open-source headless browser for AI agents and web scraping.</em> 项目刻意放弃桌面浏览体验所需的 UI 渲染、扩展系统、多媒体管线，把工程预算全部投入到「程序化访问」需要的 JS 执行、网络栈、协议兼容与反检测上。</p>
           </div>
           <div class="subsection-accordion">
@@ -351,7 +351,7 @@
             <div>Puppeteer / Playwright</div><div class="win">Yes</div><div class="win">Yes</div>
           </div>
 
-          <p class="note">需要警惕的口径差异：Chromium 的 200 MB 通常包含多进程、GPU、扩展宿主等组件；Obscura 的 30 MB 是单进程引擎数。这并非"作弊"，而是反映设计取舍——Obscura 没有这些组件，所以也无法提供它们带来的功能（多 Tab 隔离、GPU 合成等）。</p>
+          <p class="note">需要留意统计口径差异：Chromium 的 200 MB 通常包含多进程、GPU、扩展宿主等组件；Obscura 的 30 MB 是单进程引擎开销。这种差距直接源于架构取舍——Obscura 砍掉了上述桌面组件，因此也不具备多 Tab 隔离、GPU 合成等对应能力。</p>
         </section>
 
         <!-- 03 架构 -->
@@ -429,7 +429,7 @@
             <article class="subsection-item" data-accordion>
               <button class="subsection-toggle"><span>合规边界：Stealth 不等于授权抓取</span></button>
               <div class="subsection-content">
-                <p>CLI 提供 <code>--obey-robots</code> 选项默认 off。这是工具的中立姿态，但调用方必须自行判断目标站点的服务条款、robots.txt、法律辖区与速率约束。Stealth 让抓取"更像浏览器"，并不为绕过授权提供合法性。</p>
+                <p>CLI 内置的 <code>--obey-robots</code> 选项默认 off。这是工具的中立姿态，但调用方必须自行核验目标站点的服务条款、robots.txt、法律辖区与速率约束。Stealth 仅让抓取流量在特征上更像浏览器，不能赋予未授权抓取合法性。</p>
               </div>
             </article>
           </div>
@@ -522,7 +522,7 @@ obscura scrape url1 url2 url3 \
                   <li><span class="num">S1</span><span><strong>AI Agent 浏览器工具</strong>：LangChain / Agent SDK 里需要给 LLM 一个"看网页"的工具，<code>LP.getMarkdown</code> 直接给出 LLM-friendly 内容</span></li>
                   <li><span class="num">S2</span><span><strong>大规模抓取集群</strong>：单机内存预算紧，需要把并发数推高 5–6 倍</span></li>
                   <li><span class="num">S3</span><span><strong>反检测优先的数据采集</strong>：对手风控敏感，传统 puppeteer-stealth 已被识别</span></li>
-                  <li><span class="num">S4</span><span><strong>容器/Serverless 抓取</strong>：70 MB 二进制和无依赖让镜像体积大幅缩小，冷启动友好</span></li>
+                  <li><span class="num">S4</span><span><strong>容器/Serverless 抓取</strong>：70 MB 单文件二进制且零外部依赖，可有效压缩容器镜像体积并加速冷启动</span></li>
                 </ul>
               </div>
             </article>
@@ -530,7 +530,7 @@ obscura scrape url1 url2 url3 \
               <button class="subsection-toggle"><span>不该选 Obscura 的场景</span></button>
               <div class="subsection-content">
                 <ul class="takeaway-list">
-                  <li><span class="num">N1</span><span>需要 PDF 渲染、视频解码、WebRTC、扩展系统——Obscura 不提供</span></li>
+                  <li><span class="num">N1</span><span>需要 PDF 渲染、视频解码、WebRTC、扩展系统——Obscura 均未内置</span></li>
                   <li><span class="num">N2</span><span>需要完整 CDP 表面（Tracing / Coverage / Heap Profiler）——目前覆盖有限</span></li>
                   <li><span class="num">N3</span><span>端到端 UI 测试 / 视觉回归——Playwright 自带 browsers 仍是更稳的选择</span></li>
                   <li><span class="num">N4</span><span>Windows 主机生产部署——Release 仅给 zip，没有官方 MSI / 服务封装</span></li>
@@ -550,8 +550,8 @@ obscura scrape url1 url2 url3 \
         <section id="practice" class="section" data-reveal>
           <div class="section-head">
             <p class="section-kicker">07 / 实践探讨</p>
-            <h2>用 Obscura 替代 Copilot 完成 Knowledge Hub 的拓取-生成闭环？</h2>
-            <p>问题拆为三层：外部信息拓取、内容提炼与生成、HTML 文章落盘。Knowledge Hub 现有棈：浏览器端的 <code>article-assistant.js</code> + <code>localStorage('llm-settings')</code> 已具备调用 Ollama / Azure OpenAI / OpenAI-compatible 的能力；Copilot 现在承担的是“调用代理+文件写入+仓库上下文管理”三项。Obscura 只能裥上这里的“拓取”一项。</p>
+            <h2>能否用 Obscura 替代 Copilot 打通 Knowledge Hub 的抓取与生成链路？</h2>
+            <p>问题拆为三层：外部信息抓取、内容提炼与生成、HTML 文章落盘。Knowledge Hub 现有底座中，浏览器端的 <code>article-assistant.js</code> + <code>localStorage('llm-settings')</code> 已具备调用 Ollama / Azure OpenAI / OpenAI-compatible 的能力；Copilot 现在承担的是“调用代理+文件写入+仓库上下文管理”三项。Obscura 只能补齐其中的“抓取”一项。</p>
           </div>
 
           <div class="subsection-accordion">
@@ -562,7 +562,7 @@ obscura scrape url1 url2 url3 \
                   <li><span class="num">C1</span><span><strong>外部信息拓取</strong> — 现在靠 Copilot 内置的 <code>fetch_webpage</code>，运行在服务端、绕过浏览器 CORS；仅返回静态 HTML 摘要，翻页/动态加载/反机器人页面会拿不全</span></li>
                   <li><span class="num">C2</span><span><strong>内容提炼与生成</strong> — 现在靠 Copilot 背后的大模型；Knowledge Hub 设置页已能接 Ollama/Azure/OpenAI，但这里只面向“读者在文章页聊天”，未应用于“作者写作”</span></li>
                   <li><span class="num">C3</span><span><strong>HTML 文章落盘</strong> — 现在靠 Copilot 的文件写入工具 + <code>knowledge-data.js</code> 手动注册；需要遵守 <code>.github/instructions/article-pages.instructions.md</code> 中的脚手架约束，以及 <code>node tests/validate.js</code> 十条检查</span></li>
-                  <li><span class="num">C4</span><span><strong>仓库上下文</strong> — git 状态、列出已有文章、读取 user/repo memory；这部分是 Copilot Agent 运行时能力，Obscura 完全不覃</span></li>
+                  <li><span class="num">C4</span><span><strong>仓库上下文</strong> — git 状态、列出已有文章、读取 user/repo memory；这部分属于 Copilot Agent 运行时能力，Obscura 完全不涉及</span></li>
                 </ul>
               </div>
             </article>
@@ -570,7 +570,7 @@ obscura scrape url1 url2 url3 \
             <article class="subsection-item" data-accordion>
               <button class="subsection-toggle"><span>可行方案：本地 CLI 管道代替 Copilot 作为“编排者”</span></button>
               <div class="subsection-content">
-                <p>考虑到浏览器端不能 spawn 外部进程、也不能写本地文件，可行路径是在仓库里补一个小型 Node CLI（例如 <code>scripts/research.js</code>），它復用与浏览器端同一套 <code>llm-settings</code>（从 <code>~/.config/knowledge-hub/llm.json</code> 或环境变量读取），拼出下面这条管道：</p>
+                <p>受限于浏览器端不能 spawn 外部进程、也不能写本地文件，可行路径是在仓库里补一个小型 Node CLI（例如 <code>scripts/research.js</code>），复用与浏览器端同一套 <code>llm-settings</code>（从 <code>~/.config/knowledge-hub/llm.json</code> 或环境变量读取），串联起五步本地管道：</p>
 
                 <div class="pipeline">
                   <div class="pipeline-step">
@@ -629,10 +629,10 @@ await runValidate();                                     <span class="cm">// nod
               <button class="subsection-toggle"><span>Obscura 在这条管道里的净增价值</span></button>
               <div class="subsection-content">
                 <ul class="takeaway-list">
-                  <li><span class="num">V1</span><span><strong>复现性</strong>：Copilot 的 <code>fetch_webpage</code> 黑盒，拿不动⓫动态页面；Obscura 能面对 SPA、需登录、需滚动加载场景调 <code>--wait-until networkidle0</code></span></li>
+                  <li><span class="num">V1</span><span><strong>复现性</strong>：Copilot 的 <code>fetch_webpage</code> 黑盒难以抓取动态渲染页面；Obscura 能针对 SPA、需登录、需滚动加载场景指定 <code>--wait-until networkidle0</code></span></li>
                   <li><span class="num">V2</span><span><strong>低检测率</strong>：<code>--stealth</code> 下反指纹与 3,520 域名拦截，避免被资料站拍“拒访”拦截，这是包含 GitHub 以外的重点资料源时的刚需</span></li>
                   <li><span class="num">V3</span><span><strong>LLM-友好输出</strong>：<code>LP.getMarkdown</code> 是 Obscura 的自定义 CDP 方法，直接交付拼到 prompt 的正文，省了 readability/markdownify 步骤</span></li>
-                  <li><span class="num">V4</span><span><strong>本地闭环</strong>：与 Ollama 等本地模型串起后，一条“拓取 → 生成 → 落盘”全部走 localhost，资料不出机，适合内部知识库场景</span></li>
+                  <li><span class="num">V4</span><span><strong>全链路本地化</strong>：与 Ollama 等本地模型串起后，一条“抓取 → 生成 → 落盘”全部走 localhost，资料不出本机，适合内部知识库场景</span></li>
                 </ul>
               </div>
             </article>
@@ -642,7 +642,7 @@ await runValidate();                                     <span class="cm">// nod
               <div class="subsection-content">
                 <ul class="takeaway-list">
                   <li><span class="num">L1</span><span><strong>“问题框定与结构设计”</strong>：Hub 的 Progressive Disclosure 纪律（hero/01-08/手风琴/insight grid）需要严格的 prompt rubric；小模型容易崩成传统博客，这是 LLM 质量问题不是拓取问题</span></li>
-                  <li><span class="num">L2</span><span><strong>事实与量化纠错</strong>：Copilot 会主动多轮抓取、互证、重读代码。本地管道需要显式编程实现“拼接多个资料源 + 要求模型标注不确定性”，不是架 Obscura 就有</span></li>
+                  <li><span class="num">L2</span><span><strong>事实与量化纠错</strong>：Copilot 会主动多轮抓取、交叉互证并重读代码。本地管道需要通过显式编程“拼接多个资料源 + 要求模型标注不确定性”，单靠部署 Obscura 无法自动获得</span></li>
                   <li><span class="num">L3</span><span><strong>脚手约束检查</strong>：<code>tests/validate.js</code> 中的 inline-style 禁用、脚本加载顺序、zh/en summary 长度需要主动迭代，Copilot 会读到错误后修复，本地管道需要“生成→校验→反馈重生”的 retry 逻辑</span></li>
                   <li><span class="num">L4</span><span><strong>git 与 Memory</strong>：提交纪律、boss-guardrails、session memory 仍然由调用者（人或其他 agent）控制</span></li>
                 </ul>
@@ -664,7 +664,7 @@ await runValidate();                                     <span class="cm">// nod
 
           <div class="verdict">
             <div class="v-badge">结论</div>
-            <p>Obscura 能让 Knowledge Hub 的“拓取”环节从 Copilot 那里独立出来，配合已有的 <code>llm-settings</code> 可以实现“本地闭环生成”的 80%。剩下 20%（问题框定、多源交叉、结构纪律、脚手重生、git 纪律）仍需要一个「编排者」——可以是简易的本地 Node CLI + 严格 rubric，也可以是另一套 Agent。判断边界：如果资料源以 SPA / 需登录 / 反机器人为主，Obscura 是净增量；如果仅是静态页面与 GitHub README，Copilot 现有能力已足够。</p>
+            <p>Obscura 能将 Knowledge Hub 的“抓取”环节从 Copilot 中解耦出来，配合已有的 <code>llm-settings</code> 可覆盖本地自动化生成链路的 80%。剩下 20%（问题框定、多源交叉、结构纪律、校验重试、git 纪律）仍需要一个「编排者」——可以是简易的本地 Node CLI + 严格 rubric，也可以是另一套 Agent。判断边界：如果资料源以 SPA / 需登录 / 反机器人为主，Obscura 是净增量；如果仅是静态页面与 GitHub README，Copilot 现有能力已足够。</p>
           </div>
         </section>
 
@@ -680,7 +680,7 @@ await runValidate();                                     <span class="cm">// nod
             <li><span class="num">[3]</span><span><strong>Releases v0.1.2</strong> — 二进制分发与平台覆盖（Linux x86_64 / macOS aarch64+x86_64 / Windows zip）。<br/><code>https://github.com/h4ckf0r0day/obscura/releases</code></span></li>
             <li><span class="num">[4]</span><span><strong>Obscura Cloud Waitlist</strong> — 商业化定位声明（开源引擎不功能阉割）。<br/><code>https://tally.so/r/gDWzdD</code></span></li>
           </ol>
-          <p class="note-foot">本文所有量化指标均直接引自 README，未做独立基准复测。读者在生产决策前建议在自己的硬件与目标站点上重测页面加载与并发数据。</p>
+          <p class="note-foot">所有量化指标均直接引自项目 README，未做独立基准复测。在生产决策前，建议基于实际硬件与目标站点重测页面加载与并发数据。</p>
         </section>
       </main>
 

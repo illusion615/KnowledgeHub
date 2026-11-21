@@ -391,7 +391,7 @@
             <span class="eyebrow">Autonomous Agent Framework</span>
             <h1>Hermes Agent：自进化开源 AI Agent 框架深度研究</h1>
             <p>
-              Hermes Agent 是 Nous Research 于 2026 年 2 月发布的开源自主 AI Agent 框架<sup><a href="#ref-1">[1]</a></sup>。它不是一个绑定在 IDE 中的编程助手或包裹在单一 API 外层的聊天机器人，而是一个驻扎在用户服务器上的持久化 Agent——具备持久记忆、自动技能创建、多平台网关、定时任务调度和并行子代理等核心能力<sup><a href="#ref-2">[2]</a></sup>。本文深入分析其架构设计，并与其设计来源 OpenClaw<sup><a href="#ref-9">[9]</a></sup>、Claude Code<sup><a href="#ref-6">[6]</a></sup>、OpenAI Codex CLI<sup><a href="#ref-4">[4]</a></sup>、Aider<sup><a href="#ref-5">[5]</a></sup> 等同类产品进行全面对比。
+              Hermes Agent 是 Nous Research 于 2026 年 2 月发布的开源自主 AI Agent 框架<sup><a href="#ref-1">[1]</a></sup>。不同于绑定在 IDE 中的编程助手或包裹在单一 API 外层的聊天机器人，它是一个驻扎在用户服务器上的持久化 Agent——具备持久记忆、自动技能创建、多平台网关、定时任务调度和并行子代理等核心能力<sup><a href="#ref-2">[2]</a></sup>。本报告深入剖析其架构设计，并与设计来源 OpenClaw<sup><a href="#ref-9">[9]</a></sup> 以及 Claude Code<sup><a href="#ref-6">[6]</a></sup>、OpenAI Codex CLI<sup><a href="#ref-4">[4]</a></sup>、Aider<sup><a href="#ref-5">[5]</a></sup> 等同类产品展开系统对比。
             </p>
             <div class="hero-actions">
               <a class="button button-primary" href="#architecture">架构解析</a>
@@ -465,7 +465,7 @@
             <article class="insight-card">
               <span class="card-index">04</span>
               <h3>核心差异点</h3>
-              <p>Hermes Agent 与竞品最大的差异在于<strong>闭环学习</strong>（closed learning loop）：Agent 自主创建技能文档 → 技能在后续使用中自我改进 → 主动提醒持久化知识 → FTS5 全文搜索跨会话回忆 → Honcho 辩证式用户画像<sup><a href="#ref-3">[3]</a></sup><sup><a href="#ref-10">[10]</a></sup>。这使它成为一个"越用越聪明"的个人 Agent。</p>
+              <p>Hermes Agent 与竞品最大的差异在于<strong>持续自进化学习循环</strong>（closed learning loop）：Agent 自主创建技能文档 → 技能在后续使用中自我改进 → 主动提醒持久化知识 → FTS5 全文搜索跨会话回忆 → Honcho 辩证式用户画像<sup><a href="#ref-3">[3]</a></sup><sup><a href="#ref-10">[10]</a></sup>。这使它成为一个"越用越聪明"的个人 Agent。</p>
             </article>
           </div>
 
@@ -580,7 +580,7 @@ hermes update</div>
             <p class="section-kicker">03 / Core Capabilities</p>
             <h2>3. 核心能力：六大差异化特性深入分析</h2>
             <p>
-              以下逐一剖析 Hermes Agent 的六个核心能力，分析其设计意图和实际工程价值。
+              围绕 Hermes Agent 的六个核心能力，逐一拆解其设计意图和实际工程价值。
             </p>
           </div>
 
@@ -596,7 +596,7 @@ hermes update</div>
                     <h3>从"每次重新解释"到"越用越懂你"</h3>
                     <ul class="challenge-list">
                       <li><strong>MEMORY.md</strong> — Agent 自主维护的结构化记忆文件，记录用户偏好、项目细节和常见工作流。存储在 ~/.hermes/ 本地目录。</li>
-                      <li><strong>USER.md</strong> — 通过 Honcho 插件进行辩证式用户画像建模。Agent 在对话中观察用户行为模式，逐步构建深度用户模型，而非单次问卷式采集。</li>
+                      <li><strong>USER.md</strong> — 借助 Honcho 插件构建辩证式用户画像。Agent 在对话中观察用户行为模式，逐步建立深度用户模型，无需依赖单次问卷式采集。</li>
                       <li><strong>Session Search</strong> — FTS5 全文索引所有历史会话，结合 LLM 摘要实现跨会话回忆。当用户提到"上周那个项目"时，Agent 可以搜索历史上下文。</li>
                       <li><strong>主动持久化提醒</strong> — Agent 在对话中检测到重要但尚未持久化的信息时，会主动建议用户保存，而非等待用户手动触发。</li>
                     </ul>
@@ -748,7 +748,7 @@ hermes update</div>
                   <article class="insight-card">
                     <span class="card-index">02</span>
                     <h3>容器安全加固</h3>
-                    <p>Docker 执行后端提供：只读 root 文件系统、dropped Linux capabilities、PID 限制、非 root 用户运行。</p>
+                    <p>Docker 执行后端默认启用四项隔离约束：只读 root 文件系统、dropped Linux capabilities、PID 限制与非 root 用户运行。</p>
                   </article>
                   <article class="insight-card">
                     <span class="card-index">03</span>
@@ -833,7 +833,7 @@ hermes update</div>
             <article class="arch-card">
               <span class="arch-tag tag-core">编排框架</span>
               <h4>LangChain / CrewAI / AutoGen</h4>
-              <p>Agent 编排框架（非终端用户产品）。提供构建 multi-agent 工作流的编程接口。需要用户自行编写代码定义 Agent 行为、工具和协作模式。</p>
+              <p>面向开发者的 Agent 编排框架（非终端用户产品），封装了构建 multi-agent 工作流的编程接口，需要开发者编写代码定义 Agent 行为、工具和协作模式。</p>
               <ul>
                 <li>定位：开发者框架 / 库</li>
                 <li>非直接竞品：不是可运行的 Agent 产品</li>
@@ -850,7 +850,7 @@ hermes update</div>
               <p class="section-kicker">05 / Head-to-Head Comparison</p>
               <h2>5. 多维对比：Hermes Agent vs OpenClaw vs Claude Code vs Codex CLI vs Aider</h2>
               <p>
-                以下从 15 个维度对五款 AI Agent 进行逐项对比。Hermes Agent 与 OpenClaw 是同源的"持久化个人 Agent"，其余三个是"按需编程助手"——设计定位根本不同。
+                对比表从 15 个维度横向评估五款 AI Agent。Hermes Agent 与 OpenClaw 是同源的"持久化个人 Agent"，其余三个是"按需编程助手"——两类产品的设计定位截然不同。
               </p>
             </div>
 
@@ -1011,7 +1011,7 @@ hermes update</div>
             <p class="section-kicker">06 / Pros &amp; Cons</p>
             <h2>6. 优劣势分析：每款产品适合什么、不适合什么</h2>
             <p>
-              以下对四款产品进行优劣势总结。判断标准侧重于"自主 Agent"维度的工程实用性。
+              结合"自主 Agent"维度的工程实用性标准，分别归纳各款产品的核心优势与局限边界。
             </p>
           </div>
 
@@ -1026,7 +1026,7 @@ hermes update</div>
                     <h4>✓ 优势</h4>
                     <ul>
                       <li><strong>唯一的"持久化个人 Agent"</strong> — 7×24 运行、跨会话记忆、定时任务、消息平台网关，构成不可替代的组合</li>
-                      <li><strong>闭环学习</strong> — 自动技能创建 + 自我改进 + 主动持久化提醒，使用时间越长越有价值</li>
+                      <li><strong>自进化学习循环</strong> — 自动技能创建 + 自我改进 + 主动持久化提醒，使用时间越长越有价值</li>
                       <li><strong>模型无关</strong> — 200+ 模型可选（OpenRouter），不锁定在任何厂商</li>
                       <li><strong>完全自托管</strong> — 零遥测、零云依赖、MIT 许可，数据完全在用户控制下</li>
                       <li><strong>MLOps 就绪</strong> — 批量轨迹生成 + Atropos RL，可为下一代模型产出训练数据</li>
@@ -1175,7 +1175,7 @@ hermes update</div>
             <p class="section-kicker">07 / Verdict</p>
             <h2>7. 选择建议：根据场景选对工具</h2>
             <p>
-              这四款产品不是互相替代的关系——它们解决不同层面的问题。以下给出具体场景的推荐。
+              各款产品并非互相替代关系，它们分别解决不同层面的工程需求，按六个典型场景可给出清晰的选型建议。
             </p>
           </div>
 
@@ -1269,7 +1269,7 @@ hermes update</div>
             <h2>参考来源</h2>
           </div>
           <ol class="bib-list">
-            <li id="ref-1"><span class="bib-id">[1]</span> <span class="bib-author">Nous Research.</span> <a href="https://hermes-agent.org/" target="_blank" rel="noopener noreferrer">"Hermes Agent — The AI Agent That Grows With You,"</a> <em>hermes-agent.org,</em> 2026.<span class="bib-note">Hermes Agent 官方网站，包含功能概览、架构说明和快速入门指南。本文核心能力分析的主要来源。</span></li>
+            <li id="ref-1"><span class="bib-id">[1]</span> <span class="bib-author">Nous Research.</span> <a href="https://hermes-agent.org/" target="_blank" rel="noopener noreferrer">"Hermes Agent — The AI Agent That Grows With You,"</a> <em>hermes-agent.org,</em> 2026.<span class="bib-note">Hermes Agent 官方网站，包含功能概览、架构说明和快速入门指南，是核心能力分析的主要来源。</span></li>
             <li id="ref-2"><span class="bib-id">[2]</span> <span class="bib-author">NousResearch.</span> <a href="https://github.com/NousResearch/hermes-agent" target="_blank" rel="noopener noreferrer">"NousResearch/hermes-agent,"</a> <em>GitHub,</em> 2026.<span class="bib-note">Hermes Agent 开源仓库（64.9k stars, 397 contributors）。包含完整源码、文档、Release 历史和贡献指南。</span></li>
             <li id="ref-3"><span class="bib-id">[3]</span> <span class="bib-author">Nous Research.</span> <a href="https://hermes-agent.nousresearch.com/docs/" target="_blank" rel="noopener noreferrer">"Hermes Agent Documentation,"</a> <em>hermes-agent.nousresearch.com,</em> 2026.<span class="bib-note">官方文档站，覆盖 CLI 使用、配置、消息网关、安全、工具系统、技能系统、记忆、MCP 集成和架构说明。</span></li>
             <li id="ref-4"><span class="bib-id">[4]</span> <span class="bib-author">OpenAI.</span> <a href="https://github.com/openai/codex" target="_blank" rel="noopener noreferrer">"openai/codex,"</a> <em>GitHub,</em> 2025–2026.<span class="bib-note">Codex CLI 开源仓库（74.8k stars），OpenAI 的终端编程 Agent。Apache 2.0 许可，Rust + TypeScript 实现。</span></li>

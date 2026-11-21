@@ -8,15 +8,17 @@ import { pathToFileURL } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import http from 'node:http';
+import { RUNTIME_VERSIONS, SDK_SHA, runtimeArgs } from '../scripts/copilot-runtime.mjs';
 
 const [sdkPath, cliPath] = process.argv.slice(2);
 assert(sdkPath && cliPath && isAbsolute(sdkPath) && isAbsolute(cliPath),
-  'Supply absolute paths to the SDK bundled with CLI 1.0.83 and its runtime. No auto-install.');
-assert.match(execFileSync(cliPath, ['--version'], { encoding: 'utf8', timeout: 10000 }),
-  /GitHub Copilot CLI 1\.0\.83\./, 'Only the reviewed CLI version is permitted');
+  'Supply absolute paths to a reviewed official SDK/runtime. No auto-install.');
+const version = RUNTIME_VERSIONS[createHash('sha256').update(await readFile(cliPath)).digest('hex')];
+assert.ok(version, 'Only reviewed native runtime fingerprints are permitted');
+assert.ok(execFileSync(cliPath, ['--version'], { encoding: 'utf8', timeout: 10000 }).includes('GitHub Copilot CLI ' + version + '.'));
 const sdkSource = await readFile(sdkPath, 'utf8');
 assert.equal(createHash('sha256').update(sdkSource).digest('hex'),
-  'a978502e82586699422648e52c93fcbd9608b21edcdc21fe722e859290aff857',
+  SDK_SHA,
   'Re-review authentication/isolation on SDK changes');
 assert.match(sdkSource, /envWithoutNodeDebug\.COPILOT_DISABLE_KEYTAR = "1"/,
   'Empty mode currently disables keychain access; this is NOT a login reuse test');
@@ -53,10 +55,7 @@ try {
   };
   client = new CopilotClient({
     mode: 'empty', baseDirectory: state, workingDirectory: cwd,
-    connection: RuntimeConnection.forStdio({ path: cliPath, args: [
-      '--disable-builtin-mcps', '--no-custom-instructions', '--no-bash-env',
-      '--no-remote', '--no-remote-export', '--no-experimental'
-    ] }),
+    connection: RuntimeConnection.forStdio({ path: cliPath, args: runtimeArgs(version) }),
     useLoggedInUser: false, logLevel: 'none', env
   });
   const session = await client.createSession({
@@ -79,7 +78,7 @@ try {
   assert.deepEqual(mcp.host.clients, [], 'No MCP client may be started');
   assert.deepEqual(mcp.host.pendingConnections, [], 'No MCP connection may be pending');
   assert.equal(requests, 0, 'Session inspection must not request inference');
-  console.log(JSON.stringify({ runtime: '1.0.83', tools: current.tools,
+  console.log(JSON.stringify({ runtime: version, tools: current.tools,
     mcpServers: mcp.servers.length, mcpClients: mcp.host.clients.length,
     providerRequests: requests, authenticationTested: false }));
   await session.disconnect();

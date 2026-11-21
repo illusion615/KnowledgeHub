@@ -5,7 +5,7 @@ import { mkdtemp, mkdir, writeFile, access, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { getInstallation, sessionConfig, conversationPrompt, runtimeEnv } from '../scripts/copilot-runtime.mjs';
+import { getInstallation, sessionConfig, conversationPrompt, runtimeEnv, runtimeArgs } from '../scripts/copilot-runtime.mjs';
 const installation = await getInstallation();
 const { CopilotClient, RuntimeConnection } = await import(pathToFileURL(installation.sdk));
 const root = await mkdtemp(join(tmpdir(), 'kh-copilot-adversarial-'));
@@ -58,7 +58,7 @@ const server = http.createServer(async (req, res) => {
 await new Promise(r => server.listen(0, '127.0.0.1', r));
 const url = `http://127.0.0.1:${server.address().port}`;
 const client = new CopilotClient({ mode: 'empty', baseDirectory: state, workingDirectory: work, logLevel: 'none', useLoggedInUser: false,
-  connection: RuntimeConnection.forStdio({ path: installation.runtime, args: ['--disable-builtin-mcps', '--no-custom-instructions', '--no-bash-env', '--no-remote', '--no-remote-export', '--no-experimental'] }),
+  connection: RuntimeConnection.forStdio({ path: installation.runtime, args: runtimeArgs(installation.version) }),
   env: { ...runtimeEnv(root), TMPDIR: root, COPILOT_OFFLINE: 'true', COPILOT_PROVIDER_BASE_URL: url, COPILOT_PROVIDER_TYPE: 'openai', COPILOT_MODEL: 'gpt-4.1' }
 });
 const timer = setTimeout(() => client.forceStop(), 45000);

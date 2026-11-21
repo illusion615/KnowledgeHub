@@ -1162,6 +1162,25 @@ var knowledgeTree = [
     relations: ['copilot-harness-eng', 'agentic-skill-exec', 'ai-mud-retro', 'mlx-optimization']
   },
   {
+    id: 'director-agent-engine-replacement',
+    parentId: 'ai-mud',
+    type: 'article',
+    title: {
+      zh: '导演台智能体引擎替换：低风险重构专项记录',
+      en: 'DirectorStudio Agent Engine Replacement: A Low-Risk Refactoring Study'
+    },
+    summary: {
+      zh: '结合原Skill架构与当前代码，记录Pi嵌入设计、行为契约、同条件验证、迁移回滚和进度；引擎尚未替换，收益尚未证实。',
+      en: 'A living study of Pi embedding, domain contracts, controlled tests, migration, rollback, and progress. No engine replacement or proven benefit yet.'
+    },
+    tags: ['AI Agent', 'Pi SDK', 'Architecture', 'Refactoring'],
+    date: '2026-09-23',
+    url: 'posts/director-agent-engine-replacement/index.html',
+    color: '#18b7ab',
+    phase: 3.2, speed: 0.9,
+    relations: ['agentic-skill-exec', 'llm-client-arch', 'ai-mud-retro']
+  },
+  {
     id: 'agentic-skill-exec',
     parentId: 'ai-mud',
     type: 'article',
@@ -3054,6 +3073,44 @@ var knowledgeTree = [
     color: '#6366f1',
     phase: 4.1, speed: 0.83,
     relations: ['agent-platform-philosophy', 'copilot-harness-eng', 'hermes-agent-comparison', 'mcp-principles-development']
+  },
+  {
+    id: 'copilot-studio-decision-optimization',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: '快速决策模型如何与Copilot Studio配合，优化2C场景的成本与效率',
+      en: 'Fast Decision Models with Copilot Studio: Cost and Efficiency in Consumer Scenarios'
+    },
+    summary: {
+      zh: '以四轮生鲜售后和运营周报为场景，对比四种模型分工的响应速度、费用与准确率，并给出选型准则与测试证据。',
+      en: 'Compares four architectures on latency, cost, and accuracy using fresh-food support and an operations report, with selection criteria and evidence.'
+    },
+    tags: ['Copilot Studio', 'Decision-1', 'Architecture', 'Benchmark', 'Cost Optimization'],
+    date: '2026-10-26',
+    url: 'posts/copilot-studio-decision-optimization/index.html',
+    color: '#9333ea',
+    phase: 2.2, speed: 0.84,
+    relations: ['copilot-studio-decision-arena', 'copilot-studio-overview', 'copilot-studio-constraints']
+  },
+  {
+    id: 'copilot-studio-decision-arena',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: '快速决策模型 × Copilot Studio：四架构并发对比测试台',
+      en: 'Fast Decision Models and Copilot Studio: Four-Architecture Benchmark Arena'
+    },
+    summary: {
+      zh: '使用生鲜售后与周报用例对比四种架构的耗时、费用与质量，支持预设回放和连接本机后端的实时并发测试。',
+      en: 'Compares four architectures on latency, cost, and quality, with preset playback and live concurrent testing through a local backend.'
+    },
+    tags: ['Copilot Studio', 'Decision-1', 'Benchmark', 'Customer Service', 'Interactive Tool'],
+    date: '2026-10-26',
+    url: 'posts/copilot-studio-decision-arena/index.html',
+    color: '#0d9488',
+    phase: 3.8, speed: 0.82,
+    relations: ['copilot-studio-decision-optimization', 'copilot-studio-streaming-verification']
   },
   {
     id: 'copilot-studio-release-roadmap',

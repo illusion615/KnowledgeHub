@@ -275,8 +275,9 @@
     '  font-family: "Space Grotesk", "Noto Sans SC", sans-serif;',
     '  font-size: 0.92rem; font-weight: 700; color: var(--ink, #172430); margin: 0;',
     '}',
-    '.assistant-header > div:first-child { min-width: 0; overflow-wrap: anywhere; }',
-    '.assistant-header-meta { font-size: 0.72rem; color: var(--muted, #5d6c76); margin-top: 2px; }',
+    '.assistant-header-title { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }',
+    '.assistant-header-title h3 { flex-shrink: 0; white-space: nowrap; }',
+    '.assistant-header-meta { min-width: 0; font-size: 0.72rem; color: var(--muted, #5d6c76); margin: 0; }',
     '.assistant-model-toggle { display: block; max-width: 100%; min-height: 44px; padding: 4px 8px; border: 1px solid var(--line, #ccd0d4); border-radius: 6px; background: transparent; color: inherit; font: inherit; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }',
     '.assistant-model-panel { position: absolute; z-index: 5; box-sizing: border-box; display: flex; flex-direction: column; min-width: 0; overflow: hidden; padding: 6px; border: 1px solid var(--line, #ccd0d4); border-radius: 10px; background: var(--paper, #fff); box-shadow: 0 8px 28px #0003; color: var(--ink, #172430); font: 0.78rem/1.4 system-ui; }',
     '.assistant-model-panel[hidden] { display: none; }',
@@ -502,7 +503,7 @@
   dialog.className = 'assistant-dialog';
   dialog.innerHTML = [
     '<div class="assistant-header">',
-    '  <div>',
+    '  <div class="assistant-header-title">',
     '    <h3>AI Assistant</h3>',
     '    <div class="assistant-header-meta"><button type="button" class="assistant-model-toggle" aria-expanded="false" aria-controls="assistant-model-panel">选择模型 ▾</button></div>',
     '  </div>',

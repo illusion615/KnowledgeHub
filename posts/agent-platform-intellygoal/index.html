@@ -120,22 +120,22 @@
           <div class="hero-copy load-in">
             <span class="eyebrow">Agent Platform · IntellyGoal Practice</span>
             <h1>智能体平台 · IntellyGoal 应用实践</h1>
-            <p>IntellyGoal 是<a href="../agent-platform-philosophy/">本平台</a>的首个参考接入项目——一款帮助用户拆解长期目标、跟进进度的目标管理 App。本文记录从"业务内嵌智能体"到"项目作为平台首个 MCP 租户"的四阶段迁移路径，连同 Skill 设计、工具实现、长期记忆方案与回顾教训。</p>
+            <p>IntellyGoal 是<a href="../agent-platform-philosophy/">本平台</a>的首个参考接入项目——一款帮助用户拆解长期目标、跟进进度的目标管理 App。本文记录从"业务内嵌智能体"到"项目作为平台首个 MCP 租户"的四阶段迁移路径，连同 Skill 设计、MCP 工具开发、长期记忆方案与实战复盘。</p>
             <div class="hero-actions">
               <a class="button button-primary" href="#phases">查看四阶段迁移</a>
               <a class="button button-secondary" href="#mcp">查看 MCP 工具实现</a>
             </div>
-            <p class="hero-note">关键词：参考实现 · 渐进迁移 · MCP server · goals.memorandum · 多租户验证</p>
+            <p class="hero-note">关键词：样板工程 · 渐进迁移 · MCP server · goals.memorandum · 多租户验证</p>
           </div>
 
           <aside class="hero-panel load-in">
             <span class="panel-label">实践目标</span>
             <h2>用真实业务证伪"业务无关 + 多租户硬隔离"两条边界</h2>
-            <p>边界设计的最强证伪是"用真实项目跑一遍"。IntellyGoal 在 Phase A 充当 in-process 验证场景，Phase B 拆分为独立 MCP server 完成业务-平台代码分仓，Phase C 引入 Admin / Eval / Supervisor 完成治理闭环，Phase D 第二个租户（健康提醒类项目）接入验证零平台改动。</p>
+            <p>检验架构边界最直接的办法是用真实项目跑通全流程。IntellyGoal 在 Phase A 充当进程内验证场景，Phase B 拆出独立 MCP server 达成业务与平台代码分仓，Phase C 引入 Admin / Eval / Supervisor 补齐治理链路，Phase D 接入第二个租户（健康提醒类项目）验证平台代码零改动。</p>
             <ul class="layer-list">
               <li><span class="layer-number">A</span>Phase A · 进程内联调，验证 skill / runtime / tool 抽象</li>
               <li><span class="layer-number">B</span>Phase B · 拆出 MCP server，平台代码与业务代码分离</li>
-              <li><span class="layer-number">C</span>Phase C · 上 Admin / Eval / Supervisor 治理闭环</li>
+              <li><span class="layer-number">C</span>Phase C · 上线 Admin / Eval / Supervisor 治理体系</li>
               <li><span class="layer-number">D</span>Phase D · 接入第二租户，证伪多租户隔离</li>
             </ul>
           </aside>
@@ -234,7 +234,7 @@
             <article class="phase-card">
               <span class="phase-tag">Phase C</span>
               <h3>上 Admin / Eval / Supervisor</h3>
-              <p class="phase-sub">补齐治理闭环，接入生产流量</p>
+              <p class="phase-sub">补齐评测与灰度治理，接入生产流量</p>
               <ul>
                 <li>Admin Console 上线，灰度操作可视化</li>
                 <li>构建 frozen eval set（200 个真实 case），跑 nightly 评测</li>
@@ -247,7 +247,7 @@
               <h3>第二租户接入</h3>
               <p class="phase-sub">健康提醒应用作为第二项目验证多租户隔离</p>
               <ul>
-                <li>新项目仅完成：注册项目 → 上传 skill → 注册 MCP server 三步</li>
+                <li>新项目仅需走完三步：注册项目 → 上传 skill → 注册 MCP server</li>
                 <li>平台代码零行改动；两个项目 telemetry 完全隔离</li>
                 <li>主动构造交叉访问测试，验证 skill / trace / BYOK 互不可见</li>
                 <li><strong>成果</strong>：边界设计被真实证伪，平台进入"可对外销售"状态</li>
@@ -278,7 +278,7 @@
               <tr><td>intake</td><td>识别用户意图、收集基本背景</td><td>已识别用户主诉 + 基础背景齐全</td><td>consultation, escalation</td></tr>
               <tr><td>consultation</td><td>深入理解目标动机与约束</td><td>动机清晰、可量化 + 用户准备好规划</td><td>planning, escalation</td></tr>
               <tr><td>planning</td><td>拆解里程碑与节奏，调用 commit_goal_plan</td><td>计划已落库 + 用户确认</td><td>review</td></tr>
-              <tr><td>review</td><td>定期回顾进度、调整计划</td><td>本轮回顾完成 + 用户无新需求</td><td>(end)</td></tr>
+              <tr><td>review</td><td>定期回顾进度、调整计划</td><td>当期复盘结束 + 用户无新需求</td><td>(end)</td></tr>
               <tr><td>escalation</td><td>识别情绪困境或超出能力范围，引导人审</td><td>情绪稳定 / 已生成人审工单</td><td>(end)</td></tr>
             </tbody>
           </table>
@@ -324,8 +324,8 @@ handoff_to:
         <section id="mcp" class="section" data-reveal>
           <div class="section-head">
             <p class="section-kicker">04 / MCP Tool</p>
-            <h2>MCP 工具实现样例 · commit_goal_plan</h2>
-            <p>领域工具一律由 IntellyGoal 侧 MCP server 实现，平台只调用。下方给出 Python (FastMCP) 实现骨架。</p>
+            <h2>MCP 工具开发样例 · commit_goal_plan</h2>
+            <p>领域工具一律由 IntellyGoal 侧 MCP server 承载，平台只负责发起调用；核心逻辑可直接用 Python (FastMCP) 编写。</p>
           </div>
 
           <pre class="code-block">from mcp.server.fastmcp import FastMCP
@@ -384,7 +384,7 @@ if __name__ == "__main__":
           <article class="comparison-card section-grid-spaced">
             <span class="comparison-label">边界检查</span>
             <h3>为什么 commit_goal_plan 不在平台</h3>
-            <p>它带有"创建业务对象"的副作用，必须由业务持有事务边界。如果平台代码直接调用 IntellyGoal 数据库会同时违反三条非目标——业务工具实现、业务数据存储、业务策略决策（pace 默认值的语义）。MCP 抽象让平台只关心"我请求一个工具调用"，业务侧拥有完整自决权。</p>
+            <p>它带有"创建业务对象"的副作用，必须由业务系统持有事务边界。一旦平台代码直接读写 IntellyGoal 数据库，就会同时打破三条架构红线——代管业务工具逻辑、侵入业务数据存储、越权干预业务策略（例如 pace 默认值的业务语义）。MCP 抽象让平台只需发出"工具调用请求"，业务侧保留完整自决权。</p>
           </article>
         </section>
 
@@ -450,7 +450,7 @@ tool_result: { ok: true }</pre>
             <article class="insight-card">
               <span class="card-index">L2</span>
               <h3>turn_budget 必须从第一天设</h3>
-              <p>未设 budget 的 skill 在长对话中会反复诱导用户提供细节，token 消耗暴涨。强制每个 skill 上线即设 budget，到点强收敛。</p>
+              <p>未设 budget 的 skill 在长对话中会反复追问用户补充细节，导致 token 消耗暴涨。强制每个 skill 上线即配置 budget，到达轮数上限立即收敛。</p>
             </article>
             <article class="insight-card">
               <span class="card-index">L3</span>
@@ -460,7 +460,7 @@ tool_result: { ok: true }</pre>
             <article class="insight-card">
               <span class="card-index">L4</span>
               <h3>BYOK 校验在 Phase B 漏掉</h3>
-              <p>Phase B 上线初期允许平台默认 key 兜底，导致一次配额超限影响所有项目。修复：项目 BYOK 缺失时直接拒绝服务，不提供"友好降级"。BYOK 是合规边界，不容妥协。</p>
+              <p>Phase B 上线初期曾允许用平台默认 key 兜底，结果单项目配额超限拖垮了全部租户。修复策略：项目未配置 BYOK 时直接拒绝请求，彻底取消"友好降级"。BYOK 是合规硬边界，不容妥协。</p>
             </article>
             <article class="insight-card">
               <span class="card-index">L5</span>
@@ -482,7 +482,7 @@ tool_result: { ok: true }</pre>
             <h2>参考来源</h2>
           </div>
           <ol class="bib-list">
-            <li id="ref-1"><span class="bib-id">[1]</span> <span class="bib-author">Anthropic.</span> <a href="https://github.com/modelcontextprotocol/python-sdk" target="_blank" rel="noreferrer noopener">"Python MCP SDK (FastMCP)",</a> 2024–2026.<span class="bib-note">commit_goal_plan 实现样例所用的 MCP server 框架。</span></li>
+            <li id="ref-1"><span class="bib-id">[1]</span> <span class="bib-author">Anthropic.</span> <a href="https://github.com/modelcontextprotocol/python-sdk" target="_blank" rel="noreferrer noopener">"Python MCP SDK (FastMCP)",</a> 2024–2026.<span class="bib-note">commit_goal_plan 代码样例所用的 MCP server 框架。</span></li>
             <li id="ref-2"><span class="bib-id">[2]</span> <span class="bib-author">本系列文档</span> · <a href="../agent-platform-philosophy/">设计理念</a> · <a href="../agent-platform-requirements/">需求规格</a> · <a href="../agent-platform-hld/">高阶设计</a> · <a href="../agent-platform-api-spec/">接口规范</a>.</li>
             <li id="ref-3"><span class="bib-id">[3]</span> <span class="bib-author">原始设计文档</span> · IntellyGoal 团队内部 <code>docs/agent-platform-design.html</code>，作为本系列五篇文章的素材源。</li>
           </ol>
