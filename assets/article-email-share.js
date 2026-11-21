@@ -11,11 +11,12 @@
     /**
      * Open a preview window with the full page content styled for email.
      * @param {Function} getLang - returns 'zh' or 'en'
+     * @param {Function} [getShareUrl] - optional URL builder (defaults to window.location.href)
      */
-    share: function (getLang) {
+    share: function (getLang, getShareUrl) {
       var lang = getLang();
       var title = document.title || 'Newsletter';
-      var main = document.querySelector('main');
+      var shareUrl = typeof getShareUrl === 'function' ? getShareUrl() : window.location.href;
 
       // Build full-page clone preserving all original styles
       var docClone = document.documentElement.cloneNode(true);
@@ -119,7 +120,7 @@
           mailtoTrigger.addEventListener('click', function (e) {
             e.preventDefault();
             var subject = encodeURIComponent(title);
-            var mailBody = encodeURIComponent(title + '\n\n' + window.location.href);
+            var mailBody = encodeURIComponent(title + '\n\n' + shareUrl);
             win.location.href = 'mailto:?subject=' + subject + '&body=' + mailBody;
           });
         }

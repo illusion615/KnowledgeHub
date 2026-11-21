@@ -86,10 +86,11 @@
   }
 
   // ── Markdown Block Parser ───────────────────────────────────────
-  function parseBlocks(lines) {
+  function parseBlocks(lines, allowTopHeadings) {
     var blocks = [];
     var i = 0;
     var line, fence, lang, codeLines, listLines, tableLines, blockquoteLines;
+    var headingPattern = allowTopHeadings ? /^(#{1,6})\s+(.+)$/ : /^(#{3,6})\s+(.+)$/;
 
     while (i < lines.length) {
       line = lines[i];
@@ -115,18 +116,16 @@
           i++;
         }
         i++; // skip closing ```
-        blocks.push({ type: lang === 'mermaid' ? 'mermaid' : 'code', lang: lang || 'text', content: codeLines.join('\n') });
+        blocks.push({ type: lang === 'mermaid' ? 'mermaid' : 'code', lang: lang || (allowTopHeadings ? '' : 'text'), content: codeLines.join('\n') });
         continue;
       }
 
-      // Heading (### and below — h2 is handled by section split)
-      if (line.match(/^#{3,6}\s+/)) {
-        var hMatch = line.match(/^(#{3,6})\s+(.+)$/);
-        if (hMatch) {
-          blocks.push({ type: 'heading', level: hMatch[1].length, content: hMatch[2] });
-          i++;
-          continue;
-        }
+      // Heading
+      var hMatch = line.match(headingPattern);
+      if (hMatch) {
+        blocks.push({ type: 'heading', level: hMatch[1].length, content: hMatch[2] });
+        i++;
+        continue;
       }
 
       // Blockquote
@@ -275,18 +274,10 @@
         return node;
 
       case 'ul':
-        node = el('ul', 'reference-list');
-        for (i = 0; i < block.items.length; i++) {
-          li = el('li', '', renderInline(block.items[i]));
-          node.appendChild(li);
-        }
-        return node;
-
       case 'ol':
-        node = el('ol', 'reference-list');
+        node = el(block.type, 'reference-list');
         for (i = 0; i < block.items.length; i++) {
-          li = el('li', '', renderInline(block.items[i]));
-          node.appendChild(li);
+          node.appendChild(el('li', '', renderInline(block.items[i])));
         }
         return node;
 
@@ -648,71 +639,7 @@
 
     // Render line by line using parseBlocks on the full body (not split by sections)
     var lines = body.split('\n');
-    var blocks = [];
-    var i = 0;
-    var line, fence, lang, codeLines, listLines, tableLines, blockquoteLines, paraLines, hMatch;
-
-    while (i < lines.length) {
-      line = lines[i];
-      if (line.trim() === '') { i++; continue; }
-
-      // HR
-      if (line.trim().match(/^[-*_]{3,}$/) && !line.trim().match(/^[-*+]\s+/)) {
-        blocks.push({ type: 'hr' }); i++; continue;
-      }
-
-      // Fenced code
-      if (line.trim().indexOf('```') === 0) {
-        fence = line.trim(); lang = fence.slice(3).trim(); codeLines = []; i++;
-        while (i < lines.length && lines[i].trim() !== '```') { codeLines.push(lines[i]); i++; }
-        i++;
-        blocks.push({ type: lang === 'mermaid' ? 'mermaid' : 'code', lang: lang || '', content: codeLines.join('\n') });
-        continue;
-      }
-
-      // Headings
-      hMatch = line.match(/^(#{1,6})\s+(.+)$/);
-      if (hMatch) { blocks.push({ type: 'heading', level: hMatch[1].length, content: hMatch[2] }); i++; continue; }
-
-      // Blockquote
-      if (line.trim().charAt(0) === '>') {
-        blockquoteLines = [];
-        while (i < lines.length && lines[i].trim().charAt(0) === '>') { blockquoteLines.push(lines[i].trim().slice(1).trim()); i++; }
-        blocks.push({ type: 'blockquote', content: blockquoteLines.join('\n') }); continue;
-      }
-
-      // Unordered list
-      if (line.match(/^\s*[-*+]\s+/) && !line.trim().match(/^[-*_]{3,}$/)) {
-        listLines = [];
-        while (i < lines.length && lines[i].match(/^\s*[-*+]\s+/)) { listLines.push(lines[i].replace(/^\s*[-*+]\s+/, '').trim()); i++; }
-        blocks.push({ type: 'ul', items: listLines }); continue;
-      }
-
-      // Ordered list
-      if (line.match(/^\s*\d+[.)]\s+/)) {
-        listLines = [];
-        while (i < lines.length && lines[i].match(/^\s*\d+[.)]\s+/)) { listLines.push(lines[i].replace(/^\s*\d+[.)]\s+/, '').trim()); i++; }
-        blocks.push({ type: 'ol', items: listLines }); continue;
-      }
-
-      // Table
-      if (line.indexOf('|') !== -1 && i + 1 < lines.length && lines[i + 1] && lines[i + 1].match(/^\s*\|?\s*[-:]+/)) {
-        tableLines = [];
-        while (i < lines.length && lines[i].indexOf('|') !== -1) { tableLines.push(lines[i]); i++; }
-        blocks.push({ type: 'table', lines: tableLines }); continue;
-      }
-
-      // Paragraph
-      paraLines = [];
-      while (i < lines.length && lines[i].trim() !== '' &&
-        !lines[i].match(/^#{1,6}\s+/) && !lines[i].match(/^\s*[-*+]\s+/) &&
-        !lines[i].match(/^\s*\d+[.)]\s+/) && lines[i].trim().indexOf('```') !== 0 &&
-        lines[i].trim().charAt(0) !== '>' && !lines[i].trim().match(/^[-*_]{3,}$/) &&
-        !(lines[i].indexOf('|') !== -1 && i + 1 < lines.length && lines[i + 1] && lines[i + 1].match(/^\s*\|?\s*[-:]+/))) {
-        paraLines.push(lines[i]); i++;
-      }
-      if (paraLines.length > 0) blocks.push({ type: 'paragraph', content: paraLines.join(' ') });
-    }
+    var blocks = parseBlocks(lines, true);
 
     // Render blocks to simple HTML
     blocks.forEach(function (block) {
@@ -782,54 +709,33 @@
   function initBehaviors() {
     var root = document.documentElement;
 
-    // 1. Scroll reveal
-    var revealTargets = document.querySelectorAll('.load-in, [data-reveal]');
-    var revealObserver = new IntersectionObserver(function (entries, observer) {
-      entries.forEach(function (entry) {
-        if (!entry.isIntersecting) return;
-        entry.target.classList.add('is-visible');
-        observer.unobserve(entry.target);
-      });
-    }, { threshold: 0.18, rootMargin: '0px 0px -40px 0px' });
-    revealTargets.forEach(function (target) { revealObserver.observe(target); });
-
-    // 2. Nav highlighting
-    var sectionTargets = document.querySelectorAll('main section[id]');
+    // 1. Scroll reveal & nav highlighting
+    document.querySelectorAll('.load-in, [data-reveal]').forEach(function (target, index) {
+      if (target.classList.contains('load-in')) target.style.transitionDelay = index * 120 + 'ms';
+      new IntersectionObserver(function (entries, observer) {
+        if (entries[0].isIntersecting) { target.classList.add('is-visible'); observer.unobserve(target); }
+      }, { threshold: 0.18, rootMargin: '0px 0px -40px 0px' }).observe(target);
+    });
     var navLinks = document.querySelectorAll('.nav-links a');
-    if (sectionTargets.length > 0 && navLinks.length > 0) {
-      var navObserver = new IntersectionObserver(function (entries) {
-        entries.forEach(function (entry) {
-          var id = entry.target.getAttribute('id');
-          var matchingLink = document.querySelector('.nav-links a[href="#' + id + '"]');
-          if (!matchingLink) return;
-          if (entry.isIntersecting) {
-            navLinks.forEach(function (link) { link.removeAttribute('aria-current'); });
-            matchingLink.setAttribute('aria-current', 'true');
-          }
-        });
-      }, { threshold: 0.4 });
-      sectionTargets.forEach(function (section) { navObserver.observe(section); });
-    }
-
-    // 3. Load-in stagger
-    document.querySelectorAll('.load-in').forEach(function (element, index) {
-      element.style.transitionDelay = index * 120 + 'ms';
+    document.querySelectorAll('main section[id]').forEach(function (section) {
+      new IntersectionObserver(function (entries) {
+        if (!entries[0].isIntersecting) return;
+        var active = document.querySelector('.nav-links a[href="#' + section.id + '"]');
+        if (active) {
+          navLinks.forEach(function (l) { l.removeAttribute('aria-current'); });
+          active.setAttribute('aria-current', 'true');
+        }
+      }, { threshold: 0.4 }).observe(section);
     });
 
     // 4. Theme & language
-    (function () {
-      var stored = localStorage.getItem('theme');
-      var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      var theme = stored || (prefersDark ? 'dark' : 'light');
-      root.setAttribute('data-theme', theme);
-
-      var lang = localStorage.getItem('lang') || 'zh';
-      root.setAttribute('lang', lang === 'zh' ? 'zh-CN' : 'en');
-      document.querySelectorAll('[data-zh][data-en]').forEach(function (el) {
-        var val = el.getAttribute('data-' + lang);
-        if (val !== null) el.innerHTML = val;
-      });
-    })();
+    var theme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var lang = localStorage.getItem('lang') || 'zh';
+    root.setAttribute('data-theme', theme);
+    root.setAttribute('lang', lang === 'zh' ? 'zh-CN' : 'en');
+    document.querySelectorAll('[data-zh][data-en]').forEach(function (item) {
+      item.innerHTML = item.getAttribute('data-' + lang) || '';
+    });
 
     // 5. Mermaid init (only progressive view)
     if (window.mermaid) {
