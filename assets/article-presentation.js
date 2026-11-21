@@ -325,6 +325,169 @@ document.addEventListener('DOMContentLoaded', function () {
     topbarEnd.appendChild(actions);
   };
 
+  // ── Shared TTS / Voice / Settings Helpers ──
+  var DIALECT_MAP = {
+    'zh-CN': '普通话', 'zh-TW': '台湾', 'zh-HK': '粤语',
+    'en-US': 'US', 'en-GB': 'UK', 'en-AU': 'AU', 'en-IN': 'IN', 'en-IE': 'IE', 'en-ZA': 'ZA'
+  };
+
+  var fillBrowserVoiceOptions = function (voiceSelect, filterLang, autoLabel, restoreVal, fallbackVal) {
+    if (!window.speechSynthesis) return false;
+    var allVoices = window.speechSynthesis.getVoices();
+    if (!allVoices || !allVoices.length) return false;
+    var langPrefix = (filterLang === 'zh') ? 'zh' : 'en';
+    while (voiceSelect.options.length > 1) {
+      voiceSelect.removeChild(voiceSelect.lastChild);
+    }
+    if (autoLabel && voiceSelect.options[0]) voiceSelect.options[0].textContent = autoLabel;
+    allVoices.forEach(function (v) {
+      if (v.lang.indexOf(langPrefix) !== 0) return;
+      if (!/premium|natural|nature/i.test(v.name + ' ' + v.voiceURI)) return;
+      var opt = document.createElement('option');
+      opt.value = v.name;
+      var coreName = v.name.replace(/\s*\(.*\)\s*$/, '');
+      opt.textContent = coreName + ' · ' + (DIALECT_MAP[v.lang] || v.lang);
+      opt.title = v.name + ' (' + v.lang + ')';
+      voiceSelect.appendChild(opt);
+    });
+    if (restoreVal) voiceSelect.value = restoreVal;
+    else if (fallbackVal) voiceSelect.value = fallbackVal;
+    return true;
+  };
+
+  var playRemoteTtsPreview = function (endpoint, headers, body, btn, failAlertZh, failAlertEn) {
+    btn.classList.add('is-testing');
+    fetch(endpoint + '/audio/speech', {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(body)
+    })
+    .then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.arrayBuffer();
+    })
+    .then(function (buf) {
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      return ctx.decodeAudioData(buf).then(function (audioBuf) {
+        var src = ctx.createBufferSource();
+        src.buffer = audioBuf;
+        src.connect(ctx.destination);
+        src.onended = function () { btn.classList.remove('is-testing'); };
+        src.start(0);
+      });
+    })
+    .catch(function (err) {
+      btn.classList.remove('is-testing');
+      console.error('TTS preview error:', err);
+      if (failAlertZh || failAlertEn) {
+        window.alert(getLang() === 'zh' ? failAlertZh : failAlertEn);
+      }
+    });
+  };
+
+  var playVibeVoicePreview = function (voice, rate, btn) {
+    playRemoteTtsPreview(
+      'http://127.0.0.1:8191/v1',
+      { 'Content-Type': 'application/json', 'Authorization': 'Bearer dummy' },
+      {
+        model: 'VibeVoice-Realtime-0.5B-4bit',
+        input: 'This is a voice preview. You can hear how the selected voice sounds.',
+        voice: voice || 'en-Emma_woman',
+        speed: parseFloat(rate) || 1.0
+      },
+      btn,
+      'VibeVoice 试听失败，请确认服务已启动',
+      'VibeVoice preview failed. Ensure the service is running.'
+    );
+  };
+
+  var playBrowserVoicePreview = function (filterLang, rate, voiceName, btn) {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    var isZh = filterLang === 'zh';
+    var utt = new SpeechSynthesisUtterance(
+      isZh
+        ? '这是一段语音测试，你可以听到当前选择的语音效果。'
+        : 'This is a voice preview. You can hear how the selected voice sounds.'
+    );
+    utt.lang = isZh ? 'zh-CN' : 'en-US';
+    utt.rate = parseFloat(rate) || 0.92;
+    if (voiceName) {
+      var match = window.speechSynthesis.getVoices().filter(function (v) { return v.name === voiceName; });
+      if (match.length) utt.voice = match[0];
+    }
+    btn.classList.add('is-testing');
+    utt.onend = function () { btn.classList.remove('is-testing'); };
+    utt.onerror = function () { btn.classList.remove('is-testing'); };
+    window.speechSynthesis.speak(utt);
+  };
+
+  var bindVoiceCloneSelect = function (selectEl, recordBtn, deleteBtn, qualityRow, onChanged, initialValue) {
+    var updateUI = function () {
+      var isClone = selectEl.value.indexOf('clone:') === 0;
+      if (deleteBtn) deleteBtn.style.display = isClone ? '' : 'none';
+      if (qualityRow) qualityRow.style.display = isClone ? '' : 'none';
+    };
+    var refreshOptions = function (selectId) {
+      var clones = loadVoiceClones();
+      var toRemove = [];
+      for (var i = 0; i < selectEl.options.length; i++) {
+        if (selectEl.options[i].value.indexOf('clone:') === 0 || selectEl.options[i].dataset.cloneGroup === '1') {
+          toRemove.push(selectEl.options[i]);
+        }
+      }
+      toRemove.forEach(function (o) { o.remove(); });
+      clones.slice().reverse().forEach(function (c) {
+        var opt = document.createElement('option');
+        opt.value = 'clone:' + c.id;
+        opt.dataset.cloneGroup = '1';
+        var dur = c.duration ? c.duration.toFixed(1) + 's' : '';
+        opt.textContent = '🎙 ' + c.name + (dur ? ' · ' + dur : '');
+        selectEl.insertBefore(opt, selectEl.firstChild);
+      });
+      var want = selectId || selectEl.value;
+      if (want && Array.prototype.some.call(selectEl.options, function (o) { return o.value === want; })) {
+        selectEl.value = want;
+      }
+      updateUI();
+    };
+    refreshOptions(initialValue || null);
+    if (recordBtn) {
+      recordBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        openVoiceCloneModal(function (entry) {
+          refreshOptions('clone:' + entry.id);
+          onChanged();
+        });
+      });
+    }
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var current = selectEl.value;
+        if (current.indexOf('clone:') !== 0) return;
+        var id = current.slice(6);
+        var clones = loadVoiceClones();
+        var entry = null;
+        for (var i = 0; i < clones.length; i++) { if (clones[i].id === id) { entry = clones[i]; break; } }
+        var name = entry ? entry.name : '';
+        var isZh = getLang() === 'zh';
+        var msg = (isZh ? '确定删除克隆声音 “' : 'Delete cloned voice “') + name + (isZh ? '” 吗？此操作不可恢复。' : '”? This cannot be undone.');
+        if (!window.confirm(msg)) return;
+        saveVoiceClones(clones.filter(function (c) { return c.id !== id; }));
+        selectEl.value = 'vivian';
+        refreshOptions('vivian');
+        onChanged();
+      });
+    }
+    selectEl.addEventListener('change', function () {
+      updateUI();
+      onChanged();
+    });
+  };
+
   var ensureTopbarActions = function () {
     var existing = topbarEnd ? topbarEnd.querySelector('.topbar-actions') : null;
     var actions = existing;
@@ -757,36 +920,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Populate browser voices into voiceSelect
     var populateBrowserVoices = function () {
-      if (!window.speechSynthesis) return;
-      var allVoices = window.speechSynthesis.getVoices();
-      if (!allVoices || !allVoices.length) return;
-
-      var filterLang = langSelect.value;
-      if (filterLang === 'auto') filterLang = getLang();
-      var langPrefix = (filterLang === 'zh') ? 'zh' : 'en';
-
-      while (voiceSelect.options.length > 1) {
-        voiceSelect.removeChild(voiceSelect.lastChild);
-      }
-      voiceSelect.options[0].textContent = zhMode ? '自动' : 'Auto';
-
-      var dialectMap = {
-        'zh-CN': '普通话', 'zh-TW': '台湾', 'zh-HK': '粤语',
-        'en-US': 'US', 'en-GB': 'UK', 'en-AU': 'AU', 'en-IN': 'IN'
-      };
-
-      allVoices.forEach(function (v) {
-        if (v.lang.indexOf(langPrefix) !== 0) return;
-        if (!/premium|natural|nature/i.test(v.name + ' ' + v.voiceURI)) return;
-        var opt = document.createElement('option');
-        opt.value = v.name;
-        var coreName = v.name.replace(/\s*\(.*\)\s*$/, '');
-        var dialectLabel = dialectMap[v.lang] || v.lang;
-        opt.textContent = coreName + ' · ' + dialectLabel;
-        voiceSelect.appendChild(opt);
-      });
-
-      if (lastBrowserVoice) voiceSelect.value = lastBrowserVoice;
+      var filterLang = langSelect.value === 'auto' ? getLang() : langSelect.value;
+      fillBrowserVoiceOptions(voiceSelect, filterLang, zhMode ? '自动' : 'Auto', lastBrowserVoice, '');
     };
 
     // Populate VibeVoice presets into voiceSelect
@@ -900,78 +1035,15 @@ document.addEventListener('DOMContentLoaded', function () {
       saveLaunchSettings();
     });
 
-    mossTtsVoiceSelect.addEventListener('change', function () {
-      updateLaunchCloneUI();
-      saveLaunchSettings();
-    });
     if (launchCloneQualitySelect) launchCloneQualitySelect.addEventListener('change', saveLaunchSettings);
-    var launchCloneRecordBtn = panel.querySelector('.launch-clone-record');
-    var launchCloneDeleteBtn = panel.querySelector('.launch-clone-delete');
-    var launchCloneQualityRow = panel.querySelector('.launch-clone-quality-row');
-
-    var refreshLaunchCloneOptions = function (selectId) {
-      var clones = loadVoiceClones();
-      // Remove existing clone options
-      var toRemove = [];
-      for (var i = 0; i < mossTtsVoiceSelect.options.length; i++) {
-        if (mossTtsVoiceSelect.options[i].value.indexOf('clone:') === 0) {
-          toRemove.push(mossTtsVoiceSelect.options[i]);
-        }
-      }
-      toRemove.forEach(function (o) { o.remove(); });
-      // Prepend (newest first)
-      clones.slice().reverse().forEach(function (c) {
-        var opt = document.createElement('option');
-        opt.value = 'clone:' + c.id;
-        var dur = c.duration ? c.duration.toFixed(1) + 's' : '';
-        opt.textContent = '🎙 ' + c.name + (dur ? ' · ' + dur : '');
-        mossTtsVoiceSelect.insertBefore(opt, mossTtsVoiceSelect.firstChild);
-      });
-      var want = selectId || mossTtsVoiceSelect.value;
-      if (want && Array.prototype.some.call(mossTtsVoiceSelect.options, function (o) { return o.value === want; })) {
-        mossTtsVoiceSelect.value = want;
-      }
-      updateLaunchCloneUI();
-    };
-
-    var updateLaunchCloneUI = function () {
-      var isClone = mossTtsVoiceSelect.value.indexOf('clone:') === 0;
-      if (launchCloneDeleteBtn) launchCloneDeleteBtn.style.display = isClone ? '' : 'none';
-      if (launchCloneQualityRow) launchCloneQualityRow.style.display = isClone ? '' : 'none';
-    };
-
-    refreshLaunchCloneOptions(savedSettings.mossTtsVoice || null);
-
-    if (launchCloneRecordBtn) {
-      launchCloneRecordBtn.addEventListener('click', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        openVoiceCloneModal(function (entry) {
-          refreshLaunchCloneOptions('clone:' + entry.id);
-          saveLaunchSettings();
-        });
-      });
-    }
-    if (launchCloneDeleteBtn) {
-      launchCloneDeleteBtn.addEventListener('click', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        var current = mossTtsVoiceSelect.value;
-        if (current.indexOf('clone:') !== 0) return;
-        var id = current.slice(6);
-        var clones = loadVoiceClones();
-        var entry = null;
-        for (var i = 0; i < clones.length; i++) { if (clones[i].id === id) { entry = clones[i]; break; } }
-        var name = entry ? entry.name : '';
-        var msg = (zhMode ? '确定删除克隆声音 “' : 'Delete cloned voice “') + name + (zhMode ? '” 吗？此操作不可恢复。' : '”? This cannot be undone.');
-        if (!window.confirm(msg)) return;
-        var remaining = clones.filter(function (c) { return c.id !== id; });
-        saveVoiceClones(remaining);
-        mossTtsVoiceSelect.value = 'vivian';
-        refreshLaunchCloneOptions('vivian');
-        saveLaunchSettings();
-      });
-    }
+    bindVoiceCloneSelect(
+      mossTtsVoiceSelect,
+      panel.querySelector('.launch-clone-record'),
+      panel.querySelector('.launch-clone-delete'),
+      panel.querySelector('.launch-clone-quality-row'),
+      saveLaunchSettings,
+      savedSettings.mossTtsVoice
+    );
     if (fishVoiceInput) {
       fishVoiceInput.addEventListener('input', saveLaunchSettings);
       fishVoiceInput.addEventListener('change', saveLaunchSettings);
@@ -1003,74 +1075,12 @@ document.addEventListener('DOMContentLoaded', function () {
     voiceTestBtn.addEventListener('click', function (e) {
       e.preventDefault();
       e.stopPropagation();
-
-      var isVibe = ttsSelect.value === 'vibevoice';
-
-      if (isVibe) {
-        // VibeVoice preview via API
-        var vibeSettings = {
-          endpoint: 'http://127.0.0.1:8191/v1',
-          voice: voiceSelect.value || 'en-Emma_woman'
-        };
-        var testText = 'This is a voice preview. You can hear how the selected voice sounds.';
-        voiceTestBtn.classList.add('is-testing');
-
-        fetch(vibeSettings.endpoint + '/audio/speech', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer dummy' },
-          body: JSON.stringify({
-            model: 'VibeVoice-Realtime-0.5B-4bit',
-            input: testText,
-            voice: vibeSettings.voice,
-            speed: parseFloat(rateInput.value) || 1.0
-          })
-        })
-        .then(function (res) {
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          return res.arrayBuffer();
-        })
-        .then(function (buf) {
-          var ctx = new (window.AudioContext || window.webkitAudioContext)();
-          return ctx.decodeAudioData(buf).then(function (audioBuf) {
-            var src = ctx.createBufferSource();
-            src.buffer = audioBuf;
-            src.connect(ctx.destination);
-            src.onended = function () { voiceTestBtn.classList.remove('is-testing'); };
-            src.start(0);
-          });
-        })
-        .catch(function (err) {
-          voiceTestBtn.classList.remove('is-testing');
-          console.error('VibeVoice preview error:', err);
-          window.alert(getLang() === 'zh' ? 'VibeVoice 试听失败，请确认服务已启动' : 'VibeVoice preview failed. Ensure the service is running.');
-        });
+      if (ttsSelect.value === 'vibevoice') {
+        playVibeVoicePreview(voiceSelect.value, rateInput.value, voiceTestBtn);
         return;
       }
-
-      // Browser TTS preview
-      if (!window.speechSynthesis) return;
-      window.speechSynthesis.cancel();
-
-      var filterLang = langSelect.value;
-      if (filterLang === 'auto') filterLang = getLang();
-      var browserTestText = (filterLang === 'zh')
-        ? '这是一段语音测试，你可以听到当前选择的语音效果。'
-        : 'This is a voice preview. You can hear how the selected voice sounds.';
-
-      var utt = new SpeechSynthesisUtterance(browserTestText);
-      utt.lang = (filterLang === 'zh') ? 'zh-CN' : 'en-US';
-      utt.rate = parseFloat(rateInput.value) || 0.92;
-
-      if (voiceSelect.value) {
-        var allV = window.speechSynthesis.getVoices();
-        var match = allV.filter(function (v) { return v.name === voiceSelect.value; });
-        if (match.length) utt.voice = match[0];
-      }
-
-      voiceTestBtn.classList.add('is-testing');
-      utt.onend = function () { voiceTestBtn.classList.remove('is-testing'); };
-      utt.onerror = function () { voiceTestBtn.classList.remove('is-testing'); };
-      window.speechSynthesis.speak(utt);
+      var filterLang = langSelect.value === 'auto' ? getLang() : langSelect.value;
+      playBrowserVoicePreview(filterLang, rateInput.value, voiceSelect.value, voiceTestBtn);
     });
 
     // Prevent panel clicks from triggering presentation start
@@ -1754,64 +1764,52 @@ document.addEventListener('DOMContentLoaded', function () {
     narrationCapsuleChatBtn = null;
   };
 
+  var narrationUiLoader = null;
+  var ensureNarrationUI = function () {
+    if (window.StudyRoomNarrationUI) return Promise.resolve(window.StudyRoomNarrationUI);
+    if (narrationUiLoader) return narrationUiLoader;
+    narrationUiLoader = new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = resolvePresentationAssetUrl('article-narration-ui.js');
+      s.async = true;
+      s.onload = function () {
+        if (window.StudyRoomNarrationUI) { resolve(window.StudyRoomNarrationUI); return; }
+        reject(new Error('article-narration-ui.js loaded but unavailable.'));
+      };
+      s.onerror = function () { reject(new Error('Failed to load article-narration-ui.js.')); };
+      document.head.appendChild(s);
+    });
+    return narrationUiLoader;
+  };
+
   /** Build capsule structure inside the FAB (only in presentation mode) */
   var buildCapsuleStructure = function () {
     var fab = presentationAutoPlay;
     if (!fab) return;
-
-    // Build capsule inner structure if not already built
-    if (!fab.querySelector('.narration-capsule-actions')) {
-      // Save original HTML to restore on exit
-      fab.setAttribute('data-original-html', fab.innerHTML);
-
-      var actions = document.createElement('div');
-      actions.className = 'narration-capsule-actions';
-
-      // Settings button
-      narrationCapsuleSettingsBtn = document.createElement('button');
-      narrationCapsuleSettingsBtn.className = 'narration-capsule-btn';
-      narrationCapsuleSettingsBtn.type = 'button';
-      narrationCapsuleSettingsBtn.setAttribute('aria-label', getLang() === 'zh' ? '讲解设置' : 'Settings');
-      narrationCapsuleSettingsBtn.innerHTML = SVG_SETTINGS;
-      actions.appendChild(narrationCapsuleSettingsBtn);
-
-      // Record button
-      narrationCapsuleRecordBtn = document.createElement('button');
-      narrationCapsuleRecordBtn.className = 'narration-capsule-btn';
-      narrationCapsuleRecordBtn.type = 'button';
-      narrationCapsuleRecordBtn.setAttribute('aria-label', getLang() === 'zh' ? '录制视频' : 'Record');
-      narrationCapsuleRecordBtn.innerHTML = SVG_RECORD;
-      actions.appendChild(narrationCapsuleRecordBtn);
-
-      // Chat button — only if assistant dialog exists (LLM configured)
-      var hasAssistant = !!document.querySelector('.assistant-dialog');
-      narrationCapsuleChatBtn = document.createElement('button');
-      narrationCapsuleChatBtn.className = 'narration-capsule-btn';
-      narrationCapsuleChatBtn.type = 'button';
-      narrationCapsuleChatBtn.setAttribute('aria-label', getLang() === 'zh' ? 'AI 助手' : 'AI Chat');
-      narrationCapsuleChatBtn.innerHTML = NARRATION_SVG_CHAT;
-      if (!hasAssistant) {
-        narrationCapsuleChatBtn.style.display = 'none';
-      }
-      actions.appendChild(narrationCapsuleChatBtn);
-
-      var divider = document.createElement('div');
-      divider.className = 'narration-capsule-divider';
-      actions.appendChild(divider);
-
-      var mainArea = document.createElement('div');
-      mainArea.className = 'narration-capsule-main';
-      // Will be populated by updateAutoPlayButton
-
-      fab.innerHTML = '';
-      fab.appendChild(actions);
-      fab.appendChild(mainArea);
-
-      // Adjust expanded height based on visible buttons
-      var visibleBtnCount = hasAssistant ? 3 : 2;
-      fab.style.setProperty('--capsule-expanded-height', (visibleBtnCount * 44 + 1 + 52) + 'px');
+    if (window.StudyRoomNarrationUI && window.StudyRoomNarrationUI.buildCapsule) {
+      var built = window.StudyRoomNarrationUI.buildCapsule(fab, getLang, {
+        settings: SVG_SETTINGS,
+        record: SVG_RECORD,
+        chat: NARRATION_SVG_CHAT
+      });
+      narrationCapsuleSettingsBtn = built.settingsBtn;
+      narrationCapsuleRecordBtn = built.recordBtn;
+      narrationCapsuleChatBtn = built.chatBtn;
+      return fab;
     }
-
+    ensureNarrationUI().then(function (ui) {
+      if (!ui || !ui.buildCapsule || !state.enabled) return;
+      var built = ui.buildCapsule(fab, getLang, {
+        settings: SVG_SETTINGS,
+        record: SVG_RECORD,
+        chat: NARRATION_SVG_CHAT
+      });
+      narrationCapsuleSettingsBtn = built.settingsBtn;
+      narrationCapsuleRecordBtn = built.recordBtn;
+      narrationCapsuleChatBtn = built.chatBtn;
+      wireCapsuleHandlers();
+      updateAutoPlayButton();
+    }).catch(function () {});
     return fab;
   };
 
@@ -2085,526 +2083,33 @@ document.addEventListener('DOMContentLoaded', function () {
   var ensureNarrationSettingsPanel = function () {
     var existing = document.querySelector('.narration-settings-panel');
     if (existing) return existing;
-
-    var panel = document.createElement('div');
-    panel.className = 'narration-settings-panel';
-    panel.innerHTML = [
-      '<div class="narration-settings-header">',
-      '  <strong>' + (getLang() === 'zh' ? '讲解设置' : 'Narration Settings') + '</strong>',
-      '  <button class="narration-settings-close" type="button" aria-label="Close">' +
-          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
-        '</button>',
-      '</div>',
-      '<label class="narration-setting-row">',
-      '  <span>' + (getLang() === 'zh' ? '语言' : 'Language') + '</span>',
-      '  <select class="narration-select" data-narration-setting="lang">',
-      '    <option value="auto">' + (getLang() === 'zh' ? '跟随页面' : 'Follow page') + '</option>',
-      '    <option value="zh">中文</option>',
-      '    <option value="en">English</option>',
-      '  </select>',
-      '</label>',
-      '<label class="narration-setting-row">',
-      '  <span>' + (getLang() === 'zh' ? '语速' : 'Speed') + '</span>',
-      '  <input type="range" class="narration-range" data-narration-setting="rate" min="0.5" max="1.5" step="0.1" value="0.92" />',
-      '  <span class="narration-rate-value">0.92</span>',
-      '</label>',
-      '<div class="narration-setting-row narration-voice-row">',
-      '  <span>' + (getLang() === 'zh' ? '语音' : 'Voice') + '</span>',
-      '  <select class="narration-select narration-voice-select" data-narration-setting="voiceName">',
-      '    <option value="">' + (getLang() === 'zh' ? '自动' : 'Auto') + '</option>',
-      '  </select>',
-      '  <button class="narration-voice-test" type="button" aria-label="' + (getLang() === 'zh' ? '试听' : 'Preview') + '" title="' + (getLang() === 'zh' ? '试听' : 'Preview') + '">' +
-          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>' +
-        '</button>',
-      '</div>',
-      '<label class="narration-setting-row">',
-      '  <span>' + (getLang() === 'zh' ? 'TTS' : 'TTS') + '</span>',
-      '  <select class="narration-select" data-narration-setting="ttsProvider">',
-      '    <option value="browser">' + (getLang() === 'zh' ? '浏览器内置' : 'Browser') + '</option>',
-      '    <option value="vibevoice">VibeVoice (EN)</option>',
-      '    <option value="moss-tts-nano">Qwen3-TTS (MLX)</option>',
-      '    <option value="fish-s2">Fish Audio S2 (MLX)</option>',
-      '  </select>',
-      '</label>',
-      '<div class="narration-moss-settings" style="display:none;">',
-      '  <label class="narration-setting-row">',
-      '    <span>' + (getLang() === 'zh' ? '音色' : 'Voice') + '</span>',
-      '    <select class="narration-select" data-narration-setting="mossTtsVoice">',
-      '      <option value="vivian">vivian (' + (getLang() === 'zh' ? '活泼女声' : 'Female ZH') + ')</option>',
-      '      <option value="serena">serena (' + (getLang() === 'zh' ? '温柔女声' : 'Female ZH') + ')</option>',
-      '      <option value="uncle_fu">uncle_fu (' + (getLang() === 'zh' ? '成熟男声' : 'Male ZH') + ')</option>',
-      '      <option value="dylan">dylan (' + (getLang() === 'zh' ? '京腔男声' : 'Male Beijing') + ')</option>',
-      '      <option value="ryan">ryan (' + (getLang() === 'zh' ? '英文男声' : 'Male EN') + ')</option>',
-      '      <option value="aiden">aiden (' + (getLang() === 'zh' ? '美式男声' : 'Male US') + ')</option>',
-      '      <option value="ono_anna">ono_anna (' + (getLang() === 'zh' ? '日语女声' : 'Female JA') + ')</option>',
-      '      <option value="sohee">sohee (' + (getLang() === 'zh' ? '韩语女声' : 'Female KO') + ')</option>',
-      '      <option value="eric">eric (' + (getLang() === 'zh' ? '英文男声' : 'Male EN') + ')</option>',
-      '    </select>',
-      '    <button class="narration-voice-test narration-moss-voice-test" type="button" aria-label="' + (getLang() === 'zh' ? '试听' : 'Preview') + '" title="' + (getLang() === 'zh' ? '试听' : 'Preview') + '">' +
-          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>' +
-        '</button>',
-      '    <button class="narration-voice-test narration-clone-record-btn" type="button" title="' + (getLang() === 'zh' ? '录制新声音' : 'Record new clone') + '" aria-label="' + (getLang() === 'zh' ? '录制新声音' : 'Record new clone') + '">' +
-          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>' +
-        '</button>',
-      '    <button class="narration-voice-test narration-clone-delete-btn" type="button" style="display:none;" title="' + (getLang() === 'zh' ? '删除当前克隆声音' : 'Delete current clone') + '" aria-label="' + (getLang() === 'zh' ? '删除' : 'Delete') + '">' +
-          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>' +
-        '</button>',
-      '  </label>',
-      '  <label class="narration-setting-row narration-clone-quality-row" style="display:none;">',
-      '    <span>' + (getLang() === 'zh' ? '克隆质量' : 'Clone quality') + '</span>',
-      '    <select class="narration-select" data-narration-setting="mossCloneQuality">',
-      '      <option value="8bit">' + (getLang() === 'zh' ? '快速（8bit，推荐）' : 'Fast (8bit, recommended)') + '</option>',
-      '      <option value="bf16">' + (getLang() === 'zh' ? '高质（bf16，较慢）' : 'High quality (bf16, slower)') + '</option>',
-      '    </select>',
-      '  </label>',
-      '</div>',
-      '<div class="narration-fish-settings" style="display:none;">',
-      '  <label class="narration-setting-row">',
-      '    <span>' + (getLang() === 'zh' ? '音色' : 'Voice') + '</span>',
-      '    <input type="text" class="narration-select" data-narration-setting="fishTtsVoice" placeholder="' + (getLang() === 'zh' ? '留空 = 默认音色' : 'blank = default voice') + '" />',
-      '  </label>',
-      '  <div class="narration-setting-hint">' + (getLang() === 'zh' ? '支持 [whisper]、[laughing] 等情感标签。' : 'Inline tags like [whisper], [laughing] are supported.') + '</div>',
-      '</div>',
-      '<label class="narration-setting-row narration-tts-emotion-row" style="display:none;">',
-      '  <span>' + (getLang() === 'zh' ? '情绪' : 'Emotion') + '</span>',
-      '  <select class="narration-select" data-narration-setting="ttsEmotion">',
-      '    <option value="default">' + (getLang() === 'zh' ? '默认讲解' : 'Default narrator') + '</option>',
-      '    <option value="passionate">' + (getLang() === 'zh' ? '充满激情' : 'Passionate') + '</option>',
-      '    <option value="inspiring">' + (getLang() === 'zh' ? '激励鼓舞' : 'Inspiring') + '</option>',
-      '    <option value="warm">' + (getLang() === 'zh' ? '温暖亲切' : 'Warm') + '</option>',
-      '    <option value="cheerful">' + (getLang() === 'zh' ? '轻松愉快' : 'Cheerful') + '</option>',
-      '    <option value="serious">' + (getLang() === 'zh' ? '严肃权威' : 'Serious') + '</option>',
-      '    <option value="storytelling">' + (getLang() === 'zh' ? '娓娓道来' : 'Storytelling') + '</option>',
-      '    <option value="urgent">' + (getLang() === 'zh' ? '紧迫急切' : 'Urgent') + '</option>',
-      '  </select>',
-      '</label>',
-      '<div class="narration-setting-row narration-voice-row narration-vibe-row">',
-      '  <span>' + (getLang() === 'zh' ? 'AI语音' : 'AI Voice') + '</span>',
-      '  <select class="narration-select" data-narration-setting="vibeVoice">',
-      '    <option value="en-Emma_woman">Emma (Woman)</option>',
-      '    <option value="en-Grace_woman">Grace (Woman)</option>',
-      '    <option value="en-Carter_man">Carter (Man)</option>',
-      '    <option value="en-Davis_man">Davis (Man)</option>',
-      '    <option value="en-Frank_man">Frank (Man)</option>',
-      '    <option value="en-Mike_man">Mike (Man)</option>',
-      '  </select>',
-      '  <button class="narration-voice-test narration-vibe-test" type="button" aria-label="' + (getLang() === 'zh' ? '试听' : 'Preview') + '" title="' + (getLang() === 'zh' ? '试听' : 'Preview') + '">' +
-          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>' +
-        '</button>',
-      '</div>',
-      '<label class="narration-setting-row">',
-      '  <span>' + (getLang() === 'zh' ? '结尾二维码' : 'End QR Code') + '</span>',
-      '  <input type="checkbox" class="narration-checkbox" data-narration-setting="showEndQR" />',
-      '</label>'
-    ].join('\n');
-
-    document.body.appendChild(panel);
-
-    // Settings keys: global = 'narration-settings', per-article = 'narration-settings:' + slug
-    var articleSlug = window.location.pathname.replace(/\/$/, '').split('/').pop() || '';
-    var globalKey = 'narration-settings';
-    var articleKey = articleSlug ? ('narration-settings:' + articleSlug) : '';
-
-    // Load: per-article overrides global
-    var saved = {};
-    try { saved = JSON.parse(localStorage.getItem(globalKey)) || {}; } catch (e) {}
-    if (articleKey) {
-      try {
-        var articleSaved = JSON.parse(localStorage.getItem(articleKey));
-        if (articleSaved) {
-          // Merge: article settings override global
-          Object.keys(articleSaved).forEach(function (k) { if (articleSaved[k] !== undefined && articleSaved[k] !== '') saved[k] = articleSaved[k]; });
-        }
-      } catch (e) {}
-    }
-
-    var langSelect = panel.querySelector('[data-narration-setting="lang"]');
-    var rateInput = panel.querySelector('[data-narration-setting="rate"]');
-    var rateValue = panel.querySelector('.narration-rate-value');
-    var voiceSelect = panel.querySelector('[data-narration-setting="voiceName"]');
-    var voiceTestBtn = panel.querySelector('.narration-voice-test');
-    var ttsProviderSelect = panel.querySelector('[data-narration-setting="ttsProvider"]');
-    var vibeVoiceSelect = panel.querySelector('[data-narration-setting="vibeVoice"]');
-    var vibeRow = panel.querySelector('.narration-vibe-row');
-    var mossSettingsDiv = panel.querySelector('.narration-moss-settings');
-    var mossDemoIdInput = panel.querySelector('[data-narration-setting="mossTtsVoice"]');
-    var mossVoiceTestBtn = panel.querySelector('.narration-moss-voice-test');
-    var fishSettingsDiv = panel.querySelector('.narration-fish-settings');
-    var fishVoiceInput = panel.querySelector('[data-narration-setting="fishTtsVoice"]');
-    var browserVoiceRow = panel.querySelector('.narration-voice-row:not(.narration-vibe-row)');
-
-    if (saved.lang) langSelect.value = saved.lang;
-    if (saved.rate) { rateInput.value = saved.rate; rateValue.textContent = saved.rate; }
-    if (saved.ttsProvider) ttsProviderSelect.value = saved.ttsProvider;
-    if (saved.vibeVoice) vibeVoiceSelect.value = saved.vibeVoice;
-    if (saved.mossTtsVoice) mossDemoIdInput.value = saved.mossTtsVoice;
-    if (saved.fishTtsVoice && fishVoiceInput) fishVoiceInput.value = saved.fishTtsVoice;
-    var cloneQualitySelect = panel.querySelector('[data-narration-setting="mossCloneQuality"]');
-    var emotionSelectIn = panel.querySelector('[data-narration-setting="ttsEmotion"]');
-    var emotionRowIn = panel.querySelector('.narration-tts-emotion-row');
-    if (cloneQualitySelect && saved.mossCloneQuality) cloneQualitySelect.value = saved.mossCloneQuality;
-
-    // Show/hide provider-specific rows based on TTS provider selection
-    var syncProviderVisibility = function () {
-      var provider = ttsProviderSelect.value;
-      browserVoiceRow.style.display = provider === 'browser' ? '' : 'none';
-      vibeRow.style.display = provider === 'vibevoice' ? '' : 'none';
-      mossSettingsDiv.style.display = provider === 'moss-tts-nano' ? '' : 'none';
-      if (fishSettingsDiv) fishSettingsDiv.style.display = provider === 'fish-s2' ? '' : 'none';
-      if (emotionRowIn) emotionRowIn.style.display = (provider === 'moss-tts-nano' || provider === 'fish-s2') ? '' : 'none';
-    };
-    syncProviderVisibility();
-    ttsProviderSelect.addEventListener('change', syncProviderVisibility);
-
-    // Populate voices directly from browser Speech API
-    var voicesPopulated = false;
-    var populateVoices = function () {
-      if (!window.speechSynthesis) return;
-      var allVoices = window.speechSynthesis.getVoices();
-      if (!allVoices || !allVoices.length) return;
-      voicesPopulated = true;
-
-      // Determine which language to filter by
-      var filterLang = langSelect.value;
-      if (filterLang === 'auto') filterLang = getLang();
-      var langPrefix = (filterLang === 'zh') ? 'zh' : 'en';
-
-      // Remember current selection
-      var currentVal = voiceSelect.value;
-
-      // Clear all except "Auto"
-      while (voiceSelect.options.length > 1) {
-        voiceSelect.removeChild(voiceSelect.lastChild);
-      }
-
-      // Add matching voices
-      allVoices.forEach(function (v) {
-        if (v.lang.indexOf(langPrefix) !== 0) return;
-        if (!/premium|natural|nature/i.test(v.name + ' ' + v.voiceURI)) return;
-        var opt = document.createElement('option');
-        opt.value = v.name;
-        // Format: extract dialect from lang tag, show as "Name · Dialect"
-        var dialect = v.lang;
-        // Map common lang codes to short readable labels
-        var dialectMap = {
-          'zh-CN': '普通话', 'zh-TW': '台湾', 'zh-HK': '粤语',
-          'en-US': 'US', 'en-GB': 'UK', 'en-AU': 'AU', 'en-IN': 'IN', 'en-IE': 'IE', 'en-ZA': 'ZA'
-        };
-        var dialectLabel = dialectMap[v.lang] || v.lang;
-        // Extract core name — strip parenthetical region info since we show dialect separately
-        var coreName = v.name.replace(/\s*\(.*\)\s*$/, '');
-        opt.textContent = coreName + ' · ' + dialectLabel;
-        opt.title = v.name + ' (' + v.lang + ')';
-        voiceSelect.appendChild(opt);
-      });
-
-      // Restore selection
-      if (currentVal) voiceSelect.value = currentVal;
-      if (saved.voiceName && !currentVal) voiceSelect.value = saved.voiceName;
-      panel.removeAttribute('data-voices-pending');
-    };
-
-    // Try immediately
-    populateVoices();
-
-    // Listen for async voice loading
-    if (window.speechSynthesis) {
-      window.speechSynthesis.addEventListener('voiceschanged', populateVoices);
-    }
-
-    // Re-populate when language changes
-    langSelect.addEventListener('change', function () {
-      // Reset voice selection when language changes
-      voiceSelect.value = '';
-      populateVoices();
-    });
-
-    var saveSettings = function () {
-      var s = {
-        lang: langSelect.value === 'auto' ? '' : langSelect.value,
-        rate: parseFloat(rateInput.value),
-        voiceName: voiceSelect.value,
-        ttsProvider: ttsProviderSelect.value,
-        ttsEngine: ttsProviderSelect.value === 'moss-tts-nano' ? 'moss-tts-nano' : (ttsProviderSelect.value === 'fish-s2' ? 'fish-s2' : ''),
-        mossTtsVoice: mossDemoIdInput.value,
-        fishTtsVoice: fishVoiceInput ? fishVoiceInput.value.trim() : '',
-        vibeVoice: vibeVoiceSelect.value,
-        mossCloneQuality: cloneQualitySelect ? cloneQualitySelect.value : '8bit',
-        ttsEmotion: emotionSelectIn ? emotionSelectIn.value : 'default'
-      };
-      localStorage.setItem(globalKey, JSON.stringify(s));
-      if (articleKey) {
-        localStorage.setItem(articleKey, JSON.stringify(s));
-      }
-    };
-
-    langSelect.addEventListener('change', saveSettings);
-    ttsProviderSelect.addEventListener('change', saveSettings);
-    vibeVoiceSelect.addEventListener('change', saveSettings);
-    if (emotionSelectIn) emotionSelectIn.addEventListener('change', saveSettings);
-
-    // End QR toggle
-    var showEndQRCheckbox = panel.querySelector('[data-narration-setting="showEndQR"]');
-    if (showEndQRCheckbox) {
-      var qrSaved = false;
-      try { qrSaved = JSON.parse(localStorage.getItem('narration-showEndQR') || 'false'); } catch (e) {}
-      showEndQRCheckbox.checked = qrSaved;
-      showEndQRCheckbox.addEventListener('change', function () {
-        localStorage.setItem('narration-showEndQR', JSON.stringify(showEndQRCheckbox.checked));
-        var endQr = document.querySelector('.present-end-qr');
-        if (endQr) endQr.style.display = showEndQRCheckbox.checked ? '' : 'none';
+    if (window.StudyRoomNarrationUI && window.StudyRoomNarrationUI.createSettingsPanel) {
+      return window.StudyRoomNarrationUI.createSettingsPanel(getLang, {
+        openVoiceCloneModal: openVoiceCloneModal,
+        loadVoiceClones: loadVoiceClones,
+        saveVoiceClones: saveVoiceClones,
+        bindVoiceCloneSelect: bindVoiceCloneSelect,
+        fillBrowserVoiceOptions: fillBrowserVoiceOptions,
+        playBrowserVoicePreview: playBrowserVoicePreview,
+        playVibeVoicePreview: playVibeVoicePreview,
+        playRemoteTtsPreview: playRemoteTtsPreview
       });
     }
-    // mossDemoIdInput change handler is registered below (in the clone section) to also toggle UI
-    if (fishVoiceInput) {
-      fishVoiceInput.addEventListener('input', saveSettings);
-      fishVoiceInput.addEventListener('change', saveSettings);
-    }
-
-    // ── Voice clones (Qwen3-TTS Base) ──
-    // Populate dropdown with saved clones (prepended) and wire record/delete buttons.
-    var cloneRecordBtn = panel.querySelector('.narration-clone-record-btn');
-    var cloneDeleteBtn = panel.querySelector('.narration-clone-delete-btn');
-    var cloneQualityRow = panel.querySelector('.narration-clone-quality-row');
-
-    var refreshCloneOptions = function (selectId) {
-      var clones = loadVoiceClones();
-      // Remove existing clone-* options
-      var toRemove = [];
-      for (var i = 0; i < mossDemoIdInput.options.length; i++) {
-        if (mossDemoIdInput.options[i].value.indexOf('clone:') === 0 || mossDemoIdInput.options[i].dataset.cloneGroup === '1') {
-          toRemove.push(mossDemoIdInput.options[i]);
-        }
-      }
-      toRemove.forEach(function (o) { o.remove(); });
-      // Prepend clones
-      var zh2 = getLang() === 'zh';
-      clones.slice().reverse().forEach(function (c) {
-        var opt = document.createElement('option');
-        opt.value = 'clone:' + c.id;
-        opt.dataset.cloneGroup = '1';
-        var dur = c.duration ? c.duration.toFixed(1) + 's' : '';
-        opt.textContent = '🎙 ' + c.name + (dur ? ' · ' + dur : '');
-        mossDemoIdInput.insertBefore(opt, mossDemoIdInput.firstChild);
-      });
-      // Restore selection if requested or current
-      var want = selectId || mossDemoIdInput.value;
-      if (want && Array.prototype.some.call(mossDemoIdInput.options, function (o) { return o.value === want; })) {
-        mossDemoIdInput.value = want;
-      }
-      updateCloneUI();
-    };
-
-    var updateCloneUI = function () {
-      var isClone = mossDemoIdInput.value.indexOf('clone:') === 0;
-      if (cloneDeleteBtn) cloneDeleteBtn.style.display = isClone ? '' : 'none';
-      if (cloneQualityRow) cloneQualityRow.style.display = isClone ? '' : 'none';
-    };
-
-    refreshCloneOptions(saved.mossTtsVoice || null);
-
-    if (cloneRecordBtn) {
-      cloneRecordBtn.addEventListener('click', function (e) {
-        e.preventDefault();
-        openVoiceCloneModal(function (entry) {
-          // Auto-select the new clone
-          refreshCloneOptions('clone:' + entry.id);
-          saveSettings();
+    ensureNarrationUI().then(function (ui) {
+      if (ui && ui.createSettingsPanel) {
+        ui.createSettingsPanel(getLang, {
+          openVoiceCloneModal: openVoiceCloneModal,
+          loadVoiceClones: loadVoiceClones,
+          saveVoiceClones: saveVoiceClones,
+          bindVoiceCloneSelect: bindVoiceCloneSelect,
+          fillBrowserVoiceOptions: fillBrowserVoiceOptions,
+          playBrowserVoicePreview: playBrowserVoicePreview,
+          playVibeVoicePreview: playVibeVoicePreview,
+          playRemoteTtsPreview: playRemoteTtsPreview
         });
-      });
-    }
-    if (cloneDeleteBtn) {
-      cloneDeleteBtn.addEventListener('click', function (e) {
-        e.preventDefault();
-        var current = mossDemoIdInput.value;
-        if (current.indexOf('clone:') !== 0) return;
-        var id = current.slice(6);
-        var clones = loadVoiceClones();
-        var entry = null;
-        for (var i = 0; i < clones.length; i++) { if (clones[i].id === id) { entry = clones[i]; break; } }
-        var name = entry ? entry.name : '';
-        var zh2 = getLang() === 'zh';
-        var msg = (zh2 ? '确定删除克隆声音 “' : 'Delete cloned voice “') + name + (zh2 ? '” 吗？此操作不可恢复。' : '”? This cannot be undone.');
-        if (!window.confirm(msg)) return;
-        var remaining = clones.filter(function (c) { return c.id !== id; });
-        saveVoiceClones(remaining);
-        // Fallback to first preset (vivian)
-        mossDemoIdInput.value = 'vivian';
-        refreshCloneOptions('vivian');
-        saveSettings();
-      });
-    }
-    mossDemoIdInput.addEventListener('change', function () {
-      updateCloneUI();
-      saveSettings();
-    });
-    if (cloneQualitySelect) cloneQualitySelect.addEventListener('change', saveSettings);
-    rateInput.addEventListener('input', function () {
-      rateValue.textContent = parseFloat(rateInput.value).toFixed(2);
-      saveSettings();
-    });
-    voiceSelect.addEventListener('change', saveSettings);
-
-    // Voice test/preview button
-    var testUtterance = null;
-    voiceTestBtn.addEventListener('click', function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      if (!window.speechSynthesis) return;
-      // Cancel any ongoing test
-      window.speechSynthesis.cancel();
-
-      var testText = (getLang() === 'zh' || langSelect.value === 'zh')
-        ? '这是一段语音测试，你可以听到当前选择的语音效果。'
-        : 'This is a voice preview. You can hear how the selected voice sounds.';
-
-      var utt = new SpeechSynthesisUtterance(testText);
-      var filterLang = langSelect.value;
-      if (filterLang === 'auto') filterLang = getLang();
-      utt.lang = (filterLang === 'zh') ? 'zh-CN' : 'en-US';
-      utt.rate = parseFloat(rateInput.value) || 0.92;
-
-      // Pick selected voice
-      if (voiceSelect.value) {
-        var allV = window.speechSynthesis.getVoices();
-        var match = allV.filter(function (v) { return v.name === voiceSelect.value; });
-        if (match.length) utt.voice = match[0];
       }
-
-      voiceTestBtn.classList.add('is-testing');
-      utt.onend = function () { voiceTestBtn.classList.remove('is-testing'); };
-      utt.onerror = function () { voiceTestBtn.classList.remove('is-testing'); };
-      window.speechSynthesis.speak(utt);
-    });
-
-    // VibeVoice preview button
-    var vibeTestBtn = panel.querySelector('.narration-vibe-test');
-    if (vibeTestBtn) {
-      vibeTestBtn.addEventListener('click', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        var vibeSettings = {
-          endpoint: 'http://127.0.0.1:8191/v1',
-          voice: vibeVoiceSelect.value || 'en-Emma_woman'
-        };
-        var testText = 'This is a voice preview. You can hear how the selected voice sounds.';
-        vibeTestBtn.classList.add('is-testing');
-
-        fetch(vibeSettings.endpoint + '/audio/speech', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer dummy' },
-          body: JSON.stringify({
-            model: 'VibeVoice-Realtime-0.5B-4bit',
-            input: testText,
-            voice: vibeSettings.voice,
-            speed: parseFloat(rateInput.value) || 1.0
-          })
-        })
-        .then(function (res) {
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          return res.arrayBuffer();
-        })
-        .then(function (buf) {
-          var ctx = new (window.AudioContext || window.webkitAudioContext)();
-          return ctx.decodeAudioData(buf).then(function (audioBuf) {
-            var src = ctx.createBufferSource();
-            src.buffer = audioBuf;
-            src.connect(ctx.destination);
-            src.onended = function () { vibeTestBtn.classList.remove('is-testing'); };
-            src.start(0);
-          });
-        })
-        .catch(function (err) {
-          vibeTestBtn.classList.remove('is-testing');
-          console.error('VibeVoice preview error:', err);
-          window.alert(getLang() === 'zh' ? 'VibeVoice 试听失败，请确认服务已启动' : 'VibeVoice preview failed. Ensure the service is running.');
-        });
-      });
-    }
-
-    // Qwen3-TTS voice preview (reuses LLM endpoint)
-    if (mossVoiceTestBtn) {
-      mossVoiceTestBtn.addEventListener('click', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        var llm = null;
-        try { llm = JSON.parse(localStorage.getItem('llm-settings')); } catch (ex) {}
-        if (!llm || !llm.endpoint) return;
-        var ep = llm.endpoint.replace(/\/+$/, '');
-        var voice = (mossDemoIdInput.value || 'vivian').toLowerCase();
-        var testText = (getLang() === 'zh' || langSelect.value === 'zh')
-          ? '你好，这是一段语音试听。'
-          : 'Hello, this is a voice preview.';
-        var headers = { 'Content-Type': 'application/json' };
-        if (llm.apikey) headers['Authorization'] = 'Bearer ' + llm.apikey;
-        mossVoiceTestBtn.classList.add('is-testing');
-        fetch(ep + '/audio/speech', {
-          method: 'POST',
-          headers: headers,
-          body: JSON.stringify({
-            model: 'Qwen3-TTS-12Hz-0.6B-CustomVoice-8bit',
-            input: testText,
-            voice: voice
-          })
-        })
-        .then(function (res) {
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          return res.arrayBuffer();
-        })
-        .then(function (buf) {
-          var ctx = new (window.AudioContext || window.webkitAudioContext)();
-          return ctx.decodeAudioData(buf).then(function (audioBuf) {
-            var src = ctx.createBufferSource();
-            src.buffer = audioBuf;
-            src.connect(ctx.destination);
-            src.onended = function () { mossVoiceTestBtn.classList.remove('is-testing'); };
-            src.start(0);
-          });
-        })
-        .catch(function (err) {
-          mossVoiceTestBtn.classList.remove('is-testing');
-          console.error('Qwen3-TTS preview error:', err);
-        });
-      });
-    }
-
-    panel.querySelector('.narration-settings-close').addEventListener('click', function () {
-      panel.classList.remove('is-open');
-    });
-
-    // Close on outside click
-    document.addEventListener('click', function (e) {
-      if (panel.classList.contains('is-open') && !panel.contains(e.target) && !e.target.closest('.present-settings') && !e.target.closest('.narration-capsule-btn') && !e.target.closest('.assistant-fab')) {
-        panel.classList.remove('is-open');
-      }
-    });
-
-    // Refresh all panel fields from localStorage (called before entering presentation)
-    panel._refreshFromStorage = function () {
-      var fresh = {};
-      try { fresh = JSON.parse(localStorage.getItem(globalKey)) || {}; } catch (e) {}
-      if (articleKey) {
-        try {
-          var articleFresh = JSON.parse(localStorage.getItem(articleKey));
-          if (articleFresh) {
-            Object.keys(articleFresh).forEach(function (k) { if (articleFresh[k] !== undefined && articleFresh[k] !== '') fresh[k] = articleFresh[k]; });
-          }
-        } catch (e) {}
-      }
-
-      if (fresh.lang) { langSelect.value = fresh.lang; } else { langSelect.value = 'auto'; }
-      if (fresh.rate) { rateInput.value = fresh.rate; rateValue.textContent = parseFloat(fresh.rate).toFixed(2); }
-      if (fresh.ttsProvider) { ttsProviderSelect.value = fresh.ttsProvider; } else { ttsProviderSelect.value = 'browser'; }
-      if (fresh.vibeVoice) { vibeVoiceSelect.value = fresh.vibeVoice; }
-      if (fresh.mossTtsVoice) { mossDemoIdInput.value = fresh.mossTtsVoice; }
-      if (cloneQualitySelect && fresh.mossCloneQuality) { cloneQualitySelect.value = fresh.mossCloneQuality; }
-      if (emotionSelectIn) { emotionSelectIn.value = fresh.ttsEmotion || 'default'; }
-      syncProviderVisibility();
-      populateVoices();
-      if (fresh.voiceName) { voiceSelect.value = fresh.voiceName; }
-    };
-
-    return panel;
+    }).catch(function () {});
+    return null;
   };
 
   var normalizeTitle = function (value) {
@@ -2839,17 +2344,23 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   };
 
+  var triggerBlobDownload = function (blob, ext) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = sanitizeFileName(document.title || 'presentation') + ext;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+  };
+
   var exportPresentationDeck = function () {
     if (exportInProgress) return Promise.resolve();
     exportInProgress = true;
     updatePresentationLabels();
     return exportWithNativeObjects().then(function (blob) {
-      var fileName = sanitizeFileName(document.title || 'presentation') + '.pptx';
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement('a');
-      a.href = url; a.download = fileName;
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      window.setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+      triggerBlobDownload(blob, '.pptx');
     }).catch(function (error) {
       console.error(error);
       window.alert(getLabel('exportError'));
@@ -2860,164 +2371,51 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   var pdfExportInProgress = false;
+  var emailShareLoader = null;
+
+  var ensureEmailShare = function () {
+    if (emailShareLoader) return emailShareLoader;
+    emailShareLoader = new Promise(function (resolve, reject) {
+      if (window.StudyRoomEmailShare) { resolve(window.StudyRoomEmailShare); return; }
+      var s = document.createElement('script');
+      s.src = resolvePresentationAssetUrl('article-email-share.js');
+      s.async = true;
+      s.onload = function () {
+        if (window.StudyRoomEmailShare) { resolve(window.StudyRoomEmailShare); return; }
+        reject(new Error('article-email-share.js loaded but unavailable.'));
+      };
+      s.onerror = function () { reject(new Error('Failed to load article-email-share.js.')); };
+      document.head.appendChild(s);
+    });
+    return emailShareLoader;
+  };
 
   var exportPdf = function () {
     if (pdfExportInProgress) return;
     pdfExportInProgress = true;
     updatePresentationLabels();
 
-    // Expand all accordions so PDF captures full content
-    var accordions = main.querySelectorAll('[data-accordion]');
-    var savedStates = [];
-    accordions.forEach(function (item) {
-      var btn = item.querySelector('.subsection-toggle');
-      var content = item.querySelector('.subsection-content');
-      savedStates.push({ item: item, wasOpen: item.classList.contains('is-open') });
-      item.classList.add('is-open');
-      if (btn) btn.setAttribute('aria-expanded', 'true');
-      if (content) content.setAttribute('aria-hidden', 'false');
-    });
+    expandAllAccordions();
 
     // Allow layout to settle then trigger browser print
     window.setTimeout(function () {
       window.print();
-
-      // Restore accordion states after print dialog closes
-      savedStates.forEach(function (entry) {
-        var btn = entry.item.querySelector('.subsection-toggle');
-        var content = entry.item.querySelector('.subsection-content');
-        if (entry.wasOpen) {
-          entry.item.classList.add('is-open');
-          if (btn) btn.setAttribute('aria-expanded', 'true');
-          if (content) content.setAttribute('aria-hidden', 'false');
-        } else {
-          entry.item.classList.remove('is-open');
-          if (btn) btn.setAttribute('aria-expanded', 'false');
-          if (content) content.setAttribute('aria-hidden', 'true');
-        }
-      });
-
+      restoreAccordionStates();
       pdfExportInProgress = false;
       updatePresentationLabels();
     }, 300);
   };
 
   var shareEmailNewsletter = function () {
-    var lang = getLang();
-    var title = document.title || 'Newsletter';
-
-    // Build full-page clone preserving all original styles
-    var docClone = document.documentElement.cloneNode(true);
-
-    // Expand all accordions so deep-dives are visible
-    docClone.querySelectorAll('[data-accordion]').forEach(function (item) {
-      item.classList.add('is-open');
-      var btn = item.querySelector('.subsection-toggle');
-      var content = item.querySelector('.subsection-content');
-      if (btn) btn.setAttribute('aria-expanded', 'true');
-      if (content) {
-        content.setAttribute('aria-hidden', 'false');
-        content.style.maxHeight = 'none';
-        content.style.overflow = 'visible';
-      }
-    });
-
-    // Strip interactive / non-email elements
-    var removeSelectors = [
-      '.topbar', '.present-floating', '.backdrop', 'script', 'footer',
-      '.ai-assistant-entry', '.ai-assistant-panel',
-      '[data-presentation-toggle]', '.share-wrapper',
-      '.present-nav', '.present-exit', '.present-status'
-    ];
-    removeSelectors.forEach(function (sel) {
-      docClone.querySelectorAll(sel).forEach(function (el) {
-        if (el.parentNode) el.parentNode.removeChild(el);
-      });
-    });
-
-    // Force light theme for email readability
-    docClone.setAttribute('data-theme', 'light');
-
-    // Remove all scroll-reveal opacity so content is visible immediately
-    docClone.querySelectorAll('[data-reveal]').forEach(function (el) {
-      el.style.opacity = '1';
-      el.style.transform = 'none';
-    });
-    docClone.querySelectorAll('.load-in').forEach(function (el) {
-      el.style.opacity = '1';
-      el.style.transform = 'none';
-    });
-
-    // Convert external CSS links to absolute URLs so the preview window can load them
-    var origin = window.location.origin;
-    var basePath = window.location.pathname.replace(/[^\/]*$/, '');
-    docClone.querySelectorAll('link[rel="stylesheet"]').forEach(function (link) {
-      var href = link.getAttribute('href');
-      if (href && href.indexOf('http') !== 0) {
-        if (href.indexOf('/') === 0) {
-          link.setAttribute('href', origin + href);
-        } else {
-          link.setAttribute('href', origin + basePath + href);
-        }
-      }
-    });
-
-    // Convert Google Fonts links to absolute (already absolute usually, but be safe)
-    docClone.querySelectorAll('link[href*="fonts.googleapis"]').forEach(function (link) {
-      // already absolute, no change needed
-    });
-
-    // Inject newsletter-specific overrides
-    var overrideStyle = docClone.querySelector('head').appendChild(document.createElement('style'));
-    overrideStyle.textContent = ''
-      + 'body { overflow: auto !important; }'
-      + '.page-shell { min-height: auto !important; }'
-      + '.backdrop, .orb { display: none !important; }'
-      + '.site { max-width: 780px; margin: 0 auto; padding: 24px 32px; }'
-      + '.subsection-content[aria-hidden="false"] { max-height: none !important; overflow: visible !important; }'
-      + '.newsletter-banner { position: sticky; top: 0; z-index: 9999; background: #2563eb; color: #fff;'
-      + '  padding: 10px 20px; text-align: center; font-size: 14px; line-height: 1.5;'
-      + '  border-radius: 0 0 8px 8px; font-family: -apple-system, sans-serif; }'
-      + '.newsletter-banner a { color: #fff; text-decoration: underline; margin-left: 12px; cursor: pointer; }'
-      + '@media print { .newsletter-banner { display: none; } }';
-
-    // Add helper banner at top of body
-    var body = docClone.querySelector('body');
-    var banner = document.createElement('div');
-    banner.className = 'newsletter-banner';
-    var bannerText = lang === 'zh'
-      ? '全选 (⌘A) → 复制 (⌘C) → 粘贴到邮件正文'
-      : 'Select All (⌘A) → Copy (⌘C) → Paste into email body';
-    var mailtoLabel = lang === 'zh' ? '打开邮件客户端' : 'Open email client';
-    banner.innerHTML = bannerText + '<a data-mailto-trigger>' + mailtoLabel + '</a>';
-    body.insertBefore(banner, body.firstChild);
-
-    // Append source link at bottom
-    var sourceFooter = document.createElement('div');
-    sourceFooter.style.cssText = 'max-width:780px;margin:32px auto 24px;padding:16px 32px;border-top:1px solid #e5e7eb;font-size:13px;color:#9ca3af;';
-    sourceFooter.innerHTML = 'Source: <a href="' + window.location.href + '" style="color:#2563eb;">' + title + '</a>';
-    body.appendChild(sourceFooter);
-
-    var fullHtml = '<!DOCTYPE html>\n' + docClone.outerHTML;
-
-    // Open preview window with full-styled content
-    var win = window.open('', '_blank');
-    if (win) {
-      win.document.write(fullHtml);
-      win.document.close();
-      win.document.title = '✉ ' + title;
-
-      // Wire up the mailto link inside the preview window
-      var mailtoTrigger = win.document.querySelector('[data-mailto-trigger]');
-      if (mailtoTrigger) {
-        mailtoTrigger.addEventListener('click', function (e) {
-          e.preventDefault();
-          var subject = encodeURIComponent(title);
-          var mailBody = encodeURIComponent(title + '\n\n' + buildShareUrl());
-          win.location.href = 'mailto:?subject=' + subject + '&body=' + mailBody;
-        });
-      }
+    if (window.StudyRoomEmailShare) {
+      window.StudyRoomEmailShare.share(getLang, buildShareUrl);
+      return;
     }
+    ensureEmailShare().then(function (mod) {
+      mod.share(getLang, buildShareUrl);
+    }).catch(function (err) {
+      console.error(err);
+    });
   };
 
   var deriveStepTitle = function (step, index) {
@@ -3758,147 +3156,128 @@ document.addEventListener('DOMContentLoaded', function () {
     narrationSubtitle.classList.add('is-visible');
   };
 
+  var runNarrationPrepOverlay = function (onReady, onFailed) {
+    var zhMode = getLang() === 'zh';
+    var ss = {};
+    try { ss = JSON.parse(localStorage.getItem('narration-settings')) || {}; } catch (e) {}
+    var isLocalTTS = ss.ttsEngine === 'moss-tts-nano' || ss.ttsEngine === 'fish-s2';
+    var steps = [{ id: 'script', label: zhMode ? '生成讲稿' : 'Generating script' }];
+    if (isLocalTTS) steps.push({ id: 'audio', label: zhMode ? '合成语音' : 'Synthesizing audio' });
+
+    var prepOverlay = document.createElement('div');
+    prepOverlay.className = 'present-countdown-overlay';
+    var stepsHtml = '<div class="prep-progress">';
+    steps.forEach(function (s, i) {
+      stepsHtml += '<div class="prep-step" data-step="' + s.id + '">' +
+        '<span class="prep-step-icon prep-step-pending">' + (i + 1) + '</span>' +
+        '<span class="prep-step-label">' + s.label + '</span>' +
+        '<span class="prep-step-status"></span>' +
+        '</div>';
+    });
+    prepOverlay.innerHTML = stepsHtml + '</div>';
+    document.body.appendChild(prepOverlay);
+
+    var setStepState = function (id, done) {
+      var el = prepOverlay.querySelector('[data-step="' + id + '"]');
+      if (!el) return;
+      var icon = el.querySelector('.prep-step-icon');
+      var status = el.querySelector('.prep-step-status');
+      icon.className = 'prep-step-icon ' + (done ? 'prep-step-done' : 'prep-step-active');
+      if (done) icon.textContent = '\u2713';
+      status.textContent = done ? (zhMode ? '完成' : 'Done') : (zhMode ? '进行中…' : 'In progress…');
+      status.className = 'prep-step-status ' + (done ? 'prep-status-done' : 'prep-status-active');
+    };
+    setStepState('script', false);
+
+    return ensureNarrationController().then(function (ctrl) {
+      return ctrl.pregenerate(presentSteps, 0, getLang, function (phase) {
+        if (phase === 'script-done') {
+          setStepState('script', true);
+          if (isLocalTTS) setStepState('audio', false);
+        } else if (phase === 'audio-done') {
+          setStepState('audio', true);
+        }
+      });
+    }).then(function () {
+      steps.forEach(function (s) { setStepState(s.id, true); });
+      setTimeout(function () {
+        if (prepOverlay.parentNode) prepOverlay.parentNode.removeChild(prepOverlay);
+        onReady();
+      }, 300);
+    }).catch(function () {
+      if (prepOverlay.parentNode) prepOverlay.parentNode.removeChild(prepOverlay);
+      if (onFailed) onFailed();
+    });
+  };
+
   /* ── Screen recording via getDisplayMedia ── */
   var isRecording = function () {
-    return mediaRecorder && mediaRecorder.state === 'recording';
+    return !!(mediaRecorder && mediaRecorder.state === 'recording');
   };
 
   var stopRecording = function () {
-    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-      mediaRecorder.stop();
-    }
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
     if (recordingStream) {
-      recordingStream.getTracks().forEach(function (t) { t.stop(); });
+      recordingStream.getTracks().forEach(function (track) { track.stop(); });
       recordingStream = null;
     }
     root.classList.remove('is-recording');
   };
 
+  var mergeVideoWithAudioStream = function (videoStream, audioStream) {
+    if (!audioStream) return videoStream;
+    var combined = new MediaStream();
+    videoStream.getVideoTracks().forEach(function (t) { combined.addTrack(t); });
+    audioStream.getAudioTracks().forEach(function (t) { combined.addTrack(t); });
+    return combined;
+  };
+
   var toggleRecording = function () {
-    // If already recording, stop
     if (isRecording()) {
       stopRecording();
       return;
     }
-
-    // Check API support
     if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
       window.alert(getLang() === 'zh' ? '当前浏览器不支持屏幕录制' : 'Screen recording is not supported in this browser');
       return;
     }
 
-    // Step 1: Request screen capture first (browser dialog)
     navigator.mediaDevices.getDisplayMedia({
       video: true,
       audio: true,
       systemAudio: 'include'
     }).then(function (stream) {
-      // Step 2: Show progress overlay
-      var prepOverlay = document.createElement('div');
-      prepOverlay.className = 'present-countdown-overlay';
-      var zhM = getLang() === 'zh';
-      var rss = {};
-      try { rss = JSON.parse(localStorage.getItem('narration-settings')) || {}; } catch (e) {}
-      var rIsLocal = rss.ttsEngine === 'moss-tts-nano' || rss.ttsEngine === 'fish-s2';
-      var rSteps = [
-        { id: 'script', label: zhM ? '生成讲稿' : 'Generating script' }
-      ];
-      if (rIsLocal) rSteps.push({ id: 'audio', label: zhM ? '合成语音' : 'Synthesizing audio' });
-      var rHtml = '<div class="prep-progress">';
-      rSteps.forEach(function (s, i) {
-        rHtml += '<div class="prep-step" data-step="' + s.id + '">' +
-          '<span class="prep-step-icon prep-step-pending">' + (i + 1) + '</span>' +
-          '<span class="prep-step-label">' + s.label + '</span>' +
-          '<span class="prep-step-status"></span></div>';
-      });
-      rHtml += '</div>';
-      prepOverlay.innerHTML = rHtml;
-      document.body.appendChild(prepOverlay);
-
-      var rSetActive = function (id) {
-        var el = prepOverlay.querySelector('[data-step="' + id + '"]');
-        if (!el) return;
-        el.querySelector('.prep-step-icon').className = 'prep-step-icon prep-step-active';
-        var st = el.querySelector('.prep-step-status');
-        st.textContent = zhM ? '进行中…' : 'In progress…';
-        st.className = 'prep-step-status prep-status-active';
-      };
-      var rSetDone = function (id) {
-        var el = prepOverlay.querySelector('[data-step="' + id + '"]');
-        if (!el) return;
-        var icon = el.querySelector('.prep-step-icon');
-        icon.className = 'prep-step-icon prep-step-done'; icon.textContent = '\u2713';
-        var st = el.querySelector('.prep-step-status');
-        st.textContent = zhM ? '完成' : 'Done';
-        st.className = 'prep-step-status prep-status-done';
-      };
-      rSetActive('script');
-
-      // Step 3: Enter presentation mode if not already
       if (!state.enabled) {
         enterPresentation();
       }
       setPresentationStep(0);
 
-      // Step 4: Pre-generate first slide narrative
-      ensureNarrationController().then(function (ctrl) {
-        return ctrl.pregenerate(presentSteps, 0, getLang, function (phase) {
-          if (phase === 'script-done') { rSetDone('script'); if (rIsLocal) rSetActive('audio'); }
-          else if (phase === 'audio-done') { rSetDone('audio'); }
-        });
-      }).then(function () {
-        rSteps.forEach(function (s) { rSetDone(s.id); });
-        setTimeout(function () {
-          if (prepOverlay.parentNode) prepOverlay.parentNode.removeChild(prepOverlay);
-
-          showCountdown(function () {
-          // Step 6: 1s pause, then start recording + narration
+      runNarrationPrepOverlay(function () {
+        showCountdown(function () {
           setTimeout(function () {
-            // Setup MediaRecorder
             recordingStream = stream;
             recordedChunks = [];
 
-            // Build recording stream — merge video + TTS audio based on engine
             var ss = {};
             try { ss = JSON.parse(localStorage.getItem('narration-settings')) || {}; } catch (e) {}
             var recordStream = stream;
 
-            // VibeVoice — use its own audio stream
             if (ss.ttsProvider === 'vibevoice' && window.StudyRoomNarration) {
-              var vibeAudioStream = window.StudyRoomNarration.getVibeAudioStream();
-              if (vibeAudioStream) {
-                recordStream = new MediaStream();
-                stream.getVideoTracks().forEach(function (t) { recordStream.addTrack(t); });
-                vibeAudioStream.getAudioTracks().forEach(function (t) { recordStream.addTrack(t); });
-              }
+              recordStream = mergeVideoWithAudioStream(stream, window.StudyRoomNarration.getVibeAudioStream());
+            } else if ((ss.ttsEngine === 'moss-tts-nano' || ss.ttsEngine === 'fish-s2') && window.StudyRoomNarration && window.StudyRoomNarration.getTtsAudioStream) {
+              recordStream = mergeVideoWithAudioStream(stream, window.StudyRoomNarration.getTtsAudioStream());
             }
 
-            // Local MLX TTS (Qwen3-TTS / Fish Audio S2) — use Web Audio capture stream
-            if ((ss.ttsEngine === 'moss-tts-nano' || ss.ttsEngine === 'fish-s2') && window.StudyRoomNarration && window.StudyRoomNarration.getTtsAudioStream) {
-              var ttsStream = window.StudyRoomNarration.getTtsAudioStream();
-              if (ttsStream) {
-                recordStream = new MediaStream();
-                stream.getVideoTracks().forEach(function (t) { recordStream.addTrack(t); });
-                ttsStream.getAudioTracks().forEach(function (t) { recordStream.addTrack(t); });
-              }
-            }
-
-            var mimeType = 'video/webm;codecs=vp9,opus';
-            if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm;codecs=vp8,opus';
-            if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm';
+            var mimeType = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'].filter(function (m) {
+              return MediaRecorder.isTypeSupported(m);
+            })[0] || 'video/webm';
 
             mediaRecorder = new MediaRecorder(recordStream, { mimeType: mimeType });
             mediaRecorder.ondataavailable = function (e) {
               if (e.data && e.data.size > 0) recordedChunks.push(e.data);
             };
             mediaRecorder.onstop = function () {
-              var blob = new Blob(recordedChunks, { type: mimeType });
-              var url = URL.createObjectURL(blob);
-              var a = document.createElement('a');
-              a.href = url;
-              a.download = sanitizeFileName(document.title || 'presentation') + '.webm';
-              document.body.appendChild(a); a.click(); document.body.removeChild(a);
-              setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+              triggerBlobDownload(new Blob(recordedChunks, { type: mimeType }), '.webm');
               recordedChunks = [];
               if (presentationTip) {
                 var origTip = presentationTip.textContent;
@@ -3907,9 +3286,9 @@ document.addEventListener('DOMContentLoaded', function () {
               }
             };
 
-            var videoTracks = stream.getVideoTracks();
-            if (videoTracks.length) {
-              videoTracks[0].addEventListener('ended', function () {
+            var firstVideoTrack = stream.getVideoTracks()[0];
+            if (firstVideoTrack) {
+              firstVideoTrack.addEventListener('ended', function () {
                 if (isRecording()) stopRecording();
               });
             }
@@ -3920,10 +3299,7 @@ document.addEventListener('DOMContentLoaded', function () {
             narrationController.start(presentSteps, 0, getLang);
           }, 1000);
         });
-        }, 300);
-      }).catch(function () {
-        // Pregen failed — still proceed
-        if (prepOverlay.parentNode) prepOverlay.parentNode.removeChild(prepOverlay);
+      }, function () {
         showCountdown(function () {
           setTimeout(function () {
             recordingStream = stream;
@@ -3978,10 +3354,14 @@ document.addEventListener('DOMContentLoaded', function () {
       narrationCapsuleSettingsBtn.addEventListener('click', function (e) {
         e.stopPropagation();
         e.preventDefault();
-        var sp = document.querySelector('.narration-settings-panel');
+        var sp = ensureNarrationSettingsPanel();
         if (sp) {
-          // Delay toggle to avoid outside-click handler race
           setTimeout(function () { sp.classList.toggle('is-open'); }, 0);
+        } else {
+          ensureNarrationUI().then(function () {
+            var loadedSp = ensureNarrationSettingsPanel();
+            if (loadedSp) setTimeout(function () { loadedSp.classList.toggle('is-open'); }, 0);
+          }).catch(function () {});
         }
       });
     }
@@ -4039,6 +3419,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Take over the FAB for narration
     ensureNarrationFab();
     if (presentationAutoPlay && hasNarrationSupport()) {
+      ensureNarrationUI().catch(function () {});
       buildCapsuleStructure();
       wireCapsuleHandlers();
       presentationAutoPlay.classList.add('is-narration-mode');
@@ -4109,83 +3490,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
   /** Auto-start flow: show prep overlay → pregen slide 0 → countdown → start narration. */
   var startAutoNarration = function () {
-    // Show FAB generating state
     var mainArea = presentationAutoPlay ? presentationAutoPlay.querySelector('.narration-capsule-main') : null;
     if (mainArea) mainArea.innerHTML = NARRATION_SVG_GENERATING;
 
-    var zhMode = getLang() === 'zh';
-    var ss = {};
-    try { ss = JSON.parse(localStorage.getItem('narration-settings')) || {}; } catch (e) {}
-    var isLocalTTS = ss.ttsEngine === 'moss-tts-nano' || ss.ttsEngine === 'fish-s2';
-
-    // Build step definitions
-    var steps = [
-      { id: 'script', label: zhMode ? '生成讲稿' : 'Generating script' }
-    ];
-    if (isLocalTTS) {
-      steps.push({ id: 'audio', label: zhMode ? '合成语音' : 'Synthesizing audio' });
-    }
-
-    // Show progress overlay
-    var prepOverlay = document.createElement('div');
-    prepOverlay.className = 'present-countdown-overlay';
-    var stepsHtml = '<div class="prep-progress">';
-    steps.forEach(function (s, i) {
-      stepsHtml += '<div class="prep-step" data-step="' + s.id + '">' +
-        '<span class="prep-step-icon prep-step-pending">' + (i + 1) + '</span>' +
-        '<span class="prep-step-label">' + s.label + '</span>' +
-        '<span class="prep-step-status"></span>' +
-        '</div>';
-    });
-    stepsHtml += '</div>';
-    prepOverlay.innerHTML = stepsHtml;
-    document.body.appendChild(prepOverlay);
-
-    var setStepActive = function (id) {
-      var el = prepOverlay.querySelector('[data-step="' + id + '"]');
-      if (!el) return;
-      var icon = el.querySelector('.prep-step-icon');
-      var status = el.querySelector('.prep-step-status');
-      icon.className = 'prep-step-icon prep-step-active';
-      status.textContent = zhMode ? '进行中…' : 'In progress…';
-      status.className = 'prep-step-status prep-status-active';
-    };
-    var setStepDone = function (id) {
-      var el = prepOverlay.querySelector('[data-step="' + id + '"]');
-      if (!el) return;
-      var icon = el.querySelector('.prep-step-icon');
-      var status = el.querySelector('.prep-step-status');
-      icon.className = 'prep-step-icon prep-step-done';
-      icon.textContent = '\u2713';
-      status.textContent = zhMode ? '完成' : 'Done';
-      status.className = 'prep-step-status prep-status-done';
-    };
-
-    setStepActive('script');
-
-    // Pre-generate first slide narrative + audio
-    ensureNarrationController().then(function (ctrl) {
-      return ctrl.pregenerate(presentSteps, 0, getLang, function (phase) {
-        if (phase === 'script-done') {
-          setStepDone('script');
-          if (isLocalTTS) setStepActive('audio');
-        } else if (phase === 'audio-done') {
-          setStepDone('audio');
-        }
+    runNarrationPrepOverlay(function () {
+      if (mainArea) mainArea.innerHTML = NARRATION_SVG_PLAY;
+      showCountdown(function () {
+        narrationStartTime = Date.now();
+        narrationController.start(presentSteps, state.index, getLang);
       });
-    }).then(function () {
-      // Ensure all steps show done
-      steps.forEach(function (s) { setStepDone(s.id); });
-      setTimeout(function () {
-        if (prepOverlay.parentNode) prepOverlay.parentNode.removeChild(prepOverlay);
-        if (mainArea) mainArea.innerHTML = NARRATION_SVG_PLAY;
-        showCountdown(function () {
-          narrationStartTime = Date.now();
-          narrationController.start(presentSteps, state.index, getLang);
-        });
-      }, 300);
-    }).catch(function () {
-      if (prepOverlay.parentNode) prepOverlay.parentNode.removeChild(prepOverlay);
+    }, function () {
       if (mainArea) mainArea.innerHTML = NARRATION_SVG_PLAY;
       showCountdown(function () {
         narrationStartTime = Date.now();
