@@ -41,6 +41,68 @@ def write_connection(path, data):
             os.unlink(temporary)
 
 
+def _valid_token(supplied, expected):
+    return bool(re.fullmatch('[a-f0-9]{64}', supplied)) and hmac.compare_digest(supplied, expected)
+
+
+def _read_validated_payload(handler):
+    length = int(handler.headers.get('Content-Length', '0'))
+    if not 0 < length <= 65536:
+        return None, (413, {'error': {'code': 'body_too_large'}})
+    payload = parse_json(handler.rfile.read(length).decode('utf-8'))
+    validate_request(payload)
+    return payload, None
+
+
+def _run_gated_inference(engine, gate, payload):
+    if not gate.acquire(blocking=False):
+        return 429, {'error': {'code': 'busy'}}
+    try:
+        # Local compute is bounded by the single-flight gate, not RPM.
+        return 200, engine.predict(payload)
+    except ValueError:
+        return 400, {'error': {'code': 'local_input_limit_or_contract'}}
+    except Exception as error:
+        # Log only an exception class, never inputs, tokens, or full traces.
+        print(json.dumps({'event': 'inference_failed', 'error_type': type(error).__name__}), flush=True)
+        return 500, {'error': {'code': 'local_inference_failed'}}
+    finally:
+        gate.release()
+
+
+def _handle_get_request(handler, engine, token, backend, token_header):
+    if not handler.trusted_host():
+        return 403, {'error': {'code': 'invalid_host'}}
+    route = urlsplit(handler.path).path
+    if route == '/api/auth-check':
+        if not _valid_token(handler.headers.get(token_header, ''), token):
+            return 401, {'error': {'code': 'local_auth_failed'}}
+        return 200, {'backend': backend, 'authenticated': True, 'model_loaded': True}
+    if route == '/api/health':
+        return 200, {**engine.health(), 'limits': {'max_calls_per_minute': None, 'max_concurrent_inferences': 1}}
+    return 404, {'error': {'code': 'not_found'}}
+
+
+def _handle_post_request(handler, engine, gate, token, token_header):
+    if not handler.trusted_host():
+        return 403, {'error': {'code': 'invalid_host'}}
+    if handler.headers.get('Origin'):
+        return 403, {'error': {'code': 'use_local_backend'}}
+    if urlsplit(handler.path).path != '/api/evaluate':
+        return 404, {'error': {'code': 'not_found'}}
+    if not _valid_token(handler.headers.get(token_header, ''), token):
+        return 401, {'error': {'code': 'local_auth_failed'}}
+    if handler.headers.get('Content-Type', '').split(';')[0].strip().lower() != 'application/json':
+        return 415, {'error': {'code': 'json_required'}}
+    try:
+        payload, body_error = _read_validated_payload(handler)
+    except (ValueError, TypeError, KeyError, UnicodeError, RecursionError):
+        return 400, {'error': {'code': 'local_invalid_input'}}
+    if body_error is not None:
+        return body_error
+    return _run_gated_inference(engine, gate, payload)
+
+
 def create_server(engine, port, token, *, backend='study-room-nanojev-mlx-v1', token_header='X-NanoJev-Token'):
     gate = threading.Lock()
 
@@ -68,52 +130,12 @@ def create_server(engine, port, token, *, backend='study-room-nanojev-mlx-v1', t
             return self.headers.get('Host') in (f'127.0.0.1:{actual}', f'localhost:{actual}')
 
         def do_GET(self):
-            if not self.trusted_host():
-                return self.respond(403, {'error': {'code': 'invalid_host'}})
-            route = urlsplit(self.path).path
-            if route == '/api/auth-check':
-                supplied = self.headers.get(token_header, '')
-                if not re.fullmatch('[a-f0-9]{64}', supplied) or not hmac.compare_digest(supplied, token):
-                    return self.respond(401, {'error': {'code': 'local_auth_failed'}})
-                return self.respond(200, {'backend': backend, 'authenticated': True, 'model_loaded': True})
-            if route != '/api/health':
-                return self.respond(404, {'error': {'code': 'not_found'}})
-            self.respond(200, {**engine.health(), 'limits': {'max_calls_per_minute': None, 'max_concurrent_inferences': 1}})
+            status, payload = _handle_get_request(self, engine, token, backend, token_header)
+            self.respond(status, payload)
 
         def do_POST(self):
-            if not self.trusted_host():
-                return self.respond(403, {'error': {'code': 'invalid_host'}})
-            if self.headers.get('Origin'):
-                return self.respond(403, {'error': {'code': 'use_local_backend'}})
-            if urlsplit(self.path).path != '/api/evaluate':
-                return self.respond(404, {'error': {'code': 'not_found'}})
-            supplied = self.headers.get(token_header, '')
-            if not re.fullmatch('[a-f0-9]{64}', supplied) or not hmac.compare_digest(supplied, token):
-                return self.respond(401, {'error': {'code': 'local_auth_failed'}})
-            if self.headers.get('Content-Type', '').split(';')[0].strip().lower() != 'application/json':
-                return self.respond(415, {'error': {'code': 'json_required'}})
-            try:
-                length = int(self.headers.get('Content-Length', '0'))
-                if not 0 < length <= 65536:
-                    return self.respond(413, {'error': {'code': 'body_too_large'}})
-                payload = parse_json(self.rfile.read(length).decode('utf-8'))
-                validate_request(payload)
-            except (ValueError, TypeError, KeyError, UnicodeError, RecursionError):
-                return self.respond(400, {'error': {'code': 'local_invalid_input'}})
-            if not gate.acquire(blocking=False):
-                return self.respond(429, {'error': {'code': 'busy'}})
-            try:
-                # Local compute is bounded by the single-flight gate, not RPM.
-                result = engine.predict(payload)
-                self.respond(200, result)
-            except ValueError:
-                self.respond(400, {'error': {'code': 'local_input_limit_or_contract'}})
-            except Exception as error:
-                # Log only an exception class, never inputs, tokens, or full traces.
-                print(json.dumps({'event': 'inference_failed', 'error_type': type(error).__name__}), flush=True)
-                self.respond(500, {'error': {'code': 'local_inference_failed'}})
-            finally:
-                gate.release()
+            status, payload = _handle_post_request(self, engine, gate, token, token_header)
+            self.respond(status, payload)
 
         def do_OPTIONS(self):
             self.respond(405, {'error': {'code': 'cross_origin_not_supported'}})
@@ -124,6 +146,27 @@ def create_server(engine, port, token, *, backend='study-room-nanojev-mlx-v1', t
     server = ThreadingHTTPServer(('127.0.0.1', port), Handler)
     server.daemon_threads = True
     return server
+
+
+def _prepare_connection_path(connection):
+    if connection.is_symlink():
+        raise ValueError('Connection file must not be a symlink')
+    if not connection.exists():
+        return
+    existing = parse_json(connection.read_text())
+    try:
+        os.kill(int(existing['pid']), 0)
+    except (ProcessLookupError, ValueError, KeyError):
+        return
+    raise RuntimeError('A recorded service process is still running; stop it explicitly before replacing its connection file')
+
+
+def _cleanup_connection_file(connection):
+    try:
+        if parse_json(connection.read_text()).get('pid') == os.getpid():
+            connection.unlink()
+    except (OSError, ValueError):
+        pass
 
 
 def main():
@@ -142,18 +185,10 @@ def main():
     if args.cache_limit_mb is not None and not 0 <= args.cache_limit_mb <= 8192:
         parser.error('Cache limit must be 0..8192 MiB')
     connection = (args.connection_file or CACHE / f'connection-{args.variant}.json').expanduser()
-    if connection.is_symlink():
-        raise ValueError('Connection file must not be a symlink')
-    if connection.exists():
-        existing = parse_json(connection.read_text())
-        try:
-            os.kill(int(existing['pid']), 0)
-        except (ProcessLookupError, ValueError, KeyError):
-            pass
-        else:
-            raise RuntimeError('A recorded service process is still running; stop it explicitly before replacing its connection file')
+    _prepare_connection_path(connection)
     from nanojev_mlx.engine import DecisionEngine
-    engine = DecisionEngine(args.model_dir or PROFILES[args.variant], dtype=args.dtype, path_batch_size=args.path_batch_size, cache_limit_bytes=None if args.cache_limit_mb is None else args.cache_limit_mb * 1024**2)
+    cache_limit_bytes = None if args.cache_limit_mb is None else args.cache_limit_mb * 1024**2
+    engine = DecisionEngine(args.model_dir or PROFILES[args.variant], dtype=args.dtype, path_batch_size=args.path_batch_size, cache_limit_bytes=cache_limit_bytes)
     if (engine.weights_bits == 4) != (args.variant == '4bit'):
         raise ValueError('Variant and verified weight profile disagree')
     token = secrets.token_hex(32)
@@ -172,11 +207,7 @@ def main():
         pass
     finally:
         server.server_close()
-        try:
-            if parse_json(connection.read_text()).get('pid') == os.getpid():
-                connection.unlink()
-        except (OSError, ValueError):
-            pass
+        _cleanup_connection_file(connection)
 
 
 if __name__ == '__main__':
