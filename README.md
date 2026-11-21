@@ -20,6 +20,12 @@ node scripts/serve-knowledge-hub.mjs
 
 ## Change Log
 
+### 2026-11-21
+- **NanoJev 协议与本地推理服务拆解**：`scripts/nanojev_mlx/contract.py` 将状态行校验、问题判据核对与候选分支构造拆为独立辅助函数，保留 1..8 状态、32 问题、128 候选分支与 16384 token 上限；`scripts/serve-nanojev-mlx.py` 提取鉴权、请求体校验、单并发门控推理与连接文件生命周期管理。
+- **数理建模与 MLX 校验脚本加载解耦**：`posts/exam-performance-modeling/` 与 `scripts/nanojev_mlx/engine.py`、`scripts/serve-laya-mlx.py`、`scripts/validate-nanojev-mlx.py` 统一改用 `runpy.run_path` 加载同级计算与审计模块，消除跨层动态导入耦合。
+- **前端公共脚本与样式去重**：收敛 `assets/infographic-view.js`、`assets/infographic-mobile.js`、`assets/article-presentation.js`、`assets/article-narration-ui.js`、`assets/article-renderer.js`、`assets/article-email-share.js` 及配套样式表中的重复 DOM 与样式片段，净减 2957 行冗余代码。
+- **前端异常分类诊断与降级重置**：在 `assets/article-assistant.js`、`assets/article-common.js`、`assets/article-narration.js`、`assets/article-narration-ui.js`、`assets/article-presentation.js`、`assets/copilot-provider.js`、`assets/pptx-export.js` 及 `assets/cell-game.js`、`assets/crowd-game.js`、`assets/sudoku-game.js` 等 10 个模块补齐 47 处异常分类诊断与显式降级状态重置，消除空 `catch` 静默吞错。
+
 ### 2026-04-14
 - **微积分系列文章**：新增 5 篇面向中学生的微积分入门系列（变化的语言 → 极限 → 导数 → 积分 → 基本定理），注册到知识图谱
 - **KaTeX 公式渲染**：新增 `article-math.js`，通过 CDN 加载 KaTeX 渲染 `data-latex` 属性公式；聊天窗口同步支持 `$...$` / `$$...$$` LaTeX 语法

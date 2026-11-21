@@ -9,6 +9,9 @@
 ```bash
 # 验证门禁
 git status --short
+node tests/validate.js
+python3 -m unittest discover -s tests -p "test_*.py"
+python3 -m unittest discover -s posts/exam-performance-modeling -p "test_*.py"
 ```
 
 ## 2. 本地服务热重载与健康核验
@@ -30,3 +33,7 @@ git status --short
 - **严禁破坏性 Git 操作**：未经项目负责人明确书面指令，严禁执行 `git push --force`、`git reset --hard` 或删除远端保护分支。
 - **凭据与私密隔离**：严禁将 `.env`、API 密钥、令牌或 `.project-data/` 运行态数据库误提交至公开代码库；服务默认仅监听 `127.0.0.1`。
 - **在途写锁保护**：存在运行中工位（`executing`）或阻塞级待确认决策时，不得抢跑归档或强制重启宿主进程。
+
+## 5. 近期批次发布记录
+
+- **2026-11-21（四项质量自愈闭环与模块边界收敛）**：完成 4 项代码质量自愈并合入主干：1) `scripts/nanojev_mlx/contract.py` 与 `scripts/serve-nanojev-mlx.py` 拆解请求校验与服务路由辅助函数；2) `posts/exam-performance-modeling/*.py` 与 `scripts/nanojev_mlx/engine.py`、`scripts/serve-laya-mlx.py`、`scripts/validate-nanojev-mlx.py` 统一改用 `runpy.run_path` 加载同级脚本；3) 清理 `assets/` 下星系导航、幻灯片演示、语音讲解及公共样式表中的重复逻辑，净减 2957 行代码；4) 为 `assets/` 下 10 个前端交互、朗读、导出与小游戏模块补齐 47 处异常分类诊断与显式降级状态重置，实现零静默吞错。
