@@ -579,7 +579,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Load saved settings
     var savedSettings = {};
-    try { savedSettings = JSON.parse(localStorage.getItem('narration-settings')) || {}; } catch (e) {}
+    try { savedSettings = JSON.parse(localStorage.getItem('narration-settings')) || {}; } catch (e) { savedSettings = {}; }
     var autoNarrate = localStorage.getItem('narration-autostart') === 'true';
 
     // Build panel HTML
@@ -1823,7 +1823,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function loadVoiceClones() {
     var arr = [];
-    try { arr = JSON.parse(localStorage.getItem('narration-clones')) || []; } catch (e) {}
+    try { arr = JSON.parse(localStorage.getItem('narration-clones')) || []; } catch (e) { arr = []; }
     if (!Array.isArray(arr)) arr = [];
     // Migrate legacy single-clone key
     if (!arr.length) {
@@ -1837,10 +1837,12 @@ document.addEventListener('DOMContentLoaded', function () {
             sampleRate: legacy.sampleRate, duration: legacy.duration,
             savedAt: legacy.savedAt
           });
-          try { localStorage.setItem('narration-clones', JSON.stringify(arr)); } catch (e) {}
+          try { localStorage.setItem('narration-clones', JSON.stringify(arr)); } catch (e) { console.debug('[presentation] legacy clone persist skipped:', e); }
           localStorage.removeItem('narration-clone-voice');
         }
-      } catch (e) {}
+      } catch (e) {
+        console.debug('[presentation] legacy clone migration skipped:', e);
+      }
     }
     return arr;
   }
@@ -1950,18 +1952,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var teardownStream = function () {
       if (timerHandle) { clearInterval(timerHandle); timerHandle = null; }
-      if (processor) { try { processor.disconnect(); } catch (e) {} processor = null; }
-      if (sourceNode) { try { sourceNode.disconnect(); } catch (e) {} sourceNode = null; }
+      if (processor) { try { processor.disconnect(); } catch (e) { console.debug('[presentation] processor disconnect ignored:', e); } processor = null; }
+      if (sourceNode) { try { sourceNode.disconnect(); } catch (e) { console.debug('[presentation] sourceNode disconnect ignored:', e); } sourceNode = null; }
       if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
-      if (audioCtx) { try { audioCtx.close(); } catch (e) {} audioCtx = null; }
+      if (audioCtx) { try { audioCtx.close(); } catch (e) { console.debug('[presentation] audioCtx close ignored:', e); } audioCtx = null; }
     };
 
     var stopRecording = function () {
       if (!recording) return;
       recording = false;
       if (timerHandle) { clearInterval(timerHandle); timerHandle = null; }
-      if (processor) { try { processor.disconnect(); } catch (e) {} }
-      if (sourceNode) { try { sourceNode.disconnect(); } catch (e) {} }
+      if (processor) { try { processor.disconnect(); } catch (e) { processor = null; } }
+      if (sourceNode) { try { sourceNode.disconnect(); } catch (e) { sourceNode = null; } }
       if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
 
       // Concatenate chunks
@@ -1971,7 +1973,7 @@ document.addEventListener('DOMContentLoaded', function () {
         showMsg(zh ? '没有捕获到音频，请重试。' : 'No audio captured. Please try again.', true);
         recordBtn.textContent = zh ? '● 开始录制' : '● Start';
         recordBtn.disabled = false;
-        if (audioCtx) { try { audioCtx.close(); } catch (e) {} audioCtx = null; }
+        if (audioCtx) { try { audioCtx.close(); } catch (e) { console.debug('[presentation] empty capture audioCtx close ignored:', e); } audioCtx = null; }
         return;
       }
       var samples = new Float32Array(totalLen);
@@ -1980,7 +1982,7 @@ document.addEventListener('DOMContentLoaded', function () {
       capturedSampleRate = audioCtx.sampleRate;
       capturedDuration = totalLen / capturedSampleRate;
       capturedWavBuffer = encodeWav(samples, capturedSampleRate);
-      try { audioCtx.close(); } catch (e) {}
+      try { audioCtx.close(); } catch (e) { console.debug('[presentation] post-capture audioCtx close ignored:', e); }
       audioCtx = null;
 
       // Preview
@@ -2172,7 +2174,9 @@ document.addEventListener('DOMContentLoaded', function () {
     var narrationSettings = {};
     try {
       narrationSettings = JSON.parse(localStorage.getItem('narration-settings')) || {};
-    } catch (e) {}
+    } catch (e) {
+      narrationSettings = {};
+    }
     if (narrationSettings.ttsProvider === 'vibevoice' ||
         narrationSettings.ttsEngine === 'moss-tts-nano' ||
         narrationSettings.ttsEngine === 'fish-s2') {
@@ -2750,7 +2754,7 @@ document.addEventListener('DOMContentLoaded', function () {
       endInner.appendChild(endTitle);
 
       var showQR = false;
-      try { showQR = JSON.parse(localStorage.getItem('narration-showEndQR') || 'false'); } catch (e) {}
+      try { showQR = JSON.parse(localStorage.getItem('narration-showEndQR') || 'false'); } catch (e) { showQR = false; }
 
       var endQrWrap = document.createElement('div');
       endQrWrap.className = 'present-end-qr';
@@ -3108,7 +3112,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var requestBrowserFullscreen = function () {
     var el = document.documentElement;
     if (el.requestFullscreen) {
-      el.requestFullscreen().catch(function () {});
+      el.requestFullscreen().catch(function (e) { console.debug('[presentation] requestFullscreen skipped:', e); });
     } else if (el.webkitRequestFullscreen) {
       el.webkitRequestFullscreen();
     }
@@ -3118,7 +3122,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var fsEl = document.fullscreenElement || document.webkitFullscreenElement;
     if (!fsEl) return;
     if (document.exitFullscreen) {
-      document.exitFullscreen().catch(function () {});
+      document.exitFullscreen().catch(function (e) { console.debug('[presentation] exitFullscreen skipped:', e); });
     } else if (document.webkitExitFullscreen) {
       document.webkitExitFullscreen();
     }
@@ -3159,7 +3163,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var runNarrationPrepOverlay = function (onReady, onFailed) {
     var zhMode = getLang() === 'zh';
     var ss = {};
-    try { ss = JSON.parse(localStorage.getItem('narration-settings')) || {}; } catch (e) {}
+    try { ss = JSON.parse(localStorage.getItem('narration-settings')) || {}; } catch (e) { ss = {}; }
     var isLocalTTS = ss.ttsEngine === 'moss-tts-nano' || ss.ttsEngine === 'fish-s2';
     var steps = [{ id: 'script', label: zhMode ? '生成讲稿' : 'Generating script' }];
     if (isLocalTTS) steps.push({ id: 'audio', label: zhMode ? '合成语音' : 'Synthesizing audio' });
@@ -3259,7 +3263,7 @@ document.addEventListener('DOMContentLoaded', function () {
             recordedChunks = [];
 
             var ss = {};
-            try { ss = JSON.parse(localStorage.getItem('narration-settings')) || {}; } catch (e) {}
+            try { ss = JSON.parse(localStorage.getItem('narration-settings')) || {}; } catch (e) { ss = {}; }
             var recordStream = stream;
 
             if (ss.ttsProvider === 'vibevoice' && window.StudyRoomNarration) {

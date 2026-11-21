@@ -151,7 +151,9 @@
     try {
       var s = JSON.parse(localStorage.getItem('llm-settings'));
       if (s && s.provider !== 'none' && s.endpoint && s.model) return s;
-    } catch (e) {}
+    } catch (e) {
+      return null;
+    }
     return null;
   }
 
@@ -180,13 +182,15 @@
    */
   function getActiveTtsEngine() {
     var ns = {};
-    try { ns = JSON.parse(localStorage.getItem('narration-settings')) || {}; } catch (e) {}
+    try { ns = JSON.parse(localStorage.getItem('narration-settings')) || {}; } catch (e) { ns = {}; }
     var slug = window.location.pathname.replace(/\/$/, '').split('/').pop() || '';
     if (slug) {
       try {
         var a = JSON.parse(localStorage.getItem('narration-settings:' + slug));
         if (a) Object.keys(a).forEach(function (k) { if (a[k] !== undefined && a[k] !== '') ns[k] = a[k]; });
-      } catch (e) {}
+      } catch (e) {
+        console.debug('[narration] article TTS engine settings fallback:', e);
+      }
     }
     if (ns.ttsEngine === 'fish-s2') return 'fish-s2';
     if (ns.ttsEngine === 'moss-tts-nano') return 'moss-tts-nano';
@@ -634,7 +638,7 @@
       if (typeof rawVoice === 'string' && rawVoice.indexOf('clone:') === 0) {
         var cloneId = rawVoice.slice(6);
         var clones = [];
-        try { clones = JSON.parse(localStorage.getItem('narration-clones')) || []; } catch (e) {}
+        try { clones = JSON.parse(localStorage.getItem('narration-clones')) || []; } catch (e) { clones = []; }
         var entry = null;
         for (var i = 0; i < clones.length; i++) {
           if (clones[i].id === cloneId) { entry = clones[i]; break; }
@@ -698,7 +702,7 @@
       playbackCtx = new Ctor();
     }
     if (playbackCtx.state === 'suspended') {
-      try { playbackCtx.resume(); } catch (e) {}
+      try { playbackCtx.resume(); } catch (e) { console.debug('[narration] playbackCtx resume deferred:', e); }
     }
     return playbackCtx;
   }
@@ -791,7 +795,9 @@
           }
           recSource.connect(recordingDest);
           recSource.start(0);
-        } catch (e) {}
+        } catch (e) {
+          console.debug('[narration] recording tap skipped:', e);
+        }
       }
 
       sourceNode.onended = function () {
@@ -811,13 +817,13 @@
       var graceMs = (audioBuffer.duration / rateMultiplier) * 1000 + 2000;
       var safety = setTimeout(function () {
         if (cancelled || !sourceNode) return;
-        try { sourceNode.stop(); } catch (e) {}
+        try { sourceNode.stop(); } catch (e) { console.debug('[narration] safety stop ignored:', e); }
         var stale = sourceNode;
         sourceNode = null;
         clearSubtitleTimers();
         if (!cancelled && cb.onEnd) cb.onEnd();
         // null onended on stale to avoid double-fire
-        try { stale.onended = null; } catch (e) {}
+        try { stale.onended = null; } catch (e) { stale = null; }
       }, graceMs);
       subtitleTimers.push(safety);
 
@@ -836,7 +842,7 @@
         // Stop the source instead of suspending the shared context (would pause
         // every other slide's audio too in future calls).
         if (sourceNode) {
-          try { sourceNode.onended = null; sourceNode.stop(); } catch (e) {}
+          try { sourceNode.onended = null; sourceNode.stop(); } catch (e) { console.debug('[narration] pause stop ignored:', e); }
           sourceNode = null;
         }
         if (subtitleStartedAt) {
@@ -858,7 +864,7 @@
         clearSubtitleTimers();
         if (sourceNode) {
           sourceNode.onended = null; // prevent stale callback
-          try { sourceNode.stop(); } catch (e) {}
+          try { sourceNode.stop(); } catch (e) { console.debug('[narration] cancel stop ignored:', e); }
           sourceNode = null;
         }
         // Do NOT close shared playback context — reused across slides
@@ -913,8 +919,8 @@
       var global = {};
       var article = {};
       var slug = window.location.pathname.replace(/\/$/, '').split('/').pop() || '';
-      try { global = JSON.parse(localStorage.getItem('narration-settings')) || {}; } catch (e) {}
-      if (slug) { try { var a = JSON.parse(localStorage.getItem('narration-settings:' + slug)); if (a) { Object.keys(a).forEach(function (k) { if (a[k] !== undefined && a[k] !== '') global[k] = a[k]; }); } } catch (e) {} }
+      try { global = JSON.parse(localStorage.getItem('narration-settings')) || {}; } catch (e) { global = {}; }
+      if (slug) { try { var a = JSON.parse(localStorage.getItem('narration-settings:' + slug)); if (a) { Object.keys(a).forEach(function (k) { if (a[k] !== undefined && a[k] !== '') global[k] = a[k]; }); } } catch (e) { console.debug('[narration] speech settings slug fallback:', e); } }
       return global;
     };
     var isLocalTTS = function () {
@@ -978,7 +984,7 @@
       var lang = getEffectiveLang();
       return fetchLocalTTSAudio(text, lang, ss).then(function (buf) {
         slides[idx].audio = buf;
-      }).catch(function () {});
+      }).catch(function (e) { console.debug('[narration] ensureAudio skipped:', e); });
     }
 
     /* ── Background fill pipeline ── */
@@ -1013,7 +1019,7 @@
           if (signal.aborted) return;
           reportProgress();
           fillNext(idx + 1);
-        }).catch(function () {});
+        }).catch(function (e) { console.debug('[narration] fillNext stopped:', e); });
       }
       fillNext(startIdx);
     }
@@ -1197,7 +1203,9 @@
     try {
       var ns = JSON.parse(localStorage.getItem('narration-settings'));
       if (ns && (ns.ttsEngine === 'moss-tts-nano' || ns.ttsEngine === 'fish-s2')) hasLocalTTS = true;
-    } catch (e) {}
+    } catch (e) {
+      hasLocalTTS = false;
+    }
     return hasBrowserTTS || hasLocalTTS;
   }
 

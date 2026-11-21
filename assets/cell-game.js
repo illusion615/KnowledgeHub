@@ -84,7 +84,7 @@
       g.connect(a.destination);
       o.start(a.currentTime);
       o.stop(a.currentTime + dur);
-    } catch (e) { /* audio not available */ }
+    } catch (e) { audioCtx = null; /* audio not available */ }
   }
   function playNoise(dur, vol) {
     try {
@@ -101,7 +101,7 @@
       src.connect(g);
       g.connect(a.destination);
       src.start(a.currentTime);
-    } catch (e) {}
+    } catch (e) { audioCtx = null; }
   }
   var sfx = {
     shoot: function () { playTone(880, 0.08, 'square', 0.06); },
@@ -134,7 +134,7 @@
         filt.connect(g);
         g.connect(a.destination);
         src.start(a.currentTime);
-      } catch (e) {}
+      } catch (e) { audioCtx = null; }
     },
     hit: function () { playTone(400 + Math.random() * 200, 0.1, 'square', 0.05); playNoise(0.05, 0.04); },
     destroy: function () { playNoise(0.3, 0.1); playTone(160, 0.3, 'sawtooth', 0.08); playTone(80, 0.4, 'sine', 0.06); },
@@ -310,7 +310,7 @@
         bo.start(now + beats[b]);
         bo.stop(now + beats[b] + 0.15);
       }
-    } catch (e) {}
+    } catch (e) { audioCtx = null; }
   }
 
   var countdownFrame = null;

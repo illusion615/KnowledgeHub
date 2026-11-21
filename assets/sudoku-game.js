@@ -69,7 +69,7 @@
       g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
       o.connect(g); g.connect(audioCtx.destination);
       o.start(); o.stop(audioCtx.currentTime + dur);
-    } catch (e) {}
+    } catch (e) { audioCtx = null; }
   }
   var sfx = {
     place: function () { tone(620, 0.07, 'square', 0.04); },

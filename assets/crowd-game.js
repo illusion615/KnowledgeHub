@@ -119,10 +119,12 @@
         save.up.weapon = s.up.weapon || 0;
         save.up.talent = s.up.talent || 0;
       }
-    } catch (e) {}
+    } catch (e) {
+      console.debug('[crowd-game] loadSave fallback:', e);
+    }
   }
   function persistSave() {
-    try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {}
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) { console.debug('[crowd-game] persistSave fallback:', e); }
   }
   var UPGRADES = [
     { id: 'start',  zh: '\u521D\u59CB\u4EBA\u6570', en: 'Start Crowd', base: 30, cur: 'coins' },
@@ -186,7 +188,7 @@
       g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + dur);
       o.connect(g); g.connect(a.destination);
       o.start(); o.stop(a.currentTime + dur);
-    } catch (e) {}
+    } catch (e) { audioCtx = null; }
   }
   var sfx = {
     good: function (mag) { var f = 520 + Math.min(8, mag || 1) * 70; tone(f, 0.10, 'square', 0.07); tone(f * 1.5, 0.14, 'square', 0.05); },

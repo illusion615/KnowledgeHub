@@ -194,7 +194,7 @@
 
       var readMergedSettings = function () {
         var merged = {};
-        try { merged = JSON.parse(localStorage.getItem(globalKey)) || {}; } catch (e) {}
+        try { merged = JSON.parse(localStorage.getItem(globalKey)) || {}; } catch (e) { merged = {}; }
         if (articleKey) {
           try {
             var art = JSON.parse(localStorage.getItem(articleKey));
@@ -203,7 +203,9 @@
                 if (art[k] !== undefined && art[k] !== '') merged[k] = art[k];
               });
             }
-          } catch (e) {}
+          } catch (e) {
+            console.debug('[narration-ui] article settings parse fallback:', e);
+          }
         }
         return merged;
       };
@@ -313,7 +315,7 @@
       var showEndQRCheckbox = panel.querySelector('[data-narration-setting="showEndQR"]');
       if (showEndQRCheckbox) {
         var qrSaved = false;
-        try { qrSaved = JSON.parse(localStorage.getItem('narration-showEndQR') || 'false'); } catch (e) {}
+        try { qrSaved = JSON.parse(localStorage.getItem('narration-showEndQR') || 'false'); } catch (e) { qrSaved = false; }
         showEndQRCheckbox.checked = qrSaved;
         showEndQRCheckbox.addEventListener('change', function () {
           localStorage.setItem('narration-showEndQR', JSON.stringify(showEndQRCheckbox.checked));
@@ -354,7 +356,7 @@
           e.preventDefault();
           e.stopPropagation();
           var llm = null;
-          try { llm = JSON.parse(localStorage.getItem('llm-settings')); } catch (ex) {}
+          try { llm = JSON.parse(localStorage.getItem('llm-settings')); } catch (ex) { llm = null; }
           if (!llm || !llm.endpoint) return;
           var ep = llm.endpoint.replace(/\/+$/, '');
           var voice = (mossDemoIdInput.value || 'vivian').toLowerCase();

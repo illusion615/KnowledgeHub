@@ -9,7 +9,7 @@
   }
   async function checked(res) {
     if (!res.ok) {
-      var data; try { data = await res.json(); } catch (_) {}
+      var data; try { data = await res.json(); } catch (_) { data = null; }
       throw new Error(data && data.error && data.error.message || '桥接HTTP ' + res.status + '，请检查专用测试站。');
     }
     return res;

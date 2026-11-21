@@ -670,13 +670,13 @@
       var useRound = op.radius > 0.02;
       var opt = { x: op.x, y: op.y, w: op.w, h: op.h, fill: fillOpt, line: lineOpt };
       if (useRound) opt.rectRadius = Math.min(op.radius, Math.min(op.w, op.h) / 2);
-      try { sl.addShape(useRound ? 'roundRect' : 'rect', opt); } catch (e) {}
+      try { sl.addShape(useRound ? 'roundRect' : 'rect', opt); } catch (e) { console.debug('[pptx-export] addShape skipped:', e); }
     });
 
     // Then images, then text ───────────
     fgOps.forEach(function (op) {
       if (op.type === 'img') {
-        try { sl.addImage({ path: op.src, x: op.x, y: op.y, w: op.w, h: op.h }); } catch (e) {}
+        try { sl.addImage({ path: op.src, x: op.x, y: op.y, w: op.w, h: op.h }); } catch (e) { console.debug('[pptx-export] addImage skipped:', e); }
         return;
       }
       if (op.type === 'text') {
@@ -691,7 +691,7 @@
           lineSpacingMultiple: op.lineSpacing
         };
         if (op.charSpacing) opts.charSpacing = Math.round(op.charSpacing * 100) / 100;
-        try { sl.addText(op.text, opts); } catch (e) {}
+        try { sl.addText(op.text, opts); } catch (e) { console.debug('[pptx-export] addText skipped:', e); }
       }
     });
 

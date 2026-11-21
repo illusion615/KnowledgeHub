@@ -217,7 +217,9 @@
     if (pTheme === 'dark' || pTheme === 'light') localStorage.setItem('theme', pTheme);
     var pStyle = shareParams.get('style');
     if (pStyle && ['clean', 'warm', 'academic', 'vivid'].indexOf(pStyle) !== -1) localStorage.setItem('article-style', pStyle);
-  } catch (e) {}
+  } catch (e) {
+    console.debug('[article-common] share params storage fallback:', e);
+  }
 
   var stored = localStorage.getItem('theme');
   var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;

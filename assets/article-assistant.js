@@ -9,7 +9,7 @@
 
   // ---- Check LLM settings availability ----
   var settings = null;
-  try { settings = JSON.parse(localStorage.getItem('llm-settings')); } catch (e) {}
+  try { settings = JSON.parse(localStorage.getItem('llm-settings')); } catch (e) { settings = null; }
   if (!settings || settings.provider === 'none' || !settings.endpoint || !settings.model) return;
 
   // Resolve relative to this script, so existing article script tags need no changes.
@@ -936,7 +936,7 @@
           var delta = chunk.choices && chunk.choices[0] && chunk.choices[0].delta;
           token = delta && delta.content;
         }
-      } catch (e) { /* Ignore keep-alives and non-content events. */ }
+      } catch (e) { token = ''; /* Ignore keep-alives and non-content events. */ }
       if (typeof token === 'string' && token) {
         var stats = messageStats.get(thinkingEl);
         if (stats.first === null) stats.first = performance.now();
