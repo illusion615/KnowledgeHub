@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-section-density="strict" data-cite-links>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Claw Code 深度解析：自主编码代理的开源 Harness 实现</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+
+  <style>
+    html.is-presentation-mode .section:has([data-present-step]) > .section-head {
+      display: none;
+    }
+    .hero-copy h1 {
+      font-size: clamp(2.1rem, 5vw, 3.8rem);
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+      max-width: 20ch;
+    }
+    .hero-panel .layer-list { position: relative; margin-top: 18px; }
+    .insight-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .insight-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .insight-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    @media (max-width: 980px) {
+      .insight-grid-3, .insight-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 680px) {
+      .insight-grid-2, .insight-grid-3, .insight-grid-4 { grid-template-columns: 1fr; }
+    }
+    .compare-table-wrap {
+      margin-top: 18px;
+      overflow-x: auto;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 6px 14px;
+    }
+    .timeline-list > .flow-step::before {
+      background: linear-gradient(135deg, var(--teal), #14b8a6);
+    }
+    .insight-callout {
+      border-left: 4px solid var(--teal);
+    }
+    .code-block {
+      margin: 18px 0;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .code-block pre {
+      margin: 0;
+      padding: 20px 22px;
+      background: rgba(16, 31, 43, 0.95);
+      color: #cdd6e0;
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.82rem;
+      line-height: 1.68;
+      overflow-x: auto;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+    }
+    [data-theme="dark"] .code-block pre {
+      background: rgba(0, 0, 0, 0.46);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+    .mermaid-container {
+      margin: 22px 0;
+      padding: 24px 18px;
+      border-radius: var(--radius-md);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      text-align: center;
+      overflow-x: auto;
+    }
+    .generated-diagram {
+      margin-top: 22px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+    .generated-diagram img {
+      display: block;
+      width: 100%;
+      height: auto;
+      object-fit: contain;
+    }
+    html[lang="en"] .diagram-zh,
+    html:not([lang="en"]) .diagram-en { display: none; }
+    .diagram-caption {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+    .diagram-caption a { color: var(--teal); font-weight: 600; white-space: nowrap; }
+    [data-theme="dark"] .generated-diagram {
+      background: rgba(22, 29, 38, 0.9);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+    .sandbox-slot {
+      margin-top: 22px;
+      padding: 22px;
+      border-radius: var(--radius-lg);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+    .sandbox-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .sandbox-title-group h3 { margin: 10px 0 6px; font-size: 1.18rem; }
+    .sandbox-title-group p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+    .sandbox-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .sandbox-stage {
+      border-radius: var(--radius-md);
+      background: rgba(16, 31, 43, 0.04);
+      border: 1px solid var(--line);
+      padding: 14px;
+      overflow: hidden;
+    }
+    [data-theme="dark"] .sandbox-stage {
+      background: rgba(0, 0, 0, 0.28);
+    }
+    .sandbox-canvas {
+      display: block;
+      width: 100%;
+      max-height: 300px;
+      border-radius: 10px;
+    }
+    /* Dual-view switcher bar (Progressive / Linear / Markdown Source) */
+    .genesis-view-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 18px 0 8px;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      font-size: 0.82rem;
+    }
+    .genesis-view-status {
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .genesis-view-buttons {
+      display: inline-flex;
+      gap: 6px;
+    }
+    .genesis-view-btn {
+      appearance: none;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.18s ease, color 0.18s ease;
+    }
+    .genesis-view-btn.is-active {
+      background: linear-gradient(135deg, var(--accent), #ff9340);
+      color: #fff;
+    }
+    .genesis-source-drawer {
+      display: none;
+      margin: 18px 0 28px;
+      padding: 20px;
+      border-radius: var(--radius-lg);
+      background: rgba(16, 31, 43, 0.96);
+      color: #dbe4ee;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      overflow-x: auto;
+    }
+    .genesis-source-drawer.is-open { display: block; }
+    .genesis-source-drawer pre {
+      margin: 0;
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.8rem;
+      line-height: 1.65;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    body.is-linear-reading .subsection-content {
+      max-height: none !important;
+      opacity: 1 !important;
+      overflow: visible !important;
+      padding: 0 24px 24px !important;
+    }
+    .is-presentation-mode .genesis-view-bar,
+    .is-presentation-mode .genesis-source-drawer {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            <span data-zh="Claw Code Analysis" data-en="Claw Code Analysis">Claw Code Analysis</span>
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#section-1" data-zh="项目总览" data-en="项目总览">项目总览</a>
+            <a href="#section-2" data-zh="核心哲学" data-en="核心哲学">核心哲学</a>
+            <a href="#section-3" data-zh="三层协作系统架构" data-en="三层协作系统架构">三层协作系统架构</a>
+            <a href="#rust-crate-工作区" data-zh="Rust Crate 工作区" data-en="Rust Crate 工作区">Rust Crate 工作区</a>
+            <a href="#section-5" data-zh="九车道对齐验证" data-en="九车道对齐验证">九车道对齐验证</a>
+            <a href="#section-6" data-zh="演进路线" data-en="演进路线">演进路线</a>
+            <a href="#section-7" data-zh="关键启示" data-en="关键启示">关键启示</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow" data-zh="Open Source Coding Harness" data-en="Open Source Coding Harness">Open Source Coding Harness</span>
+            <h1 data-zh="Claw Code 深度解析：自主编码代理的开源 Harness 实现" data-en="Claw Code 深度解析：自主编码代理的开源 Harness 实现">Claw Code 深度解析：自主编码代理的开源 Harness 实现</h1>
+            <p data-zh="Claw Code 是由 UltraWorkers 社区维护的开源编码代理 harness，其核心理念是用自主代理来构建自主代理——代码本身由 AI 代理协同编写、测试和部署。项目已从 TypeScript 移植到 Python，当前主力实现为 Rust，包含 9 个 crate、约 48,600 行 Rust 代码、40 个工具定义和完整的 mock 对齐测试体系。" data-en="Claw Code 是由 UltraWorkers 社区维护的开源编码代理 harness，其核心理念是用自主代理来构建自主代理——代码本身由 AI 代理协同编写、测试和部署。项目已从 TypeScript 移植到 Python，当前主力实现为 Rust，包含 9 个 crate、约 48,600 行 Rust 代码、40 个工具定义和完整的 mock 对齐测试体系。">Claw Code 是由 UltraWorkers 社区维护的开源编码代理 harness，其核心理念是用自主代理来构建自主代理——代码本身由 AI 代理协同编写、测试和部署。项目已从 TypeScript 移植到 Python，当前主力实现为 Rust，包含 9 个 crate、约 48,600 行 Rust 代码、40 个工具定义和完整的 mock 对齐测试体系。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#section-1" data-zh="阅读核心章节" data-en="Explore Core Chapters">阅读核心章节</a>
+              <a class="button button-secondary" href="#section-2" data-zh="核心哲学" data-en="核心哲学">核心哲学</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label" data-zh="三层协作系统" data-en="三层协作系统">三层协作系统</span>
+            <h2 data-zh="人类定方向，Claw 做执行" data-en="人类定方向，Claw 做执行">人类定方向，Claw 做执行</h2>
+            <p data-zh="Claw Code 不是传统的开发工具，而是一个由三层自治系统驱动的编码 harness。" data-en="Claw Code 不是传统的开发工具，而是一个由三层自治系统驱动的编码 harness。">Claw Code 不是传统的开发工具，而是一个由三层自治系统驱动的编码 harness。</p>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span><span data-zh="OmX (oh-my-codex) — 工作流编排与执行模式" data-en="OmX (oh-my-codex) — 工作流编排与执行模式">OmX (oh-my-codex) — 工作流编排与执行模式</span></li>
+              <li><span class="layer-number">2</span><span data-zh="clawhip — 事件与通知路由器" data-en="clawhip — 事件与通知路由器">clawhip — 事件与通知路由器</span></li>
+              <li><span class="layer-number">3</span><span data-zh="OmO (oh-my-openagent) — 多代理协调与冲突解决" data-en="OmO (oh-my-openagent) — 多代理协调与冲突解决">OmO (oh-my-openagent) — 多代理协调与冲突解决</span></li>
+            </ul>
+          </aside>
+        </div>
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label" data-zh="Rust 代码行数" data-en="Rust 代码行数">Rust 代码行数</div>
+            <strong>48,600</strong>
+            <span data-zh="9 个 crate，跨 API / 运行时 / CLI / 工具 / 遥测" data-en="9 个 crate，跨 API / 运行时 / CLI / 工具 / 遥测">9 个 crate，跨 API / 运行时 / CLI / 工具 / 遥测</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="暴露工具规格" data-en="暴露工具规格">暴露工具规格</div>
+            <strong>40</strong>
+            <span data-zh="bash / file / grep / web / MCP / LSP / task / agent 等" data-en="bash / file / grep / web / MCP / LSP / task / agent 等">bash / file / grep / web / MCP / LSP / task / agent 等</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="对齐验证场景" data-en="对齐验证场景">对齐验证场景</div>
+            <strong>10</strong>
+            <span data-zh="mock 服务 + 确定性 CLI harness 端到端验证" data-en="mock 服务 + 确定性 CLI harness 端到端验证">mock 服务 + 确定性 CLI harness 端到端验证</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="genesis-view-bar load-in" role="region" aria-label="Genesis 视图模式切换">
+        <span class="genesis-view-status" data-zh="Genesis 纯静态编译产物 · 零后端依赖 · 支持渐进披露与源稿对照" data-en="Genesis Static Compiled Artifact · Zero Backend · Progressive &amp; Source View">Genesis 纯静态编译产物 · 零后端依赖 · 支持渐进披露与源稿对照</span>
+        <div class="genesis-view-buttons">
+          <button type="button" class="genesis-view-btn is-active" data-genesis-mode="progressive" data-zh="渐进披露视图" data-en="Progressive View">渐进披露视图</button>
+          <button type="button" class="genesis-view-btn" data-genesis-mode="linear" data-zh="线性展开视图" data-en="Linear View">线性展开视图</button>
+          <button type="button" class="genesis-view-btn" data-genesis-mode="source" data-zh="Markdown 源稿对照" data-en="Markdown Source">Markdown 源稿对照</button>
+        </div>
+      </div>
+      <section class="genesis-source-drawer" id="genesis-source-drawer" aria-label="Markdown 源稿">
+        <pre><code>---
+title: Claw Code 深度解析：自主编码代理的开源 Harness 实现
+eyebrow: Open Source Coding Harness
+brand: Claw Code Analysis
+date: 2026-04-11
+panel_label: 三层协作系统
+panel_title: 人类定方向，Claw 做执行
+panel_desc: Claw Code 不是传统的开发工具，而是一个由三层自治系统驱动的编码 harness。
+panel:
+  - OmX (oh-my-codex) — 工作流编排与执行模式
+  - clawhip — 事件与通知路由器
+  - OmO (oh-my-openagent) — 多代理协调与冲突解决
+metrics:
+  - Rust 代码行数 | 48,600 | 9 个 crate，跨 API / 运行时 / CLI / 工具 / 遥测
+  - 暴露工具规格 | 40 | bash / file / grep / web / MCP / LSP / task / agent 等
+  - 对齐验证场景 | 10 | mock 服务 + 确定性 CLI harness 端到端验证
+---
+
+# Claw Code 深度解析：自主编码代理的开源 Harness 实现
+
+Claw Code 是由 UltraWorkers 社区维护的开源编码代理 harness，其核心理念是用自主代理来构建自主代理——代码本身由 AI 代理协同编写、测试和部署。项目已从 TypeScript 移植到 Python，当前主力实现为 Rust，包含 9 个 crate、约 48,600 行 Rust 代码、40 个工具定义和完整的 mock 对齐测试体系。
+
+&gt; 人类定方向，Claw 做执行
+&gt;  - OmX (oh-my-codex) — 工作流编排与执行模式
+&gt;  - clawhip — 事件与通知路由器
+&gt;  - OmO (oh-my-openagent) — 多代理协调与冲突解决
+
+## 项目总览
+
+Claw Code 是 ultraworkers/claw-code 仓库的开源编码代理 harness。它最初以 TypeScript 编写，随后被移植为 Python，当前主力实现是 Rust。项目的独特之处在于：代码本身是由自主编码代理协同构建的。
+
+### 背景与起源
+
+由 Bellman / Yeachan Heo 和 Yeongyu 发起，项目通过 clawhip、oh-my-openagent、oh-my-claudecode、oh-my-codex 等自主编码工作流推进。仓库在发布 **2 小时内**即突破 **50K star**，成为 GitHub 历史上最快达到此里程碑的项目。
+
+### 移植历程
+
+TypeScript → Python (`src/`) → Rust (`rust/`)。当前 Rust 占比 **95.6%**，Python **4.4%**。Python 层保留了 port manifest 和 parity audit 查询引擎，用于跟踪移植进度。
+
+### 仓库关键数据
+
+| 指标 | 数值 |
+|------|------|
+| Commits on main | 292 |
+| Rust crates | 9 |
+| Rust LOC | 48,599 |
+| Test LOC | 2,568 |
+| 开发周期 | 2026-03-31 → 2026-04-03 (3天) |
+| 贡献者 | 3 |
+
+## 核心哲学
+
+Claw Code 的核心观点是：当编码智能足够便宜且广泛可用时，稀缺资源不再是打字速度，而是架构清晰度、任务分解能力、判断力和产品品味。
+
+### 人类接口是 Discord，不是终端
+
+在 Claw Code 的工作流中，关键的人类接口不是 tmux、Vim 或 SSH，而是 **Discord 频道**。一个人可以在手机上输入一句指令，然后走开。Claw 读取指令，分解为任务，分配角色，编写代码，运行测试，在失败时争论，恢复，并在工作通过时推送。
+
+&gt; 设计哲学
+&gt; 人类的工作不是超越机器的编码速度。人类的工作是决定什么值得被构建。
+
+### 瓶颈已经转移
+
+当代理系统能在数小时内重建一个代码库时，稀缺资源变成了：
+
+- 架构清晰度
+- 任务分解能力
+- 判断力与品味
+- 关于什么值得构建的信念
+- 知道哪些部分可以并行化、哪些必须保持约束
+
+## 三层协作系统架构
+
+Claw Code 的自主开发能力依赖三个相互独立但协同工作的系统层。每一层解决自主编码中的不同维度问题。
+
+```mermaid
+graph TB
+    Human[&quot;🧑 人类&lt;br/&gt;Discord 指令&quot;] --&gt; OmX[&quot;⚙️ OmX&lt;br/&gt;工作流编排&quot;]
+    OmX --&gt; Agent1[&quot;🤖 Agent 1&lt;br/&gt;Architect&quot;]
+    OmX --&gt; Agent2[&quot;🤖 Agent 2&lt;br/&gt;Executor&quot;]
+    OmX --&gt; Agent3[&quot;🤖 Agent 3&lt;br/&gt;Reviewer&quot;]
+    Agent1 --&gt; OmO[&quot;🔄 OmO&lt;br/&gt;多代理协调&quot;]
+    Agent2 --&gt; OmO
+    Agent3 --&gt; OmO
+    OmO --&gt; Git[&quot;📦 Git&lt;br/&gt;代码仓库&quot;]
+    Git --&gt; Clawhip[&quot;📡 clawhip&lt;br/&gt;事件路由&quot;]
+    Clawhip --&gt; Human
+    
+    style Human fill:#ff9340,color:#fff
+    style OmX fill:#0d8f8c,color:#fff
+    style OmO fill:#7c3aed,color:#fff
+    style Clawhip fill:#e0b04b,color:#fff
+```
+
+### OmX (oh-my-codex)
+
+工作流层。将短指令转化为结构化执行：规划关键词、执行模式、持久验证循环、并行多代理工作流。提供 `$team` 模式（协调并行审查）和 `$ralph` 模式（持久执行 + 验证纪律）。
+
+### clawhip
+
+事件和通知路由器。监控 git commit、tmux session、GitHub issues/PR、代理生命周期事件和频道投递。**最重要的设计决策**：将通知路由从代理上下文窗口中剥离，让代理专注实现而不是格式化状态报告。
+
+### OmO (oh-my-openagent)
+
+多代理协调层。处理规划、任务交接、分歧解决和跨代理验证循环。当 Architect、Executor 和 Reviewer 意见不一致时，OmO 提供收敛结构而非发散。
+
+## Rust Crate 工作区
+
+当前 Rust 实现由 9 个 crate 组成，按职责清晰划分为 API 通信、运行时逻辑、CLI 交互、工具实现等层级。
+
+```mermaid
+graph LR
+    CLI[&quot;rusty-claude-cli&lt;br/&gt;主 CLI 二进制&quot;] --&gt; Runtime[&quot;runtime&lt;br/&gt;会话 / 配置 / 权限&quot;]
+    CLI --&gt; Commands[&quot;commands&lt;br/&gt;Slash 命令&quot;]
+    Runtime --&gt; API[&quot;api&lt;br/&gt;HTTP / SSE / Auth&quot;]
+    Runtime --&gt; Tools[&quot;tools&lt;br/&gt;40 个工具实现&quot;]
+    Runtime --&gt; Plugins[&quot;plugins&lt;br/&gt;插件注册表&quot;]
+    Tools --&gt; Mock[&quot;mock-anthropic-service&lt;br/&gt;确定性 Mock&quot;]
+    CLI --&gt; Telemetry[&quot;telemetry&lt;br/&gt;遥测载荷&quot;]
+    Runtime --&gt; Compat[&quot;compat-harness&lt;br/&gt;TS 清单提取&quot;]
+    
+    style CLI fill:#ff9340,color:#fff
+    style Runtime fill:#0d8f8c,color:#fff
+    style Tools fill:#7c3aed,color:#fff
+    style API fill:#e0b04b,color:#fff
+```
+
+### CLI 功能概览
+
+- Anthropic API + Streaming ✅
+- OAuth login/logout ✅
+- Interactive REPL (rustyline) ✅
+- Tool system (bash/read/write/edit/grep/glob) ✅
+- Sub-agent orchestration ✅
+- MCP server lifecycle ✅
+- Session persistence + resume ✅
+- Extended thinking (thinking blocks) ✅
+- Cost tracking + usage display ✅
+
+### 权限模式
+
+CLI 支持三级权限模式，通过 `PermissionEnforcer` 在工具执行前进行守门检查：
+
+1. **read-only** — 只允许读取操作，bash 中的写入命令被拒绝
+2. **workspace-write** — 允许在工作区边界内写入文件
+3. **danger-full-access** — 完全访问权限，默认模式
+
+## 九车道对齐验证
+
+项目使用 9 条并行开发车道来组织功能对齐工作。所有 9 条车道已合并到 main 分支。
+
+| 车道 | 功能 | 状态 | 关键文件 |
+|------|------|------|----------|
+| 1 | Bash 验证 | ✅ merged | `bash_validation.rs` (+1004 LOC) |
+| 2 | CI 修复 | ✅ merged | `sandbox.rs` (385 LOC) |
+| 3 | File 工具 | ✅ merged | `file_ops.rs` (744 LOC) |
+| 4 | TaskRegistry | ✅ merged | `task_registry.rs` (335 LOC) |
+| 5 | Task 连接 | ✅ merged | `tools/src/lib.rs` |
+| 6 | Team + Cron | ✅ merged | `team_cron_registry.rs` (363 LOC) |
+| 7 | MCP 生命周期 | ✅ merged | `mcp_tool_bridge.rs` (406 LOC) |
+| 8 | LSP 客户端 | ✅ merged | `lsp_client.rs` (438 LOC) |
+| 9 | 权限执行 | ✅ merged | `permission_enforcer.rs` (340 LOC) |
+
+### 安全防护
+
+- **路径穿越防护** — 符号链接跟随和 `../` 逃逸检测
+- **大小限制** — 读写操作的 MAX_READ_SIZE / MAX_WRITE_SIZE 约束
+- **二进制检测** — NUL 字节检测阻止对二进制文件的文本操作
+- **权限模式** — read-only 模式下拒绝所有写入和可变 bash 命令
+
+## 演进路线
+
+Claw Code 的目标是从「一个人类也能用的 CLI」演进为「Claw-native 执行运行时」。
+
+```mermaid
+graph LR
+    P1[&quot;Phase 1&lt;br/&gt;可靠 Worker 启动&quot;] --&gt; P2[&quot;Phase 2&lt;br/&gt;事件原生集成&quot;]
+    P2 --&gt; P3[&quot;Phase 3&lt;br/&gt;分支/测试感知&quot;]
+    P3 --&gt; P4[&quot;Phase 4&lt;br/&gt;Claw 优先执行&quot;]
+    P4 --&gt; P5[&quot;Phase 5&lt;br/&gt;插件/MCP 成熟&quot;]
+    
+    style P1 fill:#ff9340,color:#fff
+    style P2 fill:#e0b04b,color:#fff
+    style P3 fill:#0d8f8c,color:#fff
+    style P4 fill:#7c3aed,color:#fff
+    style P5 fill:#9333ea,color:#fff
+```
+
+### 产品原则
+
+1. **状态机优先** — 每个 worker 有显式生命周期状态
+2. **事件优于刮取** — 频道输出从类型化事件派生
+3. **恢复先于升级** — 已知失败模式先自动修复一次
+4. **分支新鲜度先于归责** — 检测陈旧分支后再判断是否为新回归
+5. **终端是传输层不是真相源** — 编排状态必须在 tmux/TUI 之上
+
+## 关键启示
+
+从 Claw Code 仓库中可以提取出对企业级代理架构设计有价值的模式。
+
+### 关注点分离
+
+通知路由从代理上下文窗口分离（clawhip），工作流编排从代码执行分离（OmX），冲突解决从任务分配分离（OmO）。每一层只做一件事。
+
+### 自举悖论
+
+用代理来构建代理工具本身是一个自举实验。Claw Code 在 **3 天内**产出 **48,600 行** Rust 代码和 **292 个 commit**，验证了自主编码工作流在高速迭代场景中的可行性，同时也暴露了 CI 稳定性和文档一致性的挑战。
+
+&gt; 核心教训
+&gt; 代码是证据，协调系统才是产品。不要只盯着生成的文件——真正值得研究的是产生它们的系统。
+</code></pre>
+      </section>
+
+      <main>
+        <section id="section-1" class="section" data-reveal data-present-title-zh="项目总览" data-present-title-en="项目总览">
+          <div class="section-head">
+            <p class="section-kicker">01 / 项目总览</p>
+            <h2 data-zh="1. 项目总览" data-en="1. 项目总览">1. 项目总览</h2>
+            <p data-zh="Claw Code 是 ultraworkers/claw-code 仓库的开源编码代理 harness。它最初以 TypeScript 编写，随后被移植为 Python，当前主力实现是 Rust。项目的独特之处在于：代码本身是由自主编码代理协同构建的。" data-en="Claw Code 是 ultraworkers/claw-code 仓库的开源编码代理 harness。它最初以 TypeScript 编写，随后被移植为 Python，当前主力实现是 Rust。项目的独特之处在于：代码本身是由自主编码代理协同构建的。">Claw Code 是 ultraworkers/claw-code 仓库的开源编码代理 harness。它最初以 TypeScript 编写，随后被移植为 Python，当前主力实现是 Rust。项目的独特之处在于：代码本身是由自主编码代理协同构建的。</p>
+          </div>
+
+          <div class="subsection-accordion" data-present-step data-present-surface="unframed" data-step-title="项目总览：展开详解" data-step-title-en="项目总览: Deep Dive" data-present-title-zh="项目总览：展开详解" data-present-title-en="项目总览: Deep Dive" data-step-label="01 / 项目总览" data-step-label-en="01 / 项目总览" data-present-i18n-invariant="label">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" type="button" aria-expanded="true" data-zh="背景与起源" data-en="背景与起源">背景与起源</button>
+              <div class="subsection-content">
+                <p>由 Bellman / Yeachan Heo 和 Yeongyu 发起，项目通过 clawhip、oh-my-openagent、oh-my-claudecode、oh-my-codex 等自主编码工作流推进。仓库在发布 <strong>2 小时内</strong>即突破 <strong>50K star</strong>，成为 GitHub 历史上最快达到此里程碑的项目。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" type="button" aria-expanded="false" data-zh="移植历程" data-en="移植历程">移植历程</button>
+              <div class="subsection-content">
+                <p>TypeScript → Python (<code>src/</code>) → Rust (<code>rust/</code>)。当前 Rust 占比 <strong>95.6%</strong>，Python <strong>4.4%</strong>。Python 层保留了 port manifest 和 parity audit 查询引擎，用于跟踪移植进度。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" type="button" aria-expanded="false" data-zh="仓库关键数据" data-en="仓库关键数据">仓库关键数据</button>
+              <div class="subsection-content">
+                <div class="compare-table-wrap"><table class="simple-table compare-table">
+<thead>
+<tr>
+<th>指标</th>
+<th>数值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Commits on main</td>
+<td>292</td>
+</tr>
+<tr>
+<td>Rust crates</td>
+<td>9</td>
+</tr>
+<tr>
+<td>Rust LOC</td>
+<td>48,599</td>
+</tr>
+<tr>
+<td>Test LOC</td>
+<td>2,568</td>
+</tr>
+<tr>
+<td>开发周期</td>
+<td>2026-03-31 → 2026-04-03 (3天)</td>
+</tr>
+<tr>
+<td>贡献者</td>
+<td>3</td>
+</tr>
+</tbody>
+</table></div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="section-2" class="section" data-reveal data-present-title-zh="核心哲学" data-present-title-en="核心哲学">
+          <div class="section-head">
+            <p class="section-kicker">02 / 核心哲学</p>
+            <h2 data-zh="2. 核心哲学" data-en="2. 核心哲学">2. 核心哲学</h2>
+            <p data-zh="Claw Code 的核心观点是：当编码智能足够便宜且广泛可用时，稀缺资源不再是打字速度，而是架构清晰度、任务分解能力、判断力和产品品味。" data-en="Claw Code 的核心观点是：当编码智能足够便宜且广泛可用时，稀缺资源不再是打字速度，而是架构清晰度、任务分解能力、判断力和产品品味。">Claw Code 的核心观点是：当编码智能足够便宜且广泛可用时，稀缺资源不再是打字速度，而是架构清晰度、任务分解能力、判断力和产品品味。</p>
+          </div>
+
+          <div class="subsection-accordion" data-present-step data-present-surface="unframed" data-step-title="核心哲学：展开详解" data-step-title-en="核心哲学: Deep Dive" data-present-title-zh="核心哲学：展开详解" data-present-title-en="核心哲学: Deep Dive" data-step-label="02 / 核心哲学" data-step-label-en="02 / 核心哲学" data-present-i18n-invariant="label">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" type="button" aria-expanded="true" data-zh="人类接口是 Discord，不是终端" data-en="人类接口是 Discord，不是终端">人类接口是 Discord，不是终端</button>
+              <div class="subsection-content">
+                <p>在 Claw Code 的工作流中，关键的人类接口不是 tmux、Vim 或 SSH，而是 <strong>Discord 频道</strong>。一个人可以在手机上输入一句指令，然后走开。Claw 读取指令，分解为任务，分配角色，编写代码，运行测试，在失败时争论，恢复，并在工作通过时推送。</p>
+<blockquote>
+<p>设计哲学
+人类的工作不是超越机器的编码速度。人类的工作是决定什么值得被构建。</p>
+</blockquote>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" type="button" aria-expanded="false" data-zh="瓶颈已经转移" data-en="瓶颈已经转移">瓶颈已经转移</button>
+              <div class="subsection-content">
+                <p>当代理系统能在数小时内重建一个代码库时，稀缺资源变成了：</p>
+<ul>
+<li>架构清晰度</li>
+<li>任务分解能力</li>
+<li>判断力与品味</li>
+<li>关于什么值得构建的信念</li>
+<li>知道哪些部分可以并行化、哪些必须保持约束</li>
+</ul>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="section-3" class="section" data-reveal data-present-title-zh="三层协作系统架构" data-present-title-en="三层协作系统架构">
+          <div class="section-head">
+            <p class="section-kicker">03 / 三层协作系统架构</p>
+            <h2 data-zh="3. 三层协作系统架构" data-en="3. 三层协作系统架构">3. 三层协作系统架构</h2>
+            <p data-zh="Claw Code 的自主开发能力依赖三个相互独立但协同工作的系统层。每一层解决自主编码中的不同维度问题。" data-en="Claw Code 的自主开发能力依赖三个相互独立但协同工作的系统层。每一层解决自主编码中的不同维度问题。">Claw Code 的自主开发能力依赖三个相互独立但协同工作的系统层。每一层解决自主编码中的不同维度问题。</p>
+          </div>
+
+          <div class="mermaid-container"><pre class="mermaid">graph TB
+    Human[&quot;🧑 人类&lt;br/&gt;Discord 指令&quot;] --&gt; OmX[&quot;⚙️ OmX&lt;br/&gt;工作流编排&quot;]
+    OmX --&gt; Agent1[&quot;🤖 Agent 1&lt;br/&gt;Architect&quot;]
+    OmX --&gt; Agent2[&quot;🤖 Agent 2&lt;br/&gt;Executor&quot;]
+    OmX --&gt; Agent3[&quot;🤖 Agent 3&lt;br/&gt;Reviewer&quot;]
+    Agent1 --&gt; OmO[&quot;🔄 OmO&lt;br/&gt;多代理协调&quot;]
+    Agent2 --&gt; OmO
+    Agent3 --&gt; OmO
+    OmO --&gt; Git[&quot;📦 Git&lt;br/&gt;代码仓库&quot;]
+    Git --&gt; Clawhip[&quot;📡 clawhip&lt;br/&gt;事件路由&quot;]
+    Clawhip --&gt; Human
+<pre><code>style Human fill:#ff9340,color:#fff
+style OmX fill:#0d8f8c,color:#fff
+style OmO fill:#7c3aed,color:#fff
+style Clawhip fill:#e0b04b,color:#fff&lt;/pre&gt;&lt;/div&gt;
+</code></pre>
+
+          <div class="subsection-accordion" data-present-step data-present-surface="unframed" data-step-title="三层协作系统架构：展开详解" data-step-title-en="三层协作系统架构: Deep Dive" data-present-title-zh="三层协作系统架构：展开详解" data-present-title-en="三层协作系统架构: Deep Dive" data-step-label="03 / 三层协作系统架构" data-step-label-en="03 / 三层协作系统架构" data-present-i18n-invariant="label">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" type="button" aria-expanded="true" data-zh="OmX (oh-my-codex)" data-en="OmX (oh-my-codex)">OmX (oh-my-codex)</button>
+              <div class="subsection-content">
+                <p>工作流层。将短指令转化为结构化执行：规划关键词、执行模式、持久验证循环、并行多代理工作流。提供 <code>$team</code> 模式（协调并行审查）和 <code>$ralph</code> 模式（持久执行 + 验证纪律）。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" type="button" aria-expanded="false" data-zh="clawhip" data-en="clawhip">clawhip</button>
+              <div class="subsection-content">
+                <p>事件和通知路由器。监控 git commit、tmux session、GitHub issues/PR、代理生命周期事件和频道投递。<strong>最重要的设计决策</strong>：将通知路由从代理上下文窗口中剥离，让代理专注实现而不是格式化状态报告。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" type="button" aria-expanded="false" data-zh="OmO (oh-my-openagent)" data-en="OmO (oh-my-openagent)">OmO (oh-my-openagent)</button>
+              <div class="subsection-content">
+                <p>多代理协调层。处理规划、任务交接、分歧解决和跨代理验证循环。当 Architect、Executor 和 Reviewer 意见不一致时，OmO 提供收敛结构而非发散。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="rust-crate-工作区" class="section" data-reveal data-present-title-zh="Rust Crate 工作区" data-present-title-en="Rust Crate 工作区">
+          <div class="section-head">
+            <p class="section-kicker">04 / Rust Crate 工作区</p>
+            <h2 data-zh="4. Rust Crate 工作区" data-en="4. Rust Crate 工作区">4. Rust Crate 工作区</h2>
+            <p data-zh="当前 Rust 实现由 9 个 crate 组成，按职责清晰划分为 API 通信、运行时逻辑、CLI 交互、工具实现等层级。" data-en="当前 Rust 实现由 9 个 crate 组成，按职责清晰划分为 API 通信、运行时逻辑、CLI 交互、工具实现等层级。">当前 Rust 实现由 9 个 crate 组成，按职责清晰划分为 API 通信、运行时逻辑、CLI 交互、工具实现等层级。</p>
+          </div>
+
+          <div class="mermaid-container"><pre class="mermaid">graph LR
+    CLI[&quot;rusty-claude-cli&lt;br/&gt;主 CLI 二进制&quot;] --&gt; Runtime[&quot;runtime&lt;br/&gt;会话 / 配置 / 权限&quot;]
+    CLI --&gt; Commands[&quot;commands&lt;br/&gt;Slash 命令&quot;]
+    Runtime --&gt; API[&quot;api&lt;br/&gt;HTTP / SSE / Auth&quot;]
+    Runtime --&gt; Tools[&quot;tools&lt;br/&gt;40 个工具实现&quot;]
+    Runtime --&gt; Plugins[&quot;plugins&lt;br/&gt;插件注册表&quot;]
+    Tools --&gt; Mock[&quot;mock-anthropic-service&lt;br/&gt;确定性 Mock&quot;]
+    CLI --&gt; Telemetry[&quot;telemetry&lt;br/&gt;遥测载荷&quot;]
+    Runtime --&gt; Compat[&quot;compat-harness&lt;br/&gt;TS 清单提取&quot;]
+<pre><code>style CLI fill:#ff9340,color:#fff
+style Runtime fill:#0d8f8c,color:#fff
+style Tools fill:#7c3aed,color:#fff
+style API fill:#e0b04b,color:#fff&lt;/pre&gt;&lt;/div&gt;
+</code></pre>
+
+          <div class="subsection-accordion" data-present-step data-present-surface="unframed" data-step-title="Rust Crate 工作区：展开详解" data-step-title-en="Rust Crate 工作区: Deep Dive" data-present-title-zh="Rust Crate 工作区：展开详解" data-present-title-en="Rust Crate 工作区: Deep Dive" data-step-label="04 / Rust Crate 工作区" data-step-label-en="04 / Rust Crate 工作区" data-present-i18n-invariant="label">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" type="button" aria-expanded="true" data-zh="CLI 功能概览" data-en="CLI 功能概览">CLI 功能概览</button>
+              <div class="subsection-content">
+                <ul>
+<li>Anthropic API + Streaming ✅</li>
+<li>OAuth login/logout ✅</li>
+<li>Interactive REPL (rustyline) ✅</li>
+<li>Tool system (bash/read/write/edit/grep/glob) ✅</li>
+<li>Sub-agent orchestration ✅</li>
+<li>MCP server lifecycle ✅</li>
+<li>Session persistence + resume ✅</li>
+<li>Extended thinking (thinking blocks) ✅</li>
+<li>Cost tracking + usage display ✅</li>
+</ul>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" type="button" aria-expanded="false" data-zh="权限模式" data-en="权限模式">权限模式</button>
+              <div class="subsection-content">
+                <p>CLI 支持三级权限模式，通过 <code>PermissionEnforcer</code> 在工具执行前进行守门检查：</p>
+<ol>
+<li><strong>read-only</strong> — 只允许读取操作，bash 中的写入命令被拒绝</li>
+<li><strong>workspace-write</strong> — 允许在工作区边界内写入文件</li>
+<li><strong>danger-full-access</strong> — 完全访问权限，默认模式</li>
+</ol>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="section-5" class="section" data-reveal data-present-title-zh="九车道对齐验证" data-present-title-en="九车道对齐验证">
+          <div class="section-head">
+            <p class="section-kicker">05 / 九车道对齐验证</p>
+            <h2 data-zh="5. 九车道对齐验证" data-en="5. 九车道对齐验证">5. 九车道对齐验证</h2>
+            <p data-zh="项目使用 9 条并行开发车道来组织功能对齐工作。所有 9 条车道已合并到 main 分支。" data-en="项目使用 9 条并行开发车道来组织功能对齐工作。所有 9 条车道已合并到 main 分支。">项目使用 9 条并行开发车道来组织功能对齐工作。所有 9 条车道已合并到 main 分支。</p>
+          </div>
+
+          <div class="compare-table-wrap"><table class="simple-table compare-table">
+<thead>
+<tr>
+<th>车道</th>
+<th>功能</th>
+<th>状态</th>
+<th>关键文件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Bash 验证</td>
+<td>✅ merged</td>
+<td><code>bash_validation.rs</code> (+1004 LOC)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>CI 修复</td>
+<td>✅ merged</td>
+<td><code>sandbox.rs</code> (385 LOC)</td>
+</tr>
+<tr>
+<td>3</td>
+<td>File 工具</td>
+<td>✅ merged</td>
+<td><code>file_ops.rs</code> (744 LOC)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>TaskRegistry</td>
+<td>✅ merged</td>
+<td><code>task_registry.rs</code> (335 LOC)</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Task 连接</td>
+<td>✅ merged</td>
+<td><code>tools/src/lib.rs</code></td>
+</tr>
+<tr>
+<td>6</td>
+<td>Team + Cron</td>
+<td>✅ merged</td>
+<td><code>team_cron_registry.rs</code> (363 LOC)</td>
+</tr>
+<tr>
+<td>7</td>
+<td>MCP 生命周期</td>
+<td>✅ merged</td>
+<td><code>mcp_tool_bridge.rs</code> (406 LOC)</td>
+</tr>
+<tr>
+<td>8</td>
+<td>LSP 客户端</td>
+<td>✅ merged</td>
+<td><code>lsp_client.rs</code> (438 LOC)</td>
+</tr>
+<tr>
+<td>9</td>
+<td>权限执行</td>
+<td>✅ merged</td>
+<td><code>permission_enforcer.rs</code> (340 LOC)</td>
+</tr>
+</tbody>
+</table></div>
+
+          <div class="subsection-accordion" data-present-step data-present-surface="unframed" data-step-title="九车道对齐验证：展开详解" data-step-title-en="九车道对齐验证: Deep Dive" data-present-title-zh="九车道对齐验证：展开详解" data-present-title-en="九车道对齐验证: Deep Dive" data-step-label="05 / 九车道对齐验证" data-step-label-en="05 / 九车道对齐验证" data-present-i18n-invariant="label">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" type="button" aria-expanded="true" data-zh="安全防护" data-en="安全防护">安全防护</button>
+              <div class="subsection-content">
+                <ul>
+<li><strong>路径穿越防护</strong> — 符号链接跟随和 <code>../</code> 逃逸检测</li>
+<li><strong>大小限制</strong> — 读写操作的 MAX_READ_SIZE / MAX_WRITE_SIZE 约束</li>
+<li><strong>二进制检测</strong> — NUL 字节检测阻止对二进制文件的文本操作</li>
+<li><strong>权限模式</strong> — read-only 模式下拒绝所有写入和可变 bash 命令</li>
+</ul>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="section-6" class="section" data-reveal data-present-title-zh="演进路线" data-present-title-en="演进路线">
+          <div class="section-head">
+            <p class="section-kicker">06 / 演进路线</p>
+            <h2 data-zh="6. 演进路线" data-en="6. 演进路线">6. 演进路线</h2>
+            <p data-zh="Claw Code 的目标是从「一个人类也能用的 CLI」演进为「Claw-native 执行运行时」。" data-en="Claw Code 的目标是从「一个人类也能用的 CLI」演进为「Claw-native 执行运行时」。">Claw Code 的目标是从「一个人类也能用的 CLI」演进为「Claw-native 执行运行时」。</p>
+          </div>
+
+          <div class="mermaid-container"><pre class="mermaid">graph LR
+    P1[&quot;Phase 1&lt;br/&gt;可靠 Worker 启动&quot;] --&gt; P2[&quot;Phase 2&lt;br/&gt;事件原生集成&quot;]
+    P2 --&gt; P3[&quot;Phase 3&lt;br/&gt;分支/测试感知&quot;]
+    P3 --&gt; P4[&quot;Phase 4&lt;br/&gt;Claw 优先执行&quot;]
+    P4 --&gt; P5[&quot;Phase 5&lt;br/&gt;插件/MCP 成熟&quot;]
+<pre><code>style P1 fill:#ff9340,color:#fff
+style P2 fill:#e0b04b,color:#fff
+style P3 fill:#0d8f8c,color:#fff
+style P4 fill:#7c3aed,color:#fff
+style P5 fill:#9333ea,color:#fff&lt;/pre&gt;&lt;/div&gt;
+</code></pre>
+
+          <div class="subsection-accordion" data-present-step data-present-surface="unframed" data-step-title="演进路线：展开详解" data-step-title-en="演进路线: Deep Dive" data-present-title-zh="演进路线：展开详解" data-present-title-en="演进路线: Deep Dive" data-step-label="06 / 演进路线" data-step-label-en="06 / 演进路线" data-present-i18n-invariant="label">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" type="button" aria-expanded="true" data-zh="产品原则" data-en="产品原则">产品原则</button>
+              <div class="subsection-content">
+                <ol>
+<li><strong>状态机优先</strong> — 每个 worker 有显式生命周期状态</li>
+<li><strong>事件优于刮取</strong> — 频道输出从类型化事件派生</li>
+<li><strong>恢复先于升级</strong> — 已知失败模式先自动修复一次</li>
+<li><strong>分支新鲜度先于归责</strong> — 检测陈旧分支后再判断是否为新回归</li>
+<li><strong>终端是传输层不是真相源</strong> — 编排状态必须在 tmux/TUI 之上</li>
+</ol>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="section-7" class="section" data-reveal data-present-title-zh="关键启示" data-present-title-en="关键启示">
+          <div class="section-head">
+            <p class="section-kicker">07 / 关键启示</p>
+            <h2 data-zh="7. 关键启示" data-en="7. 关键启示">7. 关键启示</h2>
+            <p data-zh="从 Claw Code 仓库中可以提取出对企业级代理架构设计有价值的模式。" data-en="从 Claw Code 仓库中可以提取出对企业级代理架构设计有价值的模式。">从 Claw Code 仓库中可以提取出对企业级代理架构设计有价值的模式。</p>
+          </div>
+
+          <div class="subsection-accordion" data-present-step data-present-surface="unframed" data-step-title="关键启示：展开详解" data-step-title-en="关键启示: Deep Dive" data-present-title-zh="关键启示：展开详解" data-present-title-en="关键启示: Deep Dive" data-step-label="07 / 关键启示" data-step-label-en="07 / 关键启示" data-present-i18n-invariant="label">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" type="button" aria-expanded="true" data-zh="关注点分离" data-en="关注点分离">关注点分离</button>
+              <div class="subsection-content">
+                <p>通知路由从代理上下文窗口分离（clawhip），工作流编排从代码执行分离（OmX），冲突解决从任务分配分离（OmO）。每一层只做一件事。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" type="button" aria-expanded="false" data-zh="自举悖论" data-en="自举悖论">自举悖论</button>
+              <div class="subsection-content">
+                <p>用代理来构建代理工具本身是一个自举实验。Claw Code 在 <strong>3 天内</strong>产出 <strong>48,600 行</strong> Rust 代码和 <strong>292 个 commit</strong>，验证了自主编码工作流在高速迭代场景中的可行性，同时也暴露了 CI 稳定性和文档一致性的挑战。</p>
+<blockquote>
+<p>核心教训
+代码是证据，协调系统才是产品。不要只盯着生成的文件——真正值得研究的是产生它们的系统。</p>
+</blockquote>
+              </div>
+            </article>
+          </div>
+        </section>
+      </main>
+
+      <footer class="site-footer" data-reveal>
+        <p data-zh="© 2026 Knowledge Hub · Genesis 纯静态 Markdown 编译管线生成" data-en="© 2026 Knowledge Hub · Generated by Genesis Static Markdown Compiler">© 2026 Knowledge Hub · Genesis 纯静态 Markdown 编译管线生成</p>
+      </footer>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/article-narration.js"></script>
+  <script src="../../assets/pptx-export.js"></script>
+  <script src="../../assets/article-math.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+  <script>
+    (function () {
+      var buttons = document.querySelectorAll("[data-genesis-mode]");
+      var drawer = document.getElementById("genesis-source-drawer");
+      var i;
+      function setMode(mode) {
+        for (var j = 0; j < buttons.length; j++) {
+          var btn = buttons[j];
+          var active = btn.getAttribute("data-genesis-mode") === mode;
+          if (active) {
+            btn.classList.add("is-active");
+          } else {
+            btn.classList.remove("is-active");
+          }
+        }
+        if (mode === "linear") {
+          document.body.classList.add("is-linear-reading");
+          if (drawer) drawer.classList.remove("is-open");
+        } else if (mode === "source") {
+          document.body.classList.remove("is-linear-reading");
+          if (drawer) drawer.classList.add("is-open");
+        } else {
+          document.body.classList.remove("is-linear-reading");
+          if (drawer) drawer.classList.remove("is-open");
+        }
+      }
+      for (i = 0; i < buttons.length; i++) {
+        (function (btn) {
+          btn.addEventListener("click", function () {
+            setMode(btn.getAttribute("data-genesis-mode"));
+          });
+        })(buttons[i]);
+      }
+      if (typeof mermaid !== "undefined" && mermaid.initialize) {
+        mermaid.initialize({ startOnLoad: true, theme: "neutral" });
+      }
+    })();
+  </script>
+</body>
+</html>
