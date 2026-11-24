@@ -121,7 +121,7 @@
         node.classList.remove('is-simulating', 'is-simulation-paused');
       });
       ctx.stage.querySelectorAll('[data-gallery-caption]').forEach(function (node) { node.textContent = ''; });
-      try { if (project) paintComposition(galleryScene(), 0); }
+      try { if (project) paintComposition(galleryScene(), 0.5); }
       catch (error) { say(error.message, true); }
       simulationStatus(t('预演已停止。', 'Simulation stopped.'));
       simulationControls();
@@ -155,7 +155,7 @@
       thumb = strip.querySelector('[aria-current]');
       strip.scrollLeft = thumb.offsetLeft - strip.clientWidth / 2 + thumb.offsetWidth / 2;
       syncSequence(0);
-      paintComposition(galleryScene(), 0);
+      paintComposition(galleryScene(), 0.5);
       simulationControls();
       hydrate().catch(function (error) { say(error.message, true); });
     }

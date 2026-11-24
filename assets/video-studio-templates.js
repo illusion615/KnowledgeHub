@@ -422,8 +422,28 @@
     var text = String(raw || '').replace(/\[\d+\]/g, '').replace(/https?:\/\/\S+/g, '').replace(/[*#`_~>]/g, ' ').replace(/\s+/g, ' ').trim();
     if (!text) return '';
     if (max && text.length > max) text = text.slice(0, max).replace(/[，,、；;：:\s]+$/, '');
-    if (!/[。！？.!?]$/.test(text)) text += '。';
-    return text;
+    if (!/[。！？；]$/.test(text)) text = text.replace(/[.!?]+$/, '') + '。';
+    var clauses = text.match(/[^。！？；]+[。！？；]?/g) || [text];
+    var safe = [];
+    clauses.forEach(function (clause) {
+      var remain = clause.trim();
+      while (remain.length > 56) {
+        var cut = -1, seps = ['，', ',', '：', ':', '、', '—', ' '], k;
+        for (k = 0; k < seps.length; k++) {
+          var pos = remain.lastIndexOf(seps[k], 52);
+          if (pos >= 16 && pos > cut) cut = pos;
+        }
+        if (cut < 16) cut = 48;
+        var head = remain.slice(0, cut).replace(/[，,、；;：:\s]+$/, '') + '。';
+        safe.push(head);
+        remain = remain.slice(cut).replace(/^[，,、；;：:\s—]+/, '');
+      }
+      if (remain) {
+        if (!/[。！？；]$/.test(remain)) remain += '。';
+        safe.push(remain);
+      }
+    });
+    return safe.join('');
   }
 
   function buildAutoDraftFromSource(source, options) {
@@ -527,6 +547,7 @@
     scenePresets: scenePresets,
     getStylePack: getStylePack,
     getScenario: getScenario,
+    cleanSpoken: cleanSpoken,
     buildTemplateComposition: buildTemplateComposition,
     buildAutoDraftFromSource: buildAutoDraftFromSource,
     containBounds: containBounds,

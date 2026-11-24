@@ -314,6 +314,9 @@ export function createVideoStudio({ root, dataRoot = join(root, 'private/video-s
         job.kind === 'direct' ? '画面已重新设计；图片与配音未改变，可直接预演，再渲染变更片段。' :
         job.kind === 'assets' ? '批量素材准备完成，可预演或直接渲染，无需逐镜头确认。' :
         job.kind === 'clips' ? '全部镜头已就绪，可导出整片。' : '本步骤完成；未自动执行下一步。');
+      if (job.kind === 'produce' && job.autoExportView) {
+        await mutate(id, current => { current.cursor = 5; });
+      }
     } catch (error) {
       if (!(error instanceof BridgeError) && !controller.signal.aborted) console.error('Video Studio job failed:', jobId, error);
       const safe = publicError(controller.signal.aborted ? controller.signal.reason : error);
@@ -377,7 +380,7 @@ export function createVideoStudio({ root, dataRoot = join(root, 'private/video-s
       });
       return;
     }
-    const match = /^\/(p-[a-f0-9]{24})(?:\/(draft|approve|jobs|cancel|source|media|cursor|manifest|auto-narration))?$/.exec(route);
+    const match = /^\/(p-[a-f0-9]{24})(?:\/(draft|approve|jobs|cancel|source|media|cursor|manifest|auto-narration|one-click))?$/.exec(route);
     if (!match) fail(404, 'STUDIO_ROUTE', '视频工作室接口不存在。');
     const [, id, action] = match;
     if (!action && req.method === 'GET') { send(200, await exposed(id)); return; }
@@ -402,6 +405,53 @@ export function createVideoStudio({ root, dataRoot = join(root, 'private/video-s
         project.revision++;
       });
       send(200, await exposed(id));
+      return;
+    }
+    if (action === 'one-click' && req.method === 'POST') {
+      const visible = await exposed(id);
+      if (visible.stale) fail(409, 'SOURCE_STALE', '文章已变化。请先刷新来源并审阅，未启动生成。');
+      const jobId = 'j-' + randomBytes(12).toString('hex');
+      const controller = new AbortController();
+      controllers.set(jobId, controller);
+      try {
+        await mutate(id, project => {
+          if (body && body.revision !== undefined) revision(project, body);
+          if (project.jobs.some(job => ['queued', 'running'].includes(job.status))) fail(409, 'JOB_ACTIVE', '当前视频还有未完成步骤，请等待或取消。');
+          if (project.jobs.length >= 512) fail(409, 'JOB_LIMIT', '当前作业已达到512条历史记录上限，请归档后新建作业。');
+          if (body && body.brief) project.brief = validateBrief({ ...project.brief, ...body.brief });
+          if (Array.isArray(body && body.scenes) && body.scenes.length) {
+            const sanitized = body.scenes.map(sc => ({
+              ...sc,
+              narration: (sc.narration.match(/[^。！？；]+[。！？；]?/g) || []).some(s => s.length > 64)
+                ? vgCatalog.cleanSpoken(sc.narration, 1600)
+                : sc.narration
+            }));
+            project.scenes = validateScenes(sanitized, project.source);
+          } else if (!project.scenes.length || body?.regenerateScenes === true) {
+            const autoDraft = vgCatalog.buildAutoDraftFromSource(project.source, {
+              scenario: project.brief.scenario || 'presenter',
+              stylePack: project.brief.stylePack || (project.brief.scenario === 'product' ? '03-A' : '01-A')
+            });
+            project.scenes = validateScenes(autoDraft.scenes, project.source);
+            project.creativeDirection = autoDraft.creativeDirection;
+          }
+          project.briefApproval = digest(project.brief);
+          project.planApproval = planKey(project);
+          project.cursor = 2;
+          project.revision++;
+          const totalTasks = project.scenes.reduce((sum, sc) => sum + (needsImage(sc) ? 3 : 2), 0) + 1;
+          project.jobs.push({
+            id: jobId, kind: 'produce', autoExportView: true, sceneId: null, model: null,
+            progress: { total: totalTasks, completed: 0, generated: 0, reused: 0 },
+            revision: project.revision, status: 'queued',
+            message: '已启动一键自动生成流水线：配音合成 ➔ 动态镜头渲染 ➔ 整片 MP4 导出。',
+            createdAt: new Date().toISOString()
+          });
+        });
+      } catch (error) { controllers.delete(jobId); throw error; }
+      queue.push({ id, jobId });
+      void drain().catch(error => console.error('Video Studio queue failed:', publicError(error).code));
+      send(202, await exposed(id));
       return;
     }
     if (action === 'media' && req.method === 'GET') {

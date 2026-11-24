@@ -219,6 +219,74 @@ test('Studio HTTP API serves /catalog and /:id/manifest with persisted Video-Gen
   }
 });
 
+test('One-click pipeline endpoint /:id/one-click auto-populates TPL scenes, approves plan, and produces MP4 without manual brief confirmation', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'kh-vg-oneclick-'));
+  const dataRoot = join(root, 'private/video-studio');
+  const calls = { voice: 0, clip: 0, export: 0, image: 0 };
+  await mkdir(join(root, 'posts/oneclick-article'), { recursive: true });
+  await writeFile(join(root, 'posts/oneclick-article/index.html'), '<h1>一键生成测试文章</h1><main><section id="overview"><h2>1. 核心痛点</h2><p>传统配置步骤繁琐，操作耗时降低 80%。</p></section><section id="action"><h2>2. 一键流水线</h2><p>第一步提取口播，第二步合成语音，第三步渲染成片。</p></section></main>');
+  const server = createBridge({
+    root,
+    runtimeFactory: async () => ({ status: async () => ({ authenticated: true, models: [] }), chat: async () => {}, close: async () => {} }),
+    studioOptions: {
+      dataRoot,
+      engine: {
+        status: async () => ({ image: true, voice: true, renderer: true }),
+        run: async (kind, input) => {
+          calls[kind] = (calls[kind] || 0) + 1;
+          await writeFile(input.output, 'mock-' + kind);
+          return { frames: 150, duration: 5, cues: [{ text: input.scene?.narration || '旁白', start: 0.4, duration: 3.2 }] };
+        }
+      }
+    }
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    const boot = await fetch(base + '/api/copilot/bootstrap', { headers: { 'X-KH-Bootstrap': '1' } });
+    const cookie = boot.headers.get('set-cookie').split(';')[0];
+    const { csrf } = await boot.json();
+    const headers = { Cookie: cookie, Origin: base, 'X-KH-CSRF': csrf, 'Content-Type': 'application/json' };
+
+    const openRes = await fetch(base + '/api/copilot/studio/open', {
+      method: 'POST', headers, body: JSON.stringify({ article: 'oneclick-article' })
+    });
+    const opened = await openRes.json();
+    assert.equal(opened.scenes.length, 0, 'initially empty when opened without autoDraft');
+
+    const oneClickRes = await fetch(base + `/api/copilot/studio/${opened.id}/one-click`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        revision: opened.revision,
+        brief: { ...opened.brief, scenario: 'presenter', stylePack: '01-A', seconds: 60 }
+      })
+    });
+    assert.equal(oneClickRes.status, 202);
+    let current = await oneClickRes.json();
+    assert.ok(current.scenes.length >= 3, 'one-click automatically populates TPL storyboard scenes when empty');
+    assert.equal(current.planApproved, true, 'one-click automatically approves the storyboard');
+
+    const deadline = Date.now() + 15000;
+    while (Date.now() < deadline) {
+      const pollRes = await fetch(base + `/api/copilot/studio/${opened.id}`, { headers });
+      current = await pollRes.json();
+      if (!current.jobs.some(j => ['queued', 'running'].includes(j.status))) break;
+      await new Promise(r => setTimeout(r, 15));
+    }
+    assert.equal(current.jobs.at(-1).status, 'done');
+    assert.equal(current.cursor, 5, 'one-click advances project cursor to export stage upon completion');
+    assert.ok(current.currentExport, 'final MP4 export is ready');
+    assert.equal(calls.image, 0, 'TPL dynamic scenes require zero slow AI image generation');
+    assert.equal(calls.voice, current.scenes.length);
+    assert.equal(calls.clip, current.scenes.length);
+    assert.equal(calls.export, 1);
+  } finally {
+    await new Promise(resolve => { server.close(resolve); server.closeAllConnections(); });
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test('index.html has no standalone Video Studio links and article-common.js mounts in-page overlay modal', async () => {
   const { readFile } = await import('node:fs/promises');
   const indexHtml = await readFile(join(process.cwd(), 'index.html'), 'utf8');
