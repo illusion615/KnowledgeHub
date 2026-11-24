@@ -64,6 +64,23 @@ test('same-origin CSRF, static allowlist, models/status, full-context SSE', asyn
     assert.equal((await fetch(f.base + '/api/copilot/chat', { method: 'POST', headers: f.headers, body: JSON.stringify({ ...body, consent: false }) })).status, 403);
     assert.equal((await fetch(f.base + '/api/copilot/chat', { method: 'POST', headers: f.headers, body: 'x'.repeat(1048577) })).status, 413);
     assert.equal(f.calls.length, 1);
+    const crossBoot = await fetch(f.base + '/api/copilot/bootstrap', {
+      headers: { 'X-KH-Bootstrap': '1', Origin: 'http://127.0.0.1:5000', 'Sec-Fetch-Site': 'same-site' }
+    });
+    assert.equal(crossBoot.status, 200);
+    assert.equal(crossBoot.headers.get('access-control-allow-origin'), 'http://127.0.0.1:5000');
+    const crossData = await crossBoot.json();
+    assert.ok(crossData.csrf && crossData.session);
+    const crossStatus = await fetch(f.base + '/api/copilot/status', {
+      headers: { Origin: 'http://127.0.0.1:5000', 'X-KH-CSRF': crossData.csrf, 'X-KH-Session': crossData.session, 'Sec-Fetch-Site': 'same-site' }
+    });
+    assert.equal(crossStatus.status, 200);
+    const localhostBoot = await new Promise(resolve => {
+      http.get(f.base + '/api/copilot/bootstrap', {
+        headers: { Host: `localhost:${f.server.address().port}`, Origin: `http://localhost:${f.server.address().port}`, 'X-KH-Bootstrap': '1' }
+      }, res => { res.resume(); resolve(res.statusCode); });
+    });
+    assert.equal(localhostBoot, 200);
   } finally { await f.close(); }
 });
 test('timeout, busy, cancellation release own runtime and sanitize stream failure', async () => {

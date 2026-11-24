@@ -5,7 +5,7 @@ import { mkdtemp, mkdir, writeFile, access, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { getInstallation, sessionConfig, conversationPrompt, runtimeEnv, runtimeArgs } from '../scripts/copilot-runtime.mjs';
+import { getInstallation, sessionConfig, conversationPrompt, runtimeEnv, createClientOptions } from '../scripts/copilot-runtime.mjs';
 const installation = await getInstallation();
 const { CopilotClient, RuntimeConnection } = await import(pathToFileURL(installation.sdk));
 const root = await mkdtemp(join(tmpdir(), 'kh-copilot-adversarial-'));
@@ -57,17 +57,24 @@ const server = http.createServer(async (req, res) => {
 });
 await new Promise(r => server.listen(0, '127.0.0.1', r));
 const url = `http://127.0.0.1:${server.address().port}`;
-const client = new CopilotClient({ mode: 'empty', baseDirectory: state, workingDirectory: work, logLevel: 'none', useLoggedInUser: false,
-  connection: RuntimeConnection.forStdio({ path: installation.runtime, args: runtimeArgs(installation.version) }),
+const client = new CopilotClient(createClientOptions(RuntimeConnection, {
+  runtime: installation.runtime, version: installation.version, baseDirectory: state, workingDirectory: work, useLoggedInUser: false,
   env: { ...runtimeEnv(root), TMPDIR: root, COPILOT_OFFLINE: 'true', COPILOT_PROVIDER_BASE_URL: url, COPILOT_PROVIDER_TYPE: 'openai', COPILOT_MODEL: 'gpt-4.1' }
-});
+}));
 const timer = setTimeout(() => client.forceStop(), 45000);
 try {
   for (mode of ['text', 'tools']) {
     n = 0;
     const messages = [{ role: 'system', content: '仅回答用户提供文本，保持公式。' }, { role: 'user', content: '非私密本地固定测试问题' }];
-    const config = sessionConfig(work, 'gpt-4.1', messages);
-    config.provider = { type: 'openai', baseUrl: url, wireApi: 'completions' };
+    const config = sessionConfig(work, typeof RuntimeConnection.forSpawnedStdio === 'function' ? 'fixture/gpt-4.1' : 'gpt-4.1', messages);
+    if (typeof RuntimeConnection.forSpawnedStdio === 'function') {
+      config.inference = {
+        providers: [{ name: 'fixture', type: 'openai', baseUrl: url, wireApi: 'completions' }],
+        models: [{ id: 'gpt-4.1', provider: 'fixture', wireModel: 'gpt-4.1' }]
+      };
+    } else {
+      config.provider = { type: 'openai', baseUrl: url, wireApi: 'completions' };
+    }
     const session = await client.createSession(config);
     await session.rpc.tools.initializeAndValidate();
     assert.deepEqual((await session.rpc.tools.getCurrentMetadata()).tools, []);

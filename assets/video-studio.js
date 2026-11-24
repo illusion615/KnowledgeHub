@@ -2,10 +2,8 @@ document.addEventListener('DOMContentLoaded', function () {
   'use strict';
   var project = null, step = 1, dirty = false, poll = null, pending = false;
   var language = localStorage.getItem('lang') || 'zh';
-  var models = [], urls = {}, mediaRequests = {}, session = null, article = new URLSearchParams(location.search).get('article');
-  var selectedModel = localStorage.getItem('kh-video-model') || '';
-  var copilotState = 'checking', copilotError = '', copilotCheck = null;
-  var localMode = location.protocol === 'http:' && location.hostname === '127.0.0.1';
+  var urls = {}, mediaRequests = {}, article = new URLSearchParams(location.search).get('article');
+  var localMode = location.protocol === 'http:' && (location.hostname === '127.0.0.1' || location.hostname === 'localhost');
   var galleryId = null, customCompositionOverrides = {};
   var simulation = { playing: false, paused: false, loading: false, token: 0, elapsed: 0, duration: 0, started: 0, frame: null, audio: null };
   var stage = document.getElementById('studio-stage');
@@ -53,32 +51,15 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('studio-lang').textContent = language === 'en' ? '中文' : 'EN';
   }
   function active() { return project && project.jobs.some(function (job) { return job.status === 'queued' || job.status === 'running'; }); }
-  async function response(result) {
-    var data;
-    if (!result.ok) {
-      try { data = await result.json(); } catch (_) { throw new Error('HTTP ' + result.status); }
-      throw new Error(data.error && data.error.message || 'HTTP ' + result.status);
-    }
-    return result;
-  }
-  async function request(path, body, binary) {
-    var csrf, result;
-    if (!session) {
-      session = (async function () {
-        var boot = await response(await fetch('/api/copilot/bootstrap', { headers: { 'X-KH-Bootstrap': '1' }, credentials: 'same-origin' }));
-        return (await boot.json()).csrf;
-      })().catch(function (error) { session = null; throw error; });
-    }
-    csrf = await session;
-    result = await fetch('/api/copilot/studio/' + path, {
-      method: body ? 'POST' : 'GET', credentials: 'same-origin',
-      headers: { 'X-KH-CSRF': csrf, 'Content-Type': 'application/json' },
-      body: body ? JSON.stringify(body) : undefined
-    });
-    if (result.status === 403) session = null;
-    await response(result);
-    return binary ? result.blob() : result.json();
-  }
+  var client = window.KHVideoStudioClient.createStudioClient({
+    stage: stage, localMode: localMode, t: t, esc: esc, say: say, active: active,
+    isDirty: function () { return dirty; },
+    isPending: function () { return pending; },
+    getProject: function () { return project; },
+    productionLabel: function () { return productionLabel(); },
+    assetPreparationLabel: function () { return assetPreparationLabel(); }
+  });
+  var request = client.request, updateCopilotUI = client.updateUI, detectCopilot = client.detect;
   var playback = window.KHVideoStudioPlayback.createPlayback({
     stage: stage, simulation: simulation, urls: urls, mediaRequests: mediaRequests,
     t: t, esc: esc, say: say, request: request, active: active,
@@ -97,63 +78,6 @@ document.addEventListener('DOMContentLoaded', function () {
   function monitorContent(scene) { return playback.monitorContent(scene, step); }
   function batchMeter(job) { return playback.batchMeter(job, kinds); }
 
-  function updateCopilotUI() {
-    var status = document.getElementById('studio-copilot-status');
-    var select = document.getElementById('studio-copilot-model');
-    var error = document.getElementById('studio-copilot-error');
-    var labels = {
-      checking: ['检测中', 'Checking'], connected: ['已连接', 'Connected'],
-      'signed-out': ['未登录', 'Not Signed In'], 'no-models': ['暂无模型', 'No Models'],
-      error: ['连接失败', 'Unavailable'], 'local-only': ['仅本机可用', 'Local Only']
-    };
-    var available = copilotState === 'connected' && models.some(function (model) { return model.id === selectedModel; });
-    var placeholder = copilotState === 'checking' ? t('正在读取模型…', 'Loading Models…') :
-      selectedModel && models.length && !available ? t('原模型不可用，请重选', 'Previous Model Unavailable') : t('选择 Copilot 模型', 'Select Copilot Model');
-    status.textContent = 'Copilot · ' + t(labels[copilotState][0], labels[copilotState][1]);
-    status.setAttribute('data-state', copilotState);
-    status.title = copilotError || t('重新检测已有登录与模型；不发送文章或提问。', 'Recheck existing login and models without sending an article or prompt.');
-    status.setAttribute('aria-label', status.textContent + ' · ' + status.title);
-    status.disabled = !localMode || copilotState === 'checking' || !!active() || pending;
-    select.innerHTML = '<option value="">' + esc(placeholder) + '</option>' + models.map(function (model) {
-      return '<option value="' + esc(model.id) + '"' + (model.id === selectedModel ? ' selected' : '') + '>' + esc(model.name || model.id) + '</option>';
-    }).join('');
-    select.disabled = copilotState !== 'connected' || !models.length || !!active() || pending;
-    error.textContent = copilotError;
-    error.hidden = !copilotError;
-    stage.querySelectorAll('[data-action="plan"]').forEach(function (node) { node.disabled = !available || dirty || !!active() || pending; });
-    stage.querySelectorAll('[data-action="direct"]').forEach(function (node) { node.disabled = !available || dirty || !!active() || pending || !project.scenes.length; });
-    stage.querySelectorAll('[data-action="produce"]').forEach(function (node) {
-      node.textContent = productionLabel();
-      node.disabled = !!active() || pending || !project.scenes.length;
-    });
-    stage.querySelectorAll('[data-action="prepare-assets"]').forEach(function (node) {
-      node.textContent = assetPreparationLabel();
-      node.disabled = !!active() || pending || !project.scenes.length;
-    });
-  }
-  function detectCopilot() {
-    if (!localMode || copilotCheck) return copilotCheck;
-    copilotState = 'checking'; copilotError = ''; updateCopilotUI();
-    copilotCheck = Promise.resolve().then(async function () {
-      var result;
-      try {
-        if (!window.KHCopilot) throw new Error(t('Copilot 组件未加载，请刷新页面。', 'The Copilot component did not load. Refresh the page.'));
-        result = await window.KHCopilot.status();
-        if (!result.authenticated) {
-          models = []; copilotState = 'signed-out';
-          copilotError = t('未检测到有效的官方 Copilot 登录。不会自动切换账号；已有登录恢复后可点击右上角状态重新检测。', 'No valid official Copilot login was found. Accounts are never switched automatically. Click the status to recheck after restoring your existing login.');
-        } else {
-          if (!Array.isArray(result.models) || result.models.some(function (model) { return !model || typeof model.id !== 'string' || !model.id; }))
-            throw new Error(t('Copilot 模型目录格式异常，请重新检测。', 'Invalid Copilot model catalog. Please recheck.'));
-          models = result.models; copilotState = models.length ? 'connected' : 'no-models';
-          if (!models.length) copilotError = t('登录有效，但没有返回可用模型，请检查 Copilot 权限或组织策略。', 'Login is valid, but no models were returned. Check Copilot access or organization policy.');
-        }
-      } catch (error) {
-        models = []; copilotState = 'error'; copilotError = error.message;
-      } finally { copilotCheck = null; updateCopilotUI(); }
-    });
-    return copilotCheck;
-  }
   function button(label, action, scene, primary, disabled) {
     return '<button type="button" data-action="' + action + '"' + (scene ? ' data-scene="' + esc(scene) + '"' : '') +
       (primary ? ' class="studio-primary"' : '') + (disabled ? ' disabled' : '') + '>' + esc(label) + '</button>';
@@ -622,9 +546,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (['plan', 'direct', 'image', 'voice', 'clip', 'clips', 'export'].indexOf(name) >= 0) {
       if (dirty) throw new Error(t('请先保存编辑。', 'Save edits first.'));
       if (name === 'plan' || name === 'direct') {
-        model = selectedModel;
-        if (copilotState !== 'connected' || !models.some(function (entry) { return entry.id === model; }))
-          throw new Error(t('请在右上角选择可用的 Copilot 模型。', 'Select an available Copilot model at the top right.'));
+        model = client.requireModel();
       }
       project = await request(project.id + '/jobs', { revision: project.revision, kind: name, sceneId: id, model: model,
         direction: name === 'direct' ? localStorage.getItem('kh-video-direction-' + project.id) || '' : undefined,
@@ -709,13 +631,7 @@ document.addEventListener('DOMContentLoaded', function () {
     language = language === 'en' ? 'zh' : 'en'; localStorage.setItem('lang', language); applyLanguage(); render();
   });
   document.getElementById('studio-copilot-status').addEventListener('click', function () { detectCopilot(); });
-  document.getElementById('studio-copilot-model').addEventListener('change', function (event) {
-    var id = event.target.value;
-    if (copilotState !== 'connected' || !models.some(function (model) { return model.id === id; })) {
-      say(t('请选择目录中的可用模型。', 'Select an available model from the catalog.'), true); updateCopilotUI(); return;
-    }
-    selectedModel = id; localStorage.setItem('kh-video-model', id); updateCopilotUI();
-  });
+  document.getElementById('studio-copilot-model').addEventListener('change', function (event) { client.selectModel(event.target.value); });
   document.getElementById('studio-theme').addEventListener('click', function () {
     var theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', theme); localStorage.setItem('theme', theme);
@@ -729,7 +645,7 @@ document.addEventListener('DOMContentLoaded', function () {
   window.addEventListener('pagehide', function () { stopSimulation(); pauseStageMedia(); if (poll) clearInterval(poll); Object.keys(urls).forEach(function (key) { URL.revokeObjectURL(urls[key]); }); });
   if (localStorage.getItem('theme')) document.documentElement.setAttribute('data-theme', localStorage.getItem('theme'));
   applyLanguage();
-  if (!localMode) { copilotState = 'local-only'; updateCopilotUI(); document.getElementById('studio-local').hidden = false; return; }
+  if (!localMode) { client.setLocalOnly(); return; }
   if (!article || !/^[a-z0-9][a-z0-9-]{0,99}$/.test(article)) { say(t('请从文章顶部的视频工作室入口打开。', 'Open Video Studio from an article toolbar.'), true); detectCopilot(); return; }
   Promise.all([request('open', { article: article }), request('capabilities')]).then(function (results) {
     var capability = results[1];
@@ -739,5 +655,14 @@ document.addEventListener('DOMContentLoaded', function () {
       [capability.image, capability.voice, capability.renderer].map(function (ready) { return ready ? t('就绪', 'Ready') : t('需准备', 'Setup Needed'); }).join(' / ');
     render();
     detectCopilot();
-  }).catch(function (error) { say(error.message, true); document.getElementById('studio-local').hidden = false; detectCopilot(); });
+  }).catch(function (error) {
+    if (error && (error.code === 'BRIDGE_NOT_FOUND' || error.code === 'BRIDGE_OFFLINE')) {
+      say('', false);
+      client.setLocalOnly();
+      return;
+    }
+    say(error.message, true);
+    document.getElementById('studio-local').hidden = false;
+    detectCopilot();
+  });
 });

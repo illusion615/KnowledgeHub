@@ -824,7 +824,7 @@
     if (!query || isSending) return;
 
     if (settings.provider === 'github-copilot') {
-      if (!window.KHCopilot) { copilotReady.then(sendMessage).catch(function () { alert('Copilot组件加载失败，请刷新专用测试站。'); }); return; }
+      if (!window.KHCopilot) { copilotReady.then(sendMessage).catch(function () { alert('Copilot组件加载失败，请刷新页面后重试。'); }); return; }
       if (!window.KHCopilot.consent()) return;
     }
     appendMessage('user', query);

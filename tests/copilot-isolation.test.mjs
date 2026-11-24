@@ -8,7 +8,7 @@ import { pathToFileURL } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import http from 'node:http';
-import { RUNTIME_VERSIONS, SDK_SHA, runtimeArgs } from '../scripts/copilot-runtime.mjs';
+import { RUNTIME_VERSIONS, SDK_SHAS, runtimeArgs, createClientOptions } from '../scripts/copilot-runtime.mjs';
 
 const [sdkPath, cliPath] = process.argv.slice(2);
 assert(sdkPath && cliPath && isAbsolute(sdkPath) && isAbsolute(cliPath),
@@ -17,10 +17,9 @@ const version = RUNTIME_VERSIONS[createHash('sha256').update(await readFile(cliP
 assert.ok(version, 'Only reviewed native runtime fingerprints are permitted');
 assert.ok(execFileSync(cliPath, ['--version'], { encoding: 'utf8', timeout: 10000 }).includes('GitHub Copilot CLI ' + version + '.'));
 const sdkSource = await readFile(sdkPath, 'utf8');
-assert.equal(createHash('sha256').update(sdkSource).digest('hex'),
-  SDK_SHA,
+assert.ok(SDK_SHAS.has(createHash('sha256').update(sdkSource).digest('hex')),
   'Re-review authentication/isolation on SDK changes');
-assert.match(sdkSource, /envWithoutNodeDebug\.COPILOT_DISABLE_KEYTAR = "1"/,
+assert.match(sdkSource, /(?:envWithoutNodeDebug|env)\.COPILOT_DISABLE_KEYTAR = "1"/,
   'Empty mode currently disables keychain access; this is NOT a login reuse test');
 const { CopilotClient, RuntimeConnection } = await import(pathToFileURL(sdkPath));
 const root = await mkdtemp(join(tmpdir(), 'kh-copilot-isolation-'));
@@ -53,11 +52,10 @@ try {
     COPILOT_PROVIDER_TYPE: 'openai', COPILOT_PROVIDER_WIRE_API: 'completions',
     COPILOT_MODEL: 'isolation-fixture', USE_TGREP: 'false'
   };
-  client = new CopilotClient({
-    mode: 'empty', baseDirectory: state, workingDirectory: cwd,
-    connection: RuntimeConnection.forStdio({ path: cliPath, args: runtimeArgs(version) }),
-    useLoggedInUser: false, logLevel: 'none', env
-  });
+  client = new CopilotClient(createClientOptions(RuntimeConnection, {
+    runtime: cliPath, version, baseDirectory: state, workingDirectory: cwd,
+    useLoggedInUser: false, env
+  }));
   const session = await client.createSession({
     model: 'isolation-fixture', workingDirectory: cwd, configDirectory: state,
     availableTools: [], excludedTools: ['builtin:*', 'mcp:*', 'custom:*'], tools: [],

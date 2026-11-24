@@ -28,7 +28,7 @@
       try {
         if (controller.signal.aborted) throw new DOMException('Cancelled', 'AbortError');
         if (settings.provider === 'github-copilot') {
-          if (!window.KHCopilot) throw new Error('Copilot组件未加载，请刷新测试站。');
+          if (!window.KHCopilot) throw new Error('Copilot组件未加载，请刷新页面后重试。');
           var status = await window.KHCopilot.status(controller.signal);
           if (!status.authenticated) throw new Error('未登录：官方组件未找到可用的gh或专用身份。请先用 gh auth status 核查已有登录；需要新授权时可运行 node scripts/copilot-login.mjs。不会自动登录或发问。');
           return { models: uniqueNames(status.models, function (m) { return m && m.id; }),

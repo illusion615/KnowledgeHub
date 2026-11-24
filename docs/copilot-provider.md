@@ -21,7 +21,7 @@ Copilot是**云端推理**，本机只运行桥接。文章全文和对话会发
 ## 边界
 
 - GitHub Pages仍可作为静态站点发布，但它本身不提供本机Copilot后端。Copilot模式须通过上述本机服务器使用，不添加通配CORS或绕过浏览器安全策略。
-- 本集成固定并校验已审阅的macOS arm64 Copilot CLI 1.0.83 / 1.0.105及其相同的随附SDK哈希；升级或换平台后需重新验证，不自动下载/升级。1.0.105移除了旧remote进程开关，按版本选择参数并保留每会话remoteSession关闭及空工具隔离。
+- 本集成固定并校验已审阅的macOS arm64 Copilot CLI 1.0.83 / 1.0.105 / 1.0.114及其随附SDK哈希；升级或换平台后需重新验证，不自动下载/升级。1.0.105起移除了旧remote进程开关，按版本选择参数并保留每会话remoteSession关闭及空工具隔离。
 - 桥接只提供文章纯问答：工具、MCP、文件访问、shell、hooks/skills均禁用；这不是通用编码Agent或OS级沙箱。
 - Ollama、OpenAI兼容、Azure原有连接继续使用各自配置。Azure模型目录不是部署列表，部署名称仍在设置中填写。
 - 此站点入口提供静态页面和Copilot API，不启动Jev/NanoJev/其他模型服务；Jev实验的独立后端地址及服务保持原任务配置。

@@ -39,23 +39,41 @@ async function readJSON(req) {
 }
 const token = () => randomBytes(32).toString('hex');
 const equal = (a, b) => typeof a === 'string' && a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b));
+const isLoopbackHost = (host, port) => host === `127.0.0.1:${port}` || host === `localhost:${port}`;
+const isLoopbackOrigin = origin => typeof origin === 'string' && /^http:\/\/(?:127\.0\.0\.1|localhost)(?::\d{2,5})?$/.test(origin);
 const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.ico': 'image/x-icon' };
 export function createBridge({ root = repo, runtimeFactory = openRuntime, timeoutMs = 120000, maxConcurrent = 2, studioOptions = {} } = {}) {
   const sessions = new Map(); let active = 0, studio;
   const server = http.createServer(async (req, res) => {
-    const origin = `http://127.0.0.1:${server.address().port}`;
+    const port = server.address().port;
+    const origin = `http://127.0.0.1:${port}`;
+    const reqOrigin = req.headers.origin;
+    const sameServerOrigin = reqOrigin === origin || reqOrigin === `http://localhost:${port}`;
+    const loopbackCrossPort = !sameServerOrigin && isLoopbackOrigin(reqOrigin);
     const json = (status, data) => { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(data)); };
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'same-origin');
     res.setHeader('X-Frame-Options', 'SAMEORIGIN');
     try {
-      if (req.headers.host !== new URL(origin).host) throw new BridgeError(403, 'HOST', '仅接受本站loopback Host。');
-      if ((req.headers.origin && req.headers.origin !== origin) || ['cross-site', 'same-site'].includes(req.headers['sec-fetch-site']))
-        throw new BridgeError(403, 'ORIGIN', '拒绝非同源请求。请直接打开测试站。');
+      if (!isLoopbackHost(req.headers.host, port)) throw new BridgeError(403, 'HOST', '仅接受本站loopback Host。');
       const url = new URL(req.url, origin);
       if (req.url.includes('..') || /%2e|%2f|%5c|\\/i.test(req.url)) throw new BridgeError(403, 'PATH', '路径不受支持。');
       const api = url.pathname.startsWith('/api/copilot/');
+      if (api && loopbackCrossPort) {
+        res.setHeader('Access-Control-Allow-Origin', reqOrigin);
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+        res.setHeader('Vary', 'Origin');
+        if (req.method === 'OPTIONS') {
+          res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+          res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-KH-Bootstrap, X-KH-CSRF, X-KH-Session');
+          res.writeHead(204); res.end(); return;
+        }
+      }
+      if ((reqOrigin && !sameServerOrigin && !(api && loopbackCrossPort)) ||
+        req.headers['sec-fetch-site'] === 'cross-site' ||
+        (req.headers['sec-fetch-site'] === 'same-site' && !(api && loopbackCrossPort)))
+        throw new BridgeError(403, 'ORIGIN', '拒绝非同源请求。请直接打开本机服务站点。');
       if (!api) {
         if (req.method !== 'GET' && req.method !== 'HEAD') throw new BridgeError(405, 'METHOD', '方法不允许。');
         let pathname = decodeURIComponent(url.pathname);
@@ -71,26 +89,29 @@ export function createBridge({ root = repo, runtimeFactory = openRuntime, timeou
         res.end(req.method === 'HEAD' ? undefined : data); return;
       }
       if (!['GET', 'POST'].includes(req.method)) throw new BridgeError(405, 'METHOD', '方法不允许。');
-      const id = /(?:^|;\s*)kh_copilot=([a-f0-9]{64})(?:;|$)/.exec(req.headers.cookie || '')?.[1];
+      const cookieId = /(?:^|;\s*)kh_copilot=([a-f0-9]{64})(?:;|$)/.exec(req.headers.cookie || '')?.[1];
+      const headerId = /^[a-f0-9]{64}$/.test(req.headers['x-kh-session'] || '') ? req.headers['x-kh-session'] : undefined;
+      const id = cookieId || headerId;
       let browser = sessions.get(id);
       const now = Date.now();
       for (const [key, value] of sessions) if (!value.busy && value.expires < now) sessions.delete(key);
       if (browser && browser.expires < now) browser = null;
       if (url.pathname === '/api/copilot/bootstrap' && req.method === 'GET') {
         if (req.headers['x-kh-bootstrap'] !== '1') throw new BridgeError(403, 'CSRF', '需要同源页面初始化。');
+        let sessionKey = id;
         if (!browser) {
           if (sessions.size >= 128) throw new BridgeError(429, 'SESSION_LIMIT', '浏览器会话过多，请稍后重试。');
-          const key = token(); browser = { csrf: token(), expires: now + 3600000, busy: false };
-          sessions.set(key, browser);
-          res.setHeader('Set-Cookie', `kh_copilot=${key}; HttpOnly; SameSite=Strict; Path=/api/copilot`);
+          sessionKey = token(); browser = { csrf: token(), expires: now + 3600000, busy: false };
+          sessions.set(sessionKey, browser);
+          res.setHeader('Set-Cookie', `kh_copilot=${sessionKey}; HttpOnly; SameSite=Strict; Path=/api/copilot`);
         }
         browser.expires = now + 3600000;
-        json(200, { csrf: browser.csrf, bridge: 'knowledge-hub-copilot', version: '1.0.83' }); return;
+        json(200, { csrf: browser.csrf, ...(loopbackCrossPort ? { session: sessionKey } : {}), bridge: 'knowledge-hub-copilot', version: '1.0.114' }); return;
       }
       if (!browser || !equal(req.headers['x-kh-csrf'], browser.csrf)) throw new BridgeError(403, 'CSRF', '会话已过期，请刷新页面后重试。');
       browser.expires = now + 3600000;
       if (url.pathname.startsWith('/api/copilot/studio/')) {
-        if (req.method === 'POST' && req.headers.origin !== origin) throw new BridgeError(403, 'ORIGIN', '生成操作必须来自本站。');
+        if (req.method === 'POST' && !sameServerOrigin && !loopbackCrossPort) throw new BridgeError(403, 'ORIGIN', '生成操作必须来自本站。');
         if (!studio) studio = createVideoStudio({ root, runtimeFactory, ...studioOptions });
         await studio.handle(req, res, url, req.method === 'POST' ? await readJSON(req) : null, json);
         return;
@@ -98,7 +119,7 @@ export function createBridge({ root = repo, runtimeFactory = openRuntime, timeou
       const isChat = url.pathname === '/api/copilot/chat' && req.method === 'POST';
       const isStatus = url.pathname === '/api/copilot/status' && req.method === 'GET';
       if (!isChat && !isStatus) throw new BridgeError(404, 'NOT_FOUND', '接口不存在。');
-      if (isChat && req.headers.origin !== origin) throw new BridgeError(403, 'ORIGIN', '发送问题必须来自本站。');
+      if (isChat && !sameServerOrigin && !loopbackCrossPort) throw new BridgeError(403, 'ORIGIN', '发送问题必须来自本站。');
       if (active >= maxConcurrent || browser.busy) throw new BridgeError(429, 'BUSY', '桥接正忙，请先取消当前请求或稍后重试。');
       browser.busy = true; active++;
       const controller = new AbortController();

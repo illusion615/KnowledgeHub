@@ -446,3 +446,86 @@ test('explicit regeneration replaces successful items, retains failed or cancell
     assert.equal(p.scenes[1].artifacts.voice.key, current[1].voice, 'failed replacements retain the prior valid material');
   } finally { await f.close(); await rm(root, { recursive: true, force: true }); }
 });
+test('copilot-provider and video-studio-client auto-fallback to loopback bridge and suppress duplicate static 404 banners', async () => {
+  const vm = await import('node:vm');
+  const root = await mkdtemp(join(tmpdir(), 'kh-studio-fallback-'));
+  const dataRoot = join(root, 'private/video-studio'), counters = { plan: 0 };
+  await mkdir(join(root, 'posts/example'), { recursive: true });
+  await writeFile(join(root, 'posts/example/index.html'), '<h1>Example</h1><section id="challenge">跨端口回退验证</section>');
+  const f = await fixture(root, dataRoot, counters);
+  try {
+    const bridgePort = f.server.address().port;
+    const providerCode = await readFile(join(process.cwd(), 'assets/copilot-provider.js'), 'utf8');
+    const clientCode = await readFile(join(process.cwd(), 'assets/video-studio-client.js'), 'utf8');
+
+    function makeEnv({ portInputPort, bridgeOnline }) {
+      const elements = {
+        'studio-port': { value: String(portInputPort), hidden: false },
+        'studio-copilot-status': { textContent: '', title: '', disabled: false, attrs: {}, setAttribute(k, v) { this.attrs[k] = v; } },
+        'studio-copilot-model': { innerHTML: '', disabled: false },
+        'studio-copilot-error': { textContent: '', hidden: true },
+        'studio-local': { hidden: true }
+      };
+      let messageText = '', messageErr = false;
+      const sandbox = {
+        window: null,
+        globalThis: null,
+        location: { protocol: 'http:', hostname: '127.0.0.1', origin: 'http://127.0.0.1:5000' },
+        localStorage: { getItem: () => '', setItem: () => {} },
+        AbortSignal,
+        document: {
+          getElementById: id => elements[id] || null
+        },
+        fetch: async (url, init = {}) => {
+          const target = url.startsWith('http') ? url : 'http://127.0.0.1:5000' + url;
+          if (target.startsWith('http://127.0.0.1:5000/')) {
+            return new Response('404 Not Found', { status: 404, headers: { 'Content-Type': 'text/plain' } });
+          }
+          if (!bridgeOnline) {
+            throw new TypeError('fetch failed');
+          }
+          return fetch(target, {
+            ...init,
+            headers: { ...(init.headers || {}), Origin: 'http://127.0.0.1:5000', 'Sec-Fetch-Site': 'same-site' }
+          });
+        }
+      };
+      sandbox.window = sandbox;
+      sandbox.globalThis = sandbox;
+      vm.createContext(sandbox);
+      vm.runInContext(providerCode, sandbox);
+      vm.runInContext(clientCode, sandbox);
+      const studioClient = sandbox.KHVideoStudioClient.createStudioClient({
+        stage: { querySelectorAll: () => [] },
+        localMode: true,
+        t: zh => zh,
+        esc: s => String(s ?? ''),
+        say: (msg, err) => { messageText = msg; messageErr = !!err; },
+        active: () => false,
+        isDirty: () => false,
+        isPending: () => false,
+        getProject: () => null,
+        productionLabel: () => '制作',
+        assetPreparationLabel: () => '生成素材'
+      });
+      return { elements, studioClient, getMessage: () => ({ messageText, messageErr }) };
+    }
+
+    const online = makeEnv({ portInputPort: bridgePort, bridgeOnline: true });
+    const opened = await online.studioClient.request('open', { article: 'example' });
+    assert.equal(opened.source.slug, 'example', 'studio client transparently falls back from static port 5000 to active bridge port');
+    await online.studioClient.detect();
+    assert.equal(online.elements['studio-copilot-status'].attrs['data-state'], 'connected');
+    assert.equal(online.elements['studio-copilot-error'].hidden, true, 'no red error box when connected via loopback fallback');
+
+    const offline = makeEnv({ portInputPort: 59999, bridgeOnline: false });
+    await assert.rejects(() => offline.studioClient.request('open', { article: 'example' }), err => err.code === 'BRIDGE_OFFLINE' || err.code === 'BRIDGE_NOT_FOUND');
+    await offline.studioClient.detect();
+    assert.equal(offline.elements['studio-copilot-status'].attrs['data-state'], 'local-only', 'static-only port degrades gracefully to local-only');
+    assert.equal(offline.elements['studio-copilot-error'].hidden, true, 'no raw HTTP 404 or 专用测试站 red banner on static server');
+    assert.equal(offline.elements['studio-local'].hidden, false, 'local server guidance panel is shown');
+  } finally {
+    await f.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
