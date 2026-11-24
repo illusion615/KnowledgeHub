@@ -36,13 +36,14 @@ function parseSectionHeading(rawHeading, index) {
   }
 
   var titlePair = fm.parseBilingual(titleRaw);
-  // Ensure numbered h2 prefix if not already numbered
-  var zhHasNum = /^\d+\.\s*/.test(titlePair.zh);
-  var enHasNum = /^\d+\.\s*/.test(titlePair.en);
+  // Ensure numbered h2 prefix if not already numbered (`1. Title`, not decimals like `57.35 GB`)
+  var sectionNumPrefixRe = /^\d+\.\s+/;
+  var zhHasNum = sectionNumPrefixRe.test(titlePair.zh);
+  var enHasNum = sectionNumPrefixRe.test(titlePair.en);
   var displayZh = zhHasNum ? titlePair.zh : index + '. ' + titlePair.zh;
   var displayEn = enHasNum ? titlePair.en : index + '. ' + (titlePair.en || titlePair.zh);
 
-  var cleanEnKicker = (titlePair.en || titlePair.zh).replace(/^\d+\.\s*/, '');
+  var cleanEnKicker = (titlePair.en || titlePair.zh).replace(sectionNumPrefixRe, '');
   if (!kickerText) {
     kickerText = numStr + ' / ' + cleanEnKicker;
   } else if (!/^\d+\s*\//.test(kickerText)) {
@@ -55,14 +56,14 @@ function parseSectionHeading(rawHeading, index) {
   }
 
   // Short nav label
-  var shortZh = titlePair.zh.replace(/^\d+\.\s*/, '').split(/[：:]/)[0].trim();
-  var shortEn = (titlePair.en || shortZh).replace(/^\d+\.\s*/, '').split(/[：:]/)[0].trim();
+  var shortZh = titlePair.zh.replace(sectionNumPrefixRe, '').split(/[：:]/)[0].trim();
+  var shortEn = (titlePair.en || shortZh).replace(sectionNumPrefixRe, '').split(/[：:]/)[0].trim();
 
   return {
     id: sectionId,
     index: index,
     kicker: { zh: kickerText, en: kickerText },
-    title: { zh: titlePair.zh.replace(/^\d+\.\s*/, ''), en: cleanEnKicker },
+    title: { zh: titlePair.zh.replace(sectionNumPrefixRe, ''), en: cleanEnKicker },
     h2: { zh: displayZh, en: displayEn },
     nav: { zh: shortZh, en: shortEn }
   };

@@ -1,0 +1,114 @@
+{
+  "version": 2,
+  "type": "architecture",
+  "layout": {
+    "direction": "down",
+    "width": 1080,
+    "nodeWidth": 292,
+    "nodeHeight": 88,
+    "groupGap": 34
+  },
+  "groups": [
+    {
+      "id": "input-layer",
+      "order": 0,
+      "columns": 2,
+      "label": {
+        "zh": "1. 统一多模态条件输入层（Lyrics · Style · Reference）",
+        "en": "1. Unified Multimodal Conditioning (Lyrics · Style · Reference)"
+      }
+    },
+    {
+      "id": "paradigm-layer",
+      "order": 1,
+      "columns": 3,
+      "label": {
+        "zh": "2. 三大核心生成范式主干（AR Symbolic vs Hybrid-LM vs Pure Flow DiT）",
+        "en": "2. Three Generative Backbones (AR Symbolic vs Hybrid-LM vs Pure Flow DiT)"
+      }
+    },
+    {
+      "id": "synthesis-layer",
+      "order": 2,
+      "columns": 2,
+      "label": {
+        "zh": "3. 连续潜空间声学合成与立体声解码（Flow Matching + Stereo VAE / DAC）",
+        "en": "3. Continuous Latent Synthesis & Stereo Decoding (Flow + Stereo VAE)"
+      }
+    }
+  ],
+  "nodes": [
+    {
+      "id": "lyric-cond",
+      "layer": 0,
+      "order": 0,
+      "group": "input-layer",
+      "role": "actor",
+      "label": { "zh": "段落标签与多语种歌词", "en": "Section Tags & Lyrics" },
+      "detail": { "zh": "[Verse] / [Chorus] 独立行 · G2P 音素映射", "en": "[Verse] / [Chorus] lines · G2P phoneme align" }
+    },
+    {
+      "id": "style-cond",
+      "layer": 0,
+      "order": 1,
+      "group": "input-layer",
+      "role": "interface",
+      "label": { "zh": "结构化曲风与参考音频", "en": "Structured Style & Ref Audio" },
+      "detail": { "zh": "BPM / 调式 / 配器演进 · 零样本翻唱旋律参考", "en": "BPM / Key / Arrangement · Zero-shot cover ref" }
+    },
+    {
+      "id": "ar-symbolic",
+      "layer": 1,
+      "order": 0,
+      "group": "paradigm-layer",
+      "role": "service",
+      "label": { "zh": "白盒乐谱 AR-NAR（YuE2-3B）", "en": "Symbolic AR-NAR (YuE2-3B)" },
+      "detail": { "zh": "先生成可编辑 ABC 旋律和弦谱，再自回归语义令牌", "en": "Editable ABC lead-sheet CoT + semantic AR" }
+    },
+    {
+      "id": "hybrid-lm",
+      "layer": 1,
+      "order": 1,
+      "group": "paradigm-layer",
+      "role": "data",
+      "label": { "zh": "分层连续隐态（MiniMax Music 3）", "en": "Hybrid-LM Hidden Fusion (Music 3)" },
+      "detail": { "zh": "8B Global + 0.6B RVQ 隐态直通 2.4B Flow DiT", "en": "8B Global + 0.6B RVQ hidden to 2.4B DiT" }
+    },
+    {
+      "id": "fast-flow",
+      "layer": 1,
+      "order": 2,
+      "group": "paradigm-layer",
+      "role": "actor",
+      "label": { "zh": "极速潜空间流匹配（ACE-Step / 谛韵）", "en": "Fast Latent Flow (ACE-Step / DiffRhythm)" },
+      "detail": { "zh": "5Hz 轻量规划或非自回归全帧并行，8 步秒级成曲", "en": "5Hz LM blueprint or NAR full-song in 8 steps" }
+    },
+    {
+      "id": "euler-flow",
+      "layer": 2,
+      "order": 0,
+      "group": "synthesis-layer",
+      "role": "control",
+      "label": { "zh": "流匹配声学求解器 (Euler/PingPong)", "en": "Flow-Matching Acoustic Solver" },
+      "detail": { "zh": "DCAE / 200帧滑窗潜变量去噪 · 双分支 CFG 引导", "en": "DCAE / 200-frame chunked ODE · Dual CFG" }
+    },
+    {
+      "id": "stereo-vae",
+      "layer": 2,
+      "order": 1,
+      "group": "synthesis-layer",
+      "role": "interface",
+      "label": { "zh": "高采样率立体声声码器", "en": "Stereo Waveform Decoder" },
+      "detail": { "zh": "32kHz~48kHz 双声道 WAV/FLAC（FP32 保真解码）", "en": "32-48 kHz stereo WAV/FLAC (FP32 decode)" }
+    }
+  ],
+  "edges": [
+    { "from": "lyric-cond", "to": "ar-symbolic", "label": { "zh": "词谱对齐", "en": "Score CoT" } },
+    { "from": "lyric-cond", "to": "hybrid-lm", "label": { "zh": "25Hz 帧规划", "en": "25Hz Frames" } },
+    { "from": "style-cond", "to": "fast-flow", "label": { "zh": "全局条件", "en": "Style Cond" } },
+    { "from": "ar-symbolic", "to": "euler-flow", "label": { "zh": "语义令牌", "en": "Semantic" } },
+    { "from": "hybrid-lm", "to": "euler-flow", "label": { "zh": "连续隐态融合", "en": "Fused Hidden" } },
+    { "from": "fast-flow", "to": "euler-flow", "label": { "zh": "8~30 步采样", "en": "8-30 Steps" } },
+    { "from": "euler-flow", "to": "stereo-vae", "label": { "zh": "声学潜变量", "en": "Latents" } }
+  ]
+}

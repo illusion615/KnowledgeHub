@@ -2899,7 +2899,30 @@ var knowledgeTree = [
     url: 'posts/fish-audio-s2/index.html',
     color: '#38bdf8',
     phase: 1.1, speed: 0.86,
-    relations: ['m4-max-local-models', 'llm-wiki']
+    relations: ['m4-max-local-models', 'llm-wiki', 'local-music-song-models']
+  },
+
+  // ════════════════════════════════════════
+  // 文章 — 本地文生音乐与文生歌曲大模型全景探索
+  // ════════════════════════════════════════
+  {
+    id: 'local-music-song-models',
+    parentId: 'ai-research-model',
+    type: 'article',
+    title: {
+      zh: '本地部署文生音乐与文生歌曲大模型全景探索：架构拆解、M4 Max 64GB 实测与选型顾问',
+      en: 'Local Text-to-Music and Text-to-Song Models: Architecture, M4 Max 64GB Benchmarks, and Advisor'
+    },
+    summary: {
+      zh: '拆解三大开源音乐生成范式与 MiniMax-Music3 权重结构，实测评估 M4 Max 64GB 与 24GB 独显部署边界，配套选型沙盒。',
+      en: 'Dissects open-weight music/song architectures and MiniMax-Music3 weights, with M4 Max 64GB and 24GB GPU deployment guides and an interactive advisor.'
+    },
+    tags: ['Text-to-Music', 'Text-to-Song', 'MiniMax-Music3', 'ACE-Step', 'Apple MLX'],
+    date: '2026-11-24',
+    url: 'posts/local-music-song-models/index.html',
+    color: '#0d8f8c',
+    phase: 2.3, speed: 0.86,
+    relations: ['m4-max-local-models', 'fish-audio-s2', 'ideogram4-local-deployment', 'mlx-optimization']
   },
 
   // ════════════════════════════════════════

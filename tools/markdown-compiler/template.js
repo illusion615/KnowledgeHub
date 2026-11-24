@@ -90,11 +90,13 @@ function buildHeroHtml(meta, chaptersData, state) {
         valueStr = String(m.value || '');
         descRaw = String(m.desc || '');
       }
+      var valueP = fm.parseBilingual(valueStr);
+      var valueAttrs = valueP.zh !== valueP.en ? ' ' + fm.bilingualAttrs(valueP) : '';
       var descRendered = inline.renderBilingualInlinePair(descRaw, state);
       return [
         '          <div class="metric">',
         '            <div class="metric-label" ' + fm.bilingualAttrs(labelP) + '>' + fm.escapeHtml(labelP.zh) + '</div>',
-        '            <strong>' + fm.escapeHtml(valueStr) + '</strong>',
+        '            <strong' + valueAttrs + '>' + fm.escapeHtml(valueP.zh) + '</strong>',
         '            <span ' + inline.bilingualRichAttrs(descRaw, state) + '>' + descRendered.zhHtml + '</span>',
         '          </div>'
       ].join('\n');

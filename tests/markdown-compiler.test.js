@@ -227,6 +227,30 @@ test('Markdown tables with bilingual || separators, inline code, and angle place
   assert.equal(contract.ok, true, contract.errors.join('; '));
 });
 
+test('section headings starting with decimal numbers (e.g. 57.35 GB) keep their full prefix in nav, hero CTA, h2, and presentation steps', () => {
+  const sample = [
+    '---',
+    'title: 小数章节标题回归测试 || Decimal Heading Regression',
+    '---',
+    '',
+    '## #overview 01 / Overview :: 概览 || Overview',
+    '',
+    '第一段。 || First paragraph.',
+    '',
+    '## #minimax-music3 02 / Deep Audit :: 57.35 GB 原仓拆解与部署定论 || 57.35 GB Repository Anatomy and Verdict',
+    '',
+    '第二段。 || Second paragraph.'
+  ].join('\n');
+
+  const res = compiler.compileMarkdownToHtml(sample);
+  assert.doesNotMatch(res.html, /data-zh="35 GB/);
+  assert.doesNotMatch(res.html, /data-en="35 GB/);
+  assert.match(res.html, /<a href="#minimax-music3" data-zh="57\.35 GB 原仓拆解与部署定论" data-en="57\.35 GB Repository Anatomy and Verdict">57\.35 GB 原仓拆解与部署定论<\/a>/);
+  assert.match(res.html, /class="button button-secondary" href="#minimax-music3" data-zh="57\.35 GB 原仓拆解与部署定论"/);
+  assert.match(res.html, /data-present-title-zh="57\.35 GB 原仓拆解与部署定论" data-present-title-en="57\.35 GB Repository Anatomy and Verdict"/);
+  assert.match(res.html, /<h2 data-zh="2\. 57\.35 GB 原仓拆解与部署定论" data-en="2\. 57\.35 GB Repository Anatomy and Verdict">2\. 57\.35 GB 原仓拆解与部署定论<\/h2>/);
+});
+
 test('benchmark articles (markdown-genesis-lab & claw-code-analysis/genesis.html) compile deterministically and pass validate.js', () => {
   const genesisLabMd = path.join(ROOT, 'posts/markdown-genesis-lab/article.md');
   const genesisLabHtml = path.join(ROOT, 'posts/markdown-genesis-lab/index.html');
