@@ -235,33 +235,142 @@ class MiniMaxMusicEngine:
             'network_model_calls': 0,
         }
 
+    def _generate_with_progress(self, model: Any, req: dict[str, Any], progress_cb: Any) -> tuple[Any, int]:
+        import mlx.core as mx
+        import numpy as np
+        from mlx_audio.music.models.minimax_music3.ar import ar_one_frame, qwen3_hidden
+        from mlx_audio.music.models.minimax_music3.config import (
+            CHUNK_FRAMES,
+            DIT_CFG_SCALE,
+            OVERLAP_LATENT_LENGTH,
+        )
+        from mlx_audio.music.models.minimax_music3.euler import denoise_chunk
+        from mlx_audio.music.models.minimax_music3.minimax_music3 import _chunk_starts, _crop_waveform
+
+        max_frames = max(1, int(req['duration'] * model.config.frame_rate))
+        text_ids = model._text_ids(req['prompt'], req['lyrics'])
+        mx.random.seed(req['seed'])
+        key = mx.random.key(req['seed'])
+        embeddings = model.language_model.model.embed_tokens(text_ids)
+        hidden, cache = qwen3_hidden(model.language_model, embeddings)
+        last_hidden = hidden[:, -1]
+        frames_list = []
+        ar_start = time.perf_counter()
+        progress_cb({'stage': 'ar_start', 'max_frames': max_frames, 'max_seconds': req['duration']})
+        ended_by_eos = False
+        for frame_index in range(max_frames + 1):
+            key, subkey = mx.random.split(key)
+            res = ar_one_frame(
+                model.language_model,
+                model.rvq_depth_decoder,
+                model.config,
+                last_hidden,
+                cache,
+                subkey,
+                emit_frame=frame_index > 0,
+            )
+            last_hidden, cache = res.last_hidden, res.cache
+            if res.ended:
+                ended_by_eos = True
+                break
+            if frame_index > 0:
+                frames_list.append(res.frame_hidden)
+                if len(frames_list) % 125 == 0:
+                    mx.eval(res.frame_hidden)
+                    progress_cb({
+                        'stage': 'ar_progress',
+                        'frames': len(frames_list),
+                        'max_frames': max_frames,
+                        'audio_seconds': round(len(frames_list) / model.config.frame_rate, 1),
+                        'elapsed_seconds': round(time.perf_counter() - ar_start, 1),
+                    })
+                if len(frames_list) >= max_frames:
+                    break
+        if not frames_list:
+            raise RuntimeError('MiniMax-Music3 generated zero audio frames')
+        frame_hiddens = mx.stack(frames_list, axis=1)
+        mx.eval(frame_hiddens)
+        total_ar_frames = int(frame_hiddens.shape[1])
+        progress_cb({
+            'stage': 'ar_done',
+            'frames': total_ar_frames,
+            'audio_seconds': round(total_ar_frames / model.config.frame_rate, 2),
+            'ended_by_eos': ended_by_eos,
+            'elapsed_seconds': round(time.perf_counter() - ar_start, 1),
+        })
+        starts = _chunk_starts(total_ar_frames)
+        waves = []
+        previous_latent = None
+        previous_condition = None
+        mx.random.seed(req['seed'] + 7)
+        flow_start = time.perf_counter()
+        for chunk_idx, start_f in enumerate(starts):
+            end_f = min(start_f + CHUNK_FRAMES, total_ar_frames)
+            condition = model.condition_encoder(frame_hiddens[:, start_f:end_f])
+            noise = mx.random.normal((1, model.config.dit_in_channels, condition.shape[1])).astype(condition.dtype)
+            latents, condition = denoise_chunk(
+                model.transformer,
+                noise,
+                condition,
+                num_inference_steps=req['steps'],
+                guidance_scale=DIT_CFG_SCALE,
+                previous_latent=previous_latent,
+                previous_condition=previous_condition,
+            )
+            carry_start = max(0, latents.shape[-1] - 2 * OVERLAP_LATENT_LENGTH)
+            carry_end = max(carry_start, latents.shape[-1] - OVERLAP_LATENT_LENGTH)
+            previous_latent = latents[..., carry_start:carry_end]
+            previous_condition = condition[:, carry_start:carry_end]
+            waves.append(model.vocoder(latents))
+            mx.eval(waves[-1])
+            progress_cb({
+                'stage': 'dit_chunk',
+                'chunk': chunk_idx + 1,
+                'total_chunks': len(starts),
+                'elapsed_seconds': round(time.perf_counter() - flow_start, 1),
+            })
+        audio = mx.concatenate(
+            [_crop_waveform(wave, idx, len(waves)) for idx, wave in enumerate(waves)],
+            axis=-1,
+        )
+        mx.eval(audio)
+        waveform = mx.clip(audio[0].transpose(1, 0).astype(mx.float32), -1.0, 1.0)
+        if not np.isfinite(np.asarray(waveform)).all():
+            raise RuntimeError('MiniMax-Music3 produced non-finite audio')
+        return waveform, int(model.sample_rate)
+
     def generate(self, payload: dict[str, Any], *, allow_any_output_path: bool = False) -> dict[str, Any]:
-        if allow_any_output_path and isinstance(payload, dict) and payload.get('output_path'):
-            custom_out = Path(str(payload['output_path'])).expanduser()
-            sanitized = {k: v for k, v in payload.items() if k != 'output_path'}
+        progress_cb = payload.get('_progress_cb') if isinstance(payload, dict) else None
+        clean_payload = {k: v for k, v in payload.items() if k != '_progress_cb'} if isinstance(payload, dict) else payload
+        if allow_any_output_path and isinstance(clean_payload, dict) and clean_payload.get('output_path'):
+            custom_out = Path(str(clean_payload['output_path'])).expanduser()
+            sanitized = {k: v for k, v in clean_payload.items() if k != 'output_path'}
             req = validate_generation_request(sanitized, output_dir=self.output_dir)
             req['output_path'] = custom_out
         else:
-            req = validate_generation_request(payload, output_dir=self.output_dir)
+            req = validate_generation_request(clean_payload, output_dir=self.output_dir)
         model = self.ensure_loaded()
         started = time.perf_counter()
-        results = list(
-            model.generate(
-                text=req['prompt'],
-                lyrics=req['lyrics'],
-                duration=req['duration'],
-                steps=req['steps'],
-                seed=req['seed'],
-            )
-        )
-        if not results:
-            raise RuntimeError('MiniMax-Music3 returned no audio segments')
-        sample_rate = int(results[0].sample_rate)
-        if len(results) == 1:
-            waveform = results[0].audio
+        if callable(progress_cb) and hasattr(model, '_text_ids') and hasattr(model, '_run_flow'):
+            waveform, sample_rate = self._generate_with_progress(model, req, progress_cb)
         else:
-            import numpy as np
-            waveform = np.concatenate([ r.audio for r in results ], axis=0)
+            results = list(
+                model.generate(
+                    text=req['prompt'],
+                    lyrics=req['lyrics'],
+                    duration=req['duration'],
+                    steps=req['steps'],
+                    seed=req['seed'],
+                )
+            )
+            if not results:
+                raise RuntimeError('MiniMax-Music3 returned no audio segments')
+            sample_rate = int(results[0].sample_rate)
+            if len(results) == 1:
+                waveform = results[0].audio
+            else:
+                import numpy as np
+                waveform = np.concatenate([ r.audio for r in results ], axis=0)
         out_path = req['output_path']
         frames, channels, rms = _write_pcm16_wav(out_path, waveform, sample_rate)
         elapsed = time.perf_counter() - started

@@ -26,6 +26,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument('--output', type=Path, default=Path('minimax_music3_output.wav'), help='Destination .wav file path')
     parser.add_argument('--model', default=DEFAULT_MODEL_ID, help='Cached HF repo ID or local snapshot directory')
     parser.add_argument('--cache-root', type=Path, default=DEFAULT_CACHE_ROOT, help='Hugging Face hub cache root')
+    parser.add_argument('--progress', action='store_true', help='Print periodic progress logs to stderr')
     parser.add_argument('--json', action='store_true', help='Print structured JSON summary only')
     return parser
 
@@ -39,15 +40,19 @@ def main(argv: list[str] | None = None, *, engine_factory=MiniMaxMusicEngine) ->
     if output_path.suffix.lower() != '.wav':
         raise SystemExit('--output must end with .wav')
     engine = engine_factory(args.model, cache_root=args.cache_root, output_dir=output_path.resolve(strict=False).parent, lazy_load=True)
+    payload: dict[str, object] = {
+        'prompt': args.prompt,
+        'lyrics': lyrics,
+        'duration': args.duration,
+        'steps': args.steps,
+        'seed': args.seed,
+        'output_path': str(output_path),
+    }
+    if args.progress:
+        import sys
+        payload['_progress_cb'] = lambda evt: print(f"[minimax-progress] {json.dumps(evt, ensure_ascii=False)}", file=sys.stderr, flush=True)
     result = engine.generate(
-        {
-            'prompt': args.prompt,
-            'lyrics': lyrics,
-            'duration': args.duration,
-            'steps': args.steps,
-            'seed': args.seed,
-            'output_path': str(output_path),
-        },
+        payload,
         allow_any_output_path=True,
     )
     if args.json:

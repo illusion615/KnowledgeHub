@@ -1,6 +1,8 @@
 import test from 'node:test';
 import http from 'node:http';
-import { homedir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
+import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { join } from 'node:path';
 import assert from 'node:assert/strict';
 import { createBridge, validateChat } from '../scripts/copilot-bridge-server.mjs';
 import { sessionConfig, conversationPrompt, publicError, BridgeError, runtimeEnv } from '../scripts/copilot-runtime.mjs';
@@ -132,4 +134,31 @@ test('timeout, busy, cancellation release own runtime and sanitize stream failur
     const res = await fetch(fail.base + '/api/copilot/chat', { method: 'POST', headers: fail.headers, body: JSON.stringify(body) });
     const text = await res.text(); assert.match(text, /RATE_LIMIT/); assert.ok(!text.includes('private')); assert.ok(!text.includes('[DONE]'));
   } finally { await fail.close(); }
+});
+test('readonly local-music track routes support meta, Range 206, download headers, and block traversal', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'kh-music-test-'));
+  const musicDir = join(root, 'private', 'minimax-music3');
+  await mkdir(musicDir, { recursive: true });
+  await writeFile(join(root, 'music-preview.html'), '<!doctype html><title>Preview</title>');
+  await writeFile(join(musicDir, 'demo-track.meta.json'), JSON.stringify({ slug: 'demo-track', bpm: 100 }));
+  await writeFile(join(musicDir, 'demo-track.wav'), Buffer.from('RIFF0000WAVEfmt '));
+  const f = await fixture({ root });
+  try {
+    assert.equal((await fetch(f.base + '/music-preview.html')).status, 200);
+    const metaRes = await fetch(f.base + '/api/local-music/tracks/demo-track.meta.json');
+    assert.equal(metaRes.status, 200);
+    assert.equal((await metaRes.json()).bpm, 100);
+    const rangeRes = await fetch(f.base + '/api/local-music/tracks/demo-track.wav', { headers: { Range: 'bytes=0-3' } });
+    assert.equal(rangeRes.status, 206);
+    assert.equal(await rangeRes.text(), 'RIFF');
+    const dlRes = await fetch(f.base + '/api/local-music/tracks/demo-track.wav?download=1');
+    assert.equal(dlRes.status, 200);
+    assert.match(dlRes.headers.get('content-disposition') || '', /attachment; filename="demo-track\.wav"/);
+    assert.equal((await fetch(f.base + '/api/local-music/tracks/demo-track.wav', { method: 'POST' })).status, 405);
+    assert.equal((await fetch(f.base + '/api/local-music/tracks/..%2fsecret.wav')).status, 403);
+    assert.equal((await fetch(f.base + '/api/local-music/tracks/missing.wav')).status, 404);
+  } finally {
+    await f.close();
+    await rm(root, { recursive: true, force: true });
+  }
 });

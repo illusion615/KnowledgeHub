@@ -1,7 +1,8 @@
 import http from 'node:http';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
+import { createReadStream } from 'node:fs';
 import { readFile, realpath, stat } from 'node:fs/promises';
-import { resolve, sep, extname, dirname, join } from 'node:path';
+import { resolve, sep, extname, dirname, join, basename } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { openRuntime, BridgeError, publicError } from './copilot-runtime.mjs';
 import { createVideoStudio } from './video-studio.mjs';
@@ -42,7 +43,58 @@ const equal = (a, b) => typeof a === 'string' && a.length === b.length && timing
 const isLoopbackHost = (host, port) => host === `127.0.0.1:${port}` || host === `localhost:${port}` || host === `[::1]:${port}`;
 const isLoopbackOrigin = origin => typeof origin === 'string' && /^http:\/\/(?:127\.0\.0\.1|localhost|\[::1\])(?::\d{2,5})?$/.test(origin);
 const isTrustedOrigin = origin => isLoopbackOrigin(origin) || origin === 'https://illusion615.github.io';
-const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.ico': 'image/x-icon' };
+const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.ico': 'image/x-icon', '.wav': 'audio/wav', '.mp3': 'audio/mpeg', '.m4a': 'audio/mp4' };
+async function serveLocalMusic(req, res, url, root, json) {
+  if (req.method !== 'GET' && req.method !== 'HEAD') throw new BridgeError(405, 'METHOD', '方法不允许。');
+  const m = /^\/api\/local-music\/tracks\/([a-z0-9][a-z0-9_-]{0,63})(?:\.(wav|mp3|m4a|meta\.json))?$/.exec(url.pathname);
+  if (!m) throw new BridgeError(404, 'NOT_FOUND', '曲目接口不存在。');
+  const [, slug, ext] = m;
+  const musicRoot = resolve(root, 'private', 'minimax-music3');
+  if (!ext || ext === 'meta.json') {
+    const metaFile = resolve(musicRoot, `${slug}.meta.json`);
+    const st = await stat(metaFile).catch(() => null);
+    if (!st || !st.isFile()) throw new BridgeError(404, 'NOT_FOUND', '曲目元数据不存在。');
+    const raw = JSON.parse(await readFile(metaFile, 'utf8'));
+    json(200, raw);
+    return;
+  }
+  const target = resolve(musicRoot, `${slug}.${ext}`);
+  const realRoot = await realpath(musicRoot).catch(() => null);
+  const realFile = await realpath(target).catch(() => null);
+  if (!realRoot || !realFile || !realFile.startsWith(realRoot + sep)) throw new BridgeError(404, 'NOT_FOUND', '音频文件不存在。');
+  const st = await stat(realFile);
+  if (!st.isFile()) throw new BridgeError(404, 'NOT_FOUND', '音频文件不存在。');
+  const total = st.size;
+  const headers = {
+    'Content-Type': mime['.' + ext],
+    'Accept-Ranges': 'bytes',
+    'Cache-Control': 'no-cache',
+  };
+  if (url.searchParams.get('download') === '1') {
+    headers['Content-Disposition'] = `attachment; filename="${basename(realFile)}"`;
+  }
+  const range = req.headers.range;
+  if (range && /^bytes=\d*-\d*$/.test(range)) {
+    const [rawStart, rawEnd] = range.slice(6).split('-');
+    let start = rawStart === '' ? Math.max(0, total - Number(rawEnd)) : Number(rawStart);
+    let end = rawStart === '' ? total - 1 : (rawEnd === '' ? total - 1 : Math.min(total - 1, Number(rawEnd)));
+    if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || start > end || start >= total) {
+      res.writeHead(416, { 'Content-Range': `bytes */${total}` });
+      res.end();
+      return;
+    }
+    headers['Content-Range'] = `bytes ${start}-${end}/${total}`;
+    headers['Content-Length'] = String(end - start + 1);
+    res.writeHead(206, headers);
+    if (req.method === 'HEAD') { res.end(); return; }
+    createReadStream(realFile, { start, end }).pipe(res);
+    return;
+  }
+  headers['Content-Length'] = String(total);
+  res.writeHead(200, headers);
+  if (req.method === 'HEAD') { res.end(); return; }
+  createReadStream(realFile).pipe(res);
+}
 export function createBridge({ root = repo, runtimeFactory = openRuntime, timeoutMs = 120000, maxConcurrent = 2, studioOptions = {} } = {}) {
   const sessions = new Map(); let active = 0, studio;
   const server = http.createServer(async (req, res) => {
@@ -83,10 +135,14 @@ export function createBridge({ root = repo, runtimeFactory = openRuntime, timeou
       if ((reqOrigin && !trustedSource) || untrustedFetchSite)
         throw new BridgeError(403, 'ORIGIN', '拒绝非同源请求。请直接打开本机服务站点。');
       if (!api) {
+        if (url.pathname.startsWith('/api/local-music/')) {
+          await serveLocalMusic(req, res, url, root, json);
+          return;
+        }
         if (req.method !== 'GET' && req.method !== 'HEAD') throw new BridgeError(405, 'METHOD', '方法不允许。');
         let pathname = decodeURIComponent(url.pathname);
         if (pathname === '/') pathname = '/index.html';
-        if (!/^\/(index\.html|settings\.html|copilot-test\.html|video-studio\.html|assets\/[^.].*|posts\/[^.].*)$/.test(pathname) || pathname.split('/').some(p => p.startsWith('.')))
+        if (!/^\/(index\.html|settings\.html|copilot-test\.html|video-studio\.html|music-preview\.html|assets\/[^.].*|posts\/[^.].*)$/.test(pathname) || pathname.split('/').some(p => p.startsWith('.')))
           throw new BridgeError(404, 'NOT_FOUND', '页面不存在。');
         let file = resolve(root, '.' + pathname);
         if ((await stat(file)).isDirectory()) file = join(file, 'index.html');
