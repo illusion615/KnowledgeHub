@@ -3,9 +3,13 @@ import { readFile, realpath } from 'node:fs/promises';
 import { resolve, sep } from 'node:path';
 import { BridgeError } from './copilot-runtime.mjs';
 import composition from '../assets/video-studio-composition.js';
+import vgCatalog from '../assets/video-studio-templates.js';
 
 export const digest = value => createHash('sha256').update(typeof value === 'string' || Buffer.isBuffer(value) ? value : JSON.stringify(value)).digest('hex');
 export const cameras = ['push', 'pull', 'pan-left', 'pan-right', 'static'];
+export const voices = ['Yue (Premium)', 'Lili (Premium)', 'Tingting', ...vgCatalog.stylePacks ? ['zh_female_cancan_uranus_bigtts', 'zh_male_chunhou_uranus_bigtts'] : []];
+export const scenarios = vgCatalog.scenarios.map(item => item.id);
+export const stylePackIds = vgCatalog.stylePacks.map(item => item.id);
 export const needsImage = scene => !scene.composition || composition.nodes(scene.composition).some(layer => layer.type === 'image');
 const invalid = message => { throw new BridgeError(400, 'STUDIO_INPUT', message); };
 export function text(value, name, max = 4000) {
@@ -94,15 +98,19 @@ export async function readArticle(root, slug) {
 export function validateBrief(value) {
   if (!value || typeof value !== 'object') invalid('视频需求无效。');
   if (!Number.isInteger(value.seconds) || value.seconds < 30 || value.seconds > 600) invalid('目标时长必须为30–600秒。');
-  if (!['Yue (Premium)', 'Lili (Premium)', 'Tingting'].includes(value.voice)) invalid('请选择受支持的本机声音。');
+  if (!voices.includes(value.voice)) invalid('请选择受支持的本机或官方TTS声音。');
   if (!Number.isInteger(value.voiceRate) || value.voiceRate < 150 || value.voiceRate > 300) invalid('语速必须为150–300。');
   if (!['bright', 'none'].includes(value.music)) invalid('配乐选项无效。');
   if (value.idea !== undefined && (typeof value.idea !== 'string' || value.idea.length > 4000)) invalid('创意想法最多4000字。');
+  if (value.scenario !== undefined && !scenarios.includes(value.scenario)) invalid('视频制作路线仅支持 presenter（真人口播）或 product（产品介绍）。');
+  if (value.stylePack !== undefined && !stylePackIds.includes(value.stylePack)) invalid('Adu/MotionGit 风格编号无效。');
   return {
     audience: text(value.audience, '受众', 300), goal: text(value.goal, '观看目标', 500),
     style: text(value.style, '视觉方向', 1200), seconds: value.seconds, voice: value.voice,
     voiceRate: value.voiceRate, music: value.music,
-    ...(value.idea !== undefined ? { idea: value.idea.trim() } : {})
+    ...(value.idea !== undefined ? { idea: value.idea.trim() } : {}),
+    ...(value.scenario !== undefined ? { scenario: value.scenario } : {}),
+    ...(value.stylePack !== undefined ? { stylePack: value.stylePack } : {})
   };
 }
 export function validateScenes(value, source) {

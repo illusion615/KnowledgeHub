@@ -4,6 +4,7 @@ import { randomBytes } from 'node:crypto';
 import { BridgeError, publicError } from './copilot-runtime.mjs';
 import { digest, readArticle, validateBrief, validateScenes, defaultBrief, keys, planKey, exportKey, viewProject, needsImage } from './video-studio-model.mjs';
 import { createMediaEngine } from './video-studio-media.mjs';
+import vgCatalog from '../assets/video-studio-templates.js';
 
 const fail = (status, code, message) => { throw new BridgeError(status, code, message); };
 const assetTaskCount = (scenes, kinds) => scenes.reduce((sum, scene) =>
@@ -350,10 +351,23 @@ export function createVideoStudio({ root, dataRoot = join(root, 'private/video-s
       }
       send(200, await exposed(id)); return;
     }
-    const match = /^\/(p-[a-f0-9]{24})(?:\/(draft|approve|jobs|cancel|source|media|cursor))?$/.exec(route);
+    if (route === '/catalog' && req.method === 'GET') {
+      send(200, {
+        upstream: vgCatalog.upstreamInfo,
+        scenarios: vgCatalog.scenarios,
+        stylePacks: vgCatalog.stylePacks,
+        scenePresets: vgCatalog.scenePresets
+      });
+      return;
+    }
+    const match = /^\/(p-[a-f0-9]{24})(?:\/(draft|approve|jobs|cancel|source|media|cursor|manifest))?$/.exec(route);
     if (!match) fail(404, 'STUDIO_ROUTE', '视频工作室接口不存在。');
     const [, id, action] = match;
     if (!action && req.method === 'GET') { send(200, await exposed(id)); return; }
+    if (action === 'manifest' && req.method === 'GET') {
+      send(200, vgCatalog.toManifest(await exposed(id)));
+      return;
+    }
     if (action === 'media' && req.method === 'GET') {
       const project = await read(id);
       const key = url.searchParams.get('key');

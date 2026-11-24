@@ -6,11 +6,12 @@ document.addEventListener('DOMContentLoaded', function () {
   var selectedModel = localStorage.getItem('kh-video-model') || '';
   var copilotState = 'checking', copilotError = '', copilotCheck = null;
   var localMode = location.protocol === 'http:' && location.hostname === '127.0.0.1';
-  var galleryId = null;
+  var galleryId = null, customCompositionOverrides = {};
   var simulation = { playing: false, paused: false, loading: false, token: 0, elapsed: 0, duration: 0, started: 0, frame: null, audio: null };
   var stage = document.getElementById('studio-stage');
   var message = document.getElementById('studio-message');
   var workspace = document.getElementById('studio-workspace');
+  var vg = window.KHVideoGenerator;
   var steps = [['需求确认', 'Brief'], ['镜头工作台', 'Scene Workbench'], ['镜头渲染', 'Scene Rendering'], ['整片导出', 'Export']];
   var kinds = { plan: ['生成分镜', 'Storyboard'], direct: ['AI重新设计画面', 'AI Visual Redesign'], produce: ['制作完整视频', 'Produce Full Video'], image: ['本地生图', 'Local image'], voice: ['本机配音', 'Local voice'], clip: ['镜头渲染', 'Scene render'], export: ['拼接导出', 'Export'], assets: ['批量准备素材', 'Batch Assets'], clips: ['渲染全部镜头', 'Render All Scenes'] };
   var briefTemplates = [
@@ -52,6 +53,50 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('studio-lang').textContent = language === 'en' ? '中文' : 'EN';
   }
   function active() { return project && project.jobs.some(function (job) { return job.status === 'queued' || job.status === 'running'; }); }
+  async function response(result) {
+    var data;
+    if (!result.ok) {
+      try { data = await result.json(); } catch (_) { throw new Error('HTTP ' + result.status); }
+      throw new Error(data.error && data.error.message || 'HTTP ' + result.status);
+    }
+    return result;
+  }
+  async function request(path, body, binary) {
+    var csrf, result;
+    if (!session) {
+      session = (async function () {
+        var boot = await response(await fetch('/api/copilot/bootstrap', { headers: { 'X-KH-Bootstrap': '1' }, credentials: 'same-origin' }));
+        return (await boot.json()).csrf;
+      })().catch(function (error) { session = null; throw error; });
+    }
+    csrf = await session;
+    result = await fetch('/api/copilot/studio/' + path, {
+      method: body ? 'POST' : 'GET', credentials: 'same-origin',
+      headers: { 'X-KH-CSRF': csrf, 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : undefined
+    });
+    if (result.status === 403) session = null;
+    await response(result);
+    return binary ? result.blob() : result.json();
+  }
+  var playback = window.KHVideoStudioPlayback.createPlayback({
+    stage: stage, simulation: simulation, urls: urls, mediaRequests: mediaRequests,
+    t: t, esc: esc, say: say, request: request, active: active,
+    isDirty: function () { return dirty; },
+    getProject: function () { return project; },
+    getGalleryId: function () { return galleryId; },
+    setGalleryId: function (id) { galleryId = id; }
+  });
+  var media = playback.media, hydrate = playback.hydrate, pauseStageMedia = playback.pauseStageMedia;
+  var galleryScene = playback.galleryScene, sceneDuration = playback.sceneDuration, timeLabel = playback.timeLabel;
+  var paintComposition = playback.paintComposition, selectGallery = playback.selectGallery, syncSequence = playback.syncSequence;
+  var simulationStatus = playback.simulationStatus, simulationControls = playback.simulationControls;
+  var stopSimulation = playback.stopSimulation, playSimulation = playback.playSimulation, pauseSimulation = playback.pauseSimulation;
+  var monitorVideo = playback.monitorVideo, vgBriefCatalogSection = playback.vgBriefCatalogSection, vgScenePresetSection = playback.vgScenePresetSection;
+  var sceneBin = playback.sceneBin, sequence = playback.sequence;
+  function monitorContent(scene) { return playback.monitorContent(scene, step); }
+  function batchMeter(job) { return playback.batchMeter(job, kinds); }
+
   function updateCopilotUI() {
     var status = document.getElementById('studio-copilot-status');
     var select = document.getElementById('studio-copilot-model');
@@ -109,32 +154,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     return copilotCheck;
   }
-  async function response(result) {
-    var data;
-    if (!result.ok) {
-      try { data = await result.json(); } catch (_) { throw new Error('HTTP ' + result.status); }
-      throw new Error(data.error && data.error.message || 'HTTP ' + result.status);
-    }
-    return result;
-  }
-  async function request(path, body, binary) {
-    var csrf, result;
-    if (!session) {
-      session = (async function () {
-        var boot = await response(await fetch('/api/copilot/bootstrap', { headers: { 'X-KH-Bootstrap': '1' }, credentials: 'same-origin' }));
-        return (await boot.json()).csrf;
-      })().catch(function (error) { session = null; throw error; });
-    }
-    csrf = await session;
-    result = await fetch('/api/copilot/studio/' + path, {
-      method: body ? 'POST' : 'GET', credentials: 'same-origin',
-      headers: { 'X-KH-CSRF': csrf, 'Content-Type': 'application/json' },
-      body: body ? JSON.stringify(body) : undefined
-    });
-    if (result.status === 403) session = null;
-    await response(result);
-    return binary ? result.blob() : result.json();
-  }
   function button(label, action, scene, primary, disabled) {
     return '<button type="button" data-action="' + action + '"' + (scene ? ' data-scene="' + esc(scene) + '"' : '') +
       (primary ? ' class="studio-primary"' : '') + (disabled ? ' disabled' : '') + '>' + esc(label) + '</button>';
@@ -148,15 +167,21 @@ document.addEventListener('DOMContentLoaded', function () {
       return '<option value="' + esc(entry[0]) + '"' + (entry[0] === value ? ' selected' : '') + '>' + esc(entry[1]) + '</option>';
     }).join('') + '</select></label>';
   }
-  function value(key, parent) { return (parent || stage).querySelector('[data-field="' + key + '"]').value; }
+  function value(key, parent) {
+    var el = (parent || stage).querySelector('[data-field="' + key + '"]');
+    return el ? el.value : '';
+  }
   function collectScenes() {
     return Array.prototype.map.call(stage.querySelectorAll('[data-shot]'), function (node) {
-      var saved = project.scenes.find(function (scene) { return scene.id === node.getAttribute('data-shot'); });
-      var composition = saved.composition && JSON.parse(JSON.stringify(saved.composition));
+      var id = node.getAttribute('data-shot');
+      var saved = project.scenes.find(function (scene) { return scene.id === id; });
+      var baseComp = customCompositionOverrides[id] || saved.composition;
+      var composition = baseComp && JSON.parse(JSON.stringify(baseComp));
       if (composition) node.querySelectorAll('[data-layer-text]').forEach(function (field) {
-        window.KHVideoComposition.nodes(composition)[Number(field.getAttribute('data-layer-text'))].text = field.value;
+        var targetLayer = window.KHVideoComposition.nodes(composition)[Number(field.getAttribute('data-layer-text'))];
+        if (targetLayer) targetLayer.text = field.value;
       });
-      return { id: node.getAttribute('data-shot'), title: value('title', node), narration: value('narration', node),
+      return { id: id, title: value('title', node), narration: value('narration', node),
         visual: node.querySelector('[data-field="visual"]') ? value('visual', node) : saved.visual, screenText: value('screenText', node),
         camera: node.querySelector('[data-field="camera"]') ? value('camera', node) : saved.camera,
         composition: composition, imagePromptVersion: saved.imagePromptVersion, intent: saved.intent, cinematography: saved.cinematography,
@@ -164,8 +189,13 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
   function brief() {
-    return { audience: value('audience'), goal: value('goal'), style: value('style'), seconds: Number(value('seconds')),
+    var out = { audience: value('audience'), goal: value('goal'), style: value('style'), seconds: Number(value('seconds')),
       voice: value('voice'), voiceRate: Number(value('voiceRate')), music: value('music'), idea: value('idea') };
+    var scenarioVal = value('scenario') || (project && project.brief && project.brief.scenario);
+    var packVal = value('stylePack') || (project && project.brief && project.brief.stylePack);
+    if (scenarioVal) out.scenario = scenarioVal;
+    if (packVal) out.stylePack = packVal;
+    return out;
   }
   function matchesTemplate(current, template) {
     return ['audience', 'goal', 'style'].every(function (key) {
@@ -199,17 +229,47 @@ document.addEventListener('DOMContentLoaded', function () {
     say(t('已应用「', 'Applied “') + t(template.name[0], template.name[1]) +
       t('」。可继续修改；尚未保存，也未触发生成。', '”. You can edit it further. Nothing has been saved or generated.'));
   }
+  function applyVGStylePack(packId) {
+    var pack = vg && vg.getStylePack(packId), sf = stage.querySelector('[data-field="style"]'), pf = stage.querySelector('[data-field="stylePack"]'), scf = stage.querySelector('[data-field="scenario"]');
+    if (!pack) return;
+    if (pf) pf.value = pack.id;
+    if (scf) scf.value = pack.scenario;
+    if (sf) sf.value = pack.stylePrompt;
+    stage.querySelectorAll('[data-vg-pack]').forEach(function (n) { n.setAttribute('aria-pressed', String(n.getAttribute('data-vg-pack') === pack.id)); });
+    stage.querySelectorAll('[data-vg-scenario]').forEach(function (n) { n.setAttribute('aria-pressed', String(n.getAttribute('data-vg-scenario') === pack.scenario)); });
+    dirty = true; syncTemplates();
+    say(t('已切换至 Video-Generator 风格包「', 'Switched to Video-Generator style pack “') + t(pack.title[0], pack.title[1]) + t('」（' + pack.selection + '）。保存需求后生效。', '” (' + pack.selection + '). Save brief to persist.'));
+  }
+  function applyVGScenario(scenarioId) {
+    var sc = vg && vg.getScenario(scenarioId), scf = stage.querySelector('[data-field="scenario"]');
+    if (!sc) return;
+    if (scf) scf.value = sc.id;
+    stage.querySelectorAll('[data-vg-scenario]').forEach(function (n) { n.setAttribute('aria-pressed', String(n.getAttribute('data-vg-scenario') === sc.id)); });
+    applyVGStylePack(sc.defaultStylePack);
+  }
+  function applyScenePreset(presetId) {
+    var scene = galleryScene(), slide, draftScene, validated, presetInfo;
+    if (!scene || !vg) return;
+    slide = stage.querySelector('[data-gallery-slide="' + scene.id + '"]');
+    draftScene = { id: scene.id, title: slide ? value('title', slide) : scene.title, narration: slide ? value('narration', slide) : scene.narration, screenText: slide ? value('screenText', slide) : scene.screenText, visual: scene.visual };
+    validated = window.KHVideoComposition.validate(vg.buildTemplateComposition(presetId, draftScene, (project.brief && project.brief.stylePack) || '01-A'));
+    customCompositionOverrides[scene.id] = validated; scene.composition = validated; dirty = true; paintComposition(scene, 0);
+    presetInfo = vg.scenePresets.find(function (item) { return item.id === presetId; });
+    say(t('已将当前镜头切换为「', 'Applied scene preset “') + (presetInfo ? t(presetInfo.name[0], presetInfo.name[1]) : presetId) + t('」编排，已在中央监看器实时更新；点击“保存修改”或“保存并制作视频”即可持久化。', '” in the live monitor. Save or produce to persist.'));
+  }
   async function save(confirmBrief) {
     project = await request(project.id + '/draft', {
       revision: project.revision, brief: step === 1 ? brief() : project.brief,
       scenes: step === 2 ? collectScenes() : project.scenes, confirmBrief: confirmBrief === true
     });
+    customCompositionOverrides = {};
     dirty = false;
     say(t('已保存。没有触发生成或渲染。', 'Saved. No generation or rendering was triggered.'));
   }
   async function navigate(next) {
     if (dirty && !window.confirm(t('还有未保存编辑。放弃这些编辑并切换步骤？', 'Discard unsaved edits and change steps?'))) return;
     project = await request(project.id + '/cursor', { step: [1, 2, 4, 5][next - 1] });
+    customCompositionOverrides = {};
     dirty = false; step = next; render();
   }
   function restoredStep(cursor) {
@@ -234,41 +294,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     updateCopilotUI();
   }
-  function batchMeter(job) {
-    var progress = job.progress;
-    var percent = progress ? Math.round(progress.completed / progress.total * 100) : null;
-    var statuses = {
-      queued: ['排队中', 'Queued'], running: ['生成中', 'Generating'], done: ['已完成', 'Completed'],
-      failed: ['生成失败', 'Failed'], cancelled: ['已取消', 'Cancelled'], interrupted: ['服务中断', 'Interrupted']
-    };
-    var status = statuses[job.status];
-    if (job.status === 'running' && job.kind === 'produce') status = ['制作中', 'Producing'];
-    if (job.status === 'running' && job.kind === 'clips') status = ['渲染中', 'Rendering'];
-    var summary = batchProgress(job);
-    var label = job.kind === 'produce' ? t('视频制作进度', 'Video Production Progress') :
-      job.kind === 'clips' ? t('镜头渲染进度', 'Scene Rendering Progress') : t('批量素材生成进度', 'Batch Media Generation Progress');
-    return '<div class="studio-batch-meter" data-state="' + esc(job.status) + '">' +
-      '<div class="studio-progress-heading"><span>' + esc(t(status[0], status[1])) + '</span>' +
-      '<strong class="studio-progress-percent">' + (percent === null ? '…' : percent + '%') + '</strong></div>' +
-      '<progress aria-label="' + esc(label) + '" aria-valuetext="' + esc(t(status[0], status[1]) + ' · ' + summary) + '"' +
-      (progress ? ' max="' + progress.total + '" value="' + progress.completed + '"' : ' max="1"') + '>' +
-      (percent === null ? esc(t('等待进度', 'Waiting for Progress')) : percent + '%') +
-      '</progress><p class="studio-muted">' + esc(summary) + '</p></div>';
-  }
-  function batchProgress(job) {
-    var progress = job.progress, result, label;
-    if (!progress) return t('批量任务已排队。', 'Batch queued.');
-    result = t('完成 ', 'Completed ') + progress.completed + ' / ' + progress.total +
-      t(' · 新生成 ', ' · Generated ') + progress.generated + t(' · 复用 ', ' · Reused ') + progress.reused;
-    if (job.status === 'running' && progress.completed < progress.total) {
-      label = kinds[progress.kind];
-      result += ' · ' + progress.title + ' / ' + t(label[0], label[1]);
-    }
-    return result;
-  }
-  function shotHeading(scene, index) {
-    return '<h3>' + (index + 1) + '. ' + esc(scene.title) + '</h3>';
-  }
+  function shotHeading(scene, index) { return '<h3>' + (index + 1) + '. ' + esc(scene.title) + '</h3>'; }
   function productionLabel() {
     return dirty ? t('保存并制作视频', 'Save & Produce Video') :
       project.planApproved ? t('制作完整视频', 'Produce Full Video') : t('确认方案并制作视频', 'Confirm & Produce Video');
@@ -304,71 +330,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     return html;
   }
-  function sceneDuration(scene) {
-    var voice = scene.artifacts && scene.artifacts.voice;
-    return voice ? voice.duration : Math.max(3, scene.narration.length / (5 * project.brief.voiceRate / 235) + 1);
-  }
-  function sceneBin() {
-    return '<aside class="studio-scene-bin" aria-label="' + t('镜头列表', 'Scene Bin') + '"><header class="studio-panel-heading"><strong>' +
-      t('素材 / 镜头', 'Media / Scenes') + '</strong><span>' + project.scenes.length + '</span></header>' +
-      '<div class="studio-project-source"><small>' + t('文章来源', 'Article Source') + '</small><strong>' + esc(project.source.title) +
-      '</strong><a href="posts/' + esc(project.source.slug) + '/" target="_blank" rel="noopener">' + t('查看原文 ↗', 'Open Article ↗') + '</a></div><div class="studio-scene-list">' +
-      project.scenes.map(function (scene, index) {
-        var image = scene.artifacts && scene.artifacts.image, voice = scene.artifacts && scene.artifacts.voice;
-        return '<button type="button" class="studio-bin-scene" data-action="gallery-select" data-scene="' + esc(scene.id) + '"' +
-          (scene.id === galleryId ? ' aria-current="true"' : '') + '><span class="studio-bin-number">' + String(index + 1).padStart(2, '0') + '</span>' +
-          (image ? '<img alt="" data-media="' + image.key + '">' : '<span class="studio-bin-placeholder">—</span>') +
-          '<span class="studio-bin-info"><strong>' + esc(scene.title) + '</strong><small>' +
-          (scene.imageRequired === false ? t('图形画面', 'Graphics') : image ? t('图就绪', 'Image ready') : t('缺图片', 'No image')) + ' · ' +
-          (voice ? t('音就绪', 'Voice ready') : t('缺配音', 'No voice')) + '</small></span></button>';
-      }).join('') + '</div></aside>';
-  }
-  function sequence() {
-    var total = project.scenes.reduce(function (sum, scene) { return sum + sceneDuration(scene); }, 0);
-    var scale = 16, ruler = '', video = '', audio = '', seconds;
-    for (seconds = 0; seconds < total; seconds += 10) {
-      ruler += '<span style="left:' + (seconds * scale) + 'px">' + timeLabel(seconds) + '</span>';
-    }
-    project.scenes.forEach(function (scene, index) {
-      var artifacts = scene.artifacts || {}, duration = sceneDuration(scene), width = duration * scale;
-      var attributes = ' data-action="gallery-select" data-scene="' + esc(scene.id) + '"' +
-        (scene.id === galleryId ? ' aria-current="true"' : '') + ' style="width:' + width + 'px"';
-      video += '<button type="button" class="studio-gallery-thumb"' + attributes + ' aria-label="' +
-        esc((index + 1) + '. ' + scene.title) + '">' +
-        (artifacts.image ? '<img alt="" data-media="' + artifacts.image.key + '">' : '<span class="studio-thumb-placeholder">' + (index + 1) + '</span>') +
-        '<span>' + esc((index + 1) + '. ' + scene.title) + '</span></button>';
-      audio += '<button type="button" class="studio-audio-clip' + (artifacts.voice ? ' is-ready' : '') + '"' + attributes +
-        ' aria-label="' + esc(t('配音：', 'Voice: ') + scene.title) + '">' +
-        (artifacts.voice ? t('配音 ', 'Voice ') : t('估算 ', 'Est. ')) + duration.toFixed(1) + 's</button>';
-    });
-    return '<section class="studio-sequence" aria-label="' + t('镜头序列', 'Scene Sequence') + '"><header class="studio-panel-heading"><strong>' +
-      t('镜头序列', 'Scene Sequence') + '</strong><span class="studio-sequence-hint">' +
-      t('点击选择；排序使用检视器前移/后移', 'Click to select; reorder in the Inspector') + '</span><span id="studio-sequence-time" aria-live="off">0:00 / ' +
-      timeLabel(total) + '</span></header><div class="studio-sequence-body"><div class="studio-track-labels" aria-hidden="true"><span></span><strong>V1</strong><strong>A1</strong></div>' +
-      '<div class="studio-sequence-scroll"><div class="studio-sequence-content" style="width:' + Math.max(total * scale, 1) + 'px" data-sequence-scale="' + scale + '">' +
-      '<div class="studio-sequence-ruler" aria-hidden="true">' + ruler + '</div>' +
-      (!project.scenes.length ? '<p class="studio-sequence-empty">' + t('时间线为空 · 生成分镜后显示画面与配音轨道', 'Empty timeline · storyboard scenes will populate the image and voice tracks') + '</p>' : '') +
-      '<div class="studio-filmstrip" aria-label="' + t('画面轨道', 'Image Track') + '">' + video + '</div>' +
-      '<div class="studio-audio-track" aria-label="' + t('配音轨道；虚线表示待生成、时长估算', 'Voice Track; dashed clips are ungenerated and estimated') + '">' + audio + '</div>' +
-      '<div class="studio-sequence-playhead" aria-hidden="true"></div></div></div></div></section>';
-  }
-  function monitorContent(scene) {
-    var artifacts = scene && scene.artifacts || {}, image = artifacts.image, voice = artifacts.voice;
-    var clip = step === 4 ? project.currentExport : step === 3 && voice ? artifacts.clip : null;
-    var content;
-    if (clip) content = '<video controls preload="metadata" data-monitor' +
-      (step === 4 ? ' data-film' : ' data-voice="' + voice.key + '"') + ' data-media="' + clip.key + '"></video>';
-    else if (!scene) content = '<div class="studio-source-preview"><small>' + t('文章来源预览', 'Article Source Preview') +
-      '</small><h3>' + esc(project.source.title) + '</h3><p>' + t('原文开头摘录 · 生成分镜后可在此预演', 'Opening excerpt · scene previews appear here after storyboarding') +
-      '</p><blockquote>' + esc(project.source.text.slice(0, 600)) + '</blockquote></div>';
-    else if (scene.composition) content = '<canvas class="studio-composition-canvas" width="1920" height="1080" role="img" aria-label="' + esc(scene.title) + '"></canvas>' +
-      (image && scene.imageRequired ? '<img class="studio-composition-art" alt="" data-media="' + image.key + '">' : '');
-    else content = (image ? '<img alt="' + esc(scene.title) + '" data-media="' + image.key + '">' :
-      '<div class="studio-gallery-placeholder">' + t('图片将在制作视频时自动生成', 'Artwork is generated automatically during video production') + '</div>') +
-      '<div class="studio-gallery-copy">' + esc(scene.screenText || scene.title) + '</div><p class="studio-gallery-caption" data-gallery-caption aria-live="off"></p>';
-    return '<div class="studio-gallery-media" aria-label="' + t('监看器画面', 'Monitor Viewer') + '"><div class="studio-gallery-visual"' +
-      (scene ? ' data-camera="' + esc(scene.camera) + '"' : '') + '><div class="studio-gallery-frame">' + content + '</div></div></div>';
-  }
   function inspectorPanel(content) {
     return '<aside class="studio-gallery-editor" aria-label="' + t('流程属性', 'Workflow Inspector') +
       '"><header class="studio-panel-heading"><strong>' + esc(t(steps[step - 1][0], steps[step - 1][1])) +
@@ -384,6 +345,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (step === 4) {
       html += button(t('主动导出 / 复用整片', 'Export / Reuse Full Film'), 'export', null, true, busy || !project.canExport);
       if (project.currentExport) html += button(t('下载 MP4', 'Download MP4'), 'download', project.currentExport.key, true);
+      html += button(t('导出 Video-Generator 清单', 'Export VG Manifest'), 'export-manifest', null, false, !project.scenes.length);
     }
     return html + '<div class="studio-actions studio-workbench-end">' + button(t('作业记录', 'Jobs'), 'toggle-jobs') + '</div></div>';
   }
@@ -409,7 +371,7 @@ document.addEventListener('DOMContentLoaded', function () {
         t('已有配音优先；缺配音时静音估算，不含最终配乐，不触发生成。', 'Existing narration or silent estimated timing; no final music or generation.')) +
       '</p><audio id="studio-simulation-audio" preload="auto" hidden></audio></div>';
     html += project.scenes.map(function (scene, index) {
-      var artifacts = scene.artifacts || {}, image = artifacts.image, voice = artifacts.voice;
+      var artifacts = scene.artifacts || {}, voice = artifacts.voice;
       return '<article class="studio-gallery-slide"' + (inspector ? '' : ' data-shot="' + esc(scene.id) + '"') + ' data-gallery-slide="' + esc(scene.id) + '"' +
         (index === selected ? '' : ' hidden') + ' aria-roledescription="slide" aria-label="' + (index + 1) + ' / ' + project.scenes.length + '">' +
         '<div class="studio-gallery-layout">' + monitorContent(scene) +
@@ -428,6 +390,7 @@ document.addEventListener('DOMContentLoaded', function () {
               '</span><textarea data-layer-text="' + layerIndex + '" maxlength="500">' + esc(layer.text) + '</textarea></label>' : '';
           }).join('') :
           select(t('运镜', 'Camera'), 'camera', scene.camera, [['push', 'Push'], ['pull', 'Pull'], ['pan-left', 'Pan Left'], ['pan-right', 'Pan Right'], ['static', 'Static']])) +
+        vgScenePresetSection(busy) +
         '<details class="studio-visual-adjustment"><summary>' + t('让AI调整画面', 'Ask AI to Adjust Visuals') + '</summary><label><span>' +
         t('描述你希望怎么改画面；保留旁白和已有素材。', 'Describe the visual changes you want; narration and existing assets are retained.') +
         '</span><textarea data-director-note maxlength="2000">' + esc(localStorage.getItem('kh-video-direction-' + project.id) || '') + '</textarea></label>' +
@@ -465,6 +428,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var html = '', busy = active(), duration, planning, missing;
     var advancedOpen = !!stage.querySelector('.studio-gallery-slide:not([hidden]) .studio-advanced-tools[open]');
     var adjustmentOpen = !!stage.querySelector('.studio-gallery-slide:not([hidden]) .studio-visual-adjustment[open]');
+    var presetsOpen = !!stage.querySelector('.studio-gallery-slide:not([hidden]) .studio-vg-presets[open]');
     if (!project) return;
     stopSimulation();
     pauseStageMedia();
@@ -489,13 +453,20 @@ document.addEventListener('DOMContentLoaded', function () {
             esc(t(template.name[0], template.name[1])) + '</strong><small>' +
             esc(t(template.description[0], template.description[1])) + '</small></button>';
         }).join('') + '</div><p class="studio-muted">' +
-        t('模板预填受众、目标、视觉、时长和配乐，保留已选声音与语速。不会自动保存或生成。', 'Templates prefill audience, goal, visuals, duration and music, preserving voice and rate. They never save or generate automatically.') + '</p></section>' +
+        t('模板预填受众、目标、视觉、时长和配乐，保留已选声音与语速。不会自动保存或生成。', 'Templates prefill audience, goal, visuals, duration and music, preserving voice and rate. They never save or generate automatically.') + '</p>' +
+        vgBriefCatalogSection(busy) + '</section>' +
         field(t('目标受众', 'Audience'), 'audience', project.brief.audience, false, 300) +
         field(t('希望观众理解或采取什么行动', 'Viewer Goal'), 'goal', project.brief.goal, true, 500) +
         field(t('视觉与叙事方向', 'Visual and Narrative Direction'), 'style', project.brief.style, true, 1200) +
         '<div class="studio-grid">' + field(t('目标时长（秒，30–600）', 'Target Duration (Seconds, 30–600)'), 'seconds', project.brief.seconds) +
         field(t('语速（150–300）', 'Voice Rate (150–300)'), 'voiceRate', project.brief.voiceRate) +
-        select(t('本机声音', 'Local Voice'), 'voice', project.brief.voice, [['Yue (Premium)', '月 / Yue Premium'], ['Lili (Premium)', '莉莉 / Lili Premium'], ['Tingting', '婷婷 / Tingting']]) +
+        select(t('本机 / 官方 TTS 声音', 'Local / Volcengine Voice'), 'voice', project.brief.voice, [
+          ['Yue (Premium)', '月 / Yue Premium (macOS)'],
+          ['Lili (Premium)', '莉莉 / Lili Premium (macOS)'],
+          ['Tingting', '婷婷 / Tingting (macOS)'],
+          ['zh_female_cancan_uranus_bigtts', t('灿灿 · 字节 Seed-TTS 2.0', 'Cancan · Volcengine Seed-TTS 2.0')],
+          ['zh_male_chunhou_uranus_bigtts', t('醇厚 · 字节 Seed-TTS 2.0', 'Chunhou · Volcengine Seed-TTS 2.0')]
+        ]) +
         select(t('原创配乐', 'Original Music'), 'music', project.brief.music, [['bright', t('轻快器乐', 'Bright Instrumental')], ['none', t('无配乐', 'No Music')]]) + '</div>' +
         '<details><summary>' + t('查看发送给 Copilot 的全文来源', 'Inspect Full Article Context') + '</summary><pre>' + esc(project.source.text) + '</pre></details>';
     } else if (step === 2) {
@@ -526,7 +497,7 @@ document.addEventListener('DOMContentLoaded', function () {
         html += button(t('停止渲染', 'Stop Rendering'), 'cancel', job.id);
       });
       html += project.scenes.map(function (scene, index) {
-        var voice = scene.artifacts.voice, clip = scene.artifacts.clip;
+        var clip = scene.artifacts.clip;
         var content = '<article class="studio-shot" data-render-inspector="' + esc(scene.id) + '"' +
           (scene.id === galleryId ? '' : ' hidden') + '>' + shotHeading(scene, index) +
           '<p>' + esc(scene.narration) + '</p><small>' + esc(scene.anchors.map(function (anchor) { return '#' + anchor; }).join(' · ')) + '</small>';
@@ -538,13 +509,14 @@ document.addEventListener('DOMContentLoaded', function () {
       duration = project.scenes.reduce(function (sum, scene) { return sum + (scene.artifacts.voice ? scene.artifacts.voice.duration : 0); }, 0);
       html += '<p>' + t('目标 / 当前片长：', 'Target / Current Duration: ') + project.brief.seconds + 's / ' + Math.round(duration * 10) / 10 + 's</p>' +
         '<p>' + t('所有镜头渲染完成后，复制拼接已有视频流并混合音频；不重新生成画面或重渲染所有镜头。配乐或排序变更只使整片导出失效。', 'After scene rendering, existing video streams are joined and audio is mixed. No full frame re-render. Music/order changes invalidate only the assembled export.') + '</p>' +
-        '<p>' + t('成片在中央监看器播放，使用上方工具栏导出或下载。', 'Play the film in the central monitor; export or download from the toolbar above.') + '</p>';
+        '<p>' + t('成片在中央监看器播放，使用上方工具栏导出或下载，也可导出兼容 Video-Generator 0.2 的工程清单 JSON。', 'Play the film in the central monitor; export or download from the toolbar above, or export a Video-Generator 0.2 manifest JSON.') + '</p>';
       if (!project.canExport) html += '<p class="studio-warning">' + t('请先完成所有变更镜头的渲染。', 'Render all changed scenes first.') + '</p>';
     }
     if (step !== 2) html = workflowToolbar(busy) + gallery(busy, html);
     stage.innerHTML = html;
     if (advancedOpen) stage.querySelectorAll('.studio-advanced-tools').forEach(function (node) { node.open = true; });
     if (adjustmentOpen) stage.querySelectorAll('.studio-visual-adjustment').forEach(function (node) { node.open = true; });
+    if (presetsOpen) stage.querySelectorAll('.studio-vg-presets').forEach(function (node) { node.open = true; });
     stage.querySelectorAll('[data-render-inspector]').forEach(function (node) { node.hidden = node.getAttribute('data-render-inspector') !== galleryId; });
     stage.querySelectorAll('[data-action="toggle-jobs"]').forEach(function (node) {
       node.setAttribute('aria-controls', 'studio-job-drawer');
@@ -556,252 +528,6 @@ document.addEventListener('DOMContentLoaded', function () {
     jobs(); hydrate().catch(function (error) { say(error.message, true); });
     if (poll) clearInterval(poll);
     if (busy) poll = setInterval(refresh, 3000);
-  }
-  async function media(key) {
-    if (urls[key]) return urls[key];
-    if (!mediaRequests[key]) {
-      mediaRequests[key] = request(project.id + '/media?key=' + key, null, true).then(function (blob) {
-        urls[key] = URL.createObjectURL(blob); return urls[key];
-      }).finally(function () { delete mediaRequests[key]; });
-    }
-    return mediaRequests[key];
-  }
-  async function hydrate() {
-    var nodes = stage.querySelectorAll('[data-media]'), i, node, audio, source;
-    for (i = 0; i < nodes.length; i++) {
-      node = nodes[i];
-      if (node.closest('[hidden]') || node.hasAttribute('data-hydrated')) continue;
-      source = await media(node.getAttribute('data-media'));
-      if (!node.isConnected || node.closest('[hidden]') || node.hasAttribute('data-hydrated')) continue;
-      node.src = source;
-      node.setAttribute('data-hydrated', '');
-      if (node.classList.contains('studio-composition-art')) {
-        await node.decode();
-        if (node.isConnected && !node.closest('[hidden]')) paintComposition(galleryScene(), simulation.duration ? simulation.elapsed / simulation.duration : 0);
-      } else if (node.tagName === 'AUDIO') {
-        node.addEventListener('play', function () { stopSimulation(); });
-      } else if (node.tagName === 'VIDEO' && node.hasAttribute('data-voice')) {
-        audio = new Audio(await media(node.getAttribute('data-voice')));
-        bindPreview(node, audio);
-      }
-      if (node.tagName === 'VIDEO' && node.hasAttribute('data-monitor')) bindMonitor(node);
-    }
-  }
-  function pauseStageMedia() {
-    stage.querySelectorAll('audio, video').forEach(function (node) { node.pause(); });
-  }
-  function galleryScene() {
-    return project.scenes.find(function (scene) { return scene.id === galleryId; });
-  }
-  function paintComposition(scene, progress) {
-    var slide, canvas, image, context;
-    if (!scene || !scene.composition) return;
-    slide = stage.querySelector('[data-gallery-slide="' + scene.id + '"]');
-    if (!slide || slide.hidden) return;
-    canvas = slide.querySelector('.studio-composition-canvas');
-    if (!canvas) return;
-    context = canvas.getContext('2d');
-    if (!context) throw new Error(t('浏览器无法创建画面预览。', 'The browser could not create the composition preview.'));
-    image = slide.querySelector('.studio-composition-art');
-    window.KHVideoComposition.draw(context, scene, progress, image, scene.artifacts.voice ? scene.artifacts.voice.cues : [], sceneDuration(scene));
-  }
-  function selectGallery(id, keepSimulation) {
-    var index = project.scenes.findIndex(function (scene) { return scene.id === id; });
-    var strip, thumb;
-    if (index < 0) return;
-    if (!keepSimulation) { stopSimulation(); pauseStageMedia(); }
-    galleryId = id;
-    localStorage.setItem('kh-video-gallery-' + project.id, id);
-    stage.querySelectorAll('[data-gallery-slide]').forEach(function (node) { node.hidden = node.getAttribute('data-gallery-slide') !== id; });
-    stage.querySelectorAll('[data-render-inspector]').forEach(function (node) { node.hidden = node.getAttribute('data-render-inspector') !== id; });
-    stage.querySelectorAll('[data-action="gallery-select"]').forEach(function (node) {
-      if (node.getAttribute('data-scene') === id) node.setAttribute('aria-current', 'true');
-      else node.removeAttribute('aria-current');
-    });
-    document.getElementById('studio-gallery-position').textContent = (index + 1) + ' / ' + project.scenes.length;
-    stage.querySelector('[data-action="gallery-prev"]').disabled = index === 0;
-    stage.querySelector('[data-action="gallery-next"]').disabled = index === project.scenes.length - 1;
-    strip = stage.querySelector('.studio-sequence-scroll');
-    thumb = strip.querySelector('[aria-current]');
-    strip.scrollLeft = thumb.offsetLeft - strip.clientWidth / 2 + thumb.offsetWidth / 2;
-    syncSequence(0);
-    paintComposition(galleryScene(), 0);
-    simulationControls();
-    hydrate().catch(function (error) { say(error.message, true); });
-  }
-  function syncSequence(elapsed, entireFilm) {
-    var content = stage.querySelector('.studio-sequence-content'), before = 0, total = 0, found = false;
-    var readout, label;
-    if (!content) return;
-    project.scenes.forEach(function (scene) {
-      var duration = sceneDuration(scene);
-      if (scene.id === galleryId) found = true;
-      if (!found && !entireFilm) before += duration;
-      total += duration;
-    });
-    content.querySelector('.studio-sequence-playhead').style.left = (before + elapsed) * Number(content.getAttribute('data-sequence-scale')) + 'px';
-    readout = document.getElementById('studio-sequence-time');
-    label = timeLabel(before + elapsed) + ' / ' + timeLabel(total);
-    if (readout.textContent !== label) readout.textContent = label;
-  }
-  function timeLabel(seconds) {
-    return Math.floor(seconds / 60) + ':' + String(Math.floor(seconds) % 60).padStart(2, '0');
-  }
-  function simulationStatus(value) {
-    var node = document.getElementById('studio-simulation-status');
-    if (node) { node.textContent = value; node.title = value; }
-  }
-  function simulationControls() {
-    var toggle = stage.querySelector('[data-action="simulate-toggle"]');
-    var stop = stage.querySelector('[data-action="simulate-stop"]');
-    var meter = document.getElementById('studio-simulation-progress');
-    var elapsed = document.getElementById('studio-simulation-time'), label, video = monitorVideo();
-    if (!toggle) return;
-    if (video) {
-      label = video.paused ? t('播放', 'Play') : t('暂停', 'Pause');
-      toggle.textContent = label;
-      toggle.disabled = active() || dirty || video.readyState === 0;
-      stop.disabled = video.paused && video.currentTime === 0;
-      meter.max = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : 1;
-      meter.value = Math.min(video.currentTime, meter.max);
-      elapsed.textContent = timeLabel(video.currentTime) + ' / ' + timeLabel(meter.max);
-      syncSequence(video.currentTime, video.hasAttribute('data-film'));
-      simulationStatus(video.hasAttribute('data-film') ? t('成片播放 · 含最终混音', 'Film playback · final audio mix') : t('渲染片段播放 · 同步当前镜头配音', 'Rendered scene playback · synchronized narration'));
-      return;
-    }
-    label = simulation.loading ? t('准备中…', 'Loading…') :
-      simulation.playing ? t('暂停', 'Pause') :
-      simulation.paused ? t('继续', 'Resume') : t('播放预演', 'Play');
-    if (toggle.textContent !== label) toggle.textContent = label;
-    toggle.disabled = active() || dirty || simulation.loading || !project || !project.scenes.length;
-    stop.disabled = !simulation.playing && !simulation.paused && !simulation.loading;
-    meter.max = simulation.duration || 1;
-    meter.value = Math.min(simulation.elapsed, simulation.duration);
-    elapsed.textContent = timeLabel(simulation.elapsed) + ' / ' + timeLabel(simulation.duration);
-    syncSequence(simulation.elapsed);
-  }
-  function stopSimulation() {
-    simulation.token++;
-    simulation.playing = false; simulation.paused = false; simulation.loading = false;
-    if (simulation.frame) cancelAnimationFrame(simulation.frame);
-    if (simulation.audio) simulation.audio.pause();
-    simulation.frame = null; simulation.audio = null; simulation.elapsed = 0; simulation.duration = 0;
-    stage.querySelectorAll('.is-simulating, .is-simulation-paused').forEach(function (node) {
-      node.classList.remove('is-simulating', 'is-simulation-paused');
-    });
-    stage.querySelectorAll('[data-gallery-caption]').forEach(function (node) { node.textContent = ''; });
-    try { if (project) paintComposition(galleryScene(), 0); }
-    catch (error) { say(error.message, true); }
-    simulationStatus(t('预演已停止。', 'Simulation stopped.'));
-    simulationControls();
-  }
-  function simulationError(error, token) {
-    if (token !== simulation.token) return;
-    stopSimulation();
-    simulationStatus(t('预演已停止：', 'Simulation stopped: ') + error.message);
-    say(error.message, true);
-  }
-  async function advanceSimulation(token) {
-    var index;
-    if (token !== simulation.token || !simulation.playing) return;
-    simulation.playing = false;
-    if (simulation.frame) cancelAnimationFrame(simulation.frame);
-    if (simulation.audio) simulation.audio.pause();
-    index = project.scenes.findIndex(function (scene) { return scene.id === galleryId; });
-    if (index === project.scenes.length - 1) {
-      stopSimulation(); simulationStatus(t('预演完成；没有生成素材或渲染视频。', 'Simulation complete. No media was generated or rendered.')); return;
-    }
-    selectGallery(project.scenes[index + 1].id, true);
-    await playSimulation(false);
-  }
-  function simulationFrame(token, scene, slide) {
-    var caption = slide.querySelector('[data-gallery-caption]'), cue;
-    if (token !== simulation.token || !simulation.playing) return;
-    simulation.elapsed = simulation.audio ? simulation.audio.currentTime : (performance.now() - simulation.started) / 1000;
-    if (simulation.audio && caption) {
-      cue = scene.artifacts.voice.cues.find(function (entry) {
-        return simulation.elapsed >= entry.start && simulation.elapsed < entry.start + entry.duration;
-      });
-      if (caption.textContent !== (cue ? cue.text : '')) caption.textContent = cue ? cue.text : '';
-    }
-    try { paintComposition(scene, Math.min(1, simulation.elapsed / simulation.duration)); }
-    catch (error) { simulationError(error, token); return; }
-    simulationControls();
-    if (!simulation.audio && simulation.elapsed >= simulation.duration) {
-      advanceSimulation(token).catch(function (error) { simulationError(error, simulation.token); }); return;
-    }
-    simulation.frame = requestAnimationFrame(function () { simulationFrame(token, scene, slide); });
-  }
-  async function playSimulation(resume) {
-    var scene = galleryScene(), voice = scene.artifacts && scene.artifacts.voice;
-    var slide = stage.querySelector('[data-gallery-slide="' + scene.id + '"]');
-    var token = ++simulation.token, elapsed = resume ? simulation.elapsed : 0, audio, source;
-    pauseStageMedia();
-    simulation.playing = false; simulation.paused = false; simulation.loading = true;
-    simulation.elapsed = elapsed;
-    simulation.duration = sceneDuration(scene);
-    simulationControls(); simulationStatus(t('正在准备预演；不会触发生成。', 'Preparing simulation without generation.'));
-    try {
-      await hydrate();
-      if (token !== simulation.token) return;
-      if (voice) {
-        source = await media(voice.key);
-        if (token !== simulation.token) return;
-        audio = document.getElementById('studio-simulation-audio');
-        audio.src = source; audio.currentTime = elapsed;
-        simulation.audio = audio;
-        audio.onended = function () { advanceSimulation(token).catch(function (error) { simulationError(error, simulation.token); }); };
-        audio.onerror = function () { simulationError(new Error(t('已有配音无法播放，请检查素材。', 'Existing narration could not be played. Check the asset.')), token); };
-        await audio.play();
-        if (token !== simulation.token) { audio.pause(); return; }
-      } else simulation.audio = null;
-      simulation.loading = false; simulation.playing = true;
-      simulation.started = performance.now() - elapsed * 1000;
-      slide.style.setProperty('--studio-shot-duration', simulation.duration + 's');
-      slide.classList.add('is-simulating');
-      slide.classList.remove('is-simulation-paused');
-      simulationStatus(voice ? t('预演中：使用已有配音，不含最终配乐。', 'Simulating with existing narration; final music is excluded.') :
-        t('静音预演：配音未就绪，时长为估算；未生成或朗读旁白。', 'Silent simulation: narration is unavailable and timing is estimated. No speech is generated.'));
-      simulationFrame(token, scene, slide);
-    } catch (error) { simulationError(error, token); }
-  }
-  function pauseSimulation() {
-    simulation.elapsed = simulation.audio ? simulation.audio.currentTime : (performance.now() - simulation.started) / 1000;
-    simulation.playing = false; simulation.paused = true;
-    if (simulation.frame) cancelAnimationFrame(simulation.frame);
-    if (simulation.audio) simulation.audio.pause();
-    stage.querySelector('[data-gallery-slide="' + galleryId + '"]').classList.add('is-simulation-paused');
-    simulationStatus(t('预演已暂停。', 'Simulation paused.')); simulationControls();
-  }
-  function bindPreview(video, audio) {
-    video.addEventListener('play', function () {
-      audio.currentTime = video.currentTime;
-      audio.play().catch(function (error) { video.pause(); say(error.message, true); });
-    });
-    video.addEventListener('pause', function () { audio.pause(); });
-    video.addEventListener('seeked', function () { audio.currentTime = video.currentTime; });
-    video.addEventListener('ended', function () { audio.pause(); });
-    video.addEventListener('ratechange', function () { audio.playbackRate = video.playbackRate; });
-  }
-  function monitorVideo() {
-    return stage.querySelector('[data-gallery-slide]:not([hidden]) video[data-monitor]');
-  }
-  function bindMonitor(video) {
-    function update() { if (video === monitorVideo()) simulationControls(); }
-    function ready() {
-      var before = 0;
-      if (video.hasAttribute('data-film')) {
-        project.scenes.some(function (scene) {
-          if (scene.id === video.closest('[data-gallery-slide]').getAttribute('data-gallery-slide')) return true;
-          before += sceneDuration(scene); return false;
-        });
-        video.currentTime = Math.min(before, video.duration);
-      }
-      update();
-    }
-    ['timeupdate', 'play', 'pause', 'ended', 'loadeddata'].forEach(function (event) { video.addEventListener(event, update); });
-    video.addEventListener('loadedmetadata', ready);
-    if (video.readyState >= 1) ready();
   }
   async function refresh() {
     var wasActive = active();
@@ -824,7 +550,7 @@ document.addEventListener('DOMContentLoaded', function () {
     else if (toggle) toggle.focus();
   }
   async function action(name, id) {
-    var model, item, index, temporary, anchor, file, assetKinds, drafts, video, jobBody, progress;
+    var model, item, index, temporary, anchor, file, assetKinds, drafts, video, jobBody, progress, manifestData, blobUrl;
     if (name === 'toggle-jobs' || name === 'close-jobs') {
       toggleJobs(name === 'toggle-jobs' && !document.body.classList.contains('studio-jobs-open')); return;
     }
@@ -845,6 +571,18 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     stopSimulation(); pauseStageMedia();
     if (name === 'template') { applyTemplate(id); return; }
+    if (name === 'vg-scenario') { applyVGScenario(id); return; }
+    if (name === 'vg-pack') { applyVGStylePack(id); return; }
+    if (name === 'vg-scene-preset') { applyScenePreset(id); return; }
+    if (name === 'export-manifest') {
+      manifestData = await request(project.id + '/manifest');
+      blobUrl = URL.createObjectURL(new Blob([JSON.stringify(manifestData, null, 2)], { type: 'application/json' }));
+      anchor = document.createElement('a'); anchor.href = blobUrl;
+      anchor.download = project.source.slug + '-video-generator.json'; anchor.click();
+      setTimeout(function () { URL.revokeObjectURL(blobUrl); }, 2000);
+      say(t('已导出兼容 Video-Generator 0.2 的工程清单 JSON。', 'Exported Video-Generator 0.2 compatible project manifest JSON.'));
+      return;
+    }
     if (name === 'brief') { await save(true); await navigate(2); return; }
     if (name === 'save') { await save(false); render(); return; }
     if (name === 'next') { await navigate(step + 1); return; }
@@ -930,7 +668,9 @@ document.addEventListener('DOMContentLoaded', function () {
       else { stopSimulation(); simulationStatus(t('预演已停止。', 'Simulation stopped.')); }
       return;
     }
-    if (target && !target.disabled) invoke(target.getAttribute('data-action'), target.getAttribute('data-scene') || target.getAttribute('data-template'));
+    if (target && !target.disabled) invoke(target.getAttribute('data-action'),
+      target.getAttribute('data-scene') || target.getAttribute('data-template') ||
+      target.getAttribute('data-vg-scenario') || target.getAttribute('data-vg-pack') || target.getAttribute('data-preset'));
     if (nav) navigate(Number(nav.getAttribute('data-step'))).catch(function (error) { say(error.message, true); });
   });
   stage.addEventListener('input', function (event) {
@@ -962,7 +702,7 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   document.getElementById('studio-reload').addEventListener('click', function () {
     if (dirty && !window.confirm(t('放弃未保存编辑并载入保存状态？', 'Discard unsaved edits and reload saved state?'))) return;
-    request(project.id).then(function (saved) { project = saved; dirty = false; step = restoredStep(project.cursor); render(); }).catch(function (error) { say(error.message, true); });
+    request(project.id).then(function (saved) { project = saved; customCompositionOverrides = {}; dirty = false; step = restoredStep(project.cursor); render(); }).catch(function (error) { say(error.message, true); });
   });
   document.getElementById('studio-lang').addEventListener('click', function () {
     if (dirty) { say(t('请先保存编辑，再切换语言。', 'Save edits before changing language.'), true); return; }

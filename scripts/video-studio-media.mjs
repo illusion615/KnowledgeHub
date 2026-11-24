@@ -8,6 +8,7 @@ import { BridgeError } from './copilot-runtime.mjs';
 import { runtimeRoot } from './setup-video-studio.mjs';
 import { readWave, writeWave, SAMPLE_RATE, assembleAudio } from './video-studio-audio.mjs';
 import { needsImage, keys } from './video-studio-model.mjs';
+import { resolveVolcengineConfig, generateVolcengineTts } from './video-generator-tts.mjs';
 
 const imageEntry = join(homedir(), '.agents/skills/z-image-turbo-local/scripts/generate.sh');
 const template = join(dirname(fileURLToPath(import.meta.url)), 'video-studio-render');
@@ -41,9 +42,11 @@ export function createMediaEngine() {
   }
   return {
     async status() {
+      const volc = resolveVolcengineConfig();
       return {
-        image: await exists(imageEntry), voice: process.platform === 'darwin',
+        image: await exists(imageEntry), voice: process.platform === 'darwin' || volc.ready,
         renderer: await exists(join(runtimeRoot(), 'node_modules/@motion-canvas/core/package.json')),
+        volcengineTts: volc.ready,
         setup: 'node scripts/setup-video-studio.mjs',
         note: 'Copilot只生成文字；生图、配音、镜头渲染均为用户批准的本机程序。'
       };
@@ -71,6 +74,31 @@ export function createMediaEngine() {
         if (kind === 'voice') {
           const sentences = scene.narration.match(/[^。！？；]+[。！？；]?/g) || [];
           if (sentences.some(sentence => sentence.length > 64)) throw new BridgeError(400, 'VOICE_SENTENCE', '单句旁白超过64字，请先断句，避免字幕超出两行。');
+          if (/^zh_(?:female|male)_/.test(project.brief.voice)) {
+            const volc = resolveVolcengineConfig();
+            if (!volc.ready) throw new BridgeError(503, 'VOLC_TTS_CONFIG', '已选字节官方 Seed-TTS 2.0 音色，但未配置 VOLCENGINE_TTS_API_KEY。请配置 private/video-studio/tts.local.env 或改用 macOS 本机声音。');
+            const runtime = await tools();
+            const rateOffset = Math.max(-50, Math.min(100, Math.round((project.brief.voiceRate - 235) / 2)));
+            const { bytes, captions } = await generateVolcengineTts({ text: scene.narration, speaker: project.brief.voice, rate: rateOffset, signal });
+            const rawMp3 = join(work, 'volc.mp3'), rawWave = join(work, 'volc.wav');
+            await writeFile(rawMp3, bytes, { mode: 0o600 });
+            await command(runtime.ffmpeg, ['-y', '-v', 'error', '-i', rawMp3, '-ar', '48000', '-ac', '1', '-c:a', 'pcm_s16le', rawWave], { env: runtime.env, signal });
+            const rawSamples = await readWave(rawWave);
+            if (rawSamples.length < 1000) throw new BridgeError(502, 'VOICE_EMPTY', '字节官方 TTS 未返回有效音频。');
+            const totalVoiceDuration = rawSamples.length / SAMPLE_RATE;
+            const cues = captions.length ? captions.map(item => ({ text: item.text, start: Number((0.4 + item.start).toFixed(3)), duration: Number((item.end - item.start).toFixed(3)) })) :
+              sentences.map((textItem, idx) => ({ text: textItem, start: Number((0.4 + idx * (totalVoiceDuration / sentences.length)).toFixed(3)), duration: Number((totalVoiceDuration / sentences.length).toFixed(3)) }));
+            const frames = Math.max(150, Math.ceil((0.4 + totalVoiceDuration + 0.5) * 30));
+            const samples = new Float32Array(frames * 1600);
+            samples.set(rawSamples, Math.round(0.4 * SAMPLE_RATE));
+            let peak = 0; for (const value of samples) peak = Math.max(peak, Math.abs(value));
+            if (peak < .01) throw new BridgeError(502, 'VOICE_EMPTY', '配音音量异常，未发布。');
+            const gain = Math.min(2.5, .76 / peak);
+            for (let i = 0; i < samples.length; i++) samples[i] *= gain;
+            const file = join(work, 'voice.wav');
+            await writeWave(file, samples); await rename(file, output);
+            return { frames, duration: frames / 30, cues, provider: 'volcengine-seed-tts-2.0' };
+          }
           const parts = [], cues = [];
           let cursor = .4;
           for (let i = 0; i < sentences.length; i++) {
