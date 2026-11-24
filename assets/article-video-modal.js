@@ -26,7 +26,7 @@
       '  opacity: 1; pointer-events: auto;',
       '}',
       '.kh-video-modal-shell {',
-      '  position: relative; width: min(1560px, 97vw); height: min(940px, 94dvh);',
+      '  position: relative; width: min(1580px, 96vw); height: min(960px, 94dvh);',
       '  border-radius: 18px; overflow: hidden;',
       '  background: var(--panel, #1e2430);',
       '  border: 1px solid rgba(255, 255, 255, 0.16);',

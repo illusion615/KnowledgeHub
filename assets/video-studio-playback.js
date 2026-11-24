@@ -116,6 +116,7 @@
       simulation.playing = false; simulation.paused = false; simulation.loading = false;
       if (simulation.frame) cancelAnimationFrame(simulation.frame);
       if (simulation.audio) simulation.audio.pause();
+      if (root.KHVideoBgm && root.KHVideoBgm.stopPreviewBgm) root.KHVideoBgm.stopPreviewBgm();
       simulation.frame = null; simulation.audio = null; simulation.elapsed = 0; simulation.duration = 0;
       ctx.stage.querySelectorAll('.is-simulating, .is-simulation-paused').forEach(function (node) {
         node.classList.remove('is-simulating', 'is-simulation-paused');
@@ -221,8 +222,17 @@
         slide.style.setProperty('--studio-shot-duration', simulation.duration + 's');
         slide.classList.add('is-simulating');
         slide.classList.remove('is-simulation-paused');
-        simulationStatus(voice ? t('预演中：使用已有配音，不含最终配乐。', 'Simulating with existing narration; final music is excluded.') :
-          t('静音预演：配音未就绪，时长为估算；未生成或朗读旁白。', 'Silent simulation: narration is unavailable and timing is estimated. No speech is generated.'));
+        var projectRef = ctx.getProject();
+        var musicSetting = projectRef && projectRef.brief && projectRef.brief.music;
+        if (root.KHVideoBgm && root.KHVideoBgm.startPreviewBgm && musicSetting && musicSetting !== 'none') {
+          await root.KHVideoBgm.startPreviewBgm(musicSetting, !!voice);
+          if (token !== simulation.token) {
+            if (root.KHVideoBgm && root.KHVideoBgm.stopPreviewBgm) root.KHVideoBgm.stopPreviewBgm();
+            return;
+          }
+        }
+        simulationStatus(voice ? t('预演中：使用已有配音' + (musicSetting && musicSetting !== 'none' ? ' + 实时合成配乐' : '') + '。', 'Simulating with existing narration' + (musicSetting && musicSetting !== 'none' ? ' + live synth BGM' : '') + '.') :
+          t('预演中：画布动态渲染' + (musicSetting && musicSetting !== 'none' ? ' + 实时合成背景配乐' : '（静音预演）') + '。', 'Simulating canvas motion' + (musicSetting && musicSetting !== 'none' ? ' + live synth BGM' : ' (silent)') + '.'));
         simulationFrame(token, scene, slide);
       } catch (error) { simulationError(error, token); }
     }
@@ -233,6 +243,7 @@
       simulation.playing = false; simulation.paused = true;
       if (simulation.frame) cancelAnimationFrame(simulation.frame);
       if (simulation.audio) simulation.audio.pause();
+      if (root.KHVideoBgm && root.KHVideoBgm.stopPreviewBgm) root.KHVideoBgm.stopPreviewBgm();
       ctx.stage.querySelector('[data-gallery-slide="' + galleryId + '"]').classList.add('is-simulation-paused');
       simulationStatus(t('预演已暂停。', 'Simulation paused.')); simulationControls();
     }

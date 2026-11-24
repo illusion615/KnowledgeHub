@@ -348,7 +348,7 @@ export function createVideoStudio({ root, dataRoot = join(root, 'private/video-s
         if (error.code !== 'ENOENT') throw error;
         const now = new Date().toISOString();
         const brief = defaultBrief();
-        const autoDraft = body.autoDraft === true ? vgCatalog.buildAutoDraftFromSource(source, { scenario: brief.scenario || 'presenter', stylePack: brief.stylePack || '01-A' }) : null;
+        const autoDraft = body.autoDraft === true ? vgCatalog.buildAutoDraftFromSource(source, { scenario: brief.scenario || 'presenter', stylePack: brief.stylePack || '01-A', visualTheme: brief.visualTheme || 'professional' }) : null;
         const initialScenes = autoDraft ? validateScenes(autoDraft.scenes, source) : [];
         await atomic(join(directory(id), 'project.json'), {
           version: 1, id, revision: 1, createdAt: now, updatedAt: now, source,
@@ -361,7 +361,7 @@ export function createVideoStudio({ root, dataRoot = join(root, 'private/video-s
         const existing = await read(id);
         if (!existing.scenes.length && existing.revision === 1 && !existing.jobs.length) {
           await mutate(id, current => {
-            const autoDraft = vgCatalog.buildAutoDraftFromSource(current.source, { scenario: current.brief.scenario || 'presenter', stylePack: current.brief.stylePack || '01-A' });
+            const autoDraft = vgCatalog.buildAutoDraftFromSource(current.source, { scenario: current.brief.scenario || 'presenter', stylePack: current.brief.stylePack || '01-A', visualTheme: current.brief.visualTheme || 'professional' });
             current.scenes = validateScenes(autoDraft.scenes, current.source);
             current.creativeDirection = autoDraft.creativeDirection;
             current.briefApproval = digest(current.brief);
@@ -374,6 +374,7 @@ export function createVideoStudio({ root, dataRoot = join(root, 'private/video-s
     if (route === '/catalog' && req.method === 'GET') {
       send(200, {
         upstream: vgCatalog.upstreamInfo,
+        visualThemes: vgCatalog.visualThemes,
         scenarios: vgCatalog.scenarios,
         stylePacks: vgCatalog.stylePacks,
         scenePresets: vgCatalog.scenePresets
@@ -391,10 +392,11 @@ export function createVideoStudio({ root, dataRoot = join(root, 'private/video-s
     if (action === 'auto-narration' && req.method === 'POST') {
       await mutate(id, project => {
         if (body && body.revision !== undefined) revision(project, body);
-        if (body && body.brief) project.brief = validateBrief(body.brief);
+        if (body && body.brief) project.brief = validateBrief({ ...project.brief, ...body.brief });
         const autoDraft = vgCatalog.buildAutoDraftFromSource(project.source, {
           scenario: project.brief.scenario || 'presenter',
           stylePack: project.brief.stylePack || '01-A',
+          visualTheme: project.brief.visualTheme || 'professional',
           sections: Array.isArray(body && body.sections) ? body.sections : undefined
         });
         project.scenes = validateScenes(autoDraft.scenes, project.source);
@@ -430,7 +432,8 @@ export function createVideoStudio({ root, dataRoot = join(root, 'private/video-s
           } else if (!project.scenes.length || body?.regenerateScenes === true) {
             const autoDraft = vgCatalog.buildAutoDraftFromSource(project.source, {
               scenario: project.brief.scenario || 'presenter',
-              stylePack: project.brief.stylePack || (project.brief.scenario === 'product' ? '03-A' : '01-A')
+              stylePack: project.brief.stylePack || (project.brief.scenario === 'product' ? '03-A' : '01-A'),
+              visualTheme: project.brief.visualTheme || 'professional'
             });
             project.scenes = validateScenes(autoDraft.scenes, project.source);
             project.creativeDirection = autoDraft.creativeDirection;

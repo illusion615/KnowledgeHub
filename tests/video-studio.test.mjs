@@ -540,3 +540,32 @@ test('copilot-provider and video-studio-client auto-fallback to loopback bridge 
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('one-click endpoint propagates visualTheme and procedural BGM style through brief and exportKey', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'kh-studio-bgm-theme-'));
+  const dataRoot = join(root, 'private/video-studio'), counters = { plan: 0 };
+  await mkdir(join(root, 'posts/theme-bgm'), { recursive: true });
+  await writeFile(join(root, 'posts/theme-bgm/index.html'), '<h1>视觉风格与动态配乐测试</h1><section id="overview"><h2>核心验证</h2><p>流光渐变与代码合成背景音乐协同。</p></section>');
+  const f = await fixture(root, dataRoot, counters);
+  try {
+    const opened = (await f.call('open', { article: 'theme-bgm', autoDraft: true })).data;
+    assert.equal(opened.brief.visualTheme, 'professional');
+    assert.equal(opened.brief.music, 'ambient-tech');
+
+    const res = await f.call(opened.id + '/one-click', {
+      revision: opened.revision,
+      regenerateScenes: true,
+      brief: { ...opened.brief, visualTheme: 'elegant', music: 'elegant-minimal', stylePack: '05-A' }
+    });
+    assert.equal(res.status, 202);
+    const done = await wait(f, opened.id);
+    assert.equal(done.brief.visualTheme, 'elegant');
+    assert.equal(done.brief.music, 'elegant-minimal');
+    assert.ok(done.currentExport);
+    assert.ok(done.scenes.every(sc => sc.composition.visualTheme === 'elegant'));
+  } finally {
+    await f.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+

@@ -4,12 +4,14 @@ import { resolve, sep } from 'node:path';
 import { BridgeError } from './copilot-runtime.mjs';
 import composition from '../assets/video-studio-composition.js';
 import vgCatalog from '../assets/video-studio-templates.js';
+import { allowedBgmIds } from './video-studio-bgm.mjs';
 
 export const digest = value => createHash('sha256').update(typeof value === 'string' || Buffer.isBuffer(value) ? value : JSON.stringify(value)).digest('hex');
 export const cameras = ['push', 'pull', 'pan-left', 'pan-right', 'static'];
 export const voices = ['Yue (Premium)', 'Lili (Premium)', 'Tingting', ...vgCatalog.stylePacks ? ['zh_female_cancan_uranus_bigtts', 'zh_male_chunhou_uranus_bigtts'] : []];
 export const scenarios = vgCatalog.scenarios.map(item => item.id);
 export const stylePackIds = vgCatalog.stylePacks.map(item => item.id);
+export const visualThemeIds = (vgCatalog.visualThemes || []).map(item => item.id);
 export const needsImage = scene => !scene.composition || composition.nodes(scene.composition).some(layer => layer.type === 'image');
 const invalid = message => { throw new BridgeError(400, 'STUDIO_INPUT', message); };
 export function text(value, name, max = 4000) {
@@ -100,17 +102,19 @@ export function validateBrief(value) {
   if (!Number.isInteger(value.seconds) || value.seconds < 30 || value.seconds > 600) invalid('目标时长必须为30–600秒。');
   if (!voices.includes(value.voice)) invalid('请选择受支持的本机或官方TTS声音。');
   if (!Number.isInteger(value.voiceRate) || value.voiceRate < 150 || value.voiceRate > 300) invalid('语速必须为150–300。');
-  if (!['bright', 'none'].includes(value.music)) invalid('配乐选项无效。');
+  if (!allowedBgmIds.includes(value.music)) invalid('配乐选项无效。');
   if (value.idea !== undefined && (typeof value.idea !== 'string' || value.idea.length > 4000)) invalid('创意想法最多4000字。');
   if (value.scenario !== undefined && !scenarios.includes(value.scenario)) invalid('视频制作路线仅支持 presenter（真人口播）或 product（产品介绍）。');
   if (value.stylePack !== undefined && !stylePackIds.includes(value.stylePack)) invalid('Adu/MotionGit 风格编号无效。');
+  if (value.visualTheme !== undefined && !visualThemeIds.includes(value.visualTheme)) invalid('整体视觉风格仅支持 professional、vibrant、dynamic 或 elegant。');
   return {
     audience: text(value.audience, '受众', 300), goal: text(value.goal, '观看目标', 500),
     style: text(value.style, '视觉方向', 1200), seconds: value.seconds, voice: value.voice,
     voiceRate: value.voiceRate, music: value.music,
     ...(value.idea !== undefined ? { idea: value.idea.trim() } : {}),
     ...(value.scenario !== undefined ? { scenario: value.scenario } : {}),
-    ...(value.stylePack !== undefined ? { stylePack: value.stylePack } : {})
+    ...(value.stylePack !== undefined ? { stylePack: value.stylePack } : {}),
+    ...(value.visualTheme !== undefined ? { visualTheme: value.visualTheme } : {})
   };
 }
 export function validateScenes(value, source) {
@@ -148,7 +152,7 @@ export function validateScenes(value, source) {
 export const defaultBrief = () => ({
   audience: '希望快速理解方案价值的一线业务用户', goal: '讲清挑战、方案、获益与实施边界',
   style: '根据要解释的信息选择文字、图形、动画、运镜、图片或其组合，不预设必须生图；以简洁直观为先。',
-  seconds: 180, voice: 'Yue (Premium)', voiceRate: 235, music: 'bright', idea: ''
+  seconds: 180, voice: 'Yue (Premium)', voiceRate: 235, music: 'ambient-tech', visualTheme: 'professional', idea: ''
 });
 export function keys(project, scene) {
   const versions = project.assetVersions && Object.hasOwn(project.assetVersions, scene.id) ? project.assetVersions[scene.id] : undefined;

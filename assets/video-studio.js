@@ -89,8 +89,10 @@ document.addEventListener('DOMContentLoaded', function () {
       voice: value('voice'), voiceRate: Number(value('voiceRate')), music: value('music'), idea: value('idea') };
     var scenarioVal = value('scenario') || base.scenario;
     var packVal = value('stylePack') || base.stylePack;
+    var visualVal = value('visualTheme') || base.visualTheme;
     if (scenarioVal) out.scenario = scenarioVal;
     if (packVal) out.stylePack = packVal;
+    if (visualVal) out.visualTheme = visualVal;
     return out;
   }
   function matchesTemplate(current, template) {
@@ -147,7 +149,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!scene || !vg) return;
     slide = stage.querySelector('[data-gallery-slide="' + scene.id + '"]');
     draftScene = { id: scene.id, title: slide ? value('title', slide) : scene.title, narration: slide ? value('narration', slide) : scene.narration, screenText: slide ? value('screenText', slide) : scene.screenText, visual: scene.visual };
-    validated = window.KHVideoComposition.validate(vg.buildTemplateComposition(presetId, draftScene, (project.brief && project.brief.stylePack) || '01-A'));
+    validated = window.KHVideoComposition.validate(vg.buildTemplateComposition(presetId, draftScene, (project.brief && project.brief.stylePack) || '01-A', (project.brief && project.brief.visualTheme) || 'professional'));
     customCompositionOverrides[scene.id] = validated; scene.composition = validated; dirty = true; paintComposition(scene, 0);
     presetInfo = vg.scenePresets.find(function (item) { return item.id === presetId; });
     say(t('已将当前镜头切换为「', 'Applied scene preset “') + (presetInfo ? t(presetInfo.name[0], presetInfo.name[1]) : presetId) + t('」编排，已在中央监看器实时更新；点击“保存修改”或“一键生成”即可持久化。', '” in the live monitor. Save or produce to persist.'));
@@ -243,7 +245,7 @@ document.addEventListener('DOMContentLoaded', function () {
       t('当前镜头预演进度', 'Current Scene Simulation Progress') + '"></progress><span id="studio-simulation-time">0:00</span></div>' +
       '<p id="studio-simulation-status" role="status" aria-live="polite">' +
       (step === 4 && !project.currentExport ? t('成片尚未导出，当前可预演已有镜头。', 'No exported film yet; preview available scenes.') :
-        t('已有配音优先；缺配音时静音估算，不含最终配乐，不触发生成。', 'Existing narration or silent estimated timing; no final music or generation.')) +
+        t('已有配音优先；缺配音时按估算时长预演，开启配乐时同步播放 WebAudio 实时合成配乐，不触发生成。', 'Existing narration or estimated timing; plays live WebAudio synth BGM when enabled, without triggering generation.')) +
       '</p><audio id="studio-simulation-audio" preload="auto" hidden></audio></div>';
     html += project.scenes.map(function (scene, index) {
       return '<article class="studio-gallery-slide"' + (inspector ? '' : ' data-shot="' + esc(scene.id) + '"') + ' data-gallery-slide="' + esc(scene.id) + '"' +
@@ -378,19 +380,70 @@ document.addEventListener('DOMContentLoaded', function () {
       selectGallery(name === 'gallery-select' ? id : project.scenes[index + (name === 'gallery-prev' ? -1 : 1)].id); return;
     }
     stopSimulation(); pauseStageMedia();
+    if (name === 'quick-visual-theme') {
+      var vt = vg && vg.getVisualTheme ? vg.getVisualTheme(id) : null;
+      if (!vt) return;
+      if (step === 1 && stage.querySelector('[data-field="audience"]')) project.brief = Object.assign({}, project.brief, brief());
+      project.brief.visualTheme = vt.id; project.brief.stylePack = vt.defaultPack;
+      project.brief.style = vg.getStylePack(vt.defaultPack).stylePrompt;
+      var vtInput = stage.querySelector('[data-field="visualTheme"]');
+      if (vtInput) vtInput.value = vt.id;
+      var baseScenes = step === 2 && project.scenes.length ? collectScenes() : project.scenes;
+      var restyledScenes = baseScenes.length && vg.applyVisualThemeToScenes ? vg.applyVisualThemeToScenes(baseScenes, vt.id, vt.defaultPack) : baseScenes;
+      if (localOffline) {
+        if (!restyledScenes.length) {
+          var vDraft = vg.buildAutoDraftFromSource(project.source, { scenario: project.brief.scenario || 'presenter', stylePack: vt.defaultPack, visualTheme: vt.id });
+          project.scenes = vDraft.scenes.map(function (s) { return Object.assign({}, s, { artifacts: {}, imageRequired: false, assetsReady: false }); });
+          project.creativeDirection = vDraft.creativeDirection;
+        } else {
+          project.scenes = restyledScenes.map(function (s) {
+            var saved = project.scenes.find(function (orig) { return orig.id === s.id; }) || {};
+            return Object.assign({}, saved, s);
+          });
+        }
+      } else {
+        project = await request(project.id + '/draft', {
+          revision: project.revision,
+          brief: project.brief,
+          scenes: restyledScenes,
+          confirmBrief: true
+        });
+      }
+      customCompositionOverrides = {}; dirty = false; render();
+      say(t('已切换整体视觉风格为「' + t(vt.name[0], vt.name[1]) + '」并更新流体渐变与生命感画布编排（保留现有旁白与镜头）。', 'Switched visual style to ' + t(vt.name[0], vt.name[1]) + ' with fluid gradient & organic motion (preserving narration and scenes).'));
+      return;
+    }
+    if (name === 'quick-bgm-toggle') {
+      var curMusic = project.brief.music || 'ambient-tech';
+      if (curMusic !== 'none') { project._lastMusicStyle = curMusic === 'bright' ? 'upbeat-pulse' : curMusic; project.brief.music = 'none'; }
+      else project.brief.music = project._lastMusicStyle || 'ambient-tech';
+      var musicInput = stage.querySelector('[data-field="music"]');
+      if (musicInput) musicInput.value = project.brief.music;
+      if (!localOffline) project = await request(project.id + '/draft', { revision: project.revision, brief: project.brief, scenes: step === 2 ? collectScenes() : project.scenes, confirmBrief: true });
+      dirty = false; render();
+      say(project.brief.music === 'none' ? t('已关闭背景音乐（纯人声口播）。', 'Background music disabled (voice only).') : t('已开启代码动态合成背景音乐。', 'Procedural synthesized BGM enabled.'));
+      return;
+    }
+    if (name === 'quick-bgm-style') {
+      project.brief.music = id || 'ambient-tech'; project._lastMusicStyle = project.brief.music;
+      var mInput = stage.querySelector('[data-field="music"]');
+      if (mInput) mInput.value = project.brief.music;
+      if (!localOffline) project = await request(project.id + '/draft', { revision: project.revision, brief: project.brief, scenes: step === 2 ? collectScenes() : project.scenes, confirmBrief: true });
+      dirty = false; render();
+      var bgmObj = window.KHVideoBgm && window.KHVideoBgm.getStyle ? window.KHVideoBgm.getStyle(project.brief.music) : null;
+      say(t('已将动态合成背景音乐切换为「' + (bgmObj ? t(bgmObj.name[0], bgmObj.name[1]) : project.brief.music) + '」。', 'Switched procedural BGM style to ' + (bgmObj ? t(bgmObj.name[0], bgmObj.name[1]) : project.brief.music) + '.'));
+      return;
+    }
     if (name === 'quick-scenario') {
       var sc = vg && vg.getScenario(id);
       if (!sc) return;
-      project.brief.scenario = sc.id;
-      project.brief.stylePack = sc.defaultStylePack;
+      project.brief.scenario = sc.id; project.brief.stylePack = sc.defaultStylePack;
       project.brief.style = vg.getStylePack(sc.defaultStylePack).stylePrompt;
       if (localOffline) {
-        var qDraft = vg.buildAutoDraftFromSource(project.source, { scenario: sc.id, stylePack: sc.defaultStylePack });
+        var qDraft = vg.buildAutoDraftFromSource(project.source, { scenario: sc.id, stylePack: sc.defaultStylePack, visualTheme: project.brief.visualTheme || 'professional' });
         project.scenes = qDraft.scenes.map(function (s) { return Object.assign({}, s, { artifacts: {}, imageRequired: false, assetsReady: false }); });
         project.creativeDirection = qDraft.creativeDirection;
-      } else {
-        project = await request(project.id + '/auto-narration', { revision: project.revision, brief: project.brief });
-      }
+      } else project = await request(project.id + '/auto-narration', { revision: project.revision, brief: project.brief });
       customCompositionOverrides = {}; dirty = false; render();
       say(t('已切换为「' + t(sc.name[0], sc.name[1]) + '」并更新全片动态编舞草稿。', 'Switched to ' + t(sc.name[0], sc.name[1]) + ' and updated storyboard choreography.'));
       return;
@@ -399,9 +452,7 @@ document.addEventListener('DOMContentLoaded', function () {
       project.brief.seconds = Number(id) || 180;
       var secInput = stage.querySelector('[data-field="seconds"]');
       if (secInput) secInput.value = String(project.brief.seconds);
-      if (!localOffline) {
-        project = await request(project.id + '/draft', { revision: project.revision, brief: project.brief, scenes: step === 2 ? collectScenes() : project.scenes, confirmBrief: true });
-      }
+      if (!localOffline) project = await request(project.id + '/draft', { revision: project.revision, brief: project.brief, scenes: step === 2 ? collectScenes() : project.scenes, confirmBrief: true });
       dirty = false; render();
       say(t('已将目标时长切换为 ' + project.brief.seconds + ' 秒。', 'Target duration set to ' + project.brief.seconds + 's.'));
       return;
@@ -425,7 +476,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (name === 'vg-scene-preset') { applyScenePreset(id); return; }
     if (name === 'auto-narration') {
       if (localOffline) {
-        var offlineDraft = vg.buildAutoDraftFromSource(project.source, { scenario: project.brief.scenario || 'presenter', stylePack: project.brief.stylePack || '01-A' });
+        var offlineDraft = vg.buildAutoDraftFromSource(project.source, { scenario: project.brief.scenario || 'presenter', stylePack: project.brief.stylePack || '01-A', visualTheme: project.brief.visualTheme || 'professional' });
         project.scenes = offlineDraft.scenes.map(function (sc) { return Object.assign({}, sc, { artifacts: {}, imageRequired: false, assetsReady: false }); });
         project.creativeDirection = offlineDraft.creativeDirection;
       } else {
@@ -539,6 +590,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   document.addEventListener('click', function (event) {
     var target = event.target.closest('[data-action]'), nav = event.target.closest('[data-step]');
+    if (target && target.tagName === 'SELECT') return;
     if (target && target.getAttribute('data-action') === 'simulate-stop') {
       if (monitorVideo()) { monitorVideo().pause(); monitorVideo().currentTime = 0; simulationControls(); }
       else { stopSimulation(); simulationStatus(t('预演已停止。', 'Simulation stopped.')); }
@@ -547,8 +599,14 @@ document.addEventListener('DOMContentLoaded', function () {
     if (target && !target.disabled) invoke(target.getAttribute('data-action'),
       target.getAttribute('data-scene') || target.getAttribute('data-template') ||
       target.getAttribute('data-vg-scenario') || target.getAttribute('data-vg-pack') ||
-      target.getAttribute('data-preset') || target.getAttribute('data-seconds'));
+      target.getAttribute('data-preset') || target.getAttribute('data-seconds') ||
+      target.getAttribute('data-visual-theme'));
     if (nav) navigate(Number(nav.getAttribute('data-step'))).catch(function (error) { say(error.message, true); });
+  });
+  stage.addEventListener('change', function (event) {
+    if (event.target.matches('select[data-action="quick-bgm-style"]')) {
+      invoke('quick-bgm-style', event.target.value);
+    }
   });
   stage.addEventListener('input', function (event) {
     if (event.target.matches('[data-director-note]')) {
@@ -612,11 +670,11 @@ document.addEventListener('DOMContentLoaded', function () {
   applyLanguage();
   function bootOfflineDraft(sourceData) {
     var src = sourceData || { slug: article || 'article', title: article || '当前文章', anchors: ['overview'], text: '' };
-    var draft = vg.buildAutoDraftFromSource(src, { scenario: 'presenter', stylePack: '01-A', sections: src.sections });
+    var draft = vg.buildAutoDraftFromSource(src, { scenario: 'presenter', stylePack: '01-A', visualTheme: 'professional', sections: src.sections });
     localOffline = true;
     project = { id: 'p-local-preview', revision: 1, stale: false, cursor: 2, planApproved: true, canExport: false, currentExport: null,
       source: { slug: src.slug, title: src.title, anchors: src.anchors && src.anchors.length ? src.anchors : ['overview'], text: src.text || src.title },
-      brief: { audience: '希望快速掌握文章核心价值的读者', goal: '提炼关键论点、数据指标与落地步骤', style: vg.getStylePack('01-A').stylePrompt, seconds: 180, voice: 'Yue (Premium)', voiceRate: 235, music: 'bright', idea: '', scenario: 'presenter', stylePack: '01-A' },
+      brief: { audience: '希望快速掌握文章核心价值的读者', goal: '提炼关键论点、数据指标与落地步骤', style: vg.getStylePack('01-A').stylePrompt, seconds: 180, voice: 'Yue (Premium)', voiceRate: 235, music: 'ambient-tech', visualTheme: 'professional', idea: '', scenario: 'presenter', stylePack: '01-A' },
       creativeDirection: draft.creativeDirection, scenes: draft.scenes.map(function (sc) { return Object.assign({}, sc, { artifacts: {}, imageRequired: false, assetsReady: false }); }), jobs: [] };
     step = 2; workspace.hidden = false; render(); client.setLocalOnly();
     say(t('已基于当前文章自动生成口播词与动态分镜预演；启动本机服务即可一键合成语音与导出 MP4。', 'Auto-generated narration and animated storyboard preview from the article; start the local server to synthesize voice and export MP4.'));
