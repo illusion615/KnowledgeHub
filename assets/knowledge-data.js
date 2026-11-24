@@ -3130,5 +3130,24 @@ var knowledgeTree = [
     color: '#7c3aed',
     phase: 2.4, speed: 0.84,
     relations: ['copilot-studio-overview', 'copilot-studio-constraints', 'copilot-studio-cua', 'copilot-studio-vs-agent-sdk']
+  },
+  {
+    id: 'copilot-studio-managed-runtime-alm',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Copilot Studio Managed Runtime 深度解析：双环境错觉成因与企业级 ALM 实战',
+      en: 'Copilot Studio Managed Runtime Deep Dive: Dual-Environment Illusion and Enterprise ALM Practice'
+    },
+    summary: {
+      zh: '拆解托管运行时强制个人环境路由、顶栏环境脱钩、60+15 天休眠清理连锁反应，以及 ms / msagent 双轨跨环境 ALM 实战。',
+      en: 'Dissects mandatory personal routing in Copilot Managed Runtime, UI picker decoupling, 60+15 day cleanup triggers, and dual-track CLI ALM promotion.'
+    },
+    tags: ['Copilot Studio', 'Managed Runtime', 'ALM', 'Environment Routing', 'DevOps'],
+    date: '2026-11-24',
+    url: 'posts/copilot-studio-managed-runtime-alm/index.html',
+    color: '#9333ea',
+    phase: 3.1, speed: 0.83,
+    relations: ['copilot-studio-streaming-verification', 'copilot-studio-new-agent-knowledge-query', 'agentic-ai-innovation-governance-guide', 'power-apps-code-app']
   }
 ];

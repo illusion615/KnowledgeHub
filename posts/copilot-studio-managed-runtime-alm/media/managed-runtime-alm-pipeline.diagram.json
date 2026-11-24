@@ -1,0 +1,256 @@
+{
+  "version": 1,
+  "type": "architecture",
+  "title": {
+    "zh": "Copilot Managed Runtime 应用与 New Agent 企业级双轨 ALM 晋升流水线",
+    "en": "Dual-Track Enterprise ALM Promotion Pipeline for CMR Apps and New Agents"
+  },
+  "layout": {
+    "direction": "down",
+    "width": 1520,
+    "marginX": 40,
+    "marginY": 24,
+    "nodeWidth": 310,
+    "nodeHeight": 92,
+    "rowGap": 28,
+    "groupGap": 26,
+    "groupPadding": 24,
+    "groupTitleHeight": 46,
+    "showTitle": false,
+    "showCanvas": false
+  },
+  "groups": [
+    {
+      "id": "track-cmr",
+      "order": 0,
+      "label": {
+        "zh": "轨道 A：Copilot Managed Runtime Apps 代码级 Git / CI/CD 晋升轨（@microsoft/cmr-cli）",
+        "en": "Track A: Copilot Managed Runtime Apps Git-Native & CI/CD Promotion (@microsoft/cmr-cli)"
+      },
+      "columns": 3
+    },
+    {
+      "id": "track-agent",
+      "order": 1,
+      "label": {
+        "zh": "轨道 B：Microsoft Copilot Harness Agents 声明式定义与 Solution 晋升轨（msagent CLI）",
+        "en": "Track B: Microsoft Copilot Harness Agents Declarative & Solution Promotion (msagent CLI)"
+      },
+      "columns": 3
+    },
+    {
+      "id": "track-gov",
+      "order": 2,
+      "label": {
+        "zh": "跨环境配置隔离与双管理中心安全门禁（MAC + PPAC Governance Gates）",
+        "en": "Cross-Environment Isolation & Dual-Admin Governance Gates (MAC + PPAC)"
+      },
+      "columns": 3
+    }
+  ],
+  "nodes": [
+    {
+      "id": "cmr-extract",
+      "layer": 0,
+      "order": 0,
+      "group": "track-cmr",
+      "role": "actor",
+      "label": {
+        "zh": "1. 从个人环境克隆或 BYOB 初始化",
+        "en": "1. Clone from Personal Env or BYOB Init"
+      },
+      "detail": {
+        "zh": "ms app clone --app <id> 提取源码，并在目标环境执行 ms app create --repo none --environment-id <target>",
+        "en": "ms app clone --app <id>, then ms app create --repo none --environment-id <target>"
+      },
+      "gridRow": 0,
+      "gridColumn": 0
+    },
+    {
+      "id": "cmr-overlay",
+      "layer": 0,
+      "order": 1,
+      "group": "track-cmr",
+      "role": "control",
+      "label": {
+        "zh": "2. Stage Overlay 与共享连接校验",
+        "en": "2. Stage Overlay & Shared Policy Gate"
+      },
+      "detail": {
+        "zh": "配置 ms.<stage>.config.json 覆盖连接与表；校验 sharedConnectionId 的 allowedActions",
+        "en": "Configure ms.<stage>.config.json deltas; validate allowedActions on shared connections"
+      },
+      "gridRow": 0,
+      "gridColumn": 1
+    },
+    {
+      "id": "cmr-ci",
+      "layer": 0,
+      "order": 2,
+      "group": "track-cmr",
+      "role": "required",
+      "label": {
+        "zh": "3. GitHub Actions SPN 打包与发布",
+        "en": "3. GitHub Actions SPN Pack & Deploy"
+      },
+      "detail": {
+        "zh": "开启 AllowExternalArtifactDeployment；通过 ms-app-pack 与 ms-app-deploy 自动上线",
+        "en": "Enable AllowExternalArtifactDeployment; run ms-app-pack and ms-app-deploy via SPN"
+      },
+      "gridRow": 0,
+      "gridColumn": 2
+    },
+    {
+      "id": "agent-clone",
+      "layer": 1,
+      "order": 0,
+      "group": "track-agent",
+      "role": "actor",
+      "label": {
+        "zh": "1. msagent 克隆定义与 Git 纳管",
+        "en": "1. msagent Clone & Git Source Control"
+      },
+      "detail": {
+        "zh": "拉取 settings.mcs.yml 与 workflows；将 .mcs/ 与 .config/agent.config.json 加入 .gitignore",
+        "en": "Pull settings.mcs.yml & workflows; exclude .mcs/ and .config/agent.config.json in .gitignore"
+      },
+      "gridRow": 0,
+      "gridColumn": 0
+    },
+    {
+      "id": "agent-slot",
+      "layer": 1,
+      "order": 1,
+      "group": "track-agent",
+      "role": "control",
+      "label": {
+        "zh": "2. 多环境部署槽位与连接绑定",
+        "en": "2. Multi-Stage Slots & Connection Binding"
+      },
+      "detail": {
+        "zh": "msagent deployment create 注册 dev/test/prod；按引用名执行 connection update",
+        "en": "Register dev/test/prod targets; bind target connections via connection update"
+      },
+      "gridRow": 0,
+      "gridColumn": 1
+    },
+    {
+      "id": "agent-promote",
+      "layer": 1,
+      "order": 2,
+      "group": "track-agent",
+      "role": "service",
+      "label": {
+        "zh": "3. 云端评测门禁与正式发布",
+        "en": "3. Cloud Evaluation Gate & Publish"
+      },
+      "detail": {
+        "zh": "msagent agent deploy 推送草稿 -> agent eval run 评测 -> --publish 发布（或走 Solution 管道）",
+        "en": "msagent agent deploy draft -> agent eval run -> --publish (or Dataverse Solution pipeline)"
+      },
+      "gridRow": 0,
+      "gridColumn": 2
+    },
+    {
+      "id": "gov-spn",
+      "layer": 2,
+      "order": 0,
+      "group": "track-gov",
+      "role": "data",
+      "label": {
+        "zh": "BAP API / Dataverse SPN 授权",
+        "en": "BAP API / Dataverse SPN Authorization"
+      },
+      "detail": {
+        "zh": "无 Dataverse 环境通过 BAP API 赋权 EnvironmentAdmin（必须用 Enterprise App Object ID）",
+        "en": "Non-Dataverse envs grant EnvironmentAdmin via BAP API using Enterprise App Object ID"
+      },
+      "gridRow": 0,
+      "gridColumn": 0
+    },
+    {
+      "id": "gov-policy",
+      "layer": 2,
+      "order": 1,
+      "group": "track-gov",
+      "role": "control",
+      "label": {
+        "zh": "环境组策略、ACP 与 CSP 沙盒",
+        "en": "Environment Group, ACP & CSP Sandbox"
+      },
+      "detail": {
+        "zh": "默认放行 19 个 Entra 认证一等连接器并拦截任意 HTTP 动作；强制 iframe CSP",
+        "en": "Allows 19 first-party Entra connectors, blocks open HTTP actions, enforces iframe CSP"
+      },
+      "gridRow": 0,
+      "gridColumn": 1
+    },
+    {
+      "id": "gov-audit",
+      "layer": 2,
+      "order": 2,
+      "group": "track-gov",
+      "role": "interface",
+      "label": {
+        "zh": "Purview 审计 (519) 与离职接管",
+        "en": "Purview Audit (519) & Owner Handover"
+      },
+      "detail": {
+        "zh": "监控 RecordType 519 与 P75 延迟；通过 ms admin add owner 移交源码与环境",
+        "en": "Track RecordType 519 & P75 latency; run ms admin add owner for offboarding handover"
+      },
+      "gridRow": 0,
+      "gridColumn": 2
+    }
+  ],
+  "edges": [
+    {
+      "from": "cmr-extract",
+      "to": "cmr-overlay",
+      "label": {
+        "zh": "解耦环境连接",
+        "en": "Decouple Connections"
+      }
+    },
+    {
+      "from": "cmr-overlay",
+      "to": "cmr-ci",
+      "label": {
+        "zh": "构建并校验策略",
+        "en": "Pack & Validate"
+      }
+    },
+    {
+      "from": "agent-clone",
+      "to": "agent-slot",
+      "label": {
+        "zh": "声明目标环境",
+        "en": "Declare Target Envs"
+      }
+    },
+    {
+      "from": "agent-slot",
+      "to": "agent-promote",
+      "label": {
+        "zh": "草稿评测与晋升",
+        "en": "Evaluate & Promote"
+      }
+    },
+    {
+      "from": "gov-spn",
+      "to": "cmr-ci",
+      "label": {
+        "zh": "提供免人工凭证",
+        "en": "Headless SPN Auth"
+      }
+    },
+    {
+      "from": "cmr-ci",
+      "to": "gov-audit",
+      "label": {
+        "zh": "托管上线与遥测",
+        "en": "Live Host & Telemetry"
+      }
+    }
+  ]
+}
