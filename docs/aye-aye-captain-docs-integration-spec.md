@@ -18,11 +18,11 @@
 
 | 平台侧源码文件（相对 `delivery-board/`） | 当前职责与真实代码行为 | 打开 Study Room 扩展 `article.md` 时的痛点表现 |
 | --- | --- | --- |
-| `docs/development-board/modules/shared/markdown.js` | `renderMarkdownBody()` 仅跳过首部 `---...---`，其余按标准标题、列表、表格与代码块逐行渲染 | `:::insight-grid`、`::card 01`、`:::figure` 内联 JSON、`#id 01 / Kicker ::` 与 `\|\|` 双语分隔符全部作为裸文本段落直接暴露，打断沉浸阅读 |
-| `docs/development-board/modules/docs/selection-editor.js` | `extractReaderSelectionContext()` 从渲染 DOM 提取划选文字及前后各 220 字邻域，提交手工修改或快捷改写 | 用户划选正文时极易连带扫入裸露的 `:::`、`::card` 或 `\|\|` 符号，在弹窗编辑中顺手删改后破坏编译语法树 |
-| `scripts/portal_doc_inline_service.py` | `locate_source_span()` 定位源文偏移，`save_document_inline_edit()` 执行乐观锁原子写回，`_invoke_inline_rewrite_llm()` 调用轻量模型局部改写 | `_normalize_ws_with_map()` 将管道符 `\|` 视作空白折叠；改写系统提示词无扩展令牌保护约束，写回前缺少围栏配对校验，一旦写坏闭合 `:::` 会导致整章渲染错位 |
-| `docs/development-board/modules/docs/header-meta.js` | `createDocsReaderHeader()` 渲染文档路径面包屑、搜索框、导出菜单与文风润色下拉框 | 顶栏尚无「显示/隐藏结构标签」开关、「纯净 Markdown / 富交互 HTML」双视图切换入口，也无按文档双语能力自适应显隐的 `[中文 \| EN]` 语言切换标签 |
-| `docs/development-board/modules/docs/index.js` | `updateDocsShellContent()` 拉取 `/api/docs/content` 并挂载单栏博客阅读流 | 仅调用 `renderMarkdownBody()` 单一路径，未探测同源富交互编译管线或挂载隔离式预览容器 |
+| `modules/shared/markdown.js` | `renderMarkdownBody()` 仅跳过首部 `---...---`，其余按标准标题、列表、表格与代码块逐行渲染 | `:::insight-grid`、`::card 01`、`:::figure` 内联 JSON、`#id 01 / Kicker ::` 与 `\|\|` 双语分隔符全部作为裸文本段落直接暴露，打断沉浸阅读 |
+| `modules/docs/selection-editor.js` | `extractReaderSelectionContext()` 从渲染 DOM 提取划选文字及前后各 220 字邻域，提交手工修改或快捷改写 | 用户划选正文时极易连带扫入裸露的 `:::`、`::card` 或 `\|\|` 符号，在弹窗编辑中顺手删改后破坏编译语法树 |
+| `portal_doc_inline_service.py` | `locate_source_span()` 定位源文偏移，`save_document_inline_edit()` 执行乐观锁原子写回，`_invoke_inline_rewrite_llm()` 调用轻量模型局部改写 | `_normalize_ws_with_map()` 将管道符 `\|` 视作空白折叠；改写系统提示词无扩展令牌保护约束，写回前缺少围栏配对校验，一旦写坏闭合 `:::` 会导致整章渲染错位 |
+| `modules/docs/header-meta.js` | `createDocsReaderHeader()` 渲染文档路径面包屑、搜索框、导出菜单与文风润色下拉框 | 顶栏尚无「显示/隐藏结构标签」开关、「纯净 Markdown / 富交互 HTML」双视图切换入口，也无按文档双语能力自适应显隐的 `[中文 \| EN]` 语言切换标签 |
+| `modules/docs/index.js` | `updateDocsShellContent()` 拉取 `/api/docs/content` 并挂载单栏博客阅读流 | 仅调用 `renderMarkdownBody()` 单一路径，未探测同源富交互编译管线或挂载隔离式预览容器 |
 
 此外，`Aye aye Captain` 平台遵循 **I1 项目无关通用底座架构准则**：平台自身严禁写死 `Study-Room` 目录名或私有业务逻辑；正确做法是由平台升级通用的「受保护扩展指令契约 + 插件化富视图挂载协议」，再由 Study Room 仓库通过声明式清单与本地无依赖编译脚本对接。
 
@@ -125,7 +125,7 @@ Study Room 已落地的 Genesis 纯静态编译内核（`tools/compile-markdown-
 针对双语技术文章与普通单语工程文档并存的场景，在看板 Docs 阅读器头部建立「有双语才显示、纯单语零打扰」的动态语言切换机制：
 
 #### 1) 自动双语内容探测契约（Bilingual Capability Detection）
-当看板后端 `read_project_document()` 或前端 `docs/index.js` 加载一篇文档时，排除代码块（```` ``` ```` / `~~~`）与行内代码（`` `...` ``）后，只要命中以下任一特征即判定为 `bilingual_capable = true`（否则为 `false`）：
+当看板后端 `read_project_document()` 或前端 `modules/docs/index.js` 加载一篇文档时，排除代码块（```` ``` ```` / `~~~`）与行内代码（`` `...` ``）后，只要命中以下任一特征即判定为 `bilingual_capable = true`（否则为 `false`）：
 1. **Frontmatter 显式声明**：首部 YAML Frontmatter 含 `strict_i18n: true`、`present_i18n: strict`，或 `title` / `lead` / `eyebrow` 字段值含 ` || ` 双语分隔符；
 2. **标题或正文双语对位语法**：章节标题、列表项、表格单元格或正文段落含同源双语分隔符 ` || `（两侧均为非空文本），或属性块含 `{ zh: "...", en: "..." }`；
 3. **内联双语 DOM / 矢量图标记**：文档内嵌 HTML 或内联 SVG 含成对的 `data-zh` / `data-en` 属性或 `.sr-zh` / `.sr-en` 双语图层类名；
@@ -150,7 +150,7 @@ Study Room 已落地的 Genesis 纯静态编译内核（`tools/compile-markdown-
 | --- | --- | --- |
 | 防误删写保护 | 升级 `selection-editor.js` 选区排除与 `portal_doc_inline_service.py` 偏移内缩、双竖线定位及保存前围栏配对校验 | 提供完整扩展指令正则表与正反例测试样板（`posts/markdown-genesis-lab/article.md`） |
 | 胶囊 Tag 显隐 | 升级 `markdown.js` 扩展令牌胶囊化渲染、`header-meta.js` 顶栏显隐开关与本地偏好存储 | 验证全部 9 类容器指令、`::card`/`::versus` 子锚点及 `\|\|` 双语段落在显/隐双态下的阅读体验 |
-| 富交互 HTML 融入 | 在 `docs/index.js` 与后端文档路由新增 `[📖 纯净 Markdown \| ✨ 富交互视图]` 切换、工作区相对资源代理及亮暗/目录联动 | 保持 `tools/compile-markdown-article.js` 零依赖毫秒级标准输出契约与 `docs/navigation.json` 目录索引对齐 |
+| 富交互 HTML 融入 | 在 `modules/docs/index.js` 与后端文档路由新增 `[📖 纯净 Markdown \| ✨ 富交互视图]` 切换、工作区相对资源代理及亮暗/目录联动 | 保持 `tools/compile-markdown-article.js` 零依赖毫秒级标准输出契约与 `docs/navigation.json` 目录索引对齐 |
 | 头部自适应双语切换 | 在文档元数据解析、`markdown.js` 与 `header-meta.js` 实现双语特征自动探测、按需渲染 `[中文 \| EN]` 动态胶囊及双视图零闪烁联动 | 保证双语文章严格遵循 `strict_i18n`、`\|\|` 对位语法及内联 SVG `.sr-zh`/`.sr-en` 图层规范，并提供单语与双语对照验收样本 |
 
 ### 3.2 跨项目联调验收标准（DoD）
@@ -165,7 +165,7 @@ Study Room 已落地的 Genesis 纯静态编译内核（`tools/compile-markdown-
 
 ## 4. 如何直接向 `Aye aye Captain` 项目发送协同指令（含一键可复制指令）
 
-经核查交付看板跨项目路由源码（`scripts/portal_dispatch.py`、`scripts/portal_cross_project_notifications.py` 与 `scripts/development_board_core/http_post.py`）：
+经核查交付看板跨项目路由源码（平台侧 `portal_dispatch.py`、`portal_cross_project_notifications.py` 与 `development_board_core/http_post.py`）：
 
 1. **安全隔离机制确认**：交付看板强制执行跨项目会话隔离守卫（`cross_project_session_mutation_forbidden`），当前运行在 `Study Room` 工作区的子工位 Agent 严禁越权直接修改 `/Users/wellszhang/Developer/Aye aye Captain` 源码或私自向其他项目注入写指令；右上角全局铃铛（`cross-project-bell.js`）为只读聚合中心。
 2. **最快发送方式（两种任选）**：

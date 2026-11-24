@@ -1,0 +1,400 @@
+---
+title: Apple Silicon 上的 MLX 模型优化实践
+eyebrow: MLX Optimization Retrospective
+brand: AI Mud
+date: 2026-04-09
+strict_i18n: false
+strict_density: true
+lead: AI-MUD 项目需要一条可被产品链路直接调用的本地图像生成能力。我们以 FLUX.1-schnell（12B rectified flow transformer）为基座搭建了自建 MLX 管线，并在此之上通过 4-bit DiT 量化和分阶段内存释放收敛出 Z-Image-Turbo MLX 部署版本，将峰值内存从 23GB 压缩至 6GB，使 16GB Mac 可承载完整推理链路。
+hero_actions:
+  - "先看问题起因 | #origin"
+  - "直接看评估结果 | #evaluation"
+panel_label: 核心结论
+panel_title: 峰值内存 23GB → 6GB，推理链路可服务化，三套推理栈依赖隔离并存。
+panel:
+  - 以 FLUX.1-schnell 12B 为基座，经 4-bit DiT 量化与分阶段释放收敛为 Z-Image-Turbo MLX，运行时峰值 6GB。
+  - "`mx.compile` 在 DiT 采样阶段实测约 2× 加速；配合 T5 → DiT → VAE 逐段驻留，16GB Mac 可完成端到端推理。"
+  - image-server 保持零 ML 依赖，MLX / torch / mflux 三套引擎各自运行在独立 venv + 子进程中，消除包冲突。
+metrics:
+  - "峰值内存 | 23GB → 6GB | 4-bit DiT 量化 + 分阶段内存释放"
+  - "目标门槛 | 16GB Mac | FLUX.1-schnell 12B 经 4-bit DiT 量化后适配 16GB 统一内存"
+  - "关键里程碑 | C-121~C-127 | 编码器接入 → DiT 接管 → VAE/scheduler → 量化/compile → 微服务隔离"
+  - "编译收益 | ~2x | DiT 采样阶段 `mx.compile` 实测加速（首次调用含编译开销）"
+style:
+  accent: "#c8962e"
+---
+
+## #origin 01 / Trigger And Constraints :: 起因：AI-MUD 产品链路对本地图像生成的四项硬约束
+
+AI-MUD 在 C-121 阶段将图像生成定义为独立里程碑。此时系统已有 image-server (:8090) 作为纯 HTTP 路由层、torch_service 与 mflux_service 两套推理后端，以及 DashScope 云端回退通道。新增的 MLX 图像引擎必须同时满足四项约束：接入现有 image-server、与已有推理引擎进程隔离共存、在 16GB Apple Silicon 上可运行、不向路由层引入 ML 依赖。
+
+:::insight-grid { cols: 2 }
+::card 01
+### 业务触发点
+AI-MUD 需要一条可被产品链路调用的本地图像生成能力，而不是只在单独脚本里临时跑通一次模型。
+
+::card 02
+### 硬件现实
+Apple Silicon 的统一内存允许装入更大的模型，但 MPS 图像生成吞吐与 NVIDIA 差距约 11×（M4 Max ~55 s/image vs RTX 4090 ~5 s/image），因此优化重点必须先放在内存可达性与服务稳定性，而非吞吐追平。
+
+::card 03
+### 系统边界
+image-server 被定义为纯 HTTP 路由层，不能把所有 ML 依赖直接灌进去，否则主服务会失去可维护性与可部署性。
+
+::card 04
+### 成功标准
+在 16GB Mac 上完成 FLUX.1-schnell 12B 级图像模型的端到端推理，并以独立微服务形态接入 image-server 路由链路。
+:::
+
+:::comparison
+::versus Engineering Targets
+### 这次工作的四个硬目标
+- **本地优先** — 默认能力必须能在 Apple Silicon 本机运行，而不是只依赖云端后备。
+- **系统隔离** — 路由层保持零 ML 依赖，推理引擎在隔离进程中运行。
+- **内存先行** — 先解决“装不下”的问题，再优化推理速度。
+- **可集成** — 模型生命周期、路由、回退与运维都必须能接入现有 AI-MUD 服务编排。
+
+::versus Engineering Boundaries { highlight: true }
+### 这次复盘重点回答什么
+- FLUX.1-schnell 12B 基座 → 4-bit DiT 量化 + 分阶段释放 → Z-Image-Turbo MLX 部署版本。
+- 23GB → 6GB 内存压缩、`mx.compile` 2× DiT 步速提升、Apple Silicon vs NVIDIA ~11× 吞吐差距。
+- 本轮缺少 FID/CLIP-score 图像质量对比与 per-stage latency 拆解，结论限定在工程可行性层面。
+:::
+
+## #selection 02 / Path Selection :: 框架选型：MLX 在统一内存、惰性求值和图编译三项能力上满足本项目约束
+
+选型评估覆盖三条路线：PyTorch MPS 作为兼容基线与性能对照，mflux 作为第三方快速接入通道，自建 MLX 管线则在统一内存利用、组件级生命周期控制和零依赖路由集成三个维度上同时满足项目约束，因此被选定为主路径。
+
+Framework Decision
+
+### 框架选择不仅关乎性能，更取决于生命周期控制能力
+
+MLX 是 Apple ML Research 发布的面向 Apple Silicon 的数组框架（MIT 许可），核心设计包含 unified memory、lazy computation、dynamic graph 和 composable function transforms + compile。这四项特性与本项目工程需求的对应关系如下。
+
+Baseline
+
+### PyTorch + MPS
+
+**角色：**作为兼容路径和性能对照非常有价值，当前文章也保留了 MPS torch 的 benchmark 行。**边界：**PyTorch MPS 不支持组件级加载/释放控制和 `mx.compile` 等价的图编译能力，且 diffusers 封装了内部生命周期管理，无法按需定制。
+
+Wrapper
+
+### 第三方封装 / mflux
+
+**角色：**适合快速接入现成能力，所以最终被保留为隔离引擎之一。**边界：**mflux 封装了完整推理流程，不暴露组件级 API（如选择性量化 DiT 而保留编码器 bf16），无法满足精细内存控制需求。
+
+Primary Path
+
+### 自建 MLX 管线
+
+**理由：**与 Apple Silicon 的统一内存模型贴合，支持更细粒度的加载、量化、释放和编译优化；同时能把模型组件拆开，让 image-server 继续保持路由层纯净。
+
+:::comparison
+::versus Why MLX Fits Apple Silicon
+### MLX 的框架特性为什么会直接影响这次方案
+- **Unified memory** — CPU / GPU 共享内存，让大组件可以按阶段驻留与切换，减少传统设备间拷贝的管理负担。
+- **Lazy computation** — 张量直到 `mx.eval()` 才真正物化，采样步骤、编译与释放可以绑定到明确的执行时点。
+- **Dynamic graph** — 形状变化不会触发笨重的静态图重编译，更适合边调试边收敛的工程迭代。
+- **Composable transforms + compile** — 图优化、自动微分和向量化都在同一框架能力里，后续做本地优化不需要额外跳到另一套执行栈。
+
+::versus Official Image Generation Baseline { highlight: true }
+### MLX 官方图像生成示例给出的其实是一条参考 pipeline
+- **定位** — 官方 `mlx-examples/stable_diffusion` 是 Stable Diffusion in MLX 的参考实现，核心入口是 `StableDiffusion` 类与 `txt2image.py`、`image2image.py` 脚本。
+- **架构** — 它沿着“checkpoint 下载 → text encoding → latent reverse process → VAE decode”的路径组织，并展示 image2image 能力。
+- **模型范围** — 官方示例支持 `stabilityai/sdxl-turbo` 和 `stable-diffusion-2-1`，并明确说明代码由 diffusers 移植而来、权重直接从 Hugging Face 下载。
+- **内存策略** — 示例已经展示 float16 与量化思路，甚至给出 8GB Mac Mini 上通过量化运行 SDXL Turbo 的路径。
+:::
+
+Why Existing Frameworks Were Not Enough
+
+### 为什么仍然不能直接停在官方示例或现成框架上
+
+官方示例的 StableDiffusion 类提供的是端到端推理脚本入口，不支持组件级生命周期控制（如逐阶段释放编码器权重）、运行时 `mx.compile` 切换、或与外部路由层的服务化集成。此外，示例仅覆盖 SD 2.1 和 SDXL Turbo 两个模型，不包含 FLUX 系列。本项目因此需要自建管线：将 FLUX.1-schnell 的编码器、DiT、VAE 和 scheduler 拆为独立可控组件，在 zimage_mlx_service 中以长驻服务形态运行，并通过 HTTP 接口接入 image-server 路由层。
+
+:::comparison
+::versus Model-Side Criteria
+### 模型侧真正要满足的条件
+- **短步数推理** — 当前路线优先追求本地快速成图，而不是长步数高成本采样。
+- **组件可拆解** — 编码器、Transformer、VAE、调度器可以分别接管与优化。
+- **开放可改造** — 要能自建权重映射、量化和生命周期管理，而不是只会调用整包 pipeline。
+
+::versus Why The FLUX Family Fit { highlight: true }
+### FLUX 路线与当前目标的贴合点
+MLX 官方图像示例基于 Stable Diffusion / SDXL Turbo，采用传统 DDPM/DDIM 调度器，通常需要 20–50 步采样。FLUX.1-schnell 采用 rectified flow 范式（Liu et al., 2022）：通过学习噪声分布与数据分布之间的近似直线 ODE 轨迹，使 Euler 离散化在极少步数下即可获得高质量样本——模型卡标注 1–4 步即可完成推理。架构设计上，FLUX.1-schnell 使用 FlowMatchEulerScheduler 而非传统噪声调度器，并经 latent adversarial diffusion distillation 训练以进一步压缩所需步数。本管线设定 schnell 4-step 模式，并在 9 步采样下运行 benchmark 以平衡质量与速度。
+:::
+
+FLUX vs. Z-Image-Turbo
+
+### FLUX.1-schnell 与 Z-Image-Turbo 的参数量与优化关系
+
+FLUX.1-schnell 是一个 12B 参数的 rectified flow transformer，其中 DiT backbone 约占 ~6B 参数（19 JointTransformerBlocks + 38 SingleTransformerBlocks），其余分布在 T5Encoder（~4.7B）和 CLIPEncoder（~0.4B）中。Z-Image-Turbo 沿用 FLUX.1-schnell 的完整架构，在此基础上对 DiT 施加 4-bit group quantization（权重从 ~12GB 降至 ~3GB），配合 T5→DiT→VAE 分阶段内存释放与 `mx.compile` 图编译，形成可部署到 image-server :8097 的 MLX 落地版本。文中“6B”指 benchmark 表中标注的 DiT 有效参数规模。
+
+## #architecture 03 / Layered Architecture :: 系统架构：五层分离——路由、引擎隔离、FLUX 管线、优化控制与交付回退
+
+整体架构分为五层：请求路由层（image-server :8090，零 ML 依赖）、引擎隔离层（torch_service :8098 / mflux_service :8099 / zimage_mlx_service :8097，各自独立 venv + 子进程）、自建 FLUX 管线层（T5Encoder + CLIPEncoder → FluxTransformer DiT → AutoencoderKL decoder + FlowMatchEulerScheduler）、优化控制层（4-bit/8-bit 量化、分阶段释放、`mx.compile`）和交付回退层（本地优先，降级到 DashScope 云端）。
+
+System View
+
+### MLX 图像引擎的分层系统图
+
+下图展示五层之间的职责边界与组件分布。各层通过 HTTP 或子进程调用连接，路由层不持有任何 ML 对象引用。
+
+MLX 图像引擎分层架构图
+
+从上到下依次是请求路由层、隔离推理引擎层、自建 FLUX 管线层、优化控制层和交付回退层，展示 image-server、各推理引擎、模型组件以及回退策略之间的系统关系。
+
+01
+
+### Request Routing Layer
+
+所有业务请求先经过 image-server (:8090)。这一层故意保持为纯 HTTP 路由层，不直接承担 ML 依赖和模型生命周期管理。
+
+### image-server
+
+Routing
+
+- 统一接收图像请求与状态查询
+- 根据引擎与环境分派到隔离进程
+- 保持零 ML 依赖，避免把主服务与推理环境绑死
+
+HTTP-only Core
+
+02
+
+### Isolated Engine Layer
+
+不同推理栈的依赖并不兼容，所以系统最终接受了“多引擎并存”这件事，并通过独立 venv + 子进程把冲突限制在各自边界内。
+
+### torch_service
+
+CUDA / MPS
+
+- 承担 PyTorch 路线的兼容与对照
+- 保留 NVIDIA / MPS 基准与部署路径
+
+:8098
+
+### mflux_service
+
+Third-party
+
+- 承接第三方封装与外部库能力
+- 提供快速接入，但不垄断主路径
+
+:8099
+
+### zimage_mlx_service
+
+MLX Native
+
+- 承接自建 FLUX 管线与 Apple Silicon 优化
+- 提供量化、编译和生命周期控制空间
+
+:8097
+
+03
+
+### Self-Built FLUX Pipeline Layer
+
+FLUX.1-schnell 的各组件被拆分为独立 MLX 模块：T5Encoder + CLIPEncoder（输入编码）、FluxTransformer DiT（核心计算）、AutoencoderKL decoder + FlowMatchEulerScheduler（输出解码与采样调度）。Z-Image-Turbo 在此基础上叠加 4-bit DiT 量化与分阶段释放策略。
+
+### Encoder Stack
+
+Input
+
+- T5Encoder 24 层, d_model=4096
+- CLIPEncoder 23 层, d_model=768
+- tokenizer 与权重加载链路
+
+Prompt Encoding
+
+### DiT Backbone
+
+Core
+
+- 19 个 JointTransformerBlocks
+- 38 个 SingleTransformerBlocks
+- RoPE 与 timestep embedding
+
+FluxTransformer
+
+### Decoder + Scheduler
+
+Output
+
+- AutoencoderKL decoder only
+- FlowMatchEulerScheduler
+- schnell 4-step 推理模式
+
+Rectified Flow
+
+04
+
+### Optimization Control Layer
+
+四项优化措施构成统一的资源控制层：4-bit/8-bit 量化（降低内存占用）、分阶段释放（控制峰值）、`mx.compile`（加速 DiT 计算）和进程隔离（消除依赖冲突）。
+
+### Memory & Runtime Controls
+
+Optimization
+
+- 4-bit / 8-bit 量化与模型注册
+- T5 → DiT → VAE 的分阶段内存释放
+- `mx.compile` 图编译与首次调用成本管理
+- 以进程隔离切断 torch / mflux / MLX 依赖冲突
+
+Lifecycle Control
+
+05
+
+### Delivery & Fallback Layer
+
+主路径强调本地优先，但系统没有把自己绑死在单一路线里。服务不可用时仍然保留优雅降级与云端后备。
+
+### Local-first Delivery
+
+Fallback
+
+- 默认使用本地 Z-Image-Turbo 6B 生图
+- 服务不可用时可切到 DashScope 等云端能力
+- 保证 AI-MUD 在不同环境下都能保持“可玩”，只是质量与成本不同
+
+Graceful Degradation
+
+## #path 04 / Iteration Path :: 迭代路径：C-121 → C-127 六阶段递进——骨架、内存、速度、集成
+
+C-121 至 C-127 各里程碑按时间线递进，每一阶段对准一个明确瓶颈：骨架搭建 → 内存压缩 → 推理加速 → 系统集成。
+
+C-121
+
+### 将 MLX 图像引擎定义为独立里程碑组
+
+在 AI-MUD 迭代计划中将图像引擎从零散优化升级为独立里程碑组，确保后续工作有明确的验收标准和资源分配。
+
+C-122a
+
+### 编码器层与权重加载链路
+
+完成 T5Encoder（24 层, d_model=4096）和 CLIPEncoder（23 层, d_model=768）的 MLX 前向推理，打通 tokenizer 与 safetensors 权重加载链路。
+
+C-122b
+
+### DiT backbone 接管
+
+将 FluxTransformer（19 JointTransformerBlocks + 38 SingleTransformerBlocks + RoPE + timestep embedding）移植到 MLX，使后续量化和 `mx.compile` 可以针对该层单独施加。
+
+C-122c
+
+### VAE + scheduler 补齐，引入分阶段内存释放
+
+接入 AutoencoderKL decoder 和 FlowMatchEulerScheduler，并打通 T5→DiT→VAE 的顺序执行与逐段释放。实测峰值内存从三组件同驻的 ~15GB 降至约 6GB。
+
+C-123 / C-124
+
+### 4-bit DiT 量化 + `mx.compile` 图编译
+
+对 DiT 层施加 4-bit group quantization（23GB→6GB），并通过 `mx.compile` 编译 DiT forward pass 获得约 2× 步速提升。两者组合使 16GB Mac 上的端到端推理延迟降至约 50–55s/image。
+
+C-127
+
+### 微服务隔离方案落地
+
+将 zimage_mlx_service :8097 / torch_service :8098 / mflux_service :8099 部署在各自独立 venv 中，image-server 通过 subprocess 管理生命周期，路由层自身仅依赖 fastapi / uvicorn / httpx。
+
+:::accordion
+::panel { open: true }
+### 4.1 4-bit DiT 量化：23GB → 6GB 的内存压缩路径
+FLUX.1-schnell 12B 完整模型在 bf16 精度下约需 23GB（DiT backbone ~12B × 2 bytes + T5/CLIP 编码器 + VAE decoder 权重）。对 DiT 层施加 4-bit group quantization 后，DiT 部分降至约 3GB，加上未量化的编码器和 VAE，运行时峰值约 6GB。代价：4-bit 量化引入不可忽略的图像质量降级，但目前缺少 FID / CLIP-score 等定量指标，仅有主观评估支撑“可接受”判断。
+
+::panel
+### 4.2 分阶段内存释放：把峰值问题转成时序问题
+推理过程按 T5 Encoding → DiT Sampling → VAE Decode 三阶段顺序执行。每阶段结束后通过 `del model; mx.metal.clear_cache()` 释放前一组件权重，使任意时刻仅一个大组件驻留内存。实测效果：在 16GB Mac 上，三组件同时驻留会触发 swap，分阶段释放后峰值可控制在 6GB 以内。
+
+::panel
+### 4.3 `mx.compile`：速度收益要和首次编译成本一起看
+`mx.compile` 将 DiT forward pass 编译为优化后的 Metal 计算图。实测在 M4 Max 上，DiT 每步采样时间从 ~6.5s 降至 ~3.2s（约 2× 加速），但首次调用包含约 8–12s 的编译开销。因此该优化仅在服务化场景（模型常驻、反复调用）下有正收益，冷启动脚本反而会增加总延迟。
+
+::panel
+### 4.4 MPS bfloat16：它是重要基线，不是终局答案
+PyTorch MPS 启用 bfloat16 后端到端推理约 ~55 s/image（M4 Max），相比 fp32 推理耗时明显缩短。但 PyTorch MPS 路线下，组件加载/释放、权重映射和编译优化均依赖 diffusers 内部实现，无法按项目需求自定义生命周期控制，因此被保留为 benchmark 对照而非主路径。
+
+::panel
+### 4.5 多引擎微服务隔离：解决 MLX / torch / mflux 包冲突
+MLX 依赖 `mlx` 包（Metal-only），torch_service 依赖 `torch + diffusers`（含 CUDA 后端），mflux 有独立的依赖树。三者安装到同一 venv 会引发版本冲突（如 numpy ABI 不兼容、protobuf 版本锁定等）。解决方案：每个引擎独立 venv，image-server 通过 subprocess + HTTP 调用隔离引擎，路由层自身 requirements.txt 仅包含 `fastapi` / `uvicorn` / `httpx`。
+:::
+
+## #evaluation 05 / Evaluation Method :: 评估方法与证据边界
+
+以下 benchmark 数据来自 M4 Max 64GB 与 RTX 4090 / 3090 的单次或少量重复测量，没有保存统一 prompt、分辨率和热/冷启动状态说明。因此结论限定在工程可行性层面，不构成跨平台最优性声明。
+
+:::comparison
+::versus Confirmed Observations
+### 本轮评估覆盖到的观测
+- 图像生成对比对应的是 FLUX 路线下的 Z-Image-Turbo 6B 部署版本，并明确写出了 9 steps。
+- Apple Silicon 对比里区分了 MPS torch 路线和 MLX native (`bf16 + compile`) 路线。
+- 文本侧只保留了一个代表性结果：Ollama Qwen3.5:35b-a3b (MLX) 约 24.6 t/s。
+- 结论重点是系统适配性与工程取舍，而不是跨平台绝对性能冠军。
+
+::versus Open Gaps { highlight: true }
+### 本轮评估尚未量化的维度
+- 没有保存统一的 prompt、分辨率、热启动 / 冷启动状态说明。
+- 没有 per-stage latency 拆解，因此无法判断瓶颈更多发生在编码、DiT 还是解码。
+- 没有 4-bit 量化前后的图像质量定量指标，因此不能把质量损失写成精确结论。
+- 没有完整替代路线评测，因此结论应保持在“工程可行性”层，而不是“全局最优”层。
+:::
+
+| 平台 | 模型 / 配置 | 速度 | 应该怎么读 |
+| --- | --- | --- | --- |
+| RTX 4090 24GB | Z-Image-Turbo 6B (FLUX-based), 9 steps | ~5s / image | NVIDIA 仍然是图像吞吐的绝对基线。 |
+| RTX 3090 24GB | Z-Image-Turbo 6B (FLUX-based), 9 steps | ~8s / image | 高端消费级 GPU 在生图速度上仍远快于 Apple Silicon 本地推理。 |
+| M4 Max 64GB | Z-Image-Turbo 6B (FLUX-based), 9 steps (MPS torch) | ~55s / image | 说明 Apple 平台能跑，但原生吞吐与 NVIDIA 有数量级差距。 |
+| M4 Max 64GB | MLX native (`bf16 + compile`) | ~50–55s / image | DiT 阶段 `mx.compile` 提供约 2× 步速提升，但编码器和 VAE 未编译，端到端与 MPS torch 接近。MLX 的主要优势在内存控制与服务集成。 |
+| M4 Max 64GB | Ollama Qwen3.5:35b-a3b (MLX) | ~24.6 t/s | 文本推理参考数据（非图像生成），纳入此表以说明 MLX 在文本场景下的吞吐已达实用水平。 |
+
+:::comparison
+::versus What Worked
+### 哪些判断被验证了
+- **内存优先策略有效** — 4-bit 量化 + 分阶段释放使 16GB Mac 可运行 FLUX.1-schnell 12B 级模型，验证了“先解决可装下，再优化吞吐”的路径。
+- **组件级生命周期控制可行** — 自建管线允许对 T5/CLIP/DiT/VAE 分别控制加载、量化精度、编译和释放时机。
+- **进程隔离消除包冲突** — 三套引擎各自 venv + 子进程，image-server 路由层维持 3 个 pip 依赖。
+
+::versus What It Does Not Mean { highlight: true }
+### 这些结果不应该被误读成什么
+- Apple Silicon 图像吞吐仍落后 NVIDIA 约 11×（55s vs 5s），短期无追平可能。
+- 4-bit DiT 量化存在质量降级，但缺少 FID / CLIP-score 定量对比，无法给出精确损失幅度。
+- MLX 被选为主路径是基于当前项目约束（内存控制 + 服务集成 + 零依赖路由），不构成通用场景下的框架推荐。
+:::
+
+## #conclusion 06 / Conclusion :: 结论
+
+在 Apple Silicon + 16GB 统一内存的约束下，自建 MLX 管线是一条工程上可行的本地图像生成路径。其核心价值在于内存可达性（23GB → 6GB）和系统可集成性（零依赖路由 + 进程隔离），而非吞吐竞争力（仍落后 NVIDIA ~11×）。
+
+### 已验证
+
+4-bit DiT 量化（23GB→6GB）+ T5→DiT→VAE 分阶段释放 + `mx.compile` 2× DiT 加速 + 三引擎进程隔离，组合后使 FLUX.1-schnell 12B 级模型在 16GB Mac 上以微服务形态可用。
+
+### 已知代价
+
+端到端吞吐 ~55s/image（M4 Max）vs ~5s（RTX 4090），差距 ~11×。`mx.compile` 首次调用含 8–12s 编译开销。4-bit DiT 量化的图像质量降级缺少 FID/CLIP-score 定量度量。
+
+### 下一轮最该补的数据
+
+- 量化前后图像质量指标
+- 编码 / DiT / 解码分阶段时延
+- 冷启动与热启动分离 benchmark
+- 统一的分辨率与 prompt 测试协议
+
+Final Takeaway
+
+### 核心判断
+
+本项目交付了一套可服务化的本地推理系统：FLUX.1-schnell 12B 基座经 4-bit 量化与分阶段释放收敛为 Z-Image-Turbo MLX，通过 `mx.compile` 获得 DiT 阶段 2× 加速，并以独立微服务形态接入 image-server，与 torch / mflux 引擎进程隔离并存。
+
+## #references 07 / References :: 参考来源
+
+- [1] Apple ML Research. — https://github.com/ml-explore/mlx | 提供 MLX 的官方能力边界，包括 unified memory、lazy computation、dynamic graph 与 compile 优化等关键特性。
+- [2] Black Forest Labs. — https://huggingface.co/black-forest-labs/FLUX.1-schnell | 用于锚定 FLUX.1-schnell 的 1-4 step 快速推理特性与开放使用边界，帮助解释当前路线为何重视短步数 rectified flow。
+- [3] Knowledge Hub. | 提供 MLX 图像引擎在 AI-MUD 中的阶段化位置，尤其是 C-121~C-127 的里程碑上下文。
+- [4] Hugging Face. — https://huggingface.co/illusion615/Z-Image-Turbo-MLX | 当前文章中提到的自建 MLX 产物发布位置，用于补充成果落点。
+- [5] Apple ML Research. — https://github.com/ml-explore/mlx-examples/tree/main/stable_diffusion | MLX 官方图像生成示例：StableDiffusion 类、latent 生成、VAE decode、image2image，以及面向 8GB 设备的量化路径。本报告用于对比自建 FLUX 管线与官方 SD baseline 的定位差异。
+- [6] X. Liu, C. Gong, Q. Liu. — https://arxiv.org/abs/2209.03003 | Rectified flow 的理论基础：通过学习近似直线 ODE 轨迹，使 Euler 离散化在极少步数下即可获得高质量样本。FLUX.1-schnell 的 FlowMatchEulerScheduler 基于此范式。

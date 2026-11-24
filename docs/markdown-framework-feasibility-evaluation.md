@@ -105,14 +105,14 @@
 勘察 `/Users/wellszhang/Developer/Aye aye Captain/delivery-board/` 下的文档模块源码后，确认当前看板 **Docs** 页签并非简单的只读查看器，而是已经完整实现了从目录扫描、分类导航、相对资源解析到在线原子落盘的闭环：
 
 1. **文档自动扫描与 `docs/navigation.json` 导航树机制**：
-   - `scripts/development_board_project_assets.py` 中的 `list_project_documents()` 会扫描项目工作区下最多 6 层目录内的所有 `.md`、`.mdx`、`.rst`、`.adoc` 文件（上限 800 篇，单篇读取上限 2MB）。
+   - 平台侧 `development_board_project_assets.py` 中的 `list_project_documents()` 会扫描项目工作区下最多 6 层目录内的所有 `.md`、`.mdx`、`.rst`、`.adoc` 文件（上限 800 篇，单篇读取上限 2MB）。
    - **实测验证**：对当前 Study Room 仓库调用 `list_project_documents()`，看板已自动扫出全仓 **58 份 Markdown 文档**，不仅包含 `docs/` 下的 5 份技术文档（`docs/jev-validation.md` 等），还已经自动把 `posts/claw-code-analysis/article.md`、`posts/power-platform-pay-as-you-go-billing-plan/README.md` 等 `posts/` 目录下的 `.md` 文件收入了看板文档列表！
    - 若在 `docs/navigation.json` 中登记导航树，看板 `project_assets_navigation.py` 支持通过 `"include"` 或 `"path"` 构建多级编号目录，并按「产品审阅（`human`）」与「工程契约（`agent`）」双受众视图进行归类过滤。
 2. **看板内直接查看与在线编辑能力（已上线）**：
-   - 前端 `modules/docs/selection-editor.js` 与后端 `scripts/portal_doc_inline_service.py` 已实现**原位编辑闭环**：用户在看板 Docs 阅读器中划选任意段落，即可呼出浮动工具栏，选择「✏️ 手工修改源片段」或「✨ AI 原位改写（含精简一半、语气更专业、改成表格等快捷预设）」。
+   - 前端 `modules/docs/selection-editor.js` 与平台侧 `portal_doc_inline_service.py` 已实现**原位编辑闭环**：用户在看板 Docs 阅读器中划选任意段落，即可呼出浮动工具栏，选择「✏️ 手工修改源片段」或「✨ AI 原位改写（含精简一半、语气更专业、改成表格等快捷预设）」。
    - 后端通过 `/api/portal/docs/inline-locate` 将渲染后文本精确反查映射回源 `.md` 文件的字符偏移区间（`start_offset` ~ `end_offset`）与行号，再通过 `/api/portal/docs/inline-edit` 校验 `expected_sha256`（CAS 乐观锁，防并发覆盖），通过临时文件 + `os.replace()` 原子写回磁盘上的 `.md` 源文件，并支持一键撤销（Undo）。
 3. **相对路径图片与 SVG 资源解析能力（已兼容）**：
-   - 前端 `modules/docs/asset-links.js` 中的 `resolveDocumentAssetHref(currentDocPath, rawHref)` 会根据当前 `.md` 文件所在的相对路径（例如 `posts/claw-code-analysis/article.md` 或 `docs/articles/xxx.md`），将文中的相对图片路径（如 `./media/arch.zh.svg` 或 `../figures/demo.png`）自动解析为项目根目录相对路径，并转换为 `/api/docs/asset?project=...&path=...` 接口请求，同时提供点击放大灯箱（Lightbox）与原图下载。
+   - 前端 `modules/docs/asset-links.js` 中的 `resolveDocumentAssetHref(currentDocPath, rawHref)` 会根据当前 `.md` 文件所在的相对路径（例如 `posts/claw-code-analysis/article.md` 或 `posts/<slug>/article.md`），将文中的相对图片路径（如 `./media/arch.zh.svg` 或 `../figures/demo.png`）自动解析为项目根目录相对路径，并转换为 `/api/docs/asset?project=...&path=...` 接口请求，同时提供点击放大灯箱（Lightbox）与原图下载。
 
 ### 3.2 把文章放进 `docs/` 或在 Docs 面板管理文章的三个具体阻碍与解法
 
@@ -131,7 +131,7 @@
 ### 4.1 当前仓库 GitHub Pages 部署现状勘察
 
 1. **远端与分支现状**：当前仓库远端为 `https://github.com/illusion615/KnowledgeHub.git`，工作在 `main` 分支，仓库内无 `.github/workflows/` CI/CD 构建脚本，属于典型的 **GitHub Pages 分支直出静态托管模式**（直接将 `main` 分支根目录下的 `index.html`、`assets/`、`posts/` 作为静态文件对外服务）。
-2. **交付看板 Git 发布门禁现状**：看板已内置完整的 Git 协作与一键推送管线（`scripts/portal_git_doc_sync_gate.py`），在触发 `git push` 前会自动执行四向一致性核验与文档人类化质量门禁（`development_board_doc_humanizer.py`）。
+2. **交付看板 Git 发布门禁现状**：看板已内置完整的 Git 协作与一键推送管线（平台侧 `portal_git_doc_sync_gate.py`），在触发 `git push` 前会自动执行四向一致性核验与文档人类化质量门禁（`development_board_doc_humanizer.py`）。
 
 ### 4.2 从「看板保存 MD」到「外部 Pages 生效」的全链路时延拆解
 

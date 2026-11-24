@@ -55,7 +55,7 @@ console.log("a very long code line stays in its own scroll container: 0123456789
 
 <script>window.__assistantXSS = true</script>
 
-[危险链接](javascript:alert(1))
+[危险链接历史示例](javascript:alert(1))
 
 ##### 宽内容
 

@@ -4,7 +4,7 @@
 
 ## 1. 远端仓库能力剖析与融合取舍
 
-`zaz8848/Video-Generator` 面向本地多项目复用，把视频生产划分为「真人口播」与「无人物产品介绍」两条路线，封装了 6 大类 11 款 Adu/MotionGit 风格包、9 类代码级场景编舞函数（`templates.js`）、确定性画幅安全计算（`contain`）以及字节跳动火山引擎流式语音合成（`scripts/tts.mjs`）。
+`zaz8848/Video-Generator` 面向本地多项目复用，把视频生产划分为「真人口播」与「无人物产品介绍」两条路线，封装了 6 大类 11 款 Adu/MotionGit 风格包、9 类代码级场景编舞函数（`templates.js`）、确定性画幅安全计算（`contain`）以及字节跳动火山引擎流式语音合成（`zaz8848/Video-Generator/scripts/tts.mjs`）。
 
 Study Room 采用纯静态页面与本机服务协同架构：静态站点直接托管于 GitHub Pages，本机启动 `scripts/serve-knowledge-hub.mjs` 后则通过同源安全桥接提供 Copilot 深度分镜、本地生图、配音合成与 Motion Canvas 镜头渲染。为避免在仓库内引入原仓库 `upstream/adu-motion-video` 下的 1042 个锁定文件及二进制资源，本次采用模块化内聚方案，保持 Git 仓库零外部二进制污染且单文件行数严格控制在红线以内：
 
@@ -13,7 +13,7 @@ Study Room 采用纯静态页面与本机服务协同架构：静态站点直接
 | `upstream/.../references/template-catalog.json` 及 `PROJECT_BLUEPRINT.md` | `assets/video-studio-templates.js` | 提供 `presenter`（真人口播/知识讲解）与 `product`（纯产品介绍/实测演示）双制作路线，内置 `01-A` 至 `06-A` 共 11 款 Adu/MotionGit 风格包色板与构图提示词。 |
 | `upstream/.../template/templates.js`（`TPL.hero` 至 `TPL.outro`） | `assets/video-studio-templates.js` (`buildTemplateComposition` / `buildAutoDraftFromSource`) | 将 9 类标准镜头编舞转化为 Study Room 同构图层与关键帧（`KHVideoComposition`），并在打开文章视频浮窗时自动提取章节标题、数据指标与对比步骤，生成全套口播词与分镜初稿。 |
 | `src/media.mjs`、`src/product.mjs`、`src/schema.mjs` | `assets/video-studio-templates.js` (`containBounds` / `toManifest`) 与 `scripts/video-studio.mjs` | 复刻安全留白与独立字幕带几何计算（`containBounds`），新增 `GET /api/copilot/studio/:id/manifest` 与 `POST /api/copilot/studio/:id/auto-narration` 接口，支持一键导出兼容 `Video-Generator 0.2` 的工程清单 JSON。 |
-| `scripts/tts.mjs`（火山引擎 `seed-tts-2.0` 单向流式接口） | `scripts/video-generator-tts.mjs` 与 `scripts/video-studio-media.mjs` | 迁移分块事件流解析、CRLF 兼容、音频解码与词级真实时间戳字幕聚合，支持 `--self-check` 离线自检，并在视频工作台与 macOS 本机语音并列可选。 |
+| `zaz8848/Video-Generator/scripts/tts.mjs`（火山引擎 `seed-tts-2.0` 单向流式接口） | `scripts/video-generator-tts.mjs` 与 `scripts/video-studio-media.mjs` | 迁移分块事件流解析、CRLF 兼容、音频解码与词级真实时间戳字幕聚合，支持 `--self-check` 离线自检，并在视频工作台与 macOS 本机语音并列可选。 |
 | 文章内嵌浮窗与工作台交互 | `assets/article-video-modal.js`、`assets/article-common.js`、`assets/video-studio-playback.js`、`assets/video-studio.js` | 点击文章顶栏「视频工作室」按钮时按需懒加载 `assets/article-video-modal.js`，在当前文章页内弹出毛玻璃沉浸式浮窗，保留阅读滚动位置，移除脱离文章上下文的首页全局独立入口。 |
 
 ## 2. 核心新增特性
