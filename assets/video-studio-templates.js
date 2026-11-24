@@ -6,6 +6,24 @@
   'use strict';
 
   var upstreamInfo = { repository: 'zaz8848/Video-Generator', version: '0.2.0', upstreamRepository: 'adunext/adu-motion-video', upstreamRelease: '3.12.0', upstreamFiles: 1042, license: 'MIT' };
+  var briefTemplates = [
+    { id: 'solution', name: ['方案讲解', 'Solution Explainer'], seconds: 180, music: 'bright', description: ['3 分钟 · 挑战、方案、获益与落地', '3 min · Challenge, solution, benefits and rollout'],
+      audience: ['需要快速理解方案价值的一线业务用户与业务决策者', 'Frontline users and business decision-makers evaluating a solution'],
+      goal: ['讲清业务挑战、方案如何运转、谁能获得什么，以及成本与实施边界；引导观众阅读原文。', 'Explain the challenge, how the solution works, who benefits, and the cost and implementation boundaries; invite viewers to read the article.'],
+      style: ['根据方案的信息关系选择表达方式，用简洁的文字、图形、对象动画、运镜或必要的图像讲清机制与价值，不默认每镜生图。', 'Choose text, graphics, object animation, camera movement or imagery according to the information being explained. Make the mechanism and value clear; do not default to an image per shot.'] },
+    { id: 'technical', name: ['技术拆解', 'Technical Breakdown'], seconds: 240, music: 'none', description: ['4 分钟 · 架构、流程、取舍与边界', '4 min · Architecture, flows, trade-offs and limits'],
+      audience: ['具备基础领域知识的技术负责人、架构师与开发者', 'Technical leads, architects and developers with basic domain knowledge'],
+      goal: ['让观众理解核心机制、组件分工与关键流程，能够说明方案取舍、适用条件和失败边界，不把设计目标当成实测结果。', 'Explain the core mechanism, component responsibilities and critical flows, including trade-offs, prerequisites and failure boundaries. Distinguish design targets from measured results.'],
+      style: ['以理解技术机制为目标，自主选择图形关系、动态流程、文字强调、运镜或图像；把关键路径、取舍和异常解释清楚，不预设画面类型。', 'Choose relationships, animated flows, typographic emphasis, camera moves or images to explain the mechanism, critical paths, trade-offs and failures. No prescribed visual format.'] },
+    { id: 'education', name: ['知识科普', 'Knowledge Explainer'], seconds: 180, music: 'bright', description: ['3 分钟 · 问题、概念、案例与误区', '3 min · Question, concept, example and misconceptions'],
+      audience: ['第一次接触这个主题、希望快速建立理解的普通读者', 'General readers encountering the topic for the first time'],
+      goal: ['从一个具体问题解释核心概念，用一个例子讲清原理，再指出常见误区和观众可以采取的下一步；保留事实与适用条件。', 'Start with a concrete question, explain the core concept through one example, then address misconceptions and a practical next step while preserving facts and conditions.'],
+      style: ['用观众容易理解的可视化解释概念，让文字、运动、图形或图像按需要承担不同任务；清楚、简洁，避免装饰性堆砌。', 'Explain concepts with accessible visuals. Let text, motion, graphics or images serve the explanation as needed; keep it clear and concise rather than decorative.'] },
+    { id: 'promo', name: ['短视频宣发', 'Short-form Promotion'], seconds: 60, music: 'bright', description: ['1 分钟 · 痛点、核心价值与阅读引导', '1 min · Pain point, key value and reading invitation'],
+      audience: ['尚未读过原文、需要迅速判断是否值得深入了解的潜在读者', 'Potential readers deciding whether to explore the full article'],
+      goal: ['用一个具体痛点吸引注意，只讲一个核心价值和一个有来源的例子，最后引导阅读原文；不承诺未经验证的效果，不试图覆盖全部细节。', 'Hook viewers with one concrete pain point, present one core value and one sourced example, then invite them to read the article. Do not promise unverified outcomes or cover every detail.'],
+      style: ['自主选择最能抓住核心价值的表达手段，用节奏、构图、短句和必要的视觉变化推进，不强制人物故事或图像背景，避免信息过载。', 'Choose the clearest way to convey the core value through pacing, composition, concise copy and purposeful visual change. Character stories and image backgrounds are not mandatory.'] }
+  ];
   var scenarios = [
     { id: 'presenter', name: ['真人口播 / 知识讲解', 'Presenter & Knowledge Talk'], badge: ['Adu 0.2 · 口播主线', 'Adu 0.2 · Presenter'],
       summary: ['面向人物口播、观点拆解、教程交接与方法分享，保留原声/TTS 节奏强调、分屏舞台与九类镜头编舞。', 'Built for presenter talks, breakdowns, tutorials, and method sharing with rhythmic typography, split stage, and 9 scene choreographies.'],
@@ -400,14 +418,117 @@
     };
   }
 
+  function cleanSpoken(raw, max) {
+    var text = String(raw || '').replace(/\[\d+\]/g, '').replace(/https?:\/\/\S+/g, '').replace(/[*#`_~>]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!text) return '';
+    if (max && text.length > max) text = text.slice(0, max).replace(/[，,、；;：:\s]+$/, '');
+    if (!/[。！？.!?]$/.test(text)) text += '。';
+    return text;
+  }
+
+  function buildAutoDraftFromSource(source, options) {
+    var opts = options || {};
+    var scenario = opts.scenario === 'product' ? 'product' : 'presenter';
+    var packId = opts.stylePack || (scenario === 'product' ? '03-A' : '01-A');
+    var pack = getStylePack(packId);
+    var title = String(source && source.title || '核心研究与方案拆解').replace(/\s+/g, ' ').trim();
+    var anchors = (source && Array.isArray(source.anchors) && source.anchors.length) ? source.anchors : ['overview'];
+    var rawLines = String(source && source.text || '').split(/\n+/).map(function (line) {
+      return line.replace(/\[[^\]]*\]/g, '').replace(/\s+/g, ' ').trim();
+    }).filter(function (line) {
+      return line.length >= 6 && !/^(←|Study Room|Knowledge Hub|目录|参考|References)/i.test(line);
+    });
+    var customSections = Array.isArray(opts.sections) && opts.sections.length ? opts.sections : null;
+    var blocks = [];
+    var scenes = [];
+    var idx;
+
+    if (customSections) {
+      blocks = customSections.slice(0, 6);
+    } else {
+      var chunkSize = Math.max(2, Math.ceil(rawLines.length / 5));
+      for (idx = 0; idx < rawLines.length && blocks.length < 5; idx += chunkSize) {
+        var slice = rawLines.slice(idx, idx + chunkSize);
+        var heading = slice[0].slice(0, 36).replace(/[。！？：:]+$/, '');
+        var body = slice.slice(1).join('。') || slice[0];
+        var anchor = anchors[Math.min(blocks.length, anchors.length - 1)];
+        blocks.push({ id: anchor, title: heading, body: body, hasCompare: /对比|vs|传统|方案|区别/i.test(body), hasSteps: /步骤|阶段|流程|第一|1\./.test(body), hasMetric: /\d+(?:\.\d+)?\s*(%|倍|ms|秒|天|类|项|个)/.test(body) });
+      }
+    }
+
+    if (!blocks.length) {
+      blocks.push({ id: anchors[0], title: title.slice(0, 28), body: title + '的核心机制、关键指标与落地路径。', hasMetric: true });
+    }
+
+    var leadSummary = cleanSpoken(opts.lead || (blocks[0] && blocks[0].body) || title, 180);
+    var heroNarration = cleanSpoken('本视频围绕「' + title + '」展开核心拆解。' + leadSummary, 240);
+    var heroScreen = title.slice(0, 48);
+    var heroScene = {
+      id: 'auto-hero',
+      title: '开场导览：' + title.slice(0, 22),
+      narration: heroNarration,
+      visual: '',
+      screenText: heroScreen,
+      camera: 'push',
+      anchors: [anchors[0]],
+      intent: '通过 TPL.hero 开场大标题快速建立核心命题与阅读预期。',
+      cinematography: '大字标题砸入配合副标题递进，聚焦核心价值。'
+    };
+    heroScene.composition = buildTemplateComposition('hero', heroScene, pack.id);
+    scenes.push(heroScene);
+
+    blocks.slice(0, 4).forEach(function (blk, i) {
+      var preset = blk.preset || (blk.hasCompare ? 'compare' : blk.hasSteps ? 'steps' : blk.hasMetric ? 'number' : (scenario === 'product' && i === 1 ? 'demo' : 'point'));
+      var rawTitle = String(blk.title || ('核心要点 ' + (i + 1))).replace(/^\d+[\.\s、/]*/, '').slice(0, 32);
+      var spoken = cleanSpoken(blk.narration || blk.body || rawTitle, 260);
+      var screen = String(blk.screenText || rawTitle).slice(0, 72);
+      var validAnchor = anchors.indexOf(blk.id) >= 0 ? blk.id : anchors[Math.min(i, anchors.length - 1)];
+      var sc = {
+        id: 'auto-sec-' + (i + 1),
+        title: (i + 1) + '. ' + rawTitle,
+        narration: spoken,
+        visual: '',
+        screenText: screen,
+        camera: i % 2 === 0 ? 'push' : 'static',
+        anchors: [validAnchor],
+        intent: '结合 ' + preset + ' 场景编舞提炼章节「' + rawTitle + '」的关键论据。',
+        cinematography: '采用 Adu ' + pack.id + ' 风格色板与动态图文层级推进。'
+      };
+      sc.composition = buildTemplateComposition(preset, sc, pack.id);
+      scenes.push(sc);
+    });
+
+    var outroNarration = cleanSpoken('以上是「' + title + '」的核心脉络与关键证据。你可以直接在右侧检视器微调每段口播文案、切换风格包或合成语音并导出成片。', 220);
+    var outroScene = {
+      id: 'auto-outro',
+      title: '总结与行动指引',
+      narration: outroNarration,
+      visual: '',
+      screenText: '核心要点复盘 · 深入阅读原文',
+      camera: 'pull',
+      anchors: [anchors[anchors.length - 1]],
+      intent: '通过 TPL.outro 终端总结收束全片，引导观众核验细节并阅读原文。',
+      cinematography: '深色终端命令框逐项汇聚核心结论。'
+    };
+    outroScene.composition = buildTemplateComposition('outro', outroScene, pack.id);
+    scenes.push(outroScene);
+
+    return {
+      creativeDirection: '基于当前文章章节结构与 Video-Generator (' + pack.id + ' · ' + pack.selection + ') 自动生成的口播与分镜初稿：开场（TPL.hero）→ 章节核心论据（TPL.point / number / compare / steps）→ 片尾总结（TPL.outro）。可直接逐镜微调口播台词或调用 Copilot 深度润色。',
+      scenes: scenes
+    };
+  }
+
   return {
     upstreamInfo: upstreamInfo,
+    briefTemplates: briefTemplates,
     scenarios: scenarios,
     stylePacks: stylePacks,
     scenePresets: scenePresets,
     getStylePack: getStylePack,
     getScenario: getScenario,
     buildTemplateComposition: buildTemplateComposition,
+    buildAutoDraftFromSource: buildAutoDraftFromSource,
     containBounds: containBounds,
     toManifest: toManifest
   };

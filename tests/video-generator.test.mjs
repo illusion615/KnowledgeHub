@@ -188,8 +188,44 @@ test('Studio HTTP API serves /catalog and /:id/manifest with persisted Video-Gen
     assert.equal(manifest.scenario, 'product');
     assert.equal(manifest.stylePack.id, '03-A');
     assert.equal(manifest.clips.length, 1);
+
+    await mkdir(join(root, 'posts/auto-article'), { recursive: true });
+    await writeFile(join(root, 'posts/auto-article/index.html'), '<h1>自动口播测试文章</h1><main><section id="overview"><h2>1. 架构总览</h2><p>吞吐提升 3.5 倍，延迟下降 62%。</p></section><section id="steps"><h2>2. 落地步骤</h2><p>第一步解析，第二步编译，第三步验证对比。</p></section></main>');
+    const autoOpenRes = await fetch(base + '/api/copilot/studio/open', {
+      method: 'POST', headers, body: JSON.stringify({ article: 'auto-article', autoDraft: true })
+    });
+    assert.equal(autoOpenRes.status, 200);
+    const autoProject = await autoOpenRes.json();
+    assert.equal(autoProject.cursor, 2, 'opening from article modal with autoDraft jumps directly to Scene Workbench');
+    assert.ok(autoProject.scenes.length >= 3, 'autoDraft populates opening, body, and outro scenes');
+    assert.ok(autoProject.scenes.every(sc => sc.narration && sc.composition && sc.composition.layers.length >= 2));
+
+    const regenRes = await fetch(base + `/api/copilot/studio/${autoProject.id}/auto-narration`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        revision: autoProject.revision,
+        brief: { ...autoProject.brief, scenario: 'product', stylePack: '04-A' }
+      })
+    });
+    assert.equal(regenRes.status, 200);
+    const regenProject = await regenRes.json();
+    assert.equal(regenProject.brief.stylePack, '04-A');
+    assert.match(regenProject.creativeDirection, /04-A/);
+    assert.ok(regenProject.scenes.length >= 3);
   } finally {
     await new Promise(resolve => { server.close(resolve); server.closeAllConnections(); });
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('index.html has no standalone Video Studio links and article-common.js mounts in-page overlay modal', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const indexHtml = await readFile(join(process.cwd(), 'index.html'), 'utf8');
+  assert.doesNotMatch(indexHtml, /video-studio-home-btn|videoStudioSettingsLink/);
+
+  const articleCommon = await readFile(join(process.cwd(), 'assets/article-common.js'), 'utf8');
+  assert.match(articleCommon, /article-video-modal\.js/);
+  assert.match(articleCommon, /KHArticleVideoModal/);
+});
+

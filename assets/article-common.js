@@ -545,18 +545,30 @@
   var addVideoStudioLink = function () {
     var match = /^\/(?:[^/]+\/)?posts\/([a-z0-9-]+)\//.exec(window.location.pathname);
     var bar = document.querySelector('.topbar');
-    var actions;
-    var link;
-    var syncLabel;
+    var actions, link, syncLabel, slug;
     if (!match || !bar || document.querySelector('[data-video-studio]')) return;
+    slug = match[1];
     actions = bar.querySelector('.topbar-actions') || bar;
     link = document.createElement('a');
     link.className = 'present-toggle';
     link.setAttribute('data-video-studio', '');
-    link.href = '../../video-studio.html?article=' + encodeURIComponent(match[1]);
-    link.target = '_blank';
-    link.rel = 'noopener';
+    link.setAttribute('aria-haspopup', 'dialog');
+    link.href = '../../video-studio.html?article=' + encodeURIComponent(slug);
     link.innerHTML = '<svg class="present-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4l4 5M14 4l4 5M10 12l5 3-5 3z"/></svg><span class="topbar-action-label" data-zh="视频工作室" data-en="Video Studio"></span>';
+    link.addEventListener('click', function (ev) {
+      if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return;
+      ev.preventDefault();
+      if (window.KHArticleVideoModal && typeof window.KHArticleVideoModal.open === 'function') {
+        window.KHArticleVideoModal.open(slug);
+        return;
+      }
+      var script = document.createElement('script');
+      script.src = '../../assets/article-video-modal.js';
+      script.onload = function () {
+        if (window.KHArticleVideoModal) window.KHArticleVideoModal.open(slug);
+      };
+      document.head.appendChild(script);
+    });
     syncLabel = function () {
       var label = document.documentElement.lang === 'en' ? 'Video Studio' : '视频工作室';
       link.title = label;

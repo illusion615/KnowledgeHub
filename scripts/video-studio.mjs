@@ -344,10 +344,27 @@ export function createVideoStudio({ root, dataRoot = join(root, 'private/video-s
       catch (error) {
         if (error.code !== 'ENOENT') throw error;
         const now = new Date().toISOString();
+        const brief = defaultBrief();
+        const autoDraft = body.autoDraft === true ? vgCatalog.buildAutoDraftFromSource(source, { scenario: brief.scenario || 'presenter', stylePack: brief.stylePack || '01-A' }) : null;
+        const initialScenes = autoDraft ? validateScenes(autoDraft.scenes, source) : [];
         await atomic(join(directory(id), 'project.json'), {
           version: 1, id, revision: 1, createdAt: now, updatedAt: now, source,
-          brief: defaultBrief(), briefApproval: null, cursor: 1, scenes: [], planApproval: null, assetApprovals: {}, artifacts: {}, jobs: []
+          brief, briefApproval: autoDraft ? digest(brief) : null, cursor: autoDraft ? 2 : 1,
+          scenes: initialScenes, ...(autoDraft ? { creativeDirection: autoDraft.creativeDirection } : {}),
+          planApproval: null, assetApprovals: {}, artifacts: {}, jobs: []
         }, true);
+      }
+      if (body.autoDraft === true) {
+        const existing = await read(id);
+        if (!existing.scenes.length && existing.revision === 1 && !existing.jobs.length) {
+          await mutate(id, current => {
+            const autoDraft = vgCatalog.buildAutoDraftFromSource(current.source, { scenario: current.brief.scenario || 'presenter', stylePack: current.brief.stylePack || '01-A' });
+            current.scenes = validateScenes(autoDraft.scenes, current.source);
+            current.creativeDirection = autoDraft.creativeDirection;
+            current.briefApproval = digest(current.brief);
+            current.cursor = 2;
+          });
+        }
       }
       send(200, await exposed(id)); return;
     }
@@ -360,12 +377,31 @@ export function createVideoStudio({ root, dataRoot = join(root, 'private/video-s
       });
       return;
     }
-    const match = /^\/(p-[a-f0-9]{24})(?:\/(draft|approve|jobs|cancel|source|media|cursor|manifest))?$/.exec(route);
+    const match = /^\/(p-[a-f0-9]{24})(?:\/(draft|approve|jobs|cancel|source|media|cursor|manifest|auto-narration))?$/.exec(route);
     if (!match) fail(404, 'STUDIO_ROUTE', '视频工作室接口不存在。');
     const [, id, action] = match;
     if (!action && req.method === 'GET') { send(200, await exposed(id)); return; }
     if (action === 'manifest' && req.method === 'GET') {
       send(200, vgCatalog.toManifest(await exposed(id)));
+      return;
+    }
+    if (action === 'auto-narration' && req.method === 'POST') {
+      await mutate(id, project => {
+        if (body && body.revision !== undefined) revision(project, body);
+        if (body && body.brief) project.brief = validateBrief(body.brief);
+        const autoDraft = vgCatalog.buildAutoDraftFromSource(project.source, {
+          scenario: project.brief.scenario || 'presenter',
+          stylePack: project.brief.stylePack || '01-A',
+          sections: Array.isArray(body && body.sections) ? body.sections : undefined
+        });
+        project.scenes = validateScenes(autoDraft.scenes, project.source);
+        project.creativeDirection = autoDraft.creativeDirection;
+        project.briefApproval = digest(project.brief);
+        project.planApproval = null;
+        project.cursor = 2;
+        project.revision++;
+      });
+      send(200, await exposed(id));
       return;
     }
     if (action === 'media' && req.method === 'GET') {

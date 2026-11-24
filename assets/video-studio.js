@@ -2,7 +2,8 @@ document.addEventListener('DOMContentLoaded', function () {
   'use strict';
   var project = null, step = 1, dirty = false, poll = null, pending = false;
   var language = localStorage.getItem('lang') || 'zh';
-  var urls = {}, mediaRequests = {}, article = new URLSearchParams(location.search).get('article');
+  var urls = {}, mediaRequests = {}, params = new URLSearchParams(location.search), article = params.get('article');
+  var embedMode = params.get('embed') === '1', autoDraftParam = params.get('autoDraft') === '1', localOffline = false;
   var localMode = location.protocol === 'http:' && (location.hostname === '127.0.0.1' || location.hostname === 'localhost');
   var galleryId = null, customCompositionOverrides = {};
   var simulation = { playing: false, paused: false, loading: false, token: 0, elapsed: 0, duration: 0, started: 0, frame: null, audio: null };
@@ -12,36 +13,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var vg = window.KHVideoGenerator;
   var steps = [['需求确认', 'Brief'], ['镜头工作台', 'Scene Workbench'], ['镜头渲染', 'Scene Rendering'], ['整片导出', 'Export']];
   var kinds = { plan: ['生成分镜', 'Storyboard'], direct: ['AI重新设计画面', 'AI Visual Redesign'], produce: ['制作完整视频', 'Produce Full Video'], image: ['本地生图', 'Local image'], voice: ['本机配音', 'Local voice'], clip: ['镜头渲染', 'Scene render'], export: ['拼接导出', 'Export'], assets: ['批量准备素材', 'Batch Assets'], clips: ['渲染全部镜头', 'Render All Scenes'] };
-  var briefTemplates = [
-    {
-      id: 'solution', name: ['方案讲解', 'Solution Explainer'], seconds: 180, music: 'bright',
-      description: ['3 分钟 · 挑战、方案、获益与落地', '3 min · Challenge, solution, benefits and rollout'],
-      audience: ['需要快速理解方案价值的一线业务用户与业务决策者', 'Frontline users and business decision-makers evaluating a solution'],
-      goal: ['讲清业务挑战、方案如何运转、谁能获得什么，以及成本与实施边界；引导观众阅读原文。', 'Explain the challenge, how the solution works, who benefits, and the cost and implementation boundaries; invite viewers to read the article.'],
-      style: ['根据方案的信息关系选择表达方式，用简洁的文字、图形、对象动画、运镜或必要的图像讲清机制与价值，不默认每镜生图。', 'Choose text, graphics, object animation, camera movement or imagery according to the information being explained. Make the mechanism and value clear; do not default to an image per shot.']
-    },
-    {
-      id: 'technical', name: ['技术拆解', 'Technical Breakdown'], seconds: 240, music: 'none',
-      description: ['4 分钟 · 架构、流程、取舍与边界', '4 min · Architecture, flows, trade-offs and limits'],
-      audience: ['具备基础领域知识的技术负责人、架构师与开发者', 'Technical leads, architects and developers with basic domain knowledge'],
-      goal: ['让观众理解核心机制、组件分工与关键流程，能够说明方案取舍、适用条件和失败边界，不把设计目标当成实测结果。', 'Explain the core mechanism, component responsibilities and critical flows, including trade-offs, prerequisites and failure boundaries. Distinguish design targets from measured results.'],
-      style: ['以理解技术机制为目标，自主选择图形关系、动态流程、文字强调、运镜或图像；把关键路径、取舍和异常解释清楚，不预设画面类型。', 'Choose relationships, animated flows, typographic emphasis, camera moves or images to explain the mechanism, critical paths, trade-offs and failures. No prescribed visual format.']
-    },
-    {
-      id: 'education', name: ['知识科普', 'Knowledge Explainer'], seconds: 180, music: 'bright',
-      description: ['3 分钟 · 问题、概念、案例与误区', '3 min · Question, concept, example and misconceptions'],
-      audience: ['第一次接触这个主题、希望快速建立理解的普通读者', 'General readers encountering the topic for the first time'],
-      goal: ['从一个具体问题解释核心概念，用一个例子讲清原理，再指出常见误区和观众可以采取的下一步；保留事实与适用条件。', 'Start with a concrete question, explain the core concept through one example, then address misconceptions and a practical next step while preserving facts and conditions.'],
-      style: ['用观众容易理解的可视化解释概念，让文字、运动、图形或图像按需要承担不同任务；清楚、简洁，避免装饰性堆砌。', 'Explain concepts with accessible visuals. Let text, motion, graphics or images serve the explanation as needed; keep it clear and concise rather than decorative.']
-    },
-    {
-      id: 'promo', name: ['短视频宣发', 'Short-form Promotion'], seconds: 60, music: 'bright',
-      description: ['1 分钟 · 痛点、核心价值与阅读引导', '1 min · Pain point, key value and reading invitation'],
-      audience: ['尚未读过原文、需要迅速判断是否值得深入了解的潜在读者', 'Potential readers deciding whether to explore the full article'],
-      goal: ['用一个具体痛点吸引注意，只讲一个核心价值和一个有来源的例子，最后引导阅读原文；不承诺未经验证的效果，不试图覆盖全部细节。', 'Hook viewers with one concrete pain point, present one core value and one sourced example, then invite them to read the article. Do not promise unverified outcomes or cover every detail.'],
-      style: ['自主选择最能抓住核心价值的表达手段，用节奏、构图、短句和必要的视觉变化推进，不强制人物故事或图像背景，避免信息过载。', 'Choose the clearest way to convey the core value through pacing, composition, concise copy and purposeful visual change. Character stories and image backgrounds are not mandatory.']
-    }
-  ];
+  var briefTemplates = vg ? vg.briefTemplates : [];
   function t(zh, en) { return language === 'en' ? en : zh; }
   function esc(value) { return String(value == null ? '' : value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
   function say(value, error) { message.textContent = value; message.className = error ? 'studio-error' : ''; }
@@ -396,12 +368,13 @@ document.addEventListener('DOMContentLoaded', function () {
     } else if (step === 2) {
       planning = project.jobs.some(function (job) { return job.kind === 'plan' && ['queued', 'running'].indexOf(job.status) >= 0; });
       html += '<div class="studio-workbench-header">' +
+        button(t('自动生成口播分镜', 'Auto-Generate Narration'), 'auto-narration', null, false, busy) +
         button(planning ? t('分镜生成中…', 'Generating Storyboard…') : project.scenes.length ? t('重新生成分镜', 'Regenerate Storyboard') : t('生成分镜', 'Generate Storyboard'), 'plan', null, !project.scenes.length, busy || dirty) +
         (project.scenes.length ? button(assetPreparationLabel(), 'prepare-assets', null, false, busy) : '') +
         (project.scenes.length ? button(productionLabel(), 'produce', null, true, busy) : '') +
         (project.currentExport ? button(t('预览 / 下载成片', 'Preview / Download Film'), 'view-export') : '') +
         '<small class="studio-generation-note">' +
-        t('分镜设计使用Copilot云端，可能消耗额度。', 'Storyboard design uses Copilot cloud; credits may apply.') + '</small>';
+        t('自动生成口播免额度秒级就绪；Copilot 分镜设计可能消耗云端额度。', 'Auto-narration is instant & free; Copilot storyboard design may use cloud credits.') + '</small>';
       html += '<div class="studio-actions">' + button(t('保存修改', 'Save'), 'save', null, false, busy) + '</div>' +
         '<div class="studio-actions studio-workbench-end">' + button(t('作业记录', 'Jobs'), 'toggle-jobs') + '</div>';
       if (project.scenes.length) html += productionProgress();
@@ -498,6 +471,35 @@ document.addEventListener('DOMContentLoaded', function () {
     if (name === 'vg-scenario') { applyVGScenario(id); return; }
     if (name === 'vg-pack') { applyVGStylePack(id); return; }
     if (name === 'vg-scene-preset') { applyScenePreset(id); return; }
+    if (name === 'auto-narration') {
+      if (localOffline) {
+        var offlineDraft = vg.buildAutoDraftFromSource(project.source, { scenario: project.brief.scenario || 'presenter', stylePack: project.brief.stylePack || '01-A' });
+        project.scenes = offlineDraft.scenes.map(function (sc) { return Object.assign({}, sc, { artifacts: {}, imageRequired: false, assetsReady: false }); });
+        project.creativeDirection = offlineDraft.creativeDirection;
+      } else {
+        project = await request(project.id + '/auto-narration', { revision: project.revision, brief: step === 1 ? brief() : project.brief });
+      }
+      customCompositionOverrides = {}; dirty = false; step = 2; render();
+      say(t('已结合当前文章与 Video-Generator 规范自动生成口播与分镜草稿，可直接微调文案或合成配音。', 'Auto-generated narration and storyboard draft using Video-Generator templates. Fine-tune copy or synthesize voice directly.'));
+      return;
+    }
+    if (localOffline) {
+      if (['brief', 'save', 'next', 'workbench', 'approve-plan'].indexOf(name) >= 0) {
+        if (name === 'brief') { project.brief = Object.assign({}, project.brief, brief()); step = 2; }
+        else if (name === 'save') { if (step === 1) project.brief = Object.assign({}, project.brief, brief()); else if (step === 2) project.scenes = collectScenes().map(function (s) { return Object.assign({}, s, { artifacts: {}, imageRequired: false, assetsReady: false }); }); }
+        else if (name === 'next') step = Math.min(4, step + 1);
+        else if (name === 'workbench') step = 2;
+        else if (name === 'approve-plan') project.planApproved = true;
+        customCompositionOverrides = {}; dirty = false; render();
+        say(t('已在当前浏览器会话更新草稿；如需本机语音合成与 MP4 渲染，请启动 node scripts/serve-knowledge-hub.mjs。', 'Updated draft in browser session; start node scripts/serve-knowledge-hub.mjs for local voice synthesis and MP4 rendering.'));
+        return;
+      }
+      if (['produce', 'prepare-assets', 'plan', 'direct', 'image', 'voice', 'clip', 'clips', 'export', 'batch-assets', 'batch-images', 'batch-voices'].indexOf(name) >= 0) {
+        document.getElementById('studio-local').hidden = false;
+        say(t('语音合成与视频渲染需要本机服务，请运行 node scripts/serve-knowledge-hub.mjs。', 'Voice synthesis and video rendering require the local server: run node scripts/serve-knowledge-hub.mjs.'), true);
+        return;
+      }
+    }
     if (name === 'export-manifest') {
       manifestData = await request(project.id + '/manifest');
       blobUrl = URL.createObjectURL(new Blob([JSON.stringify(manifestData, null, 2)], { type: 'application/json' }));
@@ -617,7 +619,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     if (!project || !project.scenes.length || document.body.classList.contains('studio-jobs-open') || event.altKey || event.ctrlKey || event.metaKey ||
       event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
-    if (event.key === 'Escape') { stopSimulation(); simulationStatus(t('预演已停止。', 'Simulation stopped.')); return; }
+    if (event.key === 'Escape') {
+      if (simulation.playing || simulation.paused) { stopSimulation(); simulationStatus(t('预演已停止。', 'Simulation stopped.')); return; }
+      if (embedMode && window.parent !== window) { window.parent.postMessage({ type: 'kh-studio-close-modal' }, location.origin); return; }
+      stopSimulation(); simulationStatus(t('预演已停止。', 'Simulation stopped.')); return;
+    }
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
     index = project.scenes.findIndex(function (scene) { return scene.id === galleryId; }) + (event.key === 'ArrowLeft' ? -1 : 1);
     if (index >= 0 && index < project.scenes.length) { event.preventDefault(); selectGallery(project.scenes[index].id); }
@@ -644,25 +650,46 @@ document.addEventListener('DOMContentLoaded', function () {
   window.addEventListener('beforeunload', function (event) { if (dirty) { event.preventDefault(); event.returnValue = ''; } });
   window.addEventListener('pagehide', function () { stopSimulation(); pauseStageMedia(); if (poll) clearInterval(poll); Object.keys(urls).forEach(function (key) { URL.revokeObjectURL(urls[key]); }); });
   if (localStorage.getItem('theme')) document.documentElement.setAttribute('data-theme', localStorage.getItem('theme'));
+  if (embedMode) {
+    var embedClose = document.getElementById('studio-embed-close'), homeLink = document.getElementById('studio-home-link');
+    var closeEmbed = function (ev) { if (ev) ev.preventDefault(); stopSimulation(); pauseStageMedia(); if (window.parent !== window) window.parent.postMessage({ type: 'kh-studio-close-modal' }, location.origin); };
+    if (embedClose) { embedClose.hidden = false; embedClose.addEventListener('click', closeEmbed); }
+    if (homeLink && window.parent !== window) homeLink.addEventListener('click', closeEmbed);
+  }
   applyLanguage();
-  if (!localMode) { client.setLocalOnly(); return; }
+  function bootOfflineDraft(sourceData) {
+    var src = sourceData || { slug: article || 'article', title: article || '当前文章', anchors: ['overview'], text: '' };
+    var draft = vg.buildAutoDraftFromSource(src, { scenario: 'presenter', stylePack: '01-A', sections: src.sections });
+    localOffline = true;
+    project = { id: 'p-local-preview', revision: 1, stale: false, cursor: 2, planApproved: true, canExport: false, currentExport: null,
+      source: { slug: src.slug, title: src.title, anchors: src.anchors && src.anchors.length ? src.anchors : ['overview'], text: src.text || src.title },
+      brief: { audience: '希望快速掌握文章核心价值的读者', goal: '提炼关键论点、数据指标与落地步骤', style: vg.getStylePack('01-A').stylePrompt, seconds: 180, voice: 'Yue (Premium)', voiceRate: 235, music: 'bright', idea: '', scenario: 'presenter', stylePack: '01-A' },
+      creativeDirection: draft.creativeDirection, scenes: draft.scenes.map(function (sc) { return Object.assign({}, sc, { artifacts: {}, imageRequired: false, assetsReady: false }); }), jobs: [] };
+    step = 2; workspace.hidden = false; render(); client.setLocalOnly();
+    say(t('已基于当前文章自动生成口播词与动态分镜预演；启动本机服务即可一键合成语音与导出 MP4。', 'Auto-generated narration and animated storyboard preview from the article; start the local server to synthesize voice and export MP4.'));
+  }
+  window.addEventListener('message', function (event) {
+    if (event.origin !== location.origin || !event.data || event.data.type !== 'kh-article-context') return;
+    if (localOffline && event.data.source) bootOfflineDraft(event.data.source);
+  });
+  if (!localMode) {
+    if (embedMode || autoDraftParam) { bootOfflineDraft(); if (window.parent !== window) window.parent.postMessage({ type: 'kh-studio-request-context' }, location.origin); return; }
+    client.setLocalOnly(); return;
+  }
   if (!article || !/^[a-z0-9][a-z0-9-]{0,99}$/.test(article)) { say(t('请从文章顶部的视频工作室入口打开。', 'Open Video Studio from an article toolbar.'), true); detectCopilot(); return; }
-  Promise.all([request('open', { article: article }), request('capabilities')]).then(function (results) {
+  Promise.all([request('open', { article: article, autoDraft: embedMode || autoDraftParam }), request('capabilities')]).then(function (results) {
     var capability = results[1];
     project = results[0]; step = restoredStep(project.cursor); workspace.hidden = false;
-    document.getElementById('studio-capabilities').textContent =
-      t('本地生图 / 配音 / 渲染：', 'Local Image / Voice / Renderer: ') +
+    document.getElementById('studio-capabilities').textContent = t('本地生图 / 配音 / 渲染：', 'Local Image / Voice / Renderer: ') +
       [capability.image, capability.voice, capability.renderer].map(function (ready) { return ready ? t('就绪', 'Ready') : t('需准备', 'Setup Needed'); }).join(' / ');
     render();
+    if ((embedMode || autoDraftParam) && project.scenes.length) say(t('已结合当前文章自动生成口播与分镜初稿，可直接在右侧调整口播台词、切换风格或合成配音。', 'Auto-generated narration and storyboard draft for this article. Fine-tune narration, switch styles, or synthesize voice directly.'));
     detectCopilot();
   }).catch(function (error) {
     if (error && (error.code === 'BRIDGE_NOT_FOUND' || error.code === 'BRIDGE_OFFLINE')) {
-      say('', false);
-      client.setLocalOnly();
-      return;
+      if (embedMode || autoDraftParam) { bootOfflineDraft(); if (window.parent !== window) window.parent.postMessage({ type: 'kh-studio-request-context' }, location.origin); return; }
+      say('', false); client.setLocalOnly(); return;
     }
-    say(error.message, true);
-    document.getElementById('studio-local').hidden = false;
-    detectCopilot();
+    say(error.message, true); document.getElementById('studio-local').hidden = false; detectCopilot();
   });
 });
