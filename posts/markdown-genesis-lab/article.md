@@ -14,7 +14,7 @@ panel:
   - 确定性静态编译 — 100% 通过 validate.js 全部 14 项门禁 || Deterministic Compilation — Passes all 14 validate.js static gates
   - 声明式沙盒插槽 (:::sandbox) — 无损挂载复杂 Canvas 交互实验 || Declarative Sandbox Slot (:::sandbox) — Mounts Canvas simulations cleanly
 metrics:
-  - 支持标准组件指令 || Canonical Directives | 9 类 | 覆盖章节、手风琴、洞察网格、对比、流程、引用、公式、双语图与沙盒 || Covers sections, accordions, insight grids, comparisons, flows, callouts, math, diagrams, and sandboxes
+  - 支持标准组件指令 || Canonical Directives | 10 类 | 覆盖章节、手风琴、洞察网格、对比、流程、引用、公式、统一图表与沙盒 || Covers sections, accordions, insight grids, comparisons, flows, callouts, math, unified figures, and sandboxes
   - 静态契约门禁通过率 || Static Gate Pass Rate | 14 / 14 | 100% 满足脚本顺序、零内联样式、双语安全与演示表面契约 || 100% compliant with script order, zero inline styles, bilingual safety, and surface contracts
   - 运行时后端服务依赖 || Backend Dependencies | 0 | 纯静态 HTML 直出 GitHub Pages，首屏零异步拉取白屏或缓存滞后 || Pure static HTML for GitHub Pages with zero async fetch FOUC or cache lag
 style:
@@ -24,7 +24,7 @@ style:
 
 ## #overview 01 / Architecture Overview :: 为什么选择编译期纯静态双模管线 || Why Compile-Time Pure Static Dual-Mode Pipeline
 
-如果仅在浏览器端通过异步请求动态拉取 Markdown 渲染 DOM，会在页面加载时与现有的演示幻灯片收集器、伴读提取器及静态质量门禁产生时序冲突 [1]。采用编译期静态生成方案后，作者依然只维护极简的 Markdown 源稿，而产出的静态页面拥有与手写 HTML 完全一致的 DOM 契约 [2]。
+如果仅在浏览器端通过异步请求动态拉取 Markdown 渲染 DOM，会在页面加载时与现有的演示幻灯片收集器、伴读提取器及静态质量门禁产生时序冲突 [1]。采用编译期静态生成方案后，作者依然只维护极简的 Markdown 源稿，而产出的静态页面拥有与手写 HTML 完全一致的 DOM 契约 [2]。 || Fetching Markdown asynchronously in the browser causes timing conflicts with slide collectors, reading assistants, and static gates [1]. Compile-time static generation lets authors edit clean Markdown while delivering identical DOM contracts [2].
 
 :::insight-grid { cols: 3, title: "三大核心工程收益 || Three Core Engineering Gains" }
 ::card 01
@@ -46,7 +46,7 @@ GitHub Pages 对异步拉取请求默认施加 10 分钟浏览器缓存，而直
 
 ## #comparison 02 / Architecture Comparison :: 纯客户端异步拉取 vs 编译期纯静态生成 || Client-Side Async Fetch vs Compile-Time Static Generation
 
-下面从人工编写成本、演示模式兼容性、静态门禁校验以及缓存表现四个维度，对比纯客户端动态拉取方案与编译期纯静态双模管线 [1]。
+下面从人工编写成本、演示模式兼容性、静态门禁校验以及缓存表现四个维度，对比纯客户端动态拉取方案与编译期纯静态双模管线 [1]。 || Below we compare client-side runtime fetching against the compile-time static dual-mode pipeline across authoring cost, presentation compatibility, static validation, and caching [1].
 
 :::comparison { title: "两种 Markdown 演进路线对比 || Two Markdown Evolution Approaches" }
 ::versus 方案 A：客户端运行时拉取 || Approach A: Client Runtime Fetch
@@ -58,24 +58,24 @@ GitHub Pages 对异步拉取请求默认施加 10 分钟浏览器缓存，而直
 人工只改干净的 `article.md`，编译器基于 `markdown-it` 输出 100% 符合设计系统契约的静态 HTML，兼顾编写效率与满血交互体验。 || Authors edit clean article.md while the markdown-it compiler outputs static HTML that satisfies every design system contract.
 :::
 
-| 评估维度 | 纯客户端动态拉取 | 手写 800 行静态 HTML | Genesis 纯静态编译管线 |
+| 评估维度 || Dimension | 纯客户端动态拉取 || Client Runtime Fetch | 手写 800 行静态 HTML || Handwritten Static HTML | Genesis 纯静态编译管线 || Genesis Static Pipeline |
 |------|------|------|------|
-| 人工源文件体积 | 极简（~150 行 MD） | 臃肿（500~3000 行 HTML） | 极简（~150 行 MD） |
-| GitHub Pages 零后端兼容 | 存在 10 分钟二次缓存滞后 | 100% 原生静态 | 100% 原生静态 |
-| 演示模式与 PPTX 导出 | 异步竞态易失效 | 完整支持 | 完整支持 |
-| validate.js 14 项静态门禁 | 空壳无法通过结构检查 | 需人工维护属性转义 | 编译器自动保证 100% 通过 |
+| 人工源文件体积 || Source File Size | 极简（~150 行 MD） || Minimal (~150 lines MD) | 臃肿（500~3000 行 HTML） || Verbose (500-3000 lines HTML) | 极简（~150 行 MD） || Minimal (~150 lines MD) |
+| GitHub Pages 零后端兼容 || GitHub Pages Static | 存在 10 分钟二次缓存滞后 || 10-min secondary cache lag | 100% 原生静态 || 100% native static | 100% 原生静态 || 100% native static |
+| 演示模式与 PPTX 导出 || Slides & PPTX Export | 异步竞态易失效 || Race conditions on load | 完整支持 || Full support | 完整支持 || Full support |
+| validate.js 14 项静态门禁 || 14 Static Gates | 空壳无法通过结构检查 || Shell fails DOM checks | 需人工维护属性转义 || Manual escaping required | 编译器自动保证 100% 通过 || 100% compiler-verified |
 
 ### 渐进披露折叠面板：编译期如何自动补齐双语与无障碍属性 || Progressive Disclosure: Auto-Injected Bilingual and ARIA Attributes
 
-在 Markdown 源稿中，作者只需书写标准的三级标题 `###` 或 `:::accordion` 容器，编译器便会自动生成带 `data-accordion`、`aria-expanded` 及中英双语属性的手风琴抽屉，在阅读模式下收起支线细节，在演示模式下自动拆分为独立幻灯片。
+在 Markdown 源稿中，作者只需书写标准的三级标题 `###` 或 `:::accordion` 容器，编译器便会自动生成带 `data-accordion`、`aria-expanded` 及中英双语属性的手风琴抽屉，在阅读模式下收起支线细节，在演示模式下自动拆分为独立幻灯片。 || Authors write standard `###` headings or `:::accordion` blocks, and the compiler emits accessible bilingual drawers that stay compact during reading and expand into individual slides in presentation mode.
 
 ### 为什么不把全部 161 篇存量文章一次性逆向转回 Markdown || Why Existing 161 Articles Are Not Force-Converted in Bulk
 
-存量文章中包含 31 篇重度定制的多模块交互沙盒与特定业务样式，强行批量逆向转换会造成视觉折损。双轨共存策略让存量页面保持 100% 稳定，同时赋予新文章极速 Markdown 创作体验。
+存量文章中包含 31 篇重度定制的多模块交互沙盒与特定业务样式，强行批量逆向转换会造成视觉折损。双轨共存策略让存量页面保持 100% 稳定，同时赋予新文章极速 Markdown 创作体验。 || Thirty-one existing articles embed bespoke multi-module sandboxes; dual-track coexistence keeps all 161 legacy pages untouched while giving new articles fast Markdown authoring.
 
 ## #workflow 03 / Compilation Workflow :: 编译流水线、双语矢量图与数学公式验证 || Compilation Workflow, Bilingual Diagrams, and Math Verification
 
-编译器以 `assets/vendor/markdown-it-14.1.0/markdown-it.min.js` 为底层解析内核，串联 YAML 元数据解析、LaTeX 公式保护令牌、9 类语义容器转换与静态门禁自检 [2]。
+编译器以 `assets/vendor/markdown-it-14.1.0/markdown-it.min.js` 为底层解析内核，串联 YAML 元数据解析、LaTeX 公式保护令牌、10 类语义容器转换与静态门禁自检 [2]。 || Powered by `markdown-it 14.1.0`, the compiler chains YAML frontmatter parsing, LaTeX math protection, ten semantic container directives, and static contract verification [2].
 
 :::flow { title: "Genesis 五步确定性编译流水线 || Five-Step Deterministic Compilation Flow" }
 1. **解析 YAML Frontmatter || Parse YAML Frontmatter** — 提取双语标题、导语、右侧摘要卡片、底部核心指标卡与主题色令牌，构建 `.hero` 首屏结构。 || Extract bilingual titles, lead copy, hero panel, metrics cards, and theme tokens to build the .hero header.
@@ -89,7 +89,7 @@ GitHub Pages 对异步拉取请求默认施加 10 分钟浏览器缓存，而直
 图 1：从唯一人工真源 `article.md` 到 GitHub Pages 自包含静态 HTML 的三阶段确定性编译链路，支持中英双语 SVG 自动切换与 `.drawio` 源文件下载。 || Figure 1: Three-stage deterministic compilation pipeline from article.md to self-contained GitHub Pages static HTML with automatic bilingual SVG switching.
 :::
 
-在数理推导与性能建模方面，编译器原生支持行内公式如阻尼包络衰减率 $\gamma = e^{-\lambda t}$ 以及独立块级公式（自动映射为 `.math-block[data-latex]` 供 `article-math.js` 渲染）：
+在数理推导与性能建模方面，编译器原生支持行内公式如阻尼包络衰减率 $\gamma = e^{-\lambda t}$ 以及独立块级公式（自动映射为 `.math-block[data-latex]` 供 `article-math.js` 渲染）： || For mathematical modeling, the compiler natively supports inline expressions such as $\gamma = e^{-\lambda t}$ and display equations rendered via `article-math.js`:
 
 $$
 \mathcal{L}_{\text{compile}}(M) = \sum_{k=1}^{N} \left\| \Phi_{\text{static}}\!\left(\text{AST}(M_k)\right) - H_k^{\star} \right\|_2^2 = 0
@@ -104,9 +104,82 @@ graph LR
     HTML --> GHP["GitHub Pages 零后端托管"]
 ```
 
-## #sandbox 04 / Interactive Sandbox :: 声明式纯静态交互沙盒插槽验证 || Declarative Pure Static Interactive Sandbox Slot
+## #figure-gallery 04 / Figure Engine v2 Gallery :: 全品类声明式拓扑与数据可视化样板画廊 || Unified Declarative Topology and Data Visualization Gallery
 
-对于需要实时参数推演或 Canvas 物理仿真的 L3 级文章，`:::sandbox` 指令提供了干净的挂载契约：Markdown 源稿只负责声明容器 ID、标题说明以及同目录纯静态 `.js` / `.css` 路径，交互逻辑完全在浏览器端独立运行，无需任何后端服务器支持 [1][2]。
+通过全新的 `:::figure` 指令，作者可直接在 Markdown 内书写简洁的声明式配置（或引用外部 `.figure.json`），一次性生成绑定页面 `--fig-*` 双模设计令牌的内联双语矢量图，彻底告别暗色模式下的白底补丁与双工具风格分裂 [1][3]。 || Using the unified `:::figure` directive, authors can write concise inline declarative specs or reference `.figure.json` files to emit CSS-variable-bound bilingual inline SVGs that blend natively into both light and dark modes [1][3].
+
+:::figure { title: "Figure Engine v2 分层架构泳道与圆角正交连线样板 || Figure Engine v2 Layered Architecture Swimlanes", caption: "图 2：原生绑定双模 CSS 变量的分层架构图，具备顶部玻璃高光边、左侧语义色标、圆角平滑正交连线与胶囊底衬边标签 [3]。 || Figure 2: Layered architecture topology bound to dual-mode CSS custom properties with top specular rims, semantic bars, rounded SmoothStep routing, and pill label backdrops [3]." }
+{
+  "version": 2,
+  "type": "architecture",
+  "layout": { "direction": "down", "width": 1080, "nodeWidth": 290, "nodeHeight": 86, "groupGap": 34 },
+  "groups": [
+    { "id": "spec-layer", "order": 0, "columns": 2, "label": { "zh": "1. 统一声明式契约层（FigureSpec v2 Input）", "en": "1. Unified Declarative Contract (FigureSpec v2)" } },
+    { "id": "engine-layer", "order": 1, "columns": 2, "label": { "zh": "2. 双核几何与标尺渲染引擎（Isomorphic Renderers）", "en": "2. Dual-Core Geometry & Scale Renderers" } }
+  ],
+  "nodes": [
+    { "id": "md-block", "layer": 0, "order": 0, "group": "spec-layer", "role": "actor", "label": { "zh": "Markdown :::figure 内联块", "en": "Markdown :::figure Block" }, "detail": { "zh": "零像素坐标手算 · 同源中英双语文案", "en": "Zero pixel math · Single-source zh/en copy" } },
+    { "id": "json-spec", "layer": 0, "order": 1, "group": "spec-layer", "role": "interface", "label": { "zh": ".figure.json / .diagram.json", "en": ".figure.json / .diagram.json" }, "detail": { "zh": "无损兼容存量规格并导出可编辑 .drawio", "en": "Upgrades legacy specs & exports .drawio" } },
+    { "id": "topo-core", "layer": 1, "order": 0, "group": "engine-layer", "role": "service", "label": { "zh": "Topology SmoothStep 路由器", "en": "Topology SmoothStep Router" }, "detail": { "zh": "覆盖架构泳道、流程图、时序图与树图", "en": "Architecture, flowchart, sequence & hierarchy" } },
+    { "id": "chart-core", "layer": 1, "order": 1, "group": "engine-layer", "role": "data", "label": { "zh": "Observable 级定量标尺编译器", "en": "Quantitative Scale Renderer" }, "detail": { "zh": "覆盖柱状、面积趋势、2×2 象限与雷达图", "en": "Bar, area/line, 2x2 quadrant & radar charts" } }
+  ],
+  "edges": [
+    { "from": "md-block", "to": "topo-core", "label": { "zh": "拓扑分支", "en": "Topology AST" } },
+    { "from": "md-block", "to": "chart-core", "label": { "zh": "定量标尺", "en": "Scale AST" } },
+    { "from": "json-spec", "to": "topo-core", "label": { "zh": "自动升级", "en": "Auto-Upgrade" } }
+  ]
+}
+:::
+
+:::figure { title: "构建耗时与暗色模式对比度达标率趋势对比 || Build Latency and Dark-Mode Contrast Trend", caption: "图 3：面积样条趋势图（Area Trend），采用等宽数字刻度、极细虚线参考网格与曲线末端无图例直标 [3]。 || Figure 3: Publication-style area spline chart featuring tabular-nums ticks, hairline dashed grids, and direct end-of-line series labeling [3]." }
+{
+  "version": 2,
+  "type": "area",
+  "title": { "zh": "全站图表渲染方案各阶段对比度达标率演进", "en": "Dark-Mode Contrast Compliance Across Engine Generations" },
+  "subtitle": { "zh": "WCAG AA 4.5:1 达标率随架构演进从 38% 提升至 100%", "en": "WCAG AA (4.5:1) pass rate rising from 38% in static hex SVGs to 100% with inline CSS tokens" },
+  "unit": "%",
+  "max": 100,
+  "xLabels": [
+    { "zh": "v0 手写静态 SVG", "en": "v0 Handwritten SVG" },
+    { "zh": "v1 外链浅色图", "en": "v1 External Hex Img" },
+    { "zh": "反色滤镜补丁", "en": "CSS Invert Patch" },
+    { "zh": "Figure Engine v2", "en": "Figure Engine v2" }
+  ],
+  "series": [
+    { "name": { "zh": "暗色对比度达标率", "en": "Dark Contrast Pass" }, "role": "teal", "values": [42, 38, 64, 100] },
+    { "name": { "zh": "双语零闪烁切换率", "en": "Zero-Flicker i18n" }, "role": "accent", "values": [30, 75, 75, 100] }
+  ]
+}
+:::
+
+### 多维能力评测：雷达图与分组柱状图内联直出 || Multi-Dimensional Evaluation: Inline Radar and Grouped Bar Charts
+
+除了架构拓扑与趋势曲线，技术评测文章常需呈现多维能力雷达图与定量基准柱状图。下方两张图同样由同一套编译器零客户端脚本静态直出 [3]： || Beyond topologies and trend lines, benchmark articles frequently combine multi-axis radar charts and grouped bar comparisons, both statically compiled with zero client runtime [3]:
+
+:::figure { step: false, title: "三类图表技术路线六维工程能力雷达图 || Six-Axis Capability Radar Across Three Charting Stacks", caption: "图 4：极坐标六维雷达图对比 Figure Engine v2 与传统拼装方案的综合表现 [3]。 || Figure 4: Six-axis polar radar comparing Figure Engine v2 against external dual-tool stacks [3]." }
+{
+  "version": 2,
+  "type": "radar",
+  "title": { "zh": "三类图表方案六维工程指标评测", "en": "Six-Axis Engineering Evaluation Across Chart Stacks" },
+  "max": 100,
+  "axes": [
+    { "zh": "暗色模式融合度", "en": "Dark-Mode Native" },
+    { "zh": "出版级排版美感", "en": "Publication Craft" },
+    { "zh": "全品类覆盖度", "en": "Taxonomy Breadth" },
+    { "zh": "单文件双语秒切", "en": "Instant Bilingual" },
+    { "zh": "零运行时静态性", "en": "Zero JS Runtime" },
+    { "zh": "PPTX/灯箱兼容", "en": "PPTX & Lightbox" }
+  ],
+  "series": [
+    { "name": { "zh": "Figure Engine v2", "en": "Figure Engine v2" }, "role": "accent", "values": [98, 96, 95, 100, 100, 96] },
+    { "name": { "zh": "外链双工具拼装", "en": "External Dual-Tool" }, "role": "blue", "values": [58, 74, 78, 45, 70, 55] }
+  ]
+}
+:::
+
+## #sandbox 05 / Interactive Sandbox :: 声明式纯静态交互沙盒插槽验证 || Declarative Pure Static Interactive Sandbox Slot
+
+对于需要实时参数推演或 Canvas 物理仿真的 L3 级文章，`:::sandbox` 指令提供了干净的挂载契约：Markdown 源稿只负责声明容器 ID、标题说明以及同目录纯静态 `.js` / `.css` 路径，交互逻辑完全在浏览器端独立运行，无需任何后端服务器支持 [1][2]。 || For L3 interactive articles, the `:::sandbox` directive declares the container ID, bilingual copy, and sibling static `.js`/`.css` assets that execute locally in the browser without backend servers [1][2].
 
 :::sandbox { id: "genesis-wave-sandbox", script: "./genesis-sandbox.js", style: "./genesis-sandbox.css", title: "阻尼谐波包络纯静态交互仿真台 || Damped Harmonic Envelope Static Interactive Simulator", desc: "点击上方频率档位按钮，直接在浏览器本地 Canvas 重绘阻尼谐波曲线与包络线，验证零后端依赖的 L3 级重度交互能力。 || Click the harmonic frequency buttons to redraw the damped wave and envelope curve on a local HTML5 Canvas with zero backend dependencies." }
 纯静态交互沙盒插槽演示：所有计算与绘图均由同目录 `genesis-sandbox.js` 在本地浏览器完成。 || Pure static sandbox slot demonstration: all computation and rendering run locally in the browser via genesis-sandbox.js.
@@ -118,7 +191,8 @@ graph LR
 3. **Phase 3：一键发布至 GitHub Pages 与按需纳管 || Phase 3: One-Click GitHub Pages Publish and On-Demand Adoption** — 成对提交 `.md` 与静态 `.html`，外部 GitHub Pages 在 30~90 秒内准实时呈现更新。 || Commit paired Markdown and static HTML to GitHub Pages for near-real-time external updates.
 :::
 
-## #references 05 / References :: 参考来源 || References
+## #references 06 / References :: 参考来源 || References
 
 - [1] Study Room Markdown Framework Feasibility Evaluation — https://github.com/illusion615/KnowledgeHub/blob/main/docs/markdown-framework-feasibility-evaluation.md | 双模编译架构评估报告与五大工程阻碍分析 || Dual-mode compilation architecture evaluation report and engineering barrier analysis
 - [2] markdown-it 14.1.0 Specification — https://github.com/markdown-it/markdown-it | 仓库内置的标准 CommonMark 解析器与扩展插件机制 || Built-in CommonMark parser and extension architecture in assets/vendor
+- [3] Study Room Figure Engine v2 Evaluation Report — https://github.com/illusion615/KnowledgeHub/blob/main/docs/diagram-visualization-engine-evaluation.md | 全站统一声明式图表与双模原生 CSS 变量内联矢量图架构设计规范 || Unified declarative figure engine and dual-mode CSS variable inline SVG architecture specification

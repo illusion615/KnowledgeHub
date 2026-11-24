@@ -248,7 +248,7 @@ function compileChapterBody(lines, sectionCtx, state) {
       } else if (dirType === 'callout' || dirType === 'quote') {
         if (dirType === 'callout' && !dirAttrs.variant) dirAttrs.variant = 'callout';
         blocks.push(directives.renderCallout(dirAttrs, innerLines, sectionCtx, state));
-      } else if (dirType === 'diagram') {
+      } else if (dirType === 'diagram' || dirType === 'figure') {
         blocks.push(directives.renderDiagram(dirAttrs, innerLines, sectionCtx, state));
       } else if (dirType === 'sandbox') {
         blocks.push(directives.renderSandbox(dirAttrs, innerLines, sectionCtx, state));

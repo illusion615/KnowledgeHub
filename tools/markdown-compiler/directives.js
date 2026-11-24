@@ -12,8 +12,11 @@
 
 'use strict';
 
+var fs = require('fs');
+var path = require('path');
 var fm = require('./frontmatter');
 var inline = require('./inline-and-math');
+var figureEngine = require('../figure-engine');
 
 function buildStepAttrs(attrs, fallbackTitlePair, fallbackLabelPair, defaultSurface) {
   if (!attrs && !fallbackTitlePair) return '';
@@ -399,19 +402,62 @@ function renderCallout(attrs, lines, sectionCtx, state) {
 }
 
 function renderDiagram(attrs, lines, sectionCtx, state) {
-  var baseSrc = String(attrs.src || '').replace(/\.(?:zh|en)\.svg$/i, '').replace(/\.svg$/i, '');
+  var baseDir = (state && state.baseDir) || process.cwd();
+  var baseSrc = String(attrs.src || '').replace(/\.(?:zh|en)\.svg$/i, '').replace(/\.(?:figure|diagram)\.json$/i, '').replace(/\.svg$/i, '');
   var zhSrc = attrs.zh || (baseSrc ? baseSrc + '.zh.svg' : '');
   var enSrc = attrs.en || (baseSrc ? baseSrc + '.en.svg' : zhSrc);
-  var drawioHref = attrs.drawio || (baseSrc ? baseSrc + '.drawio' : '');
+  var drawioHref = attrs.drawio || '';
   var altPair = fm.parseBilingual(attrs.alt || attrs.title || sectionCtx.title.zh + ' || ' + sectionCtx.title.en);
-  var captionRaw = lines.join(' ').trim() || attrs.caption || (altPair.zh + ' || ' + altPair.en);
+
+  // Separate inline JSON/YAML spec body from trailing caption lines (if any)
+  var rawTrim = lines.join('\n').trim();
+  var inlineSpecObj = null;
+  var bodyCaption = '';
+  if (!attrs.src && rawTrim && (rawTrim.charAt(0) === '{' || /^```(?:json|yaml|yml)/i.test(rawTrim) || /^type\s*:/m.test(rawTrim))) {
+    inlineSpecObj = figureEngine.parseFigureSpecText(rawTrim);
+  } else {
+    bodyCaption = lines.join(' ').trim();
+  }
+
+  var resolvedSpecFile = (!inlineSpecObj && attrs.src && attrs.inline !== false)
+    ? figureEngine.resolveSpecFile(attrs.src, baseDir)
+    : null;
+
+  var inlineCompiled = null;
+  if (inlineSpecObj) {
+    if (!inlineSpecObj.title && attrs.title) {
+      inlineSpecObj.title = fm.parseBilingual(attrs.title);
+    }
+    state.figureSeq = (state.figureSeq || 0) + 1;
+    inlineCompiled = figureEngine.compileFigure(inlineSpecObj, {
+      lang: 'bilingual',
+      standalone: false,
+      idPrefix: attrs.id || (sectionCtx.id + '-fig-' + state.figureSeq)
+    });
+  } else if (resolvedSpecFile) {
+    var specJson = JSON.parse(fs.readFileSync(resolvedSpecFile, 'utf8'));
+    state.figureSeq = (state.figureSeq || 0) + 1;
+    var specBaseName = path.basename(resolvedSpecFile).replace(/\.(?:figure|diagram)?\.?json$/i, '');
+    inlineCompiled = figureEngine.compileFigure(specJson, {
+      lang: 'bilingual',
+      standalone: false,
+      idPrefix: attrs.id || specBaseName + '-' + state.figureSeq
+    });
+    if (!drawioHref && inlineCompiled.drawio && baseSrc) {
+      drawioHref = baseSrc + '.drawio';
+    }
+  } else if (!drawioHref && baseSrc) {
+    drawioHref = baseSrc + '.drawio';
+  }
+
+  var captionRaw = attrs.caption || bodyCaption || (altPair.zh + ' || ' + altPair.en);
   var captionRendered = inline.renderBilingualInlinePair(captionRaw, state);
 
   var stepAttrs = buildStepAttrs(
     attrs,
     {
-      zh: (attrs.title ? fm.parseBilingual(attrs.title).zh : sectionCtx.title.zh + '：架构图解'),
-      en: (attrs.title ? fm.parseBilingual(attrs.title).en : sectionCtx.title.en + ': Architecture Diagram')
+      zh: (attrs.title ? fm.parseBilingual(attrs.title).zh : sectionCtx.title.zh + '：图解分析'),
+      en: (attrs.title ? fm.parseBilingual(attrs.title).en : sectionCtx.title.en + ': Visual Analysis')
     },
     sectionCtx.kicker,
     'unframed'
@@ -420,6 +466,15 @@ function renderDiagram(attrs, lines, sectionCtx, state) {
   var downloadLink = drawioHref
     ? '<a href="' + fm.escapeAttr(drawioHref) + '" download data-zh="下载 .drawio" data-en="Download .drawio">下载 .drawio</a>'
     : '';
+
+  if (inlineCompiled) {
+    return [
+      '          <figure class="sr-figure generated-diagram is-inline-svg"' + stepAttrs + '>',
+      '            ' + inlineCompiled.svg,
+      '            <figcaption class="diagram-caption"><span ' + inline.bilingualRichAttrs(captionRaw, state) + '>' + captionRendered.zhHtml + '</span>' + downloadLink + '</figcaption>',
+      '          </figure>'
+    ].join('\n');
+  }
 
   return [
     '          <figure class="generated-diagram"' + stepAttrs + '>',

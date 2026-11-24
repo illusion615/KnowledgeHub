@@ -15,6 +15,7 @@ function compileMarkdownToHtml(markdownText, options) {
   var raw = String(markdownText || '').replace(/\r\n/g, '\n');
   var parsed = fm.parseFrontmatter(raw);
   var state = {
+    baseDir: opts.baseDir || process.cwd(),
     tokens: [],
     hasMath: false,
     hasMermaid: false,
@@ -42,7 +43,8 @@ function compileMarkdownToHtml(markdownText, options) {
 function compileMarkdownFile(inputPath, outputPath, options) {
   var absIn = path.resolve(inputPath);
   var raw = fs.readFileSync(absIn, 'utf8');
-  var result = compileMarkdownToHtml(raw, options);
+  var mergedOpts = Object.assign({ baseDir: path.dirname(absIn) }, options || {});
+  var result = compileMarkdownToHtml(raw, mergedOpts);
   if (outputPath) {
     var absOut = path.resolve(outputPath);
     fs.mkdirSync(path.dirname(absOut), { recursive: true });

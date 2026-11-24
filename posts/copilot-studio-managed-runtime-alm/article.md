@@ -53,6 +53,10 @@ $$
 \text{Credits}_{\text{CMR-Run}} = N_{\text{API}} \times 0.1, \qquad \text{Credits}_{\text{Reasoning}} = \frac{T_{\text{input-uncached}} + T_{\text{cache-write}} + T_{\text{output}}}{1000} \times 10
 $$
 
+:::figure { src: "./media/credit-consumption-scale.figure.json", title: "托管运行时与新版智能体各阶段额度消耗量级对比 || Credit Consumption Scale Across Managed Runtime and New Agent Actions" }
+图 1：对数标尺下托管运行时接口调用（每次 0.1 额度）、三档自然语言构建轮次以及新版智能体复合推理任务的单次消耗量级对比 [1]。 || Figure 1: Logarithmic comparison across Managed Runtime API calls (0.1 Credit/call), conversational build tiers, and Copilot Harness multi-step agent tasks [1].
+:::
+
 :::callout { title: "构建期与运行期的计费池解耦 || Decoupled Build-Time and Run-Time Billing Pools" }
 创作者在构建托管应用时，自然语言生成界面的对话消耗记入 Copilot Studio 环境的计费账单；而应用发布上线后，终端用户触发的连接器与数据读写则按托管运行时接口调用（每次 0.1 额度）独立计量 [1][2]。 || During app authoring, natural-language generation charges against the Copilot Studio environment billing pool, whereas published end-user traffic is metered separately as Managed Runtime API calls at 0.1 Credit per call [1][2].
 :::
@@ -62,7 +66,7 @@ $$
 企业团队反馈最多的痛点是：开发人员在门户右上角的环境选择器里明确切换到了共享开发环境（例如 `Team-Dev`），随后点击创建应用或智能体，结果管理员在 `Team-Dev` 的解决方案里找不到该资产，或者发现它被静默写入了创作者的个人环境 [2][4]。这种“所见非所得”的双环境错觉，本质上是**界面会话上下文**、**构建期地理令牌解析**与**强制环境路由规则**三层控制面各自独立决策造成的 [2][3]。 || The most frequent enterprise complaint is that a developer explicitly selects a shared environment (`Team-Dev`) in the top-right picker before creating an app or agent, yet administrators cannot find the asset in `Team-Dev` solutions and discover it was silently written to the maker's personal environment [2][4]. This dual-environment illusion stems from three decoupled control planes making independent decisions: **UI session context**, **token-based build geography resolution**, and **mandatory environment routing** [2][3].
 
 :::diagram { src: "./media/dual-environment-anatomy", drawio: "./media/dual-environment-anatomy.drawio", title: "Copilot Studio 双环境错觉：顶栏环境上下文与个人环境路由的脱钩解剖 || The Dual-Environment Illusion: Decoupled UI Environment Picker vs. Personal Environment Routing" }
-图 1：入口层顶栏选择器、路由控制平面与底层物理存储平面的三路分流解剖。创建托管应用时系统直接旁路顶栏选择器，而构建期计费与地理驻留则分别绑定至门户会话和登录令牌 [2][3][4]。 || Figure 1: Three-way split across the top-bar picker, routing control plane, and physical storage plane. Managed app creation bypasses the UI picker while build billing and data residency bind to session context and sign-in tokens [2][3][4].
+图 2：入口层顶栏选择器、路由控制平面与底层物理存储平面的三路分流解剖。创建托管应用时系统直接旁路顶栏选择器，而构建期计费与地理驻留则分别绑定至门户会话和登录令牌 [2][3][4]。 || Figure 2: Three-way split across the top-bar picker, routing control plane, and physical storage plane. Managed app creation bypasses the UI picker while build billing and data residency bind to session context and sign-in tokens [2][3][4].
 :::
 
 :::comparison { title: "顶栏环境选择器上下文 vs 后台真实物理落盘路由 || Top-Bar Picker Context vs. Actual Backend Routing" }
@@ -106,12 +110,16 @@ $$
 纯静态前端诊断沙盒：覆盖托管应用磁贴、命令行构建、新版智能体路由与聊天内嵌构建器四类场景。 || Pure static diagnostic sandbox covering App tiles, CLI creation, routed New Agents, and embedded Agent Builder scenarios.
 :::
 
+:::figure { src: "./media/asset-governance-quadrant.figure.json", title: "四类构建形态的源码流水线自治度与企业治理可控性象限 || Git CI/CD Autonomy vs. Enterprise Governance Control Quadrant" }
+图 3：默认个人环境路由陷阱（左下）与显式指定环境标识及多环境部署槽位（右上目标态）的治理成熟度二维象限映射 [2][4][5][6]。 || Figure 3: Two-dimensional governance quadrant mapping personal routing silos (bottom-left) against code-first multi-stage deployment targets (top-right) [2][4][5][6].
+:::
+
 ## #enterprise-alm-playbook 04 / Enterprise ALM Playbook :: 打破个人环境孤岛：双轨企业级 ALM 全链路实战 || Breaking the Personal Environment Silo: Dual-Track Enterprise ALM Playbook
 
 要把落入个人环境的原型资产安全晋升至团队开发（`Dev`）、测试（`Test`）与生产（`Prod`）环境，首先必须区分资产属于**代码级托管应用**还是**声明式新版智能体** [5][6]。微软为这两类构建物分别提供了 `@microsoft/cmr-cli`（命令名为 `ms`）与 `Microsoft.Agents.Hosting.Cli`（命令名为 `msagent`）两套专用工具链 [5][6]。 || Promoting prototype assets out of personal environments into shared `Dev`, `Test`, and `Prod` stages starts by distinguishing **code-first Managed Runtime apps** from **declarative New Experience agents** [5][6]. Microsoft ships two dedicated toolchains for these tracks: `@microsoft/cmr-cli` (`ms`) and `Microsoft.Agents.Hosting.Cli` (`msagent`) [5][6].
 
 :::diagram { src: "./media/managed-runtime-alm-pipeline", drawio: "./media/managed-runtime-alm-pipeline.drawio", title: "托管运行时应用与新版智能体企业级双轨 ALM 晋升流水线 || Dual-Track Enterprise ALM Promotion Pipeline for CMR Apps and New Agents" }
-图 2：轨道 A（托管应用通过 `ms` 命令行与阶段覆盖文件晋升）与轨道 B（新版智能体通过 `msagent` 部署槽位与评测门禁晋升）的端到端交付架构，底层由双管理中心安全门禁统一护航 [3][5][6]。 || Figure 2: End-to-end delivery architecture combining Track A (`ms` CLI and stage overlays for managed apps) and Track B (`msagent` deployment slots and evaluation gates for new agents), governed by MAC and PPAC security controls [3][5][6].
+图 4：轨道 A（托管应用通过 `ms` 命令行与阶段覆盖文件晋升）与轨道 B（新版智能体通过 `msagent` 部署槽位与评测门禁晋升）的端到端交付架构，底层由双管理中心安全门禁统一护航 [3][5][6]。 || Figure 4: End-to-end delivery architecture combining Track A (`ms` CLI and stage overlays for managed apps) and Track B (`msagent` deployment slots and evaluation gates for new agents), governed by MAC and PPAC security controls [3][5][6].
 :::
 
 ### 轨道 A：托管运行时应用 (`@microsoft/cmr-cli`) 跨环境晋升与配置解耦 || Track A: Managed Runtime App Promotion and Config Decoupling via `@microsoft/cmr-cli`

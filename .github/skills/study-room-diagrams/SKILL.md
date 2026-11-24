@@ -11,8 +11,8 @@ Use this workflow while authoring or revising `posts/**/index.html`.
 
 1. Use `.flow-list` for a short linear explanation with no cross-links.
 2. Use Mermaid for a compact sequence or simple graph that benefits from inline source editing.
-3. Use existing HTML/SVG components for data-driven, mathematical, or interactive visualizations.
-4. Use DiagramSpec for an architecture diagram, directed flowchart, or sequence diagram that needs editable Draw.io source and bilingual publication assets.
+3. Use Figure Engine v2 (`tools/figure-engine/` via `:::figure` in Markdown or `node tools/compile-figure.js`) for both architecture/flow/sequence topologies and quantitative statistical charts (`bar`, `line`/`area`, `quadrant`, `radar`, `funnel`), emitting CSS-variable-bound inline bilingual `<svg class="sr-figure-svg">` that adapts natively to `[data-theme="dark"]` and `html[lang="en"]`.
+4. Use DiagramSpec / FigureSpec (`.figure.json` or `.diagram.json`) whenever editable `.drawio` source and standalone `.zh.svg` / `.en.svg` assets are also needed alongside inline SVG rendering.
 5. Do not extend the engine until a real article cannot be expressed clearly by the existing four options.
 
 ## DiagramSpec Workflow
@@ -28,13 +28,10 @@ Use this workflow while authoring or revising `posts/**/index.html`.
 9. Generate assets:
 
 ```sh
-node tools/diagram-engine/compiler.js \
-  posts/<slug>/media/<name>.diagram.json \
-  posts/<slug>/media \
-  <name>
+node tools/compile-figure.js posts/<slug>/media/<name>.figure.json
 ```
 
-10. Run `node tools/diagram-engine/compiler.test.js`.
+10. Run `node --test tests/figure-engine.test.js` and `node tools/diagram-engine/compiler.test.js`.
 11. Embed `<name>.zh.svg` and `<name>.en.svg` in one figure, switching by the document `lang` attribute. Link the `.drawio` source from the caption.
 12. Never hand-edit generated SVG. Fix the DiagramSpec or compiler and regenerate.
 

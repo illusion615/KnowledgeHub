@@ -65,7 +65,7 @@ function main(argv) {
   }
 
   var raw = fs.readFileSync(absIn, 'utf8');
-  var result = compiler.compileMarkdownToHtml(raw);
+  var result = compiler.compileMarkdownToHtml(raw, { baseDir: path.dirname(absIn) });
   var contract = compiler.verifyCompiledHtmlContract(result.html);
 
   if (!contract.ok) {

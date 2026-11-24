@@ -268,3 +268,18 @@
    在 `tests/` 验收测试中增加针对图表暗色模式的断言：禁止在 `.generated-diagram` 上使用 `filter: invert()`，禁止在 SVG 节点上出现未绑定 CSS 变量的纯白底色块，校验暗色模式下连线文字与背景的对比度 $\ge 4.5:1$。
 2. **存量碎片化图表收拢**：
    新撰写或重构的文章统一使用 `FigureSpec` 生成全部架构图与数据图表，逐步替换存量文章中的裸 Mermaid 脚本与手写像素坐标 `<svg>`。
+
+---
+
+## 6. 交付实现台账（Study Room Figure Engine v2 已落盘架构）
+
+依据上述评估结论，仓库已完成模块化实现与两篇标杆文章的亮暗双模实机升级（`portal-cmd-20261124-082722-bbbcbe`）：
+
+- **双模 CSS 设计令牌层**：`assets/article-figure.css` 与 `assets/article-diagram.css` 同步声明 `:root` 与 `[data-theme="dark"]` 下的 `--fig-*` 变量体系，并通过 `html[lang="en"] .sr-zh` / `html:not([lang="en"]) .sr-en` 实现内联双语节点零闪烁切换。
+- **正交五模块编译内核（`tools/figure-engine/`）**：
+  - `tokens.js`：统一双模设计令牌映射、字符宽度估算与胶囊底衬双语标签生成器；
+  - `topology-layout.js`：分层架构泳道、流程图、时序图与树图的自动坐标布局及跨层外侧走线避障圆角步进路由器（SmoothStep）；
+  - `topology-renderer.js`：输出带顶部微光高光边、左侧语义色标条与端口锚点的内联双语 `<svg class="sr-figure-svg">` 及 `.drawio` 工程文件；
+  - `chart-renderer.js`：输出水平/垂直柱状图（含对数标尺）、平滑样条折线与面积趋势图、二维碰撞消解象限矩阵、极坐标雷达图及漏斗图；
+  - `index.js` 与 `tools/compile-figure.js`：统一编译入口，兼容外部 `.figure.json` / `.diagram.json` 与 `tools/markdown-compiler/directives.js` 中的 `:::figure` / `:::diagram` 构建期内联直出。
+- **灯箱与演示导出联动**：`assets/article-lightbox.js` 与 `assets/article-presentation.js` 在克隆内联 `<svg>` 时自动固化当前主题计算样式与激活语言图层，点击图表即可弹出高清矢量灯箱并兼容幻灯片导出。

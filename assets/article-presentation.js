@@ -2275,6 +2275,7 @@ document.addEventListener('DOMContentLoaded', function () {
           var sourceNodes = [svg].concat(Array.from(svg.querySelectorAll('*')));
           var cloneNodes = [svgClone].concat(Array.from(svgClone.querySelectorAll('*')));
           var svgStyleProperties = [
+            'display', 'visibility',
             'fill', 'fill-opacity', 'stroke', 'stroke-opacity', 'stroke-width',
             'stroke-dasharray', 'stroke-linecap', 'stroke-linejoin', 'opacity',
             'font-family', 'font-size', 'font-weight', 'font-style',
@@ -2282,6 +2283,9 @@ document.addEventListener('DOMContentLoaded', function () {
           ];
           sourceNodes.forEach(function (node, index) {
             var computed = getComputedStyle(node);
+            if (computed.display === 'none') {
+              cloneNodes[index].setAttribute('display', 'none');
+            }
             svgStyleProperties.forEach(function (property) {
               cloneNodes[index].style.setProperty(property, computed.getPropertyValue(property));
             });

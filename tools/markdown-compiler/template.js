@@ -550,6 +550,7 @@ function buildFullHtmlDocument(meta, chaptersData, rawMarkdown, state, options) 
     '  <link rel="stylesheet" href="' + assetPrefix + '/scrollbar.css" />',
     '  <link rel="stylesheet" href="' + assetPrefix + '/article-narration.css" />',
     '  <link rel="stylesheet" href="' + assetPrefix + '/article-diagram.css" />',
+    '  <link rel="stylesheet" href="' + assetPrefix + '/article-figure.css" />',
     sandboxStyleLinks,
     buildStaticStyles(meta),
     '</head>',
