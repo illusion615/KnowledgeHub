@@ -227,5 +227,7 @@ test('index.html has no standalone Video Studio links and article-common.js moun
   const articleCommon = await readFile(join(process.cwd(), 'assets/article-common.js'), 'utf8');
   assert.match(articleCommon, /article-video-modal\.js/);
   assert.match(articleCommon, /KHArticleVideoModal/);
+  assert.doesNotMatch(articleCommon, /link\.href\s*=\s*['"]\.\.\/\.\.\/video-studio\.html/);
+  assert.match(articleCommon, /createElement\(['"]button['"]\)/);
 });
 

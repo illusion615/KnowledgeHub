@@ -109,7 +109,8 @@ const { join } = require('node:path');
   try {
     await page.goto(base + '/posts/agentic-sales-mobile-proposal/');
     await page.waitForSelector('[data-video-studio]');
-    assert.match(await page.locator('[data-video-studio]').getAttribute('href'), /video-studio\.html\?article=agentic-sales-mobile-proposal/);
+    assert.equal(await page.locator('[data-video-studio]').getAttribute('data-video-studio'), 'agentic-sales-mobile-proposal');
+    assert.equal(await page.locator('[data-video-studio]').getAttribute('href'), null);
     for (const mode of [{ lang: 'zh', theme: 'light' }, { lang: 'en', theme: 'dark' }]) {
       await page.evaluate(mode => { localStorage.setItem('lang', mode.lang); localStorage.setItem('theme', mode.theme); }, mode);
       await page.reload(); await page.waitForSelector('[data-video-studio]');

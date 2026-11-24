@@ -135,7 +135,7 @@
   function ensureModalDom(slug) {
     ensureStyles();
     if (!modalOverlay) {
-      modalOverlay = document.createElement('div');
+      modalOverlay = document.getElementById('kh-video-studio-modal') || document.createElement('div');
       modalOverlay.className = 'kh-video-modal-backdrop';
       modalOverlay.id = 'kh-video-studio-modal';
       modalOverlay.setAttribute('role', 'dialog');
@@ -143,10 +143,10 @@
       modalOverlay.setAttribute('aria-label', document.documentElement.lang === 'en' ? 'Video Studio' : '视频工作室');
       modalOverlay.setAttribute('aria-hidden', 'true');
 
-      var shell = document.createElement('div');
+      var shell = modalOverlay.querySelector('.kh-video-modal-shell') || document.createElement('div');
       shell.className = 'kh-video-modal-shell';
 
-      modalIframe = document.createElement('iframe');
+      modalIframe = modalOverlay.querySelector('#kh-video-studio-iframe') || document.createElement('iframe');
       modalIframe.className = 'kh-video-modal-frame';
       modalIframe.id = 'kh-video-studio-iframe';
       modalIframe.title = 'Video Studio Workspace';
@@ -156,8 +156,8 @@
         sendArticleContext();
       });
 
-      shell.appendChild(modalIframe);
-      modalOverlay.appendChild(shell);
+      if (!modalIframe.parentNode) shell.appendChild(modalIframe);
+      if (!shell.parentNode) modalOverlay.appendChild(shell);
 
       modalOverlay.addEventListener('click', function (ev) {
         if (ev.target === modalOverlay) closeModal();
@@ -176,7 +176,7 @@
         if (ev.data.type === 'kh-studio-request-context') sendArticleContext();
       });
 
-      document.body.appendChild(modalOverlay);
+      if (!modalOverlay.parentNode) document.body.appendChild(modalOverlay);
     }
 
     var targetUrl = resolveStudioUrl(slug);

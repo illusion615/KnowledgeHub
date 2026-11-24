@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var language = localStorage.getItem('lang') || 'zh';
   var urls = {}, mediaRequests = {}, params = new URLSearchParams(location.search), article = params.get('article');
   var embedMode = params.get('embed') === '1', autoDraftParam = params.get('autoDraft') === '1', localOffline = false;
-  var localMode = location.protocol === 'http:' && (location.hostname === '127.0.0.1' || location.hostname === 'localhost');
+  var localMode = (location.protocol === 'http:' && (location.hostname === '127.0.0.1' || location.hostname === 'localhost' || location.hostname === '[::1]')) || location.origin === 'https://illusion615.github.io';
   var galleryId = null, customCompositionOverrides = {};
   var simulation = { playing: false, paused: false, loading: false, token: 0, elapsed: 0, duration: 0, started: 0, frame: null, audio: null };
   var stage = document.getElementById('studio-stage');

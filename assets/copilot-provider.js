@@ -6,10 +6,13 @@
   var activeSession = null;
   var notice = 'GitHub Copilot通过本机CLI桥接调用云端，并非离线模型。当前文章全文和对话将发送给GitHub及其模型服务，可能消耗Copilot额度。仅纯问答，不开放文件、shell、Agent工具或MCP。是否同意本页面后续主动发送？';
   function isLoopbackPage() {
-    return location.protocol === 'http:' && (location.hostname === '127.0.0.1' || location.hostname === 'localhost');
+    return location.protocol === 'http:' && (location.hostname === '127.0.0.1' || location.hostname === 'localhost' || location.hostname === '[::1]');
+  }
+  function isSupportedPage() {
+    return isLoopbackPage() || location.origin === 'https://illusion615.github.io';
   }
   function ensureLocal() {
-    if (!isLoopbackPage())
+    if (!isSupportedPage())
       throw new Error('当前为静态预览站，Copilot 仅在本机服务可用。请运行 node scripts/serve-knowledge-hub.mjs 并打开 http://127.0.0.1:8000/。');
   }
   async function checked(res) {
@@ -25,7 +28,7 @@
     return res;
   }
   function candidateBases() {
-    var list = [''];
+    var list = isLoopbackPage() ? [''] : [];
     var portInput = document.getElementById('studio-port');
     var preferredPort = portInput && Number(portInput.value) >= 1024 ? Number(portInput.value) : 8000;
     var fb = 'http://127.0.0.1:' + preferredPort;
@@ -39,7 +42,7 @@
   }
   async function tryBootstrapBase(base, signal) {
     var headers = { 'X-KH-Bootstrap': '1' };
-    if (base && activeSession) headers['X-KH-Session'] = activeSession;
+    if (activeSession) headers['X-KH-Session'] = activeSession;
     var res = await fetch(base + '/api/copilot/bootstrap', {
       headers: headers, signal: signal, credentials: base ? 'include' : 'same-origin'
     });
@@ -75,7 +78,7 @@
   }
   function buildHeaders(info, extra) {
     var headers = Object.assign({ 'X-KH-CSRF': info.csrf }, extra || {});
-    if (info.base && info.session) headers['X-KH-Session'] = info.session;
+    if (info.session) headers['X-KH-Session'] = info.session;
     return headers;
   }
   window.KHCopilot = {

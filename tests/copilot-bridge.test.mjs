@@ -77,10 +77,37 @@ test('same-origin CSRF, static allowlist, models/status, full-context SSE', asyn
     assert.equal(crossStatus.status, 200);
     const localhostBoot = await new Promise(resolve => {
       http.get(f.base + '/api/copilot/bootstrap', {
-        headers: { Host: `localhost:${f.server.address().port}`, Origin: `http://localhost:${f.server.address().port}`, 'X-KH-Bootstrap': '1' }
+        headers: { Host: `localhost:${f.server.address().port}`, Origin: `http://localhost:${f.server.address().port}`, 'X-KH-Bootstrap': '1', 'Sec-Fetch-Site': 'cross-site' }
       }, res => { res.resume(); resolve(res.statusCode); });
     });
     assert.equal(localhostBoot, 200);
+    const pnaOptions = await fetch(f.base + '/api/copilot/bootstrap', {
+      method: 'OPTIONS',
+      headers: {
+        Origin: 'https://illusion615.github.io',
+        'Access-Control-Request-Method': 'GET',
+        'Access-Control-Request-Headers': 'x-kh-bootstrap',
+        'Access-Control-Request-Private-Network': 'true'
+      }
+    });
+    assert.equal(pnaOptions.status, 204);
+    assert.equal(pnaOptions.headers.get('access-control-allow-origin'), 'https://illusion615.github.io');
+    assert.equal(pnaOptions.headers.get('access-control-allow-private-network'), 'true');
+    const pagesBoot = await fetch(f.base + '/api/copilot/bootstrap', {
+      headers: { Origin: 'https://illusion615.github.io', 'X-KH-Bootstrap': '1', 'Sec-Fetch-Site': 'cross-site' }
+    });
+    assert.equal(pagesBoot.status, 200);
+    const pagesData = await pagesBoot.json();
+    assert.ok(pagesData.csrf && pagesData.session);
+    const pagesStatus = await fetch(f.base + '/api/copilot/status', {
+      headers: { Origin: 'https://illusion615.github.io', 'X-KH-CSRF': pagesData.csrf, 'X-KH-Session': pagesData.session, 'Sec-Fetch-Site': 'cross-site' }
+    });
+    assert.equal(pagesStatus.status, 200);
+    const crossSiteIframeGet = await fetch(f.base + '/video-studio.html', {
+      headers: { 'Sec-Fetch-Site': 'cross-site', 'Sec-Fetch-Dest': 'iframe', 'Sec-Fetch-Mode': 'navigate' }
+    });
+    assert.equal(crossSiteIframeGet.status, 200);
+    assert.match(crossSiteIframeGet.headers.get('content-security-policy') || '', /frame-ancestors.*https:\/\/illusion615\.github\.io/);
   } finally { await f.close(); }
 });
 test('timeout, busy, cancellation release own runtime and sanitize stream failure', async () => {

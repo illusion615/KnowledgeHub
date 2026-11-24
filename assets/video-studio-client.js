@@ -40,7 +40,7 @@
 
     async function request(path, body, binary) {
       var info = await ensureSession(), headers = { 'X-KH-CSRF': info.csrf, 'Content-Type': 'application/json' }, result;
-      if (info.base && info.session) headers['X-KH-Session'] = info.session;
+      if (info.session) headers['X-KH-Session'] = info.session;
       result = await fetch((info.base || '') + '/api/copilot/studio/' + path, {
         method: body ? 'POST' : 'GET',
         credentials: info.base ? 'include' : 'same-origin',

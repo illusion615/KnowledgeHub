@@ -545,39 +545,43 @@
   var addVideoStudioLink = function () {
     var match = /^\/(?:[^/]+\/)?posts\/([a-z0-9-]+)\//.exec(window.location.pathname);
     var bar = document.querySelector('.topbar');
-    var actions, link, syncLabel, slug;
+    var actions, btn, syncLabel, slug, modalLoading = false;
     if (!match || !bar || document.querySelector('[data-video-studio]')) return;
     slug = match[1];
     actions = bar.querySelector('.topbar-actions') || bar;
-    link = document.createElement('a');
-    link.className = 'present-toggle';
-    link.setAttribute('data-video-studio', '');
-    link.setAttribute('aria-haspopup', 'dialog');
-    link.href = '../../video-studio.html?article=' + encodeURIComponent(slug);
-    link.innerHTML = '<svg class="present-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4l4 5M14 4l4 5M10 12l5 3-5 3z"/></svg><span class="topbar-action-label" data-zh="视频工作室" data-en="Video Studio"></span>';
-    link.addEventListener('click', function (ev) {
-      if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return;
+    btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'present-toggle';
+    btn.setAttribute('data-video-studio', slug);
+    btn.setAttribute('aria-haspopup', 'dialog');
+    btn.innerHTML = '<svg class="present-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4l4 5M14 4l4 5M10 12l5 3-5 3z"/></svg><span class="topbar-action-label" data-zh="视频工作室" data-en="Video Studio"></span>';
+    btn.addEventListener('click', function (ev) {
       ev.preventDefault();
+      ev.stopPropagation();
       if (window.KHArticleVideoModal && typeof window.KHArticleVideoModal.open === 'function') {
         window.KHArticleVideoModal.open(slug);
         return;
       }
+      if (modalLoading) return;
+      modalLoading = true;
       var script = document.createElement('script');
       script.src = '../../assets/article-video-modal.js';
       script.onload = function () {
+        modalLoading = false;
         if (window.KHArticleVideoModal) window.KHArticleVideoModal.open(slug);
       };
+      script.onerror = function () { modalLoading = false; };
       document.head.appendChild(script);
     });
     syncLabel = function () {
       var label = document.documentElement.lang === 'en' ? 'Video Studio' : '视频工作室';
-      link.title = label;
-      link.setAttribute('aria-label', label);
-      link.querySelector('span').textContent = label;
+      btn.title = label;
+      btn.setAttribute('aria-label', label);
+      btn.querySelector('span').textContent = label;
     };
     syncLabel();
     document.addEventListener('langChanged', syncLabel);
-    actions.appendChild(link);
+    actions.appendChild(btn);
   };
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () { window.setTimeout(addVideoStudioLink, 0); });

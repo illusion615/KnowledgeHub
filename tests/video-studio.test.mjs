@@ -458,7 +458,7 @@ test('copilot-provider and video-studio-client auto-fallback to loopback bridge 
     const providerCode = await readFile(join(process.cwd(), 'assets/copilot-provider.js'), 'utf8');
     const clientCode = await readFile(join(process.cwd(), 'assets/video-studio-client.js'), 'utf8');
 
-    function makeEnv({ portInputPort, bridgeOnline }) {
+    function makeEnv({ portInputPort, bridgeOnline, locationObj = { protocol: 'http:', hostname: '127.0.0.1', origin: 'http://127.0.0.1:5000' }, secFetchSite = 'same-site' }) {
       const elements = {
         'studio-port': { value: String(portInputPort), hidden: false },
         'studio-copilot-status': { textContent: '', title: '', disabled: false, attrs: {}, setAttribute(k, v) { this.attrs[k] = v; } },
@@ -470,15 +470,15 @@ test('copilot-provider and video-studio-client auto-fallback to loopback bridge 
       const sandbox = {
         window: null,
         globalThis: null,
-        location: { protocol: 'http:', hostname: '127.0.0.1', origin: 'http://127.0.0.1:5000' },
+        location: locationObj,
         localStorage: { getItem: () => '', setItem: () => {} },
         AbortSignal,
         document: {
           getElementById: id => elements[id] || null
         },
         fetch: async (url, init = {}) => {
-          const target = url.startsWith('http') ? url : 'http://127.0.0.1:5000' + url;
-          if (target.startsWith('http://127.0.0.1:5000/')) {
+          const target = url.startsWith('http') ? url : locationObj.origin + url;
+          if (target.startsWith('http://127.0.0.1:5000/') || target.startsWith('https://illusion615.github.io/')) {
             return new Response('404 Not Found', { status: 404, headers: { 'Content-Type': 'text/plain' } });
           }
           if (!bridgeOnline) {
@@ -486,7 +486,7 @@ test('copilot-provider and video-studio-client auto-fallback to loopback bridge 
           }
           return fetch(target, {
             ...init,
-            headers: { ...(init.headers || {}), Origin: 'http://127.0.0.1:5000', 'Sec-Fetch-Site': 'same-site' }
+            headers: { ...(init.headers || {}), Origin: locationObj.origin, 'Sec-Fetch-Site': secFetchSite }
           });
         }
       };
@@ -517,6 +517,17 @@ test('copilot-provider and video-studio-client auto-fallback to loopback bridge 
     await online.studioClient.detect();
     assert.equal(online.elements['studio-copilot-status'].attrs['data-state'], 'connected');
     assert.equal(online.elements['studio-copilot-error'].hidden, true, 'no red error box when connected via loopback fallback');
+
+    const pagesOnline = makeEnv({
+      portInputPort: bridgePort,
+      bridgeOnline: true,
+      locationObj: { protocol: 'https:', hostname: 'illusion615.github.io', origin: 'https://illusion615.github.io' },
+      secFetchSite: 'cross-site'
+    });
+    const pagesOpened = await pagesOnline.studioClient.request('open', { article: 'example' });
+    assert.equal(pagesOpened.source.slug, 'example', 'studio client on GitHub Pages connects to active local bridge');
+    await pagesOnline.studioClient.detect();
+    assert.equal(pagesOnline.elements['studio-copilot-status'].attrs['data-state'], 'connected');
 
     const offline = makeEnv({ portInputPort: 59999, bridgeOnline: false });
     await assert.rejects(() => offline.studioClient.request('open', { article: 'example' }), err => err.code === 'BRIDGE_OFFLINE' || err.code === 'BRIDGE_NOT_FOUND');
