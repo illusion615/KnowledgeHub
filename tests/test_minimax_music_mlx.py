@@ -20,8 +20,13 @@ if str(SCRIPTS) not in sys.path:
 
 from minimax_music_mlx import (
     MiniMaxMusicEngine,
+    audit_song_blueprint,
+    clean_caption,
+    normalize_lyrics,
     parse_json,
     resolve_cached_snapshot,
+    run_custom_generation,
+    step_one_frame,
     validate_generation_request,
 )
 
@@ -90,7 +95,10 @@ class EngineAndCliTests(unittest.TestCase):
                 {'prompt': 'pop', 'lyrics': '   '},
                 {'prompt': 'pop', 'duration': 0},
                 {'prompt': 'pop', 'duration': 400},
-                {'prompt': 'pop', 'steps': 31},
+                {'prompt': 'pop', 'steps': 101},
+                {'prompt': 'pop', 'temperature': 0.05},
+                {'prompt': 'pop', 'ar_cfg_scale': 0.8},
+                {'prompt': 'pop', 'dit_cfg_scale': 6.0},
                 {'prompt': 'pop', 'output_path': '/etc/passwd.wav'},
                 {'prompt': 'pop', 'unknown': 1},
             ):
@@ -231,6 +239,78 @@ class LoopbackServiceTests(unittest.TestCase):
         symlink_file.symlink_to(conn_file)
         with self.assertRaises(ValueError):
             server_module.write_connection(symlink_file, {})
+
+
+class PromptAndProsodyLintTests(unittest.TestCase):
+    def test_normalize_lyrics_and_inline_tag_truncation_guard(self):
+        self.assertEqual(
+            normalize_lyrics('[Verse] Walking down the street\nSecond line'),
+            '[start]\n[verse]\nSecond line',
+        )
+        self.assertEqual(
+            clean_caption('### Global Metadata\n**bpm** is <|key E|>'),
+            'Global Metadata\nbpm is key is E',
+        )
+        bad_report = audit_song_blueprint(
+            'Chinese boom-bap rap, 100 BPM',
+            '[Verse] 这一整句歌词因为和标签同行会被底层静默丢弃\n下一句正常保留',
+        )
+        self.assertFalse(bad_report['ok'])
+        self.assertEqual(len(bad_report['dropped_inline_tag_lines']), 1)
+        codes = {w['code'] for w in bad_report['warnings']}
+        self.assertIn('inline_tag_truncation', codes)
+        self.assertIn('unstructured_flat_caption', codes)
+
+        rc_bad = cli_module.main(
+            ['--prompt', 'Pop', '--lyrics', '[Chorus] 丢词测试', '--lint-only']
+        )
+        self.assertEqual(rc_bad, 2)
+
+    def test_structured_caption_and_contrasted_prosody_pass_cleanly(self):
+        structured_prompt = (
+            'Global Metadata\nBasic Attributes: bpm is 100. key is A, and scale is minor.\n'
+            'Vocal Details\nSinger A (Male) rap verses; Singer B (Female) soaring chorus hook.\n'
+            'Arrangement\nIntro sparse drums; Verse stripped upright bass; Pre-Chorus riser; '
+            'Chorus wide brass stabs and synth hook; Bridge breakdown; Outro fade.'
+        )
+        contrasted_lyrics = (
+            '[Intro]\n(drums only)\n'
+            '[Verse 1]\n八月地基重铺，前沿模型六天一换\n左手提效写码，业务流程全盘接管\n'
+            '[Pre-Chorus]\n三大支柱立稳——\n'
+            '[Chorus]\n一句话开场！\nAI 搭架构！\n稳跑全流程——\nCopilot Studio！\n'
+            '[Outro]\nBuild it now!'
+        )
+        clean_report = audit_song_blueprint(structured_prompt, contrasted_lyrics)
+        self.assertTrue(clean_report['ok'])
+        self.assertEqual(clean_report['warnings'], [])
+        self.assertLess(clean_report['chorus_avg_syllables'], clean_report['verse_avg_syllables'])
+
+        rc_ok = cli_module.main(
+            ['--prompt', structured_prompt, '--lyrics', contrasted_lyrics, '--lint-only', '--json']
+        )
+        self.assertEqual(rc_ok, 0)
+
+    def test_guide_rearranged_blueprints_pass_lint_with_zero_warnings(self):
+        import re
+
+        repo_root = Path(__file__).resolve().parents[1]
+        for rel_doc in (
+            'docs/ai-songwriting-and-minimax-music3-mastery.md',
+            'docs/minimax-music3-arrangement-guide.md',
+        ):
+            doc_text = (repo_root / rel_doc).read_text(encoding='utf-8')
+            blocks = re.findall(r'```text\n(.*?)```', doc_text, flags=re.S)
+            self.assertGreaterEqual(len(blocks), 2, rel_doc)
+            report = audit_song_blueprint(blocks[0], blocks[1])
+            self.assertTrue(report['ok'], rel_doc)
+            self.assertEqual(report['warnings'], [], f'{rel_doc} emitted warnings: {report["warnings"]}')
+            self.assertLess(report['chorus_avg_syllables'], report['verse_avg_syllables'] * 0.9, rel_doc)
+
+    def test_sampling_pipeline_exports_and_line_budget(self):
+        self.assertTrue(callable(step_one_frame))
+        self.assertTrue(callable(run_custom_generation))
+        engine_lines = (SCRIPTS / 'minimax_music_mlx' / 'engine.py').read_text(encoding='utf-8').splitlines()
+        self.assertLess(len(engine_lines), 400)
 
 
 if __name__ == '__main__':

@@ -24,6 +24,10 @@ REQUIRED_SHARDS = (
 )
 MAX_PROMPT_CHARS = 4096
 MAX_LYRICS_CHARS = 8192
+DEFAULT_TEMPERATURE = 1.0
+DEFAULT_AR_CFG_SCALE = 1.5
+DEFAULT_AR_TOP_K = 50
+DEFAULT_DIT_CFG_SCALE = 1.7
 
 
 def _unique_object(pairs):
@@ -116,7 +120,11 @@ def _resolve_safe_output_path(raw_out: Any, output_dir: Path) -> Path:
 def validate_generation_request(payload: Any, *, output_dir: Path = DEFAULT_OUTPUT_DIR) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise ValueError('Payload must be a JSON object')
-    allowed = {'prompt', 'caption', 'lyrics', 'duration', 'steps', 'seed', 'output_path', 'return_audio_base64'}
+    allowed = {
+        'prompt', 'caption', 'lyrics', 'duration', 'steps', 'seed',
+        'temperature', 'ar_cfg_scale', 'ar_top_k', 'dit_cfg_scale',
+        'output_path', 'return_audio_base64',
+    }
     if set(payload) - allowed:
         raise ValueError('Unsupported request fields')
     raw_prompt = payload.get('prompt') if payload.get('prompt') is not None else payload.get('caption')
@@ -131,8 +139,12 @@ def validate_generation_request(payload: Any, *, output_dir: Path = DEFAULT_OUTP
             'Lyrics must be a non-empty string (<=8192 chars); pass [instrumental] for instrumental tracks',
         ),
         'duration': _require_bounded_float(payload.get('duration', 30.0), 1.0, 360.0, 'duration must be between 1 and 360 seconds'),
-        'steps': _require_bounded_int(payload.get('steps', 30), 1, 30, 'steps must be an integer between 1 and 30'),
+        'steps': _require_bounded_int(payload.get('steps', 30), 1, 100, 'steps must be an integer between 1 and 100'),
         'seed': _require_bounded_int(payload.get('seed', 0), 0, 2**31 - 1, 'seed must be a non-negative 32-bit integer'),
+        'temperature': _require_bounded_float(payload.get('temperature', DEFAULT_TEMPERATURE), 0.1, 2.0, 'temperature must be between 0.1 and 2.0'),
+        'ar_cfg_scale': _require_bounded_float(payload.get('ar_cfg_scale', DEFAULT_AR_CFG_SCALE), 1.0, 5.0, 'ar_cfg_scale must be between 1.0 and 5.0'),
+        'ar_top_k': _require_bounded_int(payload.get('ar_top_k', DEFAULT_AR_TOP_K), 1, 250, 'ar_top_k must be an integer between 1 and 250'),
+        'dit_cfg_scale': _require_bounded_float(payload.get('dit_cfg_scale', DEFAULT_DIT_CFG_SCALE), 1.0, 5.0, 'dit_cfg_scale must be between 1.0 and 5.0'),
         'output_path': _resolve_safe_output_path(payload.get('output_path'), output_dir),
         'return_audio_base64': return_b64,
     }
@@ -152,17 +164,12 @@ def _write_pcm16_wav(destination: Path, samples, sample_rate: int) -> tuple[int,
         pcm_bytes = (arr * 32767.0).astype('<i2').tobytes()
     except ImportError:
         import array
-        raw_rows = samples.tolist() if hasattr(samples, 'tolist') else list(samples)
-        if not raw_rows:
-            frames, channels, flat = 0, 1, []
-        elif isinstance(raw_rows[0], (list, tuple)):
-            frames, channels = len(raw_rows), len(raw_rows[0])
-            flat = [float(v) for row in raw_rows for v in row]
-        else:
-            frames, channels = len(raw_rows), 1
-            flat = [float(v) for v in raw_rows]
+        rows = samples.tolist() if hasattr(samples, 'tolist') else list(samples)
+        frames = len(rows)
+        channels = len(rows[0]) if frames and isinstance(rows[0], (list, tuple)) else 1
+        flat = [float(v) for row in rows for v in (row if channels > 1 else (row,))]
         if any(not math.isfinite(v) for v in flat):
-            raise RuntimeError('Generated waveform contains non-finite values')
+            raise RuntimeError('Generated waveform contains non-finite values') from None
         clipped = [max(-1.0, min(1.0, v)) for v in flat]
         rms = math.sqrt(sum(v * v for v in clipped) / len(clipped)) if clipped else 0.0
         pcm = array.array('h', (int(round(v * 32767.0)) for v in clipped))
@@ -235,109 +242,20 @@ class MiniMaxMusicEngine:
             'network_model_calls': 0,
         }
 
-    def _generate_with_progress(self, model: Any, req: dict[str, Any], progress_cb: Any) -> tuple[Any, int]:
-        import mlx.core as mx
-        import numpy as np
-        from mlx_audio.music.models.minimax_music3.ar import ar_one_frame, qwen3_hidden
-        from mlx_audio.music.models.minimax_music3.config import (
-            CHUNK_FRAMES,
-            DIT_CFG_SCALE,
-            OVERLAP_LATENT_LENGTH,
+    @staticmethod
+    def _has_custom_sampling(req: dict[str, Any]) -> bool:
+        return (
+            req['temperature'] != DEFAULT_TEMPERATURE
+            or req['ar_cfg_scale'] != DEFAULT_AR_CFG_SCALE
+            or req['ar_top_k'] != DEFAULT_AR_TOP_K
+            or req['dit_cfg_scale'] != DEFAULT_DIT_CFG_SCALE
+            or req['steps'] > 30
         )
-        from mlx_audio.music.models.minimax_music3.euler import denoise_chunk
-        from mlx_audio.music.models.minimax_music3.minimax_music3 import _chunk_starts, _crop_waveform
 
-        max_frames = max(1, int(req['duration'] * model.config.frame_rate))
-        text_ids = model._text_ids(req['prompt'], req['lyrics'])
-        mx.random.seed(req['seed'])
-        key = mx.random.key(req['seed'])
-        embeddings = model.language_model.model.embed_tokens(text_ids)
-        hidden, cache = qwen3_hidden(model.language_model, embeddings)
-        last_hidden = hidden[:, -1]
-        frames_list = []
-        ar_start = time.perf_counter()
-        progress_cb({'stage': 'ar_start', 'max_frames': max_frames, 'max_seconds': req['duration']})
-        ended_by_eos = False
-        for frame_index in range(max_frames + 1):
-            key, subkey = mx.random.split(key)
-            res = ar_one_frame(
-                model.language_model,
-                model.rvq_depth_decoder,
-                model.config,
-                last_hidden,
-                cache,
-                subkey,
-                emit_frame=frame_index > 0,
-            )
-            last_hidden, cache = res.last_hidden, res.cache
-            if res.ended:
-                ended_by_eos = True
-                break
-            if frame_index > 0:
-                frames_list.append(res.frame_hidden)
-                if len(frames_list) % 125 == 0:
-                    mx.eval(res.frame_hidden)
-                    progress_cb({
-                        'stage': 'ar_progress',
-                        'frames': len(frames_list),
-                        'max_frames': max_frames,
-                        'audio_seconds': round(len(frames_list) / model.config.frame_rate, 1),
-                        'elapsed_seconds': round(time.perf_counter() - ar_start, 1),
-                    })
-                if len(frames_list) >= max_frames:
-                    break
-        if not frames_list:
-            raise RuntimeError('MiniMax-Music3 generated zero audio frames')
-        frame_hiddens = mx.stack(frames_list, axis=1)
-        mx.eval(frame_hiddens)
-        total_ar_frames = int(frame_hiddens.shape[1])
-        progress_cb({
-            'stage': 'ar_done',
-            'frames': total_ar_frames,
-            'audio_seconds': round(total_ar_frames / model.config.frame_rate, 2),
-            'ended_by_eos': ended_by_eos,
-            'elapsed_seconds': round(time.perf_counter() - ar_start, 1),
-        })
-        starts = _chunk_starts(total_ar_frames)
-        waves = []
-        previous_latent = None
-        previous_condition = None
-        mx.random.seed(req['seed'] + 7)
-        flow_start = time.perf_counter()
-        for chunk_idx, start_f in enumerate(starts):
-            end_f = min(start_f + CHUNK_FRAMES, total_ar_frames)
-            condition = model.condition_encoder(frame_hiddens[:, start_f:end_f])
-            noise = mx.random.normal((1, model.config.dit_in_channels, condition.shape[1])).astype(condition.dtype)
-            latents, condition = denoise_chunk(
-                model.transformer,
-                noise,
-                condition,
-                num_inference_steps=req['steps'],
-                guidance_scale=DIT_CFG_SCALE,
-                previous_latent=previous_latent,
-                previous_condition=previous_condition,
-            )
-            carry_start = max(0, latents.shape[-1] - 2 * OVERLAP_LATENT_LENGTH)
-            carry_end = max(carry_start, latents.shape[-1] - OVERLAP_LATENT_LENGTH)
-            previous_latent = latents[..., carry_start:carry_end]
-            previous_condition = condition[:, carry_start:carry_end]
-            waves.append(model.vocoder(latents))
-            mx.eval(waves[-1])
-            progress_cb({
-                'stage': 'dit_chunk',
-                'chunk': chunk_idx + 1,
-                'total_chunks': len(starts),
-                'elapsed_seconds': round(time.perf_counter() - flow_start, 1),
-            })
-        audio = mx.concatenate(
-            [_crop_waveform(wave, idx, len(waves)) for idx, wave in enumerate(waves)],
-            axis=-1,
-        )
-        mx.eval(audio)
-        waveform = mx.clip(audio[0].transpose(1, 0).astype(mx.float32), -1.0, 1.0)
-        if not np.isfinite(np.asarray(waveform)).all():
-            raise RuntimeError('MiniMax-Music3 produced non-finite audio')
-        return waveform, int(model.sample_rate)
+    def _generate_with_progress(self, model: Any, req: dict[str, Any], progress_cb: Any | None = None) -> tuple[Any, int]:
+        from .sampling_pipeline import run_custom_generation
+
+        return run_custom_generation(model, req, progress_cb)
 
     def generate(self, payload: dict[str, Any], *, allow_any_output_path: bool = False) -> dict[str, Any]:
         progress_cb = payload.get('_progress_cb') if isinstance(payload, dict) else None
@@ -351,7 +269,12 @@ class MiniMaxMusicEngine:
             req = validate_generation_request(clean_payload, output_dir=self.output_dir)
         model = self.ensure_loaded()
         started = time.perf_counter()
-        if callable(progress_cb) and hasattr(model, '_text_ids') and hasattr(model, '_run_flow'):
+        use_direct = (
+            (callable(progress_cb) or self._has_custom_sampling(req))
+            and hasattr(model, '_text_ids')
+            and hasattr(model, '_run_flow')
+        )
+        if use_direct:
             waveform, sample_rate = self._generate_with_progress(model, req, progress_cb)
         else:
             results = list(
@@ -391,6 +314,10 @@ class MiniMaxMusicEngine:
             'elapsed_seconds': round(elapsed, 3),
             'steps': req['steps'],
             'seed': req['seed'],
+            'temperature': req['temperature'],
+            'ar_cfg_scale': req['ar_cfg_scale'],
+            'ar_top_k': req['ar_top_k'],
+            'dit_cfg_scale': req['dit_cfg_scale'],
             'inference_call_index': self.inference_count,
         }
         if req['return_audio_base64']:
