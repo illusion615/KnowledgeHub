@@ -328,15 +328,27 @@
     function vgScenePresetSection(busy) {
       var vg = root.KHVideoGenerator, esc = ctx.esc;
       if (!vg) return '';
-      return '<details class="studio-vg-presets"><summary>' +
-        t('Adu 镜头编舞预设（TPL 9 类场景一键套用）', 'Adu Scene Choreography Presets (9 TPL Layouts)') +
-        '</summary><p class="studio-muted">' +
-        t('基于 Video-Generator templates.js 的 9 类标准编舞，按当前镜头文案与所选风格包实时生成图层与关键帧，无需消耗云端额度。', 'Applies Video-Generator templates.js choreographies locally using the current scene copy and style palette without cloud credits.') +
-        '</p><div class="studio-vg-preset-grid">' + vg.scenePresets.map(function (preset) {
+      var currentScene = galleryScene();
+      var project = ctx.getProject();
+      var scenes = project && project.scenes ? project.scenes : [];
+      var idx = currentScene ? scenes.indexOf(currentScene) : 0;
+      var activePreset = currentScene && vg.detectScenePreset ? vg.detectScenePreset(currentScene, Math.max(0, idx), scenes.length) : '';
+      return '<div class="studio-vg-presets" role="group" aria-label="' + t('TPL 镜头编舞模板快捷切换', 'TPL Scene Choreography Presets') + '">' +
+        '<div class="studio-preset-heading"><span class="studio-pill-label">' + t('9 类 TPL 镜头编舞模板（一键实时套用）', '9 TPL Choreography Presets') + '</span></div>' +
+        '<div class="studio-vg-preset-pills">' + vg.scenePresets.map(function (preset) {
+          var shortLabel = t(preset.name[0], preset.name[1]).replace(/\s*\(TPL\.[a-z]+\)/i, '');
           return '<button type="button" class="studio-vg-preset-btn" data-action="vg-scene-preset" data-preset="' + esc(preset.id) + '"' +
-            (busy ? ' disabled' : '') + '><strong>' + esc(t(preset.name[0], preset.name[1])) + '</strong><small>' +
-            esc(t(preset.summary[0], preset.summary[1])) + '</small></button>';
-        }).join('') + '</div></details>';
+            ' aria-pressed="' + String(activePreset === preset.id) + '" title="' + esc(t(preset.summary[0], preset.summary[1])) + '"' +
+            (busy ? ' disabled' : '') + '>' + esc(shortLabel) + '</button>';
+        }).join('') + '</div></div>';
+    }
+
+    function cleanDisplayTitle(raw) {
+      return String(raw || '').split('||')[0]
+        .replace(/:::?[a-z-]+(?:\s*\{[^}]*\})?/gi, ' ')
+        .replace(/#[a-z0-9_-]+/gi, ' ')
+        .replace(/^(?:\d+[\.\s、/-]*)+/, '')
+        .replace(/\s+/g, ' ').trim() || String(raw || '');
     }
 
     function sceneBin() {
@@ -347,10 +359,11 @@
         '</strong><a href="posts/' + esc(project.source.slug) + '/" target="_blank" rel="noopener">' + t('查看原文 ↗', 'Open Article ↗') + '</a></div><div class="studio-scene-list">' +
         project.scenes.map(function (scene, index) {
           var image = scene.artifacts && scene.artifacts.image, voice = scene.artifacts && scene.artifacts.voice;
+          var dispTitle = cleanDisplayTitle(scene.title);
           return '<button type="button" class="studio-bin-scene" data-action="gallery-select" data-scene="' + esc(scene.id) + '"' +
             (scene.id === galleryId ? ' aria-current="true"' : '') + '><span class="studio-bin-number">' + String(index + 1).padStart(2, '0') + '</span>' +
             (image ? '<img alt="" data-media="' + image.key + '">' : '<span class="studio-bin-placeholder">—</span>') +
-            '<span class="studio-bin-info"><strong>' + esc(scene.title) + '</strong><small>' +
+            '<span class="studio-bin-info"><strong>' + esc(dispTitle) + '</strong><small>' +
             (scene.imageRequired === false ? t('图形画面', 'Graphics') : image ? t('图就绪', 'Image ready') : t('缺图片', 'No image')) + ' · ' +
             (voice ? t('音就绪', 'Voice ready') : t('缺配音', 'No voice')) + '</small></span></button>';
         }).join('') + '</div></aside>';
@@ -365,14 +378,15 @@
       }
       project.scenes.forEach(function (scene, index) {
         var artifacts = scene.artifacts || {}, duration = sceneDuration(scene), width = duration * scale;
+        var dispTitle = cleanDisplayTitle(scene.title);
         var attributes = ' data-action="gallery-select" data-scene="' + esc(scene.id) + '"' +
           (scene.id === galleryId ? ' aria-current="true"' : '') + ' style="width:' + width + 'px"';
         video += '<button type="button" class="studio-gallery-thumb"' + attributes + ' aria-label="' +
-          esc((index + 1) + '. ' + scene.title) + '">' +
+          esc((index + 1) + '. ' + dispTitle) + '">' +
           (artifacts.image ? '<img alt="" data-media="' + artifacts.image.key + '">' : '<span class="studio-thumb-placeholder">' + (index + 1) + '</span>') +
-          '<span>' + esc((index + 1) + '. ' + scene.title) + '</span></button>';
+          '<span>' + esc((index + 1) + '. ' + dispTitle) + '</span></button>';
         audio += '<button type="button" class="studio-audio-clip' + (artifacts.voice ? ' is-ready' : '') + '"' + attributes +
-          ' aria-label="' + esc(t('配音：', 'Voice: ') + scene.title) + '">' +
+          ' aria-label="' + esc(t('配音：', 'Voice: ') + dispTitle) + '">' +
           (artifacts.voice ? t('配音 ', 'Voice ') : t('估算 ', 'Est. ')) + duration.toFixed(1) + 's</button>';
       });
       return '<section class="studio-sequence" aria-label="' + t('镜头序列', 'Scene Sequence') + '"><header class="studio-panel-heading"><strong>' +

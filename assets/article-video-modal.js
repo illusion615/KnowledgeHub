@@ -49,29 +49,34 @@
     document.head.appendChild(style);
   }
 
+  function stripHtml(str) {
+    return String(str || '').replace(/<\/?[a-z][a-z0-9-]*(?:\s[^<>]*)?>/gi, ' ').replace(/<\s*\/?\s*(?:code|strong|em|span|b|i|a|p|div|br|ul|ol|li|pre|sub|sup)\b>?/gi, ' ').replace(/\s+/g, ' ').trim();
+  }
+
   function extractArticleDomSource(slug) {
     var h1 = document.querySelector('h1');
-    var title = h1 ? (h1.getAttribute('data-zh') || h1.textContent || '').trim() : (document.title || slug);
+    var title = h1 ? stripHtml(h1.getAttribute('data-zh') || h1.textContent || '') : (document.title || slug);
     var anchors = [];
     var sections = [];
     var textParts = [title];
 
     var heroP = document.querySelector('.hero-copy p');
-    var lead = heroP ? (heroP.getAttribute('data-zh') || heroP.textContent || '').trim() : '';
+    var lead = heroP ? stripHtml(heroP.getAttribute('data-zh') || heroP.textContent || '') : '';
     if (lead) textParts.push(lead);
 
     var secNodes = document.querySelectorAll('main section[id], section.section[id]');
     Array.prototype.forEach.call(secNodes, function (sec) {
       var id = sec.getAttribute('id');
-      if (!id || id === 'references') return;
+      if (!id || id === 'references' || id === 'genesis-source-drawer' || sec.classList.contains('genesis-source-drawer')) return;
       anchors.push(id);
       var h2 = sec.querySelector('h2');
-      var secTitle = h2 ? (h2.getAttribute('data-zh') || h2.textContent || '').trim() : id;
+      var rawSecTitle = h2 ? stripHtml(h2.getAttribute('data-zh') || h2.textContent || '') : id;
+      var secTitle = rawSecTitle.replace(/^(?:\d+[\.\s、/-]*)+/, '').replace(/::[a-z-]+/gi, '').replace(/\s+/g, ' ').trim() || id;
       var bodyLines = [];
       var paras = sec.querySelectorAll('p, h3, h4, li');
       Array.prototype.forEach.call(paras, function (node) {
         if (bodyLines.length >= 6) return;
-        var line = (node.getAttribute('data-zh') || node.textContent || '').replace(/\s+/g, ' ').trim();
+        var line = stripHtml(node.getAttribute('data-zh') || node.textContent || '');
         if (line && line.length >= 8 && bodyLines.indexOf(line) === -1) {
           bodyLines.push(line);
         }

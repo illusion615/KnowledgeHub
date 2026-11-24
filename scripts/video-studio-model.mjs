@@ -58,9 +58,10 @@ export function extractSource(html) {
       if (!blocked && !translated) pieces.push('\n');
       continue;
     }
-    const block = ['script', 'style', 'noscript', 'nav', 'button'].includes(name);
     const id = attribute(token, 'id');
-    if (id && !blocked) anchors.push(id);
+    const cls = attribute(token, 'class') || '';
+    const block = ['script', 'style', 'noscript', 'nav', 'button'].includes(name) || /\bgenesis-source-drawer\b/i.test(cls) || id === 'genesis-source-drawer' || id === 'references';
+    if (id && !blocked && !block) anchors.push(id);
     const zh = attribute(token, 'data-zh');
     const translate = !blocked && !translated && !block && zh !== null;
     if (translate) pieces.push('\n' + zh.replace(/<[^>]*>/g, '') + '\n');
@@ -77,9 +78,38 @@ export function extractSource(html) {
     if (block) blocked++;
     if (translate) translated++;
   }
+  const sections = [];
+  const secRegex = /<section\b([^>]*?)id\s*=\s*(?:"([^"]+)"|'([^']+)')([^>]*)>([\s\S]*?)<\/section>/gi;
+  let secMatch;
+  while ((secMatch = secRegex.exec(html)) !== null) {
+    const secId = decode(secMatch[2] || secMatch[3] || '');
+    const secOpen = secMatch[1] + ' ' + secMatch[4];
+    if (!secId || secId === 'references' || secId === 'genesis-source-drawer' || /\bgenesis-source-drawer\b/i.test(secOpen)) continue;
+    const inner = secMatch[5];
+    const h2Match = /<h2\b[^>]*>([\s\S]*?)<\/h2>/i.exec(inner);
+    const h2Raw = h2Match ? (attribute(h2Match[0], 'data-zh') || decode(h2Match[1].replace(/<[^>]+>/g, '')).trim()) : (attribute('<section ' + secOpen + '>', 'data-present-title-zh') || secId);
+    const secTitle = h2Raw.replace(/^(?:\d+[\.\s、/-]*)+/, '').replace(/::[a-z-]+/gi, '').replace(/\s+/g, ' ').trim();
+    const paraList = [];
+    const pRegex = /<(?:p|h3|li)\b[^>]*>([\s\S]*?)<\/(?:p|h3|li)>/gi;
+    let pMatch;
+    while ((pMatch = pRegex.exec(inner)) !== null && paraList.length < 5) {
+      const rawP = attribute(pMatch[0], 'data-zh') || decode(pMatch[1]);
+      const pText = rawP.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+      if (pText.length >= 10 && !/^\d+\s*\//.test(pText) && !paraList.includes(pText)) paraList.push(pText);
+    }
+    if (secTitle && paraList.length) {
+      const bodyStr = paraList.join('。');
+      sections.push({
+        id: secId, title: secTitle, body: bodyStr,
+        hasCompare: /对比|vs|区别|差异/i.test(bodyStr),
+        hasSteps: /步骤|阶段|流程|第一步/i.test(bodyStr),
+        hasMetric: /\d+(?:\.\d+)?\s*(%|倍|ms|秒|天|类|项|个)/.test(bodyStr)
+      });
+    }
+  }
   const h1 = /<h1\b[^>]*>[\s\S]*?<\/h1>/i.exec(html)?.[0];
   const title = h1 ? attribute(h1, 'data-zh') || decode(h1.replace(/<[^>]+>/g, '')).trim() : '';
-  return { title, anchors: [...new Set(anchors)], text: pieces.join('').replace(/[ \t]+/g, ' ').replace(/\n\s*\n/g, '\n').trim() };
+  return { title, anchors: [...new Set(anchors)], ...(sections.length ? { sections } : {}), text: pieces.join('').replace(/[ \t]+/g, ' ').replace(/\n\s*\n/g, '\n').trim() };
 }
 export async function readArticle(root, slug) {
   if (typeof slug !== 'string' || !/^[a-z0-9][a-z0-9-]{0,99}$/.test(slug)) invalid('文章标识无效。');

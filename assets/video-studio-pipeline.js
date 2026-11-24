@@ -21,13 +21,20 @@
         return '<option value="' + esc(entry[0]) + '"' + (entry[0] === value ? ' selected' : '') + '>' + esc(entry[1]) + '</option>';
       }).join('') + '</select></label>';
     }
-    function shotHeading(scene, index) { return '<h3>' + (index + 1) + '. ' + esc(scene.title) + '</h3>'; }
+    function cleanDisplayTitle(raw) {
+      return String(raw || '').split('||')[0]
+        .replace(/:::?[a-z-]+(?:\s*\{[^}]*\})?/gi, ' ')
+        .replace(/#[a-z0-9_-]+/gi, ' ')
+        .replace(/^(?:\d+[\.\s、/-]*)+/, '')
+        .replace(/\s+/g, ' ').trim() || String(raw || '');
+    }
+    function shotHeading(scene, index) { return '<h3>' + (index + 1) + '. ' + esc(cleanDisplayTitle(scene.title)) + '</h3>'; }
 
     function computeState() {
       var project = ctx.getProject();
       var vg = root.KHVideoGenerator;
       var bgm = root.KHVideoBgm;
-      if (!project) return { nodes: [], activeJob: null, allDone: false, nextHint: '', quickScenario: 'presenter', quickSeconds: 180, packLabel: '01-A', visualTheme: 'professional', musicStyle: 'ambient-tech', musicEnabled: true };
+      if (!project) return { nodes: [], activeJob: null, allDone: false, percent: null, quickScenario: 'presenter', quickSeconds: 180, packLabel: '01-A', visualTheme: 'professional', musicStyle: 'ambient-tech', musicEnabled: true };
       var scenes = project.scenes || [], total = scenes.length, jobs = project.jobs || [];
       var activeJob = jobs.find(function (job) { return job.status === 'queued' || job.status === 'running'; }) || null;
       var planRunning = !!(activeJob && activeJob.kind === 'plan');
@@ -48,7 +55,9 @@
       var musicEnabled = normMusic !== 'none';
       var scenarioId = (project.brief && project.brief.scenario) || 'presenter';
       var exported = !!project.currentExport;
-      var progKind = activeJob && activeJob.progress && activeJob.progress.kind;
+      var prog = activeJob && activeJob.progress;
+      var progKind = prog && prog.kind;
+      var percent = prog && prog.total ? Math.round(prog.completed / prog.total * 100) : null;
       var step1Running = planRunning;
       var step2Running = directRunning || (activeJob && (activeJob.kind === 'image' || (activeJob.kind === 'assets' && (!progKind || progKind === 'image')) || (activeJob.kind === 'produce' && progKind === 'image')));
       var step3Running = activeJob && (activeJob.kind === 'voice' || (activeJob.kind === 'assets' && progKind === 'voice') || (activeJob.kind === 'produce' && progKind === 'voice'));
@@ -59,33 +68,21 @@
       var step4Ready = exported && !step4Running;
 
       var nodes = [
-        { step: 1, num: '①', title: t('脚本与风格', 'Script & Style'), state: step1Running ? 'running' : step1Ready ? 'done' : 'pending',
-          badge: step1Running ? t('生成中 ⏳', 'Generating ⏳') : step1Ready ? t('自动就绪 ✅', 'Ready ✅') : t('待初始化 ○', 'Pending ○'),
+        { step: 1, icon: step1Running ? '◐' : step1Ready ? '✓' : '○', title: t('1.脚本', '1.Script'), state: step1Running ? 'running' : step1Ready ? 'done' : 'pending',
+          badge: '',
           detail: total > 0 ? t(total + ' 镜口播 · ' + vThemeLabel, total + ' scenes · ' + vThemeLabel) : t('点击一键生成提取分镜 · ' + vThemeLabel, 'One-click to extract scenes · ' + vThemeLabel) },
-        { step: 2, num: '②', title: t('画面与编舞', 'Visual & Motion'), state: step2Running ? 'running' : step2Ready ? 'done' : 'pending',
-          badge: step2Running ? t('编排中 ⏳', 'Designing ⏳') : step2Ready ? t('已就绪 ✅', 'Ready ✅') : t('待生成 ○', 'Pending ○'),
+        { step: 2, icon: step2Running ? '◐' : step2Ready ? '✓' : '○', title: t('2.画面', '2.Visual'), state: step2Running ? 'running' : step2Ready ? 'done' : 'pending',
+          badge: total > 0 && !step2Ready ? composedCount + '/' + total : '',
           detail: total === 0 ? t('流体渐变与生命感粒子待装载', 'Gradient & living motion ready') : imageScenes.length === 0 ? t('流体渐变 + 9 类编舞 (' + composedCount + '/' + total + ' 镜)', 'Fluid gradient + choreography (' + composedCount + '/' + total + ')') : t('插图与画面就绪 (' + imageReadyCount + '/' + imageScenes.length + ' 镜)', 'Artwork ready (' + imageReadyCount + '/' + imageScenes.length + ')') },
-        { step: 3, num: '③', title: t('语音与配乐', 'Voice & BGM'), state: step3Running ? 'running' : step3Ready ? 'done' : 'pending',
-          badge: step3Running ? t('合成中 ⏳ ' + voiceCount + '/' + total, 'Synthesizing ⏳ ' + voiceCount + '/' + total) : step3Ready ? t('已合成 ✅ ' + voiceCount + '/' + total, 'Synthesized ✅ ' + voiceCount + '/' + total) : t('待合成 ○ ' + voiceCount + '/' + total, 'Pending ○ ' + voiceCount + '/' + total),
+        { step: 3, icon: step3Running ? '◐' : step3Ready ? '✓' : '○', title: t('3.配音', '3.Voice'), state: step3Running ? 'running' : step3Ready ? 'done' : 'pending',
+          badge: total > 0 ? (voiceCount + '/' + total) : '',
           detail: total > 0 && voiceCount === total ? t('配音已就绪 · ' + (musicEnabled ? '含动态代码配乐' : '纯人声无配乐'), 'Voice ready · ' + (musicEnabled ? 'Synth BGM ON' : 'Voice only')) : t('已合成 ' + voiceCount + '/' + (total || 6) + ' 镜配音 · ' + (musicEnabled ? '配乐开启' : '配乐关闭'), 'Voice ' + voiceCount + '/' + (total || 6) + ' · ' + (musicEnabled ? 'BGM ON' : 'BGM OFF')) },
-        { step: 4, num: '④', title: t('成片合成与导出', 'Render & Export MP4'), state: step4Running ? 'running' : step4Ready ? 'done' : 'pending',
-          badge: step4Running ? t('渲染中 ⏳ ' + clipCount + '/' + total, 'Rendering ⏳ ' + clipCount + '/' + total) : step4Ready ? t('可下载 🎬', 'Ready 🎬') : clipCount > 0 ? t('片段 ' + clipCount + '/' + total, 'Clips ' + clipCount + '/' + total) : t('待合成 ○', 'Pending ○'),
+        { step: 4, icon: step4Running ? '◐' : step4Ready ? '✓' : '○', title: t('4.成片', '4.Export'), state: step4Running ? 'running' : step4Ready ? 'done' : 'pending',
+          badge: step4Ready ? 'MP4' : (clipCount > 0 ? (clipCount + '/' + total) : ''),
           detail: step4Ready ? t('MP4 整片已合成完毕 · 可直接在线播放或下载', 'Full MP4 film assembled · play or download now') : clipCount > 0 ? t('已渲染 ' + clipCount + '/' + total + ' 镜 · 待合成整片 MP4', 'Rendered ' + clipCount + '/' + total + ' clips · pending MP4 export') : t('待渲染动态镜头并混音合成 MP4', 'Pending scene render and MP4 audio mix') }
       ];
 
-      var nextHint = '';
-      if (activeJob) {
-        var p = activeJob.progress, ratio = p && p.total ? ' (' + p.completed + '/' + p.total + ')' : '', currentTitle = p && p.title ? ' · ' + p.title : '';
-        nextHint = t('⏳ 正在自动执行流水线' + ratio + currentTitle + '：' + (activeJob.message || ''), '⏳ Running pipeline' + ratio + currentTitle + ': ' + (activeJob.message || ''));
-      } else if (step4Ready) {
-        nextHint = t('🎉 整片已生成就绪！可直接在线播放或点击右侧「⬇ 下载 MP4 成片」保存视频。', '🎉 Full MP4 video is ready! Play it in the monitor or click Download MP4.');
-      } else if (!step3Ready) {
-        nextHint = t('待完成：尚未合成口播配音（' + voiceCount + '/' + total + '）与最终 MP4 —— 可先切换上方「视觉风格」或「背景音乐」，再点击右侧「⚡ 一键生成完整视频」。', 'Next: Voice (' + voiceCount + '/' + total + ') & MP4 pending — pick Visual Style or BGM above, then click "⚡ One-Click Generate Full Video".');
-      } else {
-        nextHint = t('待完成：配音已就绪，尚有镜头渲染或 MP4 混音未完成（' + clipCount + '/' + total + '）—— 点击右侧「⚡ 一键生成完整视频」自动合成导出。', 'Next: Voices ready, rendering / MP4 mix pending (' + clipCount + '/' + total + ') — click "⚡ One-Click Generate Full Video".');
-      }
-
-      return { nodes: nodes, activeJob: activeJob, allDone: step4Ready, nextHint: nextHint, quickScenario: scenarioId, quickSeconds: (project.brief && project.brief.seconds) || 180, packLabel: packTitle, visualTheme: visualTheme, musicStyle: normMusic === 'none' ? 'ambient-tech' : normMusic, musicEnabled: musicEnabled };
+      return { nodes: nodes, activeJob: activeJob, allDone: step4Ready, percent: percent, quickScenario: scenarioId, quickSeconds: (project.brief && project.brief.seconds) || 180, packLabel: packTitle, visualTheme: visualTheme, musicStyle: normMusic === 'none' ? 'ambient-tech' : normMusic, musicEnabled: musicEnabled };
     }
 
     function renderStepper(currentStep) {
@@ -95,27 +92,39 @@
         var isCurrent = currentStep === node.step;
         var arrow = idx < st.nodes.length - 1 ? '<span class="studio-step-arrow" aria-hidden="true">➔</span>' : '';
         return '<button type="button" class="studio-step-card" data-step="' + node.step + '" data-status="' + esc(node.state) + '"' +
-          (isCurrent ? ' aria-current="step"' : '') + '>' +
-          '<div class="studio-step-top"><span class="studio-step-title">' + esc(node.num + ' ' + node.title) + '</span>' +
-          '<span class="studio-step-badge" data-badge-state="' + esc(node.state) + '">' + esc(node.badge) + '</span></div>' +
-          '<small class="studio-step-detail">' + esc(node.detail) + '</small>' +
+          (isCurrent ? ' aria-current="step"' : '') + ' title="' + esc(node.detail) + '">' +
+          '<span class="studio-step-icon" aria-hidden="true">' + esc(node.icon) + '</span>' +
+          '<span class="studio-step-title">' + esc(node.title) + '</span>' +
+          (node.badge ? '<span class="studio-step-badge" data-badge-state="' + esc(node.state) + '">' + esc(node.badge) + '</span>' : '') +
           '<span class="studio-visually-hidden">' + esc(node.step + ' · ' + ctx.stepNames[idx][ctx.lang() === 'en' ? 1 : 0]) + '</span></button>' + arrow;
       }).join('');
       var bannerState = st.activeJob ? 'running' : st.allDone ? 'done' : 'pending';
-      return '<div class="studio-pipeline-bar" data-pipeline-state="' + bannerState + '">' +
-        '<div class="studio-pipeline-nodes" role="list">' + stepsHtml + '</div>' +
-        '<div class="studio-pipeline-hint" data-hint-state="' + bannerState + '" role="status" aria-live="polite">' +
-        '<span class="studio-pipeline-hint-text">' + esc(st.nextHint) + '</span></div></div>';
+      var lineStyle = st.activeJob ? (' style="--studio-progress:' + (st.percent !== null ? st.percent : 18) + '%"') : '';
+      return '<div class="studio-pipeline-bar" data-pipeline-state="' + bannerState + '"' + lineStyle + '>' +
+        '<div class="studio-pipeline-nodes" role="list">' + stepsHtml + '</div></div>';
+    }
+
+    function renderHeaderCta(busy) {
+      var project = ctx.getProject();
+      if (!project) return '';
+      var st = computeState(), dirty = ctx.isDirty(), exported = project.currentExport;
+      if (st.activeJob) {
+        var pct = st.percent !== null ? st.percent + '%' : '…';
+        var fillPct = st.percent !== null ? st.percent : 18;
+        return '<button type="button" class="studio-primary studio-oneclick-btn is-running" data-action="cancel" data-scene="' + esc(st.activeJob.id) + '" style="--studio-btn-fill:' + fillPct + '%" title="' + esc(st.activeJob.message || '') + '">' +
+          '<span>' + esc(t('⏳ 生成中 ' + pct + ' · 点击取消', '⏳ Generating ' + pct + ' · Cancel')) + '</span></button>';
+      }
+      var primaryLabel = exported && !dirty ? t('⚡ 重新生成视频', '⚡ Rebuild Video') :
+        dirty ? t('⚡ 保存并一键生成', '⚡ Save & Generate') : t('⚡ 一键生成视频', '⚡ Generate Video');
+      return (exported ? '<button type="button" class="studio-success-btn" data-action="download" data-scene="' + esc(exported.key) + '">' + t('⬇ 下载 MP4', '⬇ MP4') + '</button>' : '') +
+        '<button type="button" class="studio-primary studio-oneclick-btn" data-action="one-click-produce"' + (busy ? ' disabled' : '') + '>' + esc(primaryLabel) + '</button>';
     }
 
     function renderOneClickHero(busy, extraToolbarHtml) {
       var project = ctx.getProject();
       if (!project) return '';
-      var st = computeState(), dirty = ctx.isDirty(), scenario = st.quickScenario;
+      var st = computeState(), scenario = st.quickScenario;
       var isShort = (Number(st.quickSeconds) || 180) <= 90, exported = project.currentExport;
-      var primaryLabel = busy ? t('⏳ 正在全自动生成视频…', '⏳ Auto-Generating Video…') :
-        exported && !dirty ? t('⚡ 重新一键生成完整视频', '⚡ One-Click Rebuild Full Video') :
-        dirty ? t('⚡ 保存并一键生成完整视频', '⚡ Save & One-Click Generate Video') : t('⚡ 一键生成完整视频', '⚡ One-Click Generate Full Video');
 
       var visualPills = visualThemes.map(function (vt) {
         return '<button type="button" class="studio-pill" data-action="quick-visual-theme" data-visual-theme="' + esc(vt.id) + '" aria-pressed="' + String(st.visualTheme === vt.id) + '"' + (busy ? ' disabled' : '') + ' title="' + esc(t(vt.summary[0], vt.summary[1])) + '">' + esc(t(vt.shortName[0], vt.shortName[1])) + '</button>';
@@ -125,15 +134,13 @@
         return '<option value="' + esc(bs.id) + '"' + (st.musicStyle === bs.id ? ' selected' : '') + '>' + esc(t(bs.name[0], bs.name[1])) + '</option>';
       }).join('');
 
-      return '<section class="studio-oneclick-bar" aria-label="' + t('一键生成动态视频主控台', 'One-Click Video Generation Bar') + '">' +
+      return '<section class="studio-oneclick-bar" aria-label="' + t('视频风格与配乐快速切换栏', 'Quick Style & BGM Bar') + '">' +
         '<div class="studio-oneclick-main">' +
-        '<div class="studio-oneclick-brand"><strong>' + t('⚡ 一键生成动态视频', '⚡ Zero-Config One-Click Video') + '</strong>' +
-        '<small>' + t('流光渐变 + 生命感律动 + 代码动态合成配乐 · 全自动出片', 'Fluid Gradient + Organic Motion + Procedural Synth BGM') + '</small></div>' +
         '<div class="studio-oneclick-pills" role="group" aria-label="' + t('视觉风格、背景音乐与模式选择', 'Visual Theme, BGM & Mode Controls') + '">' +
-        '<div class="studio-pill-group"><span class="studio-pill-label">' + t('视觉风格', 'Visual') + '</span>' + visualPills + '</div>' +
-        '<div class="studio-pill-group studio-bgm-group"><span class="studio-pill-label">' + t('背景音乐', 'BGM') + '</span>' +
+        '<div class="studio-pill-group"><span class="studio-pill-label">' + t('风格', 'Style') + '</span>' + visualPills + '</div>' +
+        '<div class="studio-pill-group studio-bgm-group"><span class="studio-pill-label">' + t('配乐', 'BGM') + '</span>' +
         '<button type="button" class="studio-pill studio-bgm-toggle" data-action="quick-bgm-toggle" aria-pressed="' + String(st.musicEnabled) + '"' + (busy ? ' disabled' : '') + '>' +
-        (st.musicEnabled ? t('🎵 开启配乐', '🎵 BGM ON') : t('🔇 无配乐', '🔇 BGM OFF')) + '</button>' +
+        (st.musicEnabled ? t('🎵 开启', '🎵 ON') : t('🔇 静音', '🔇 OFF')) + '</button>' +
         '<select class="studio-bgm-select" data-action="quick-bgm-style" aria-label="' + t('选择动态合成背景音乐风格', 'Select Procedural BGM Style') + '"' + (busy || !st.musicEnabled ? ' disabled' : '') + '>' + bgmOptions + '</select></div>' +
         '<div class="studio-pill-group"><span class="studio-pill-label">' + t('模式', 'Mode') + '</span>' +
         '<button type="button" class="studio-pill" data-action="quick-scenario" data-vg-scenario="presenter" aria-pressed="' + String(scenario !== 'product') + '"' + (busy ? ' disabled' : '') + '>' + t('🎙️ 口播', '🎙️ Talk') + '</button>' +
@@ -141,10 +148,9 @@
         '<button type="button" class="studio-pill" data-action="quick-duration" data-seconds="60" aria-pressed="' + String(isShort) + '"' + (busy ? ' disabled' : '') + '>60s</button>' +
         '<button type="button" class="studio-pill" data-action="quick-duration" data-seconds="180" aria-pressed="' + String(!isShort) + '"' + (busy ? ' disabled' : '') + '>180s</button></div></div>' +
         '<div class="studio-oneclick-cta">' +
-        '<button type="button" class="studio-primary studio-oneclick-btn" data-action="one-click-produce"' + (busy ? ' disabled' : '') + '>' + esc(primaryLabel) + '</button>' +
-        (exported ? '<button type="button" class="studio-success-btn" data-action="download" data-scene="' + esc(exported.key) + '">' + t('⬇ 下载 MP4 成片', '⬇ Download MP4') + '</button>' : '') +
         (exported && ctx.getStep() !== 4 ? '<button type="button" data-action="view-export">' + t('🎬 播放成片', '🎬 Watch Film') + '</button>' : '') +
-        '</div></div>' + (extraToolbarHtml || '') + '</section>';
+        (extraToolbarHtml || '') +
+        '</div></div></section>';
     }
 
     function renderBriefStep(busy, matchesTemplate, vgBriefCatalogSection) {
@@ -162,7 +168,7 @@
       var currentMusic = project.brief.music === 'bright' ? 'upbeat-pulse' : (project.brief.music || 'ambient-tech');
       var currentVisual = project.brief.visualTheme || 'professional';
 
-      return '<p>' + t('系统已预置最佳口播、流体渐变视觉与动态合成配乐参数，无需填表即可点击上方「⚡ 一键生成完整视频」直接出片。如需深度定制时长、音色或受众，可在下方调整。', 'Optimal defaults are pre-configured—click "⚡ One-Click Generate Full Video" above to produce immediately, or customize preferences below.') + '</p>' +
+      return '<p class="studio-muted">' + t('系统已预置最佳口播、流体渐变视觉与动态合成配乐参数，无需填表即可点击右上角「⚡ 一键生成视频」直接出片。', 'Optimal defaults are pre-configured—click "⚡ Generate Video" at top-right to produce immediately.') + '</p>' +
         '<section class="studio-templates" aria-label="' + t('视频需求模板', 'Video Brief Templates') + '"><h3>' +
         t('快捷场景模板（一键切换）', 'Quick Brief Templates') + '</h3><div class="studio-grid">' +
         briefTemplates.map(function (template) {
@@ -198,14 +204,12 @@
         button(t('更新分镜设计', 'Update Scene Design'), 'direct', null, false, busy || dirty) +
         '<small>' + t('保留旁白和已有素材；如需重写故事，使用上方“重新生成分镜”。', 'Keeps narration and existing assets. To rewrite the story, use Regenerate Storyboard above.') + '</small></div>' : '';
       return '<div class="studio-gallery-editor" aria-label="' + t('镜头检视器', 'Scene Inspector') + '"><header class="studio-panel-heading"><strong>' +
-        t('镜头口播与画面', 'Scene Narration & Visual') + '</strong><span>' + (index + 1) + ' / ' + project.scenes.length + '</span></header>' +
+        t('镜头口播与编舞', 'Scene Inspector') + '</strong><span>' + (index + 1) + ' / ' + project.scenes.length + '</span></header>' +
         '<div class="studio-inspector-content">' + legacy + shotHeading(scene, index) +
-        '<p class="studio-muted">' + t('可直接修改当前镜头的口播台词或画面重点；无需修改时直接点击上方「⚡ 一键生成完整视频」。', 'Edit narration or screen copy directly, or click "⚡ One-Click Generate Full Video" above.') + '</p>' +
-        field(t('标题', 'Title'), 'title', scene.title, false, 100) +
-        field(t('讲解文案（口播台词）', 'Narration'), 'narration', scene.narration, true, 1600) +
-        field(t('主视觉文案（可留空）', 'Main Visual Copy (Optional)'), 'screenText', scene.screenText, true, 160) +
-        (voice ? '<audio controls class="studio-gallery-audio" data-media="' + voice.key + '"></audio>' :
-          '<p class="studio-muted">' + t('🎙️ 配音状态：待合成（点击上方「⚡ 一键生成完整视频」自动合成全片配音与字幕）', '🎙️ Voice: Pending (Click One-Click Generate above to synthesize all voices & captions)') + '</p>') +
+        field(t('讲解文案（口播台词）', 'Narration Script'), 'narration', scene.narration, true, 1600) +
+        field(t('画面主文案（可留空）', 'On-Screen Headline'), 'screenText', scene.screenText, false, 160) +
+        field(t('镜头标题', 'Scene Title'), 'title', cleanDisplayTitle(scene.title), false, 100) +
+        (voice ? '<audio controls class="studio-gallery-audio" data-media="' + voice.key + '"></audio>' : '') +
         vgScenePresetSection(busy) +
         '<details class="studio-visual-adjustment"><summary>' + t('🎨 让 AI 调整画面与图层文字', '🎨 Ask AI to Adjust Visuals & Layers') + '</summary>' +
         (scene.intent || scene.cinematography ? '<p class="studio-muted">' + esc(scene.intent || '') + ' ' + esc(scene.cinematography || '') + '</p>' : '') +
@@ -215,10 +219,8 @@
         }).join('') : select(t('运镜', 'Camera'), 'camera', scene.camera, [['push', 'Push'], ['pull', 'Pull'], ['pan-left', 'Pan Left'], ['pan-right', 'Pan Right'], ['static', 'Static']])) +
         '<label><span>' + t('描述你希望怎么改画面；保留旁白和已有素材。', 'Describe the visual changes you want; narration and existing assets are retained.') +
         '</span><textarea data-director-note maxlength="2000">' + esc(localStorage.getItem('kh-video-direction-' + project.id) || '') + '</textarea></label>' +
-        button(t('按要求调整画面', 'Apply Visual Changes'), 'direct', null, false, busy || dirty) +
-        '<p class="studio-muted">' + t('此操作使用Copilot云端，可能消耗额度；完成后点击制作视频即可。', 'Uses Copilot cloud and may use credits. Produce the video after reviewing the changes.') + '</p></details>' +
-        '<details class="studio-advanced-tools"><summary>' + t('高级工具（通常无需使用）', 'Advanced Tools (Usually Not Needed)') + '</summary>' +
-        '<p class="studio-muted">' + t('仅用于单独修补素材或手工排查；正常制作会自动准备所需素材、渲染和导出。', 'For individual asset repairs or manual troubleshooting. Normal production prepares required assets, renders and exports automatically.') + '</p>' +
+        button(t('按要求调整画面', 'Apply Visual Changes'), 'direct', null, false, busy || dirty) + '</details>' +
+        '<details class="studio-advanced-tools"><summary>' + t('高级工具（单镜修补与排序）', 'Advanced Scene Tools') + '</summary>' +
         button(project.planApproved && !dirty ? t('方案已确认', 'Storyboard Approved') : t('仅确认方案', 'Approve Storyboard Only'),
           'approve-plan', null, false, busy || dirty || project.planApproved) +
         '<h4>' + t('当前镜头素材', 'Current Scene Assets') + '</h4><div class="studio-actions">' +
@@ -245,9 +247,11 @@
       button: button,
       field: field,
       select: select,
+      cleanDisplayTitle: cleanDisplayTitle,
       shotHeading: shotHeading,
       computeState: computeState,
       renderStepper: renderStepper,
+      renderHeaderCta: renderHeaderCta,
       renderOneClickHero: renderOneClickHero,
       renderBriefStep: renderBriefStep,
       renderSceneEditor: renderSceneEditor

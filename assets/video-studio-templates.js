@@ -532,7 +532,9 @@
 
   function cleanSpoken(raw, max) {
     var text = String(raw || '')
-      .replace(/::[a-z-]+/gi, ' ')
+      .replace(/<\/?[a-z][a-z0-9-]*(?:\s[^<>]*)?>/gi, ' ')
+      .replace(/<\s*\/?\s*(?:code|strong|em|span|b|i|a|p|div|br|ul|ol|li|pre|sub|sup)\b>?/gi, ' ')
+      .replace(/:::?[a-z-]+(?:\s*\{[^}]*\})?/gi, ' ')
       .replace(/\|\|/g, ' · ')
       .replace(/\[\d+\]/g, '')
       .replace(/https?:\/\/\S+/g, '')
@@ -565,20 +567,34 @@
     return safe.join('');
   }
 
+  function cleanTitle(raw, fallback) {
+    var s = String(raw || '').split('||')[0]
+      .replace(/:::?[a-z-]+(?:\s*\{[^}]*\})?/gi, ' ')
+      .replace(/#[a-z0-9_-]+/gi, ' ')
+      .replace(/\[[^\]]*\]/g, '')
+      .replace(/^(?:\d+[\.\s、/-]*)+/, '')
+      .replace(/[*`_~>]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .replace(/[。！？：:;；,，、·—-]+$/, '')
+      .trim();
+    return (s || fallback || '核心要点').slice(0, 32);
+  }
+
   function buildAutoDraftFromSource(source, options) {
     var opts = options || {};
     var scenario = opts.scenario === 'product' ? 'product' : 'presenter';
     var vTheme = getVisualTheme(opts.visualTheme || 'professional');
     var packId = opts.stylePack || vTheme.defaultPack || (scenario === 'product' ? '03-A' : '01-A');
     var pack = getStylePack(packId);
-    var title = String(source && source.title || '核心研究与方案拆解').replace(/\s+/g, ' ').trim();
+    var title = cleanTitle(source && source.title, '核心研究与方案拆解');
     var anchors = (source && Array.isArray(source.anchors) && source.anchors.length) ? source.anchors : ['overview'];
     var rawLines = String(source && source.text || '').split(/\n+/).map(function (line) {
-      return line.replace(/::[a-z-]+/gi, ' ').replace(/\|\|/g, ' · ').replace(/\[[^\]]*\]/g, '').replace(/\s+/g, ' ').trim();
+      return line.split('||')[0].replace(/:::?[a-z-]+(?:\s*\{[^}]*\})?/gi, ' ').replace(/#[a-z0-9_-]+/gi, ' ').replace(/\[[^\]]*\]/g, '').replace(/\s+/g, ' ').trim();
     }).filter(function (line) {
-      return line.length >= 6 && !/^(←|Study Room|Knowledge Hub|目录|参考|References)/i.test(line);
+      return line.length >= 6 && !/^(←|Study Room|Knowledge Hub|目录|参考|References|下载|阅读核心|点击|切换|--[a-z])/i.test(line) && line !== title;
     });
-    var customSections = Array.isArray(opts.sections) && opts.sections.length ? opts.sections : null;
+    var customSections = Array.isArray(opts.sections) && opts.sections.length ? opts.sections :
+      (source && Array.isArray(source.sections) && source.sections.length ? source.sections : null);
     var blocks = [];
     var scenes = [];
     var idx;
@@ -589,7 +605,7 @@
       var chunkSize = Math.max(2, Math.ceil(rawLines.length / 5));
       for (idx = 0; idx < rawLines.length && blocks.length < 5; idx += chunkSize) {
         var slice = rawLines.slice(idx, idx + chunkSize);
-        var heading = slice[0].slice(0, 36).replace(/[。！？：:]+$/, '');
+        var heading = cleanTitle(slice[0], '核心要点 ' + (blocks.length + 1));
         var body = slice.slice(1).join('。') || slice[0];
         var anchor = anchors[Math.min(blocks.length, anchors.length - 1)];
         blocks.push({ id: anchor, title: heading, body: body, hasCompare: /对比|vs|传统|方案|区别/i.test(body), hasSteps: /步骤|阶段|流程|第一|1\./.test(body), hasMetric: /\d+(?:\.\d+)?\s*(%|倍|ms|秒|天|类|项|个)/.test(body) });
@@ -604,35 +620,19 @@
     var heroNarration = cleanSpoken('本视频围绕「' + title + '」展开核心拆解。' + leadSummary, 240);
     var heroScreen = title.slice(0, 42);
     var heroScene = {
-      id: 'auto-hero',
-      title: '开场导览：' + title.slice(0, 22),
-      narration: heroNarration,
-      visual: '',
-      screenText: heroScreen,
-      camera: 'push',
-      anchors: [anchors[0]],
-      intent: '通过 TPL.hero 开场大标题与流体渐变视觉快速建立核心命题。',
-      cinematography: '大字标题砸入配合副标题递进，聚焦核心价值。'
+      id: 'auto-hero', title: '开场导览：' + title.slice(0, 22), narration: heroNarration, visual: '', screenText: heroScreen,
+      camera: 'push', anchors: [anchors[0]], intent: '通过 TPL.hero 开场大标题与流体渐变视觉快速建立核心命题。', cinematography: '大字标题砸入配合副标题递进，聚焦核心价值。'
     };
     heroScene.composition = buildTemplateComposition('hero', heroScene, pack.id, vTheme.id);
     scenes.push(heroScene);
 
     blocks.slice(0, 4).forEach(function (blk, i) {
       var preset = blk.preset || (blk.hasCompare ? 'compare' : blk.hasSteps ? 'steps' : blk.hasMetric ? 'number' : (scenario === 'product' && i === 1 ? 'demo' : 'point'));
-      var rawTitle = String(blk.title || ('核心要点 ' + (i + 1))).replace(/^\d+[\.\s、/]*/, '').slice(0, 32);
-      var spoken = cleanSpoken(blk.narration || blk.body || rawTitle, 260);
-      var screen = String(blk.screenText || rawTitle).slice(0, 56);
-      var validAnchor = anchors.indexOf(blk.id) >= 0 ? blk.id : anchors[Math.min(i, anchors.length - 1)];
+      var rawTitle = cleanTitle(blk.title, '核心要点 ' + (i + 1)), spoken = cleanSpoken(blk.narration || blk.body || rawTitle, 260);
+      var screen = String(blk.screenText || rawTitle).slice(0, 56), validAnchor = anchors.indexOf(blk.id) >= 0 ? blk.id : anchors[Math.min(i, anchors.length - 1)];
       var sc = {
-        id: 'auto-sec-' + (i + 1),
-        title: (i + 1) + '. ' + rawTitle,
-        narration: spoken,
-        visual: '',
-        screenText: screen,
-        camera: i % 2 === 0 ? 'push' : 'static',
-        anchors: [validAnchor],
-        intent: '结合 ' + preset + ' 场景编舞提炼章节「' + rawTitle + '」的关键论据。',
-        cinematography: '采用 ' + vTheme.name[0] + ' 视觉风格与 Adu ' + pack.id + ' 色板动态推进。'
+        id: 'auto-sec-' + (i + 1), title: rawTitle, narration: spoken, visual: '', screenText: screen, camera: i % 2 === 0 ? 'push' : 'static',
+        anchors: [validAnchor], intent: '结合 ' + preset + ' 场景编舞提炼章节「' + rawTitle + '」的关键论据。', cinematography: '采用 ' + vTheme.name[0] + ' 视觉风格与 Adu ' + pack.id + ' 色板动态推进。'
       };
       sc.composition = buildTemplateComposition(preset, sc, pack.id, vTheme.id);
       scenes.push(sc);
@@ -640,15 +640,8 @@
 
     var outroNarration = cleanSpoken('以上是「' + title + '」的核心脉络与关键证据。你可以直接在右侧检视器微调每段口播文案、切换视觉与配乐风格，或一键合成导出成片。', 220);
     var outroScene = {
-      id: 'auto-outro',
-      title: '总结与行动指引',
-      narration: outroNarration,
-      visual: '',
-      screenText: '核心要点复盘 · 深入阅读原文',
-      camera: 'pull',
-      anchors: [anchors[anchors.length - 1]],
-      intent: '通过 TPL.outro 终端总结收束全片，引导观众核验细节并阅读原文。',
-      cinematography: '深色终端命令框逐项汇聚核心结论。'
+      id: 'auto-outro', title: '总结与行动指引', narration: outroNarration, visual: '', screenText: '核心要点复盘 · 深入阅读原文',
+      camera: 'pull', anchors: [anchors[anchors.length - 1]], intent: '通过 TPL.outro 终端总结收束全片，引导观众核验细节并阅读原文。', cinematography: '深色终端命令框逐项汇聚核心结论。'
     };
     outroScene.composition = buildTemplateComposition('outro', outroScene, pack.id, vTheme.id);
     scenes.push(outroScene);
@@ -660,21 +653,9 @@
   }
 
   return {
-    upstreamInfo: upstreamInfo,
-    visualThemes: visualThemes,
-    briefTemplates: briefTemplates,
-    scenarios: scenarios,
-    stylePacks: stylePacks,
-    scenePresets: scenePresets,
-    getStylePack: getStylePack,
-    getVisualTheme: getVisualTheme,
-    getScenario: getScenario,
-    cleanSpoken: cleanSpoken,
-    detectScenePreset: detectScenePreset,
-    applyVisualThemeToScenes: applyVisualThemeToScenes,
-    buildTemplateComposition: buildTemplateComposition,
-    buildAutoDraftFromSource: buildAutoDraftFromSource,
-    containBounds: containBounds,
-    toManifest: toManifest
+    upstreamInfo: upstreamInfo, visualThemes: visualThemes, briefTemplates: briefTemplates, scenarios: scenarios, stylePacks: stylePacks, scenePresets: scenePresets,
+    getStylePack: getStylePack, getVisualTheme: getVisualTheme, getScenario: getScenario, cleanTitle: cleanTitle, cleanSpoken: cleanSpoken,
+    detectScenePreset: detectScenePreset, applyVisualThemeToScenes: applyVisualThemeToScenes, buildTemplateComposition: buildTemplateComposition,
+    buildAutoDraftFromSource: buildAutoDraftFromSource, containBounds: containBounds, toManifest: toManifest
   };
 }));

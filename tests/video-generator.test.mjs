@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import vgCatalog from '../assets/video-studio-templates.js';
 import composition from '../assets/video-studio-composition.js';
-import { validateBrief, defaultBrief } from '../scripts/video-studio-model.mjs';
+import { validateBrief, defaultBrief, extractSource } from '../scripts/video-studio-model.mjs';
 import { selfCheck, consumeEvents, makeCaptions, srtTime, generateVolcengineTts } from '../scripts/video-generator-tts.mjs';
 import { createBridge } from '../scripts/copilot-bridge-server.mjs';
 
@@ -500,6 +500,32 @@ test('startPreviewBgm awaits AudioContext.resume() and propagates errors instead
     else globalThis.window = prevWindow;
   }
 });
+
+test('cleanTitle, cleanSpoken, and extractSource sanitize ::versus directives, broken HTML tags, and preserve math <', () => {
+  assert.equal(vgCatalog.cleanTitle('2. ::versus 表象层：门户顶栏环境选择器 || Surface Layer'), '表象层：门户顶栏环境选择器');
+  assert.equal(vgCatalog.cleanTitle('3. 2. ::card #runtime-evolution 托管运行时定位'), '托管运行时定位');
+  const brokenNarration = vgCatalog.cleanSpoken('打开顶部的 <code New experience< /code 开关后，底层是 <strong Copilot Managed Runtime</strong，且延迟 < 20ms。');
+  assert.doesNotMatch(brokenNarration, /<code|<strong|<\/code/);
+  assert.match(brokenNarration, /< 20ms/);
+  const html = [
+    '<h1 data-zh="Copilot Studio 托管运行时深度解析">Title</h1>',
+    '<section class="genesis-source-drawer" id="genesis-source-drawer"><pre>::versus 表象层：门户顶栏环境选择器</pre></section>',
+    '<main><section id="runtime" class="section"><h2 data-zh="1. 托管运行时定位与宿主边界">1. Old</h2>',
+    '<p data-zh="打开门户首页顶部的 &lt;code&gt;New experience&lt;/code&gt; 开关后扩展为四元矩阵，耗时 &lt; 20ms。">EN</p></section></main>'
+  ].join('');
+  const src = extractSource(html);
+  assert.equal(src.anchors.includes('genesis-source-drawer'), false);
+  assert.equal(src.sections.length, 1);
+  assert.equal(src.sections[0].title, '托管运行时定位与宿主边界');
+  assert.doesNotMatch(src.sections[0].body, /<code|::versus/);
+  assert.match(src.sections[0].body, /< 20ms/);
+  const draft = vgCatalog.buildAutoDraftFromSource(src, { scenario: 'presenter', visualTheme: 'professional' });
+  for (const sc of draft.scenes) {
+    assert.doesNotMatch(sc.title, /::versus|::card|^\d+\.\s/);
+    assert.doesNotMatch(sc.narration, /<code|<strong/);
+  }
+});
+
 
 
 

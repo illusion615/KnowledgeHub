@@ -98,6 +98,25 @@ export function createVideoStudio({ root, dataRoot = join(root, 'private/video-s
       });
       project = await read(id);
     }
+    const source = await readArticle(root, project.source.slug);
+    const hasPollutedAuto = project.scenes.some(sc => /^auto-/.test(sc.id) && (
+      /::[a-z-]+|\|\||^\/\//i.test(sc.title) ||
+      /^\d+\.\s/.test(sc.title) ||
+      /<\/?(?:code|strong|em|span|a|b|i)\b/i.test(sc.narration)
+    ));
+    if (hasPollutedAuto && !project.jobs.some(job => ['queued', 'running'].includes(job.status))) {
+      await mutate(id, current => {
+        current.source = source;
+        const autoDraft = vgCatalog.buildAutoDraftFromSource(current.source, {
+          scenario: current.brief.scenario || 'presenter',
+          stylePack: current.brief.stylePack || '01-A',
+          visualTheme: current.brief.visualTheme || 'professional'
+        });
+        current.scenes = validateScenes(autoDraft.scenes, current.source);
+        current.creativeDirection = autoDraft.creativeDirection;
+      });
+      project = await read(id);
+    }
     const copy = structuredClone(project);
     for (const artifacts of Object.values(copy.artifacts)) {
       for (const kind of Object.keys(artifacts)) {
@@ -108,7 +127,6 @@ export function createVideoStudio({ root, dataRoot = join(root, 'private/video-s
         }
       }
     }
-    const source = await readArticle(root, project.source.slug);
     return viewProject(copy, source.hash);
   }
   function revision(project, body) {
@@ -359,8 +377,15 @@ export function createVideoStudio({ root, dataRoot = join(root, 'private/video-s
       }
       if (body.autoDraft === true) {
         const existing = await read(id);
-        if (!existing.scenes.length && existing.revision === 1 && !existing.jobs.length) {
+        const hasPollutedAuto = existing.scenes.some(sc => /^auto-/.test(sc.id) && (
+          /::[a-z-]+|\|\||^\/\//i.test(sc.title) ||
+          /^\d+\.\s/.test(sc.title) ||
+          /<\/?(?:code|strong|em|span|a|b|i)\b/i.test(sc.narration) ||
+          sc.title === source.title.slice(0, 32)
+        ));
+        if ((!existing.scenes.length && existing.revision === 1 && !existing.jobs.length) || hasPollutedAuto || !existing.source?.sections) {
           await mutate(id, current => {
+            current.source = source;
             const autoDraft = vgCatalog.buildAutoDraftFromSource(current.source, { scenario: current.brief.scenario || 'presenter', stylePack: current.brief.stylePack || '01-A', visualTheme: current.brief.visualTheme || 'professional' });
             current.scenes = validateScenes(autoDraft.scenes, current.source);
             current.creativeDirection = autoDraft.creativeDirection;
@@ -390,9 +415,12 @@ export function createVideoStudio({ root, dataRoot = join(root, 'private/video-s
       return;
     }
     if (action === 'auto-narration' && req.method === 'POST') {
+      const current = await read(id);
+      const freshSource = !current.source?.sections ? await readArticle(root, current.source.slug).catch(() => current.source) : current.source;
       await mutate(id, project => {
         if (body && body.revision !== undefined) revision(project, body);
         if (body && body.brief) project.brief = validateBrief({ ...project.brief, ...body.brief });
+        project.source = freshSource;
         const autoDraft = vgCatalog.buildAutoDraftFromSource(project.source, {
           scenario: project.brief.scenario || 'presenter',
           stylePack: project.brief.stylePack || '01-A',
