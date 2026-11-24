@@ -6,6 +6,15 @@
 function escapeHtml(text) {
   if (text === null || text === undefined) return '';
   return String(text)
+    .replace(/&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[\da-fA-F]+);)/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function escapeRawHtml(text) {
+  if (text === null || text === undefined) return '';
+  return String(text)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -13,7 +22,9 @@ function escapeHtml(text) {
 }
 
 function escapeAttr(text) {
-  return escapeHtml(text);
+  // Attributes hold HTML that article-common.js later assigns to innerHTML.
+  // Preserve every entity through the first (attribute) decoding pass.
+  return escapeRawHtml(text);
 }
 
 // Split "中文 || English" or "{ zh: '...', en: '...' }" into { zh, en }
@@ -196,6 +207,7 @@ function slugify(text, fallbackIndex) {
 
 module.exports = {
   escapeHtml: escapeHtml,
+  escapeRawHtml: escapeRawHtml,
   escapeAttr: escapeAttr,
   parseBilingual: parseBilingual,
   bilingualAttrs: bilingualAttrs,

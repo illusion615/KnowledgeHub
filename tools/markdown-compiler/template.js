@@ -64,36 +64,38 @@ function buildHeroHtml(meta, chaptersData, state) {
   var panelListHtml = '';
   if (panelItems.length > 0) {
     var liHtml = panelItems.map(function (item, idx) {
-      var p = fm.parseBilingual(item);
-      return '              <li><span class="layer-number">' + (idx + 1) + '</span><span ' + fm.bilingualAttrs(p) + '>' + inline.renderInlineMarkdown(p.zh, state) + '</span></li>';
+      var renderedItem = inline.renderBilingualInlinePair(item, state);
+      return '              <li><span class="layer-number">' + (idx + 1) + '</span><span ' + inline.bilingualRichAttrs(item, state) + '>' + renderedItem.zhHtml + '</span></li>';
     }).join('\n');
     panelListHtml = '\n            <ul class="layer-list">\n' + liHtml + '\n            </ul>';
   }
 
+  var panelDescRendered = panelDescPair.zh ? inline.renderBilingualInlinePair(meta.panel_desc || '', state) : null;
   var panelDescHtml = panelDescPair.zh
-    ? '\n            <p ' + fm.bilingualAttrs(panelDescPair) + '>' + inline.renderInlineMarkdown(panelDescPair.zh, state) + '</p>'
+    ? '\n            <p ' + inline.bilingualRichAttrs(meta.panel_desc || '', state) + '>' + panelDescRendered.zhHtml + '</p>'
     : '';
 
   // Hero metrics
   var metricsHtml = '';
   if (Array.isArray(meta.metrics) && meta.metrics.length > 0) {
     var metricCards = meta.metrics.map(function (m) {
-      var labelP, valueStr, descP;
+      var labelP, valueStr, descRaw;
       if (typeof m === 'string') {
         var segs = m.split(/(?<!\|)\|(?!\|)/).map(function (s) { return s.trim(); });
         labelP = fm.parseBilingual(segs[0] || '');
         valueStr = segs[1] || '';
-        descP = fm.parseBilingual(segs[2] || '');
+        descRaw = segs[2] || '';
       } else {
         labelP = fm.parseBilingual(m.label || '');
         valueStr = String(m.value || '');
-        descP = fm.parseBilingual(m.desc || '');
+        descRaw = String(m.desc || '');
       }
+      var descRendered = inline.renderBilingualInlinePair(descRaw, state);
       return [
         '          <div class="metric">',
         '            <div class="metric-label" ' + fm.bilingualAttrs(labelP) + '>' + fm.escapeHtml(labelP.zh) + '</div>',
         '            <strong>' + fm.escapeHtml(valueStr) + '</strong>',
-        '            <span ' + fm.bilingualAttrs(descP) + '>' + fm.escapeHtml(descP.zh) + '</span>',
+        '            <span ' + inline.bilingualRichAttrs(descRaw, state) + '>' + descRendered.zhHtml + '</span>',
         '          </div>'
       ].join('\n');
     }).join('\n');
@@ -105,6 +107,8 @@ function buildHeroHtml(meta, chaptersData, state) {
       '        </div>'
     ].join('\n');
   }
+
+  var leadRendered = inline.renderBilingualInlinePair(leadRaw, state);
 
   return [
     '      <header class="hero">',
@@ -123,7 +127,7 @@ function buildHeroHtml(meta, chaptersData, state) {
     '          <div class="hero-copy load-in">',
     '            <span class="eyebrow" ' + fm.bilingualAttrs(eyebrowPair) + '>' + fm.escapeHtml(eyebrowPair.zh) + '</span>',
     '            <h1 ' + fm.bilingualAttrs(titlePair) + '>' + fm.escapeHtml(titlePair.zh) + '</h1>',
-    '            <p ' + fm.bilingualAttrs(leadPair) + '>' + inline.renderInlineMarkdown(leadPair.zh, state) + '</p>' + actionsHtml,
+    '            <p ' + inline.bilingualRichAttrs(leadRaw, state) + '>' + leadRendered.zhHtml + '</p>' + actionsHtml,
     '          </div>',
     '',
     '          <aside class="hero-panel load-in">',
@@ -173,6 +177,82 @@ function buildStaticStyles(meta) {
     '      border: 1px solid var(--line);',
     '      background: var(--panel);',
     '      padding: 6px 14px;',
+    '      box-shadow: var(--shadow);',
+    '    }',
+    '    .compare-table-wrap .compare-table {',
+    '      width: 100%;',
+    '      min-width: 680px;',
+    '      border-collapse: collapse;',
+    '      margin-top: 0;',
+    '      font-size: 0.9rem;',
+    '    }',
+    '    .compare-table-wrap .compare-table th {',
+    '      text-align: left;',
+    '      padding: 12px 14px;',
+    '      background: rgba(15, 23, 42, 0.04);',
+    '      border-bottom: 2px solid rgba(15, 23, 42, 0.1);',
+    '      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;',
+    '      font-weight: 700;',
+    '      font-size: 0.8rem;',
+    '      letter-spacing: 0.04em;',
+    '      text-transform: none;',
+    '      color: var(--ink);',
+    '      vertical-align: bottom;',
+    '    }',
+    '    .compare-table-wrap .compare-table td {',
+    '      padding: 12px 14px;',
+    '      border-bottom: 1px solid rgba(15, 23, 42, 0.07);',
+    '      line-height: 1.65;',
+    '      color: var(--ink);',
+    '      vertical-align: top;',
+    '    }',
+    '    .compare-table-wrap .compare-table tbody tr:last-child td {',
+    '      border-bottom: none;',
+    '    }',
+    '    .compare-table-wrap .compare-table td:first-child {',
+    '      font-weight: 600;',
+    '      min-width: 150px;',
+    '    }',
+    '    .compare-table-wrap .compare-table code,',
+    '    .section p code,',
+    '    .flow-copy code,',
+    '    .insight-card code,',
+    '    .comparison-card code,',
+    '    .quote-block code,',
+    '    .subsection-toggle code,',
+    '    .subsection-content p code,',
+    '    .bib-list code {',
+    '      font-family: "SF Mono", "Fira Code", "Consolas", monospace;',
+    '      font-size: 0.84em;',
+    '      padding: 2px 6px;',
+    '      border-radius: 5px;',
+    '      background: rgba(15, 23, 42, 0.06);',
+    '      color: var(--ink);',
+    '    }',
+    '    [data-theme="dark"] .compare-table-wrap {',
+    '      background: rgba(22, 29, 38, 0.9);',
+    '      border-color: rgba(255, 255, 255, 0.12);',
+    '    }',
+    '    [data-theme="dark"] .compare-table-wrap .compare-table th {',
+    '      background: rgba(255, 255, 255, 0.05);',
+    '      border-color: rgba(255, 255, 255, 0.12);',
+    '      color: var(--ink);',
+    '    }',
+    '    [data-theme="dark"] .compare-table-wrap .compare-table td {',
+    '      border-color: rgba(255, 255, 255, 0.07);',
+    '      color: var(--ink);',
+    '    }',
+    '    [data-theme="dark"] .compare-table-wrap .compare-table code,',
+    '    [data-theme="dark"] .section p code,',
+    '    [data-theme="dark"] .flow-copy code,',
+    '    [data-theme="dark"] .insight-card code,',
+    '    [data-theme="dark"] .comparison-card code,',
+    '    [data-theme="dark"] .quote-block code,',
+    '    [data-theme="dark"] .subsection-toggle code,',
+    '    [data-theme="dark"] .subsection-content p code,',
+    '    [data-theme="dark"] .bib-list code {',
+    '      background: rgba(255, 255, 255, 0.1);',
+    '      color: #e2e8f0;',
     '    }',
     '    .timeline-list > .flow-step::before {',
     '      background: linear-gradient(135deg, var(--teal), #14b8a6);',
@@ -358,7 +438,7 @@ function buildDualViewHtml(rawMarkdown) {
     '        </div>',
     '      </div>',
     '      <section class="genesis-source-drawer" id="genesis-source-drawer" aria-label="Markdown 源稿">',
-    '        <pre><code>' + fm.escapeHtml(rawMarkdown) + '</code></pre>',
+    '        <pre><code>' + fm.escapeRawHtml(rawMarkdown) + '</code></pre>',
     '      </section>'
   ].join('\n');
 }

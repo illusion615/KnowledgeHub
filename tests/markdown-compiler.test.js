@@ -173,6 +173,60 @@ test('all 9 Study Room visual & interactive component directives compile to cano
   assert.equal(contract.ok, true, contract.errors.join('; '));
 });
 
+test('Markdown tables with bilingual || separators, inline code, and angle placeholders compile into clean .compare-table DOM', () => {
+  const sample = [
+    '---',
+    'title: 双语表格与代码块回归测试 || Bilingual Table and Code Block Regression',
+    'strict_i18n: true',
+    'strict_density: true',
+    '---',
+    '',
+    '## #sec1 01 / Overview :: 表格与代码块验证 || Table and Code Block Check',
+    '',
+    '导语包含 `New experience` 与 **粗体** 以及 `<app-id>` 占位符 [1]。 || Lead with `New experience`, **bold**, and `<app-id>` placeholder [1].',
+    '',
+    '| 对比维度 || Dimension | 托管应用 || Managed App | 新版智能体 || New Agent |',
+    '|------|------|------|',
+    '| 入口命令 || CLI Entry | 使用 `ms app clone --app <id>` [1] || Use `ms app clone --app <id>` [1] | 使用 `msagent` 命令行 [1] || Use `msagent` CLI [1] |',
+    '| 计费规则 || Billing Rule | 每次调用 `0.1 Credit` || `0.1 Credit` per call | 按实际 Token 计量 || Metered by tokens |',
+    '',
+    '### 含有 `#` 注释的 Bash 代码块折叠面板 || Accordion with `#` Comments in Bash Fence',
+    '',
+    '```bash',
+    '# 1. 第一步注释不应被拆成 H1',
+    'msagent deployment create --environment-id <target>',
+    '# 2. 第二步注释也不应被拆成 H1',
+    'msagent agent deploy --publish',
+    '```',
+    '',
+    '## #references 02 / References :: 参考来源 || References',
+    '',
+    '- [1] Official Docs — https://example.com/docs | 包含 `ms.<stage>.config.json` 说明 || Covers `ms.<stage>.config.json` spec'
+  ].join('\n');
+
+  const res = compiler.compileMarkdownToHtml(sample);
+  // Table must be compiled as <table class="simple-table compare-table"> with exact 3 columns per row
+  assert.match(res.html, /<table class="simple-table compare-table">/);
+  const trMatches = res.html.match(/<tr>[\s\S]*?<\/tr>/g) || [];
+  assert.equal(trMatches.length, 3);
+  const thCount = (trMatches[0].match(/<th\b/g) || []).length;
+  assert.equal(thCount, 3);
+  const firstRowTdCount = (trMatches[1].match(/<td\b/g) || []).length;
+  assert.equal(firstRowTdCount, 3);
+
+  // No raw `||` or unrendered backticks inside data-zh / data-en
+  assert.doesNotMatch(res.html, /<p>\|\s*对比维度/);
+  assert.match(res.html, /data-zh="使用 &lt;code&gt;ms app clone --app &amp;lt;id&amp;gt;&lt;\/code&gt; \[1\]"/);
+  assert.match(res.html, /data-en="Use &lt;code&gt;ms app clone --app &amp;lt;id&amp;gt;&lt;\/code&gt; \[1\]"/);
+
+  // Bash comments inside accordion fenced code block must remain inside <pre><code class="language-bash"> and never become <h1>
+  assert.doesNotMatch(res.html, /<h1>1\. 第一步注释不应被拆成 H1<\/h1>/);
+  assert.match(res.html, /# 1\. 第一步注释不应被拆成 H1\nmsagent deployment create --environment-id &lt;target&gt;\n# 2\. 第二步注释也不应被拆成 H1/);
+
+  const contract = compiler.verifyCompiledHtmlContract(res.html);
+  assert.equal(contract.ok, true, contract.errors.join('; '));
+});
+
 test('benchmark articles (markdown-genesis-lab & claw-code-analysis/genesis.html) compile deterministically and pass validate.js', () => {
   const genesisLabMd = path.join(ROOT, 'posts/markdown-genesis-lab/article.md');
   const genesisLabHtml = path.join(ROOT, 'posts/markdown-genesis-lab/index.html');

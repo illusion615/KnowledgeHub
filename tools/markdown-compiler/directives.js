@@ -63,9 +63,41 @@ function buildStepAttrs(attrs, fallbackTitlePair, fallbackLabelPair, defaultSurf
 function splitContainerItems(lines) {
   var items = [];
   var current = null;
+  var inFence = false;
 
   for (var i = 0; i < lines.length; i++) {
     var line = lines[i];
+    if (/^\s*```/.test(line)) {
+      inFence = !inFence;
+      if (!current) {
+        current = {
+          kind: 'auto',
+          label: '',
+          title: '',
+          attrs: {},
+          bodyLines: [line]
+        };
+      } else {
+        current.bodyLines.push(line);
+      }
+      continue;
+    }
+
+    if (inFence) {
+      if (!current) {
+        current = {
+          kind: 'auto',
+          label: '',
+          title: '',
+          attrs: {},
+          bodyLines: [line]
+        };
+      } else {
+        current.bodyLines.push(line);
+      }
+      continue;
+    }
+
     var subDirective = line.match(/^\s*::([a-zA-Z][\w-]*)(?:\s+(.*))?$/);
     if (subDirective) {
       if (current) items.push(current);
@@ -150,12 +182,13 @@ function renderInsightGrid(attrs, lines, sectionCtx, state) {
 
   var cardsHtml = items.map(function (item, idx) {
     var indexBadge = item.label || (idx + 1 < 10 ? '0' + (idx + 1) : String(idx + 1));
-    var titlePair = fm.parseBilingual(item.title || ('要点 ' + (idx + 1) + ' || Point ' + (idx + 1)));
+    var titleRaw = item.title || ('要点 ' + (idx + 1) + ' || Point ' + (idx + 1));
+    var titleRendered = inline.renderBilingualInlinePair(titleRaw, state);
     var bodyRaw = item.bodyLines.join('\n').trim();
-    var bodyPair = fm.parseBilingual(bodyRaw);
     var bodyHtml;
     if (bodyRaw.indexOf('||') !== -1 && bodyRaw.split('\n').length <= 3) {
-      bodyHtml = '<p ' + fm.bilingualAttrs(bodyPair) + '>' + inline.renderInlineMarkdown(bodyPair.zh, state) + '</p>';
+      var bodyRendered = inline.renderBilingualInlinePair(bodyRaw, state);
+      bodyHtml = '<p ' + inline.bilingualRichAttrs(bodyRaw, state) + '>' + bodyRendered.zhHtml + '</p>';
     } else {
       bodyHtml = inline.renderMarkdownFragment(bodyRaw, state);
     }
@@ -163,7 +196,7 @@ function renderInsightGrid(attrs, lines, sectionCtx, state) {
     return [
       '            <article class="insight-card">',
       '              <span class="card-index">' + fm.escapeHtml(indexBadge) + '</span>',
-      '              <h3 ' + fm.bilingualAttrs(titlePair) + '>' + fm.escapeHtml(titlePair.zh) + '</h3>',
+      '              <h3 ' + inline.bilingualRichAttrs(titleRaw, state) + '>' + titleRendered.zhHtml + '</h3>',
       '              ' + bodyHtml.trim(),
       '            </article>'
     ].join('\n');
@@ -191,13 +224,15 @@ function renderComparisonGrid(attrs, lines, sectionCtx, state) {
   var cardsHtml = items.map(function (item, idx) {
     var isNext = item.attrs.highlight || item.attrs.next || (idx === items.length - 1 && items.length === 2);
     var cardClass = 'comparison-card' + (isNext ? ' next' : '');
-    var labelPair = fm.parseBilingual(item.label || item.attrs.tag || ('方案 ' + (idx + 1) + ' || Option ' + (idx + 1)));
-    var titlePair = fm.parseBilingual(item.title || labelPair.zh);
+    var labelRaw = item.label || item.attrs.tag || ('方案 ' + (idx + 1) + ' || Option ' + (idx + 1));
+    var labelPair = fm.parseBilingual(labelRaw);
+    var titleRaw = item.title || labelPair.zh;
+    var titleRendered = inline.renderBilingualInlinePair(titleRaw, state);
     var bodyRaw = item.bodyLines.join('\n').trim();
-    var bodyPair = fm.parseBilingual(bodyRaw);
     var bodyHtml;
     if (bodyRaw.indexOf('||') !== -1 && bodyRaw.split('\n').length <= 3) {
-      bodyHtml = '<p ' + fm.bilingualAttrs(bodyPair) + '>' + inline.renderInlineMarkdown(bodyPair.zh, state) + '</p>';
+      var bodyRendered = inline.renderBilingualInlinePair(bodyRaw, state);
+      bodyHtml = '<p ' + inline.bilingualRichAttrs(bodyRaw, state) + '>' + bodyRendered.zhHtml + '</p>';
     } else {
       bodyHtml = inline.renderMarkdownFragment(bodyRaw, state);
     }
@@ -205,7 +240,7 @@ function renderComparisonGrid(attrs, lines, sectionCtx, state) {
     return [
       '            <article class="' + cardClass + '">',
       '              <span class="comparison-label" ' + fm.bilingualAttrs(labelPair) + '>' + fm.escapeHtml(labelPair.zh) + '</span>',
-      '              <h3 ' + fm.bilingualAttrs(titlePair) + '>' + fm.escapeHtml(titlePair.zh) + '</h3>',
+      '              <h3 ' + inline.bilingualRichAttrs(titleRaw, state) + '>' + titleRendered.zhHtml + '</h3>',
       '              ' + bodyHtml.trim(),
       '            </article>'
     ].join('\n');
@@ -234,19 +269,22 @@ function renderAccordionGroup(attrs, lines, sectionCtx, state) {
     var isOpen = item.attrs.open === true || item.attrs.open === 'true' || (idx === 0 && attrs.open_first !== false);
     var itemClass = 'subsection-item' + (isOpen ? ' is-open' : '');
     var expanded = isOpen ? 'true' : 'false';
-    var titlePair = fm.parseBilingual(item.title || item.label || ('子项 ' + (idx + 1) + ' || Item ' + (idx + 1)));
+    var titleRaw = item.title || item.label || ('子项 ' + (idx + 1) + ' || Item ' + (idx + 1));
+    var titleRendered = inline.renderBilingualInlinePair(titleRaw, state);
     var bodyRaw = item.bodyLines.join('\n').trim();
-    var bodyPair = fm.parseBilingual(bodyRaw);
     var bodyHtml;
-    if (bodyRaw.indexOf('||') !== -1 && bodyRaw.split('\n').length <= 2) {
-      bodyHtml = '<p ' + fm.bilingualAttrs(bodyPair) + '>' + inline.renderInlineMarkdown(bodyPair.zh, state) + '</p>';
+    if (bodyRaw.indexOf('||') !== -1 && bodyRaw.split('\n').length <= 2 && !/^\s*[|`>-]/m.test(bodyRaw)) {
+      var bodyRendered = inline.renderBilingualInlinePair(bodyRaw, state);
+      bodyHtml = '<p ' + inline.bilingualRichAttrs(bodyRaw, state) + '>' + bodyRendered.zhHtml + '</p>';
     } else {
       bodyHtml = inline.renderMarkdownFragment(bodyRaw, state);
     }
 
     return [
       '            <article class="' + itemClass + '" data-accordion>',
-      '              <button class="subsection-toggle" type="button" aria-expanded="' + expanded + '" ' + fm.bilingualAttrs(titlePair) + '>' + fm.escapeHtml(titlePair.zh) + '</button>',
+      '              <button class="subsection-toggle" type="button" aria-expanded="' + expanded + '">',
+      '                <span ' + inline.bilingualRichAttrs(titleRaw, state) + '>' + titleRendered.zhHtml + '</span>',
+      '              </button>',
       '              <div class="subsection-content">',
       '                ' + bodyHtml.trim(),
       '              </div>',
@@ -301,15 +339,15 @@ function renderFlowOrTimeline(kind, attrs, lines, sectionCtx, state) {
   }
 
   var itemsHtml = entries.map(function (entry, idx) {
-    var titlePair = fm.parseBilingual(entry.title);
-    var descPair = fm.parseBilingual(entry.desc);
+    var titleRendered = inline.renderBilingualInlinePair(entry.title, state);
+    var descRendered = entry.desc ? inline.renderBilingualInlinePair(entry.desc, state) : null;
     var descHtml = entry.desc
-      ? '<p ' + fm.bilingualAttrs(descPair) + '>' + inline.renderInlineMarkdown(descPair.zh, state) + '</p>'
+      ? '<p ' + inline.bilingualRichAttrs(entry.desc, state) + '>' + descRendered.zhHtml + '</p>'
       : '';
     return [
       '            <li class="flow-step">',
       '              <div class="flow-copy">',
-      '                <strong ' + fm.bilingualAttrs(titlePair) + '>' + inline.renderInlineMarkdown(titlePair.zh, state) + '</strong>',
+      '                <strong ' + inline.bilingualRichAttrs(entry.title, state) + '>' + titleRendered.zhHtml + '</strong>',
       descHtml ? '                ' + descHtml : '',
       '              </div>',
       '            </li>'
@@ -324,45 +362,50 @@ function renderFlowOrTimeline(kind, attrs, lines, sectionCtx, state) {
 }
 
 function renderCallout(attrs, lines, sectionCtx, state) {
-  var titlePair = fm.parseBilingual(attrs.title || '');
+  var titleRaw = attrs.title || '';
+  var titlePair = fm.parseBilingual(titleRaw);
   var bodyLines = lines.slice();
 
   if (!titlePair.zh && bodyLines.length > 0) {
     var firstTrimmed = bodyLines[0].trim();
     var boldHead = firstTrimmed.match(/^\*\*([^*]+)\*\*$/);
     if (boldHead) {
-      titlePair = fm.parseBilingual(boldHead[1]);
+      titleRaw = boldHead[1];
+      titlePair = fm.parseBilingual(titleRaw);
       bodyLines.shift();
     } else if (bodyLines.length > 1 && firstTrimmed.length <= 36 && !/[。！？.!?]$/.test(firstTrimmed)) {
-      titlePair = fm.parseBilingual(firstTrimmed);
+      titleRaw = firstTrimmed;
+      titlePair = fm.parseBilingual(titleRaw);
       bodyLines.shift();
     }
   }
 
   if (!titlePair.zh) {
-    titlePair = { zh: '关键洞察', en: 'Key Insight' };
+    titleRaw = '关键洞察 || Key Insight';
+    titlePair = fm.parseBilingual(titleRaw);
   }
 
   var bodyRaw = bodyLines.join('\n').trim();
-  var bodyPair = fm.parseBilingual(bodyRaw);
+  var titleRendered = inline.renderBilingualInlinePair(titleRaw, state);
+  var bodyRendered = inline.renderBilingualInlinePair(bodyRaw, state);
   var variantClass = attrs.variant === 'callout' ? 'quote-block insight-callout' : 'quote-block';
 
   return [
     '          <div class="' + variantClass + '">',
-    '            <strong ' + fm.bilingualAttrs(titlePair) + '>' + fm.escapeHtml(titlePair.zh) + '</strong>',
-    '            <span ' + fm.bilingualAttrs(bodyPair) + '>' + inline.renderInlineMarkdown(bodyPair.zh, state) + '</span>',
+    '            <strong ' + inline.bilingualRichAttrs(titleRaw, state) + '>' + titleRendered.zhHtml + '</strong>',
+    '            <span ' + inline.bilingualRichAttrs(bodyRaw, state) + '>' + bodyRendered.zhHtml + '</span>',
     '          </div>'
   ].join('\n');
 }
 
-function renderDiagram(attrs, lines, sectionCtx) {
+function renderDiagram(attrs, lines, sectionCtx, state) {
   var baseSrc = String(attrs.src || '').replace(/\.(?:zh|en)\.svg$/i, '').replace(/\.svg$/i, '');
   var zhSrc = attrs.zh || (baseSrc ? baseSrc + '.zh.svg' : '');
   var enSrc = attrs.en || (baseSrc ? baseSrc + '.en.svg' : zhSrc);
   var drawioHref = attrs.drawio || (baseSrc ? baseSrc + '.drawio' : '');
   var altPair = fm.parseBilingual(attrs.alt || attrs.title || sectionCtx.title.zh + ' || ' + sectionCtx.title.en);
-  var captionRaw = lines.join(' ').trim() || attrs.caption || '';
-  var captionPair = fm.parseBilingual(captionRaw || (altPair.zh + ' || ' + altPair.en));
+  var captionRaw = lines.join(' ').trim() || attrs.caption || (altPair.zh + ' || ' + altPair.en);
+  var captionRendered = inline.renderBilingualInlinePair(captionRaw, state);
 
   var stepAttrs = buildStepAttrs(
     attrs,
@@ -382,7 +425,7 @@ function renderDiagram(attrs, lines, sectionCtx) {
     '          <figure class="generated-diagram"' + stepAttrs + '>',
     '            <img class="diagram-zh" src="' + fm.escapeAttr(zhSrc) + '" alt="' + fm.escapeAttr(altPair.zh) + '" />',
     '            <img class="diagram-en" src="' + fm.escapeAttr(enSrc) + '" alt="' + fm.escapeAttr(altPair.en) + '" />',
-    '            <figcaption class="diagram-caption"><span ' + fm.bilingualAttrs(captionPair) + '>' + fm.escapeHtml(captionPair.zh) + '</span>' + downloadLink + '</figcaption>',
+    '            <figcaption class="diagram-caption"><span ' + inline.bilingualRichAttrs(captionRaw, state) + '>' + captionRendered.zhHtml + '</span>' + downloadLink + '</figcaption>',
     '          </figure>'
   ].join('\n');
 }

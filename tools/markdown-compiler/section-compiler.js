@@ -135,7 +135,7 @@ function compileReferencesList(lines, state) {
         '              <span class="bib-id">[' + idx + ']</span>',
         '              <span class="bib-author">' + fm.escapeHtml(author) + '</span>' + (url ? ' —' : ''),
         url ? '              <a href="' + fm.escapeAttr(url) + '" target="_blank" rel="noopener">' + fm.escapeHtml(url) + '</a>' : '',
-        afterUrl ? '              <span class="bib-note" ' + fm.bilingualAttrs(notePair) + '>' + inline.renderInlineMarkdown(notePair.zh, state) + '</span>' : '',
+        afterUrl ? '              <span class="bib-note" ' + inline.bilingualRichAttrs(afterUrl, state) + '>' + inline.renderBilingualInlinePair(afterUrl, state).zhHtml + '</span>' : '',
         '            </li>'
       ].filter(Boolean).join('\n')
     );
@@ -249,7 +249,7 @@ function compileChapterBody(lines, sectionCtx, state) {
         if (dirType === 'callout' && !dirAttrs.variant) dirAttrs.variant = 'callout';
         blocks.push(directives.renderCallout(dirAttrs, innerLines, sectionCtx, state));
       } else if (dirType === 'diagram') {
-        blocks.push(directives.renderDiagram(dirAttrs, innerLines, sectionCtx));
+        blocks.push(directives.renderDiagram(dirAttrs, innerLines, sectionCtx, state));
       } else if (dirType === 'sandbox') {
         blocks.push(directives.renderSandbox(dirAttrs, innerLines, sectionCtx, state));
       } else {
@@ -263,11 +263,18 @@ function compileChapterBody(lines, sectionCtx, state) {
     if (h3Match) {
       var subTitle = h3Match[1].trim();
       var subLines = [];
+      var inSubFence = false;
       cursor++;
       while (cursor < remaining.length) {
         var peek = remaining[cursor];
         var peekTrim = peek.trim();
-        if (/^###\s+/.test(peek) || /^:::[a-zA-Z]/.test(peekTrim) || /^---\s*$/.test(peekTrim)) {
+        if (/^\s*```/.test(peekTrim)) {
+          inSubFence = !inSubFence;
+          subLines.push(peek);
+          cursor++;
+          continue;
+        }
+        if (!inSubFence && (/^###\s+/.test(peek) || /^:::[a-zA-Z]/.test(peekTrim) || /^---\s*$/.test(peekTrim))) {
           break;
         }
         subLines.push(peek);
@@ -322,6 +329,16 @@ function compileChapterBody(lines, sectionCtx, state) {
     }
     var renderedChunk = inline.renderMarkdownFragment(chunkLines.join('\n'), state).trim();
     if (renderedChunk) {
+      // Attach presentation step contract to section-level tables so they appear as slides in presentation mode
+      if (renderedChunk.indexOf('<div class="compare-table-wrap">') !== -1) {
+        var tableStepAttrs = directives.buildStepAttrs(
+          {},
+          { zh: sectionCtx.title.zh + '：对比矩阵', en: sectionCtx.title.en + ': Comparison Matrix' },
+          sectionCtx.kicker,
+          'unframed'
+        );
+        renderedChunk = renderedChunk.replace(/<div class="compare-table-wrap">/g, '<div class="compare-table-wrap"' + tableStepAttrs + '>');
+      }
       blocks.push('          ' + renderedChunk);
     }
   }
@@ -341,9 +358,9 @@ function compileAllChapters(body, state) {
   split.chapters.forEach(function (chap, idx) {
     var ctx = parseSectionHeading(chap.rawHeading, idx + 1);
     var compiled = compileChapterBody(chap.lines, ctx, state);
-    var leadPair = fm.parseBilingual(compiled.lead);
+    var leadRendered = compiled.lead ? inline.renderBilingualInlinePair(compiled.lead, state) : null;
     var leadHtml = compiled.lead
-      ? '\n            <p ' + fm.bilingualAttrs(leadPair) + '>' + inline.renderInlineMarkdown(leadPair.zh, state) + '</p>'
+      ? '\n            <p ' + inline.bilingualRichAttrs(compiled.lead, state) + '>' + leadRendered.zhHtml + '</p>'
       : '';
 
     var stepTitleAttr = ' data-present-title-zh="' + fm.escapeAttr(ctx.title.zh) + '" data-present-title-en="' + fm.escapeAttr(ctx.title.en) + '"';

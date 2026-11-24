@@ -24,7 +24,7 @@ style:
 
 ## #runtime-evolution 01 / Managed Runtime Evolution :: 托管运行时定位、产品演进与宿主边界 || Managed Runtime Positioning, Product Evolution, and Hosting Boundaries
 
-2026 年秋季起，打开门户首页顶部的 `New experience` 开关后，构建能力从传统的智能体、工作流与智能体流三类资产，正式扩展为包含全栈微应用（Apps）的四元矩阵 [1]。这一演进的核心底座是 **Copilot Managed Runtime**（托管运行时），它为自然语言生成或代码优先构建的交互式前端应用提供零基础设施运维的托管执行环境、平台内置版本仓库以及受控的数据连接代理 [1][2]。
+2026 年秋季起，打开门户首页顶部的 `New experience` 开关后，构建能力从传统的智能体、工作流与智能体流三类资产，正式扩展为包含全栈微应用（Apps）的四元矩阵 [1]。这一演进的核心底座是 **Copilot Managed Runtime**（托管运行时），它为自然语言生成或代码优先构建的交互式前端应用提供零基础设施运维的托管执行环境、平台内置版本仓库以及受控的数据连接代理 [1][2]。 || Starting in Fall 2026, toggling `New experience` on the portal home expands authoring from classic agents, workflows, and agent flows into a four-pillar matrix that includes full-stack micro-apps (Apps) [1]. Powering this shift is **Copilot Managed Runtime**, which provides a zero-infrastructure execution host, built-in Git repositories, and governed data connection proxies for conversational or code-first web apps [1][2].
 
 :::insight-grid { cols: 3, title: "托管运行时的三大架构特征 || Three Architectural Pillars of Managed Runtime" }
 ::card 01
@@ -40,9 +40,9 @@ style:
 应用运行在 `managedapps.cloud.microsoft` 独立域名下，强制执行内容安全策略（禁止内联脚本与外部嵌套），默认环境组仅放行 19 个官方身份认证连接器并拦截任意外部接口请求 [3]。 || Apps execute under `managedapps.cloud.microsoft` with strict content security policies, while the default environment group permits only 19 first-party Entra connectors and blocks arbitrary HTTP calls [3].
 :::
 
-在实际工程选型中，许多架构师容易将 Copilot Studio 中的托管运行时应用、基于新版编排框架的智能体以及传统画布或代码应用混为一谈 [1][7]。下表从物理宿主、构建期计费、运行期计量及源码持久化方式四个维度厘清三者的边界：
+在实际工程选型中，许多架构师容易将 Copilot Studio 中的托管运行时应用、基于新版编排框架的智能体以及传统画布或代码应用混为一谈 [1][7]。下表从物理宿主、构建期计费、运行期计量及源码持久化方式四个维度厘清三者的边界： || In enterprise architecture reviews, teams often conflate Copilot Studio Managed Runtime apps, New Experience agents on the Copilot Harness, and classic canvas or code apps [1][7]. The matrix below clarifies their boundaries across physical hosting, build-time billing, run-time metering, and source persistence:
 
-| 对比维度 || Dimension | Copilot Studio 托管应用 (Apps on Managed Runtime) | Copilot Studio 新版智能体 (Agents on Copilot Harness) | 传统画布与模型驱动应用 (Classic Power Apps) |
+| 对比维度 || Dimension | Copilot Studio 托管应用 || Copilot Studio Managed Runtime Apps | Copilot Studio 新版智能体 || Copilot Studio New Agents (Copilot Harness) | 传统画布与模型驱动应用 || Classic Canvas & Model-Driven Power Apps |
 |------|------|------|------|
 | 核心产物与入口 || Artifact & Entry | 首页开启新版体验后的 `Apps` 磁贴、协同画布或 `ms` 命令行 [1][5] || `Apps` tile under New Experience, Cowork, or `ms` CLI [1][5] | 首页 `Agents` / `Workflows` 入口或 `msagent` 命令行 [1][6] || `Agents` / `Workflows` entry or `msagent` CLI [1][6] | 创作者门户画布应用、模型驱动应用与解决方案页 [4] || Maker portal canvas apps, model-driven apps, and solutions [4] |
 | 底层物理存储平面 || Physical Storage Plane | 平台托管代码仓或外部企业代码仓，构建产物经打包命令上传 [2][5] || Platform-managed Git repo or GitHub Enterprise Cloud via pack upload [2][5] | 当前激活环境的数据库表（`bot` 与 `botcomponent`）及解决方案 [4][6] || Active environment Dataverse tables (`bot` and `botcomponent`) [4][6] | 当前环境的数据库表（`canvasapp`）与托管解决方案包 [4] || Active environment Dataverse (`canvasapp`) and managed solutions [4] |
@@ -59,7 +59,7 @@ $$
 
 ## #dual-environment-illusion 02 / The Dual-Environment Illusion :: 为什么创建后总落入个人环境，界面却显示在所选环境中 || Why Assets Land in Personal Environments While the UI Shows Your Selected Environment
 
-企业团队反馈最多的痛点是：开发人员在门户右上角的环境选择器里明确切换到了共享开发环境（例如 `Team-Dev`），随后点击创建应用或智能体，结果管理员在 `Team-Dev` 的解决方案里找不到该资产，或者发现它被静默写入了创作者的个人环境 [2][4]。这种“所见非所得”的双环境错觉，本质上是**界面会话上下文**、**构建期地理令牌解析**与**强制环境路由规则**三层控制面各自独立决策造成的 [2][3]。
+企业团队反馈最多的痛点是：开发人员在门户右上角的环境选择器里明确切换到了共享开发环境（例如 `Team-Dev`），随后点击创建应用或智能体，结果管理员在 `Team-Dev` 的解决方案里找不到该资产，或者发现它被静默写入了创作者的个人环境 [2][4]。这种“所见非所得”的双环境错觉，本质上是**界面会话上下文**、**构建期地理令牌解析**与**强制环境路由规则**三层控制面各自独立决策造成的 [2][3]。 || The most frequent enterprise complaint is that a developer explicitly selects a shared environment (`Team-Dev`) in the top-right picker before creating an app or agent, yet administrators cannot find the asset in `Team-Dev` solutions and discover it was silently written to the maker's personal environment [2][4]. This dual-environment illusion stems from three decoupled control planes making independent decisions: **UI session context**, **token-based build geography resolution**, and **mandatory environment routing** [2][3].
 
 :::diagram { src: "./media/dual-environment-anatomy", drawio: "./media/dual-environment-anatomy.drawio", title: "Copilot Studio 双环境错觉：顶栏环境上下文与个人环境路由的脱钩解剖 || The Dual-Environment Illusion: Decoupled UI Environment Picker vs. Personal Environment Routing" }
 图 1：入口层顶栏选择器、路由控制平面与底层物理存储平面的三路分流解剖。创建托管应用时系统直接旁路顶栏选择器，而构建期计费与地理驻留则分别绑定至门户会话和登录令牌 [2][3][4]。 || Figure 1: Three-way split across the top-bar picker, routing control plane, and physical storage plane. Managed app creation bypasses the UI picker while build billing and data residency bind to session context and sign-in tokens [2][3][4].
@@ -75,7 +75,7 @@ $$
 托管运行时的环境路由在所有租户中强制开启且无法关闭。只要通过界面磁贴、协同画布或不带环境参数的命令行创建应用，系统一律忽略顶栏选择器，强制将应用写入创作者的个人环境 [2][3]。 || Environment routing for Managed Runtime is mandatory and cannot be disabled. Creating an app via UI tiles, Cowork, or CLI without an explicit environment flag ignores the top bar and writes directly to the maker's personal environment [2][3].
 :::
 
-除了物理环境落盘的脱钩，**构建期的数据驻留区域**也会制造第二重错觉 [2]。即使顶栏选中的 `Team-Dev` 位于欧洲区，托管应用在自然语言构建阶段的会话数据驻留地也不由该环境决定，而是由创作者登录令牌（Entra ID Token）按以下三级优先级实时解析 [2]：
+除了物理环境落盘的脱钩，**构建期的数据驻留区域**也会制造第二重错觉 [2]。即使顶栏选中的 `Team-Dev` 位于欧洲区，托管应用在自然语言构建阶段的会话数据驻留地也不由该环境决定，而是由创作者登录令牌（Entra ID Token）按以下三级优先级实时解析 [2]： || Beyond physical storage decoupling, **build-time data residency** creates a second layer of illusion [2]. Even when `Team-Dev` in the top bar resides in Europe, the geography for natural-language app building is resolved from the maker's Entra sign-in token in three priority tiers rather than the selected environment [2]:
 
 :::flow { title: "构建期数据驻留与个人环境路由的四步判定链路 || Four-Step Resolution for Build Geo and Personal Routing" }
 1. **解析登录令牌首选数据位置 (PDL) || Parse Sign-in Token Preferred Data Location (PDL)** — 系统首先读取创作者身份令牌中的 `PDL` 属性，将其映射为构建期对话与生成服务的物理区域，完全忽略顶栏所选环境的区域设置 [2]。 || The runtime inspects the `PDL` claim in the maker's Entra token to assign the build-time processing geography, ignoring the region of the environment shown in the top bar [2].
@@ -84,23 +84,23 @@ $$
 4. **分配个人托管环境与平台代码仓库 || Provision Personal Managed Environment and Native Git Repo** — 命中规则后自动创建或复用创作者专属个人环境（类型标记为托管环境），并在后台初始化平台托管代码仓库承载应用文件 [2][5]。 || Upon matching a rule, the service provisions or reuses the maker's personal managed environment and initializes a platform-hosted Git repository for the app source [2][5].
 :::
 
-更隐蔽的治理陷阱发生在**管理视图分裂**与**休眠清理连锁反应**上 [2][3][4]。下面通过三组折叠抽屉拆解为什么管理员与创作者看到的资产状态经常对不上：
+更隐蔽的治理陷阱发生在**管理视图分裂**与**休眠清理连锁反应**上 [2][3][4]。下面通过三组折叠抽屉拆解为什么管理员与创作者看到的资产状态经常对不上： || More subtle governance pitfalls arise from **split admin views** and **inactivity cleanup chain reactions** [2][3][4]. The three drawers below unpack why maker views and admin inventories frequently diverge:
 
 ### 为什么在 Power Apps 列表里找不到新建的托管应用？ || Why Are New Managed Apps Missing from Classic Power Apps Lists?
 
-托管运行时应用与传统画布应用分属不同的资源提供方 [2][3]。应用创建后最长需要 15 分钟同步至 **Microsoft 365 管理中心（MAC）** 的 `Apps -> All apps` 页面；而在 **Power Platform 管理中心（PPAC）** 中，它根本不会出现在传统的 Power Apps 应用列表里，管理员必须进入 `Manage -> Inventory` 并将资产类型筛选为 `Copilot Managed Runtime` 才能检索到 [2][3]。终端用户的统一运行入口则是独立的 `https://managedapps.cloud.microsoft` 门户 [3]。
+托管运行时应用与传统画布应用分属不同的资源提供方 [2][3]。应用创建后最长需要 15 分钟同步至 **Microsoft 365 管理中心（MAC）** 的 `Apps -> All apps` 页面；而在 **Power Platform 管理中心（PPAC）** 中，它根本不会出现在传统的 Power Apps 应用列表里，管理员必须进入 `Manage -> Inventory` 并将资产类型筛选为 `Copilot Managed Runtime` 才能检索到 [2][3]。终端用户的统一运行入口则是独立的 `https://managedapps.cloud.microsoft` 门户 [3]。 || Managed Runtime apps and classic canvas apps belong to separate resource providers [2][3]. After creation, an app takes up to 15 minutes to appear under `Apps -> All apps` in the **Microsoft 365 admin center (MAC)**, and in the **Power Platform admin center (PPAC)** it never shows up in classic Power Apps lists—admins must open `Manage -> Inventory` and filter by `Copilot Managed Runtime` [2][3]. End users launch published apps from `https://managedapps.cloud.microsoft` [3].
 
 ### 为什么个人环境里的应用突然在 60 天后被禁用甚至删除？ || Why Do Personal Environment Apps Suddenly Face 60-Day Disabling and Deletion?
 
-单独使用托管运行时创建应用时，系统分配的个人环境**不包含**关系型数据库（Dataverse），官方文档明确说明此类纯托管环境不会因休眠而被自动清理 [2][3]。然而，一旦管理员在 PPAC 中为 Copilot Studio 开启了产品级环境路由，或者创作者在顶栏停留在个人环境时顺手创建了一个智能体（Agent），系统就会**自动为该个人环境注入数据库实例** [4]。数据库一旦挂载，整个个人环境（含其中的托管应用）立即被纳入开发者环境的休眠回收轨道：**连续 60 天无活动即禁用环境，再过 15 天彻底删除全部资产** [4]。
+单独使用托管运行时创建应用时，系统分配的个人环境**不包含**关系型数据库（Dataverse），官方文档明确说明此类纯托管环境不会因休眠而被自动清理 [2][3]。然而，一旦管理员在 PPAC 中为 Copilot Studio 开启了产品级环境路由，或者创作者在顶栏停留在个人环境时顺手创建了一个智能体（Agent），系统就会**自动为该个人环境注入数据库实例** [4]。数据库一旦挂载，整个个人环境（含其中的托管应用）立即被纳入开发者环境的休眠回收轨道：**连续 60 天无活动即禁用环境，再过 15 天彻底删除全部资产** [4]。 || When a maker only builds Managed Runtime apps, the provisioned personal environment has **no** Dataverse database and is exempt from inactivity cleanup [2][3]. However, once PPAC environment routing is enabled for Copilot Studio or the maker creates an Agent while inside that personal environment, the platform **injects a Dataverse database instance** into the personal environment [4]. Adding Dataverse immediately subjects the entire personal environment—including its managed apps—to the developer inactivity lifecycle: **disabled after 60 days of inactivity and permanently deleted 15 days later** [4].
 
 ### 为什么修改自定义路由规则后部分创作者直接报 403 权限阻断？ || Why Do Custom Routing Rules Trigger 403 Blocks for Some Makers?
 
-当租户内第一位创作者构建托管应用时，平台会自动生成一条覆盖全员（`Everyone`）的默认路由规则 [2][3]。如果管理员随后在 Microsoft 365 管理中心新增了按安全组划分的路由规则，却删掉了末尾的 `Everyone` 兜底规则，那么任何不属于这些安全组的创作者在点击创建或运行 `ms app create` 时，都会因为无法命中路由条目而被直接拦截报错 [2][3]。
+当租户内第一位创作者构建托管应用时，平台会自动生成一条覆盖全员（`Everyone`）的默认路由规则 [2][3]。如果管理员随后在 Microsoft 365 管理中心新增了按安全组划分的路由规则，却删掉了末尾的 `Everyone` 兜底规则，那么任何不属于这些安全组的创作者在点击创建或运行 `ms app create` 时，都会因为无法命中路由条目而被直接拦截报错 [2][3]。 || When the first maker in a tenant creates a managed app, the platform auto-generates a catch-all `Everyone` routing rule [2][3]. If an administrator later adds security-group routing rules in MAC and deletes the trailing `Everyone` fallback rule, any maker outside those security groups fails rule evaluation and hits an immediate 403 creation block [2][3].
 
 ## #interactive-sandbox 03 / Interactive Diagnostic Sandbox :: 双环境错觉与 ALM 路径实时诊断沙盒 || Live Diagnostic Sandbox for Dual-Environment Illusion and ALM Paths
 
-面对不同创建入口（新版体验应用磁贴、命令行与协同画布、开启路由的新版智能体、以及嵌入聊天界面的轻量构建器），资产的实际落盘位置与合规晋升命令各不相同 [2][4][5][6]。点击下方沙盒顶部的四个场景切换按钮，即可实时对比**界面表象**与**物理落盘平面**，并生成可直接复用的命令行脱困脚本：
+面对不同创建入口（新版体验应用磁贴、命令行与协同画布、开启路由的新版智能体、以及嵌入聊天界面的轻量构建器），资产的实际落盘位置与合规晋升命令各不相同 [2][4][5][6]。点击下方沙盒顶部的四个场景切换按钮，即可实时对比**界面表象**与**物理落盘平面**，并生成可直接复用的命令行脱困脚本： || Across different authoring entry points—New Experience App tiles, CLI/Cowork, routed New Agents, and embedded Agent Builder—assets land in different storage planes and require distinct promotion pipelines [2][4][5][6]. Switch across the four scenarios below to compare the **UI picker illusion** against the **physical storage plane** and generate ready-to-run CLI remediation scripts:
 
 :::sandbox { id: "cmr-alm-diagnostic-sandbox", canvas: false, script: "./alm-diagnostic-sandbox.js", style: "./alm-diagnostic-sandbox.css", title: "双环境错觉成因与企业级 ALM 晋升命令诊断台 || Dual-Environment Illusion & Enterprise ALM Command Diagnostic Workbench", desc: "切换四大高频构建场景，实时检视顶栏环境假象、后台真实落盘位置、双管理中心盘点路径及对应的 CLI 跨环境晋升脚本。 || Switch across four authoring scenarios to inspect the UI picker illusion, physical storage plane, admin inventory paths, and exact CLI promotion scripts." }
 纯静态前端诊断沙盒：覆盖托管应用磁贴、命令行构建、新版智能体路由与聊天内嵌构建器四类场景。 || Pure static diagnostic sandbox covering App tiles, CLI creation, routed New Agents, and embedded Agent Builder scenarios.
@@ -108,7 +108,7 @@ $$
 
 ## #enterprise-alm-playbook 04 / Enterprise ALM Playbook :: 打破个人环境孤岛：双轨企业级 ALM 全链路实战 || Breaking the Personal Environment Silo: Dual-Track Enterprise ALM Playbook
 
-要把落入个人环境的原型资产安全晋升至团队开发（`Dev`）、测试（`Test`）与生产（`Prod`）环境，首先必须区分资产属于**代码级托管应用**还是**声明式新版智能体** [5][6]。微软为这两类构建物分别提供了 `@microsoft/cmr-cli`（命令名为 `ms`）与 `Microsoft.Agents.Hosting.Cli`（命令名为 `msagent`）两套专用工具链 [5][6]。
+要把落入个人环境的原型资产安全晋升至团队开发（`Dev`）、测试（`Test`）与生产（`Prod`）环境，首先必须区分资产属于**代码级托管应用**还是**声明式新版智能体** [5][6]。微软为这两类构建物分别提供了 `@microsoft/cmr-cli`（命令名为 `ms`）与 `Microsoft.Agents.Hosting.Cli`（命令名为 `msagent`）两套专用工具链 [5][6]。 || Promoting prototype assets out of personal environments into shared `Dev`, `Test`, and `Prod` stages starts by distinguishing **code-first Managed Runtime apps** from **declarative New Experience agents** [5][6]. Microsoft ships two dedicated toolchains for these tracks: `@microsoft/cmr-cli` (`ms`) and `Microsoft.Agents.Hosting.Cli` (`msagent`) [5][6].
 
 :::diagram { src: "./media/managed-runtime-alm-pipeline", drawio: "./media/managed-runtime-alm-pipeline.drawio", title: "托管运行时应用与新版智能体企业级双轨 ALM 晋升流水线 || Dual-Track Enterprise ALM Promotion Pipeline for CMR Apps and New Agents" }
 图 2：轨道 A（托管应用通过 `ms` 命令行与阶段覆盖文件晋升）与轨道 B（新版智能体通过 `msagent` 部署槽位与评测门禁晋升）的端到端交付架构，底层由双管理中心安全门禁统一护航 [3][5][6]。 || Figure 2: End-to-end delivery architecture combining Track A (`ms` CLI and stage overlays for managed apps) and Track B (`msagent` deployment slots and evaluation gates for new agents), governed by MAC and PPAC security controls [3][5][6].
@@ -116,7 +116,7 @@ $$
 
 ### 轨道 A：托管运行时应用 (`@microsoft/cmr-cli`) 跨环境晋升与配置解耦 || Track A: Managed Runtime App Promotion and Config Decoupling via `@microsoft/cmr-cli`
 
-对于已经在个人环境中通过自然语言生成的应用，核心脱困思路是：**将源码从个人环境的平台代码仓克隆到本地或企业代码仓，然后在目标团队环境中显式传入 `--environment-id` 参数注册应用，并通过阶段配置文件（Stage Overlays）解耦跨环境连接与数据库表** [5]。
+对于已经在个人环境中通过自然语言生成的应用，核心脱困思路是：**将源码从个人环境的平台代码仓克隆到本地或企业代码仓，然后在目标团队环境中显式传入 `--environment-id` 参数注册应用，并通过阶段配置文件（Stage Overlays）解耦跨环境连接与数据库表** [5]。 || For apps already generated in a personal environment, the escape path is to **clone the source from the personal platform repo into a local or enterprise repository, register the target app with an explicit `--environment-id` flag, and decouple stage-specific connections and tables via Stage Overlays** [5].
 
 :::flow { title: "托管应用从个人环境晋升至生产环境的五步流水线 || Five-Step Promotion Pipeline from Personal Sandbox to Production" }
 1. **克隆个人环境源码或直连企业代码仓 || Clone Personal Source or Bind GitHub Enterprise Cloud** — 运行 `ms app clone --app <app-id>` 将个人环境中的原型源码拉取至本地，或在创建时直接传入 `--repo <github-url>` 与 `--environment-id <dev-env-id>` 跳过个人环境 [5]。 || Run `ms app clone --app <app-id>` to extract prototype source from the personal environment, or pass `--repo <github-url>` and `--environment-id <dev-env-id>` during creation to bypass personal routing [5].
@@ -126,7 +126,7 @@ $$
 5. **开启外部制品开关并执行自动化打包发布 || Enable External Artifact Deployment and Run Pack/Deploy Actions** — 在目标测试与生产环境开启 `AllowExternalArtifactDeployment` 治理开关，随后由流水线执行 `ms app pack` 与 `ms app deploy` 完成零停机交付 [3][5]。 || Enable `AllowExternalArtifactDeployment` on target environments and invoke `ms app pack` followed by `ms app deploy` in GitHub Actions [3][5].
 :::
 
-下面给出生产级 `ms.config.json` 与阶段覆盖文件 `ms.prod.config.json` 的配置范式，展示如何安全解耦个人连接（User Connection）、共享连接（Shared Connection）与数据库表引用 [5]：
+下面给出生产级 `ms.config.json` 与阶段覆盖文件 `ms.prod.config.json` 的配置范式，展示如何安全解耦个人连接（User Connection）、共享连接（Shared Connection）与数据库表引用 [5]： || The following production `ms.config.json` and `ms.prod.config.json` stage overlay illustrate how to decouple user connections, shared connections, and Dataverse table bindings across environments [5]:
 
 ```json
 // ms.config.json — 基础架构契约（提交至 Git 主干）
@@ -182,7 +182,7 @@ $$
 
 ### 轨道 B：新版智能体 (`msagent` CLI 与自定义解决方案) 跨环境晋升 || Track B: Promoting New Agents via `msagent` CLI and Custom Solutions
 
-针对运行在新版编排框架（Microsoft Copilot Harness）上的智能体，自 2026 年 10 月起可直接使用基于 `.NET 10` 的 `Microsoft.Agents.Hosting.Cli`（`msagent`）将云端智能体克隆为本地声明式文件（含 `settings.mcs.yml`、工作流定义、知识源及评测集），实现代码级多环境发布 [6]：
+针对运行在新版编排框架（Microsoft Copilot Harness）上的智能体，自 2026 年 10 月起可直接使用基于 `.NET 10` 的 `Microsoft.Agents.Hosting.Cli`（`msagent`）将云端智能体克隆为本地声明式文件（含 `settings.mcs.yml`、工作流定义、知识源及评测集），实现代码级多环境发布 [6]： || For agents built on the Microsoft Copilot Harness, teams can use the `.NET 10`-based `Microsoft.Agents.Hosting.Cli` (`msagent`) to clone cloud agents into local declarative YAML files (`settings.mcs.yml`, workflows, knowledge sources, and eval sets) for multi-environment delivery [6]:
 
 ```bash
 # 1. 从源环境克隆智能体定义至本地工程（切勿把 .mcs/ 与 .config/agent.config.json 提交到 Git）
@@ -204,7 +204,7 @@ msagent agent eval run --project ./EnterpriseSupportAgent --agent-name "Support 
 msagent agent deploy --project ./EnterpriseSupportAgent --agent-name "Support Agent" --deployment-name prod-slot --publish
 ```
 
-若团队沿用经典的 Power Platform Pipelines 或解决方案打包流程，则必须遵循自定义非托管解决方案（Unmanaged Solution）边界 [4][8]。下表汇总了工程团队在跨环境迁移与日常治理中最常踩中的六个真实故障点及修复动作：
+若团队沿用经典的 Power Platform Pipelines 或解决方案打包流程，则必须遵循自定义非托管解决方案（Unmanaged Solution）边界 [4][8]。下表汇总了工程团队在跨环境迁移与日常治理中最常踩中的六个真实故障点及修复动作： || Teams using classic Power Platform Pipelines or solution zip exports must enforce custom unmanaged solution boundaries [4][8]. The table below summarizes the six most common cross-environment ALM failures and their verified fixes:
 
 | 高频踩坑场景 || Common Pitfall Scenario | 根因剖析 || Root Cause Analysis | 权威修复与规避动作 || Verified Remediation Action |
 |------|------|------|
