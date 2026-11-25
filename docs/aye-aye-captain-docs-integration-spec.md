@@ -1,9 +1,9 @@
 # 交付看板 Docs 扩展标签保护、胶囊显隐、富交互渲染与自适应双语切换跨项目对接规范
 
-- **文档编号**：`portal-cmd-20261124-135506-fbe32b`（含用户补充指令 `cmd-20261124-141026-a22e25`）
+- **文档编号**：`portal-cmd-20261124-135506-fbe32b`（含用户补充指令 `cmd-20261124-141026-a22e25` 及多模态工坊与单篇发布扩展 `portal-cmd-20261125-013118-adbad5-spec`）
 - **需求提出方**：`Study Room` 项目组（`/Users/wellszhang/Developer/Study-Room`，项目标识 `project-ae072df8f9ae4232b6bf4476a4724951`）
 - **升级承接方**：`Aye aye Captain` 交付看板平台组（`/Users/wellszhang/Developer/Aye aye Captain/delivery-board`，项目标识 `project-8610e2d940164bd1830b02a73d812651`）
-- **关联架构决策**：`adr-markdown-source-dual-mode-pipeline`（Study Room 文章 Markdown 真源化与看板 Docs 协同编辑双模编译架构）
+- **关联架构决策**：`adr-markdown-source-dual-mode-pipeline`（Study Room 文章 Markdown 真源化与看板 Docs 协同编辑双模编译架构）、`authoring-vs-publishing-decoupling-v1`（Captain Docs 创作生产平面与 Knowledge Hub 公开静态阅读展厅解耦契约）
 - **兼容性红线**：100% 保持标准纯 Markdown 文档（如 `README.md`、架构决策记录与普通技术笔记）的零感知原样渲染，不引入任何额外标记或项目硬编码耦合。
 
 ---
@@ -39,7 +39,7 @@ Study Room 已落地的 Genesis 纯静态编译内核（`tools/compile-markdown-
 
 ---
 
-## 2. 致 `Aye aye Captain` 项目组的四大核心需求对接规格
+## 2. 致 `Aye aye Captain` 项目组的六大核心需求对接规格
 
 ### 需求一：结构化指令与双语标签的「防误删写保护机制（Protected Structural Tokens）」
 
@@ -142,6 +142,57 @@ Study Room 已落地的 Genesis 纯静态编译内核（`tools/compile-markdown-
 
 ---
 
+### 需求五：将内嵌视频生成（Video Studio）与 AI 歌曲制作（MiniMax-Music3 MLX `18790` 服务）整合至 Captain Docs 创作面板
+
+为将本机创作生产工具与外部公开静态托管站点（GitHub Pages）彻底解耦，公开阅读页 `assets/article-common.js` 默认不再向外部读者渲染作者制作台按钮（仅在携带 `?authoring=1`、`?studio=1` 或处于 Captain Docs 宿主内嵌环境时按需挂载）。全部重计算多模态创作能力统一收敛至 Captain Docs 创作面板：
+
+#### 1) 项目声明式创作工具探测与顶栏入口（`header-meta.js` + `modules/docs/index.js`）
+- **项目无关插件化发现（严守平台 I1 准则）**：看板后端读取工作区配置（如 `.project-data/delivery-board/docs-authoring-studios.json` 或 `docs/navigation.json` 的顶层 `authoring_studios` 声明）时，仅在工作区显式注册了本地多模态创作能力且当前文档属于可创作范围（如 `posts/<slug>/article.md`）时，才在 `docs-reader-header` 渲染 **`[🎬 视频工坊]`** 与 **`[🎵 歌曲工坊]`** 入口胶囊；打开无关项目的普通纯 Markdown 文档时不显示这两个按钮。
+- **零跳出抽屉 / 沉浸式浮窗挂载**：点击入口后直接在 Captain Docs 当前阅读上下文弹出全尺寸毛玻璃创作面板（支持 `Esc` 关闭并原位恢复阅读滚动条），不再打开孤立的外部新标签页。
+
+#### 2) 视频生成工坊（Video Studio）内嵌联动契约
+- **宿主上下文透传与自动口播初稿**：Captain Docs 打开视频工坊浮窗时，可挂接本机同源服务（`node scripts/serve-knowledge-hub.mjs`，默认 `http://127.0.0.1:8000/video-studio.html?article=<slug>&authoring=1`）或由看板后端安全代理 `/api/copilot/studio/:id/*` 接口；首次唤起即读取当前文章章节、核心数值指标与对比步骤，按 `presenter` / `product` 双制作路线及 `01-A` 至 `06-A` 共 11 款风格包生成逐镜口播文案与 9 类镜头编舞初稿。
+- **私有草稿隔离与成片回填**：分镜草稿、配音片段与中间缓存统一写入 Git 忽略目录 `private/video-studio/`；整片合成校验完毕后，支持在面板内点击「嵌入当前文章」，将轻量压缩后的 `.mp4` / `.webm` 写入 `posts/<slug>/media/` 并向 `article.md` 光标或章节末尾插入规范媒体引用。
+
+#### 3) AI 歌曲制作工坊（MiniMax-Music3 MLX `127.0.0.1:18790`）内嵌联动契约
+- **本机回环推理桥接**：由看板后端受控代理转发至本机回环音乐推理服务 `http://127.0.0.1:18790`（启动命令 `python3 scripts/serve-minimax-music-mlx.py --port 18790`，若携带密钥则由后端注入 `X-MiniMax-Music-Token` 请求头），前端无需跨域直连底层模型端口：
+  - **状态探针**：打开歌曲面板时先请求 `GET /api/health`；若 `18790` 服务未就绪，则在面板顶部展示非阻塞状态徽章与一键复制启动指引，不阻塞歌词编写与离线排版检查；
+  - **三段式提示词与歌词律动离线预检**：创作表单原生提供风格提示词（`prompt`，1～4096 字符）、分段歌词（`lyrics`，支持 `[verse]`、`[chorus]` 独占行标签或默认器乐 `"[instrumental]"`）及采样参数（`duration` 默认 `30.0` 秒、范围 `1.0`～`360.0` 秒；`steps` 默认 `30`、`temperature` 默认 `1.0`、`ar_cfg_scale` 默认 `1.5`、`dit_cfg_scale` 默认 `1.7`）。提交长耗时推理前可先调用 `python3 scripts/generate-minimax-music-mlx.py --lint-only` 执行毫秒级音节疏密与标签断行校验；
+  - **单飞并发保护与母带转码落盘**：点击生成后调用 `POST /api/generate`（若遇并发锁返回 `429 {"error":{"code":"busy"}}`，前端即时友好提示排队或等待当前曲目完成）。无损 `.wav` 原始母带保留在 `private/minimax-music3/` 或 `~/.cache/study-room/minimax-music3-mlx/outputs` 供本机 `/api/local-music/tracks` 试听比对；确认选入文章时，自动转码为高音质轻量 `.m4a`（256kbps，单曲远低于 `25MB` 静态入库红线）落盘至 `posts/<slug>/media/` 并向 `article.md` 注入音频试听块。
+
+---
+
+### 需求六：文档头部单篇发布状态追踪与 `[🚀 发布至 Knowledge Hub]` 一键触发 Release Engineer 工作流
+
+打通「在 Captain Docs 沉浸创作 `article.md` ➔ 一键静态编译与 14 项门禁核验 ➔ 唤醒 Release Engineer 推送上线」的单篇敏捷发布闭环：
+
+#### 1) 单篇发布状态实时探测徽章（`header-meta.js` + 后端状态探针）
+- 当用户在 Captain Docs 打开工作区文章源（如 `posts/<slug>/article.md`）时，看板后端通过轻量接口（如 `GET /api/docs/publish-status?path=<doc_path>`）调用 Study Room 确定性单篇发布工具查询状态（`node tools/publish-article.js <slug> --check` 或 `--status`）：
+  ```bash
+  node tools/publish-article.js <slug> --check
+  ```
+- 在 `docs-reader-header` 右侧渲染三态发布状态胶囊与主行动按钮 **`[🚀 发布至 Knowledge Hub]`**（普通工程说明文档如 `README.md` 或 `docs/*.md` 不显示该文章发布按钮）：
+  1. **`⚪ 未发布（Draft）`**：仅存在 `posts/<slug>/article.md` 草稿，尚未生成配对 `posts/<slug>/index.html` 或尚未写入 `assets/knowledge-data.js` 专题图谱索引；
+  2. **`🟡 有改动待同步（Out of Sync）`**：`article.md`、同目录 `media/*` 媒体产物或专题元数据发生变更，与当前已落盘 `index.html` 指纹或 Git HEAD 状态不一致；
+  3. **`🟢 已发布同步（Published）`**：静态 `index.html`、`assets/knowledge-data.js` 索引及全部 14 项文章门禁均处于最新通过态且工作区无待提交差异（按钮置为低饱和度「已同步 · 可重新校验」态）。
+
+#### 2) 一键触发 `tools/publish-article.js` 确定性编译与门禁校验
+用户点击 **`[🚀 发布至 Knowledge Hub]`**（首次发布允许在弹窗中确认或指定 `--topic <id>` 专题归属，默认支持先跑 `--dry-run` 预览变更范围）后，看板后端按顺序执行单篇静态构建命令：
+```bash
+node tools/publish-article.js <slug> [--topic <id>]
+```
+该命令在工作区内一站式完成四项确定性动作并向标准输出返回结构化 JSON 发布清单：
+1. 调用创世纪编译内核将 `posts/<slug>/article.md` 毫秒级编译为自包含静态 `posts/<slug>/index.html`（确保公开静态态不挂载作者制作台入口）；
+2. 校验并幂等同步 `assets/knowledge-data.js` 与 `docs/navigation.json` 中的专题卡片元数据；
+3. 扫描 `posts/<slug>/` 媒体体积红线，严厉拦截超过 `25MB` 的未压缩裸 `.wav` 或私有母带文件混入公开提交；
+4. 执行 `node tests/validate.js --article <slug>` 跑通单篇全部 14 项静态契约门禁（双语完整性、图表颜色字号、公式与相对链接有效性）。若任一门禁未通过，立即在 Captain Docs 顶栏抽屉内高亮展示具体报错项并中止后续推送。
+
+#### 3) 无缝移交 Release Engineer 工位推送上线
+- 当 `tools/publish-article.js <slug>` 返回退出码 `0` 及结构化变更文件清单（`files_modified` 精确收敛至 `posts/<slug>/*`、`assets/knowledge-data.js` 与 `docs/navigation.json`）后，看板平台自动创建或推进单篇发布交付流，将该结构化清单直连派发给本项目的 **`Release Engineer`（发布工程工位）**（或按单兵快通策略触发受控自动发版）。
+- `Release Engineer` 仅针对清单内白名单路径执行增量暂存、规范化 Commit 提交与远端 `origin/main` 推送，绝不误扫工作区其他并行在途卡片的未完稿文件；推送完成后实时刷新文档头部状态徽章为 **`🟢 已发布同步`**，并附上公开静态展厅预览链接。
+
+---
+
 ## 3. 跨项目协同边界与联调验收清单
 
 ### 3.1 双项目职责切分矩阵
@@ -152,24 +203,28 @@ Study Room 已落地的 Genesis 纯静态编译内核（`tools/compile-markdown-
 | 胶囊 Tag 显隐 | 升级 `markdown.js` 扩展令牌胶囊化渲染、`header-meta.js` 顶栏显隐开关与本地偏好存储 | 验证全部 9 类容器指令、`::card`/`::versus` 子锚点及 `\|\|` 双语段落在显/隐双态下的阅读体验 |
 | 富交互 HTML 融入 | 在 `modules/docs/index.js` 与后端文档路由新增 `[📖 纯净 Markdown \| ✨ 富交互视图]` 切换、工作区相对资源代理及亮暗/目录联动 | 保持 `tools/compile-markdown-article.js` 零依赖毫秒级标准输出契约与 `docs/navigation.json` 目录索引对齐 |
 | 头部自适应双语切换 | 在文档元数据解析、`markdown.js` 与 `header-meta.js` 实现双语特征自动探测、按需渲染 `[中文 \| EN]` 动态胶囊及双视图零闪烁联动 | 保证双语文章严格遵循 `strict_i18n`、`\|\|` 对位语法及内联 SVG `.sr-zh`/`.sr-en` 图层规范，并提供单语与双语对照验收样本 |
+| 视频与歌曲创作工坊内嵌 | 在 Captain Docs 阅读器顶栏按项目声明动态挂载 `[🎬 视频工坊]` 与 `[🎵 歌曲工坊]` 抽屉/浮窗，并由看板后端安全代理本机视频工作室与 `127.0.0.1:18790` MiniMax-Music3 MLX 接口 | 维护 `scripts/serve-knowledge-hub.mjs` 视频工作室与 `scripts/serve-minimax-music-mlx.py` 音乐推理服务，并在 `assets/article-common.js` 中剥离公开静态页的作者制作台入口 |
+| 单篇发布与 Release Engineer 联动 | 在 `header-meta.js` 展示单篇三态发布徽章与 `[🚀 发布至 Knowledge Hub]` 按钮，调用项目发布脚本并在门禁全绿后将变更清单直连移交 `Release Engineer` 推送 | 交付 `tools/publish-article.js`（支持 `--check`/`--status`、`--dry-run`、`--topic`、25MB 媒体体积红线拦截与 `validate.js --article` 14 项门禁）并输出标准 JSON 发布清单 |
 
 ### 3.2 跨项目联调验收标准（DoD）
 
-1. **纯 Markdown 与单语文档 100% 零回归**：在看板 Docs 中打开 `README.md`、`RELEASE.md` 或 `Aye aye Captain` 自身单语架构文档时，排版、表格、代码块、公式与划选修改行为与升级前完全一致，顶栏**不显示**多余的结构标签开关与 `[中文 | EN]` 语言切换标签。
+1. **纯 Markdown 与单语文档 100% 零回归**：在看板 Docs 中打开 `README.md`、`RELEASE.md` 或 `Aye aye Captain` 自身单语架构文档时，排版、表格、代码块、公式与划选修改行为与升级前完全一致，顶栏**不显示**多余的结构标签开关、`[中文 | EN]` 语言切换标签、多模态工坊入口与文章发布按钮。
 2. **结构标签防误删生效**：在 `posts/markdown-genesis-lab/article.md` 阅读流中拖选跨卡片正文执行「手工修改」或「AI 改写」，外层 `:::insight-grid`、`::card`、`:::` 与 `#id` 不会被选入误删；人为在编辑框删掉闭合 `:::` 点保存时，后端准确返回 400 拦截提示且原文件纹丝不动。
 3. **Tag 胶囊一键显隐流畅**：点击顶栏 `[🏷️ 结构标签]` 开关可在 16ms 内无刷新切换「显示精致只读胶囊骨架」与「隐藏标签沉浸阅读」两种状态，刷新页面后记住上次状态。
 4. **富交互视图原生运行**：切换至 `[✨ 富交互视图]` 后，手风琴折叠面板、三列洞察卡、对比矩阵、Figure Engine v2 矢量图（亮/暗双主题对比度达标）、LaTeX 公式及 `genesis-wave-sandbox` 阻尼谐波 Canvas 交互沙盒均在看板 Docs 内直接可点可用，控制台零 404 或脚本报错。
 5. **头部自适应双语切换精准联动**：打开含双语内容的 `posts/markdown-genesis-lab/article.md` 时，`docs-reader-header` 自动出现 `[中文 | EN]` 切换胶囊；在纯净 Markdown 视图下点击可干净切换中/英单语正文并隐去另一语种与 `||` 符号，在富交互视图下点击可同步切换全文 `[data-zh]`/`[data-en]` 与内联 SVG `.sr-zh`/`.sr-en` 双语矢量图；切换回单语文档（如 `docs/minimax-music3-mlx.md` 或 `RELEASE.md`）时，该语言切换标签立即自动隐藏。
+6. **视频与歌曲工坊内嵌可用且公开页纯净**：在 Captain Docs 打开 `posts/<slug>/article.md` 时，顶栏可直接唤起 `[🎬 视频工坊]`（自动提取章节口播与分镜预演）与 `[🎵 歌曲工坊]`（连通 `127.0.0.1:18790` 健康探针、离线歌词律动校验及曲目生成试听，转码为轻量 `.m4a` 回填文章）；而直接以外部公开静态模式打开编译后的 `posts/<slug>/index.html`（无 `?authoring=1` / `?studio=1` 参数）时，页面顶栏不再暴露作者端制作台入口，保持 100% 零后端报错的静态展厅体验。
+7. **单篇一键发布与 Release Engineer 闭环贯通**：修改 `posts/<slug>/article.md` 后，Captain Docs 顶栏状态徽章准确显示 `🟡 有改动待同步`；点击 `[🚀 发布至 Knowledge Hub]` 即可触发 `node tools/publish-article.js <slug>` 完成静态 HTML 编译、专题索引同步、`>25MB` 裸音频拦截与 14 项单篇门禁校验，并将产出的结构化文件清单精确交由 `Release Engineer` 完成增量提交与推送，全程不波及工作区其他未发布草稿。
 
 ---
 
-## 4. 如何直接向 `Aye aye Captain` 项目发送协同指令（含一键可复制指令）
+## 4. 如何直接向 `Aye aye Captain` 项目发送协同指令（含一键可复制六合一指令）
 
 经核查交付看板跨项目路由源码（平台侧 `portal_dispatch.py`、`portal_cross_project_notifications.py` 与 `development_board_core/http_post.py`）：
 
 1. **安全隔离机制确认**：交付看板强制执行跨项目会话隔离守卫（`cross_project_session_mutation_forbidden`），当前运行在 `Study Room` 工作区的子工位 Agent 严禁越权直接修改 `/Users/wellszhang/Developer/Aye aye Captain` 源码或私自向其他项目注入写指令；右上角全局铃铛（`cross-project-bell.js`）为只读聚合中心。
 2. **最快发送方式（两种任选）**：
-   - **方式 A（推荐 · 看板 UI 直接派单）**：在交付看板左上角项目切换器切至 **`Aye Aye Captain`** 项目，将下方拟定好的需求指令直接粘贴发送给该项目的项目经理（PM），系统会自动引用本规范说明书（`/Users/wellszhang/Developer/Study-Room/docs/aye-aye-captain-docs-integration-spec.md`）立项排期。
+   - **方式 A（推荐 · 看板 UI 直接派单）**：在交付看板左上角项目切换器切至 **`Aye Aye Captain`** 项目，将下方拟定好的六合一需求指令直接粘贴发送给该项目的项目经理（PM），系统会自动引用本规范说明书（`/Users/wellszhang/Developer/Study-Room/docs/aye-aye-captain-docs-integration-spec.md`）立项排期。
    - **方式 B（本机回环 API 一键投递）**：若需通过终端直接向本机 `Aye Aye Captain` 项目看板（项目 ID：`project-8610e2d940164bd1830b02a73d812651`）投递正式需求指令并唤醒其协调器，可在终端执行：
 
 ```bash
@@ -180,15 +235,17 @@ curl -sS -X POST "http://127.0.0.1:8766/api/portal/commands" \
   -H "X-Board-Project: project-8610e2d940164bd1830b02a73d812651" \
   -d '{
     "command_type": "instruction",
-    "title": "升级看板 Docs 阅读器：支持扩展结构标签防误删保护、胶囊 Tag 显隐、富交互 HTML 视图融合与头部自适应双语切换",
-    "body": "请读取跨项目对接规范 /Users/wellszhang/Developer/Study-Room/docs/aye-aye-captain-docs-integration-spec.md 并遵循平台 I1 项目无关通用底座准则落地四项 Docs 升级：1) 在 selection-editor.js 与 portal_doc_inline_service.py 中为 YAML Frontmatter、::: 容器围栏、::card/::versus 子锚点、章节 #id 眉题与 || 双语符建立防误删写保护及保存前配对校验；2) 在 markdown.js 与 header-meta.js 中将扩展结构符号渲染为只读胶囊 Tag 并提供顶栏一键显示/隐藏开关；3) 在 Docs 阅读器顶栏新增「纯净 Markdown / 富交互 HTML 视图」切换能力，通过通用声明式编译钩子与同源隔离容器融合 Study Room 动态富交互阅读体验（含亮暗主题与目录联动）；4) 在 docs-reader-header 新增自适应双语切换动态标签 [中文 | EN]：自动检测文档是否具备双语特征（strict_i18n: true、标题/正文 || 双语分隔符、data-zh/data-en 或 .sr-zh/.sr-en 属性、同目录 .zh.md/.en.md 配对），支持双语时在头部显示该胶囊并在纯净 Markdown 视图（仅展示所选语种并隐去 ||）与富交互 HTML 视图下零闪烁切换中英文，单语普通文档则完全不显示该标签，保持 100% 纯 Markdown 零回归兼容。"
+    "title": "升级看板 Captain Docs 创作与发布中枢：扩展标签保护、胶囊显隐、富交互视图、自适应双语、视频/歌曲工坊内嵌与单篇一键发布",
+    "body": "请读取跨项目对接规范 /Users/wellszhang/Developer/Study-Room/docs/aye-aye-captain-docs-integration-spec.md 并遵循平台 I1 项目无关通用底座准则落地六项 Captain Docs 升级：1) 在 selection-editor.js 与 portal_doc_inline_service.py 中为 YAML Frontmatter、::: 容器围栏、::card/::versus 子锚点、章节 #id 眉题与 || 双语符建立防误删写保护及保存前配对校验；2) 在 markdown.js 与 header-meta.js 中将扩展结构符号渲染为只读胶囊 Tag 并提供顶栏一键显示/隐藏开关；3) 在 Docs 阅读器顶栏新增「纯净 Markdown / 富交互 HTML 视图」切换能力，通过通用声明式编译钩子与同源隔离容器融合 Study Room 动态富交互阅读体验（含亮暗主题与目录联动）；4) 在 docs-reader-header 新增自适应双语切换动态标签 [中文 | EN]，自动探测双语特征并在双视图下零闪烁切换中英文，单语普通文档自动隐藏；5) 按项目声明式配置在 Captain Docs 创作面板内嵌整合视频生成工坊（Video Studio，携带 ?authoring=1 挂载本机分镜口播与合成面板）与 AI 歌曲制作工坊（受控代理本机 127.0.0.1:18790 MiniMax-Music3 MLX 服务的 /api/health 与 /api/generate，支持离线歌词律动预检及轻量 .m4a 转码回填文章），实现创作生产平面与外部公开静态展厅彻底解耦；6) 在文档头部新增文章单篇发布状态追踪徽章（调用 node tools/publish-article.js <slug> --check 区分未发布/有改动待同步/已发布）与 [🚀 发布至 Knowledge Hub] 一键发布按钮，点击后执行 node tools/publish-article.js <slug> 完成静态 HTML 编译、专题索引同步、25MB 媒体体积红线检查与 14 项门禁校验，并将输出的 JSON 变更文件清单直连移交 Release Engineer 工位增量提交推送，全程保持标准纯 Markdown 文档 100% 零回归兼容。"
   }'
 ```
 
 ### 附：可直接复制给 `Aye aye Captain` 项目经理的对话指令文本
 
-> 请参照 Study Room 已梳理完毕的跨项目对接规格说明书 `/Users/wellszhang/Developer/Study-Room/docs/aye-aye-captain-docs-integration-spec.md`（样板真源可直接使用 `/Users/wellszhang/Developer/Study-Room/posts/markdown-genesis-lab/article.md` 实机联调），在交付看板 Docs 模块落地以下四项通用能力升级，同时确保纯标准单语 Markdown 文档 100% 零感知兼容：
+> 请参照 Study Room 已梳理完毕的跨项目对接规格说明书 `/Users/wellszhang/Developer/Study-Room/docs/aye-aye-captain-docs-integration-spec.md`（样板真源可直接使用 `/Users/wellszhang/Developer/Study-Room/posts/markdown-genesis-lab/article.md` 实机联调），在交付看板 Captain Docs 模块遵循平台 I1 项目无关准则落地以下六项通用能力升级，同时确保纯标准单语 Markdown 文档 100% 零感知兼容：
 > 1. **扩展结构标签防误删保护**：在划选原位编辑（`selection-editor.js`）与后端改写/落盘服务（`portal_doc_inline_service.py`）中识别受保护语法边界（Frontmatter `---...---`、`:::type {...}` / `:::` 围栏、`::card` / `::versus` 子锚点、`#id 01 / Kicker ::` 章节前缀与 `||` 双语分隔符），划选修改时自动排除外层结构标签，并在写回前校验围栏开闭配对，防止误删写坏文件；
 > 2. **胶囊 Tag 样式化与一键显示/隐藏**：在纯 Markdown 阅读模式下将上述裸露指令符号渲染为低噪只读胶囊徽章，并在 Docs 阅读器顶栏提供 `[🏷️ 显示/隐藏结构标签]` 切换开关（无扩展标签的普通 Markdown 文档不显示多余控件）；
 > 3. **富交互动态 HTML 渲染原生融入 Docs**：在 Docs 顶栏提供 `[📖 纯净 Markdown | ✨ 富交互视图]` 切换，按平台项目无关协议对接工作区静态编译输出（如 `node tools/compile-markdown-article.js <article.md>` 或配对 `index.html`），在 Docs 内直接支持手风琴、对比矩阵、Figure Engine v2 亮暗自适应矢量图、公式与交互沙盒阅读，并与宿主亮暗主题及章节目录联动；
-> 4. **文档头部自适应双语切换动态标签**：在 `docs-reader-header` 自动探测当前文档是否支持双语（如 Frontmatter `strict_i18n: true`、标题/正文含 `||` 双语对位符、含 `data-zh`/`data-en` 或内联 SVG `.sr-zh`/`.sr-en`、或同目录存在 `.zh.md` & `.en.md` 配对文件）；若支持双语则在文档头部动态显示 `[中文 | EN]` 切换标签，点击即可在纯净 Markdown 视图（仅展示所选语言分支，自动隐去另一语种与 `||` 分隔符）和富交互 HTML 视图下零闪烁切换中英文；若为不支持双语的单语普通文档，则完全不显示该标签，保持顶栏极简干净。
+> 4. **文档头部自适应双语切换动态标签**：在 `docs-reader-header` 自动探测当前文档是否支持双语（如 Frontmatter `strict_i18n: true`、标题/正文含 `||` 双语对位符、含 `data-zh`/`data-en` 或内联 SVG `.sr-zh`/`.sr-en`、或同目录存在 `.zh.md` & `.en.md` 配对文件）；若支持双语则在文档头部动态显示 `[中文 | EN]` 切换标签，点击即可在纯净 Markdown 视图（仅展示所选语言分支，自动隐去另一语种与 `||` 分隔符）和富交互 HTML 视图下零闪烁切换中英文；若为不支持双语的单语普通文档，则完全不显示该标签；
+> 5. **视频生成（Video Studio）与 AI 歌曲制作（MiniMax-Music3 MLX `18790` 服务）内嵌整合至 Captain Docs 创作面板**：按项目声明式创作配置，在打开可创作文章（如 `posts/<slug>/article.md`）时于 Captain Docs 顶栏挂载 `[🎬 视频工坊]`（以 `?authoring=1` 内嵌浮窗唤起章节自动口播、11 款风格包与 9 类分镜编舞预演）与 `[🎵 歌曲工坊]`（由看板后端安全代理本机 `http://127.0.0.1:18790` 的 `/api/health` 与 `/api/generate` 接口，集成 `generate-minimax-music-mlx.py --lint-only` 歌词律动预检、单飞队列提示及 256kbps `.m4a` 轻量转码回填），使重计算创作环境集中于 Captain Docs，外部公开静态站点保持 100% 零后端依赖的纯净阅读展厅；
+> 6. **文档头部单篇发布状态追踪与 `[🚀 发布至 Knowledge Hub]` 一键触发 Release Engineer 工作流**：针对文章源文档在 `docs-reader-header` 接入 `node tools/publish-article.js <slug> --check` 状态探针（实时展示「未发布 / 有改动待同步 / 已发布同步」徽章）与 `[🚀 发布至 Knowledge Hub]` 按钮；点击后自动调用 `node tools/publish-article.js <slug> [--topic <id>]` 执行静态 `index.html` 编译、`assets/knowledge-data.js` 图谱同步、`>25MB` 裸音频红线拦截及 `validate.js --article <slug>` 14 项门禁核验，校验全绿后将产出的 JSON 变更文件清单直连派发给 `Release Engineer` 工位完成单篇增量 Commit 与远端推送。
