@@ -1,0 +1,264 @@
+{
+  "version": 2,
+  "type": "architecture",
+  "title": {
+    "zh": "Azure Container Apps Sandboxes 零密钥安全边界与硬件隔离架构",
+    "en": "Azure Container Apps Sandboxes Hardware-Isolated & Secretless Boundary Architecture"
+  },
+  "layout": {
+    "direction": "down",
+    "width": 1440,
+    "marginX": 36,
+    "marginY": 24,
+    "nodeWidth": 380,
+    "nodeHeight": 96,
+    "rowGap": 26,
+    "groupGap": 24,
+    "groupPadding": 24,
+    "groupTitleHeight": 46,
+    "showTitle": false,
+    "showCanvas": false
+  },
+  "groups": [
+    {
+      "id": "entry-ingress-plane",
+      "order": 0,
+      "label": {
+        "zh": "1. 外部触发与入站治理层（沙盒边界之外 · Outside Sandbox Boundary）",
+        "en": "1. External Triggers & Ingress Governance (Outside Sandbox Boundary)"
+      },
+      "columns": 3
+    },
+    {
+      "id": "sandbox-group-plane",
+      "order": 1,
+      "label": {
+        "zh": "2. 区域管理边界：Sandbox Group 硬件隔离微虚拟机池（2M+ 日活实例）",
+        "en": "2. Regional Sandbox Group: Hardware-Isolated microVM Fleet (2M+ Daily)"
+      },
+      "columns": 3
+    },
+    {
+      "id": "egress-storage-plane",
+      "order": 2,
+      "label": {
+        "zh": "3. 零密钥出站代理与跨生命周期存储连接层（Secretless Egress & Durable State）",
+        "en": "3. Secretless Egress Proxy, Durable Storage & 1,700+ Connectors"
+      },
+      "columns": 3
+    }
+  ],
+  "nodes": [
+    {
+      "id": "dev-entry",
+      "layer": 0,
+      "order": 0,
+      "group": "entry-ingress-plane",
+      "role": "actor",
+      "label": {
+        "zh": "多模编排与研发入口",
+        "en": "Multi-Surface Creation & SDKs"
+      },
+      "detail": {
+        "zh": "Azure 门户 · ACA CLI · VS Code 远程终端 · Python/.NET SDK · Bicep",
+        "en": "Portal · ACA CLI · VS Code Shell · Python/.NET SDKs · Bicep/Terraform"
+      },
+      "gridRow": 0,
+      "gridColumn": 0
+    },
+    {
+      "id": "ingress-proxy",
+      "layer": 0,
+      "order": 1,
+      "group": "entry-ingress-plane",
+      "role": "control",
+      "label": {
+        "zh": "独立入站代理（Ingress Proxy）",
+        "en": "External Ingress Proxy"
+      },
+      "detail": {
+        "zh": "默认全关；按实例与端口显式开放，支持 Entra ID 认证与流量唤醒",
+        "en": "Off by default; opt-in per port with Entra ID auth & wake-on-traffic"
+      },
+      "gridRow": 0,
+      "gridColumn": 1
+    },
+    {
+      "id": "event-triggers",
+      "layer": 0,
+      "order": 2,
+      "group": "entry-ingress-plane",
+      "role": "interface",
+      "label": {
+        "zh": "托管事件触发器（Managed Triggers）",
+        "en": "Managed Event Triggers"
+      },
+      "detail": {
+        "zh": "监听连接器事件或网络请求，按需拉起休眠沙盒并注入执行命令",
+        "en": "Watch connector events or HTTP calls to wake sandboxes & run commands"
+      },
+      "gridRow": 0,
+      "gridColumn": 2
+    },
+    {
+      "id": "microvm-runtime",
+      "layer": 1,
+      "order": 0,
+      "group": "sandbox-group-plane",
+      "role": "required",
+      "label": {
+        "zh": "独立内核微虚拟机（ACA Sandbox）",
+        "en": "Kernel-Isolated microVM Instance"
+      },
+      "detail": {
+        "zh": "XS (0.25核/0.5GiB) 至 3XL (16核/32GiB)，<1 秒极速启动运行非受信代码",
+        "en": "XS (0.25c/0.5GiB) to 3XL (16c/32GiB); <1s boot for untrusted code"
+      },
+      "gridRow": 0,
+      "gridColumn": 0
+    },
+    {
+      "id": "custom-images",
+      "layer": 1,
+      "order": 1,
+      "group": "sandbox-group-plane",
+      "role": "service",
+      "label": {
+        "zh": "月度官方底座与自定义磁盘镜像",
+        "en": "Managed & Custom Disk Images"
+      },
+      "detail": {
+        "zh": "支持 OCI 容器一键转根文件系统，预置专属依赖与智能体执行内核",
+        "en": "Convert OCI containers into bootable rootfs with preloaded harnesses"
+      },
+      "gridRow": 0,
+      "gridColumn": 1
+    },
+    {
+      "id": "snapshot-engine",
+      "layer": 1,
+      "order": 2,
+      "group": "sandbox-group-plane",
+      "role": "data",
+      "label": {
+        "zh": "内存+磁盘快照（Suspend / Resume）",
+        "en": "Memory + Disk Snapshots"
+      },
+      "detail": {
+        "zh": "暂停即冻结完整运行上下文并释放算力，实现零空闲计费与断点续跑",
+        "en": "Freeze live memory & disk state to release idle compute (scale-to-zero)"
+      },
+      "gridRow": 0,
+      "gridColumn": 2
+    },
+    {
+      "id": "egress-proxy",
+      "layer": 2,
+      "order": 0,
+      "group": "egress-storage-plane",
+      "role": "control",
+      "label": {
+        "zh": "零密钥出站代理（Egress Proxy）",
+        "en": "Secretless Egress Proxy"
+      },
+      "detail": {
+        "zh": "默认全拒+域名白名单；通过 Transform 规则在沙盒外动态注入真实凭据",
+        "en": "Default deny + allowlist; injects X-API-Key/tokens outside the sandbox"
+      },
+      "gridRow": 0,
+      "gridColumn": 0
+    },
+    {
+      "id": "mcp-connectors",
+      "layer": 2,
+      "order": 1,
+      "group": "egress-storage-plane",
+      "role": "interface",
+      "label": {
+        "zh": "1,700+ 托管连接器与 Work IQ",
+        "en": "1,700+ MCP Connectors & Work IQ"
+      },
+      "detail": {
+        "zh": "群组级一次挂载，支持 Entra ID 代理用户授权（OBO）访问日程与业务系统",
+        "en": "Attach once per group; Entra ID On-Behalf-Of access to Teams, GitHub & ERP"
+      },
+      "gridRow": 0,
+      "gridColumn": 1
+    },
+    {
+      "id": "durable-storage",
+      "layer": 2,
+      "order": 2,
+      "group": "egress-storage-plane",
+      "role": "data",
+      "label": {
+        "zh": "跨沙盒持久记忆存储与私有网络",
+        "en": "Durable Agent Memory & VNet"
+      },
+      "detail": {
+        "zh": "托管磁盘、Blob 存储及私有 VNet 直连，沙盒销毁后长程记忆依然留存",
+        "en": "Managed Disk, Blob & VNet attachment outliving ephemeral sandboxes"
+      },
+      "gridRow": 0,
+      "gridColumn": 2
+    }
+  ],
+  "edges": [
+    {
+      "from": "dev-entry",
+      "to": "microvm-runtime",
+      "label": {
+        "zh": "声明式编排",
+        "en": "Provision"
+      }
+    },
+    {
+      "from": "ingress-proxy",
+      "to": "microvm-runtime",
+      "label": {
+        "zh": "受控端口唤醒",
+        "en": "Auth & Wake"
+      }
+    },
+    {
+      "from": "event-triggers",
+      "to": "snapshot-engine",
+      "label": {
+        "zh": "事件恢复执行",
+        "en": "Resume Loop"
+      }
+    },
+    {
+      "from": "custom-images",
+      "to": "microvm-runtime",
+      "label": {
+        "zh": "极速引导",
+        "en": "Fast Boot"
+      }
+    },
+    {
+      "from": "microvm-runtime",
+      "to": "egress-proxy",
+      "label": {
+        "zh": "无凭据出站请求",
+        "en": "Secretless Call"
+      }
+    },
+    {
+      "from": "microvm-runtime",
+      "to": "mcp-connectors",
+      "label": {
+        "zh": "MCP 工具调用",
+        "en": "MCP Tool Call"
+      }
+    },
+    {
+      "from": "snapshot-engine",
+      "to": "durable-storage",
+      "label": {
+        "zh": "状态持久化",
+        "en": "Persist State"
+      }
+    }
+  ]
+}

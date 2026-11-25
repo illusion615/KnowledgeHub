@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-section-density="strict" data-present-i18n="strict" data-cite-links>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Microsoft Ignite 2026 [BRK221]：一次治理，全域复用——用 Microsoft Plugin Registry 规模化扩展 Copilot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <link rel="stylesheet" href="../../assets/article-figure.css" />
+  <link rel="stylesheet" href="./brk221-session.css" />
+  <style>
+    :root {
+      --accent: #d97706;
+      --teal: #0d8f8c;
+    }
+    html.is-presentation-mode .section:has([data-present-step]) > .section-head {
+      display: none;
+    }
+    .hero-copy h1 {
+      font-size: clamp(2.1rem, 5vw, 3.8rem);
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+      max-width: 20ch;
+    }
+    .hero-panel .layer-list { position: relative; margin-top: 18px; }
+    .insight-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .insight-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .insight-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    @media (max-width: 980px) {
+      .insight-grid-3, .insight-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 680px) {
+      .insight-grid-2, .insight-grid-3, .insight-grid-4 { grid-template-columns: 1fr; }
+    }
+    .compare-table-wrap {
+      margin-top: 18px;
+      overflow-x: auto;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 6px 14px;
+      box-shadow: var(--shadow);
+    }
+    .compare-table-wrap .compare-table {
+      width: 100%;
+      min-width: 680px;
+      border-collapse: collapse;
+      margin-top: 0;
+      font-size: 0.9rem;
+    }
+    .compare-table-wrap .compare-table th {
+      text-align: left;
+      padding: 12px 14px;
+      background: rgba(15, 23, 42, 0.04);
+      border-bottom: 2px solid rgba(15, 23, 42, 0.1);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-weight: 700;
+      font-size: 0.8rem;
+      letter-spacing: 0.04em;
+      text-transform: none;
+      color: var(--ink);
+      vertical-align: bottom;
+    }
+    .compare-table-wrap .compare-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+      line-height: 1.65;
+      color: var(--ink);
+      vertical-align: top;
+    }
+    .compare-table-wrap .compare-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+    .compare-table-wrap .compare-table td:first-child {
+      font-weight: 600;
+      min-width: 150px;
+    }
+    .compare-table-wrap .compare-table code,
+    .section p code,
+    .flow-copy code,
+    .insight-card code,
+    .comparison-card code,
+    .quote-block code,
+    .subsection-toggle code,
+    .subsection-content p code,
+    .bib-list code {
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.84em;
+      padding: 2px 6px;
+      border-radius: 5px;
+      background: rgba(15, 23, 42, 0.06);
+      color: var(--ink);
+    }
+    [data-theme="dark"] .compare-table-wrap {
+      background: rgba(22, 29, 38, 0.9);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+    [data-theme="dark"] .compare-table-wrap .compare-table th {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.12);
+      color: var(--ink);
+    }
+    [data-theme="dark"] .compare-table-wrap .compare-table td {
+      border-color: rgba(255, 255, 255, 0.07);
+      color: var(--ink);
+    }
+    [data-theme="dark"] .compare-table-wrap .compare-table code,
+    [data-theme="dark"] .section p code,
+    [data-theme="dark"] .flow-copy code,
+    [data-theme="dark"] .insight-card code,
+    [data-theme="dark"] .comparison-card code,
+    [data-theme="dark"] .quote-block code,
+    [data-theme="dark"] .subsection-toggle code,
+    [data-theme="dark"] .subsection-content p code,
+    [data-theme="dark"] .bib-list code {
+      background: rgba(255, 255, 255, 0.1);
+      color: #e2e8f0;
+    }
+    .timeline-list > .flow-step::before {
+      background: linear-gradient(135deg, var(--teal), #14b8a6);
+    }
+    .insight-callout {
+      border-left: 4px solid var(--teal);
+    }
+    .code-block {
+      margin: 18px 0;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .code-block pre {
+      margin: 0;
+      padding: 20px 22px;
+      background: rgba(16, 31, 43, 0.95);
+      color: #cdd6e0;
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.82rem;
+      line-height: 1.68;
+      overflow-x: auto;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+    }
+    [data-theme="dark"] .code-block pre {
+      background: rgba(0, 0, 0, 0.46);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+    .mermaid-container {
+      margin: 22px 0;
+      padding: 24px 18px;
+      border-radius: var(--radius-md);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      text-align: center;
+      overflow-x: auto;
+    }
+    .generated-diagram {
+      margin-top: 22px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+    .generated-diagram img {
+      display: block;
+      width: 100%;
+      height: auto;
+      object-fit: contain;
+    }
+    html[lang="en"] .diagram-zh,
+    html:not([lang="en"]) .diagram-en { display: none; }
+    .diagram-caption {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+    .diagram-caption a { color: var(--teal); font-weight: 600; white-space: nowrap; }
+    [data-theme="dark"] .generated-diagram {
+      background: rgba(22, 29, 38, 0.9);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+    .sandbox-slot {
+      margin-top: 22px;
+      padding: 22px;
+      border-radius: var(--radius-lg);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+    .sandbox-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .sandbox-title-group h3 { margin: 10px 0 6px; font-size: 1.18rem; }
+    .sandbox-title-group p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+    .sandbox-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .sandbox-stage {
+      border-radius: var(--radius-md);
+      background: rgba(16, 31, 43, 0.04);
+      border: 1px solid var(--line);
+      padding: 14px;
+      overflow: hidden;
+    }
+    [data-theme="dark"] .sandbox-stage {
+      background: rgba(0, 0, 0, 0.28);
+    }
+    .sandbox-canvas {
+      display: block;
+      width: 100%;
+      max-height: 300px;
+      border-radius: 10px;
+    }
+    /* Dual-view switcher bar (Progressive / Linear / Markdown Source) */
+    .genesis-view-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 18px 0 8px;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      font-size: 0.82rem;
+    }
+    .genesis-view-status {
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .genesis-view-buttons {
+      display: inline-flex;
+      gap: 6px;
+    }
+    .genesis-view-btn {
+      appearance: none;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.18s ease, color 0.18s ease;
+    }
+    .genesis-view-btn.is-active {
+      background: linear-gradient(135deg, var(--accent), #ff9340);
+      color: #fff;
+    }
+    .genesis-source-drawer {
+      display: none;
+      margin: 18px 0 28px;
+      padding: 20px;
+      border-radius: var(--radius-lg);
+      background: rgba(16, 31, 43, 0.96);
+      color: #dbe4ee;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      overflow-x: auto;
+    }
+    .genesis-source-drawer.is-open { display: block; }
+    .genesis-source-drawer pre {
+      margin: 0;
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.8rem;
+      line-height: 1.65;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    body.is-linear-reading .subsection-content {
+      max-height: none !important;
+      opacity: 1 !important;
+      overflow: visible !important;
+      padding: 0 24px 24px !important;
+    }
+    .is-presentation-mode .genesis-view-bar,
+    .is-presentation-mode .genesis-source-drawer {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            <span data-zh="Study Room Copilot Extensibility" data-en="Study Room Copilot Extensibility">Study Room Copilot Extensibility</span>
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#unified-extensibility" data-zh="统一扩展底座" data-en="Unified Extensibility">统一扩展底座</a>
+            <a href="#discover-and-use" data-zh="发现与即插即用" data-en="Demo 01">发现与即插即用</a>
+            <a href="#build-with-wiqd" data-zh="工程化构建与定量评测" data-en="Demo 02">工程化构建与定量评测</a>
+            <a href="#govern-in-agent365" data-zh="集中治理与遥测洞察" data-en="Demo 03">集中治理与遥测洞察</a>
+            <a href="#skills-and-ecosystem" data-zh="全员共创与生态合力" data-en="Demos 04 &amp; 05">全员共创与生态合力</a>
+            <a href="#references" data-zh="参考资料" data-en="References">参考资料</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow" data-zh="Microsoft Ignite 2026 · BRK221 Official Breakdown" data-en="Microsoft Ignite 2026 · BRK221 Official Breakdown">Microsoft Ignite 2026 · BRK221 Official Breakdown</span>
+            <h1 data-zh="Microsoft Ignite 2026 [BRK221]：一次治理，全域复用——用 Microsoft Plugin Registry 规模化扩展 Copilot" data-en="Microsoft Ignite 2026 [BRK221]: Govern Once, Use Everywhere—Scaling Copilot with Microsoft Plugin Registry">Microsoft Ignite 2026 [BRK221]：一次治理，全域复用——用 Microsoft Plugin Registry 规模化扩展 Copilot</h1>
+            <p data-zh="在 Microsoft Ignite 2026 专场 BRK221 中，微软扩展性与插件团队产品负责人 Mandy Whaley 与 Rachit Malik 系统拆解了 Microsoft Plugin Registry 如何将工具（Tools）、技能（Skills）与智能体（Agents）统一打包为标准插件包 [1][2]。借助这一单一权威注册表与 Agent 365 管控平面，企业只需审批一次，即可让超 350 款生态伙伴插件与内部自研能力跨 Chat、Cowork、Code、Autopilot、Copilot Studio 及 Word、Excel、PowerPoint 等全入口即插即用 [1][3]。" data-en="In Microsoft Ignite 2026 breakout session BRK221, Mandy Whaley and Rachit Malik demonstrated how the Microsoft Plugin Registry packages Tools, Skills, and Agents into a unified distribution unit [1][2]. Backed by Agent 365 governance inside the Microsoft 365 admin center, organizations approve a plugin once and surface over 350 partner offerings alongside custom enterprise packages across Chat, Cowork, Code, Autopilot, Copilot Studio, and Office apps [1][3].">在 Microsoft Ignite 2026 专场 BRK221 中，微软扩展性与插件团队产品负责人 Mandy Whaley 与 Rachit Malik 系统拆解了 Microsoft Plugin Registry 如何将工具（Tools）、技能（Skills）与智能体（Agents）统一打包为标准插件包 [1][2]。借助这一单一权威注册表与 Agent 365 管控平面，企业只需审批一次，即可让超 350 款生态伙伴插件与内部自研能力跨 Chat、Cowork、Code、Autopilot、Copilot Studio 及 Word、Excel、PowerPoint 等全入口即插即用 [1][3]。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#unified-extensibility" data-zh="阅读核心章节" data-en="Explore Core Chapters">阅读核心章节</a>
+              <a class="button button-secondary" href="#discover-and-use" data-zh="发现与即插即用" data-en="Demo 01">发现与即插即用</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label" data-zh="BRK221 核心架构摘要" data-en="BRK221 Executive Brief">BRK221 核心架构摘要</span>
+            <h2 data-zh="工具与技能做积木，智能体管编排，插件管分发" data-en="Tools &amp; Skills Build, Agents Orchestrate, Plugins Distribute">工具与技能做积木，智能体管编排，插件管分发</h2>
+            <p data-zh="围绕虚构企业 Caldova 客服门户上线决策的五场连贯实机演示，跑通发现、构建、治理、沉淀技能与多端协同全链路 [1][2]。" data-en="Five back-to-back live demos trace Caldova's customer-service portal launch across discovery, CLI packaging, admin approval, inline skill authoring, and Adobe asset production [1][2].">围绕虚构企业 Caldova 客服门户上线决策的五场连贯实机演示，跑通发现、构建、治理、沉淀技能与多端协同全链路 [1][2]。</p>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span><span data-zh="单一注册表收敛 — 统一纳管连接器、远端服务、技能与智能体，开箱预置超 350 款生态插件 [1][3]" data-en="Unified Registry — Consolidates connectors, MCP servers, skills, and agents with 350+ partner plugins ready out of the box [1][3]">单一注册表收敛 — 统一纳管连接器、远端服务、技能与智能体，开箱预置超 350 款生态插件 [1][3]</span></li>
+              <li><span class="layer-number">2</span><span data-zh="工程化构建评测 — Work IQ Developer Tools 在编辑器内闭环打包校验，10 用例定量评测从 0/10 调优至 77.8% [1][4]" data-en="Agentic DevTools — Work IQ Developer Tools validates manifests and lifts 10-case quantitative evals from 0/10 to 77.8% before submission [1][4]">工程化构建评测 — Work IQ Developer Tools 在编辑器内闭环打包校验，10 用例定量评测从 0/10 调优至 77.8% [1][4]</span></li>
+              <li><span class="layer-number">3</span><span data-zh="全域受控复用 — Agent 365 支持按组静默预装、30 天调用洞察与对话流内自建技能（质量分 92%）即时审计 [1][2]" data-en="Governed Reuse — Agent 365 enforces group rollout, 30-day MCP telemetry, and instant visibility over user-shared skills (92% quality score) [1][2]">全域受控复用 — Agent 365 支持按组静默预装、30 天调用洞察与对话流内自建技能（质量分 92%）即时审计 [1][2]</span></li>
+            </ul>
+          </aside>
+        </div>
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label" data-zh="公共目录预置生态插件" data-en="Public Partner Plugins">公共目录预置生态插件</div>
+            <strong>350+</strong>
+            <span data-zh="开箱涵盖 Adobe、Asana、LinkedIn 等主流商业数据源与角色套件 [1][3]" data-en="Out-of-the-box partner plugins spanning Adobe, Asana, LinkedIn, and enterprise SaaS [1][3]">开箱涵盖 Adobe、Asana、LinkedIn 等主流商业数据源与角色套件 [1][3]</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="自研插件迭代评测跃升" data-en="WIQD 10-Case Eval Gain">自研插件迭代评测跃升</div>
+            <strong>0% → 77.8%</strong>
+            <span data-zh="基于 10 项核心上线门禁用例持续调优包结构，达标后一键提交租户目录审批 [1][4]" data-en="Quantitative 10-case plugin benchmark improved from 0/10 baseline to 77.8% pre-submission [1][4]">基于 10 项核心上线门禁用例持续调优包结构，达标后一键提交租户目录审批 [1][4]</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="对话流沉淀技能质量分" data-en="Inline Skill Quality Score">对话流沉淀技能质量分</div>
+            <strong>92%</strong>
+            <span data-zh="业务用户在 Cowork 内保存可复用汇报流并自动通过触发与指令质量体检 [1][2]" data-en="Reusable status skill authored directly in Cowork and graded before team sharing [1][2]">业务用户在 Cowork 内保存可复用汇报流并自动通过触发与指令质量体检 [1][2]</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="genesis-view-bar load-in" role="region" aria-label="Genesis 视图模式切换">
+        <span class="genesis-view-status" data-zh="Genesis 纯静态编译产物 · 零后端依赖 · 支持渐进披露与源稿对照" data-en="Genesis Static Compiled Artifact · Zero Backend · Progressive &amp; Source View">Genesis 纯静态编译产物 · 零后端依赖 · 支持渐进披露与源稿对照</span>
+        <div class="genesis-view-buttons">
+          <button type="button" class="genesis-view-btn is-active" data-genesis-mode="progressive" data-zh="渐进披露视图" data-en="Progressive View">渐进披露视图</button>
+          <button type="button" class="genesis-view-btn" data-genesis-mode="linear" data-zh="线性展开视图" data-en="Linear View">线性展开视图</button>
+          <button type="button" class="genesis-view-btn" data-genesis-mode="source" data-zh="Markdown 源稿对照" data-en="Markdown Source">Markdown 源稿对照</button>
+        </div>
+      </div>
+      <section class="genesis-source-drawer" id="genesis-source-drawer" aria-label="Markdown 源稿">
+        <pre><code>---
+title: Microsoft Ignite 2026 [BRK221]：一次治理，全域复用——用 Microsoft Plugin Registry 规模化扩展 Copilot || Microsoft Ignite 2026 [BRK221]: Govern Once, Use Everywhere—Scaling Copilot with Microsoft Plugin Registry
+eyebrow: Microsoft Ignite 2026 · BRK221 Official Breakdown || Microsoft Ignite 2026 · BRK221 Official Breakdown
+brand: Study Room Copilot Extensibility || Study Room Copilot Extensibility
+date: 2026-11-25
+strict_i18n: true
+strict_density: true
+lead: 在 Microsoft Ignite 2026 专场 BRK221 中，微软扩展性与插件团队产品负责人 Mandy Whaley 与 Rachit Malik 系统拆解了 Microsoft Plugin Registry 如何将工具（Tools）、技能（Skills）与智能体（Agents）统一打包为标准插件包 [1][2]。借助这一单一权威注册表与 Agent 365 管控平面，企业只需审批一次，即可让超 350 款生态伙伴插件与内部自研能力跨 Chat、Cowork、Code、Autopilot、Copilot Studio 及 Word、Excel、PowerPoint 等全入口即插即用 [1][3]。 || In Microsoft Ignite 2026 breakout session BRK221, Mandy Whaley and Rachit Malik demonstrated how the Microsoft Plugin Registry packages Tools, Skills, and Agents into a unified distribution unit [1][2]. Backed by Agent 365 governance inside the Microsoft 365 admin center, organizations approve a plugin once and surface over 350 partner offerings alongside custom enterprise packages across Chat, Cowork, Code, Autopilot, Copilot Studio, and Office apps [1][3].
+panel_label: BRK221 核心架构摘要 || BRK221 Executive Brief
+panel_title: 工具与技能做积木，智能体管编排，插件管分发 || Tools &amp; Skills Build, Agents Orchestrate, Plugins Distribute
+panel_desc: 围绕虚构企业 Caldova 客服门户上线决策的五场连贯实机演示，跑通发现、构建、治理、沉淀技能与多端协同全链路 [1][2]。 || Five back-to-back live demos trace Caldova's customer-service portal launch across discovery, CLI packaging, admin approval, inline skill authoring, and Adobe asset production [1][2].
+panel:
+  - 单一注册表收敛 — 统一纳管连接器、远端服务、技能与智能体，开箱预置超 350 款生态插件 [1][3] || Unified Registry — Consolidates connectors, MCP servers, skills, and agents with 350+ partner plugins ready out of the box [1][3]
+  - 工程化构建评测 — Work IQ Developer Tools 在编辑器内闭环打包校验，10 用例定量评测从 0/10 调优至 77.8% [1][4] || Agentic DevTools — Work IQ Developer Tools validates manifests and lifts 10-case quantitative evals from 0/10 to 77.8% before submission [1][4]
+  - 全域受控复用 — Agent 365 支持按组静默预装、30 天调用洞察与对话流内自建技能（质量分 92%）即时审计 [1][2] || Governed Reuse — Agent 365 enforces group rollout, 30-day MCP telemetry, and instant visibility over user-shared skills (92% quality score) [1][2]
+metrics:
+  - 公共目录预置生态插件 || Public Partner Plugins | 350+ | 开箱涵盖 Adobe、Asana、LinkedIn 等主流商业数据源与角色套件 [1][3] || Out-of-the-box partner plugins spanning Adobe, Asana, LinkedIn, and enterprise SaaS [1][3]
+  - 自研插件迭代评测跃升 || WIQD 10-Case Eval Gain | 0% → 77.8% | 基于 10 项核心上线门禁用例持续调优包结构，达标后一键提交租户目录审批 [1][4] || Quantitative 10-case plugin benchmark improved from 0/10 baseline to 77.8% pre-submission [1][4]
+  - 对话流沉淀技能质量分 || Inline Skill Quality Score | 92% | 业务用户在 Cowork 内保存可复用汇报流并自动通过触发与指令质量体检 [1][2] || Reusable status skill authored directly in Cowork and graded before team sharing [1][2]
+style:
+  accent: &quot;#d97706&quot;
+  teal: &quot;#0d8f8c&quot;
+---
+
+## #unified-extensibility 01 / Unified Registry Architecture :: 统一扩展底座：为什么需要把工具、技能与智能体收拢进单一插件注册表 || Unified Extensibility: Packaging Tools, Skills, and Agents in One Registry
+
+企业扩展 Microsoft Copilot 时常遭遇两难：业务部门急需跨外部记录系统拉取实时门禁、工单与客户账本，而安全管理员却要面对散落在聊天、代码工具、自动化流与办公套件里的多套连接器目录、重复审批单与不可见的“影子技能” [1][5]。在 BRK221 开篇，Mandy Whaley 给出了微软收敛扩展碎片的顶层解法——将所有扩展原语按职责分层，统一封装为可安装的**插件（Plugin）**并归口至 **Microsoft Plugin Registry** [1][2]。 || Extending Microsoft Copilot across an enterprise often creates a tug-of-war: business teams need live gate statuses, tickets, and CRM records from external systems, while IT admins face fragmented catalogs, duplicate reviews, and unmonitored shadow skills across chat, coding tools, and Office apps [1][5]. Opening BRK221, Mandy Whaley presented Microsoft's architectural answer—separating extensibility primitives by responsibility and bundling them into installable **Plugins** governed through the **Microsoft Plugin Registry** [1][2].
+
+在这套四层分工模型中，**工具（Tools）**解决“连什么（What）”，涵盖连接器与模型上下文协议（MCP）服务端点，具备明确定义的输入、输出与权限边界以读写业务记录系统；**技能（Skills）**解决“怎么做（How）”，用自然语言指令、参考资源与标准作业流教会模型按企业既定格式产出高管周报或执行核查；**智能体（Agents）**围绕业务目标自主推理并编排工具与技能；最外层的**插件（Plugins）**则充当标准分发包，实现“一次构建打包，在员工工作的所有界面按同一套 Agent 365 策略受控运行” [1][2]。 || Within this four-part taxonomy, **Tools** define the *what*—callable MCP servers and connectors with explicit inputs, outputs, and permissions reaching systems of record; **Skills** encode the *how*—natural-language instructions, templates, and repeatable workflows guiding task execution; **Agents** reason toward goals by orchestrating skills and tools; and **Plugins** act as the installable distribution unit so teams build once, govern once in Agent 365, and run everywhere [1][2].
+
+:::figure { src: &quot;./media/plugin-registry-architecture.figure.json&quot;, title: &quot;Microsoft Plugin Registry 三层扩展、治理与全域分发架构 || Microsoft Plugin Registry Three-Tier Packaging, Governance &amp; Surface Architecture&quot; }
+图 1：BRK221 核心架构——顶层由 Work IQ Developer Tools 将远端工具、自然语言技能与智能体打包校验；中层依托统一插件注册表（含 350+ 公共生态包与自研包）及 Agent 365 实施准入审批、部门组预装与 30 天遥测；底层无缝投射至 Copilot Home、Code、Autopilot、Copilot Studio 与 Office 全家桶 [1][2][3]。 || Figure 1: Three-tier BRK221 architecture—packaging MCP tools, skills, and agents via Work IQ Developer Tools on top; enforcing central approval, group pre-install, and 30-day telemetry in the Registry and Agent 365 in the middle; and surfacing governed capabilities across Copilot Home, Code, Autopilot, Studio, and Office apps underneath [1][2][3].
+:::
+
+整场 45 分钟议题以虚构企业 **Caldova** 的真实工程困境为主线：团队计划下周上线全新客服门户（Customer-Service Portal），必须在“全量发布（Go）”、“缩减为核心范围发布（Narrow）”与“暂缓发布（Hold）”之间拍板 [1][2]。下方导览台集成了 BRK221 官方点播视频流、原版 31 页 PPTX 课件直链与五段实机演示的逐分钟时间轴，点击上方章节药丸即可切换查阅对应进度与实测要点 [1][2]： || Across the 45-minute session, Mandy Whaley and Rachit Malik anchor every concept in a realistic release-room dilemma at fictional enterprise **Caldova**: deciding whether next week's customer-service portal launch should **Go big**, **Narrow scope**, or **Hold** [1][2]. The interactive theater below pairs the official Medius on-demand video stream and 31-slide PPTX deck with timestamped walkthroughs of all five live demos [1][2]:
+
+:::sandbox { id: &quot;brk221-video-theater&quot;, canvas: false, script: &quot;./brk221-session.js&quot;, style: &quot;./brk221-session.css&quot;, title: &quot;BRK221 官方点播视频与五场实机演示时间轴导览 || BRK221 Official On-Demand Stream &amp; Five-Demo Timestamp Navigator&quot;, desc: &quot;切换架构导论与 Demo 1–5 关键时间节点，支持在页面内直接加载微软 Medius 点播流或下载官方原版 PPTX 讲义。 || Switch across the architecture intro and Demos 1–5, load the embedded Microsoft Medius player on demand, or download the official PPTX slide deck.&quot; }
+纯静态点播与议题导览沙盒：内置官方高清封面图、五段演示分章摘要及官方视频与课件直链。 || Pure static session theater featuring the official BRK221 HD cover, five timestamped chapter digests, and direct video/slide links.
+:::
+
+## #discover-and-use 02 / Demo 01: Discover &amp; In-Flow Execution :: 发现与即插即用：结合组织上下文、远端记录系统与高管报表技能 || Demo 01: Discovery &amp; In-Flow Execution—Bridging Work IQ, Live MCP Gates, and Excel Skills
+
+当发布负责人 Rachit 在 Teams 频道追问“下周能否上线客服门户？还缺什么？最小安全发布范围是什么？”时，仅靠默认挂载的组织内部工作上下文（Work IQ）只能检索到同事间的聊天讨论串，而真正的上线门禁审批记录存放在业务部门独立的外部记录系统之后 [1]。进入 Copilot 左侧导航栏全新的 **Plugins** 页面后，用户既能浏览按 Chat 与 Cowork 分类的 **350 余款**公共合作伙伴插件，也能直接看到本组织开发并获批的内部插件——且原先散落的智能体如今也作为插件的一种统一归入“已添加（Added）”视图集中管理 [1][2]。 || When release owner Rachit asks whether the customer-service portal can launch next week and what the smallest safe scope looks like, default Work IQ grounding locates the relevant Teams thread but cannot see authoritative gate records stored in an external engineering system [1]. Opening the unified **Plugins** tab in Copilot reveals **350+ public partner plugins** alongside organization-built packages—consolidating agents, skills, and connectors under one roof [1][2].
+
+启用自研的 **Caldova Launch Readiness** 插件并重新发起同一提问后，返回结果发生了质变 [1]：该插件打包了一个连接内部门禁数据库的远端服务与两项自然语言技能。对话流内不再只有纯文本总结，而是直接渲染出由 **MCP App** 驱动的富交互门禁看板微件，清晰标出拟定发布日（2026 年 11 月 19 日）、当前综合判定状态 **Narrow（核心范围待批，尚未获准全量上线）** 以及 **4 / 6 道门禁已通关**——并精准点名正等待同事 Priya 完成共享数据就绪流（Shared Data Readiness）[1][2]。 || Toggling on the custom **Caldova Launch Readiness** plugin—which bundles an internal MCP server with two formatting skills—transforms the response [1]. Instead of plain text, Copilot renders an interactive **MCP App** readiness widget displaying the proposed November 19, 2026 launch date, a **Narrow** release status, and **4 of 6** cleared launch gates while pinpointing the pending shared-data workstream owned by Priya [1][2].
+
+&lt;div class=&quot;brk221-media-grid&quot;&gt;
+  &lt;article class=&quot;brk221-media-card&quot; data-present-surface=&quot;unframed&quot;&gt;
+    &lt;div class=&quot;brk221-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/brk221-copilot-plugins-catalog.png&quot; alt=&quot;BRK221 Slide 13 official capture of the unified Plugins page in Microsoft Copilot showing Chat and Cowork tabs, Added plugins, and Discover catalog&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;brk221-media-body&quot;&gt;
+      &lt;span class=&quot;brk221-media-badge&quot; data-zh=&quot;BRK221 官方课件原图 · Slide 13&quot; data-en=&quot;BRK221 Official Slide · Slide 13&quot;&gt;BRK221 官方课件原图 · Slide 13&lt;/span&gt;
+      &lt;h4 data-zh=&quot;Copilot 统一 Plugins 发现与管理页&quot; data-en=&quot;Unified Plugins Discovery Hub in Microsoft Copilot&quot;&gt;Copilot 统一 Plugins 发现与管理页&lt;/h4&gt;
+      &lt;p data-zh=&quot;在同一入口按 Chat 与 Cowork 筛选已添加能力（含智能体、技能与连接器），并浏览组织共享与 350+ 公共目录插件 [1][2]。&quot; data-en=&quot;Filter added agents, skills, and connectors across Chat and Cowork while browsing org-approved and 350+ partner catalog plugins [1][2].&quot;&gt;在同一入口按 Chat 与 Cowork 筛选已添加能力（含智能体、技能与连接器），并浏览组织共享与 350+ 公共目录插件 [1][2]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+  &lt;article class=&quot;brk221-media-card&quot; data-present-surface=&quot;unframed&quot;&gt;
+    &lt;div class=&quot;brk221-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/brk221-caldova-readiness-widget.png&quot; alt=&quot;BRK221 Slide 2 official capture of the Caldova Launch Readiness MCP App widget inside Copilot Cowork showing 4 of 6 launch gates cleared&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;brk221-media-body&quot;&gt;
+      &lt;span class=&quot;brk221-media-badge&quot; data-zh=&quot;BRK221 官方课件原图 · MCP App 微件&quot; data-en=&quot;BRK221 Official Slide · MCP App Widget&quot;&gt;BRK221 官方课件原图 · MCP App 微件&lt;/span&gt;
+      &lt;h4 data-zh=&quot;Caldova 上线就绪度交互微件（4/6 门禁通过）&quot; data-en=&quot;Caldova Launch Readiness Interactive Widget (4 of 6 Gates)&quot;&gt;Caldova 上线就绪度交互微件（4/6 门禁通过）&lt;/h4&gt;
+      &lt;p data-zh=&quot;远端工具实时拉取核心门禁事实，内置技能自动按下一步行动清单格式化输出，支持对话内双向刷新状态 [1][2]。&quot; data-en=&quot;Remote MCP tools pull live gate facts while packaged skills structure next steps and enable live in-chat status refresh [1][2].&quot;&gt;远端工具实时拉取核心门禁事实，内置技能自动按下一步行动清单格式化输出，支持对话内双向刷新状态 [1][2]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+&lt;/div&gt;
+
+更关键的是，插件不仅能读取外部系统，还能在对话流内双向刷新并跨宿主延续工作流 [1]：当 Priya 在后台更新进度后，Rachit 直接在 Copilot 内点击刷新，门禁状态当场跃升至 **5 / 6**；紧接着调用插件内封装的第二项“高管汇报技能”，一句话生成包含高管摘要（Executive Summary）、门禁总数、上次变更对比与后续动作的标准 Excel 工作簿，并在打开桌面端 Excel 后通过 `Choose Plugins` 继续挂载同一款插件深加工数据，全程无需切换工具或手工对齐表格格式 [1]。 || Crucially, plugins support live bidirectional refresh and cross-app continuity [1]: once Priya updates her gate, refreshing directly inside Copilot advances readiness to **5 of 6** cleared gates. Invoking the plugin's second packaged skill immediately generates an executive-formatted Excel workbook—complete with summary deltas, gate totals, and next steps—and the exact same governed plugin remains selectable inside Microsoft Excel via `Choose Plugins` [1].
+
+## #build-with-wiqd 03 / Demo 02: Work IQ Developer Tools :: 工程化构建与定量评测：用 WIQD 跑通从意图到提审的五步生命周期 || Demo 02: Agentic Packaging &amp; Quantitative Evals with Work IQ Developer Tools
+
+如果公共目录中的 350 余款合作伙伴插件尚未覆盖企业内部专有系统（例如 Caldova 自建的上线门禁服务），研发团队该如何低摩擦地构建并验证自研插件？BRK221 重点展示了全新发布的命令行与编码智能体技能套件 **Work IQ Developer Tools**（简称 **WIQD**，访问入口 `https://aka.ms/wiqd`），它能够在 GitHub Copilot 或任意主流编码智能体中以对话驱动的方式跑通完整插件工程闭环 [1][2][4]。 || When an internal system of record like Caldova's readiness service has no off-the-shelf connector among the 350+ public offerings, developers turn to **Work IQ Developer Tools** (**WIQD**, available at `https://aka.ms/wiqd`)—a CLI toolset plus coding-agent skills that drives the end-to-end plugin lifecycle directly inside GitHub Copilot or any coding agent [1][2][4].
+
+:::flow { title: &quot;Work IQ Developer Tools（WIQD）从自然语言意图到租户目录提审的五步流水线 || Five-Stage WIQD Plugin Lifecycle from Intent Prompt to Tenant Catalog Submission&quot; }
+1. **意图声明与资产拉取（Build） || Intent Prompt &amp; Context Pull (Build)** — 开发者在 GitHub Copilot 中输入起始提示词（如绑定远端端点 `caldova-corp.azurewebsites.net/readiness/mcp`），并通过 Work IQ 直接从个人 OneDrive 拉取公司规定的品牌图标与视觉规范，免去手动下载拷贝即可自动生成包含技能文件与 `manifest.json` 的标准插件包 [1][2]。 || Start from a natural-language prompt referencing `caldova-corp.azurewebsites.net/readiness/mcp` while pulling required brand icons straight from OneDrive via Work IQ to scaffold skills and `manifest.json` [1][2].
+2. **服务端同源结构校验（Validate） || Server-Parity Manifest Validation (Validate)** — 在本地开发态直接运行与云端注册表完全一致的结构与字段合规检查，提前拦截 `manifest.json` 权限声明缺失或包目录格式错误，确保上传零返工 [1][2]。 || Execute the exact structural and schema checks enforced server-side during local authoring so `manifest.json` fields and package layouts pass cleanly [1][2].
+3. **预览发布与小范围共测（Preview &amp; Share） || Instant Registry Preview &amp; Peer Feedback (Preview &amp; Share)** — 构建产物一键生成预览链接并挂载至个人 Copilot 插件页，开发者可在正式提审前先行定向共享给 Mandy 等核心同事收集定性体验反馈 [1][2]。 || Publish a preview build to test live inside Copilot's Plugins page and share selectively with teammates for early qualitative feedback [1][2].
+4. **十用例定量基准评测（Evaluate） || Quantitative 10-Case Benchmarking (Evaluate)** — 调用 Ignite 期间全新上线的内置评测引擎，针对“发现可用发布项”、“对比全量与仅核心范围就绪度”等 **10 个关键业务测试集**自动发送提示词、比对实际响应与期望输出并输出聚合评分报告；演示中团队从首轮尴尬的 **0 / 10（0%）** 基线出发，经智能体辅助多轮更新插件结构与评测集后将综合得分拉升至 **77.8%** [1][4]。 || Run the newly released Ignite evaluation engine across **10 critical test cases** (comparing actual vs. expected outputs across tool and skill metrics), iterating from an initial **0/10 (0%)** baseline up to **77.8%** [1][4].
+5. **双轨目录一键提审（Publish） || Org &amp; Public Catalog Submission (Publish)** — 定量评分达标后，直接在工具链内向本租户组织目录发起上架审批请求（实时落入 Agent 365 的 `Requests` 待批队列）；若属于独立软件开发商（ISV）对外分发，还可追加执行商店合规检查（Store Checks）并推送至合作伙伴中心（Partner Center）[1][2]。 || Submit validated packages directly into the tenant's organizational catalog queue in Agent 365, or run Store Checks and publish cross-tenant via Partner Center [1][2].
+:::
+
+:::figure { src: &quot;./media/brk221-lifecycle-metrics.figure.json&quot;, title: &quot;BRK221 实机演练核心量化轨迹：WIQD 评测提分、技能体检与门禁通关率 || BRK221 Live Walkthrough Metrics: WIQD Eval Progression, Skill Score &amp; Launch Gates&quot; }
+图 2：汇总 BRK221 全场五次实机演示披露的关键百分比与门禁比值——涵盖 WIQD 10 用例评测从首轮 0/10（0%）迭代跃升至 77.8%、Cowork 内沉淀可复用技能获评 92.0% 质量分，以及 Caldova 门户上线门禁从 4/6（66.7%）实时刷新至 5/6（83.3%）直至终审前 6/6（100%）全绿通关 [1][2]。 || Figure 2: Quantitative progression captured live in BRK221—spanning WIQD's 10-case plugin eval climb from 0% to 77.8%, the 92.0% quality score on a Cowork-authored skill, and live launch-gate clearance advancing from 4/6 (66.7%) to 5/6 (83.3%) and 6/6 (100%) [1][2].
+:::
+
+## #govern-in-agent365 04 / Demo 03: Agent 365 Governance :: 集中治理与遥测洞察：在 Microsoft 365 管理中心管住准入、受众与异常 || Demo 03: Enterprise Governance in Agent 365—Approvals, Group Rollout, and 30-Day Telemetry
+
+“一次治理，全域复用”的核心控制面落在 **Microsoft 365 管理中心（MAC）** 的 `Agents -&gt; Tools` 注册表视图中，底层复用管理员早已熟悉的 **Agent 365** 治理框架并平滑延伸至插件、技能、远端服务与连接器四类资产 [1][2][5]。在 BRK221 官方课件实拍界面中，租户管理员不仅能在同一张清单里过滤审阅 **419 款插件**与 **410 个 MCP 服务**，还能切入 `Requests (preview)` 标签页逐项核查开发者刚刚提交的自研插件申请 [1][2]。 || The operational backbone of “Govern Once, Use Everywhere” lives under `Agents -&gt; Tools` in the **Microsoft 365 admin center**, extending familiar **Agent 365** controls across plugins, skills, MCP servers, and connectors [1][2][5]. As captured in the official BRK221 admin slides, tenant admins filter across **419 plugins** and **410 MCP servers** in a single inventory while reviewing developer submissions in the `Requests (preview)` queue [1][2].
+
+管理员点开待审的 Caldova 插件条目时，并非盲目点“同意”，而是清晰透视发布者身份、版本号、打包技能以及具体暴露的远端工具操作（如列出发布评审 `listing launch reviews`、草拟状态更新 `drafting launch updates`、审批上线演示 `approving launch demos`）[1][2]。点击 **Approve** 后，该插件即刻对租户内受权员工生效；对于业务急需的高价值套件（如内置 Dynamics 365 服务与销售技能集的 **Sales** 插件），管理员更可在右上角点击 **Install**，精准勾选“仅限销售部门组（Specific users and groups -&gt; Sales）”，几秒钟内完成静默预装，让一线销售打开 Copilot 或 Office 组件即可零配置直接使用 [1][2]。 || Before clicking **Approve**, admins inspect the publisher, version, packaged skills, and exact remote MCP operations (such as listing launch reviews, drafting updates, and approving demos) [1][2]. Beyond reactive approvals, admins proactively accelerate adoption by selecting a catalog offering—like the **Sales** plugin bundling a Dynamics 365 MCP server and sales skills—and clicking **Install** to pre-deploy it directly to the **Sales** Entra group, while retaining one-click **Block** authority if policies change [1][2].
+
+&lt;div class=&quot;brk221-media-grid&quot;&gt;
+  &lt;article class=&quot;brk221-media-card&quot; data-present-surface=&quot;unframed&quot;&gt;
+    &lt;div class=&quot;brk221-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/brk221-a365-tools-registry.png&quot; alt=&quot;BRK221 Slide 19 official screenshot of Microsoft 365 admin center Agents Tools Registry displaying 419 Plugins, 6 Skills, and 410 MCP servers&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;brk221-media-body&quot;&gt;
+      &lt;span class=&quot;brk221-media-badge&quot; data-zh=&quot;BRK221 官方课件原图 · Slide 19&quot; data-en=&quot;BRK221 Official Slide · Slide 19&quot;&gt;BRK221 官方课件原图 · Slide 19&lt;/span&gt;
+      &lt;h4 data-zh=&quot;M365 管理中心 Tools 统一注册表与待批队列&quot; data-en=&quot;Unified Tools Registry &amp; Requests Queue in M365 Admin Center&quot;&gt;M365 管理中心 Tools 统一注册表与待批队列&lt;/h4&gt;
+      &lt;p data-zh=&quot;在同一面板分类透视 Plugins（419）、Skills（6）、MCP servers（410）与 Connectors，集中处理组织内上架审批请求 [1][2]。&quot; data-en=&quot;Central inventory surfacing Plugins (419), Skills (6), MCP servers (410), and Connectors alongside pending org approval requests [1][2].&quot;&gt;在同一面板分类透视 Plugins（419）、Skills（6）、MCP servers（410）与 Connectors，集中处理组织内上架审批请求 [1][2]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+  &lt;article class=&quot;brk221-media-card&quot; data-present-surface=&quot;unframed&quot;&gt;
+    &lt;div class=&quot;brk221-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/brk221-mcp-usage-insights.jpg&quot; alt=&quot;BRK221 Slide 21 official screenshot of MCP Server 30-day usage telemetry in Microsoft 365 admin center showing 1,782 total calls, 4 agents, and 32 exceptions&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;brk221-media-body&quot;&gt;
+      &lt;span class=&quot;brk221-media-badge&quot; data-zh=&quot;BRK221 官方课件原图 · Slide 21&quot; data-en=&quot;BRK221 Official Slide · Slide 21&quot;&gt;BRK221 官方课件原图 · Slide 21&lt;/span&gt;
+      &lt;h4 data-zh=&quot;MCP 服务端点 30 天调用曲线与异常审计&quot; data-en=&quot;30-Day MCP Server Call Telemetry &amp; Exception Breakdown&quot;&gt;MCP 服务端点 30 天调用曲线与异常审计&lt;/h4&gt;
+      &lt;p data-zh=&quot;细粒度追踪单个 MCP 服务近 30 天总调用量（如示例中的 1,782 次调用、4 个消费智能体与 32 次异常），支持一键导出或封禁高危端点 [1][2]。&quot; data-en=&quot;Tracks 30-day call volume (1,782 total calls, 4 consuming agents, 32 exceptions in slide capture) with CSV export and instant Block action [1][2].&quot;&gt;细粒度追踪单个 MCP 服务近 30 天总调用量（如示例中的 1,782 次调用、4 个消费智能体与 32 次异常），支持一键导出或封禁高危端点 [1][2]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+&lt;/div&gt;
+
+上线后的持续保护与优化同样依托真实遥测数据闭环 [1][2]：在工具详情抽屉的 `Activity` 标签页下，系统自动绘制过去 **30 天**的每日调用趋势折线，并按消费智能体逐行拆解调用次数、异常报错数（Exceptions）与最后活跃时间（如 Slide 21 实拍中单服务端点累计 `1,782` 次调用、关联 `4` 个智能体、捕获 `32` 次异常），帮助运维团队及时定位连接器故障或异常激增并在必要时一键 **Block** 熔断 [1][2]。 || Post-deployment protection relies on granular observability [1][2]: the `Activity` tab charts **30-day** daily call spikes and breaks down consumption and exception counts per agent (showing `1,782` total calls across `4` agents and `32` exceptions in Slide 21), letting admins diagnose failing endpoints or click **Block** immediately [1][2].
+
+## #skills-and-ecosystem 05 / Demos 04 &amp; 05: Inline Skills &amp; Partner Plugins :: 全员共创与生态合力：对话内沉淀高分技能，调用 Adobe 插件冲刺上线 || Demos 04 &amp; 05: User-Authored Skills in Cowork and Last-Mile Launch with the Adobe Plugin
+
+除了研发团队用命令行构建重型业务插件，一线业务人员同样能在日常工作流中反哺组织资产，且全过程不脱离管理员视野 [1]。在第四场演示中，门禁看板已刷新至 **6 / 6 全绿通关**，Rachit 在向高管 Mandy 与 Simon 发出最终上线审批邮件后，顺手将这套高频重复的“核查门禁 + 起草高层简报”动作在 Cowork 对话流内直接保存为名为 `Launch Readiness` 的可复用技能 [1]。系统当场生成涵盖适用场景、禁用边界、状态刷新方法与标准步骤的结构化说明，并自动出具一份 **92%** 的质量评估报告（检验触发时机与指令清晰度）[1]。 || Extensibility is not limited to pro-code developers—every Copilot Cowork user can capture repeatable workflows as shared skills without creating ungoverned shadow IT [1]. In Demo 4, once all **6 of 6** gates clear and Rachit emails leadership for final sign-off, he saves the status-reporting pattern inline as a `Launch Readiness` skill. Copilot generates structured usage boundaries, refresh steps, and an automatic **92%** quality report verifying trigger accuracy before sharing [1].
+
+当 Rachit 将这项技能一键分享给同事 Mandy 时，底层实际将其封装为“仅含单项技能的轻量插件包”写入统一注册表 [1]：一方面，管理员切回 Agent 365 管理台即刻就能查看到该包的新建与更新时间及受权用户名单（Mandy 实时在列）；另一方面，Mandy 在 Copilot Home、Code、Autopilot 乃至桌面 Office 应用的插件目录中都能立即安装复用 [1]。演示中还出现了一处颇具真实感的现场插曲——当 Rachit 试图让 Copilot 读取 Mandy 刚发来的审批回复并回写外部门禁库时，演示环境连接器偶发断连未响应，恰好从侧面印证了前一节 Agent 365 异常监控看板在真实生产运维中的必要性 [1]。 || Sharing that skill with Mandy packages it under the hood as a single-skill plugin inside the central registry—giving admins immediate user-level visibility in Agent 365 while making the skill installable across Home, Code, Autopilot, and Office [1]. Even a candid live-demo hiccup—when the external connector briefly timed out while writing Mandy's approval reply back to the database—underscored why Agent 365's exception telemetry matters in real enterprise rollouts [1].
+
+| 角色与阶段 || Persona &amp; Stage | 核心工具与入口 || Primary Surface &amp; Tooling | 输入资产与治理控制 || Inputs &amp; Governance Guardrails | 跨端交付产物 || Cross-Surface Outputs |
+|------|------|------|------|
+| 业务负责人：发现与评估（Demo 1） || Launch Owner: Discover &amp; Assess | Copilot Home / Cowork + Microsoft Excel | 启用已批自研插件，融合 Work IQ 聊天脉络与远端门禁库 [1] || Toggle approved plugin blending Work IQ context with remote MCP data [1] | 交互式 MCP App 门禁卡片（4/6→5/6）与高管格式 Excel 报表 [1] || Interactive MCP App gate widget (4/6→5/6) &amp; formatted Excel report [1] |
+| 研发工程师：构建与评测（Demo 2） || Pro Developer: Build &amp; Evaluate | GitHub Copilot + Work IQ Developer Tools (`WIQD`) | 远端 MCP 地址 + OneDrive 品牌图标；本地校验 `manifest.json` 并跑 10 项评测（77.8%）[1][4] || Remote MCP URL + OneDrive icons; local manifest check &amp; 10-case evals (77.8%) [1][4] | 标准插件包预览链接与推送至 Agent 365 的上架审批单 [1] || Validated plugin preview &amp; formal org catalog request in A365 [1] |
+| 租户管理员：审批与预装（Demo 3） || Tenant Admin: Approve &amp; Govern | Microsoft 365 管理中心（`Agents -&gt; Tools` / Agent 365） | 审查暴露工具列表与版本；按 Entra 部门组静默预装并盯防 30 天异常曲线 [1][5] || Audit exposed MCP tools; pre-install to Entra groups &amp; track 30-day exceptions [1][5] | 全租户受控可见目录、销售组开箱即用插件及一键封禁熔断能力 [1] || Governed catalog, pre-installed Sales group tools &amp; 1-click Block [1] |
+| 业务共创与生态冲刺（Demo 4 &amp; 5） || Co-Author &amp; Partner Launch | Copilot Cowork + Microsoft Word + **Adobe Plugin** | 对话内沉淀单技能包（92% 质量分，A365 留痕）；人工复核机密脱敏红线 [1][3] || Save inline skill (92% quality score, A365 tracked); human redaction review [1][3] | 跨社交平台多尺寸宣传图、15/20/45 秒短视频切条与公开版白皮书 PDF [1][2] || Resized social images, 15/20/45s video cuts &amp; redacted whitepaper PDFs [1][2] |
+
+在最终拍板上线后的第五场演示中，团队直接调用公共注册表内现成的 **Adobe 插件**，在几分钟内清空了原本耗时数日的上市营销物料清单 [1][2]：其一，上传 4 张门户宣传原图并指名发布至 Facebook、Instagram 与 LinkedIn，插件内置技能自动映射各平台画幅规范完成批量裁切（用户无需背诵任何像素尺寸）；其二，对保存在 OneDrive 中的约 3–4 分钟上线长视频下达指令，自动剪辑输出 **15 秒、20 秒与 45 秒**三档短视频供各渠道下载分发；其三，在 Microsoft Word 右侧同时挂载自研门禁插件与 Adobe 插件，将含内部机密数据的营销初稿提炼为对外白皮书与精简宣传册，并在内嵌 **Acrobat 微件**中强制等待人工核验确认“零机密信息残留”后，方才生成最终对外发布的精美 PDF 文档 [1][2]。 || With launch approved, Demo 5 tapped the out-of-the-box **Adobe plugin** from the public registry to clear three last-mile marketing tasks in minutes [1][2]. First, it automatically resized four promo images to the exact Facebook, Instagram, and LinkedIn aspect ratios encoded in the plugin's skills. Second, it sliced a 3–4 minute OneDrive launch video into **15-second, 20-second, and 45-second** short-form cuts. Third, it paired the custom readiness plugin with Adobe right inside Microsoft Word to turn a confidential draft into a public whitepaper and brochure, pausing inside an embedded **Acrobat widget** for human redaction sign-off before exporting final PDFs [1][2].
+
+## 参考资料：官方一手信源与关联议题 || References: Official Primary Sources &amp; Related Sessions
+
+1. **Mandy Whaley &amp; Rachit Malik (Microsoft Ignite 2026 BRK221 Video &amp; Transcript)** — https://ignite.microsoft.com/en-US/sessions/1787856606537001E7eU-1791588336053001C2T6 | 《Govern Once, Use Everywhere: Scale Copilot with Microsoft Plugin Registry》45 分钟官方点播实录与双语时间轴字幕（2026-11-19） || Official 45-minute breakout recording and WebVTT transcripts (Nov 19, 2026)
+2. **Mandy Whaley &amp; Rachit Malik (BRK221 Official Slide Deck &amp; Medius Stream)** — https://medius.microsoft.com/Embed/video-nc/f2b7f27d-492d-4bb5-a3e5-8d5ef79dbef5 | BRK221 官方内嵌点播流与原版 31 页 PPTX 讲义（`https://medius.microsoft.com/video/asset/PPT/f2b7f27d-492d-4bb5-a3e5-8d5ef79dbef5`） || Official Medius on-demand player and 31-slide PPTX presentation deck
+3. **Microsoft Copilot Plugin Catalog** — https://aka.ms/plugins | 微软官方 Copilot 插件公共目录（汇聚 Adobe、Asana、LinkedIn 等超 350 款生态伙伴插件与角色套件） || Official Microsoft Copilot Plugin Catalog featuring 350+ partner plugins across enterprise SaaS
+4. **Work IQ Developer Tools (WIQD Documentation &amp; CLI)** — https://aka.ms/wiqd | Work IQ Developer Tools 官方入门指南：在 GitHub Copilot 与编码智能体中构建、校验、评测与发布自定义插件 || Official developer guide for building, validating, evaluating, and publishing Copilot plugins with WIQD
+5. **Microsoft Ignite 2026 Companion Track (BRK237 / LTG1220 / BRK220)** — https://ignite.microsoft.com/en-US/sessions | BRK221 课件第 29 页关联专场（插件架构与连接器治理） || Slide 29 companion sessions on plugin architecture and Agent 365 scale management
+</code></pre>
+      </section>
+
+      <main>
+        <section id="unified-extensibility" class="section" data-reveal data-present-title-zh="统一扩展底座：为什么需要把工具、技能与智能体收拢进单一插件注册表" data-present-title-en="Unified Extensibility: Packaging Tools, Skills, and Agents in One Registry">
+          <div class="section-head">
+            <p class="section-kicker">01 / Unified Registry Architecture</p>
+            <h2 data-zh="1. 统一扩展底座：为什么需要把工具、技能与智能体收拢进单一插件注册表" data-en="1. Unified Extensibility: Packaging Tools, Skills, and Agents in One Registry">1. 统一扩展底座：为什么需要把工具、技能与智能体收拢进单一插件注册表</h2>
+            <p data-zh="企业扩展 Microsoft Copilot 时常遭遇两难：业务部门急需跨外部记录系统拉取实时门禁、工单与客户账本，而安全管理员却要面对散落在聊天、代码工具、自动化流与办公套件里的多套连接器目录、重复审批单与不可见的“影子技能” [1][5]。在 BRK221 开篇，Mandy Whaley 给出了微软收敛扩展碎片的顶层解法——将所有扩展原语按职责分层，统一封装为可安装的**插件（Plugin）**并归口至 &lt;strong&gt;Microsoft Plugin Registry&lt;/strong&gt; [1][2]。" data-en="Extending Microsoft Copilot across an enterprise often creates a tug-of-war: business teams need live gate statuses, tickets, and CRM records from external systems, while IT admins face fragmented catalogs, duplicate reviews, and unmonitored shadow skills across chat, coding tools, and Office apps [1][5]. Opening BRK221, Mandy Whaley presented Microsoft's architectural answer—separating extensibility primitives by responsibility and bundling them into installable &lt;strong&gt;Plugins&lt;/strong&gt; governed through the &lt;strong&gt;Microsoft Plugin Registry&lt;/strong&gt; [1][2].">企业扩展 Microsoft Copilot 时常遭遇两难：业务部门急需跨外部记录系统拉取实时门禁、工单与客户账本，而安全管理员却要面对散落在聊天、代码工具、自动化流与办公套件里的多套连接器目录、重复审批单与不可见的“影子技能” [1][5]。在 BRK221 开篇，Mandy Whaley 给出了微软收敛扩展碎片的顶层解法——将所有扩展原语按职责分层，统一封装为可安装的**插件（Plugin）**并归口至 <strong>Microsoft Plugin Registry</strong> [1][2]。</p>
+          </div>
+
+          <p data-zh="在这套四层分工模型中，**工具（Tools）**解决“连什么（What）”，涵盖连接器与模型上下文协议（MCP）服务端点，具备明确定义的输入、输出与权限边界以读写业务记录系统；**技能（Skills）**解决“怎么做（How）”，用自然语言指令、参考资源与标准作业流教会模型按企业既定格式产出高管周报或执行核查；**智能体（Agents）&lt;strong&gt;围绕业务目标自主推理并编排工具与技能；最外层的&lt;/strong&gt;插件（Plugins）**则充当标准分发包，实现“一次构建打包，在员工工作的所有界面按同一套 Agent 365 策略受控运行” [1][2]。" data-en="Within this four-part taxonomy, &lt;strong&gt;Tools&lt;/strong&gt; define the &lt;em&gt;what&lt;/em&gt;—callable MCP servers and connectors with explicit inputs, outputs, and permissions reaching systems of record; &lt;strong&gt;Skills&lt;/strong&gt; encode the &lt;em&gt;how&lt;/em&gt;—natural-language instructions, templates, and repeatable workflows guiding task execution; &lt;strong&gt;Agents&lt;/strong&gt; reason toward goals by orchestrating skills and tools; and &lt;strong&gt;Plugins&lt;/strong&gt; act as the installable distribution unit so teams build once, govern once in Agent 365, and run everywhere [1][2].">在这套四层分工模型中，**工具（Tools）**解决“连什么（What）”，涵盖连接器与模型上下文协议（MCP）服务端点，具备明确定义的输入、输出与权限边界以读写业务记录系统；**技能（Skills）**解决“怎么做（How）”，用自然语言指令、参考资源与标准作业流教会模型按企业既定格式产出高管周报或执行核查；**智能体（Agents）<strong>围绕业务目标自主推理并编排工具与技能；最外层的</strong>插件（Plugins）**则充当标准分发包，实现“一次构建打包，在员工工作的所有界面按同一套 Agent 365 策略受控运行” [1][2]。</p>
+
+          <figure class="sr-figure generated-diagram is-inline-svg" data-present-step data-present-surface="unframed" data-step-title="Microsoft Plugin Registry 三层扩展、治理与全域分发架构" data-step-title-en="Microsoft Plugin Registry Three-Tier Packaging, Governance &amp; Surface Architecture" data-present-title-zh="Microsoft Plugin Registry 三层扩展、治理与全域分发架构" data-present-title-en="Microsoft Plugin Registry Three-Tier Packaging, Governance &amp; Surface Architecture" data-step-label="01 / Unified Registry Architecture" data-step-label-en="01 / Unified Registry Architecture" data-present-i18n-invariant="label">
+            <svg class="sr-figure-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1520 666" role="img" aria-labelledby="plugin-registry-architecture-1-title plugin-registry-architecture-1-desc"><title id="plugin-registry-architecture-1-title">Microsoft Plugin Registry：一次治理、全域复用的三层扩展与控制架构（BRK221）</title><desc id="plugin-registry-architecture-1-desc">architecture topology with 9 nodes and 7 edges</desc><defs><marker id="plugin-registry-architecture-1-arrow" markerWidth="10" markerHeight="10" refX="8.5" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M1,1 L8.5,4 L1,7" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><g data-group-id="build-pkg-plane"><rect x="40" y="24" width="1440" height="190" rx="16" fill="var(--fig-group-bg-1, rgba(255, 250, 244, 0.72))" stroke="var(--fig-group-border, rgba(23, 36, 48, 0.11))" stroke-width="1.25"/><path d="M 56 25 H 1464" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.6))" stroke-width="1"/><line x1="40" y1="70" x2="1480" y2="70" stroke="var(--fig-group-divider, rgba(23,36,48,0.08))" stroke-width="1"/><circle cx="62" cy="48" r="4.5" fill="var(--fig-role-accent-bar, #ea580c)"/><text class="sr-zh" x="74" y="53" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)">1. 组合构建与打包层（Plugin Packaging &amp; Work IQ Developer Tools）</text><text class="sr-en" x="74" y="53" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)">1. Authoring &amp; Plugin Packaging Layer (Work IQ Developer Tools)</text></g><g data-group-id="registry-gov-plane"><rect x="40" y="238" width="1440" height="190" rx="16" fill="var(--fig-group-bg-2, rgba(244, 248, 252, 0.72))" stroke="var(--fig-group-border, rgba(23, 36, 48, 0.11))" stroke-width="1.25"/><path d="M 56 239 H 1464" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.6))" stroke-width="1"/><line x1="40" y1="284" x2="1480" y2="284" stroke="var(--fig-group-divider, rgba(23,36,48,0.08))" stroke-width="1"/><circle cx="62" cy="262" r="4.5" fill="var(--fig-role-blue-bar, #2563eb)"/><text class="sr-zh" x="74" y="267" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)">2. 单一注册表与集中治理层（Microsoft Plugin Registry + Agent 365）</text><text class="sr-en" x="74" y="267" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)">2. Single Source of Truth &amp; Governance Plane (Registry + Agent 365)</text></g><g data-group-id="surfaces-plane"><rect x="40" y="452" width="1440" height="190" rx="16" fill="var(--fig-group-bg-3, rgba(248, 245, 252, 0.72))" stroke="var(--fig-group-border, rgba(23, 36, 48, 0.11))" stroke-width="1.25"/><path d="M 56 453 H 1464" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.6))" stroke-width="1"/><line x1="40" y1="498" x2="1480" y2="498" stroke="var(--fig-group-divider, rgba(23,36,48,0.08))" stroke-width="1"/><circle cx="62" cy="476" r="4.5" fill="var(--fig-role-violet-bar, #7c3aed)"/><text class="sr-zh" x="74" y="481" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)">3. 全入口工作流即插即用层（Use Everywhere Across Copilot &amp; M365）</text><text class="sr-en" x="74" y="481" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)">3. Omnichannel Execution Surfaces (Use Everywhere Across Work)</text></g><g data-edge-id="e1"><path d="M 296 190 L 296 308" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#plugin-registry-architecture-1-arrow)"/><circle cx="296" cy="190" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e2"><path d="M 760 190 L 760 216 Q 760 226 750 226 L 306 226 Q 296 226 296 236 L 296 308" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#plugin-registry-architecture-1-arrow)"/><circle cx="760" cy="190" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e3"><path d="M 1224 190 L 1224 216 Q 1224 226 1214 226 L 770 226 Q 760 226 760 236 L 760 308" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#plugin-registry-architecture-1-arrow)"/><circle cx="1224" cy="190" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e4"><path d="M 296 404 L 296 522" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#plugin-registry-architecture-1-arrow)"/><circle cx="296" cy="404" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e5"><path d="M 760 404 L 760 522" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#plugin-registry-architecture-1-arrow)"/><circle cx="760" cy="404" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e6"><path d="M 760 404 L 760 430 Q 760 440 770 440 L 1214 440 Q 1224 440 1224 450 L 1224 522" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#plugin-registry-architecture-1-arrow)"/><circle cx="760" cy="404" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e7"><path d="M 296 522 L 296 446 Q 296 436 306 436 L 1214 436 Q 1224 436 1224 426 L 1224 404" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 5" marker-end="url(#plugin-registry-architecture-1-arrow)"/><circle cx="296" cy="522" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-node-id="tools-mcp"><defs><clipPath id="plugin-registry-architecture-1-clip-tools-mcp"><rect x="136" y="94" width="320" height="96" rx="13"/></clipPath></defs><rect x="136" y="94" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="136" y="94" width="320" height="96" rx="13" fill="var(--fig-role-violet-fill, rgba(124, 58, 237, 0.08))" stroke="var(--fig-role-violet-stroke, rgba(139, 92, 246, 0.42))" stroke-width="1.35"/><rect x="136" y="94" width="4.5" height="96" fill="var(--fig-role-violet-bar, #7c3aed)" clip-path="url(#plugin-registry-architecture-1-clip-tools-mcp)"/><line x1="148" y1="95" x2="444" y2="95" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)"><tspan x="298" y="130">Tools：MCP 服务与连接器（What）</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="151">连接核心业务系统（如 Caldova / Dynamics 365）的确</tspan><tspan x="298" y="165.5">定性输入输出操作</tspan></text></g><g class="sr-en"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)"><tspan x="298" y="130">Tools: MCP Servers &amp; Connectors (What)</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="151">Callable operations reading/writing systems of</tspan><tspan x="298" y="165.5">record with explicit scopes</tspan></text></g></g><g data-node-id="skills-agents"><defs><clipPath id="plugin-registry-architecture-1-clip-skills-agents"><rect x="600" y="94" width="320" height="96" rx="13"/></clipPath></defs><rect x="600" y="94" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="600" y="94" width="320" height="96" rx="13" fill="var(--fig-role-teal-fill, rgba(13, 143, 140, 0.09))" stroke="var(--fig-role-teal-stroke, rgba(13, 143, 140, 0.46))" stroke-width="1.35"/><rect x="600" y="94" width="4.5" height="96" fill="var(--fig-role-teal-bar, #0d8f8c)" clip-path="url(#plugin-registry-architecture-1-clip-skills-agents)"/><line x1="612" y1="95" x2="908" y2="95" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)"><tspan x="762" y="130">Skills 技能与 Agents 智能体（How）</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="151">封装自然语言规范（如高管 Excel 模板、社媒裁切规格</tspan><tspan x="762" y="165.5">）指导智能体编排</tspan></text></g><g class="sr-en"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)"><tspan x="762" y="130">Skills &amp; Agents Orchestration (How)</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="151">Natural-language instructions, workflows &amp; brand</tspan><tspan x="762" y="165.5">rules steering execution</tspan></text></g></g><g data-node-id="wiqd-cli"><defs><clipPath id="plugin-registry-architecture-1-clip-wiqd-cli"><rect x="1064" y="94" width="320" height="96" rx="13"/></clipPath></defs><rect x="1064" y="94" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="1064" y="94" width="320" height="96" rx="13" fill="var(--fig-role-accent-fill, rgba(255, 122, 0, 0.09))" stroke="var(--fig-role-accent-stroke, rgba(234, 88, 12, 0.48))" stroke-width="1.35"/><rect x="1064" y="94" width="4.5" height="96" fill="var(--fig-role-accent-bar, #ea580c)" clip-path="url(#plugin-registry-architecture-1-clip-wiqd-cli)"/><line x1="1076" y1="95" x2="1372" y2="95" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)"><tspan x="1226" y="130">Work IQ Developer Tools（WIQD CLI）</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="151">在 GitHub Copilot 内闭环构建、manifest.json 校验、预</tspan><tspan x="1226" y="165.5">览、评测与提审</tspan></text></g><g class="sr-en"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)"><tspan x="1226" y="130">Work IQ Developer Tools (WIQD CLI)</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="151">Build, validate manifest.json, preview, run 10-case</tspan><tspan x="1226" y="165.5">evals &amp; submit in IDE</tspan></text></g></g><g data-node-id="plugin-catalog"><defs><clipPath id="plugin-registry-architecture-1-clip-plugin-catalog"><rect x="136" y="308" width="320" height="96" rx="13"/></clipPath></defs><rect x="136" y="308" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="136" y="308" width="320" height="96" rx="13" fill="var(--fig-role-blue-fill, rgba(37, 99, 235, 0.07))" stroke="var(--fig-role-blue-stroke, rgba(59, 130, 246, 0.42))" stroke-width="1.35"/><rect x="136" y="308" width="4.5" height="96" fill="var(--fig-role-blue-bar, #2563eb)" clip-path="url(#plugin-registry-architecture-1-clip-plugin-catalog)"/><line x1="148" y1="309" x2="444" y2="309" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)"><tspan x="298" y="344">统一插件注册表（350+ 伙伴与自研）</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="365">汇聚微软官方、Adobe/Asana 等超 350 款生态插件、自</tspan><tspan x="298" y="379.5">研包与共享单技能包</tspan></text></g><g class="sr-en"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)"><tspan x="298" y="344">Unified Plugin Registry (350+ Catalog)</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="365">Single catalog unifying 350+ partner, Microsoft,</tspan><tspan x="298" y="379.5">custom &amp; shared-skill packages</tspan></text></g></g><g data-node-id="a365-approval"><defs><clipPath id="plugin-registry-architecture-1-clip-a365-approval"><rect x="600" y="308" width="320" height="96" rx="13"/></clipPath></defs><rect x="600" y="308" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="600" y="308" width="320" height="96" rx="13" fill="var(--fig-role-rose-fill, rgba(225, 29, 72, 0.08))" stroke="var(--fig-role-rose-stroke, rgba(225, 29, 72, 0.48))" stroke-width="1.35"/><rect x="600" y="308" width="4.5" height="96" fill="var(--fig-role-rose-bar, #e11d48)" clip-path="url(#plugin-registry-architecture-1-clip-a365-approval)"/><line x1="612" y1="309" x2="908" y2="309" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-rose-text, #9f1239)"><tspan x="762" y="344">Agent 365 准入审批与受众分发</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="365">M365 管理中心审查版本与远端 MCP 工具；按部门组一</tspan><tspan x="762" y="379.5">键预装或随时封禁</tspan></text></g><g class="sr-en"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-rose-text, #9f1239)"><tspan x="762" y="344">Agent 365 Approval &amp; Audience Rollout</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="365">Inspect publisher/MCP tools in MAC; pre-install to</tspan><tspan x="762" y="379.5">Entra groups or block</tspan></text></g></g><g data-node-id="usage-telemetry"><defs><clipPath id="plugin-registry-architecture-1-clip-usage-telemetry"><rect x="1064" y="308" width="320" height="96" rx="13"/></clipPath></defs><rect x="1064" y="308" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="1064" y="308" width="320" height="96" rx="13" fill="var(--fig-role-amber-fill, rgba(217, 119, 6, 0.09))" stroke="var(--fig-role-amber-stroke, rgba(217, 119, 6, 0.44))" stroke-width="1.35"/><rect x="1064" y="308" width="4.5" height="96" fill="var(--fig-role-amber-bar, #d97706)" clip-path="url(#plugin-registry-architecture-1-clip-usage-telemetry)"/><line x1="1076" y1="309" x2="1372" y2="309" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)"><tspan x="1226" y="344">30 天调用洞察与异常监控</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="365">按插件与 MCP 端点追踪调用峰值、关联智能体清单与异</tspan><tspan x="1226" y="379.5">常报错次数</tspan></text></g><g class="sr-en"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)"><tspan x="1226" y="344">30-Day Telemetry &amp; Exception Insights</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="365">Track 30-day call spikes, consuming agents &amp;</tspan><tspan x="1226" y="379.5">exception counts per MCP server</tspan></text></g></g><g data-node-id="copilot-home-cowork"><defs><clipPath id="plugin-registry-architecture-1-clip-copilot-home-cowork"><rect x="136" y="522" width="320" height="96" rx="13"/></clipPath></defs><rect x="136" y="522" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="136" y="522" width="320" height="96" rx="13" fill="var(--fig-role-teal-fill, rgba(13, 143, 140, 0.09))" stroke="var(--fig-role-teal-stroke, rgba(13, 143, 140, 0.46))" stroke-width="1.35"/><rect x="136" y="522" width="4.5" height="96" fill="var(--fig-role-teal-bar, #0d8f8c)" clip-path="url(#plugin-registry-architecture-1-clip-copilot-home-cowork)"/><line x1="148" y1="523" x2="444" y2="523" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)"><tspan x="298" y="558">Copilot Home（Chat 与 Cowork）</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="579">结合 Work IQ 上下文渲染交互式 MCP App 门禁微件，</tspan><tspan x="298" y="593.5">支持对话内沉淀新技能</tspan></text></g><g class="sr-en"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)"><tspan x="298" y="558">Copilot Home (Chat &amp; Cowork)</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="579">Blends Work IQ with interactive MCP App widgets &amp;</tspan><tspan x="298" y="593.5">inline skill authoring</tspan></text></g></g><g data-node-id="code-autopilot"><defs><clipPath id="plugin-registry-architecture-1-clip-code-autopilot"><rect x="600" y="522" width="320" height="96" rx="13"/></clipPath></defs><rect x="600" y="522" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="600" y="522" width="320" height="96" rx="13" fill="var(--fig-role-accent-fill, rgba(255, 122, 0, 0.09))" stroke="var(--fig-role-accent-stroke, rgba(234, 88, 12, 0.48))" stroke-width="1.35"/><rect x="600" y="522" width="4.5" height="96" fill="var(--fig-role-accent-bar, #ea580c)" clip-path="url(#plugin-registry-architecture-1-clip-code-autopilot)"/><line x1="612" y1="523" x2="908" y2="523" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)"><tspan x="762" y="558">Copilot Code · Autopilot · Studio</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="579">跨研发编码态、后台自主任务与业务流程编排无缝复用</tspan><tspan x="762" y="593.5">同一受控插件包</tspan></text></g><g class="sr-en"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)"><tspan x="762" y="558">Copilot Code · Autopilot · Studio</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="579">Reuse governed plugins across coding sessions,</tspan><tspan x="762" y="593.5">autonomous runs &amp; Studio</tspan></text></g></g><g data-node-id="m365-office-apps"><defs><clipPath id="plugin-registry-architecture-1-clip-m365-office-apps"><rect x="1064" y="522" width="320" height="96" rx="13"/></clipPath></defs><rect x="1064" y="522" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="1064" y="522" width="320" height="96" rx="13" fill="var(--fig-role-blue-fill, rgba(37, 99, 235, 0.07))" stroke="var(--fig-role-blue-stroke, rgba(59, 130, 246, 0.42))" stroke-width="1.35"/><rect x="1064" y="522" width="4.5" height="96" fill="var(--fig-role-blue-bar, #2563eb)" clip-path="url(#plugin-registry-architecture-1-clip-m365-office-apps)"/><line x1="1076" y1="523" x2="1372" y2="523" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)"><tspan x="1226" y="558">Word · Excel · PowerPoint · SharePoint</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="579">免切出文档窗口，直接拉取同源门禁数据生成高管报表</tspan><tspan x="1226" y="593.5">与脱敏白皮书 PDF</tspan></text></g><g class="sr-en"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)"><tspan x="1226" y="558">Word · Excel · PowerPoint · SharePoint</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="579">Stay in flow inside Office apps to generate executive</tspan><tspan x="1226" y="593.5">sheets &amp; redacted PDFs</tspan></text></g></g><g class="sr-edge-labels"><g class="sr-zh"><rect x="263" y="215" width="66" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="296" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">声明端点</text></g><g class="sr-en"><rect x="248" y="215" width="96" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="296" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">MCP Endpoint</text></g><g class="sr-zh"><rect x="425" y="215" width="66" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="458" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">封装技能</text></g><g class="sr-en"><rect x="412" y="215" width="92" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="458" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Bundle Skills</text></g><g class="sr-zh"><rect x="883" y="215" width="79" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="922" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">校验并提审</text></g><g class="sr-en"><rect x="864" y="215" width="116" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="922" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Validate &amp; Submit</text></g><g class="sr-zh"><rect x="263" y="429" width="66" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="296" y="444" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">按需启用</text></g><g class="sr-en"><rect x="237" y="429" width="119" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="296" y="444" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Discover &amp; Toggle</text></g><g class="sr-zh"><rect x="727" y="429" width="66" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="760" y="444" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">一次审批</text></g><g class="sr-en"><rect x="716" y="429" width="88" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="760" y="444" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Govern Once</text></g><g class="sr-zh"><rect x="1029" y="429" width="66" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="1062" y="444" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">按组预装</text></g><g class="sr-en"><rect x="1003" y="429" width="119" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="1062" y="444" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Group Pre-Install</text></g><g class="sr-zh"><rect x="842" y="425" width="115" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="899" y="440" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">回传遥测与新技能</text></g><g class="sr-en"><rect x="818" y="425" width="163" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="899" y="440" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Telemetry &amp; Shared Skills</text></g></g></svg>
+            <figcaption class="diagram-caption"><span data-zh="图 1：BRK221 核心架构——顶层由 Work IQ Developer Tools 将远端工具、自然语言技能与智能体打包校验；中层依托统一插件注册表（含 350+ 公共生态包与自研包）及 Agent 365 实施准入审批、部门组预装与 30 天遥测；底层无缝投射至 Copilot Home、Code、Autopilot、Copilot Studio 与 Office 全家桶 [1][2][3]。" data-en="Figure 1: Three-tier BRK221 architecture—packaging MCP tools, skills, and agents via Work IQ Developer Tools on top; enforcing central approval, group pre-install, and 30-day telemetry in the Registry and Agent 365 in the middle; and surfacing governed capabilities across Copilot Home, Code, Autopilot, Studio, and Office apps underneath [1][2][3].">图 1：BRK221 核心架构——顶层由 Work IQ Developer Tools 将远端工具、自然语言技能与智能体打包校验；中层依托统一插件注册表（含 350+ 公共生态包与自研包）及 Agent 365 实施准入审批、部门组预装与 30 天遥测；底层无缝投射至 Copilot Home、Code、Autopilot、Copilot Studio 与 Office 全家桶 [1][2][3]。</span><a href="./media/plugin-registry-architecture.drawio" download data-zh="下载 .drawio" data-en="Download .drawio">下载 .drawio</a></figcaption>
+          </figure>
+
+          <p data-zh="整场 45 分钟议题以虚构企业 &lt;strong&gt;Caldova&lt;/strong&gt; 的真实工程困境为主线：团队计划下周上线全新客服门户（Customer-Service Portal），必须在“全量发布（Go）”、“缩减为核心范围发布（Narrow）”与“暂缓发布（Hold）”之间拍板 [1][2]。下方导览台集成了 BRK221 官方点播视频流、原版 31 页 PPTX 课件直链与五段实机演示的逐分钟时间轴，点击上方章节药丸即可切换查阅对应进度与实测要点 [1][2]：" data-en="Across the 45-minute session, Mandy Whaley and Rachit Malik anchor every concept in a realistic release-room dilemma at fictional enterprise &lt;strong&gt;Caldova&lt;/strong&gt;: deciding whether next week's customer-service portal launch should &lt;strong&gt;Go big&lt;/strong&gt;, &lt;strong&gt;Narrow scope&lt;/strong&gt;, or &lt;strong&gt;Hold&lt;/strong&gt; [1][2]. The interactive theater below pairs the official Medius on-demand video stream and 31-slide PPTX deck with timestamped walkthroughs of all five live demos [1][2]:">整场 45 分钟议题以虚构企业 <strong>Caldova</strong> 的真实工程困境为主线：团队计划下周上线全新客服门户（Customer-Service Portal），必须在“全量发布（Go）”、“缩减为核心范围发布（Narrow）”与“暂缓发布（Hold）”之间拍板 [1][2]。下方导览台集成了 BRK221 官方点播视频流、原版 31 页 PPTX 课件直链与五段实机演示的逐分钟时间轴，点击上方章节药丸即可切换查阅对应进度与实测要点 [1][2]：</p>
+
+          <div id="brk221-video-theater" class="sandbox-slot" data-sandbox-slot="brk221-video-theater" data-present-step data-present-surface="board" data-step-title="BRK221 官方点播视频与五场实机演示时间轴导览" data-step-title-en="BRK221 Official On-Demand Stream &amp; Five-Demo Timestamp Navigator" data-present-title-zh="BRK221 官方点播视频与五场实机演示时间轴导览" data-present-title-en="BRK221 Official On-Demand Stream &amp; Five-Demo Timestamp Navigator" data-step-label="01 / Unified Registry Architecture" data-step-label-en="01 / Unified Registry Architecture" data-present-i18n-invariant="label">
+            <div class="sandbox-header">
+              <div class="sandbox-title-group">
+                <span class="comparison-label" data-zh="纯静态交互沙盒" data-en="Static Interactive Sandbox">纯静态交互沙盒</span>
+                <h3 data-zh="BRK221 官方点播视频与五场实机演示时间轴导览" data-en="BRK221 Official On-Demand Stream &amp; Five-Demo Timestamp Navigator">BRK221 官方点播视频与五场实机演示时间轴导览</h3>
+                <p data-zh="切换架构导论与 Demo 1–5 关键时间节点，支持在页面内直接加载微软 Medius 点播流或下载官方原版 PPTX 讲义。" data-en="Switch across the architecture intro and Demos 1–5, load the embedded Microsoft Medius player on demand, or download the official PPTX slide deck.">切换架构导论与 Demo 1–5 关键时间节点，支持在页面内直接加载微软 Medius 点播流或下载官方原版 PPTX 讲义。</p>
+              </div>
+              <div class="sandbox-controls" data-sandbox-controls="brk221-video-theater"></div>
+            </div>
+            <div class="sandbox-stage" data-sandbox-stage="brk221-video-theater">
+
+            </div>
+          </div>
+        </section>
+
+        <section id="discover-and-use" class="section" data-reveal data-present-title-zh="发现与即插即用：结合组织上下文、远端记录系统与高管报表技能" data-present-title-en="Demo 01: Discovery &amp; In-Flow Execution—Bridging Work IQ, Live MCP Gates, and Excel Skills">
+          <div class="section-head">
+            <p class="section-kicker">02 / Demo 01: Discover &amp; In-Flow Execution</p>
+            <h2 data-zh="2. 发现与即插即用：结合组织上下文、远端记录系统与高管报表技能" data-en="2. Demo 01: Discovery &amp; In-Flow Execution—Bridging Work IQ, Live MCP Gates, and Excel Skills">2. 发现与即插即用：结合组织上下文、远端记录系统与高管报表技能</h2>
+            <p data-zh="当发布负责人 Rachit 在 Teams 频道追问“下周能否上线客服门户？还缺什么？最小安全发布范围是什么？”时，仅靠默认挂载的组织内部工作上下文（Work IQ）只能检索到同事间的聊天讨论串，而真正的上线门禁审批记录存放在业务部门独立的外部记录系统之后 [1]。进入 Copilot 左侧导航栏全新的 &lt;strong&gt;Plugins&lt;/strong&gt; 页面后，用户既能浏览按 Chat 与 Cowork 分类的 &lt;strong&gt;350 余款&lt;/strong&gt;公共合作伙伴插件，也能直接看到本组织开发并获批的内部插件——且原先散落的智能体如今也作为插件的一种统一归入“已添加（Added）”视图集中管理 [1][2]。" data-en="When release owner Rachit asks whether the customer-service portal can launch next week and what the smallest safe scope looks like, default Work IQ grounding locates the relevant Teams thread but cannot see authoritative gate records stored in an external engineering system [1]. Opening the unified &lt;strong&gt;Plugins&lt;/strong&gt; tab in Copilot reveals &lt;strong&gt;350+ public partner plugins&lt;/strong&gt; alongside organization-built packages—consolidating agents, skills, and connectors under one roof [1][2].">当发布负责人 Rachit 在 Teams 频道追问“下周能否上线客服门户？还缺什么？最小安全发布范围是什么？”时，仅靠默认挂载的组织内部工作上下文（Work IQ）只能检索到同事间的聊天讨论串，而真正的上线门禁审批记录存放在业务部门独立的外部记录系统之后 [1]。进入 Copilot 左侧导航栏全新的 <strong>Plugins</strong> 页面后，用户既能浏览按 Chat 与 Cowork 分类的 <strong>350 余款</strong>公共合作伙伴插件，也能直接看到本组织开发并获批的内部插件——且原先散落的智能体如今也作为插件的一种统一归入“已添加（Added）”视图集中管理 [1][2]。</p>
+          </div>
+
+          <p data-zh="启用自研的 &lt;strong&gt;Caldova Launch Readiness&lt;/strong&gt; 插件并重新发起同一提问后，返回结果发生了质变 [1]：该插件打包了一个连接内部门禁数据库的远端服务与两项自然语言技能。对话流内不再只有纯文本总结，而是直接渲染出由 &lt;strong&gt;MCP App&lt;/strong&gt; 驱动的富交互门禁看板微件，清晰标出拟定发布日（2026 年 11 月 19 日）、当前综合判定状态 &lt;strong&gt;Narrow（核心范围待批，尚未获准全量上线）&lt;/strong&gt; 以及 &lt;strong&gt;4 / 6 道门禁已通关&lt;/strong&gt;——并精准点名正等待同事 Priya 完成共享数据就绪流（Shared Data Readiness）[1][2]。" data-en="Toggling on the custom &lt;strong&gt;Caldova Launch Readiness&lt;/strong&gt; plugin—which bundles an internal MCP server with two formatting skills—transforms the response [1]. Instead of plain text, Copilot renders an interactive &lt;strong&gt;MCP App&lt;/strong&gt; readiness widget displaying the proposed November 19, 2026 launch date, a &lt;strong&gt;Narrow&lt;/strong&gt; release status, and &lt;strong&gt;4 of 6&lt;/strong&gt; cleared launch gates while pinpointing the pending shared-data workstream owned by Priya [1][2].">启用自研的 <strong>Caldova Launch Readiness</strong> 插件并重新发起同一提问后，返回结果发生了质变 [1]：该插件打包了一个连接内部门禁数据库的远端服务与两项自然语言技能。对话流内不再只有纯文本总结，而是直接渲染出由 <strong>MCP App</strong> 驱动的富交互门禁看板微件，清晰标出拟定发布日（2026 年 11 月 19 日）、当前综合判定状态 <strong>Narrow（核心范围待批，尚未获准全量上线）</strong> 以及 <strong>4 / 6 道门禁已通关</strong>——并精准点名正等待同事 Priya 完成共享数据就绪流（Shared Data Readiness）[1][2]。</p>
+<div class="brk221-media-grid">
+  <article class="brk221-media-card" data-present-surface="unframed">
+    <div class="brk221-media-frame">
+      <img src="./media/brk221-copilot-plugins-catalog.png" alt="BRK221 Slide 13 official capture of the unified Plugins page in Microsoft Copilot showing Chat and Cowork tabs, Added plugins, and Discover catalog" loading="lazy" />
+    </div>
+    <div class="brk221-media-body">
+      <span class="brk221-media-badge" data-zh="BRK221 官方课件原图 · Slide 13" data-en="BRK221 Official Slide · Slide 13">BRK221 官方课件原图 · Slide 13</span>
+      <h4 data-zh="Copilot 统一 Plugins 发现与管理页" data-en="Unified Plugins Discovery Hub in Microsoft Copilot">Copilot 统一 Plugins 发现与管理页</h4>
+      <p data-zh="在同一入口按 Chat 与 Cowork 筛选已添加能力（含智能体、技能与连接器），并浏览组织共享与 350+ 公共目录插件 [1][2]。" data-en="Filter added agents, skills, and connectors across Chat and Cowork while browsing org-approved and 350+ partner catalog plugins [1][2].">在同一入口按 Chat 与 Cowork 筛选已添加能力（含智能体、技能与连接器），并浏览组织共享与 350+ 公共目录插件 [1][2]。</p>
+    </div>
+  </article>
+  <article class="brk221-media-card" data-present-surface="unframed">
+    <div class="brk221-media-frame">
+      <img src="./media/brk221-caldova-readiness-widget.png" alt="BRK221 Slide 2 official capture of the Caldova Launch Readiness MCP App widget inside Copilot Cowork showing 4 of 6 launch gates cleared" loading="lazy" />
+    </div>
+    <div class="brk221-media-body">
+      <span class="brk221-media-badge" data-zh="BRK221 官方课件原图 · MCP App 微件" data-en="BRK221 Official Slide · MCP App Widget">BRK221 官方课件原图 · MCP App 微件</span>
+      <h4 data-zh="Caldova 上线就绪度交互微件（4/6 门禁通过）" data-en="Caldova Launch Readiness Interactive Widget (4 of 6 Gates)">Caldova 上线就绪度交互微件（4/6 门禁通过）</h4>
+      <p data-zh="远端工具实时拉取核心门禁事实，内置技能自动按下一步行动清单格式化输出，支持对话内双向刷新状态 [1][2]。" data-en="Remote MCP tools pull live gate facts while packaged skills structure next steps and enable live in-chat status refresh [1][2].">远端工具实时拉取核心门禁事实，内置技能自动按下一步行动清单格式化输出，支持对话内双向刷新状态 [1][2]。</p>
+    </div>
+  </article>
+</div>
+<p data-zh="更关键的是，插件不仅能读取外部系统，还能在对话流内双向刷新并跨宿主延续工作流 [1]：当 Priya 在后台更新进度后，Rachit 直接在 Copilot 内点击刷新，门禁状态当场跃升至 &lt;strong&gt;5 / 6&lt;/strong&gt;；紧接着调用插件内封装的第二项“高管汇报技能”，一句话生成包含高管摘要（Executive Summary）、门禁总数、上次变更对比与后续动作的标准 Excel 工作簿，并在打开桌面端 Excel 后通过 &lt;code&gt;Choose Plugins&lt;/code&gt; 继续挂载同一款插件深加工数据，全程无需切换工具或手工对齐表格格式 [1]。" data-en="Crucially, plugins support live bidirectional refresh and cross-app continuity [1]: once Priya updates her gate, refreshing directly inside Copilot advances readiness to &lt;strong&gt;5 of 6&lt;/strong&gt; cleared gates. Invoking the plugin's second packaged skill immediately generates an executive-formatted Excel workbook—complete with summary deltas, gate totals, and next steps—and the exact same governed plugin remains selectable inside Microsoft Excel via &lt;code&gt;Choose Plugins&lt;/code&gt; [1].">更关键的是，插件不仅能读取外部系统，还能在对话流内双向刷新并跨宿主延续工作流 [1]：当 Priya 在后台更新进度后，Rachit 直接在 Copilot 内点击刷新，门禁状态当场跃升至 <strong>5 / 6</strong>；紧接着调用插件内封装的第二项“高管汇报技能”，一句话生成包含高管摘要（Executive Summary）、门禁总数、上次变更对比与后续动作的标准 Excel 工作簿，并在打开桌面端 Excel 后通过 <code>Choose Plugins</code> 继续挂载同一款插件深加工数据，全程无需切换工具或手工对齐表格格式 [1]。</p>
+        </section>
+
+        <section id="build-with-wiqd" class="section" data-reveal data-present-title-zh="工程化构建与定量评测：用 WIQD 跑通从意图到提审的五步生命周期" data-present-title-en="Demo 02: Agentic Packaging &amp; Quantitative Evals with Work IQ Developer Tools">
+          <div class="section-head">
+            <p class="section-kicker">03 / Demo 02: Work IQ Developer Tools</p>
+            <h2 data-zh="3. 工程化构建与定量评测：用 WIQD 跑通从意图到提审的五步生命周期" data-en="3. Demo 02: Agentic Packaging &amp; Quantitative Evals with Work IQ Developer Tools">3. 工程化构建与定量评测：用 WIQD 跑通从意图到提审的五步生命周期</h2>
+            <p data-zh="如果公共目录中的 350 余款合作伙伴插件尚未覆盖企业内部专有系统（例如 Caldova 自建的上线门禁服务），研发团队该如何低摩擦地构建并验证自研插件？BRK221 重点展示了全新发布的命令行与编码智能体技能套件 &lt;strong&gt;Work IQ Developer Tools&lt;/strong&gt;（简称 &lt;strong&gt;WIQD&lt;/strong&gt;，访问入口 &lt;code&gt;https://aka.ms/wiqd&lt;/code&gt;），它能够在 GitHub Copilot 或任意主流编码智能体中以对话驱动的方式跑通完整插件工程闭环 [1][2][4]。" data-en="When an internal system of record like Caldova's readiness service has no off-the-shelf connector among the 350+ public offerings, developers turn to &lt;strong&gt;Work IQ Developer Tools&lt;/strong&gt; (&lt;strong&gt;WIQD&lt;/strong&gt;, available at &lt;code&gt;https://aka.ms/wiqd&lt;/code&gt;)—a CLI toolset plus coding-agent skills that drives the end-to-end plugin lifecycle directly inside GitHub Copilot or any coding agent [1][2][4].">如果公共目录中的 350 余款合作伙伴插件尚未覆盖企业内部专有系统（例如 Caldova 自建的上线门禁服务），研发团队该如何低摩擦地构建并验证自研插件？BRK221 重点展示了全新发布的命令行与编码智能体技能套件 <strong>Work IQ Developer Tools</strong>（简称 <strong>WIQD</strong>，访问入口 <code>https://aka.ms/wiqd</code>），它能够在 GitHub Copilot 或任意主流编码智能体中以对话驱动的方式跑通完整插件工程闭环 [1][2][4]。</p>
+          </div>
+
+          <ol class="flow-list" data-present-step data-present-surface="unframed" data-step-title="Work IQ Developer Tools（WIQD）从自然语言意图到租户目录提审的五步流水线" data-step-title-en="Five-Stage WIQD Plugin Lifecycle from Intent Prompt to Tenant Catalog Submission" data-present-title-zh="Work IQ Developer Tools（WIQD）从自然语言意图到租户目录提审的五步流水线" data-present-title-en="Five-Stage WIQD Plugin Lifecycle from Intent Prompt to Tenant Catalog Submission" data-step-label="03 / Demo 02: Work IQ Developer Tools" data-step-label-en="03 / Demo 02: Work IQ Developer Tools" data-present-i18n-invariant="label">
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="意图声明与资产拉取（Build）" data-en="Intent Prompt &amp;amp; Context Pull (Build)">意图声明与资产拉取（Build）</strong>
+                <p data-zh="开发者在 GitHub Copilot 中输入起始提示词（如绑定远端端点 &lt;code&gt;caldova-corp.azurewebsites.net/readiness/mcp&lt;/code&gt;），并通过 Work IQ 直接从个人 OneDrive 拉取公司规定的品牌图标与视觉规范，免去手动下载拷贝即可自动生成包含技能文件与 &lt;code&gt;manifest.json&lt;/code&gt; 的标准插件包 [1][2]。" data-en="Start from a natural-language prompt referencing &lt;code&gt;caldova-corp.azurewebsites.net/readiness/mcp&lt;/code&gt; while pulling required brand icons straight from OneDrive via Work IQ to scaffold skills and &lt;code&gt;manifest.json&lt;/code&gt; [1][2].">开发者在 GitHub Copilot 中输入起始提示词（如绑定远端端点 <code>caldova-corp.azurewebsites.net/readiness/mcp</code>），并通过 Work IQ 直接从个人 OneDrive 拉取公司规定的品牌图标与视觉规范，免去手动下载拷贝即可自动生成包含技能文件与 <code>manifest.json</code> 的标准插件包 [1][2]。</p>
+              </div>
+            </li>
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="服务端同源结构校验（Validate）" data-en="Server-Parity Manifest Validation (Validate)">服务端同源结构校验（Validate）</strong>
+                <p data-zh="在本地开发态直接运行与云端注册表完全一致的结构与字段合规检查，提前拦截 &lt;code&gt;manifest.json&lt;/code&gt; 权限声明缺失或包目录格式错误，确保上传零返工 [1][2]。" data-en="Execute the exact structural and schema checks enforced server-side during local authoring so &lt;code&gt;manifest.json&lt;/code&gt; fields and package layouts pass cleanly [1][2].">在本地开发态直接运行与云端注册表完全一致的结构与字段合规检查，提前拦截 <code>manifest.json</code> 权限声明缺失或包目录格式错误，确保上传零返工 [1][2]。</p>
+              </div>
+            </li>
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="预览发布与小范围共测（Preview &amp;amp; Share）" data-en="Instant Registry Preview &amp;amp; Peer Feedback (Preview &amp;amp; Share)">预览发布与小范围共测（Preview &amp; Share）</strong>
+                <p data-zh="构建产物一键生成预览链接并挂载至个人 Copilot 插件页，开发者可在正式提审前先行定向共享给 Mandy 等核心同事收集定性体验反馈 [1][2]。" data-en="Publish a preview build to test live inside Copilot's Plugins page and share selectively with teammates for early qualitative feedback [1][2].">构建产物一键生成预览链接并挂载至个人 Copilot 插件页，开发者可在正式提审前先行定向共享给 Mandy 等核心同事收集定性体验反馈 [1][2]。</p>
+              </div>
+            </li>
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="十用例定量基准评测（Evaluate）" data-en="Quantitative 10-Case Benchmarking (Evaluate)">十用例定量基准评测（Evaluate）</strong>
+                <p data-zh="调用 Ignite 期间全新上线的内置评测引擎，针对“发现可用发布项”、“对比全量与仅核心范围就绪度”等 &lt;strong&gt;10 个关键业务测试集&lt;/strong&gt;自动发送提示词、比对实际响应与期望输出并输出聚合评分报告；演示中团队从首轮尴尬的 &lt;strong&gt;0 / 10（0%）&lt;/strong&gt; 基线出发，经智能体辅助多轮更新插件结构与评测集后将综合得分拉升至 &lt;strong&gt;77.8%&lt;/strong&gt; [1][4]。" data-en="Run the newly released Ignite evaluation engine across &lt;strong&gt;10 critical test cases&lt;/strong&gt; (comparing actual vs. expected outputs across tool and skill metrics), iterating from an initial &lt;strong&gt;0/10 (0%)&lt;/strong&gt; baseline up to &lt;strong&gt;77.8%&lt;/strong&gt; [1][4].">调用 Ignite 期间全新上线的内置评测引擎，针对“发现可用发布项”、“对比全量与仅核心范围就绪度”等 <strong>10 个关键业务测试集</strong>自动发送提示词、比对实际响应与期望输出并输出聚合评分报告；演示中团队从首轮尴尬的 <strong>0 / 10（0%）</strong> 基线出发，经智能体辅助多轮更新插件结构与评测集后将综合得分拉升至 <strong>77.8%</strong> [1][4]。</p>
+              </div>
+            </li>
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="双轨目录一键提审（Publish）" data-en="Org &amp;amp; Public Catalog Submission (Publish)">双轨目录一键提审（Publish）</strong>
+                <p data-zh="定量评分达标后，直接在工具链内向本租户组织目录发起上架审批请求（实时落入 Agent 365 的 &lt;code&gt;Requests&lt;/code&gt; 待批队列）；若属于独立软件开发商（ISV）对外分发，还可追加执行商店合规检查（Store Checks）并推送至合作伙伴中心（Partner Center）[1][2]。" data-en="Submit validated packages directly into the tenant's organizational catalog queue in Agent 365, or run Store Checks and publish cross-tenant via Partner Center [1][2].">定量评分达标后，直接在工具链内向本租户组织目录发起上架审批请求（实时落入 Agent 365 的 <code>Requests</code> 待批队列）；若属于独立软件开发商（ISV）对外分发，还可追加执行商店合规检查（Store Checks）并推送至合作伙伴中心（Partner Center）[1][2]。</p>
+              </div>
+            </li>
+          </ol>
+
+          <figure class="sr-figure generated-diagram is-inline-svg" data-present-step data-present-surface="unframed" data-step-title="BRK221 实机演练核心量化轨迹：WIQD 评测提分、技能体检与门禁通关率" data-step-title-en="BRK221 Live Walkthrough Metrics: WIQD Eval Progression, Skill Score &amp; Launch Gates" data-present-title-zh="BRK221 实机演练核心量化轨迹：WIQD 评测提分、技能体检与门禁通关率" data-present-title-en="BRK221 Live Walkthrough Metrics: WIQD Eval Progression, Skill Score &amp; Launch Gates" data-step-label="03 / Demo 02: Work IQ Developer Tools" data-step-label-en="03 / Demo 02: Work IQ Developer Tools" data-present-i18n-invariant="label">
+            <svg class="sr-figure-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 482" role="img" aria-labelledby="brk221-lifecycle-metrics-2-title brk221-lifecycle-metrics-2-desc"><title id="brk221-lifecycle-metrics-2-title">Caldova 客服门户发布演练：评测质量跃迁与门禁通关实录（BRK221 实机数据）</title><desc id="brk221-lifecycle-metrics-2-desc">Horizontal bar chart with 6 items</desc><text class="sr-zh" x="36" y="32" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="18" font-weight="700" fill="var(--fig-text-strong, #172430)">Caldova 客服门户发布演练：评测质量跃迁与门禁通关实录（BRK221 实机数据）</text><text class="sr-en" x="36" y="32" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="18" font-weight="700" fill="var(--fig-text-strong, #172430)">Caldova Portal Launch Walkthrough: Evaluation &amp; Gate Progression (BRK221 Live Metrics)</text><text class="sr-zh" x="36" y="54" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">基于 Work IQ Developer Tools 10 项核心用例迭代评测、Cowork 技能质量报告与 6 道上线门禁实时刷新数据</text><text class="sr-en" x="36" y="54" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">Measured across WIQD 10-case plugin evals, Cowork skill quality grading, and 6 live system-of-record launch gates</text><line x1="290" y1="92" x2="290" y2="428" stroke="var(--fig-axis-line, rgba(23,36,48,0.24))" stroke-width="1"/><text class="sr-figure-num" x="290" y="450" text-anchor="middle" font-size="11.5" fill="var(--fig-text-subtle, #64748b)">0</text><line x1="439" y1="92" x2="439" y2="428" stroke="var(--fig-grid-line, rgba(23,36,48,0.09))" stroke-width="1" stroke-dasharray="4 4"/><text class="sr-figure-num" x="439" y="450" text-anchor="middle" font-size="11.5" fill="var(--fig-text-subtle, #64748b)">25</text><line x1="588" y1="92" x2="588" y2="428" stroke="var(--fig-grid-line, rgba(23,36,48,0.09))" stroke-width="1" stroke-dasharray="4 4"/><text class="sr-figure-num" x="588" y="450" text-anchor="middle" font-size="11.5" fill="var(--fig-text-subtle, #64748b)">50</text><line x1="736" y1="92" x2="736" y2="428" stroke="var(--fig-grid-line, rgba(23,36,48,0.09))" stroke-width="1" stroke-dasharray="4 4"/><text class="sr-figure-num" x="736" y="450" text-anchor="middle" font-size="11.5" fill="var(--fig-text-subtle, #64748b)">75</text><line x1="885" y1="92" x2="885" y2="428" stroke="var(--fig-grid-line, rgba(23,36,48,0.09))" stroke-width="1" stroke-dasharray="4 4"/><text class="sr-figure-num" x="885" y="450" text-anchor="middle" font-size="11.5" fill="var(--fig-text-subtle, #64748b)">100%</text><text class="sr-zh" x="276" y="124" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">WIQD 插件首轮基准评测（0/10）</text><text class="sr-en" x="276" y="124" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">WIQD Initial Plugin Eval (0/10)</text><rect x="290" y="108" width="6" height="24" rx="6" fill="var(--fig-role-slate-bar, #64748b)" fill-opacity="0.88"/><text class="sr-zh" x="306" y="125" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">0.0%（0/10 初始基线）</text><text class="sr-en" x="306" y="125" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">0.0% (0/10 Baseline)</text><text class="sr-zh" x="276" y="180" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">WIQD 多轮调优后插件评测</text><text class="sr-en" x="276" y="180" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">WIQD Tuned Plugin Eval (10 Cases)</text><rect x="290" y="164" width="463" height="24" rx="6" fill="var(--fig-role-accent-bar, #ea580c)" fill-opacity="0.88"/><text class="sr-zh" x="763" y="181" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">77.8%（达标提审线）</text><text class="sr-en" x="763" y="181" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">77.8% (Submitted to A365)</text><text class="sr-zh" x="276" y="236" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">Cowork 沉淀技能质量评分</text><text class="sr-en" x="276" y="236" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">Cowork Saved Skill Quality Report</text><rect x="290" y="220" width="547" height="24" rx="6" fill="var(--fig-role-violet-bar, #7c3aed)" fill-opacity="0.88"/><text class="sr-zh" x="847" y="237" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">92.0%（触发与指令高分）</text><text class="sr-en" x="847" y="237" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">92.0% (Shared to Team)</text><text class="sr-zh" x="276" y="292" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">Demo 1 初始门禁通过率（4/6）</text><text class="sr-en" x="276" y="292" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">Demo 1 Initial Launch Gates (4/6)</text><rect x="290" y="276" width="397" height="24" rx="6" fill="var(--fig-role-amber-bar, #d97706)" fill-opacity="0.88"/><text class="sr-zh" x="697" y="293" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">66.7%（4/6 · Narrow 状态）</text><text class="sr-en" x="697" y="293" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">66.7% (4/6 · Narrow Scope)</text><text class="sr-zh" x="276" y="348" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">Priya 更新后门禁刷新率（5/6）</text><text class="sr-en" x="276" y="348" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">Demo 1 Live Refresh Gates (5/6)</text><rect x="290" y="332" width="496" height="24" rx="6" fill="var(--fig-role-teal-bar, #0d8f8c)" fill-opacity="0.88"/><text class="sr-zh" x="796" y="349" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">83.3%（5/6 · 对话内直连刷新）</text><text class="sr-en" x="796" y="349" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">83.3% (5/6 · In-Chat Refresh)</text><text class="sr-zh" x="276" y="404" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">Demo 4 终审前门禁通关率（6/6）</text><text class="sr-en" x="276" y="404" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">Demo 4 Final Pre-Approval Gates (6/6)</text><rect x="290" y="388" width="595" height="24" rx="6" fill="var(--fig-role-teal-bar, #0d8f8c)" fill-opacity="0.88"/><text class="sr-zh" x="895" y="405" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">100%（6/6 · 全绿进入发布）</text><text class="sr-en" x="895" y="405" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">100% (6/6 · Ready for Go)</text><text class="sr-zh" x="588" y="474" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">百分比进度 / 质量得分（0% – 100%）</text><text class="sr-en" x="588" y="474" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Readiness Ratio / Evaluation Quality Score (0% – 100%)</text></svg>
+            <figcaption class="diagram-caption"><span data-zh="图 2：汇总 BRK221 全场五次实机演示披露的关键百分比与门禁比值——涵盖 WIQD 10 用例评测从首轮 0/10（0%）迭代跃升至 77.8%、Cowork 内沉淀可复用技能获评 92.0% 质量分，以及 Caldova 门户上线门禁从 4/6（66.7%）实时刷新至 5/6（83.3%）直至终审前 6/6（100%）全绿通关 [1][2]。" data-en="Figure 2: Quantitative progression captured live in BRK221—spanning WIQD's 10-case plugin eval climb from 0% to 77.8%, the 92.0% quality score on a Cowork-authored skill, and live launch-gate clearance advancing from 4/6 (66.7%) to 5/6 (83.3%) and 6/6 (100%) [1][2].">图 2：汇总 BRK221 全场五次实机演示披露的关键百分比与门禁比值——涵盖 WIQD 10 用例评测从首轮 0/10（0%）迭代跃升至 77.8%、Cowork 内沉淀可复用技能获评 92.0% 质量分，以及 Caldova 门户上线门禁从 4/6（66.7%）实时刷新至 5/6（83.3%）直至终审前 6/6（100%）全绿通关 [1][2]。</span></figcaption>
+          </figure>
+        </section>
+
+        <section id="govern-in-agent365" class="section" data-reveal data-present-title-zh="集中治理与遥测洞察：在 Microsoft 365 管理中心管住准入、受众与异常" data-present-title-en="Demo 03: Enterprise Governance in Agent 365—Approvals, Group Rollout, and 30-Day Telemetry">
+          <div class="section-head">
+            <p class="section-kicker">04 / Demo 03: Agent 365 Governance</p>
+            <h2 data-zh="4. 集中治理与遥测洞察：在 Microsoft 365 管理中心管住准入、受众与异常" data-en="4. Demo 03: Enterprise Governance in Agent 365—Approvals, Group Rollout, and 30-Day Telemetry">4. 集中治理与遥测洞察：在 Microsoft 365 管理中心管住准入、受众与异常</h2>
+            <p data-zh="“一次治理，全域复用”的核心控制面落在 &lt;strong&gt;Microsoft 365 管理中心（MAC）&lt;/strong&gt; 的 &lt;code&gt;Agents -&amp;gt; Tools&lt;/code&gt; 注册表视图中，底层复用管理员早已熟悉的 &lt;strong&gt;Agent 365&lt;/strong&gt; 治理框架并平滑延伸至插件、技能、远端服务与连接器四类资产 [1][2][5]。在 BRK221 官方课件实拍界面中，租户管理员不仅能在同一张清单里过滤审阅 &lt;strong&gt;419 款插件&lt;/strong&gt;与 &lt;strong&gt;410 个 MCP 服务&lt;/strong&gt;，还能切入 &lt;code&gt;Requests (preview)&lt;/code&gt; 标签页逐项核查开发者刚刚提交的自研插件申请 [1][2]。" data-en="The operational backbone of “Govern Once, Use Everywhere” lives under &lt;code&gt;Agents -&amp;gt; Tools&lt;/code&gt; in the &lt;strong&gt;Microsoft 365 admin center&lt;/strong&gt;, extending familiar &lt;strong&gt;Agent 365&lt;/strong&gt; controls across plugins, skills, MCP servers, and connectors [1][2][5]. As captured in the official BRK221 admin slides, tenant admins filter across &lt;strong&gt;419 plugins&lt;/strong&gt; and &lt;strong&gt;410 MCP servers&lt;/strong&gt; in a single inventory while reviewing developer submissions in the &lt;code&gt;Requests (preview)&lt;/code&gt; queue [1][2].">“一次治理，全域复用”的核心控制面落在 <strong>Microsoft 365 管理中心（MAC）</strong> 的 <code>Agents -&gt; Tools</code> 注册表视图中，底层复用管理员早已熟悉的 <strong>Agent 365</strong> 治理框架并平滑延伸至插件、技能、远端服务与连接器四类资产 [1][2][5]。在 BRK221 官方课件实拍界面中，租户管理员不仅能在同一张清单里过滤审阅 <strong>419 款插件</strong>与 <strong>410 个 MCP 服务</strong>，还能切入 <code>Requests (preview)</code> 标签页逐项核查开发者刚刚提交的自研插件申请 [1][2]。</p>
+          </div>
+
+          <p data-zh="管理员点开待审的 Caldova 插件条目时，并非盲目点“同意”，而是清晰透视发布者身份、版本号、打包技能以及具体暴露的远端工具操作（如列出发布评审 &lt;code&gt;listing launch reviews&lt;/code&gt;、草拟状态更新 &lt;code&gt;drafting launch updates&lt;/code&gt;、审批上线演示 &lt;code&gt;approving launch demos&lt;/code&gt;）[1][2]。点击 &lt;strong&gt;Approve&lt;/strong&gt; 后，该插件即刻对租户内受权员工生效；对于业务急需的高价值套件（如内置 Dynamics 365 服务与销售技能集的 &lt;strong&gt;Sales&lt;/strong&gt; 插件），管理员更可在右上角点击 &lt;strong&gt;Install&lt;/strong&gt;，精准勾选“仅限销售部门组（Specific users and groups -&amp;gt; Sales）”，几秒钟内完成静默预装，让一线销售打开 Copilot 或 Office 组件即可零配置直接使用 [1][2]。" data-en="Before clicking &lt;strong&gt;Approve&lt;/strong&gt;, admins inspect the publisher, version, packaged skills, and exact remote MCP operations (such as listing launch reviews, drafting updates, and approving demos) [1][2]. Beyond reactive approvals, admins proactively accelerate adoption by selecting a catalog offering—like the &lt;strong&gt;Sales&lt;/strong&gt; plugin bundling a Dynamics 365 MCP server and sales skills—and clicking &lt;strong&gt;Install&lt;/strong&gt; to pre-deploy it directly to the &lt;strong&gt;Sales&lt;/strong&gt; Entra group, while retaining one-click &lt;strong&gt;Block&lt;/strong&gt; authority if policies change [1][2].">管理员点开待审的 Caldova 插件条目时，并非盲目点“同意”，而是清晰透视发布者身份、版本号、打包技能以及具体暴露的远端工具操作（如列出发布评审 <code>listing launch reviews</code>、草拟状态更新 <code>drafting launch updates</code>、审批上线演示 <code>approving launch demos</code>）[1][2]。点击 <strong>Approve</strong> 后，该插件即刻对租户内受权员工生效；对于业务急需的高价值套件（如内置 Dynamics 365 服务与销售技能集的 <strong>Sales</strong> 插件），管理员更可在右上角点击 <strong>Install</strong>，精准勾选“仅限销售部门组（Specific users and groups -&gt; Sales）”，几秒钟内完成静默预装，让一线销售打开 Copilot 或 Office 组件即可零配置直接使用 [1][2]。</p>
+<div class="brk221-media-grid">
+  <article class="brk221-media-card" data-present-surface="unframed">
+    <div class="brk221-media-frame">
+      <img src="./media/brk221-a365-tools-registry.png" alt="BRK221 Slide 19 official screenshot of Microsoft 365 admin center Agents Tools Registry displaying 419 Plugins, 6 Skills, and 410 MCP servers" loading="lazy" />
+    </div>
+    <div class="brk221-media-body">
+      <span class="brk221-media-badge" data-zh="BRK221 官方课件原图 · Slide 19" data-en="BRK221 Official Slide · Slide 19">BRK221 官方课件原图 · Slide 19</span>
+      <h4 data-zh="M365 管理中心 Tools 统一注册表与待批队列" data-en="Unified Tools Registry & Requests Queue in M365 Admin Center">M365 管理中心 Tools 统一注册表与待批队列</h4>
+      <p data-zh="在同一面板分类透视 Plugins（419）、Skills（6）、MCP servers（410）与 Connectors，集中处理组织内上架审批请求 [1][2]。" data-en="Central inventory surfacing Plugins (419), Skills (6), MCP servers (410), and Connectors alongside pending org approval requests [1][2].">在同一面板分类透视 Plugins（419）、Skills（6）、MCP servers（410）与 Connectors，集中处理组织内上架审批请求 [1][2]。</p>
+    </div>
+  </article>
+  <article class="brk221-media-card" data-present-surface="unframed">
+    <div class="brk221-media-frame">
+      <img src="./media/brk221-mcp-usage-insights.jpg" alt="BRK221 Slide 21 official screenshot of MCP Server 30-day usage telemetry in Microsoft 365 admin center showing 1,782 total calls, 4 agents, and 32 exceptions" loading="lazy" />
+    </div>
+    <div class="brk221-media-body">
+      <span class="brk221-media-badge" data-zh="BRK221 官方课件原图 · Slide 21" data-en="BRK221 Official Slide · Slide 21">BRK221 官方课件原图 · Slide 21</span>
+      <h4 data-zh="MCP 服务端点 30 天调用曲线与异常审计" data-en="30-Day MCP Server Call Telemetry & Exception Breakdown">MCP 服务端点 30 天调用曲线与异常审计</h4>
+      <p data-zh="细粒度追踪单个 MCP 服务近 30 天总调用量（如示例中的 1,782 次调用、4 个消费智能体与 32 次异常），支持一键导出或封禁高危端点 [1][2]。" data-en="Tracks 30-day call volume (1,782 total calls, 4 consuming agents, 32 exceptions in slide capture) with CSV export and instant Block action [1][2].">细粒度追踪单个 MCP 服务近 30 天总调用量（如示例中的 1,782 次调用、4 个消费智能体与 32 次异常），支持一键导出或封禁高危端点 [1][2]。</p>
+    </div>
+  </article>
+</div>
+<p data-zh="上线后的持续保护与优化同样依托真实遥测数据闭环 [1][2]：在工具详情抽屉的 &lt;code&gt;Activity&lt;/code&gt; 标签页下，系统自动绘制过去 &lt;strong&gt;30 天&lt;/strong&gt;的每日调用趋势折线，并按消费智能体逐行拆解调用次数、异常报错数（Exceptions）与最后活跃时间（如 Slide 21 实拍中单服务端点累计 &lt;code&gt;1,782&lt;/code&gt; 次调用、关联 &lt;code&gt;4&lt;/code&gt; 个智能体、捕获 &lt;code&gt;32&lt;/code&gt; 次异常），帮助运维团队及时定位连接器故障或异常激增并在必要时一键 &lt;strong&gt;Block&lt;/strong&gt; 熔断 [1][2]。" data-en="Post-deployment protection relies on granular observability [1][2]: the &lt;code&gt;Activity&lt;/code&gt; tab charts &lt;strong&gt;30-day&lt;/strong&gt; daily call spikes and breaks down consumption and exception counts per agent (showing &lt;code&gt;1,782&lt;/code&gt; total calls across &lt;code&gt;4&lt;/code&gt; agents and &lt;code&gt;32&lt;/code&gt; exceptions in Slide 21), letting admins diagnose failing endpoints or click &lt;strong&gt;Block&lt;/strong&gt; immediately [1][2].">上线后的持续保护与优化同样依托真实遥测数据闭环 [1][2]：在工具详情抽屉的 <code>Activity</code> 标签页下，系统自动绘制过去 <strong>30 天</strong>的每日调用趋势折线，并按消费智能体逐行拆解调用次数、异常报错数（Exceptions）与最后活跃时间（如 Slide 21 实拍中单服务端点累计 <code>1,782</code> 次调用、关联 <code>4</code> 个智能体、捕获 <code>32</code> 次异常），帮助运维团队及时定位连接器故障或异常激增并在必要时一键 <strong>Block</strong> 熔断 [1][2]。</p>
+        </section>
+
+        <section id="skills-and-ecosystem" class="section" data-reveal data-present-title-zh="全员共创与生态合力：对话内沉淀高分技能，调用 Adobe 插件冲刺上线" data-present-title-en="Demos 04 &amp; 05: User-Authored Skills in Cowork and Last-Mile Launch with the Adobe Plugin">
+          <div class="section-head">
+            <p class="section-kicker">05 / Demos 04 &amp; 05: Inline Skills &amp; Partner Plugins</p>
+            <h2 data-zh="5. 全员共创与生态合力：对话内沉淀高分技能，调用 Adobe 插件冲刺上线" data-en="5. Demos 04 &amp; 05: User-Authored Skills in Cowork and Last-Mile Launch with the Adobe Plugin">5. 全员共创与生态合力：对话内沉淀高分技能，调用 Adobe 插件冲刺上线</h2>
+            <p data-zh="除了研发团队用命令行构建重型业务插件，一线业务人员同样能在日常工作流中反哺组织资产，且全过程不脱离管理员视野 [1]。在第四场演示中，门禁看板已刷新至 &lt;strong&gt;6 / 6 全绿通关&lt;/strong&gt;，Rachit 在向高管 Mandy 与 Simon 发出最终上线审批邮件后，顺手将这套高频重复的“核查门禁 + 起草高层简报”动作在 Cowork 对话流内直接保存为名为 &lt;code&gt;Launch Readiness&lt;/code&gt; 的可复用技能 [1]。系统当场生成涵盖适用场景、禁用边界、状态刷新方法与标准步骤的结构化说明，并自动出具一份 &lt;strong&gt;92%&lt;/strong&gt; 的质量评估报告（检验触发时机与指令清晰度）[1]。" data-en="Extensibility is not limited to pro-code developers—every Copilot Cowork user can capture repeatable workflows as shared skills without creating ungoverned shadow IT [1]. In Demo 4, once all &lt;strong&gt;6 of 6&lt;/strong&gt; gates clear and Rachit emails leadership for final sign-off, he saves the status-reporting pattern inline as a &lt;code&gt;Launch Readiness&lt;/code&gt; skill. Copilot generates structured usage boundaries, refresh steps, and an automatic &lt;strong&gt;92%&lt;/strong&gt; quality report verifying trigger accuracy before sharing [1].">除了研发团队用命令行构建重型业务插件，一线业务人员同样能在日常工作流中反哺组织资产，且全过程不脱离管理员视野 [1]。在第四场演示中，门禁看板已刷新至 <strong>6 / 6 全绿通关</strong>，Rachit 在向高管 Mandy 与 Simon 发出最终上线审批邮件后，顺手将这套高频重复的“核查门禁 + 起草高层简报”动作在 Cowork 对话流内直接保存为名为 <code>Launch Readiness</code> 的可复用技能 [1]。系统当场生成涵盖适用场景、禁用边界、状态刷新方法与标准步骤的结构化说明，并自动出具一份 <strong>92%</strong> 的质量评估报告（检验触发时机与指令清晰度）[1]。</p>
+          </div>
+
+          <p data-zh="当 Rachit 将这项技能一键分享给同事 Mandy 时，底层实际将其封装为“仅含单项技能的轻量插件包”写入统一注册表 [1]：一方面，管理员切回 Agent 365 管理台即刻就能查看到该包的新建与更新时间及受权用户名单（Mandy 实时在列）；另一方面，Mandy 在 Copilot Home、Code、Autopilot 乃至桌面 Office 应用的插件目录中都能立即安装复用 [1]。演示中还出现了一处颇具真实感的现场插曲——当 Rachit 试图让 Copilot 读取 Mandy 刚发来的审批回复并回写外部门禁库时，演示环境连接器偶发断连未响应，恰好从侧面印证了前一节 Agent 365 异常监控看板在真实生产运维中的必要性 [1]。" data-en="Sharing that skill with Mandy packages it under the hood as a single-skill plugin inside the central registry—giving admins immediate user-level visibility in Agent 365 while making the skill installable across Home, Code, Autopilot, and Office [1]. Even a candid live-demo hiccup—when the external connector briefly timed out while writing Mandy's approval reply back to the database—underscored why Agent 365's exception telemetry matters in real enterprise rollouts [1].">当 Rachit 将这项技能一键分享给同事 Mandy 时，底层实际将其封装为“仅含单项技能的轻量插件包”写入统一注册表 [1]：一方面，管理员切回 Agent 365 管理台即刻就能查看到该包的新建与更新时间及受权用户名单（Mandy 实时在列）；另一方面，Mandy 在 Copilot Home、Code、Autopilot 乃至桌面 Office 应用的插件目录中都能立即安装复用 [1]。演示中还出现了一处颇具真实感的现场插曲——当 Rachit 试图让 Copilot 读取 Mandy 刚发来的审批回复并回写外部门禁库时，演示环境连接器偶发断连未响应，恰好从侧面印证了前一节 Agent 365 异常监控看板在真实生产运维中的必要性 [1]。</p>
+<div class="compare-table-wrap" data-present-step data-present-surface="unframed" data-step-title="全员共创与生态合力：对话内沉淀高分技能，调用 Adobe 插件冲刺上线：对比矩阵" data-step-title-en="Demos 04 &amp; 05: User-Authored Skills in Cowork and Last-Mile Launch with the Adobe Plugin: Comparison Matrix" data-present-title-zh="全员共创与生态合力：对话内沉淀高分技能，调用 Adobe 插件冲刺上线：对比矩阵" data-present-title-en="Demos 04 &amp; 05: User-Authored Skills in Cowork and Last-Mile Launch with the Adobe Plugin: Comparison Matrix" data-step-label="05 / Demos 04 &amp; 05: Inline Skills &amp; Partner Plugins" data-step-label-en="05 / Demos 04 &amp; 05: Inline Skills &amp; Partner Plugins" data-present-i18n-invariant="label"><table class="simple-table compare-table">
+<thead>
+<tr>
+<th data-zh="角色与阶段" data-en="Persona &amp;amp; Stage">角色与阶段</th>
+<th data-zh="核心工具与入口" data-en="Primary Surface &amp;amp; Tooling">核心工具与入口</th>
+<th data-zh="输入资产与治理控制" data-en="Inputs &amp;amp; Governance Guardrails">输入资产与治理控制</th>
+<th data-zh="跨端交付产物" data-en="Cross-Surface Outputs">跨端交付产物</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-zh="业务负责人：发现与评估（Demo 1）" data-en="Launch Owner: Discover &amp;amp; Assess">业务负责人：发现与评估（Demo 1）</td>
+<td>Copilot Home / Cowork + Microsoft Excel</td>
+<td data-zh="启用已批自研插件，融合 Work IQ 聊天脉络与远端门禁库 [1]" data-en="Toggle approved plugin blending Work IQ context with remote MCP data [1]">启用已批自研插件，融合 Work IQ 聊天脉络与远端门禁库 [1]</td>
+<td data-zh="交互式 MCP App 门禁卡片（4/6→5/6）与高管格式 Excel 报表 [1]" data-en="Interactive MCP App gate widget (4/6→5/6) &amp;amp; formatted Excel report [1]">交互式 MCP App 门禁卡片（4/6→5/6）与高管格式 Excel 报表 [1]</td>
+</tr>
+<tr>
+<td data-zh="研发工程师：构建与评测（Demo 2）" data-en="Pro Developer: Build &amp;amp; Evaluate">研发工程师：构建与评测（Demo 2）</td>
+<td>GitHub Copilot + Work IQ Developer Tools (<code>WIQD</code>)</td>
+<td data-zh="远端 MCP 地址 + OneDrive 品牌图标；本地校验 &lt;code&gt;manifest.json&lt;/code&gt; 并跑 10 项评测（77.8%）[1][4]" data-en="Remote MCP URL + OneDrive icons; local manifest check &amp;amp; 10-case evals (77.8%) [1][4]">远端 MCP 地址 + OneDrive 品牌图标；本地校验 <code>manifest.json</code> 并跑 10 项评测（77.8%）[1][4]</td>
+<td data-zh="标准插件包预览链接与推送至 Agent 365 的上架审批单 [1]" data-en="Validated plugin preview &amp;amp; formal org catalog request in A365 [1]">标准插件包预览链接与推送至 Agent 365 的上架审批单 [1]</td>
+</tr>
+<tr>
+<td data-zh="租户管理员：审批与预装（Demo 3）" data-en="Tenant Admin: Approve &amp;amp; Govern">租户管理员：审批与预装（Demo 3）</td>
+<td>Microsoft 365 管理中心（<code>Agents -&gt; Tools</code> / Agent 365）</td>
+<td data-zh="审查暴露工具列表与版本；按 Entra 部门组静默预装并盯防 30 天异常曲线 [1][5]" data-en="Audit exposed MCP tools; pre-install to Entra groups &amp;amp; track 30-day exceptions [1][5]">审查暴露工具列表与版本；按 Entra 部门组静默预装并盯防 30 天异常曲线 [1][5]</td>
+<td data-zh="全租户受控可见目录、销售组开箱即用插件及一键封禁熔断能力 [1]" data-en="Governed catalog, pre-installed Sales group tools &amp;amp; 1-click Block [1]">全租户受控可见目录、销售组开箱即用插件及一键封禁熔断能力 [1]</td>
+</tr>
+<tr>
+<td data-zh="业务共创与生态冲刺（Demo 4 &amp;amp; 5）" data-en="Co-Author &amp;amp; Partner Launch">业务共创与生态冲刺（Demo 4 &amp; 5）</td>
+<td>Copilot Cowork + Microsoft Word + <strong>Adobe Plugin</strong></td>
+<td data-zh="对话内沉淀单技能包（92% 质量分，A365 留痕）；人工复核机密脱敏红线 [1][3]" data-en="Save inline skill (92% quality score, A365 tracked); human redaction review [1][3]">对话内沉淀单技能包（92% 质量分，A365 留痕）；人工复核机密脱敏红线 [1][3]</td>
+<td data-zh="跨社交平台多尺寸宣传图、15/20/45 秒短视频切条与公开版白皮书 PDF [1][2]" data-en="Resized social images, 15/20/45s video cuts &amp;amp; redacted whitepaper PDFs [1][2]">跨社交平台多尺寸宣传图、15/20/45 秒短视频切条与公开版白皮书 PDF [1][2]</td>
+</tr>
+</tbody>
+</table></div>
+<p data-zh="在最终拍板上线后的第五场演示中，团队直接调用公共注册表内现成的 &lt;strong&gt;Adobe 插件&lt;/strong&gt;，在几分钟内清空了原本耗时数日的上市营销物料清单 [1][2]：其一，上传 4 张门户宣传原图并指名发布至 Facebook、Instagram 与 LinkedIn，插件内置技能自动映射各平台画幅规范完成批量裁切（用户无需背诵任何像素尺寸）；其二，对保存在 OneDrive 中的约 3–4 分钟上线长视频下达指令，自动剪辑输出 &lt;strong&gt;15 秒、20 秒与 45 秒&lt;/strong&gt;三档短视频供各渠道下载分发；其三，在 Microsoft Word 右侧同时挂载自研门禁插件与 Adobe 插件，将含内部机密数据的营销初稿提炼为对外白皮书与精简宣传册，并在内嵌 &lt;strong&gt;Acrobat 微件&lt;/strong&gt;中强制等待人工核验确认“零机密信息残留”后，方才生成最终对外发布的精美 PDF 文档 [1][2]。" data-en="With launch approved, Demo 5 tapped the out-of-the-box &lt;strong&gt;Adobe plugin&lt;/strong&gt; from the public registry to clear three last-mile marketing tasks in minutes [1][2]. First, it automatically resized four promo images to the exact Facebook, Instagram, and LinkedIn aspect ratios encoded in the plugin's skills. Second, it sliced a 3–4 minute OneDrive launch video into &lt;strong&gt;15-second, 20-second, and 45-second&lt;/strong&gt; short-form cuts. Third, it paired the custom readiness plugin with Adobe right inside Microsoft Word to turn a confidential draft into a public whitepaper and brochure, pausing inside an embedded &lt;strong&gt;Acrobat widget&lt;/strong&gt; for human redaction sign-off before exporting final PDFs [1][2].">在最终拍板上线后的第五场演示中，团队直接调用公共注册表内现成的 <strong>Adobe 插件</strong>，在几分钟内清空了原本耗时数日的上市营销物料清单 [1][2]：其一，上传 4 张门户宣传原图并指名发布至 Facebook、Instagram 与 LinkedIn，插件内置技能自动映射各平台画幅规范完成批量裁切（用户无需背诵任何像素尺寸）；其二，对保存在 OneDrive 中的约 3–4 分钟上线长视频下达指令，自动剪辑输出 <strong>15 秒、20 秒与 45 秒</strong>三档短视频供各渠道下载分发；其三，在 Microsoft Word 右侧同时挂载自研门禁插件与 Adobe 插件，将含内部机密数据的营销初稿提炼为对外白皮书与精简宣传册，并在内嵌 <strong>Acrobat 微件</strong>中强制等待人工核验确认“零机密信息残留”后，方才生成最终对外发布的精美 PDF 文档 [1][2]。</p>
+        </section>
+
+        <section id="references" class="section" data-reveal data-present-title-zh="参考资料：官方一手信源与关联议题" data-present-title-en="References: Official Primary Sources &amp; Related Sessions" data-density-exempt="references">
+          <div class="section-head">
+            <p class="section-kicker">06 / References: Official Primary Sources &amp; Related Sessions</p>
+            <h2 data-zh="6. 参考资料：官方一手信源与关联议题" data-en="6. References: Official Primary Sources &amp; Related Sessions">6. 参考资料：官方一手信源与关联议题</h2>
+          </div>
+
+          <ol class="bib-list">
+            <li id="ref-1">
+              <span class="bib-id">[1]</span>
+              <span class="bib-author">Mandy Whaley &amp; Rachit Malik (Microsoft Ignite 2026 BRK221 Video &amp; Transcript)</span> —
+              <a href="https://ignite.microsoft.com/en-US/sessions/1787856606537001E7eU-1791588336053001C2T6" target="_blank" rel="noopener">https://ignite.microsoft.com/en-US/sessions/1787856606537001E7eU-1791588336053001C2T6</a>
+              <span class="bib-note" data-zh="《Govern Once, Use Everywhere: Scale Copilot with Microsoft Plugin Registry》45 分钟官方点播实录与双语时间轴字幕（2026-11-19）" data-en="Official 45-minute breakout recording and WebVTT transcripts (Nov 19, 2026)">《Govern Once, Use Everywhere: Scale Copilot with Microsoft Plugin Registry》45 分钟官方点播实录与双语时间轴字幕（2026-11-19）</span>
+            </li>
+            <li id="ref-2">
+              <span class="bib-id">[2]</span>
+              <span class="bib-author">Mandy Whaley &amp; Rachit Malik (BRK221 Official Slide Deck &amp; Medius Stream)</span> —
+              <a href="https://medius.microsoft.com/Embed/video-nc/f2b7f27d-492d-4bb5-a3e5-8d5ef79dbef5" target="_blank" rel="noopener">https://medius.microsoft.com/Embed/video-nc/f2b7f27d-492d-4bb5-a3e5-8d5ef79dbef5</a>
+              <span class="bib-note" data-zh="BRK221 官方内嵌点播流与原版 31 页 PPTX 讲义（&lt;code&gt;https://medius.microsoft.com/video/asset/PPT/f2b7f27d-492d-4bb5-a3e5-8d5ef79dbef5&lt;/code&gt;）" data-en="Official Medius on-demand player and 31-slide PPTX presentation deck">BRK221 官方内嵌点播流与原版 31 页 PPTX 讲义（<code>https://medius.microsoft.com/video/asset/PPT/f2b7f27d-492d-4bb5-a3e5-8d5ef79dbef5</code>）</span>
+            </li>
+            <li id="ref-3">
+              <span class="bib-id">[3]</span>
+              <span class="bib-author">Microsoft Copilot Plugin Catalog</span> —
+              <a href="https://aka.ms/plugins" target="_blank" rel="noopener">https://aka.ms/plugins</a>
+              <span class="bib-note" data-zh="微软官方 Copilot 插件公共目录（汇聚 Adobe、Asana、LinkedIn 等超 350 款生态伙伴插件与角色套件）" data-en="Official Microsoft Copilot Plugin Catalog featuring 350+ partner plugins across enterprise SaaS">微软官方 Copilot 插件公共目录（汇聚 Adobe、Asana、LinkedIn 等超 350 款生态伙伴插件与角色套件）</span>
+            </li>
+            <li id="ref-4">
+              <span class="bib-id">[4]</span>
+              <span class="bib-author">Work IQ Developer Tools (WIQD Documentation &amp; CLI)</span> —
+              <a href="https://aka.ms/wiqd" target="_blank" rel="noopener">https://aka.ms/wiqd</a>
+              <span class="bib-note" data-zh="Work IQ Developer Tools 官方入门指南：在 GitHub Copilot 与编码智能体中构建、校验、评测与发布自定义插件" data-en="Official developer guide for building, validating, evaluating, and publishing Copilot plugins with WIQD">Work IQ Developer Tools 官方入门指南：在 GitHub Copilot 与编码智能体中构建、校验、评测与发布自定义插件</span>
+            </li>
+            <li id="ref-5">
+              <span class="bib-id">[5]</span>
+              <span class="bib-author">Microsoft Ignite 2026 Companion Track (BRK237 / LTG1220 / BRK220)</span> —
+              <a href="https://ignite.microsoft.com/en-US/sessions" target="_blank" rel="noopener">https://ignite.microsoft.com/en-US/sessions</a>
+              <span class="bib-note" data-zh="BRK221 课件第 29 页关联专场（插件架构与连接器治理）" data-en="Slide 29 companion sessions on plugin architecture and Agent 365 scale management">BRK221 课件第 29 页关联专场（插件架构与连接器治理）</span>
+            </li>
+          </ol>
+        </section>
+      </main>
+
+      <footer class="site-footer" data-reveal>
+        <p data-zh="© 2026 Knowledge Hub · Genesis 纯静态 Markdown 编译管线生成" data-en="© 2026 Knowledge Hub · Generated by Genesis Static Markdown Compiler">© 2026 Knowledge Hub · Genesis 纯静态 Markdown 编译管线生成</p>
+      </footer>
+    </div>
+  </div>
+
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/article-narration.js"></script>
+  <script src="../../assets/pptx-export.js"></script>
+  <script src="../../assets/article-math.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+  <script src="./brk221-session.js"></script>
+  <script>
+    (function () {
+      var buttons = document.querySelectorAll("[data-genesis-mode]");
+      var drawer = document.getElementById("genesis-source-drawer");
+      var i;
+      function setMode(mode) {
+        for (var j = 0; j < buttons.length; j++) {
+          var btn = buttons[j];
+          var active = btn.getAttribute("data-genesis-mode") === mode;
+          if (active) {
+            btn.classList.add("is-active");
+          } else {
+            btn.classList.remove("is-active");
+          }
+        }
+        if (mode === "linear") {
+          document.body.classList.add("is-linear-reading");
+          if (drawer) drawer.classList.remove("is-open");
+        } else if (mode === "source") {
+          document.body.classList.remove("is-linear-reading");
+          if (drawer) drawer.classList.add("is-open");
+        } else {
+          document.body.classList.remove("is-linear-reading");
+          if (drawer) drawer.classList.remove("is-open");
+        }
+      }
+      for (i = 0; i < buttons.length; i++) {
+        (function (btn) {
+          btn.addEventListener("click", function () {
+            setMode(btn.getAttribute("data-genesis-mode"));
+          });
+        })(buttons[i]);
+      }
+    })();
+  </script>
+</body>
+</html>

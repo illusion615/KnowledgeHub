@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-section-density="strict" data-present-i18n="strict" data-cite-links>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Microsoft Ignite 2026 [BRK258]：智能体自动化——Copilot Studio 如何双向融合确定性工作流与推理智能体</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <link rel="stylesheet" href="../../assets/article-figure.css" />
+  <link rel="stylesheet" href="./brk258-session-showcase.css" />
+  <style>
+    :root {
+      --accent: #2563eb;
+      --teal: #0d8f8c;
+    }
+    html.is-presentation-mode .section:has([data-present-step]) > .section-head {
+      display: none;
+    }
+    .hero-copy h1 {
+      font-size: clamp(2.1rem, 5vw, 3.8rem);
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+      max-width: 20ch;
+    }
+    .hero-panel .layer-list { position: relative; margin-top: 18px; }
+    .insight-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .insight-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .insight-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    @media (max-width: 980px) {
+      .insight-grid-3, .insight-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 680px) {
+      .insight-grid-2, .insight-grid-3, .insight-grid-4 { grid-template-columns: 1fr; }
+    }
+    .compare-table-wrap {
+      margin-top: 18px;
+      overflow-x: auto;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 6px 14px;
+      box-shadow: var(--shadow);
+    }
+    .compare-table-wrap .compare-table {
+      width: 100%;
+      min-width: 680px;
+      border-collapse: collapse;
+      margin-top: 0;
+      font-size: 0.9rem;
+    }
+    .compare-table-wrap .compare-table th {
+      text-align: left;
+      padding: 12px 14px;
+      background: rgba(15, 23, 42, 0.04);
+      border-bottom: 2px solid rgba(15, 23, 42, 0.1);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-weight: 700;
+      font-size: 0.8rem;
+      letter-spacing: 0.04em;
+      text-transform: none;
+      color: var(--ink);
+      vertical-align: bottom;
+    }
+    .compare-table-wrap .compare-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+      line-height: 1.65;
+      color: var(--ink);
+      vertical-align: top;
+    }
+    .compare-table-wrap .compare-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+    .compare-table-wrap .compare-table td:first-child {
+      font-weight: 600;
+      min-width: 150px;
+    }
+    .compare-table-wrap .compare-table code,
+    .section p code,
+    .flow-copy code,
+    .insight-card code,
+    .comparison-card code,
+    .quote-block code,
+    .subsection-toggle code,
+    .subsection-content p code,
+    .bib-list code {
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.84em;
+      padding: 2px 6px;
+      border-radius: 5px;
+      background: rgba(15, 23, 42, 0.06);
+      color: var(--ink);
+    }
+    [data-theme="dark"] .compare-table-wrap {
+      background: rgba(22, 29, 38, 0.9);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+    [data-theme="dark"] .compare-table-wrap .compare-table th {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.12);
+      color: var(--ink);
+    }
+    [data-theme="dark"] .compare-table-wrap .compare-table td {
+      border-color: rgba(255, 255, 255, 0.07);
+      color: var(--ink);
+    }
+    [data-theme="dark"] .compare-table-wrap .compare-table code,
+    [data-theme="dark"] .section p code,
+    [data-theme="dark"] .flow-copy code,
+    [data-theme="dark"] .insight-card code,
+    [data-theme="dark"] .comparison-card code,
+    [data-theme="dark"] .quote-block code,
+    [data-theme="dark"] .subsection-toggle code,
+    [data-theme="dark"] .subsection-content p code,
+    [data-theme="dark"] .bib-list code {
+      background: rgba(255, 255, 255, 0.1);
+      color: #e2e8f0;
+    }
+    .timeline-list > .flow-step::before {
+      background: linear-gradient(135deg, var(--teal), #14b8a6);
+    }
+    .insight-callout {
+      border-left: 4px solid var(--teal);
+    }
+    .code-block {
+      margin: 18px 0;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .code-block pre {
+      margin: 0;
+      padding: 20px 22px;
+      background: rgba(16, 31, 43, 0.95);
+      color: #cdd6e0;
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.82rem;
+      line-height: 1.68;
+      overflow-x: auto;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+    }
+    [data-theme="dark"] .code-block pre {
+      background: rgba(0, 0, 0, 0.46);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+    .mermaid-container {
+      margin: 22px 0;
+      padding: 24px 18px;
+      border-radius: var(--radius-md);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      text-align: center;
+      overflow-x: auto;
+    }
+    .generated-diagram {
+      margin-top: 22px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+    .generated-diagram img {
+      display: block;
+      width: 100%;
+      height: auto;
+      object-fit: contain;
+    }
+    html[lang="en"] .diagram-zh,
+    html:not([lang="en"]) .diagram-en { display: none; }
+    .diagram-caption {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+    .diagram-caption a { color: var(--teal); font-weight: 600; white-space: nowrap; }
+    [data-theme="dark"] .generated-diagram {
+      background: rgba(22, 29, 38, 0.9);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+    .sandbox-slot {
+      margin-top: 22px;
+      padding: 22px;
+      border-radius: var(--radius-lg);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+    .sandbox-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .sandbox-title-group h3 { margin: 10px 0 6px; font-size: 1.18rem; }
+    .sandbox-title-group p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+    .sandbox-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .sandbox-stage {
+      border-radius: var(--radius-md);
+      background: rgba(16, 31, 43, 0.04);
+      border: 1px solid var(--line);
+      padding: 14px;
+      overflow: hidden;
+    }
+    [data-theme="dark"] .sandbox-stage {
+      background: rgba(0, 0, 0, 0.28);
+    }
+    .sandbox-canvas {
+      display: block;
+      width: 100%;
+      max-height: 300px;
+      border-radius: 10px;
+    }
+    /* Dual-view switcher bar (Progressive / Linear / Markdown Source) */
+    .genesis-view-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 18px 0 8px;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      font-size: 0.82rem;
+    }
+    .genesis-view-status {
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .genesis-view-buttons {
+      display: inline-flex;
+      gap: 6px;
+    }
+    .genesis-view-btn {
+      appearance: none;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.18s ease, color 0.18s ease;
+    }
+    .genesis-view-btn.is-active {
+      background: linear-gradient(135deg, var(--accent), #ff9340);
+      color: #fff;
+    }
+    .genesis-source-drawer {
+      display: none;
+      margin: 18px 0 28px;
+      padding: 20px;
+      border-radius: var(--radius-lg);
+      background: rgba(16, 31, 43, 0.96);
+      color: #dbe4ee;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      overflow-x: auto;
+    }
+    .genesis-source-drawer.is-open { display: block; }
+    .genesis-source-drawer pre {
+      margin: 0;
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.8rem;
+      line-height: 1.65;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    body.is-linear-reading .subsection-content {
+      max-height: none !important;
+      opacity: 1 !important;
+      overflow: visible !important;
+      padding: 0 24px 24px !important;
+    }
+    .is-presentation-mode .genesis-view-bar,
+    .is-presentation-mode .genesis-source-drawer {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            <span data-zh="Study Room Copilot Studio" data-en="Study Room Copilot Studio">Study Room Copilot Studio</span>
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#automation-imperative" data-zh="自动化经济账与确定性悖论" data-en="Automation Economics &amp; Determinism">自动化经济账与确定性悖论</a>
+            <a href="#bidirectional-blending" data-zh="双向融合架构与计费选型" data-en="Bidirectional Architecture &amp; Licensing">双向融合架构与计费选型</a>
+            <a href="#smarter-steps-scale" data-zh="三大演进路线图" data-en="Roadmap Deep Dive">三大演进路线图</a>
+            <a href="#live-demo-walkthrough" data-zh="实机演示全链路复盘" data-en="Live Demo Anatomy">实机演示全链路复盘</a>
+            <a href="#references" data-zh="参考资料" data-en="References">参考资料</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow" data-zh="Microsoft Ignite 2026 · BRK258 Official Deep Dive" data-en="Microsoft Ignite 2026 · BRK258 Official Deep Dive">Microsoft Ignite 2026 · BRK258 Official Deep Dive</span>
+            <h1 data-zh="Microsoft Ignite 2026 [BRK258]：智能体自动化——Copilot Studio 如何双向融合确定性工作流与推理智能体" data-en="Microsoft Ignite 2026 [BRK258]: Agentic Automation—How Copilot Studio Blends Workflows and Agents">Microsoft Ignite 2026 [BRK258]：智能体自动化——Copilot Studio 如何双向融合确定性工作流与推理智能体</h1>
+            <p data-zh="单纯把企业流程塞给大语言模型智能体，会在审批与账务环节因路径随机与成本失控而折戟；而固守纯确定性规则流，一旦遭遇版式突变的发票或带咖啡渍的机票扫描件便立刻报错停摆 [1]。在 Microsoft Ignite 2026 专场 BRK258 中，Copilot Studio 产品经理 Joe Fernandez 完整拆解了“确定性工作流锁死步骤序列 + 智能体节点注入判断力”的双向编排架构，发布 0.06 秒专用决策模型分类节点、真实文件输出、行内 Python 代码节点与逐动作额度账本，并现场搭建了千封大会邮件六路分流工作流 [1][2]。" data-en="Handing entire enterprise processes to an unconstrained LLM agent breaks compliance order and inflates token bills, whereas rigid classic flows halt the moment an invoice layout shifts or a coffee-stained receipt arrives [1]. In Microsoft Ignite 2026 session BRK258, Copilot Studio Product Manager Joe Fernandez detailed a bidirectional architecture that pairs deterministic step guarantees with adaptive agent judgment, unveiling a 0.06-second Decision-model Classify node, real file outputs, inline Python execution, and per-action credit visibility alongside a live six-branch inbox triage build [1][2].">单纯把企业流程塞给大语言模型智能体，会在审批与账务环节因路径随机与成本失控而折戟；而固守纯确定性规则流，一旦遭遇版式突变的发票或带咖啡渍的机票扫描件便立刻报错停摆 [1]。在 Microsoft Ignite 2026 专场 BRK258 中，Copilot Studio 产品经理 Joe Fernandez 完整拆解了“确定性工作流锁死步骤序列 + 智能体节点注入判断力”的双向编排架构，发布 0.06 秒专用决策模型分类节点、真实文件输出、行内 Python 代码节点与逐动作额度账本，并现场搭建了千封大会邮件六路分流工作流 [1][2]。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#automation-imperative" data-zh="阅读核心章节" data-en="Explore Core Chapters">阅读核心章节</a>
+              <a class="button button-secondary" href="#bidirectional-blending" data-zh="双向融合架构与计费选型" data-en="Bidirectional Architecture &amp; Licensing">双向融合架构与计费选型</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label" data-zh="BRK258 核心工程结论" data-en="BRK258 Engineering Takeaways">BRK258 核心工程结论</span>
+            <h2 data-zh="用工作流锁死骨架，在判断处嵌入智能" data-en="Lock the Spine with Workflows, Inject Judgment with Agents">用工作流锁死骨架，在判断处嵌入智能</h2>
+            <p data-zh="围绕“更聪明步骤、规模化投产、极速构建”三大演进轴心，打通从自然语言草稿到服务主体托管的闭环 [1][2]。" data-en="Anchored on Smarter Steps, Enterprise Scale, and Faster Authoring from natural-language drafts to service-principal production [1][2].">围绕“更聪明步骤、规模化投产、极速构建”三大演进轴心，打通从自然语言草稿到服务主体托管的闭环 [1][2]。</p>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span><span data-zh="双向可组合编排 — 工作流内嵌五类智能节点，或将工作流反向挂载为智能体的确定性工具 [1][2]" data-en="Bidirectional Composition — Embed five AI node types inside workflows or expose workflows as deterministic agent tools [1][2]">双向可组合编排 — 工作流内嵌五类智能节点，或将工作流反向挂载为智能体的确定性工具 [1][2]</span></li>
+              <li><span class="layer-number">2</span><span data-zh="专用决策模型降本提速 — Classify 节点接入 Microsoft-Decision-1.1，0.06 秒完成路由，比传统大模型快约 35 倍、省 200 倍 [1][2]" data-en="Decision Model Breakthrough — Classify with Microsoft-Decision-1.1 routes items in 0.06s, ~35x faster and 200x cheaper than an LLM [1][2]">专用决策模型降本提速 — Classify 节点接入 Microsoft-Decision-1.1，0.06 秒完成路由，比传统大模型快约 35 倍、省 200 倍 [1][2]</span></li>
+              <li><span class="layer-number">3</span><span data-zh="逐动作精细化治理 — 纯确定性步骤固定 0.13 Credit（$0.0013），配合环境变量、JSON 源码视图与服务主体消除单点依赖 [1][2]" data-en="Action-Level Governance — Deterministic steps cost a flat 0.13 Credit ($0.0013), paired with env variables, JSON view, and service principals [1][2]">逐动作精细化治理 — 纯确定性步骤固定 0.13 Credit（$0.0013），配合环境变量、JSON 源码视图与服务主体消除单点依赖 [1][2]</span></li>
+            </ul>
+          </aside>
+        </div>
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label" data-zh="决策模型单次分类延迟" data-en="Decision Classify Latency">决策模型单次分类延迟</div>
+            <strong data-zh="0.06 秒" data-en="0.06 s">0.06 秒</strong>
+            <span data-zh="较传统大模型中位延迟快约 35 倍、成本低 200 倍，并原生返回置信度分值 [1][2]" data-en="~35x faster and 200x cheaper than an LLM while returning calibrated confidence scores [1][2]">较传统大模型中位延迟快约 35 倍、成本低 200 倍，并原生返回置信度分值 [1][2]</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="非 AI 确定性动作单价" data-en="Deterministic Step Rate">非 AI 确定性动作单价</div>
+            <strong>0.13 Credit</strong>
+            <span data-zh="折合 0.0013 美元/步（1 Credit = $0.01），垃圾邮件归档等动作零词元消耗 [1][2]" data-en="Equals $0.0013 per step (1 Credit = $0.01), handling routine routing with zero LLM token burn [1][2]">折合 0.0013 美元/步（1 Credit = $0.01），垃圾邮件归档等动作零词元消耗 [1][2]</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="可自动化工作时长占比" data-en="Automatable Work Hours">可自动化工作时长占比</div>
+            <strong>57%</strong>
+            <span data-zh="麦肯锡测算现有技术可自动化美国 57% 工作任务，到 2030 年释放约 2.9 万亿美元价值 [1][2]" data-en="McKinsey estimates 57% of US work hours can be automated today, unlocking ~$2.9T by 2030 [1][2]">麦肯锡测算现有技术可自动化美国 57% 工作任务，到 2030 年释放约 2.9 万亿美元价值 [1][2]</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="genesis-view-bar load-in" role="region" aria-label="Genesis 视图模式切换">
+        <span class="genesis-view-status" data-zh="Genesis 纯静态编译产物 · 零后端依赖 · 支持渐进披露与源稿对照" data-en="Genesis Static Compiled Artifact · Zero Backend · Progressive &amp; Source View">Genesis 纯静态编译产物 · 零后端依赖 · 支持渐进披露与源稿对照</span>
+        <div class="genesis-view-buttons">
+          <button type="button" class="genesis-view-btn is-active" data-genesis-mode="progressive" data-zh="渐进披露视图" data-en="Progressive View">渐进披露视图</button>
+          <button type="button" class="genesis-view-btn" data-genesis-mode="linear" data-zh="线性展开视图" data-en="Linear View">线性展开视图</button>
+          <button type="button" class="genesis-view-btn" data-genesis-mode="source" data-zh="Markdown 源稿对照" data-en="Markdown Source">Markdown 源稿对照</button>
+        </div>
+      </div>
+      <section class="genesis-source-drawer" id="genesis-source-drawer" aria-label="Markdown 源稿">
+        <pre><code>---
+title: Microsoft Ignite 2026 [BRK258]：智能体自动化——Copilot Studio 如何双向融合确定性工作流与推理智能体 || Microsoft Ignite 2026 [BRK258]: Agentic Automation—How Copilot Studio Blends Workflows and Agents
+eyebrow: Microsoft Ignite 2026 · BRK258 Official Deep Dive || Microsoft Ignite 2026 · BRK258 Official Deep Dive
+brand: Study Room Copilot Studio || Study Room Copilot Studio
+date: 2026-11-25
+strict_i18n: true
+strict_density: true
+lead: 单纯把企业流程塞给大语言模型智能体，会在审批与账务环节因路径随机与成本失控而折戟；而固守纯确定性规则流，一旦遭遇版式突变的发票或带咖啡渍的机票扫描件便立刻报错停摆 [1]。在 Microsoft Ignite 2026 专场 BRK258 中，Copilot Studio 产品经理 Joe Fernandez 完整拆解了“确定性工作流锁死步骤序列 + 智能体节点注入判断力”的双向编排架构，发布 0.06 秒专用决策模型分类节点、真实文件输出、行内 Python 代码节点与逐动作额度账本，并现场搭建了千封大会邮件六路分流工作流 [1][2]。 || Handing entire enterprise processes to an unconstrained LLM agent breaks compliance order and inflates token bills, whereas rigid classic flows halt the moment an invoice layout shifts or a coffee-stained receipt arrives [1]. In Microsoft Ignite 2026 session BRK258, Copilot Studio Product Manager Joe Fernandez detailed a bidirectional architecture that pairs deterministic step guarantees with adaptive agent judgment, unveiling a 0.06-second Decision-model Classify node, real file outputs, inline Python execution, and per-action credit visibility alongside a live six-branch inbox triage build [1][2].
+panel_label: BRK258 核心工程结论 || BRK258 Engineering Takeaways
+panel_title: 用工作流锁死骨架，在判断处嵌入智能 || Lock the Spine with Workflows, Inject Judgment with Agents
+panel_desc: 围绕“更聪明步骤、规模化投产、极速构建”三大演进轴心，打通从自然语言草稿到服务主体托管的闭环 [1][2]。 || Anchored on Smarter Steps, Enterprise Scale, and Faster Authoring from natural-language drafts to service-principal production [1][2].
+panel:
+  - 双向可组合编排 — 工作流内嵌五类智能节点，或将工作流反向挂载为智能体的确定性工具 [1][2] || Bidirectional Composition — Embed five AI node types inside workflows or expose workflows as deterministic agent tools [1][2]
+  - 专用决策模型降本提速 — Classify 节点接入 Microsoft-Decision-1.1，0.06 秒完成路由，比传统大模型快约 35 倍、省 200 倍 [1][2] || Decision Model Breakthrough — Classify with Microsoft-Decision-1.1 routes items in 0.06s, ~35x faster and 200x cheaper than an LLM [1][2]
+  - 逐动作精细化治理 — 纯确定性步骤固定 0.13 Credit（$0.0013），配合环境变量、JSON 源码视图与服务主体消除单点依赖 [1][2] || Action-Level Governance — Deterministic steps cost a flat 0.13 Credit ($0.0013), paired with env variables, JSON view, and service principals [1][2]
+metrics:
+  - 决策模型单次分类延迟 || Decision Classify Latency | 0.06 秒 || 0.06 s | 较传统大模型中位延迟快约 35 倍、成本低 200 倍，并原生返回置信度分值 [1][2] || ~35x faster and 200x cheaper than an LLM while returning calibrated confidence scores [1][2]
+  - 非 AI 确定性动作单价 || Deterministic Step Rate | 0.13 Credit | 折合 0.0013 美元/步（1 Credit = $0.01），垃圾邮件归档等动作零词元消耗 [1][2] || Equals $0.0013 per step (1 Credit = $0.01), handling routine routing with zero LLM token burn [1][2]
+  - 可自动化工作时长占比 || Automatable Work Hours | 57% | 麦肯锡测算现有技术可自动化美国 57% 工作任务，到 2030 年释放约 2.9 万亿美元价值 [1][2] || McKinsey estimates 57% of US work hours can be automated today, unlocking ~$2.9T by 2030 [1][2]
+style:
+  accent: &quot;#2563eb&quot;
+  teal: &quot;#0d8f8c&quot;
+---
+
+## #automation-imperative 01 / Automation Economics &amp; Guardrails :: 自动化经济账与确定性悖论：为何纯智能体项目面临 40% 撤项红线 || Automation Economics &amp; Determinism: Why Unguarded Agent Projects Risk 40% Cancellation
+
+麦肯锡全球研究院测算显示，利用当今已落地的技术即可将美国约 **57%** 的日常工作时长自动化；若组织围绕员工、智能体与机器人重构业务流程，到 2030 年可释放约 **2.9 万亿美元**经济价值 [1][2]。Joe Fernandez 在开场特别廓清了一个关键边界：自动化 57% 的工时绝不等于裁撤 57% 的岗位，而是把团队从差旅报销核验、会后纪要群发与跨系统手工录单中解脱出来 [1]。以企业最核心的销售角色为例，高德纳（Gartner）调研指出销售代表每月仅有 **14%** 的时间真正花在潜在客户开拓上，大量精力被繁琐的线上搜集与客户关系管理系统手工录入吞噬；智能体则能全天候满负荷（**100%**）接管线索初筛与建档，把面对面解决客户难题的时间还给销售 [1][2]。 || McKinsey Global Institute research shows that **57%** of US work hours could be automated with technology available today, unlocking roughly **$2.9 trillion** in economic value by 2030 when organizations redesign workflows around people, agents, and robots [1][2]. Joe Fernandez opened BRK258 by clarifying that automating 57% of task hours does not replace 57% of jobs; instead, it strips out expense reconciliations, recap emails, and manual data entry [1]. Gartner data illustrates the bottleneck clearly: sellers spend just **14%** of a typical month prospecting because online research and manual CRM updates consume their calendar, whereas an agent can prospect continuously (**100%**) overnight [1][2].
+
+规模扩张的速度同样陡峭。国际数据公司（IDC）预测到 2029 年全球活跃部署的智能体将突破 **10 亿个**（为 2025 年规模的 **40 倍**），每日执行动作高达 **2,170 亿次**；微软《2026 工作趋势指数》亦录得生态内智能体规模同比激增 **15 倍** [2]。然而，缺乏顺序约束与成本护栏的纯智能体试点正撞上残酷的投产高墙：高德纳警告到 2027 年底将有 **超过 40%** 的智能体项目因算力账单失控、业务回报模糊或风控薄弱而被迫关停，并预测到 2030 年 **10%–15%** 的市场份额将专门用于监督其他智能体的“守护智能体” [2]。德勤同样指出，缺乏集中监控的自主代理极易在后台悄然制造难以察觉的业务差错 [2]。 || Scale projections reinforce the urgency. IDC forecasts over **1 billion** active AI agents worldwide by 2029 (**40x** the 2025 baseline) executing **217 billion** actions daily, while the Microsoft 2026 Work Trend Index already tracks **15x** year-over-year agent growth across Microsoft 365 [2]. Yet unguarded agent pilots hit a steep production wall: Gartner warns that **over 40%** of agentic AI projects will be canceled by the end of 2027 due to runaway costs, unclear value, or weak risk controls, projecting that **10%–15%** of the market by 2030 will consist of guardian agents policing other agents [2]. Deloitte likewise notes that unmonitored agents introduce silent mistakes at scale [2].
+
+下方交互导览台内嵌了 BRK258 官方点播流、高清封面、原版 46 页幻灯片直链与六大核心实录时间点，点击右侧章节即可对照查阅 [1][2]： || The interactive navigator below embeds the official BRK258 Medius on-demand stream, session poster, 46-slide PPTX download, and six timestamped transcript milestones [1][2]:
+
+:::sandbox { id: &quot;brk258-video-navigator&quot;, canvas: false, script: &quot;./brk258-session-showcase.js&quot;, style: &quot;./brk258-session-showcase.css&quot;, title: &quot;Microsoft Ignite 2026 [BRK258] 官方点播播放器与时间轴导览 || Microsoft Ignite 2026 [BRK258] Official On-Demand Stream &amp; Timestamp Navigator&quot;, desc: &quot;支持在当前卡片一键加载微软官方 Medius 点播视频流，或点击右侧六个实录时间戳快速定位核心架构论点与实机演示环节。 || Load the official Medius video stream inline or click across six transcript timestamps to inspect architectural claims and live demo segments.&quot; }
+BRK258 官方点播视频与 46 页原版课件交互导览台：涵盖经济账数据、双向编排架构、0.06 秒决策模型与共享邮箱六路分流实机演示。 || Interactive BRK258 video and 46-slide deck navigator covering automation economics, bidirectional architecture, the 0.06s Decision model, and the live six-branch inbox demo.
+:::
+
+:::insight-grid { cols: 3, title: &quot;BRK258 盘点的企业五大高价值自动化价值域 || Five Enterprise Value Pillars Highlighted in BRK258&quot; }
+::card 01
+### 前台营收与客户体验 || Front Office &amp; Customer Experience
+覆盖销售线索挖掘、商机建档、订单合同管理与客户支持分流：用智能体阅读多变邮件起草带引用的回复，再用确定性工作流记录工单并升级紧急诉求 [1][2]。 || Spans sales prospecting, order/contract management, and support triage—letting agents draft cited replies while deterministic workflows log tickets and escalate urgent cases [1][2].
+
+::card 02
+### 员工体验与供应商协同 || Employee Experience &amp; Partner Supply Chain
+贯穿招聘筛选、新员工入职引导、采购付款、库存物料与退货逆向物流，消除跨门户重复填表与供应商邮件手工催办 [2]。 || Streamlines recruiting, onboarding, procurement payments, inventory, and returns management without repetitive portal re-entry [2].
+
+::card 03
+### 中后台财务、法务与运维合规 || Back-Office Finance, Legal &amp; IT Ops
+聚焦报价到回款、月末结账异动解读、SharePoint 合同条款风险评分与红线批注，在容忍版式变化的同时锁死合规归档与法务审批链路 [1][2]。 || Targets quote-to-cash, month-end KPI variance narratives, and SharePoint contract redlining—combining flexible document comprehension with locked legal routing [1][2].
+:::
+
+## #bidirectional-blending 02 / Bidirectional Blending &amp; Economics :: 双向融合架构与计费选型：工作流嵌智能节点 vs 智能体调工作流 || Bidirectional Architecture &amp; Licensing: Agents Inside Workflows vs. Workflows as Tools
+
+Copilot Studio 将企业数字化转型的底座收敛为三块积木：**智能体**负责感知、非结构化推理与自主行动，**工作流**保证可重复、可审计的步骤顺序，**微应用**则提供超越纯文本聊天的标准化录入与数据可视化界面 [1][2][5]。聚焦到智能体与工作流的协同，纯智能体每次达成目标的路径可能随上下文动态变化——这在供应商突然更换发票模板时是优势，但在涉及资金划拨与合规留痕时却是隐患；反之，纯工作流能以零偏差执行固定步骤，可一旦上游输入稍有偏离就会直接报错中断 [1]。Copilot Studio 的解法是支持**正反两个方向的自由组装** [1][2][5]： || Copilot Studio unifies business process transformation around three building blocks: **Agents** for sensing, unstructured reasoning, and action; **Workflows** for repeatable, auditable sequencing; and **Apps** for structured data entry and visual interfaces beyond chat [1][2][5]. Left alone, an agent may take a different path tomorrow than today—great when an invoice template changes unexpectedly, risky when compliance demands a strict sequence; a pure workflow guarantees order but breaks on unexpected deviations [1]. Copilot Studio resolves this tension by supporting **composition in either direction** [1][2][5]:
+
+:::comparison { title: &quot;两种双向组装模式与适用边界 || Two Composable Blending Patterns and Selection Criteria&quot; }
+::versus 模式 A：工作流内嵌智能体（Agents Inside Workflows） || Pattern A: Agents Inside Workflows
+### 用确定性主干锁死全局顺序，局部外包推理 || Deterministic Spine with Scoped Reasoning Steps
+在工作流任意位置插入智能体节点（可直接调用环境内已发布的独立智能体，也在画布内当场新建行内智能体），强制其按结构化格式返回三单匹配结论或回信正文，再交由下游确定性步骤归档或发信 [1][2]。 || Add an existing or inline-built agent as a single step inside a workflow, constrain its output schema (such as clean HTML reply text or three-way invoice match status), and pass results to deterministic downstream actions [1][2].
+
+::versus 模式 B：工作流作为智能体工具（Workflows as Agent Tools） || Pattern B: Workflows as Agent Tools { highlight: true }
+### 由智能体主控对话全局，关键路径调确定性工具 || Agent-Led Orchestration Calling Guaranteed Sub-Flows
+在智能体的工具（Tools）配置页挂载工作流；何时触发由智能体结合对话意图自主判断，但一旦触发，内部每一步数据写入、通知与审批都严格按工作流预设轨迹执行，绝不跳步跑偏 [1][2]。 || Attach a workflow on the agent's Tools page; the agent decides when the user's goal warrants calling it, while the workflow guarantees every underlying write and approval executes in exact order [1][2].
+:::
+
+:::figure { src: &quot;./media/brk258-bidirectional-architecture.figure.json&quot;, title: &quot;BRK258 智能体自动化三层双向编排拓扑 || BRK258 Three-Layer Bidirectional Agentic Automation Topology&quot; }
+图 1：顶层打通自由画布设计器、协同画布与模型上下文协议服务三路入口；中层融合五类原生智能节点与“工作流作工具”反向调用；底层锚定 1,500+ 连接器、服务主体托管及逐动作额度账本 [1][2]。 || Figure 1: Three-layer topology connecting visual Designer, Cowork, and MCP Server entry points on top, five AI workflow nodes plus workflow-as-tool invocation in the middle, and 1,500+ connectors, service principals, and per-action credit metering underneath [1][2].
+:::
+
+在展台答疑中，客户提问率最高的问题是：**既有的 Power Automate 云端流与全新的 Copilot Studio 工作流究竟该如何选型，计费又如何核算？** Joe Fernandez 给出了清晰的决策标尺与公开透明的单步定价公式 [1][2]。纯确定性自动化且团队已持有 Power Automate 席位许可时，完全可以继续沿用 Power Automate（其产品线保持长期稳健演进）；但只要业务流程需要深度混编多模态推理智能体、0.06 秒分类节点、文档抽取或计算机操作（Computer Use），并希望统一纳入 **Copilot Credits** 消费池核算（支持预付费额度包或绑定 Azure 订阅按量计费），就应首选 Copilot Studio 工作流 [1][2]： || At the Ignite expo booth, the two most frequent customer questions centered on **Power Automate flows versus Copilot Studio workflows** and **exact credit pricing** [1][2]. Joe Fernandez emphasized that teams running purely deterministic tasks on existing Power Automate licenses should keep using Power Automate; however, end-to-end processes blending multi-file reasoning agents, built-in Classify/Extract/Copilot/Computer Use nodes, and unified **Copilot Credits** licensing (via upfront Prepaid Packs or Azure Pay-As-You-Go) belong in Copilot Studio workflows [1][2]:
+
+| 选型维度 || Selection Dimension | Power Automate 云端流 || Power Automate Flows | Copilot Studio 工作流 || Copilot Studio Workflows |
+|------|------|------|
+| 最佳适用场景 || Best For | 规则明确、输入高度结构化的纯确定性任务自动化 [1][2] || Reliable deterministic automation of predictable tasks [1][2] | 端到端业务流程重构：在确定性编排主干中混编推理智能体与多模态判断 [1][2] || End-to-end processes combining deterministic orchestration with AI agents [1][2] |
+| 原生 AI 能力深度 || Built-in AI Depth | 以轻量提示词（Prompts）文本生成为主 [2] || Focused primarily on standalone AI Builder prompts [2] | 完整智能体节点（最新前沿模型、多文件输入输出、工具与代码）+ 内置 Classify / Extract / Copilot / Computer Use 动作 [2] || Full Agents (latest models, files, tools, code) + Classify, Extract, Copilot, and Computer Use nodes [2] |
+| 许可与计费模型 || Licensing &amp; Metering | Power Automate 席位/流程许可 + 提示词附加额度 [1][2] || Power Automate license plus add-on credits for prompts [1][2] | 统一消费模型：非 AI 确定性动作固定 **`0.13 Credit/步`**（约 `$0.0013`）+ 智能体动作按模型/工具/时长计量 [1][2] || Unified Copilot Credits: **`0.13 Credit/action`** (`$0.0013`) for non-AI steps + agent credit consumption [1][2] |
+| 开放模板生态 || Community Templates | 传统云端流模板库 || Classic cloud flow templates | 全新开源 **Copilot Studio Gallery**（`microsoft.github.io/copilot-studio-gallery`），汇聚微软官方与署名社区最佳实践 [1][2][3] || New open **Copilot Studio Gallery** featuring credited community and Microsoft reference solutions [1][2][3] |
+
+由于 `1 Copilot Credit` 折合 `0.01 美元`（1 美分），任何不调用人工智能的确定性连接器、条件判断或邮件归档动作仅花费 **`0.0013 美元`** [1]。只有真正触发推理节点时，系统才会叠加模型档位（如轻量模型 GPT-6 Luna 与重型模型 Fable 5.2 的单价差异）、工具调用次数及运行时长消耗 [1][2]： || Because `1 Copilot Credit` equals `$0.01` (one cent), every non-AI connector, condition, or archive action costs just **`$0.0013`** [1]. Credits scale up only on steps where AI reasoning actually runs—governed by model tier (such as lightweight GPT-6 Luna versus frontier Fable 5.2), tool/knowledge calls, and execution duration [1][2]:
+
+$$
+C_{\text{workflow}} = 0.13 \times N_{\text{det}} + \sum_{k=1}^{N_{\text{AI}}} f_{\text{agent}}\!\left(\text{Model}_k,\,\text{Tools}_k,\,\text{Time}_k\right), \qquad 1\text{ Credit} = \$0.01
+$$
+
+:::figure { src: &quot;./media/brk258-step-economics-latency.figure.json&quot;, title: &quot;Copilot Studio 混合工作流单步动作消耗量级对比 || Copilot Studio Workflow Per-Step Credit Consumption Scale&quot; }
+图 2：对数标尺下对比专用决策模型极速分类、0.13 Credit 确定性连接器动作、单步智能体回信（5 Credits）、BRK258 实机演示复合 AI 动作（7.29 Credits）与完整多分支运行（20 Credits）的成本梯度 [1][2]。 || Figure 2: Logarithmic cost progression across Decision-model classification, 0.13-Credit deterministic steps, single agent email drafting (5 Credits), BRK258 live demo AI steps (7.29 Credits), and full multi-branch workflow runs (20 Credits) [1][2].
+:::
+
+## #smarter-steps-scale 03 / Smarter Steps &amp; Enterprise Scale :: 三大演进路线图：0.06 秒决策模型、行内 Python 与企业级生命周期治理 || Roadmap Deep Dive: 0.06s Decision Model, Inline Python, and Enterprise Scale
+
+全面商用的新版工作流设计器不仅支持自由拖拽画布、水平与垂直布局一键切换、行内协作便签，更引入了极其关键的**单节点就地测试（Node Testing）**——创作者修改某一步智能体指令或分类条件后，无需每次从头触发整条端到端长流程，直接在当前节点内点击运行即可秒级校验输出（例如测试邮件分类节点在 `1.4 秒` 内返回 `Billing` 类别与 `96%` 置信度）[1][2]。在此基础上，BRK258 揭晓了围绕**更聪明步骤（Smarter Steps）**、**规模化投产（Ready to Scale）**与**极速构建（Faster to Build）**铺开的 15 项重磅能力更新 [1][2]： || Now generally available, the rebuilt Workflow Designer pairs a freeform canvas, one-click horizontal/vertical layout toggling, and collaborator notes with **in-place Node Testing**—allowing makers to tweak instructions or models on a single AI step and validate outputs immediately (such as classifying a billing email at `96%` confidence in `1.4 s`) without re-running the entire pipeline [1][2]. Building on this foundation, BRK258 unveiled 15 roadmap updates across **Smarter Steps**, **Ready to Scale**, and **Faster to Build** [1][2]:
+
+### 更聪明步骤：Microsoft-Decision-1.1 分类模型、文件输出与原生 Python 节点 || Smarter Steps: Microsoft-Decision-1.1 Classify, Real File Outputs, and Python Code Node
+
+传统大语言模型就像“散文作家”，每次做简单二选一或路由分拣都要从头自回归生成词元，既慢又贵；而微软在本届大会发布的 **Microsoft-Decision-1.1** 专用小模型更像经验老到的“急诊分诊护士”，专攻文本或图像的多路分类与打分 [1][2]。将其接入工作流 **Classify 节点**（现已正式商用推送）后，单条数据分类耗时骤降至 **`0.06 秒`**，中位延迟比传统大模型**快约 35 倍**、成本**降低 200 倍**，且原生输出校准后的置信度分数（便于配置“低于 85% 置信度自动转人工”护栏）[1][2]。与此同时，**Extract 节点**支持拖入任意样本文件自动生成 PDF、Word、Excel 与演示文稿的结构化抽取指令；**Agent 节点**新增**真实文件输出（Files as output，正式商用推送）**，可直接吐出生成的 `.xlsx` 报表、`.pdf` 证书或 `.pptx` 简报传给下游连接器；**Copilot 节点**打通了对话（Chat）、协同画布（Cowork）与前沿预览的自主领航（Autopilot）三种委派模式；而开启公测的 **Code 节点**则允许直接在画布内嵌入 **Python** 脚本（支持自然语言生成代码）完成正则清洗、日期标准化与复杂金额核对，彻底告别以往为了几行数据转换而专门额外部署云端函数的繁琐链路 [1][2]。 || Whereas a traditional LLM acts like an essay writer generating tokens from scratch, the new **Microsoft-Decision-1.1** model acts like a triage nurse purpose-built for fast, calibrated judgment over text or images [1][2]. Selecting the Decision model inside the **Classify node** (GA rolling out) slashes classification latency to **`0.06 seconds`**—roughly **35x faster** at median (P50) latency and **200x cheaper** than an LLM—while returning a confidence score so flows can escalate items below `85%` certainty [1][2]. Alongside Classify, the **Extract node** turns PDF, Word, Excel, and PowerPoint files into structured schemas from a dropped sample; the **Agent node** now hands back **real files as output** (`.xlsx`, `.pdf`, `.pptx`, `.csv`, GA rolling out) rather than plain text; the **Copilot node** delegates tasks across Chat, Cowork, or Autopilot (Frontier); and the **Code node** (Public Preview) runs **Python** directly inside the workflow canvas for regex cleaning or totals validation without spinning up external Azure Functions [1][2].
+
+### 规模化投产：逐动作额度透视、服务主体接管、环境变量与 JSON 源码视图 || Ready to Scale: Credit Visibility, Service Principals, Env Variables, and JSON Code View
+
+过去几个月企业客户呼声最高的需求是算力账单透明化。现已正式商用的**额度透视（Credit Visibility）**在运行历史（Activity）面板中精确展示每一次运行及每一个具体步骤消耗的点数（例如同屏清晰列出整条流程总耗 `20 Credits`，其中产品回复智能体耗时 36 秒、思考 9 秒并消耗 `5 Credits`），并在监控（Monitor）面板中聚合选定时间窗的总趋势与错误明细 [1][2]。为消除“员工休假或离职导致生产工作流断档”的治理顽疾，将于 **12 月上线**的**服务主体与连接管理**允许将工作流所有权移交给企业服务账号（Service Principal），且当工作流作为智能体工具被调用时，支持**逐个动作精细指定使用终端用户凭据还是创建者凭据**执行 [1][2]。此外，解决方案**环境变量**支持已正式商用（在任意输入框键入 `/` 即可插入令牌，跨开发、测试、生产环境晋升无需手工改图），配合公测上线的 **Code View（JSON 源码视图）**，开发者可随时检视或复制底层节点定义交由编码智能体批量重构 [1][2]。 || Answering the top enterprise request from recent months, **Credit visibility** (GA now) exposes exact per-run and per-action credit burn inside the Activity view alongside time-range totals and error trends in Monitor [1][2]. To eliminate single-employee ownership risk in production, **Service principal &amp; connections management** (coming December) lets teams assign workflow ownership to a service account and choose per action whether a workflow tool runs under end-user credentials or maker credentials [1][2]. **Environment variables** are also GA now—type `/` in any field to insert stage-specific tokens across dev, test, and prod without touching the flow—complemented by **Code view** (Public Preview) for inspecting and editing the underlying JSON workflow definition [1][2].
+
+### 极速构建与现场投票冠军：Copilot Studio MCP 服务、Cowork 联产与画布操控升级 || Faster to Build &amp; Live Poll Winner: MCP Server, Cowork Authoring, and Canvas Ergonomics
+
+除了在浏览器画布里手工编排，团队现在拥有两条自然语言极速通道：其一是正式商用的 **Copilot Studio MCP 服务**（执行 `npx -y @microsoft/copilot-studio-mcp@latest` 即可接入 VS Code、GitHub Copilot、Codex 或 Claude Code），一句指令即可自动检索连接器、草拟五步大额发票审核流并在 `14 秒` 内跑通测试 [1][2][4]；其二是前沿预览的 **Copilot Cowork 构建技能**，自动读取组织实时邮件与团队审批规范，同步生成配套的审核智能体与工作流草稿 [1][2][5]。画布本身也迎来了游戏级交互式**新手导览（Guided Tour，正式商用）**、框选多节点平移、鸟瞰**小地图（Minimap）**、缩放预设（`Shift+1` 适配全屏）、**拖拽互换节点自动重连线**以及 **12 月上线**的可视化**版本历史差异对比** [1][2]。在演讲第 26 分钟的现场实时扫码投票（`hum.vote/4VBY`）中，全场线下与线上观众票选出的最受期待特性前三名依次为：**第一名 Copilot Studio MCP 服务、第二名 Copilot Cowork 自然语言构建、第三名搭载决策模型的 Classify 节点** [1]。 || Beyond visual authoring, makers gained two natural-language fast lanes. The **Copilot Studio MCP server** (GA via `npx -y @microsoft/copilot-studio-mcp@latest` in VS Code, GitHub Copilot, Codex, or Claude Code) discovers Outlook and Teams connections, drafts a five-step `&gt;$10K` invoice triage flow, and completes a test run in `14s` [1][2][4]. Meanwhile, **Build from Copilot Cowork** (Frontier) grounds in Work IQ team context to co-create paired workflows and agents [1][2][5]. Inside the canvas, Microsoft shipped an interactive **Guided tour** (GA), multi-node box select, a **Minimap**, zoom presets (`Shift+1`), **drag-to-swap node auto-reconnection**, and visual **Version history diffing** (coming December) [1][2]. When Joe Fernandez ran a live audience poll (`hum.vote/4VBY`) at minute 26, attendees crowned **Copilot Studio MCP server #1**, followed by **Build from Cowork (#2)** and **Classify with Decision model (#3)** [1].
+
+下方四宫格精选自 BRK258 官方原版幻灯片，直观定格了 0.06 秒分类节点、行内 Python 代码节点、逐动作额度回放与 JSON 源码定义四大工程界面 [2]： || The four-panel gallery below, extracted directly from the official BRK258 slide deck, captures the 0.06s Classify node, inline Python Code node, per-action Activity credit trace, and JSON Code view [2]:
+
+&lt;div class=&quot;brk258-media-grid&quot;&gt;
+  &lt;article class=&quot;brk258-media-card&quot;&gt;
+    &lt;div class=&quot;brk258-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/brk258-classify-decision-node.jpg&quot; alt=&quot;BRK258 Slide 23 screenshot showing Classify node completing email routing in 0.06 seconds inside an Apply to each loop&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;brk258-media-body&quot;&gt;
+      &lt;span class=&quot;brk258-media-badge&quot; data-zh=&quot;BRK258 官方课件第 23 页 · GA&quot; data-en=&quot;BRK258 Slide 23 · GA Rolling Out&quot;&gt;BRK258 官方课件第 23 页 · GA&lt;/span&gt;
+      &lt;h4 data-zh=&quot;Classify 节点：0.06 秒决策模型极速多路分拣&quot; data-en=&quot;Classify Node: 0.06-Second Decision Model Routing&quot;&gt;Classify 节点：0.06 秒决策模型极速多路分拣&lt;/h4&gt;
+      &lt;p data-zh=&quot;在收件箱循环批处理中，Classify 节点仅耗 0.06 秒即锁定保修（Warranty）分支，未命中的配送、退货、账单与库存分支全部 0 秒跳过 [2]。&quot; data-en=&quot;Inside an inbox loop, the Classify node routes to the Warranty branch in 0.06s while skipping unmatched branches in 0s [2].&quot;&gt;在收件箱循环批处理中，Classify 节点仅耗 0.06 秒即锁定保修（Warranty）分支，未命中的配送、退货、账单与库存分支全部 0 秒跳过 [2]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+  &lt;article class=&quot;brk258-media-card&quot;&gt;
+    &lt;div class=&quot;brk258-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/brk258-code-node-python.jpg&quot; alt=&quot;BRK258 Slide 26 screenshot showing inline Python Code node normalizing invoice dates and stripping currency symbols&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;brk258-media-body&quot;&gt;
+      &lt;span class=&quot;brk258-media-badge is-accent&quot; data-zh=&quot;BRK258 官方课件第 26 页 · 公测&quot; data-en=&quot;BRK258 Slide 26 · Public Preview&quot;&gt;BRK258 官方课件第 26 页 · 公测&lt;/span&gt;
+      &lt;h4 data-zh=&quot;Code 节点：工作流画布内原生运行 Python 脚本&quot; data-en=&quot;Code Node: Native Inline Python Inside the Designer&quot;&gt;Code 节点：工作流画布内原生运行 Python 脚本&lt;/h4&gt;
+      &lt;p data-zh=&quot;紧接发票抽取节点之后直接编写 Python 函数标准化日期与多币种金额符号，再交由条件分支比对明细总额 [1][2]。&quot; data-en=&quot;Runs inline Python right after invoice extraction to normalize dates and strip currency symbols before checking line-item totals [1][2].&quot;&gt;紧接发票抽取节点之后直接编写 Python 函数标准化日期与多币种金额符号，再交由条件分支比对明细总额 [1][2]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+  &lt;article class=&quot;brk258-media-card&quot;&gt;
+    &lt;div class=&quot;brk258-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/brk258-activity-credit-detail.jpg&quot; alt=&quot;BRK258 Slide 29 screenshot showing Activity panel per-run total of 20 credits and per-step agent consumption of 5 credits&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;brk258-media-body&quot;&gt;
+      &lt;span class=&quot;brk258-media-badge&quot; data-zh=&quot;BRK258 官方课件第 29 页 · GA&quot; data-en=&quot;BRK258 Slide 29 · GA Now&quot;&gt;BRK258 官方课件第 29 页 · GA&lt;/span&gt;
+      &lt;h4 data-zh=&quot;Activity 面板：单次运行与单步智能体额度透明账单&quot; data-en=&quot;Activity View: Per-Run and Per-Step Credit Transparency&quot;&gt;Activity 面板：单次运行与单步智能体额度透明账单&lt;/h4&gt;
+      &lt;p data-zh=&quot;左侧运行摘要清晰标注整趟耗时与总消耗（20 Credits），右侧点选智能体节点即可检视 9 秒思考过程与该步独立花费（5 Credits）[1][2]。&quot; data-en=&quot;Displays run-level cost (20 Credits) on the left and step-level agent reasoning trace plus exact spend (5 Credits) on the right [1][2].&quot;&gt;左侧运行摘要清晰标注整趟耗时与总消耗（20 Credits），右侧点选智能体节点即可检视 9 秒思考过程与该步独立花费（5 Credits）[1][2]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+  &lt;article class=&quot;brk258-media-card&quot;&gt;
+    &lt;div class=&quot;brk258-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/brk258-code-view-json.jpg&quot; alt=&quot;BRK258 Slide 32 screenshot showing Code view modal with Designer definition and Executable definition JSON tabs&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;brk258-media-body&quot;&gt;
+      &lt;span class=&quot;brk258-media-badge is-accent&quot; data-zh=&quot;BRK258 官方课件第 32 页 · 公测&quot; data-en=&quot;BRK258 Slide 32 · Public Preview&quot;&gt;BRK258 官方课件第 32 页 · 公测&lt;/span&gt;
+      &lt;h4 data-zh=&quot;Code View：双视图透视与直接编辑底层 JSON 定义&quot; data-en=&quot;Code View: Inspect and Edit Underlying Workflow JSON&quot;&gt;Code View：双视图透视与直接编辑底层 JSON 定义&lt;/h4&gt;
+      &lt;p data-zh=&quot;提供设计器定义与可执行定义双标签页，支持一键复制或直接编辑节点坐标、触发器配置与输出结构契约，方便交由外部编码智能体做版本比对与批量重构 [1][2][4]。&quot; data-en=&quot;Exposes Designer and Executable JSON tabs with Edit JSON support, enabling external coding agents to diff and refactor workflow definitions [1][2][4].&quot;&gt;提供设计器定义与可执行定义双标签页，支持一键复制或直接编辑节点坐标、触发器配置与输出结构契约，方便交由外部编码智能体做版本比对与批量重构 [1][2][4]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+&lt;/div&gt;
+
+## #live-demo-walkthrough 04 / Live Demo Anatomy :: 实机演示全链路复盘：Ignite 大会千封共享邮箱的六路混合分流 || Live Demo Anatomy: Six-Branch Agentic Triage for the Ignite Shared Mailbox
+
+在专场后半段的 13 分钟实机演示（`00:28:15–00:41:03`）中，Joe Fernandez 以真实世界的高并发难题切入：当数千名参会者向 Ignite 官方咨询共享邮箱涌入议程排期、团体购票、参会证明开具、讲者差旅机票报销、企业赞助洽谈以及垃圾推销等五花八门的邮件时，小团队如何用**一条工作流串联多种形态的智能节点与确定性连接器**完成全自动接管 [1]？整套方案完美示范了“按每条分支的不确定性复杂度精准匹配最轻算力”的工程铁律 [1]： || In the 13-minute live demo (`00:28:15–00:41:03`), Joe Fernandez tackled a high-volume operational scenario: staffing the official Ignite FAQ shared mailbox where thousands of attendees send agenda questions, group ticket requests, attendance certificate requests, speaker flight receipts, sponsorship inquiries, and spam [1]. Rather than throwing one giant monolithic prompt at every email, the demo matched **each branch's exact uncertainty profile to the lightest viable runtime primitive** [1]:
+
+:::flow { title: &quot;BRK258 实机演示：从共享邮箱触发到六路差异化处置与成本审计 || BRK258 Live Demo: Shared Inbox Trigger to Six Specialized Execution Branches&quot; }
+1. **入口极速分诊：Classify 节点切换 GPT-6 Luna 与 Decision 模型实测 || Entry Triage: Benchmarking GPT-6 Luna vs. Decision Model Inline** — 以共享邮箱收到新邮件为触发器，先用自然语言定义六大类别并在节点内粘贴一封赞助商洽谈邮件就地测试：选用轻量生成模型 `GPT-6 Luna` 时需等待数秒才吐出 `Sponsorship`；切回默认 **Decision 模型**后几乎瞬间返回结果并附带置信度分数，支持设置 `&lt; 85%` 置信度自动转人工复核 [1]。 || Triggered by new shared-mailbox arrivals, Joe tested a sponsorship email inline on `GPT-6 Luna` (taking several seconds) before switching to the **Decision model**, which classified it almost instantaneously with a confidence score to gate `&lt; 85%` human escalation [1].
+2. **分支一（大会议程咨询）：复用独立智能体并强约束纯 HTML 输出 || Branch 1 (Agenda Questions): Reuse Standalone Agent with Strict Output Schema** — 调用环境内已构建并同时服务于聊天渠道的独立议程智能体（Agenda Agent）；为避免智能体寒暄啰嗦，在工作流节点输出契约中强制声明“仅返回干净的 HTML 邮件回复正文”，直接传给下游确定性回信动作 [1]。 || Invokes an existing standalone Agenda Agent published in the environment, constraining its node output contract to return *only* clean HTML reply markup—stripping conversational chatter before the deterministic email reply step [1].
+3. **分支二（票务与注册变更）：画布行内构建智能体 + Dataverse MCP + 人工挂起审批 || Branch 2 (Ticketing): Inline Agent + Dataverse MCP + Human Review Pause** — 无需跳出工作流界面，直接在画布内一键展开全屏设计器创建行内票务智能体，挂载 `Dataverse MCP` 查询参会注册表；一旦识别出需人工核准的特殊退改签，下游立即命中 **Human review（人工审核）**步骤挂起整条工作流，通过邮件或聊天推送完整上下文等待批准或驳回后再继续发信 [1]。 || Builds a ticketing agent inline inside the Workflow Designer (expanding full-screen for tool setup) wired to `Dataverse MCP`; when human validation is flagged, a **Human review** step pauses workflow execution until an approver responds via Teams or email [1].
+4. **分支三（参会证明开具）：Agent 节点真实文件输出自动排版品牌 PDF 证书 || Branch 3 (Attendance Certificates): Agent Real File Output Generating Branded PDFs** — 针对参会者回公司报销所需的旧金山现场参会证明，专职智能体核验数据库签到记录后，利用新增的 **Files as output** 能力直接排版生成带微软与 Ignite 视觉标识的 `.pdf` 证书文件（亦可声明 `.pptx` 或 `.csv`），随后由确定性步骤存入文档库并作为邮件附件发出 [1]。 || Verifies attendance in Dataverse and uses the new **Files as output** capability on the Agent node to generate a branded Microsoft Ignite `.pdf` certificate, saving it to SharePoint and emailing it back as an attachment [1].
+5. **分支四（讲者差旅报销）：拖入带咖啡渍机票扫描件自动训练 Extract 抽取节点 || Branch 4 (Speaker Reimbursement): Coffee-Stained Plane Ticket via Extract Node** — 面对扫描模糊且沾有咖啡渍的讲者报销机票，现场直接将样本图片拖入 **Extract 节点**；系统在后台数秒内自动推导生成包含航空公司、乘机人姓名及航段明细列表的通用字段描述与抽取指令，后续任意版式的机票均可直接结构化入账 [1]。 || Drops a low-quality, coffee-stained plane ticket scan directly onto an **Extract node**, which automatically synthesizes generalized field names, descriptions, and list schemas (airline, passenger, segments) working across arbitrary ticket layouts [1].
+6. **分支五与分支六（赞助商委派 Cowork vs 垃圾邮件 0 词元删除）及账单复盘 || Branches 5 &amp; 6 (Cowork Delegation vs. Zero-Token Spam Cleanup) &amp; Credit Audit** — 复杂的赞助商排期与会议简报撰写通过 **Copilot 节点**一键委派给 `Cowork`（刷新协同画布即可实时接管触发出的会话）；而垃圾邮件与杂项则直接走纯确定性删除/归档动作，**不烧一颗大模型词元** [1]。最后打开运行历史（Activity）实测对账：调用推理的复合智能动作消耗 **`7.29 Credits`**，而所有非 AI 确定性步骤恒定仅需 **`0.13 Credit`** [1]！ || Complex sponsor scheduling and brief drafting delegate via the **Copilot node** to `Cowork` (spawning a live inspectable session), while spam routes to a deterministic delete/archive step burning **zero tokens**—verified in Activity at **`7.29 Credits`** for AI actions versus **`0.13 Credit`** for every non-AI step [1].
+:::
+
+:::callout { variant: &quot;callout&quot;, title: &quot;企业落地选型黄金法则：先试跑一趟看清逐动作账单 || Production Architecture Rule: Run One Test Trace to Audit Step Credits&quot; }
+面对“我的混合自动化上线后每月到底会花多少钱”的预算追问，无需凭空盲猜词元公式：先用真实业务样本在设计器内跑通一次端到端测试，打开 Activity 面板逐个点击节点对比 AI 推理开销（如 5–7.29 Credits）与确定性动作（0.13 Credit），把高频分拣切换至 0.06 秒决策模型、把固定清洗下沉至行内 Python 或确定性连接器，即可在保障合规顺序的同时将单次运行成本压缩一个数量级以上 [1][2]。 || Instead of guessing monthly token bills on spreadsheets, run one realistic test in the Designer and inspect the Activity trace node by node: shift high-volume routing onto the 0.06s Decision model, push formatting into inline Python or 0.13-Credit deterministic steps, and reserve full reasoning agents strictly for steps requiring unstructured judgment [1][2].
+:::
+
+## 参考资料：官方一手信源与工程规范 || References: Official Primary Sources &amp; Engineering Guides
+
+1. **Joe Fernandez (Microsoft Ignite 2026 BRK258 Video &amp; Transcript)** — https://ignite.microsoft.com/en-US/sessions/1787856612311001EcDa-1791588242520001CJup | 《Agentic automation: How Copilot Studio blends workflows and agents》45 分钟官方点播实录与双语时间轴字幕（Medius ID: `884ed343-acbc-4e75-b5d0-4dc057f66e78`） || Official 45-minute breakout session recording and verbatim WebVTT transcript (Nov 2026)
+2. **Joe Fernandez (Microsoft Ignite 2026 BRK258 Official Slide Deck)** — https://medius.microsoft.com/video/asset/PPT/884ed343-acbc-4e75-b5d0-4dc057f66e78 | BRK258 官方原版 46 页演示文稿（含麦肯锡/Gartner/IDC 基准数据、0.13 Credit 定价表、Decision 模型 35x/200x 对比及 15 项路线图截图） || Official 46-slide PPTX deck with McKinsey/Gartner/IDC benchmarks, 0.13 Credit pricing matrix, Decision model specs, and UI captures
+3. **Microsoft Copilot Studio Gallery** — https://microsoft.github.io/copilot-studio-gallery | BRK258 发布的官方与开源社区智能体及工作流模板库 || Official and community-contributed Copilot Studio agents and workflows gallery announced in BRK258
+4. **Copilot Studio MCP Server Official Registry** — https://github.com/mcp/com.microsoft/copilot-studio | 官方模型上下文协议服务（支持从 VS Code、GitHub Copilot 及各类编码智能体构建、测试与监控工作流） || Official `@microsoft/copilot-studio-mcp` server for building, testing, and managing workflows from coding agents
+5. **Jason Moore (Microsoft Copilot Blog)** — https://www.microsoft.com/en-us/copilot/blog/copilot-studio/build-and-manage-business-processes-with-microsoft-copilot-studio/ | 《Build and manage business processes with Microsoft Copilot Studio》Ignite 2026 智能体、工作流与托管应用三位一体官方综述（2026-11-18） || Official Ignite 2026 announcement covering unified agents, deterministic workflows, and apps in Copilot Studio
+</code></pre>
+      </section>
+
+      <main>
+        <section id="automation-imperative" class="section" data-reveal data-present-title-zh="自动化经济账与确定性悖论：为何纯智能体项目面临 40% 撤项红线" data-present-title-en="Automation Economics &amp; Determinism: Why Unguarded Agent Projects Risk 40% Cancellation">
+          <div class="section-head">
+            <p class="section-kicker">01 / Automation Economics &amp; Guardrails</p>
+            <h2 data-zh="1. 自动化经济账与确定性悖论：为何纯智能体项目面临 40% 撤项红线" data-en="1. Automation Economics &amp; Determinism: Why Unguarded Agent Projects Risk 40% Cancellation">1. 自动化经济账与确定性悖论：为何纯智能体项目面临 40% 撤项红线</h2>
+            <p data-zh="麦肯锡全球研究院测算显示，利用当今已落地的技术即可将美国约 &lt;strong&gt;57%&lt;/strong&gt; 的日常工作时长自动化；若组织围绕员工、智能体与机器人重构业务流程，到 2030 年可释放约 &lt;strong&gt;2.9 万亿美元&lt;/strong&gt;经济价值 [1][2]。Joe Fernandez 在开场特别廓清了一个关键边界：自动化 57% 的工时绝不等于裁撤 57% 的岗位，而是把团队从差旅报销核验、会后纪要群发与跨系统手工录单中解脱出来 [1]。以企业最核心的销售角色为例，高德纳（Gartner）调研指出销售代表每月仅有 &lt;strong&gt;14%&lt;/strong&gt; 的时间真正花在潜在客户开拓上，大量精力被繁琐的线上搜集与客户关系管理系统手工录入吞噬；智能体则能全天候满负荷（&lt;strong&gt;100%&lt;/strong&gt;）接管线索初筛与建档，把面对面解决客户难题的时间还给销售 [1][2]。" data-en="McKinsey Global Institute research shows that &lt;strong&gt;57%&lt;/strong&gt; of US work hours could be automated with technology available today, unlocking roughly &lt;strong&gt;$2.9 trillion&lt;/strong&gt; in economic value by 2030 when organizations redesign workflows around people, agents, and robots [1][2]. Joe Fernandez opened BRK258 by clarifying that automating 57% of task hours does not replace 57% of jobs; instead, it strips out expense reconciliations, recap emails, and manual data entry [1]. Gartner data illustrates the bottleneck clearly: sellers spend just &lt;strong&gt;14%&lt;/strong&gt; of a typical month prospecting because online research and manual CRM updates consume their calendar, whereas an agent can prospect continuously (&lt;strong&gt;100%&lt;/strong&gt;) overnight [1][2].">麦肯锡全球研究院测算显示，利用当今已落地的技术即可将美国约 <strong>57%</strong> 的日常工作时长自动化；若组织围绕员工、智能体与机器人重构业务流程，到 2030 年可释放约 <strong>2.9 万亿美元</strong>经济价值 [1][2]。Joe Fernandez 在开场特别廓清了一个关键边界：自动化 57% 的工时绝不等于裁撤 57% 的岗位，而是把团队从差旅报销核验、会后纪要群发与跨系统手工录单中解脱出来 [1]。以企业最核心的销售角色为例，高德纳（Gartner）调研指出销售代表每月仅有 <strong>14%</strong> 的时间真正花在潜在客户开拓上，大量精力被繁琐的线上搜集与客户关系管理系统手工录入吞噬；智能体则能全天候满负荷（<strong>100%</strong>）接管线索初筛与建档，把面对面解决客户难题的时间还给销售 [1][2]。</p>
+          </div>
+
+          <p data-zh="规模扩张的速度同样陡峭。国际数据公司（IDC）预测到 2029 年全球活跃部署的智能体将突破 &lt;strong&gt;10 亿个&lt;/strong&gt;（为 2025 年规模的 &lt;strong&gt;40 倍&lt;/strong&gt;），每日执行动作高达 &lt;strong&gt;2,170 亿次&lt;/strong&gt;；微软《2026 工作趋势指数》亦录得生态内智能体规模同比激增 &lt;strong&gt;15 倍&lt;/strong&gt; [2]。然而，缺乏顺序约束与成本护栏的纯智能体试点正撞上残酷的投产高墙：高德纳警告到 2027 年底将有 &lt;strong&gt;超过 40%&lt;/strong&gt; 的智能体项目因算力账单失控、业务回报模糊或风控薄弱而被迫关停，并预测到 2030 年 &lt;strong&gt;10%–15%&lt;/strong&gt; 的市场份额将专门用于监督其他智能体的“守护智能体” [2]。德勤同样指出，缺乏集中监控的自主代理极易在后台悄然制造难以察觉的业务差错 [2]。" data-en="Scale projections reinforce the urgency. IDC forecasts over &lt;strong&gt;1 billion&lt;/strong&gt; active AI agents worldwide by 2029 (&lt;strong&gt;40x&lt;/strong&gt; the 2025 baseline) executing &lt;strong&gt;217 billion&lt;/strong&gt; actions daily, while the Microsoft 2026 Work Trend Index already tracks &lt;strong&gt;15x&lt;/strong&gt; year-over-year agent growth across Microsoft 365 [2]. Yet unguarded agent pilots hit a steep production wall: Gartner warns that &lt;strong&gt;over 40%&lt;/strong&gt; of agentic AI projects will be canceled by the end of 2027 due to runaway costs, unclear value, or weak risk controls, projecting that &lt;strong&gt;10%–15%&lt;/strong&gt; of the market by 2030 will consist of guardian agents policing other agents [2]. Deloitte likewise notes that unmonitored agents introduce silent mistakes at scale [2].">规模扩张的速度同样陡峭。国际数据公司（IDC）预测到 2029 年全球活跃部署的智能体将突破 <strong>10 亿个</strong>（为 2025 年规模的 <strong>40 倍</strong>），每日执行动作高达 <strong>2,170 亿次</strong>；微软《2026 工作趋势指数》亦录得生态内智能体规模同比激增 <strong>15 倍</strong> [2]。然而，缺乏顺序约束与成本护栏的纯智能体试点正撞上残酷的投产高墙：高德纳警告到 2027 年底将有 <strong>超过 40%</strong> 的智能体项目因算力账单失控、业务回报模糊或风控薄弱而被迫关停，并预测到 2030 年 <strong>10%–15%</strong> 的市场份额将专门用于监督其他智能体的“守护智能体” [2]。德勤同样指出，缺乏集中监控的自主代理极易在后台悄然制造难以察觉的业务差错 [2]。</p>
+<p data-zh="下方交互导览台内嵌了 BRK258 官方点播流、高清封面、原版 46 页幻灯片直链与六大核心实录时间点，点击右侧章节即可对照查阅 [1][2]：" data-en="The interactive navigator below embeds the official BRK258 Medius on-demand stream, session poster, 46-slide PPTX download, and six timestamped transcript milestones [1][2]:">下方交互导览台内嵌了 BRK258 官方点播流、高清封面、原版 46 页幻灯片直链与六大核心实录时间点，点击右侧章节即可对照查阅 [1][2]：</p>
+
+          <div id="brk258-video-navigator" class="sandbox-slot" data-sandbox-slot="brk258-video-navigator" data-present-step data-present-surface="board" data-step-title="Microsoft Ignite 2026 [BRK258] 官方点播播放器与时间轴导览" data-step-title-en="Microsoft Ignite 2026 [BRK258] Official On-Demand Stream &amp; Timestamp Navigator" data-present-title-zh="Microsoft Ignite 2026 [BRK258] 官方点播播放器与时间轴导览" data-present-title-en="Microsoft Ignite 2026 [BRK258] Official On-Demand Stream &amp; Timestamp Navigator" data-step-label="01 / Automation Economics &amp; Guardrails" data-step-label-en="01 / Automation Economics &amp; Guardrails" data-present-i18n-invariant="label">
+            <div class="sandbox-header">
+              <div class="sandbox-title-group">
+                <span class="comparison-label" data-zh="纯静态交互沙盒" data-en="Static Interactive Sandbox">纯静态交互沙盒</span>
+                <h3 data-zh="Microsoft Ignite 2026 [BRK258] 官方点播播放器与时间轴导览" data-en="Microsoft Ignite 2026 [BRK258] Official On-Demand Stream &amp; Timestamp Navigator">Microsoft Ignite 2026 [BRK258] 官方点播播放器与时间轴导览</h3>
+                <p data-zh="支持在当前卡片一键加载微软官方 Medius 点播视频流，或点击右侧六个实录时间戳快速定位核心架构论点与实机演示环节。" data-en="Load the official Medius video stream inline or click across six transcript timestamps to inspect architectural claims and live demo segments.">支持在当前卡片一键加载微软官方 Medius 点播视频流，或点击右侧六个实录时间戳快速定位核心架构论点与实机演示环节。</p>
+              </div>
+              <div class="sandbox-controls" data-sandbox-controls="brk258-video-navigator"></div>
+            </div>
+            <div class="sandbox-stage" data-sandbox-stage="brk258-video-navigator">
+
+            </div>
+          </div>
+
+          <div class="insight-grid insight-grid-3" data-present-step data-present-surface="unframed" data-step-title="BRK258 盘点的企业五大高价值自动化价值域" data-step-title-en="Five Enterprise Value Pillars Highlighted in BRK258" data-present-title-zh="BRK258 盘点的企业五大高价值自动化价值域" data-present-title-en="Five Enterprise Value Pillars Highlighted in BRK258" data-step-label="01 / Automation Economics &amp; Guardrails" data-step-label-en="01 / Automation Economics &amp; Guardrails" data-present-i18n-invariant="label">
+            <article class="insight-card">
+              <span class="card-index">01</span>
+              <h3 data-zh="前台营收与客户体验" data-en="Front Office &amp;amp; Customer Experience">前台营收与客户体验</h3>
+              <p data-zh="覆盖销售线索挖掘、商机建档、订单合同管理与客户支持分流：用智能体阅读多变邮件起草带引用的回复，再用确定性工作流记录工单并升级紧急诉求 [1][2]。" data-en="Spans sales prospecting, order/contract management, and support triage—letting agents draft cited replies while deterministic workflows log tickets and escalate urgent cases [1][2].">覆盖销售线索挖掘、商机建档、订单合同管理与客户支持分流：用智能体阅读多变邮件起草带引用的回复，再用确定性工作流记录工单并升级紧急诉求 [1][2]。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">02</span>
+              <h3 data-zh="员工体验与供应商协同" data-en="Employee Experience &amp;amp; Partner Supply Chain">员工体验与供应商协同</h3>
+              <p data-zh="贯穿招聘筛选、新员工入职引导、采购付款、库存物料与退货逆向物流，消除跨门户重复填表与供应商邮件手工催办 [2]。" data-en="Streamlines recruiting, onboarding, procurement payments, inventory, and returns management without repetitive portal re-entry [2].">贯穿招聘筛选、新员工入职引导、采购付款、库存物料与退货逆向物流，消除跨门户重复填表与供应商邮件手工催办 [2]。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">03</span>
+              <h3 data-zh="中后台财务、法务与运维合规" data-en="Back-Office Finance, Legal &amp;amp; IT Ops">中后台财务、法务与运维合规</h3>
+              <p data-zh="聚焦报价到回款、月末结账异动解读、SharePoint 合同条款风险评分与红线批注，在容忍版式变化的同时锁死合规归档与法务审批链路 [1][2]。" data-en="Targets quote-to-cash, month-end KPI variance narratives, and SharePoint contract redlining—combining flexible document comprehension with locked legal routing [1][2].">聚焦报价到回款、月末结账异动解读、SharePoint 合同条款风险评分与红线批注，在容忍版式变化的同时锁死合规归档与法务审批链路 [1][2]。</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="bidirectional-blending" class="section" data-reveal data-present-title-zh="双向融合架构与计费选型：工作流嵌智能节点 vs 智能体调工作流" data-present-title-en="Bidirectional Architecture &amp; Licensing: Agents Inside Workflows vs. Workflows as Tools">
+          <div class="section-head">
+            <p class="section-kicker">02 / Bidirectional Blending &amp; Economics</p>
+            <h2 data-zh="2. 双向融合架构与计费选型：工作流嵌智能节点 vs 智能体调工作流" data-en="2. Bidirectional Architecture &amp; Licensing: Agents Inside Workflows vs. Workflows as Tools">2. 双向融合架构与计费选型：工作流嵌智能节点 vs 智能体调工作流</h2>
+            <p data-zh="Copilot Studio 将企业数字化转型的底座收敛为三块积木：&lt;strong&gt;智能体&lt;/strong&gt;负责感知、非结构化推理与自主行动，&lt;strong&gt;工作流&lt;/strong&gt;保证可重复、可审计的步骤顺序，&lt;strong&gt;微应用&lt;/strong&gt;则提供超越纯文本聊天的标准化录入与数据可视化界面 [1][2][5]。聚焦到智能体与工作流的协同，纯智能体每次达成目标的路径可能随上下文动态变化——这在供应商突然更换发票模板时是优势，但在涉及资金划拨与合规留痕时却是隐患；反之，纯工作流能以零偏差执行固定步骤，可一旦上游输入稍有偏离就会直接报错中断 [1]。Copilot Studio 的解法是支持&lt;strong&gt;正反两个方向的自由组装&lt;/strong&gt; [1][2][5]：" data-en="Copilot Studio unifies business process transformation around three building blocks: &lt;strong&gt;Agents&lt;/strong&gt; for sensing, unstructured reasoning, and action; &lt;strong&gt;Workflows&lt;/strong&gt; for repeatable, auditable sequencing; and &lt;strong&gt;Apps&lt;/strong&gt; for structured data entry and visual interfaces beyond chat [1][2][5]. Left alone, an agent may take a different path tomorrow than today—great when an invoice template changes unexpectedly, risky when compliance demands a strict sequence; a pure workflow guarantees order but breaks on unexpected deviations [1]. Copilot Studio resolves this tension by supporting &lt;strong&gt;composition in either direction&lt;/strong&gt; [1][2][5]:">Copilot Studio 将企业数字化转型的底座收敛为三块积木：<strong>智能体</strong>负责感知、非结构化推理与自主行动，<strong>工作流</strong>保证可重复、可审计的步骤顺序，<strong>微应用</strong>则提供超越纯文本聊天的标准化录入与数据可视化界面 [1][2][5]。聚焦到智能体与工作流的协同，纯智能体每次达成目标的路径可能随上下文动态变化——这在供应商突然更换发票模板时是优势，但在涉及资金划拨与合规留痕时却是隐患；反之，纯工作流能以零偏差执行固定步骤，可一旦上游输入稍有偏离就会直接报错中断 [1]。Copilot Studio 的解法是支持<strong>正反两个方向的自由组装</strong> [1][2][5]：</p>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced" data-present-step data-present-surface="unframed" data-step-title="两种双向组装模式与适用边界" data-step-title-en="Two Composable Blending Patterns and Selection Criteria" data-present-title-zh="两种双向组装模式与适用边界" data-present-title-en="Two Composable Blending Patterns and Selection Criteria" data-step-label="02 / Bidirectional Blending &amp; Economics" data-step-label-en="02 / Bidirectional Blending &amp; Economics" data-present-i18n-invariant="label">
+            <article class="comparison-card">
+              <span class="comparison-label" data-zh="模式 A：工作流内嵌智能体（Agents Inside Workflows）" data-en="Pattern A: Agents Inside Workflows">模式 A：工作流内嵌智能体（Agents Inside Workflows）</span>
+              <h3 data-zh="用确定性主干锁死全局顺序，局部外包推理" data-en="Deterministic Spine with Scoped Reasoning Steps">用确定性主干锁死全局顺序，局部外包推理</h3>
+              <p data-zh="在工作流任意位置插入智能体节点（可直接调用环境内已发布的独立智能体，也在画布内当场新建行内智能体），强制其按结构化格式返回三单匹配结论或回信正文，再交由下游确定性步骤归档或发信 [1][2]。" data-en="Add an existing or inline-built agent as a single step inside a workflow, constrain its output schema (such as clean HTML reply text or three-way invoice match status), and pass results to deterministic downstream actions [1][2].">在工作流任意位置插入智能体节点（可直接调用环境内已发布的独立智能体，也在画布内当场新建行内智能体），强制其按结构化格式返回三单匹配结论或回信正文，再交由下游确定性步骤归档或发信 [1][2]。</p>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label" data-zh="模式 B：工作流作为智能体工具（Workflows as Agent Tools）" data-en="Pattern B: Workflows as Agent Tools">模式 B：工作流作为智能体工具（Workflows as Agent Tools）</span>
+              <h3 data-zh="由智能体主控对话全局，关键路径调确定性工具" data-en="Agent-Led Orchestration Calling Guaranteed Sub-Flows">由智能体主控对话全局，关键路径调确定性工具</h3>
+              <p data-zh="在智能体的工具（Tools）配置页挂载工作流；何时触发由智能体结合对话意图自主判断，但一旦触发，内部每一步数据写入、通知与审批都严格按工作流预设轨迹执行，绝不跳步跑偏 [1][2]。" data-en="Attach a workflow on the agent's Tools page; the agent decides when the user's goal warrants calling it, while the workflow guarantees every underlying write and approval executes in exact order [1][2].">在智能体的工具（Tools）配置页挂载工作流；何时触发由智能体结合对话意图自主判断，但一旦触发，内部每一步数据写入、通知与审批都严格按工作流预设轨迹执行，绝不跳步跑偏 [1][2]。</p>
+            </article>
+          </div>
+
+          <figure class="sr-figure generated-diagram is-inline-svg" data-present-step data-present-surface="unframed" data-step-title="BRK258 智能体自动化三层双向编排拓扑" data-step-title-en="BRK258 Three-Layer Bidirectional Agentic Automation Topology" data-present-title-zh="BRK258 智能体自动化三层双向编排拓扑" data-present-title-en="BRK258 Three-Layer Bidirectional Agentic Automation Topology" data-step-label="02 / Bidirectional Blending &amp; Economics" data-step-label-en="02 / Bidirectional Blending &amp; Economics" data-present-i18n-invariant="label">
+            <svg class="sr-figure-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 706" role="img" aria-labelledby="brk258-bidirectional-architecture-1-title brk258-bidirectional-architecture-1-desc"><title id="brk258-bidirectional-architecture-1-title">BRK258 智能体自动化双向编排拓扑：确定性工作流与推理智能体的混合架构</title><desc id="brk258-bidirectional-architecture-1-desc">architecture topology with 9 nodes and 6 edges</desc><defs><marker id="brk258-bidirectional-architecture-1-arrow" markerWidth="10" markerHeight="10" refX="8.5" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M1,1 L8.5,4 L1,7" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><g data-group-id="entry-layer"><rect x="44" y="40" width="992" height="186" rx="16" fill="var(--fig-group-bg-1, rgba(255, 250, 244, 0.72))" stroke="var(--fig-group-border, rgba(23, 36, 48, 0.11))" stroke-width="1.25"/><path d="M 60 41 H 1020" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.6))" stroke-width="1"/><line x1="44" y1="86" x2="1036" y2="86" stroke="var(--fig-group-divider, rgba(23,36,48,0.08))" stroke-width="1"/><circle cx="66" cy="64" r="4.5" fill="var(--fig-role-accent-bar, #ea580c)"/><text class="sr-zh" x="78" y="69" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)">1. 三路创作与触发入口层（Designer · Copilot Cowork · Copilot Studio MCP）</text><text class="sr-en" x="78" y="69" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)">1. Three Authoring &amp; Trigger Entry Planes (Designer · Cowork · MCP Server)</text></g><g data-group-id="blend-layer"><rect x="44" y="260" width="992" height="186" rx="16" fill="var(--fig-group-bg-2, rgba(244, 248, 252, 0.72))" stroke="var(--fig-group-border, rgba(23, 36, 48, 0.11))" stroke-width="1.25"/><path d="M 60 261 H 1020" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.6))" stroke-width="1"/><line x1="44" y1="306" x2="1036" y2="306" stroke="var(--fig-group-divider, rgba(23,36,48,0.08))" stroke-width="1"/><circle cx="66" cy="284" r="4.5" fill="var(--fig-role-blue-bar, #2563eb)"/><text class="sr-zh" x="78" y="289" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)">2. 双向混合编排核心层（五类智能节点 vs 工作流作为工具）</text><text class="sr-en" x="78" y="289" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)">2. Bidirectional Blending Core (Five AI Nodes vs. Workflows as Agent Tools)</text></g><g data-group-id="scale-layer"><rect x="44" y="480" width="992" height="186" rx="16" fill="var(--fig-group-bg-3, rgba(248, 245, 252, 0.72))" stroke="var(--fig-group-border, rgba(23, 36, 48, 0.11))" stroke-width="1.25"/><path d="M 60 481 H 1020" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.6))" stroke-width="1"/><line x1="44" y1="526" x2="1036" y2="526" stroke="var(--fig-group-divider, rgba(23,36,48,0.08))" stroke-width="1"/><circle cx="66" cy="504" r="4.5" fill="var(--fig-role-violet-bar, #7c3aed)"/><text class="sr-zh" x="78" y="509" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)">3. 企业级执行与规模治理层（1,500+ 连接器 · 服务主体 · 逐动作账本）</text><text class="sr-en" x="78" y="509" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)">3. Enterprise Execution &amp; Scale Governance (1,500+ Connectors · SPN · Credit Ledger)</text></g><g data-edge-id="edge-1"><path d="M 225 202 L 225 332" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#brk258-bidirectional-architecture-1-arrow)"/><circle cx="225" cy="202" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="edge-2"><path d="M 540 202 L 540 332" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#brk258-bidirectional-architecture-1-arrow)"/><circle cx="540" cy="202" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="edge-3"><path d="M 855 202 L 855 332" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#brk258-bidirectional-architecture-1-arrow)"/><circle cx="855" cy="202" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="edge-4"><path d="M 225 422 L 225 552" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#brk258-bidirectional-architecture-1-arrow)"/><circle cx="225" cy="422" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="edge-5"><path d="M 540 422 L 540 552" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#brk258-bidirectional-architecture-1-arrow)"/><circle cx="540" cy="422" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="edge-6"><path d="M 855 422 L 855 552" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#brk258-bidirectional-architecture-1-arrow)"/><circle cx="855" cy="422" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-node-id="visual-canvas"><defs><clipPath id="brk258-bidirectional-architecture-1-clip-visual-canvas"><rect x="79" y="112" width="292" height="90" rx="13"/></clipPath></defs><rect x="79" y="112" width="292" height="90" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="79" y="112" width="292" height="90" rx="13" fill="var(--fig-role-teal-fill, rgba(13, 143, 140, 0.09))" stroke="var(--fig-role-teal-stroke, rgba(13, 143, 140, 0.46))" stroke-width="1.35"/><rect x="79" y="112" width="4.5" height="90" fill="var(--fig-role-teal-bar, #0d8f8c)" clip-path="url(#brk258-bidirectional-architecture-1-clip-visual-canvas)"/><line x1="91" y1="113" x2="359" y2="113" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="227" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)"><tspan x="227" y="145">自由画布工作流设计器 (GA)</tspan></text><text x="227" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="227" y="166">横纵一键切换 · 单节点就地测试 · 小地图与</tspan><tspan x="227" y="180.5">JSON 视图</tspan></text></g><g class="sr-en"><text x="227" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)"><tspan x="227" y="145">Freeform Workflow Designer (GA)</tspan></text><text x="227" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="227" y="166">H/V toggle · Single-node test · Minimap &amp; Code</tspan><tspan x="227" y="180.5">view</tspan></text></g></g><g data-node-id="cowork-skill"><defs><clipPath id="brk258-bidirectional-architecture-1-clip-cowork-skill"><rect x="394" y="112" width="292" height="90" rx="13"/></clipPath></defs><rect x="394" y="112" width="292" height="90" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="394" y="112" width="292" height="90" rx="13" fill="var(--fig-role-accent-fill, rgba(255, 122, 0, 0.09))" stroke="var(--fig-role-accent-stroke, rgba(234, 88, 12, 0.48))" stroke-width="1.35"/><rect x="394" y="112" width="4.5" height="90" fill="var(--fig-role-accent-bar, #ea580c)" clip-path="url(#brk258-bidirectional-architecture-1-clip-cowork-skill)"/><line x1="406" y1="113" x2="674" y2="113" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="542" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)"><tspan x="542" y="145">Copilot Cowork 自然语言构建</tspan></text><text x="542" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="542" y="166">挂载 Work IQ 团队脉络 · 一句话联产工作流与智</tspan><tspan x="542" y="180.5">能体</tspan></text></g><g class="sr-en"><text x="542" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)"><tspan x="542" y="145">Build from Copilot Cowork</tspan></text><text x="542" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="542" y="166">Work IQ grounded · Co-generates workflow &amp;</tspan><tspan x="542" y="180.5">agent</tspan></text></g></g><g data-node-id="mcp-cli"><defs><clipPath id="brk258-bidirectional-architecture-1-clip-mcp-cli"><rect x="709" y="112" width="292" height="90" rx="13"/></clipPath></defs><rect x="709" y="112" width="292" height="90" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="709" y="112" width="292" height="90" rx="13" fill="var(--fig-role-amber-fill, rgba(217, 119, 6, 0.09))" stroke="var(--fig-role-amber-stroke, rgba(217, 119, 6, 0.44))" stroke-width="1.35"/><rect x="709" y="112" width="4.5" height="90" fill="var(--fig-role-amber-bar, #d97706)" clip-path="url(#brk258-bidirectional-architecture-1-clip-mcp-cli)"/><line x1="721" y1="113" x2="989" y2="113" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="857" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)"><tspan x="857" y="145">Copilot Studio MCP 服务 (GA)</tspan></text><text x="857" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="857" y="166">VS Code / Codex / Claude Code 直连创建与运行</tspan><tspan x="857" y="180.5">测试</tspan></text></g><g class="sr-en"><text x="857" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)"><tspan x="857" y="145">Copilot Studio MCP Server (GA)</tspan></text><text x="857" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="857" y="166">Build, test &amp; query runs from VS Code / CLI</tspan><tspan x="857" y="180.5">agents</tspan></text></g></g><g data-node-id="classify-extract"><defs><clipPath id="brk258-bidirectional-architecture-1-clip-classify-extract"><rect x="79" y="332" width="292" height="90" rx="13"/></clipPath></defs><rect x="79" y="332" width="292" height="90" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="79" y="332" width="292" height="90" rx="13" fill="var(--fig-role-violet-fill, rgba(124, 58, 237, 0.08))" stroke="var(--fig-role-violet-stroke, rgba(139, 92, 246, 0.42))" stroke-width="1.35"/><rect x="79" y="332" width="4.5" height="90" fill="var(--fig-role-violet-bar, #7c3aed)" clip-path="url(#brk258-bidirectional-architecture-1-clip-classify-extract)"/><line x1="91" y1="333" x2="359" y2="333" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="227" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)"><tspan x="227" y="365">Classify (0.06s) 与 Extract 节点</tspan></text><text x="227" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="227" y="386">Decision 模型快 35× 省 200× + 置信度 · 脏扫票据</tspan><tspan x="227" y="400.5">结构化</tspan></text></g><g class="sr-en"><text x="227" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)"><tspan x="227" y="365">Classify (0.06s) &amp; Extract Nodes</tspan></text><text x="227" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="227" y="386">Decision model 35× faster, 200× cheaper · File</tspan><tspan x="227" y="400.5">extract</tspan></text></g></g><g data-node-id="agent-copilot-code"><defs><clipPath id="brk258-bidirectional-architecture-1-clip-agent-copilot-code"><rect x="394" y="332" width="292" height="90" rx="13"/></clipPath></defs><rect x="394" y="332" width="292" height="90" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="394" y="332" width="292" height="90" rx="13" fill="var(--fig-role-blue-fill, rgba(37, 99, 235, 0.07))" stroke="var(--fig-role-blue-stroke, rgba(59, 130, 246, 0.42))" stroke-width="1.35"/><rect x="394" y="332" width="4.5" height="90" fill="var(--fig-role-blue-bar, #2563eb)" clip-path="url(#brk258-bidirectional-architecture-1-clip-agent-copilot-code)"/><line x1="406" y1="333" x2="674" y2="333" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="542" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)"><tspan x="542" y="365">Agent / Copilot / Python Code 节点</tspan></text><text x="542" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="542" y="386">行内或复用代理 · 真实文件输出 (.pdf/.xlsx) · 原</tspan><tspan x="542" y="400.5">生 Python</tspan></text></g><g class="sr-en"><text x="542" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)"><tspan x="542" y="365">Agent / Copilot / Python Code Nodes</tspan></text><text x="542" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="542" y="386">Inline/reused agent · File outputs · Inline</tspan><tspan x="542" y="400.5">Python</tspan></text></g></g><g data-node-id="workflow-as-tool"><defs><clipPath id="brk258-bidirectional-architecture-1-clip-workflow-as-tool"><rect x="709" y="332" width="292" height="90" rx="13"/></clipPath></defs><rect x="709" y="332" width="292" height="90" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="709" y="332" width="292" height="90" rx="13" fill="var(--fig-role-accent-fill, rgba(255, 122, 0, 0.09))" stroke="var(--fig-role-accent-stroke, rgba(234, 88, 12, 0.48))" stroke-width="1.35"/><rect x="709" y="332" width="4.5" height="90" fill="var(--fig-role-accent-bar, #ea580c)" clip-path="url(#brk258-bidirectional-architecture-1-clip-workflow-as-tool)"/><line x1="721" y1="333" x2="989" y2="333" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="857" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)"><tspan x="857" y="365">反向挂载：工作流作为智能体工具</tspan></text><text x="857" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="857" y="386">智能体自主决策何时调用 · 工作流锁死合规步骤序</tspan><tspan x="857" y="400.5">列</tspan></text></g><g class="sr-en"><text x="857" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)"><tspan x="857" y="365">Workflows as Agent Tools</tspan></text><text x="857" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="857" y="386">Agent decides when to call · Workflow locks</tspan><tspan x="857" y="400.5">step order</tspan></text></g></g><g data-node-id="det-connectors"><defs><clipPath id="brk258-bidirectional-architecture-1-clip-det-connectors"><rect x="79" y="552" width="292" height="90" rx="13"/></clipPath></defs><rect x="79" y="552" width="292" height="90" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="79" y="552" width="292" height="90" rx="13" fill="var(--fig-role-teal-fill, rgba(13, 143, 140, 0.09))" stroke="var(--fig-role-teal-stroke, rgba(13, 143, 140, 0.46))" stroke-width="1.35"/><rect x="79" y="552" width="4.5" height="90" fill="var(--fig-role-teal-bar, #0d8f8c)" clip-path="url(#brk258-bidirectional-architecture-1-clip-det-connectors)"/><line x1="91" y1="553" x2="359" y2="553" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="227" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)"><tspan x="227" y="585">确定性动作与人工审批挂起</tspan></text><text x="227" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="227" y="606">1,500+ 连接器 (0.13 Cr/步) · Teams/邮件挂起等</tspan><tspan x="227" y="620.5">待审批</tspan></text></g><g class="sr-en"><text x="227" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)"><tspan x="227" y="585">Deterministic Steps &amp; Human Review</tspan></text><text x="227" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="227" y="606">1,500+ connectors (0.13 Cr/step) · Pause for</tspan><tspan x="227" y="620.5">approval</tspan></text></g></g><g data-node-id="alm-spn-env"><defs><clipPath id="brk258-bidirectional-architecture-1-clip-alm-spn-env"><rect x="394" y="552" width="292" height="90" rx="13"/></clipPath></defs><rect x="394" y="552" width="292" height="90" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="394" y="552" width="292" height="90" rx="13" fill="var(--fig-role-amber-fill, rgba(217, 119, 6, 0.09))" stroke="var(--fig-role-amber-stroke, rgba(217, 119, 6, 0.44))" stroke-width="1.35"/><rect x="394" y="552" width="4.5" height="90" fill="var(--fig-role-amber-bar, #d97706)" clip-path="url(#brk258-bidirectional-architecture-1-clip-alm-spn-env)"/><line x1="406" y1="553" x2="674" y2="553" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="542" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)"><tspan x="542" y="592">服务主体托管与环境变量晋升</tspan></text><text x="542" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="542" y="613">摆脱员工离职断档 · 逐动作切换创建者/用户凭据</tspan></text></g><g class="sr-en"><text x="542" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)"><tspan x="542" y="585">Service Principal &amp; Env Variables</tspan></text><text x="542" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="542" y="606">SPN ownership · Per-action maker vs. user</tspan><tspan x="542" y="620.5">auth</tspan></text></g></g><g data-node-id="credit-observability"><defs><clipPath id="brk258-bidirectional-architecture-1-clip-credit-observability"><rect x="709" y="552" width="292" height="90" rx="13"/></clipPath></defs><rect x="709" y="552" width="292" height="90" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="709" y="552" width="292" height="90" rx="13" fill="var(--fig-role-violet-fill, rgba(124, 58, 237, 0.08))" stroke="var(--fig-role-violet-stroke, rgba(139, 92, 246, 0.42))" stroke-width="1.35"/><rect x="709" y="552" width="4.5" height="90" fill="var(--fig-role-violet-bar, #7c3aed)" clip-path="url(#brk258-bidirectional-architecture-1-clip-credit-observability)"/><line x1="721" y1="553" x2="989" y2="553" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="857" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)"><tspan x="857" y="592">Activity 逐动作计费与版本对比</tspan></text><text x="857" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="857" y="613">单次试跑透视 AI 与确定性消耗 · 可视化历史差异</tspan></text></g><g class="sr-en"><text x="857" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)"><tspan x="857" y="592">Per-Action Credit &amp; Version Diff</tspan></text><text x="857" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="857" y="613">Inspect run/step credits (7.29 vs 0.13 Cr) &amp; diff</tspan></text></g></g><g class="sr-edge-labels"><g class="sr-zh"><rect x="192" y="232" width="66" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="225" y="247" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">事件触发</text></g><g class="sr-en"><rect x="196" y="232" width="59" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="225" y="247" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Trigger</text></g><g class="sr-zh"><rect x="507" y="232" width="66" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="540" y="247" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">自动装配</text></g><g class="sr-en"><rect x="503" y="232" width="75" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="540" y="247" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Auto-wire</text></g><g class="sr-zh"><rect x="822" y="232" width="66" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="855" y="247" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">工具注册</text></g><g class="sr-en"><rect x="820" y="232" width="71" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="855" y="247" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Bind Tool</text></g><g class="sr-zh"><rect x="183" y="452" width="85" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="225" y="467" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">&lt;85% 转人工</text></g><g class="sr-en"><rect x="177" y="452" width="97" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="225" y="467" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">&lt;85% Escalate</text></g><g class="sr-zh"><rect x="489" y="452" width="103" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="540" y="467" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">文件与数据传递</text></g><g class="sr-en"><rect x="490" y="452" width="100" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="540" y="467" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">File &amp; Data Out</text></g><g class="sr-zh"><rect x="822" y="452" width="66" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="855" y="467" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">审计追踪</text></g><g class="sr-en"><rect x="814" y="452" width="83" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="855" y="467" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Audit Trace</text></g></g></svg>
+            <figcaption class="diagram-caption"><span data-zh="图 1：顶层打通自由画布设计器、协同画布与模型上下文协议服务三路入口；中层融合五类原生智能节点与“工作流作工具”反向调用；底层锚定 1,500+ 连接器、服务主体托管及逐动作额度账本 [1][2]。" data-en="Figure 1: Three-layer topology connecting visual Designer, Cowork, and MCP Server entry points on top, five AI workflow nodes plus workflow-as-tool invocation in the middle, and 1,500+ connectors, service principals, and per-action credit metering underneath [1][2].">图 1：顶层打通自由画布设计器、协同画布与模型上下文协议服务三路入口；中层融合五类原生智能节点与“工作流作工具”反向调用；底层锚定 1,500+ 连接器、服务主体托管及逐动作额度账本 [1][2]。</span><a href="./media/brk258-bidirectional-architecture.drawio" download data-zh="下载 .drawio" data-en="Download .drawio">下载 .drawio</a></figcaption>
+          </figure>
+
+          <p data-zh="在展台答疑中，客户提问率最高的问题是：&lt;strong&gt;既有的 Power Automate 云端流与全新的 Copilot Studio 工作流究竟该如何选型，计费又如何核算？&lt;/strong&gt; Joe Fernandez 给出了清晰的决策标尺与公开透明的单步定价公式 [1][2]。纯确定性自动化且团队已持有 Power Automate 席位许可时，完全可以继续沿用 Power Automate（其产品线保持长期稳健演进）；但只要业务流程需要深度混编多模态推理智能体、0.06 秒分类节点、文档抽取或计算机操作（Computer Use），并希望统一纳入 &lt;strong&gt;Copilot Credits&lt;/strong&gt; 消费池核算（支持预付费额度包或绑定 Azure 订阅按量计费），就应首选 Copilot Studio 工作流 [1][2]：" data-en="At the Ignite expo booth, the two most frequent customer questions centered on &lt;strong&gt;Power Automate flows versus Copilot Studio workflows&lt;/strong&gt; and &lt;strong&gt;exact credit pricing&lt;/strong&gt; [1][2]. Joe Fernandez emphasized that teams running purely deterministic tasks on existing Power Automate licenses should keep using Power Automate; however, end-to-end processes blending multi-file reasoning agents, built-in Classify/Extract/Copilot/Computer Use nodes, and unified &lt;strong&gt;Copilot Credits&lt;/strong&gt; licensing (via upfront Prepaid Packs or Azure Pay-As-You-Go) belong in Copilot Studio workflows [1][2]:">在展台答疑中，客户提问率最高的问题是：<strong>既有的 Power Automate 云端流与全新的 Copilot Studio 工作流究竟该如何选型，计费又如何核算？</strong> Joe Fernandez 给出了清晰的决策标尺与公开透明的单步定价公式 [1][2]。纯确定性自动化且团队已持有 Power Automate 席位许可时，完全可以继续沿用 Power Automate（其产品线保持长期稳健演进）；但只要业务流程需要深度混编多模态推理智能体、0.06 秒分类节点、文档抽取或计算机操作（Computer Use），并希望统一纳入 <strong>Copilot Credits</strong> 消费池核算（支持预付费额度包或绑定 Azure 订阅按量计费），就应首选 Copilot Studio 工作流 [1][2]：</p>
+<div class="compare-table-wrap" data-present-step data-present-surface="unframed" data-step-title="双向融合架构与计费选型：工作流嵌智能节点 vs 智能体调工作流：对比矩阵" data-step-title-en="Bidirectional Architecture &amp; Licensing: Agents Inside Workflows vs. Workflows as Tools: Comparison Matrix" data-present-title-zh="双向融合架构与计费选型：工作流嵌智能节点 vs 智能体调工作流：对比矩阵" data-present-title-en="Bidirectional Architecture &amp; Licensing: Agents Inside Workflows vs. Workflows as Tools: Comparison Matrix" data-step-label="02 / Bidirectional Blending &amp; Economics" data-step-label-en="02 / Bidirectional Blending &amp; Economics" data-present-i18n-invariant="label"><table class="simple-table compare-table">
+<thead>
+<tr>
+<th data-zh="选型维度" data-en="Selection Dimension">选型维度</th>
+<th data-zh="Power Automate 云端流" data-en="Power Automate Flows">Power Automate 云端流</th>
+<th data-zh="Copilot Studio 工作流" data-en="Copilot Studio Workflows">Copilot Studio 工作流</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-zh="最佳适用场景" data-en="Best For">最佳适用场景</td>
+<td data-zh="规则明确、输入高度结构化的纯确定性任务自动化 [1][2]" data-en="Reliable deterministic automation of predictable tasks [1][2]">规则明确、输入高度结构化的纯确定性任务自动化 [1][2]</td>
+<td data-zh="端到端业务流程重构：在确定性编排主干中混编推理智能体与多模态判断 [1][2]" data-en="End-to-end processes combining deterministic orchestration with AI agents [1][2]">端到端业务流程重构：在确定性编排主干中混编推理智能体与多模态判断 [1][2]</td>
+</tr>
+<tr>
+<td data-zh="原生 AI 能力深度" data-en="Built-in AI Depth">原生 AI 能力深度</td>
+<td data-zh="以轻量提示词（Prompts）文本生成为主 [2]" data-en="Focused primarily on standalone AI Builder prompts [2]">以轻量提示词（Prompts）文本生成为主 [2]</td>
+<td data-zh="完整智能体节点（最新前沿模型、多文件输入输出、工具与代码）+ 内置 Classify / Extract / Copilot / Computer Use 动作 [2]" data-en="Full Agents (latest models, files, tools, code) + Classify, Extract, Copilot, and Computer Use nodes [2]">完整智能体节点（最新前沿模型、多文件输入输出、工具与代码）+ 内置 Classify / Extract / Copilot / Computer Use 动作 [2]</td>
+</tr>
+<tr>
+<td data-zh="许可与计费模型" data-en="Licensing &amp;amp; Metering">许可与计费模型</td>
+<td data-zh="Power Automate 席位/流程许可 + 提示词附加额度 [1][2]" data-en="Power Automate license plus add-on credits for prompts [1][2]">Power Automate 席位/流程许可 + 提示词附加额度 [1][2]</td>
+<td data-zh="统一消费模型：非 AI 确定性动作固定 &lt;strong&gt;&lt;code&gt;0.13 Credit/步&lt;/code&gt;&lt;/strong&gt;（约 &lt;code&gt;$0.0013&lt;/code&gt;）+ 智能体动作按模型/工具/时长计量 [1][2]" data-en="Unified Copilot Credits: &lt;strong&gt;&lt;code&gt;0.13 Credit/action&lt;/code&gt;&lt;/strong&gt; (&lt;code&gt;$0.0013&lt;/code&gt;) for non-AI steps + agent credit consumption [1][2]">统一消费模型：非 AI 确定性动作固定 <strong><code>0.13 Credit/步</code></strong>（约 <code>$0.0013</code>）+ 智能体动作按模型/工具/时长计量 [1][2]</td>
+</tr>
+<tr>
+<td data-zh="开放模板生态" data-en="Community Templates">开放模板生态</td>
+<td data-zh="传统云端流模板库" data-en="Classic cloud flow templates">传统云端流模板库</td>
+<td data-zh="全新开源 &lt;strong&gt;Copilot Studio Gallery&lt;/strong&gt;（&lt;code&gt;microsoft.github.io/copilot-studio-gallery&lt;/code&gt;），汇聚微软官方与署名社区最佳实践 [1][2][3]" data-en="New open &lt;strong&gt;Copilot Studio Gallery&lt;/strong&gt; featuring credited community and Microsoft reference solutions [1][2][3]">全新开源 <strong>Copilot Studio Gallery</strong>（<code>microsoft.github.io/copilot-studio-gallery</code>），汇聚微软官方与署名社区最佳实践 [1][2][3]</td>
+</tr>
+</tbody>
+</table></div>
+<p data-zh="由于 &lt;code&gt;1 Copilot Credit&lt;/code&gt; 折合 &lt;code&gt;0.01 美元&lt;/code&gt;（1 美分），任何不调用人工智能的确定性连接器、条件判断或邮件归档动作仅花费 &lt;strong&gt;&lt;code&gt;0.0013 美元&lt;/code&gt;&lt;/strong&gt; [1]。只有真正触发推理节点时，系统才会叠加模型档位（如轻量模型 GPT-6 Luna 与重型模型 Fable 5.2 的单价差异）、工具调用次数及运行时长消耗 [1][2]：" data-en="Because &lt;code&gt;1 Copilot Credit&lt;/code&gt; equals &lt;code&gt;$0.01&lt;/code&gt; (one cent), every non-AI connector, condition, or archive action costs just &lt;strong&gt;&lt;code&gt;$0.0013&lt;/code&gt;&lt;/strong&gt; [1]. Credits scale up only on steps where AI reasoning actually runs—governed by model tier (such as lightweight GPT-6 Luna versus frontier Fable 5.2), tool/knowledge calls, and execution duration [1][2]:">由于 <code>1 Copilot Credit</code> 折合 <code>0.01 美元</code>（1 美分），任何不调用人工智能的确定性连接器、条件判断或邮件归档动作仅花费 <strong><code>0.0013 美元</code></strong> [1]。只有真正触发推理节点时，系统才会叠加模型档位（如轻量模型 GPT-6 Luna 与重型模型 Fable 5.2 的单价差异）、工具调用次数及运行时长消耗 [1][2]：</p>
+<div class="math-block" data-latex="C_{\text{workflow}} = 0.13 \times N_{\text{det}} + \sum_{k=1}^{N_{\text{AI}}} f_{\text{agent}}\!\left(\text{Model}_k,\,\text{Tools}_k,\,\text{Time}_k\right), \qquad 1\text{ Credit} = \$0.01">C_{\text{workflow}} = 0.13 \times N_{\text{det}} + \sum_{k=1}^{N_{\text{AI}}} f_{\text{agent}}\!\left(\text{Model}_k,\,\text{Tools}_k,\,\text{Time}_k\right), \qquad 1\text{ Credit} = \$0.01</div>
+
+          <figure class="sr-figure generated-diagram is-inline-svg" data-present-step data-present-surface="unframed" data-step-title="Copilot Studio 混合工作流单步动作消耗量级对比" data-step-title-en="Copilot Studio Workflow Per-Step Credit Consumption Scale" data-present-title-zh="Copilot Studio 混合工作流单步动作消耗量级对比" data-present-title-en="Copilot Studio Workflow Per-Step Credit Consumption Scale" data-step-label="02 / Bidirectional Blending &amp; Economics" data-step-label-en="02 / Bidirectional Blending &amp; Economics" data-present-i18n-invariant="label">
+            <svg class="sr-figure-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 426" role="img" aria-labelledby="brk258-step-economics-latency-2-title brk258-step-economics-latency-2-desc"><title id="brk258-step-economics-latency-2-title">Copilot Studio 混合工作流单步动作消耗与模型延迟对比（BRK258 实测）</title><desc id="brk258-step-economics-latency-2-desc">Horizontal bar chart with 5 items</desc><text class="sr-zh" x="36" y="32" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="18" font-weight="700" fill="var(--fig-text-strong, #172430)">Copilot Studio 混合工作流单步动作消耗与模型延迟对比（BRK258 实测）</text><text class="sr-en" x="36" y="32" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="18" font-weight="700" fill="var(--fig-text-strong, #172430)">Copilot Studio Workflow Per-Step Credit Cost &amp; Latency Benchmark (BRK258)</text><text class="sr-zh" x="36" y="54" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">对数标尺对比：纯确定性连接器固定 0.13 Credit（$0.0013），专用决策模型分类仅需 0.06 秒且成本降低 200 倍</text><text class="sr-en" x="36" y="54" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">Log scale: deterministic steps cost 0.13 Credit ($0.0013); specialized Decision classification runs in 0.06s at 200× lower cost</text><line x1="292" y1="92" x2="292" y2="372" stroke="var(--fig-axis-line, rgba(23,36,48,0.24))" stroke-width="1"/><text class="sr-figure-num" x="292" y="394" text-anchor="middle" font-size="11.5" fill="var(--fig-text-subtle, #64748b)">0</text><line x1="437" y1="92" x2="437" y2="372" stroke="var(--fig-grid-line, rgba(23,36,48,0.09))" stroke-width="1" stroke-dasharray="4 4"/><text class="sr-figure-num" x="437" y="394" text-anchor="middle" font-size="11.5" fill="var(--fig-text-subtle, #64748b)">2.5</text><line x1="581" y1="92" x2="581" y2="372" stroke="var(--fig-grid-line, rgba(23,36,48,0.09))" stroke-width="1" stroke-dasharray="4 4"/><text class="sr-figure-num" x="581" y="394" text-anchor="middle" font-size="11.5" fill="var(--fig-text-subtle, #64748b)">6.3</text><line x1="726" y1="92" x2="726" y2="372" stroke="var(--fig-grid-line, rgba(23,36,48,0.09))" stroke-width="1" stroke-dasharray="4 4"/><text class="sr-figure-num" x="726" y="394" text-anchor="middle" font-size="11.5" fill="var(--fig-text-subtle, #64748b)">15.9</text><line x1="870" y1="92" x2="870" y2="372" stroke="var(--fig-grid-line, rgba(23,36,48,0.09))" stroke-width="1" stroke-dasharray="4 4"/><text class="sr-figure-num" x="870" y="394" text-anchor="middle" font-size="11.5" fill="var(--fig-text-subtle, #64748b)">40 Cr</text><text class="sr-zh" x="278" y="124" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">Classify 节点（Decision-1.1 决策模型）</text><text class="sr-en" x="278" y="124" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">Classify Node (Decision-1.1 Model)</text><rect x="292" y="108" width="18" height="24" rx="6" fill="var(--fig-role-teal-bar, #0d8f8c)" fill-opacity="0.88"/><text class="sr-zh" x="320" y="125" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">0.06s 极速路由 · 比传统 LLM 省 200×</text><text class="sr-en" x="320" y="125" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">0.06s routing · 35× faster, 200× cheaper</text><text class="sr-zh" x="278" y="180" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">确定性连接器 / 归档 / 条件动作</text><text class="sr-en" x="278" y="180" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">Deterministic Connector / Archive Step</text><rect x="292" y="164" width="80" height="24" rx="6" fill="var(--fig-role-blue-bar, #2563eb)" fill-opacity="0.88"/><text class="sr-zh" x="382" y="181" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">0.13 Cr 固定费率（约 $0.0013/步）</text><text class="sr-en" x="382" y="181" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">0.13 Cr flat rate ($0.0013/step)</text><text class="sr-zh" x="278" y="236" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">Activity 面板：产品回复智能体节点</text><text class="sr-en" x="278" y="236" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">Activity View: Product Response Agent</text><rect x="292" y="220" width="379" height="24" rx="6" fill="var(--fig-role-violet-bar, #7c3aed)" fill-opacity="0.88"/><text class="sr-zh" x="681" y="237" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">5 Credits（思考 9 秒起草企业邮件）</text><text class="sr-en" x="681" y="237" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">5 Credits (9s reasoning + draft email)</text><text class="sr-zh" x="278" y="292" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">实机演示：复合 AI 推理与抽取动作</text><text class="sr-en" x="278" y="292" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">Live Demo: Multi-Step AI Action</text><rect x="292" y="276" width="415" height="24" rx="6" fill="var(--fig-role-accent-bar, #ea580c)" fill-opacity="0.88"/><text class="sr-zh" x="717" y="293" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">7.29 Credits（BRK258 现场活动账单）</text><text class="sr-en" x="717" y="293" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">7.29 Credits (BRK258 live Activity log)</text><text class="sr-zh" x="278" y="348" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">客户邮件工作流单次端到端运行总计</text><text class="sr-en" x="278" y="348" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">Customer Email Workflow Full Run</text><rect x="292" y="332" width="511" height="24" rx="6" fill="var(--fig-role-rose-bar, #e11d48)" fill-opacity="0.88"/><text class="sr-zh" x="813" y="349" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">20 Credits（含多分支查询与回复全链路）</text><text class="sr-en" x="813" y="349" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">20 Credits (end-to-end multi-step run)</text><text class="sr-zh" x="581" y="418" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">单步动作或单次运行消耗（Copilot Credits，对数刻度，1 Credit = $0.01）</text><text class="sr-en" x="581" y="418" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Credits Consumed per Action or Run (Log Scale, 1 Credit = $0.01)</text></svg>
+            <figcaption class="diagram-caption"><span data-zh="图 2：对数标尺下对比专用决策模型极速分类、0.13 Credit 确定性连接器动作、单步智能体回信（5 Credits）、BRK258 实机演示复合 AI 动作（7.29 Credits）与完整多分支运行（20 Credits）的成本梯度 [1][2]。" data-en="Figure 2: Logarithmic cost progression across Decision-model classification, 0.13-Credit deterministic steps, single agent email drafting (5 Credits), BRK258 live demo AI steps (7.29 Credits), and full multi-branch workflow runs (20 Credits) [1][2].">图 2：对数标尺下对比专用决策模型极速分类、0.13 Credit 确定性连接器动作、单步智能体回信（5 Credits）、BRK258 实机演示复合 AI 动作（7.29 Credits）与完整多分支运行（20 Credits）的成本梯度 [1][2]。</span></figcaption>
+          </figure>
+        </section>
+
+        <section id="smarter-steps-scale" class="section" data-reveal data-present-title-zh="三大演进路线图：0.06 秒决策模型、行内 Python 与企业级生命周期治理" data-present-title-en="Roadmap Deep Dive: 0.06s Decision Model, Inline Python, and Enterprise Scale">
+          <div class="section-head">
+            <p class="section-kicker">03 / Smarter Steps &amp; Enterprise Scale</p>
+            <h2 data-zh="3. 三大演进路线图：0.06 秒决策模型、行内 Python 与企业级生命周期治理" data-en="3. Roadmap Deep Dive: 0.06s Decision Model, Inline Python, and Enterprise Scale">3. 三大演进路线图：0.06 秒决策模型、行内 Python 与企业级生命周期治理</h2>
+            <p data-zh="全面商用的新版工作流设计器不仅支持自由拖拽画布、水平与垂直布局一键切换、行内协作便签，更引入了极其关键的&lt;strong&gt;单节点就地测试（Node Testing）&lt;/strong&gt;——创作者修改某一步智能体指令或分类条件后，无需每次从头触发整条端到端长流程，直接在当前节点内点击运行即可秒级校验输出（例如测试邮件分类节点在 &lt;code&gt;1.4 秒&lt;/code&gt; 内返回 &lt;code&gt;Billing&lt;/code&gt; 类别与 &lt;code&gt;96%&lt;/code&gt; 置信度）[1][2]。在此基础上，BRK258 揭晓了围绕&lt;strong&gt;更聪明步骤（Smarter Steps）&lt;/strong&gt;、**规模化投产（Ready to Scale）&lt;strong&gt;与&lt;/strong&gt;极速构建（Faster to Build）**铺开的 15 项重磅能力更新 [1][2]：" data-en="Now generally available, the rebuilt Workflow Designer pairs a freeform canvas, one-click horizontal/vertical layout toggling, and collaborator notes with &lt;strong&gt;in-place Node Testing&lt;/strong&gt;—allowing makers to tweak instructions or models on a single AI step and validate outputs immediately (such as classifying a billing email at &lt;code&gt;96%&lt;/code&gt; confidence in &lt;code&gt;1.4 s&lt;/code&gt;) without re-running the entire pipeline [1][2]. Building on this foundation, BRK258 unveiled 15 roadmap updates across &lt;strong&gt;Smarter Steps&lt;/strong&gt;, &lt;strong&gt;Ready to Scale&lt;/strong&gt;, and &lt;strong&gt;Faster to Build&lt;/strong&gt; [1][2]:">全面商用的新版工作流设计器不仅支持自由拖拽画布、水平与垂直布局一键切换、行内协作便签，更引入了极其关键的<strong>单节点就地测试（Node Testing）</strong>——创作者修改某一步智能体指令或分类条件后，无需每次从头触发整条端到端长流程，直接在当前节点内点击运行即可秒级校验输出（例如测试邮件分类节点在 <code>1.4 秒</code> 内返回 <code>Billing</code> 类别与 <code>96%</code> 置信度）[1][2]。在此基础上，BRK258 揭晓了围绕<strong>更聪明步骤（Smarter Steps）</strong>、**规模化投产（Ready to Scale）<strong>与</strong>极速构建（Faster to Build）**铺开的 15 项重磅能力更新 [1][2]：</p>
+          </div>
+
+          <div class="subsection-accordion" data-present-step data-present-surface="unframed" data-step-title="三大演进路线图：0.06 秒决策模型、行内 Python 与企业级生命周期治理：展开详解" data-step-title-en="Roadmap Deep Dive: 0.06s Decision Model, Inline Python, and Enterprise Scale: Deep Dive" data-present-title-zh="三大演进路线图：0.06 秒决策模型、行内 Python 与企业级生命周期治理：展开详解" data-present-title-en="Roadmap Deep Dive: 0.06s Decision Model, Inline Python, and Enterprise Scale: Deep Dive" data-step-label="03 / Smarter Steps &amp; Enterprise Scale" data-step-label-en="03 / Smarter Steps &amp; Enterprise Scale" data-present-i18n-invariant="label">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" type="button" aria-expanded="true">
+                <span data-zh="更聪明步骤：Microsoft-Decision-1.1 分类模型、文件输出与原生 Python 节点" data-en="Smarter Steps: Microsoft-Decision-1.1 Classify, Real File Outputs, and Python Code Node">更聪明步骤：Microsoft-Decision-1.1 分类模型、文件输出与原生 Python 节点</span>
+              </button>
+              <div class="subsection-content">
+                <p data-zh="传统大语言模型就像“散文作家”，每次做简单二选一或路由分拣都要从头自回归生成词元，既慢又贵；而微软在本届大会发布的 &lt;strong&gt;Microsoft-Decision-1.1&lt;/strong&gt; 专用小模型更像经验老到的“急诊分诊护士”，专攻文本或图像的多路分类与打分 [1][2]。将其接入工作流 &lt;strong&gt;Classify 节点&lt;/strong&gt;（现已正式商用推送）后，单条数据分类耗时骤降至 &lt;strong&gt;&lt;code&gt;0.06 秒&lt;/code&gt;&lt;/strong&gt;，中位延迟比传统大模型&lt;strong&gt;快约 35 倍&lt;/strong&gt;、成本&lt;strong&gt;降低 200 倍&lt;/strong&gt;，且原生输出校准后的置信度分数（便于配置“低于 85% 置信度自动转人工”护栏）[1][2]。与此同时，&lt;strong&gt;Extract 节点&lt;/strong&gt;支持拖入任意样本文件自动生成 PDF、Word、Excel 与演示文稿的结构化抽取指令；&lt;strong&gt;Agent 节点&lt;/strong&gt;新增&lt;strong&gt;真实文件输出（Files as output，正式商用推送）&lt;/strong&gt;，可直接吐出生成的 &lt;code&gt;.xlsx&lt;/code&gt; 报表、&lt;code&gt;.pdf&lt;/code&gt; 证书或 &lt;code&gt;.pptx&lt;/code&gt; 简报传给下游连接器；&lt;strong&gt;Copilot 节点&lt;/strong&gt;打通了对话（Chat）、协同画布（Cowork）与前沿预览的自主领航（Autopilot）三种委派模式；而开启公测的 &lt;strong&gt;Code 节点&lt;/strong&gt;则允许直接在画布内嵌入 &lt;strong&gt;Python&lt;/strong&gt; 脚本（支持自然语言生成代码）完成正则清洗、日期标准化与复杂金额核对，彻底告别以往为了几行数据转换而专门额外部署云端函数的繁琐链路 [1][2]。" data-en="Whereas a traditional LLM acts like an essay writer generating tokens from scratch, the new &lt;strong&gt;Microsoft-Decision-1.1&lt;/strong&gt; model acts like a triage nurse purpose-built for fast, calibrated judgment over text or images [1][2]. Selecting the Decision model inside the &lt;strong&gt;Classify node&lt;/strong&gt; (GA rolling out) slashes classification latency to &lt;strong&gt;&lt;code&gt;0.06 seconds&lt;/code&gt;&lt;/strong&gt;—roughly &lt;strong&gt;35x faster&lt;/strong&gt; at median (P50) latency and &lt;strong&gt;200x cheaper&lt;/strong&gt; than an LLM—while returning a confidence score so flows can escalate items below &lt;code&gt;85%&lt;/code&gt; certainty [1][2]. Alongside Classify, the &lt;strong&gt;Extract node&lt;/strong&gt; turns PDF, Word, Excel, and PowerPoint files into structured schemas from a dropped sample; the &lt;strong&gt;Agent node&lt;/strong&gt; now hands back &lt;strong&gt;real files as output&lt;/strong&gt; (&lt;code&gt;.xlsx&lt;/code&gt;, &lt;code&gt;.pdf&lt;/code&gt;, &lt;code&gt;.pptx&lt;/code&gt;, &lt;code&gt;.csv&lt;/code&gt;, GA rolling out) rather than plain text; the &lt;strong&gt;Copilot node&lt;/strong&gt; delegates tasks across Chat, Cowork, or Autopilot (Frontier); and the &lt;strong&gt;Code node&lt;/strong&gt; (Public Preview) runs &lt;strong&gt;Python&lt;/strong&gt; directly inside the workflow canvas for regex cleaning or totals validation without spinning up external Azure Functions [1][2].">传统大语言模型就像“散文作家”，每次做简单二选一或路由分拣都要从头自回归生成词元，既慢又贵；而微软在本届大会发布的 <strong>Microsoft-Decision-1.1</strong> 专用小模型更像经验老到的“急诊分诊护士”，专攻文本或图像的多路分类与打分 [1][2]。将其接入工作流 <strong>Classify 节点</strong>（现已正式商用推送）后，单条数据分类耗时骤降至 <strong><code>0.06 秒</code></strong>，中位延迟比传统大模型<strong>快约 35 倍</strong>、成本<strong>降低 200 倍</strong>，且原生输出校准后的置信度分数（便于配置“低于 85% 置信度自动转人工”护栏）[1][2]。与此同时，<strong>Extract 节点</strong>支持拖入任意样本文件自动生成 PDF、Word、Excel 与演示文稿的结构化抽取指令；<strong>Agent 节点</strong>新增<strong>真实文件输出（Files as output，正式商用推送）</strong>，可直接吐出生成的 <code>.xlsx</code> 报表、<code>.pdf</code> 证书或 <code>.pptx</code> 简报传给下游连接器；<strong>Copilot 节点</strong>打通了对话（Chat）、协同画布（Cowork）与前沿预览的自主领航（Autopilot）三种委派模式；而开启公测的 <strong>Code 节点</strong>则允许直接在画布内嵌入 <strong>Python</strong> 脚本（支持自然语言生成代码）完成正则清洗、日期标准化与复杂金额核对，彻底告别以往为了几行数据转换而专门额外部署云端函数的繁琐链路 [1][2]。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" type="button" aria-expanded="false">
+                <span data-zh="规模化投产：逐动作额度透视、服务主体接管、环境变量与 JSON 源码视图" data-en="Ready to Scale: Credit Visibility, Service Principals, Env Variables, and JSON Code View">规模化投产：逐动作额度透视、服务主体接管、环境变量与 JSON 源码视图</span>
+              </button>
+              <div class="subsection-content">
+                <p data-zh="过去几个月企业客户呼声最高的需求是算力账单透明化。现已正式商用的&lt;strong&gt;额度透视（Credit Visibility）&lt;strong&gt;在运行历史（Activity）面板中精确展示每一次运行及每一个具体步骤消耗的点数（例如同屏清晰列出整条流程总耗 &lt;code&gt;20 Credits&lt;/code&gt;，其中产品回复智能体耗时 36 秒、思考 9 秒并消耗 &lt;code&gt;5 Credits&lt;/code&gt;），并在监控（Monitor）面板中聚合选定时间窗的总趋势与错误明细 [1][2]。为消除“员工休假或离职导致生产工作流断档”的治理顽疾，将于 &lt;strong&gt;12 月上线&lt;/strong&gt;的&lt;/strong&gt;服务主体与连接管理&lt;/strong&gt;允许将工作流所有权移交给企业服务账号（Service Principal），且当工作流作为智能体工具被调用时，支持&lt;strong&gt;逐个动作精细指定使用终端用户凭据还是创建者凭据&lt;/strong&gt;执行 [1][2]。此外，解决方案&lt;strong&gt;环境变量&lt;/strong&gt;支持已正式商用（在任意输入框键入 &lt;code&gt;/&lt;/code&gt; 即可插入令牌，跨开发、测试、生产环境晋升无需手工改图），配合公测上线的 &lt;strong&gt;Code View（JSON 源码视图）&lt;/strong&gt;，开发者可随时检视或复制底层节点定义交由编码智能体批量重构 [1][2]。" data-en="Answering the top enterprise request from recent months, &lt;strong&gt;Credit visibility&lt;/strong&gt; (GA now) exposes exact per-run and per-action credit burn inside the Activity view alongside time-range totals and error trends in Monitor [1][2]. To eliminate single-employee ownership risk in production, &lt;strong&gt;Service principal &amp;amp; connections management&lt;/strong&gt; (coming December) lets teams assign workflow ownership to a service account and choose per action whether a workflow tool runs under end-user credentials or maker credentials [1][2]. &lt;strong&gt;Environment variables&lt;/strong&gt; are also GA now—type &lt;code&gt;/&lt;/code&gt; in any field to insert stage-specific tokens across dev, test, and prod without touching the flow—complemented by &lt;strong&gt;Code view&lt;/strong&gt; (Public Preview) for inspecting and editing the underlying JSON workflow definition [1][2].">过去几个月企业客户呼声最高的需求是算力账单透明化。现已正式商用的<strong>额度透视（Credit Visibility）<strong>在运行历史（Activity）面板中精确展示每一次运行及每一个具体步骤消耗的点数（例如同屏清晰列出整条流程总耗 <code>20 Credits</code>，其中产品回复智能体耗时 36 秒、思考 9 秒并消耗 <code>5 Credits</code>），并在监控（Monitor）面板中聚合选定时间窗的总趋势与错误明细 [1][2]。为消除“员工休假或离职导致生产工作流断档”的治理顽疾，将于 <strong>12 月上线</strong>的</strong>服务主体与连接管理</strong>允许将工作流所有权移交给企业服务账号（Service Principal），且当工作流作为智能体工具被调用时，支持<strong>逐个动作精细指定使用终端用户凭据还是创建者凭据</strong>执行 [1][2]。此外，解决方案<strong>环境变量</strong>支持已正式商用（在任意输入框键入 <code>/</code> 即可插入令牌，跨开发、测试、生产环境晋升无需手工改图），配合公测上线的 <strong>Code View（JSON 源码视图）</strong>，开发者可随时检视或复制底层节点定义交由编码智能体批量重构 [1][2]。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" type="button" aria-expanded="false">
+                <span data-zh="极速构建与现场投票冠军：Copilot Studio MCP 服务、Cowork 联产与画布操控升级" data-en="Faster to Build &amp;amp; Live Poll Winner: MCP Server, Cowork Authoring, and Canvas Ergonomics">极速构建与现场投票冠军：Copilot Studio MCP 服务、Cowork 联产与画布操控升级</span>
+              </button>
+              <div class="subsection-content">
+                <p data-zh="除了在浏览器画布里手工编排，团队现在拥有两条自然语言极速通道：其一是正式商用的 &lt;strong&gt;Copilot Studio MCP 服务&lt;/strong&gt;（执行 &lt;code&gt;npx -y @microsoft/copilot-studio-mcp@latest&lt;/code&gt; 即可接入 VS Code、GitHub Copilot、Codex 或 Claude Code），一句指令即可自动检索连接器、草拟五步大额发票审核流并在 &lt;code&gt;14 秒&lt;/code&gt; 内跑通测试 [1][2][4]；其二是前沿预览的 &lt;strong&gt;Copilot Cowork 构建技能&lt;/strong&gt;，自动读取组织实时邮件与团队审批规范，同步生成配套的审核智能体与工作流草稿 [1][2][5]。画布本身也迎来了游戏级交互式&lt;strong&gt;新手导览（Guided Tour，正式商用）&lt;/strong&gt;、框选多节点平移、鸟瞰&lt;strong&gt;小地图（Minimap）&lt;/strong&gt;、缩放预设（&lt;code&gt;Shift+1&lt;/code&gt; 适配全屏）、&lt;strong&gt;拖拽互换节点自动重连线&lt;/strong&gt;以及 &lt;strong&gt;12 月上线&lt;/strong&gt;的可视化&lt;strong&gt;版本历史差异对比&lt;/strong&gt; [1][2]。在演讲第 26 分钟的现场实时扫码投票（&lt;code&gt;hum.vote/4VBY&lt;/code&gt;）中，全场线下与线上观众票选出的最受期待特性前三名依次为：&lt;strong&gt;第一名 Copilot Studio MCP 服务、第二名 Copilot Cowork 自然语言构建、第三名搭载决策模型的 Classify 节点&lt;/strong&gt; [1]。" data-en="Beyond visual authoring, makers gained two natural-language fast lanes. The &lt;strong&gt;Copilot Studio MCP server&lt;/strong&gt; (GA via &lt;code&gt;npx -y @microsoft/copilot-studio-mcp@latest&lt;/code&gt; in VS Code, GitHub Copilot, Codex, or Claude Code) discovers Outlook and Teams connections, drafts a five-step &lt;code&gt;&amp;gt;$10K&lt;/code&gt; invoice triage flow, and completes a test run in &lt;code&gt;14s&lt;/code&gt; [1][2][4]. Meanwhile, &lt;strong&gt;Build from Copilot Cowork&lt;/strong&gt; (Frontier) grounds in Work IQ team context to co-create paired workflows and agents [1][2][5]. Inside the canvas, Microsoft shipped an interactive &lt;strong&gt;Guided tour&lt;/strong&gt; (GA), multi-node box select, a &lt;strong&gt;Minimap&lt;/strong&gt;, zoom presets (&lt;code&gt;Shift+1&lt;/code&gt;), &lt;strong&gt;drag-to-swap node auto-reconnection&lt;/strong&gt;, and visual &lt;strong&gt;Version history diffing&lt;/strong&gt; (coming December) [1][2]. When Joe Fernandez ran a live audience poll (&lt;code&gt;hum.vote/4VBY&lt;/code&gt;) at minute 26, attendees crowned &lt;strong&gt;Copilot Studio MCP server #1&lt;/strong&gt;, followed by &lt;strong&gt;Build from Cowork (#2)&lt;/strong&gt; and &lt;strong&gt;Classify with Decision model (#3)&lt;/strong&gt; [1].">除了在浏览器画布里手工编排，团队现在拥有两条自然语言极速通道：其一是正式商用的 <strong>Copilot Studio MCP 服务</strong>（执行 <code>npx -y @microsoft/copilot-studio-mcp@latest</code> 即可接入 VS Code、GitHub Copilot、Codex 或 Claude Code），一句指令即可自动检索连接器、草拟五步大额发票审核流并在 <code>14 秒</code> 内跑通测试 [1][2][4]；其二是前沿预览的 <strong>Copilot Cowork 构建技能</strong>，自动读取组织实时邮件与团队审批规范，同步生成配套的审核智能体与工作流草稿 [1][2][5]。画布本身也迎来了游戏级交互式<strong>新手导览（Guided Tour，正式商用）</strong>、框选多节点平移、鸟瞰<strong>小地图（Minimap）</strong>、缩放预设（<code>Shift+1</code> 适配全屏）、<strong>拖拽互换节点自动重连线</strong>以及 <strong>12 月上线</strong>的可视化<strong>版本历史差异对比</strong> [1][2]。在演讲第 26 分钟的现场实时扫码投票（<code>hum.vote/4VBY</code>）中，全场线下与线上观众票选出的最受期待特性前三名依次为：<strong>第一名 Copilot Studio MCP 服务、第二名 Copilot Cowork 自然语言构建、第三名搭载决策模型的 Classify 节点</strong> [1]。</p>
+<p data-zh="下方四宫格精选自 BRK258 官方原版幻灯片，直观定格了 0.06 秒分类节点、行内 Python 代码节点、逐动作额度回放与 JSON 源码定义四大工程界面 [2]：" data-en="The four-panel gallery below, extracted directly from the official BRK258 slide deck, captures the 0.06s Classify node, inline Python Code node, per-action Activity credit trace, and JSON Code view [2]:">下方四宫格精选自 BRK258 官方原版幻灯片，直观定格了 0.06 秒分类节点、行内 Python 代码节点、逐动作额度回放与 JSON 源码定义四大工程界面 [2]：</p>
+<div class="brk258-media-grid">
+  <article class="brk258-media-card">
+    <div class="brk258-media-frame">
+      <img src="./media/brk258-classify-decision-node.jpg" alt="BRK258 Slide 23 screenshot showing Classify node completing email routing in 0.06 seconds inside an Apply to each loop" loading="lazy" />
+    </div>
+    <div class="brk258-media-body">
+      <span class="brk258-media-badge" data-zh="BRK258 官方课件第 23 页 · GA" data-en="BRK258 Slide 23 · GA Rolling Out">BRK258 官方课件第 23 页 · GA</span>
+      <h4 data-zh="Classify 节点：0.06 秒决策模型极速多路分拣" data-en="Classify Node: 0.06-Second Decision Model Routing">Classify 节点：0.06 秒决策模型极速多路分拣</h4>
+      <p data-zh="在收件箱循环批处理中，Classify 节点仅耗 0.06 秒即锁定保修（Warranty）分支，未命中的配送、退货、账单与库存分支全部 0 秒跳过 [2]。" data-en="Inside an inbox loop, the Classify node routes to the Warranty branch in 0.06s while skipping unmatched branches in 0s [2].">在收件箱循环批处理中，Classify 节点仅耗 0.06 秒即锁定保修（Warranty）分支，未命中的配送、退货、账单与库存分支全部 0 秒跳过 [2]。</p>
+    </div>
+  </article>
+  <article class="brk258-media-card">
+    <div class="brk258-media-frame">
+      <img src="./media/brk258-code-node-python.jpg" alt="BRK258 Slide 26 screenshot showing inline Python Code node normalizing invoice dates and stripping currency symbols" loading="lazy" />
+    </div>
+    <div class="brk258-media-body">
+      <span class="brk258-media-badge is-accent" data-zh="BRK258 官方课件第 26 页 · 公测" data-en="BRK258 Slide 26 · Public Preview">BRK258 官方课件第 26 页 · 公测</span>
+      <h4 data-zh="Code 节点：工作流画布内原生运行 Python 脚本" data-en="Code Node: Native Inline Python Inside the Designer">Code 节点：工作流画布内原生运行 Python 脚本</h4>
+      <p data-zh="紧接发票抽取节点之后直接编写 Python 函数标准化日期与多币种金额符号，再交由条件分支比对明细总额 [1][2]。" data-en="Runs inline Python right after invoice extraction to normalize dates and strip currency symbols before checking line-item totals [1][2].">紧接发票抽取节点之后直接编写 Python 函数标准化日期与多币种金额符号，再交由条件分支比对明细总额 [1][2]。</p>
+    </div>
+  </article>
+  <article class="brk258-media-card">
+    <div class="brk258-media-frame">
+      <img src="./media/brk258-activity-credit-detail.jpg" alt="BRK258 Slide 29 screenshot showing Activity panel per-run total of 20 credits and per-step agent consumption of 5 credits" loading="lazy" />
+    </div>
+    <div class="brk258-media-body">
+      <span class="brk258-media-badge" data-zh="BRK258 官方课件第 29 页 · GA" data-en="BRK258 Slide 29 · GA Now">BRK258 官方课件第 29 页 · GA</span>
+      <h4 data-zh="Activity 面板：单次运行与单步智能体额度透明账单" data-en="Activity View: Per-Run and Per-Step Credit Transparency">Activity 面板：单次运行与单步智能体额度透明账单</h4>
+      <p data-zh="左侧运行摘要清晰标注整趟耗时与总消耗（20 Credits），右侧点选智能体节点即可检视 9 秒思考过程与该步独立花费（5 Credits）[1][2]。" data-en="Displays run-level cost (20 Credits) on the left and step-level agent reasoning trace plus exact spend (5 Credits) on the right [1][2].">左侧运行摘要清晰标注整趟耗时与总消耗（20 Credits），右侧点选智能体节点即可检视 9 秒思考过程与该步独立花费（5 Credits）[1][2]。</p>
+    </div>
+  </article>
+  <article class="brk258-media-card">
+    <div class="brk258-media-frame">
+      <img src="./media/brk258-code-view-json.jpg" alt="BRK258 Slide 32 screenshot showing Code view modal with Designer definition and Executable definition JSON tabs" loading="lazy" />
+    </div>
+    <div class="brk258-media-body">
+      <span class="brk258-media-badge is-accent" data-zh="BRK258 官方课件第 32 页 · 公测" data-en="BRK258 Slide 32 · Public Preview">BRK258 官方课件第 32 页 · 公测</span>
+      <h4 data-zh="Code View：双视图透视与直接编辑底层 JSON 定义" data-en="Code View: Inspect and Edit Underlying Workflow JSON">Code View：双视图透视与直接编辑底层 JSON 定义</h4>
+      <p data-zh="提供设计器定义与可执行定义双标签页，支持一键复制或直接编辑节点坐标、触发器配置与输出结构契约，方便交由外部编码智能体做版本比对与批量重构 [1][2][4]。" data-en="Exposes Designer and Executable JSON tabs with Edit JSON support, enabling external coding agents to diff and refactor workflow definitions [1][2][4].">提供设计器定义与可执行定义双标签页，支持一键复制或直接编辑节点坐标、触发器配置与输出结构契约，方便交由外部编码智能体做版本比对与批量重构 [1][2][4]。</p>
+    </div>
+  </article>
+</div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="live-demo-walkthrough" class="section" data-reveal data-present-title-zh="实机演示全链路复盘：Ignite 大会千封共享邮箱的六路混合分流" data-present-title-en="Live Demo Anatomy: Six-Branch Agentic Triage for the Ignite Shared Mailbox">
+          <div class="section-head">
+            <p class="section-kicker">04 / Live Demo Anatomy</p>
+            <h2 data-zh="4. 实机演示全链路复盘：Ignite 大会千封共享邮箱的六路混合分流" data-en="4. Live Demo Anatomy: Six-Branch Agentic Triage for the Ignite Shared Mailbox">4. 实机演示全链路复盘：Ignite 大会千封共享邮箱的六路混合分流</h2>
+            <p data-zh="在专场后半段的 13 分钟实机演示（&lt;code&gt;00:28:15–00:41:03&lt;/code&gt;）中，Joe Fernandez 以真实世界的高并发难题切入：当数千名参会者向 Ignite 官方咨询共享邮箱涌入议程排期、团体购票、参会证明开具、讲者差旅机票报销、企业赞助洽谈以及垃圾推销等五花八门的邮件时，小团队如何用&lt;strong&gt;一条工作流串联多种形态的智能节点与确定性连接器&lt;/strong&gt;完成全自动接管 [1]？整套方案完美示范了“按每条分支的不确定性复杂度精准匹配最轻算力”的工程铁律 [1]：" data-en="In the 13-minute live demo (&lt;code&gt;00:28:15–00:41:03&lt;/code&gt;), Joe Fernandez tackled a high-volume operational scenario: staffing the official Ignite FAQ shared mailbox where thousands of attendees send agenda questions, group ticket requests, attendance certificate requests, speaker flight receipts, sponsorship inquiries, and spam [1]. Rather than throwing one giant monolithic prompt at every email, the demo matched &lt;strong&gt;each branch's exact uncertainty profile to the lightest viable runtime primitive&lt;/strong&gt; [1]:">在专场后半段的 13 分钟实机演示（<code>00:28:15–00:41:03</code>）中，Joe Fernandez 以真实世界的高并发难题切入：当数千名参会者向 Ignite 官方咨询共享邮箱涌入议程排期、团体购票、参会证明开具、讲者差旅机票报销、企业赞助洽谈以及垃圾推销等五花八门的邮件时，小团队如何用<strong>一条工作流串联多种形态的智能节点与确定性连接器</strong>完成全自动接管 [1]？整套方案完美示范了“按每条分支的不确定性复杂度精准匹配最轻算力”的工程铁律 [1]：</p>
+          </div>
+
+          <ol class="flow-list" data-present-step data-present-surface="unframed" data-step-title="BRK258 实机演示：从共享邮箱触发到六路差异化处置与成本审计" data-step-title-en="BRK258 Live Demo: Shared Inbox Trigger to Six Specialized Execution Branches" data-present-title-zh="BRK258 实机演示：从共享邮箱触发到六路差异化处置与成本审计" data-present-title-en="BRK258 Live Demo: Shared Inbox Trigger to Six Specialized Execution Branches" data-step-label="04 / Live Demo Anatomy" data-step-label-en="04 / Live Demo Anatomy" data-present-i18n-invariant="label">
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="入口极速分诊：Classify 节点切换 GPT-6 Luna 与 Decision 模型实测" data-en="Entry Triage: Benchmarking GPT-6 Luna vs. Decision Model Inline">入口极速分诊：Classify 节点切换 GPT-6 Luna 与 Decision 模型实测</strong>
+                <p data-zh="以共享邮箱收到新邮件为触发器，先用自然语言定义六大类别并在节点内粘贴一封赞助商洽谈邮件就地测试：选用轻量生成模型 &lt;code&gt;GPT-6 Luna&lt;/code&gt; 时需等待数秒才吐出 &lt;code&gt;Sponsorship&lt;/code&gt;；切回默认 &lt;strong&gt;Decision 模型&lt;/strong&gt;后几乎瞬间返回结果并附带置信度分数，支持设置 &lt;code&gt;&amp;lt; 85%&lt;/code&gt; 置信度自动转人工复核 [1]。" data-en="Triggered by new shared-mailbox arrivals, Joe tested a sponsorship email inline on &lt;code&gt;GPT-6 Luna&lt;/code&gt; (taking several seconds) before switching to the &lt;strong&gt;Decision model&lt;/strong&gt;, which classified it almost instantaneously with a confidence score to gate &lt;code&gt;&amp;lt; 85%&lt;/code&gt; human escalation [1].">以共享邮箱收到新邮件为触发器，先用自然语言定义六大类别并在节点内粘贴一封赞助商洽谈邮件就地测试：选用轻量生成模型 <code>GPT-6 Luna</code> 时需等待数秒才吐出 <code>Sponsorship</code>；切回默认 <strong>Decision 模型</strong>后几乎瞬间返回结果并附带置信度分数，支持设置 <code>&lt; 85%</code> 置信度自动转人工复核 [1]。</p>
+              </div>
+            </li>
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="分支一（大会议程咨询）：复用独立智能体并强约束纯 HTML 输出" data-en="Branch 1 (Agenda Questions): Reuse Standalone Agent with Strict Output Schema">分支一（大会议程咨询）：复用独立智能体并强约束纯 HTML 输出</strong>
+                <p data-zh="调用环境内已构建并同时服务于聊天渠道的独立议程智能体（Agenda Agent）；为避免智能体寒暄啰嗦，在工作流节点输出契约中强制声明“仅返回干净的 HTML 邮件回复正文”，直接传给下游确定性回信动作 [1]。" data-en="Invokes an existing standalone Agenda Agent published in the environment, constraining its node output contract to return &lt;em&gt;only&lt;/em&gt; clean HTML reply markup—stripping conversational chatter before the deterministic email reply step [1].">调用环境内已构建并同时服务于聊天渠道的独立议程智能体（Agenda Agent）；为避免智能体寒暄啰嗦，在工作流节点输出契约中强制声明“仅返回干净的 HTML 邮件回复正文”，直接传给下游确定性回信动作 [1]。</p>
+              </div>
+            </li>
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="分支二（票务与注册变更）：画布行内构建智能体 + Dataverse MCP + 人工挂起审批" data-en="Branch 2 (Ticketing): Inline Agent + Dataverse MCP + Human Review Pause">分支二（票务与注册变更）：画布行内构建智能体 + Dataverse MCP + 人工挂起审批</strong>
+                <p data-zh="无需跳出工作流界面，直接在画布内一键展开全屏设计器创建行内票务智能体，挂载 &lt;code&gt;Dataverse MCP&lt;/code&gt; 查询参会注册表；一旦识别出需人工核准的特殊退改签，下游立即命中 **Human review（人工审核）**步骤挂起整条工作流，通过邮件或聊天推送完整上下文等待批准或驳回后再继续发信 [1]。" data-en="Builds a ticketing agent inline inside the Workflow Designer (expanding full-screen for tool setup) wired to &lt;code&gt;Dataverse MCP&lt;/code&gt;; when human validation is flagged, a &lt;strong&gt;Human review&lt;/strong&gt; step pauses workflow execution until an approver responds via Teams or email [1].">无需跳出工作流界面，直接在画布内一键展开全屏设计器创建行内票务智能体，挂载 <code>Dataverse MCP</code> 查询参会注册表；一旦识别出需人工核准的特殊退改签，下游立即命中 **Human review（人工审核）**步骤挂起整条工作流，通过邮件或聊天推送完整上下文等待批准或驳回后再继续发信 [1]。</p>
+              </div>
+            </li>
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="分支三（参会证明开具）：Agent 节点真实文件输出自动排版品牌 PDF 证书" data-en="Branch 3 (Attendance Certificates): Agent Real File Output Generating Branded PDFs">分支三（参会证明开具）：Agent 节点真实文件输出自动排版品牌 PDF 证书</strong>
+                <p data-zh="针对参会者回公司报销所需的旧金山现场参会证明，专职智能体核验数据库签到记录后，利用新增的 &lt;strong&gt;Files as output&lt;/strong&gt; 能力直接排版生成带微软与 Ignite 视觉标识的 &lt;code&gt;.pdf&lt;/code&gt; 证书文件（亦可声明 &lt;code&gt;.pptx&lt;/code&gt; 或 &lt;code&gt;.csv&lt;/code&gt;），随后由确定性步骤存入文档库并作为邮件附件发出 [1]。" data-en="Verifies attendance in Dataverse and uses the new &lt;strong&gt;Files as output&lt;/strong&gt; capability on the Agent node to generate a branded Microsoft Ignite &lt;code&gt;.pdf&lt;/code&gt; certificate, saving it to SharePoint and emailing it back as an attachment [1].">针对参会者回公司报销所需的旧金山现场参会证明，专职智能体核验数据库签到记录后，利用新增的 <strong>Files as output</strong> 能力直接排版生成带微软与 Ignite 视觉标识的 <code>.pdf</code> 证书文件（亦可声明 <code>.pptx</code> 或 <code>.csv</code>），随后由确定性步骤存入文档库并作为邮件附件发出 [1]。</p>
+              </div>
+            </li>
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="分支四（讲者差旅报销）：拖入带咖啡渍机票扫描件自动训练 Extract 抽取节点" data-en="Branch 4 (Speaker Reimbursement): Coffee-Stained Plane Ticket via Extract Node">分支四（讲者差旅报销）：拖入带咖啡渍机票扫描件自动训练 Extract 抽取节点</strong>
+                <p data-zh="面对扫描模糊且沾有咖啡渍的讲者报销机票，现场直接将样本图片拖入 &lt;strong&gt;Extract 节点&lt;/strong&gt;；系统在后台数秒内自动推导生成包含航空公司、乘机人姓名及航段明细列表的通用字段描述与抽取指令，后续任意版式的机票均可直接结构化入账 [1]。" data-en="Drops a low-quality, coffee-stained plane ticket scan directly onto an &lt;strong&gt;Extract node&lt;/strong&gt;, which automatically synthesizes generalized field names, descriptions, and list schemas (airline, passenger, segments) working across arbitrary ticket layouts [1].">面对扫描模糊且沾有咖啡渍的讲者报销机票，现场直接将样本图片拖入 <strong>Extract 节点</strong>；系统在后台数秒内自动推导生成包含航空公司、乘机人姓名及航段明细列表的通用字段描述与抽取指令，后续任意版式的机票均可直接结构化入账 [1]。</p>
+              </div>
+            </li>
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="分支五与分支六（赞助商委派 Cowork vs 垃圾邮件 0 词元删除）及账单复盘" data-en="Branches 5 &amp;amp; 6 (Cowork Delegation vs. Zero-Token Spam Cleanup) &amp;amp; Credit Audit">分支五与分支六（赞助商委派 Cowork vs 垃圾邮件 0 词元删除）及账单复盘</strong>
+                <p data-zh="复杂的赞助商排期与会议简报撰写通过 &lt;strong&gt;Copilot 节点&lt;/strong&gt;一键委派给 &lt;code&gt;Cowork&lt;/code&gt;（刷新协同画布即可实时接管触发出的会话）；而垃圾邮件与杂项则直接走纯确定性删除/归档动作，&lt;strong&gt;不烧一颗大模型词元&lt;/strong&gt; [1]。最后打开运行历史（Activity）实测对账：调用推理的复合智能动作消耗 &lt;strong&gt;&lt;code&gt;7.29 Credits&lt;/code&gt;&lt;/strong&gt;，而所有非 AI 确定性步骤恒定仅需 &lt;strong&gt;&lt;code&gt;0.13 Credit&lt;/code&gt;&lt;/strong&gt; [1]！" data-en="Complex sponsor scheduling and brief drafting delegate via the &lt;strong&gt;Copilot node&lt;/strong&gt; to &lt;code&gt;Cowork&lt;/code&gt; (spawning a live inspectable session), while spam routes to a deterministic delete/archive step burning &lt;strong&gt;zero tokens&lt;/strong&gt;—verified in Activity at &lt;strong&gt;&lt;code&gt;7.29 Credits&lt;/code&gt;&lt;/strong&gt; for AI actions versus &lt;strong&gt;&lt;code&gt;0.13 Credit&lt;/code&gt;&lt;/strong&gt; for every non-AI step [1].">复杂的赞助商排期与会议简报撰写通过 <strong>Copilot 节点</strong>一键委派给 <code>Cowork</code>（刷新协同画布即可实时接管触发出的会话）；而垃圾邮件与杂项则直接走纯确定性删除/归档动作，<strong>不烧一颗大模型词元</strong> [1]。最后打开运行历史（Activity）实测对账：调用推理的复合智能动作消耗 <strong><code>7.29 Credits</code></strong>，而所有非 AI 确定性步骤恒定仅需 <strong><code>0.13 Credit</code></strong> [1]！</p>
+              </div>
+            </li>
+          </ol>
+
+          <div class="quote-block insight-callout">
+            <strong data-zh="企业落地选型黄金法则：先试跑一趟看清逐动作账单" data-en="Production Architecture Rule: Run One Test Trace to Audit Step Credits">企业落地选型黄金法则：先试跑一趟看清逐动作账单</strong>
+            <span data-zh="面对“我的混合自动化上线后每月到底会花多少钱”的预算追问，无需凭空盲猜词元公式：先用真实业务样本在设计器内跑通一次端到端测试，打开 Activity 面板逐个点击节点对比 AI 推理开销（如 5–7.29 Credits）与确定性动作（0.13 Credit），把高频分拣切换至 0.06 秒决策模型、把固定清洗下沉至行内 Python 或确定性连接器，即可在保障合规顺序的同时将单次运行成本压缩一个数量级以上 [1][2]。" data-en="Instead of guessing monthly token bills on spreadsheets, run one realistic test in the Designer and inspect the Activity trace node by node: shift high-volume routing onto the 0.06s Decision model, push formatting into inline Python or 0.13-Credit deterministic steps, and reserve full reasoning agents strictly for steps requiring unstructured judgment [1][2].">面对“我的混合自动化上线后每月到底会花多少钱”的预算追问，无需凭空盲猜词元公式：先用真实业务样本在设计器内跑通一次端到端测试，打开 Activity 面板逐个点击节点对比 AI 推理开销（如 5–7.29 Credits）与确定性动作（0.13 Credit），把高频分拣切换至 0.06 秒决策模型、把固定清洗下沉至行内 Python 或确定性连接器，即可在保障合规顺序的同时将单次运行成本压缩一个数量级以上 [1][2]。</span>
+          </div>
+        </section>
+
+        <section id="references" class="section" data-reveal data-present-title-zh="参考资料：官方一手信源与工程规范" data-present-title-en="References: Official Primary Sources &amp; Engineering Guides" data-density-exempt="references">
+          <div class="section-head">
+            <p class="section-kicker">05 / References: Official Primary Sources &amp; Engineering Guides</p>
+            <h2 data-zh="5. 参考资料：官方一手信源与工程规范" data-en="5. References: Official Primary Sources &amp; Engineering Guides">5. 参考资料：官方一手信源与工程规范</h2>
+          </div>
+
+          <ol class="bib-list">
+            <li id="ref-1">
+              <span class="bib-id">[1]</span>
+              <span class="bib-author">Joe Fernandez (Microsoft Ignite 2026 BRK258 Video &amp; Transcript)</span> —
+              <a href="https://ignite.microsoft.com/en-US/sessions/1787856612311001EcDa-1791588242520001CJup" target="_blank" rel="noopener">https://ignite.microsoft.com/en-US/sessions/1787856612311001EcDa-1791588242520001CJup</a>
+              <span class="bib-note" data-zh="《Agentic automation: How Copilot Studio blends workflows and agents》45 分钟官方点播实录与双语时间轴字幕（Medius ID: &lt;code&gt;884ed343-acbc-4e75-b5d0-4dc057f66e78&lt;/code&gt;）" data-en="Official 45-minute breakout session recording and verbatim WebVTT transcript (Nov 2026)">《Agentic automation: How Copilot Studio blends workflows and agents》45 分钟官方点播实录与双语时间轴字幕（Medius ID: <code>884ed343-acbc-4e75-b5d0-4dc057f66e78</code>）</span>
+            </li>
+            <li id="ref-2">
+              <span class="bib-id">[2]</span>
+              <span class="bib-author">Joe Fernandez (Microsoft Ignite 2026 BRK258 Official Slide Deck)</span> —
+              <a href="https://medius.microsoft.com/video/asset/PPT/884ed343-acbc-4e75-b5d0-4dc057f66e78" target="_blank" rel="noopener">https://medius.microsoft.com/video/asset/PPT/884ed343-acbc-4e75-b5d0-4dc057f66e78</a>
+              <span class="bib-note" data-zh="BRK258 官方原版 46 页演示文稿（含麦肯锡/Gartner/IDC 基准数据、0.13 Credit 定价表、Decision 模型 35x/200x 对比及 15 项路线图截图）" data-en="Official 46-slide PPTX deck with McKinsey/Gartner/IDC benchmarks, 0.13 Credit pricing matrix, Decision model specs, and UI captures">BRK258 官方原版 46 页演示文稿（含麦肯锡/Gartner/IDC 基准数据、0.13 Credit 定价表、Decision 模型 35x/200x 对比及 15 项路线图截图）</span>
+            </li>
+            <li id="ref-3">
+              <span class="bib-id">[3]</span>
+              <span class="bib-author">Microsoft Copilot Studio Gallery</span> —
+              <a href="https://microsoft.github.io/copilot-studio-gallery" target="_blank" rel="noopener">https://microsoft.github.io/copilot-studio-gallery</a>
+              <span class="bib-note" data-zh="BRK258 发布的官方与开源社区智能体及工作流模板库" data-en="Official and community-contributed Copilot Studio agents and workflows gallery announced in BRK258">BRK258 发布的官方与开源社区智能体及工作流模板库</span>
+            </li>
+            <li id="ref-4">
+              <span class="bib-id">[4]</span>
+              <span class="bib-author">Copilot Studio MCP Server Official Registry</span> —
+              <a href="https://github.com/mcp/com.microsoft/copilot-studio" target="_blank" rel="noopener">https://github.com/mcp/com.microsoft/copilot-studio</a>
+              <span class="bib-note" data-zh="官方模型上下文协议服务（支持从 VS Code、GitHub Copilot 及各类编码智能体构建、测试与监控工作流）" data-en="Official &lt;code&gt;@microsoft/copilot-studio-mcp&lt;/code&gt; server for building, testing, and managing workflows from coding agents">官方模型上下文协议服务（支持从 VS Code、GitHub Copilot 及各类编码智能体构建、测试与监控工作流）</span>
+            </li>
+            <li id="ref-5">
+              <span class="bib-id">[5]</span>
+              <span class="bib-author">Jason Moore (Microsoft Copilot Blog)</span> —
+              <a href="https://www.microsoft.com/en-us/copilot/blog/copilot-studio/build-and-manage-business-processes-with-microsoft-copilot-studio/" target="_blank" rel="noopener">https://www.microsoft.com/en-us/copilot/blog/copilot-studio/build-and-manage-business-processes-with-microsoft-copilot-studio/</a>
+              <span class="bib-note" data-zh="《Build and manage business processes with Microsoft Copilot Studio》Ignite 2026 智能体、工作流与托管应用三位一体官方综述（2026-11-18）" data-en="Official Ignite 2026 announcement covering unified agents, deterministic workflows, and apps in Copilot Studio">《Build and manage business processes with Microsoft Copilot Studio》Ignite 2026 智能体、工作流与托管应用三位一体官方综述（2026-11-18）</span>
+            </li>
+          </ol>
+        </section>
+      </main>
+
+      <footer class="site-footer" data-reveal>
+        <p data-zh="© 2026 Knowledge Hub · Genesis 纯静态 Markdown 编译管线生成" data-en="© 2026 Knowledge Hub · Generated by Genesis Static Markdown Compiler">© 2026 Knowledge Hub · Genesis 纯静态 Markdown 编译管线生成</p>
+      </footer>
+    </div>
+  </div>
+
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/article-narration.js"></script>
+  <script src="../../assets/pptx-export.js"></script>
+  <script src="../../assets/article-math.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+  <script src="./brk258-session-showcase.js"></script>
+  <script>
+    (function () {
+      var buttons = document.querySelectorAll("[data-genesis-mode]");
+      var drawer = document.getElementById("genesis-source-drawer");
+      var i;
+      function setMode(mode) {
+        for (var j = 0; j < buttons.length; j++) {
+          var btn = buttons[j];
+          var active = btn.getAttribute("data-genesis-mode") === mode;
+          if (active) {
+            btn.classList.add("is-active");
+          } else {
+            btn.classList.remove("is-active");
+          }
+        }
+        if (mode === "linear") {
+          document.body.classList.add("is-linear-reading");
+          if (drawer) drawer.classList.remove("is-open");
+        } else if (mode === "source") {
+          document.body.classList.remove("is-linear-reading");
+          if (drawer) drawer.classList.add("is-open");
+        } else {
+          document.body.classList.remove("is-linear-reading");
+          if (drawer) drawer.classList.remove("is-open");
+        }
+      }
+      for (i = 0; i < buttons.length; i++) {
+        (function (btn) {
+          btn.addEventListener("click", function () {
+            setMode(btn.getAttribute("data-genesis-mode"));
+          });
+        })(buttons[i]);
+      }
+    })();
+  </script>
+</body>
+</html>

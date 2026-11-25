@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-section-density="strict" data-present-i18n="strict" data-cite-links>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Microsoft Ignite 2026 [BRK448]：在生产环境规模化运行安全智能体循环与微虚拟机沙盒深度解析</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <link rel="stylesheet" href="../../assets/article-figure.css" />
+  <link rel="stylesheet" href="./brk448-showcase.css" />
+  <style>
+    :root {
+      --accent: #ea580c;
+      --teal: #0d8f8c;
+    }
+    html.is-presentation-mode .section:has([data-present-step]) > .section-head {
+      display: none;
+    }
+    .hero-copy h1 {
+      font-size: clamp(2.1rem, 5vw, 3.8rem);
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+      max-width: 20ch;
+    }
+    .hero-panel .layer-list { position: relative; margin-top: 18px; }
+    .insight-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .insight-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .insight-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    @media (max-width: 980px) {
+      .insight-grid-3, .insight-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 680px) {
+      .insight-grid-2, .insight-grid-3, .insight-grid-4 { grid-template-columns: 1fr; }
+    }
+    .compare-table-wrap {
+      margin-top: 18px;
+      overflow-x: auto;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 6px 14px;
+      box-shadow: var(--shadow);
+    }
+    .compare-table-wrap .compare-table {
+      width: 100%;
+      min-width: 680px;
+      border-collapse: collapse;
+      margin-top: 0;
+      font-size: 0.9rem;
+    }
+    .compare-table-wrap .compare-table th {
+      text-align: left;
+      padding: 12px 14px;
+      background: rgba(15, 23, 42, 0.04);
+      border-bottom: 2px solid rgba(15, 23, 42, 0.1);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-weight: 700;
+      font-size: 0.8rem;
+      letter-spacing: 0.04em;
+      text-transform: none;
+      color: var(--ink);
+      vertical-align: bottom;
+    }
+    .compare-table-wrap .compare-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+      line-height: 1.65;
+      color: var(--ink);
+      vertical-align: top;
+    }
+    .compare-table-wrap .compare-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+    .compare-table-wrap .compare-table td:first-child {
+      font-weight: 600;
+      min-width: 150px;
+    }
+    .compare-table-wrap .compare-table code,
+    .section p code,
+    .flow-copy code,
+    .insight-card code,
+    .comparison-card code,
+    .quote-block code,
+    .subsection-toggle code,
+    .subsection-content p code,
+    .bib-list code {
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.84em;
+      padding: 2px 6px;
+      border-radius: 5px;
+      background: rgba(15, 23, 42, 0.06);
+      color: var(--ink);
+    }
+    [data-theme="dark"] .compare-table-wrap {
+      background: rgba(22, 29, 38, 0.9);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+    [data-theme="dark"] .compare-table-wrap .compare-table th {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.12);
+      color: var(--ink);
+    }
+    [data-theme="dark"] .compare-table-wrap .compare-table td {
+      border-color: rgba(255, 255, 255, 0.07);
+      color: var(--ink);
+    }
+    [data-theme="dark"] .compare-table-wrap .compare-table code,
+    [data-theme="dark"] .section p code,
+    [data-theme="dark"] .flow-copy code,
+    [data-theme="dark"] .insight-card code,
+    [data-theme="dark"] .comparison-card code,
+    [data-theme="dark"] .quote-block code,
+    [data-theme="dark"] .subsection-toggle code,
+    [data-theme="dark"] .subsection-content p code,
+    [data-theme="dark"] .bib-list code {
+      background: rgba(255, 255, 255, 0.1);
+      color: #e2e8f0;
+    }
+    .timeline-list > .flow-step::before {
+      background: linear-gradient(135deg, var(--teal), #14b8a6);
+    }
+    .insight-callout {
+      border-left: 4px solid var(--teal);
+    }
+    .code-block {
+      margin: 18px 0;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .code-block pre {
+      margin: 0;
+      padding: 20px 22px;
+      background: rgba(16, 31, 43, 0.95);
+      color: #cdd6e0;
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.82rem;
+      line-height: 1.68;
+      overflow-x: auto;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+    }
+    [data-theme="dark"] .code-block pre {
+      background: rgba(0, 0, 0, 0.46);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+    .mermaid-container {
+      margin: 22px 0;
+      padding: 24px 18px;
+      border-radius: var(--radius-md);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      text-align: center;
+      overflow-x: auto;
+    }
+    .generated-diagram {
+      margin-top: 22px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+    .generated-diagram img {
+      display: block;
+      width: 100%;
+      height: auto;
+      object-fit: contain;
+    }
+    html[lang="en"] .diagram-zh,
+    html:not([lang="en"]) .diagram-en { display: none; }
+    .diagram-caption {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+    .diagram-caption a { color: var(--teal); font-weight: 600; white-space: nowrap; }
+    [data-theme="dark"] .generated-diagram {
+      background: rgba(22, 29, 38, 0.9);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+    .sandbox-slot {
+      margin-top: 22px;
+      padding: 22px;
+      border-radius: var(--radius-lg);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+    .sandbox-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .sandbox-title-group h3 { margin: 10px 0 6px; font-size: 1.18rem; }
+    .sandbox-title-group p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+    .sandbox-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .sandbox-stage {
+      border-radius: var(--radius-md);
+      background: rgba(16, 31, 43, 0.04);
+      border: 1px solid var(--line);
+      padding: 14px;
+      overflow: hidden;
+    }
+    [data-theme="dark"] .sandbox-stage {
+      background: rgba(0, 0, 0, 0.28);
+    }
+    .sandbox-canvas {
+      display: block;
+      width: 100%;
+      max-height: 300px;
+      border-radius: 10px;
+    }
+    /* Dual-view switcher bar (Progressive / Linear / Markdown Source) */
+    .genesis-view-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 18px 0 8px;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      font-size: 0.82rem;
+    }
+    .genesis-view-status {
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .genesis-view-buttons {
+      display: inline-flex;
+      gap: 6px;
+    }
+    .genesis-view-btn {
+      appearance: none;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.18s ease, color 0.18s ease;
+    }
+    .genesis-view-btn.is-active {
+      background: linear-gradient(135deg, var(--accent), #ff9340);
+      color: #fff;
+    }
+    .genesis-source-drawer {
+      display: none;
+      margin: 18px 0 28px;
+      padding: 20px;
+      border-radius: var(--radius-lg);
+      background: rgba(16, 31, 43, 0.96);
+      color: #dbe4ee;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      overflow-x: auto;
+    }
+    .genesis-source-drawer.is-open { display: block; }
+    .genesis-source-drawer pre {
+      margin: 0;
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.8rem;
+      line-height: 1.65;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    body.is-linear-reading .subsection-content {
+      max-height: none !important;
+      opacity: 1 !important;
+      overflow: visible !important;
+      padding: 0 24px 24px !important;
+    }
+    .is-presentation-mode .genesis-view-bar,
+    .is-presentation-mode .genesis-source-drawer {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            <span data-zh="Study Room Copilot &amp; Azure Runtime" data-en="Study Room Copilot &amp; Azure Runtime">Study Room Copilot &amp; Azure Runtime</span>
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#governance-gap" data-zh="生产困局" data-en="Production Reality">生产困局</a>
+            <a href="#hermes-enterprise" data-zh="自进化飞轮治理" data-en="Governing Self-Improvement">自进化飞轮治理</a>
+            <a href="#sandbox-anatomy" data-zh="沙盒解剖学" data-en="Sandbox Anatomy">沙盒解剖学</a>
+            <a href="#cognite-industrial" data-zh="重资产工业实战" data-en="Heavy-Asset Industrial AI">重资产工业实战</a>
+            <a href="#references" data-zh="参考资料" data-en="References">参考资料</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow" data-zh="Microsoft Ignite 2026 · BRK448 Architecture &amp; Demos" data-en="Microsoft Ignite 2026 · BRK448 Architecture &amp; Demos">Microsoft Ignite 2026 · BRK448 Architecture &amp; Demos</span>
+            <h1 data-zh="Microsoft Ignite 2026 [BRK448]：在生产环境规模化运行安全智能体循环与微虚拟机沙盒深度解析" data-en="Microsoft Ignite 2026 [BRK448]: Running Secure Agent Loops in Production with Isolated Sandboxes at Scale">Microsoft Ignite 2026 [BRK448]：在生产环境规模化运行安全智能体循环与微虚拟机沙盒深度解析</h1>
+            <p data-zh="将智能体推入真实生产环境本质上是平台基础设施问题，而非单纯的大模型参数问题 [1][2]。在 Microsoft Ignite 2026 专场 BRK448 中，微软 Azure 容器应用团队联合 Nous Research 与工业软件厂商 Cognite 宣布 Azure Container Apps Sandboxes 正式商用：该硬件隔离微虚拟机底座现已在全球 44 个区域日均承载超 200 万个沙盒实例，同时作为 Microsoft Foundry Agent Service、Copilot Studio 与 GitHub Copilot 的统一底层执行基石 [1][3]。" data-en="Running agents in production is fundamentally a platform infrastructure challenge rather than a model-capability problem [1][2]. In Microsoft Ignite 2026 breakout session BRK448, the Azure Container Apps team joined Nous Research and industrial AI leader Cognite to announce the General Availability of Azure Container Apps Sandboxes—a hardware-isolated microVM substrate already powering over 2 million daily sandboxes across 44 regions and underpinning Microsoft Foundry Agent Service, Copilot Studio, and GitHub Copilot [1][3].">将智能体推入真实生产环境本质上是平台基础设施问题，而非单纯的大模型参数问题 [1][2]。在 Microsoft Ignite 2026 专场 BRK448 中，微软 Azure 容器应用团队联合 Nous Research 与工业软件厂商 Cognite 宣布 Azure Container Apps Sandboxes 正式商用：该硬件隔离微虚拟机底座现已在全球 44 个区域日均承载超 200 万个沙盒实例，同时作为 Microsoft Foundry Agent Service、Copilot Studio 与 GitHub Copilot 的统一底层执行基石 [1][3]。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#governance-gap" data-zh="阅读核心章节" data-en="Explore Core Chapters">阅读核心章节</a>
+              <a class="button button-secondary" href="#hermes-enterprise" data-zh="自进化飞轮治理" data-en="Governing Self-Improvement">自进化飞轮治理</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label" data-zh="BRK448 核心工程摘要" data-en="BRK448 Executive Engineering Brief">BRK448 核心工程摘要</span>
+            <h2 data-zh="内核级硬件隔离与亚秒级零闲置计费合一" data-en="Kernel-Level Isolation Meets Sub-Second Scale-to-Zero">内核级硬件隔离与亚秒级零闲置计费合一</h2>
+            <p data-zh="把非受信代码限制在微虚拟机内核边界之内，把真实密钥留在沙盒边界之外 [1][3]。" data-en="Trap untrusted agent code behind a hardware microVM kernel while keeping raw credentials outside the sandbox [1][3].">把非受信代码限制在微虚拟机内核边界之内，把真实密钥留在沙盒边界之外 [1][3]。</p>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span><span data-zh="运行时强制护栏 — 填补 74% 攻击面认知与 13% 治理就绪度之间的企业断层 [1][4]" data-en="Runtime Guardrails — Bridges the gap between 74% risk awareness and 13% governance readiness [1][4]">运行时强制护栏 — 填补 74% 攻击面认知与 13% 治理就绪度之间的企业断层 [1][4]</span></li>
+              <li><span class="layer-number">2</span><span data-zh="零密钥出站代理 — 默认全拒网络策略配合沙盒外请求头动态注入，杜绝凭据泄漏 [1][3]" data-en="Secretless Egress Proxy — Default-deny outbound rules inject API headers externally without exposing tokens [1][3]">零密钥出站代理 — 默认全拒网络策略配合沙盒外请求头动态注入，杜绝凭据泄漏 [1][3]</span></li>
+              <li><span class="layer-number">3</span><span data-zh="内存快照与缩零 — 亚秒级启动配合内存磁盘完整快照，99% 空闲时段释放全部算力成本 [1][5]" data-en="Snapshot Scale-to-Zero — Sub-second boot and live memory snapshots eliminate idle compute spend [1][5]">内存快照与缩零 — 亚秒级启动配合内存磁盘完整快照，99% 空闲时段释放全部算力成本 [1][5]</span></li>
+            </ul>
+          </aside>
+        </div>
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label" data-zh="全球日均运行规模" data-en="Daily Sandbox Fleet">全球日均运行规模</div>
+            <strong>2,000,000+</strong>
+            <span data-zh="覆盖全球 44 个 Azure 区域，可用性服务等级目标达 99.95% [1]" data-en="Over 2M daily sandboxes running across 44 Azure regions with a 99.95% SLA target [1]">覆盖全球 44 个 Azure 区域，可用性服务等级目标达 99.95% [1]</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="企业治理就绪缺口" data-en="Governance Readiness Gap">企业治理就绪缺口</div>
+            <strong>74% vs 13%</strong>
+            <span data-zh="74% 视智能体为新型攻击面，仅 13% 具备匹配的运行时治理架构 [1][4]" data-en="74% of IT leaders view agents as a new attack vector while only 13% have governance ready [1][4]">74% 视智能体为新型攻击面，仅 13% 具备匹配的运行时治理架构 [1][4]</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="微虚拟机冷启动耗时" data-en="microVM Cold Startup">微虚拟机冷启动耗时</div>
+            <strong data-zh="&lt; 1 秒" data-en="&lt; 1 sec">&lt; 1 秒</strong>
+            <span data-zh="兼顾独立内核隔离与亚秒级拉起，25 个并发沙盒实测 2.2 秒创建完毕 [1]" data-en="Unites kernel isolation with sub-second boot; 25 parallel sandboxes spawned in 2.2s live [1]">兼顾独立内核隔离与亚秒级拉起，25 个并发沙盒实测 2.2 秒创建完毕 [1]</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="genesis-view-bar load-in" role="region" aria-label="Genesis 视图模式切换">
+        <span class="genesis-view-status" data-zh="Genesis 纯静态编译产物 · 零后端依赖 · 支持渐进披露与源稿对照" data-en="Genesis Static Compiled Artifact · Zero Backend · Progressive &amp; Source View">Genesis 纯静态编译产物 · 零后端依赖 · 支持渐进披露与源稿对照</span>
+        <div class="genesis-view-buttons">
+          <button type="button" class="genesis-view-btn is-active" data-genesis-mode="progressive" data-zh="渐进披露视图" data-en="Progressive View">渐进披露视图</button>
+          <button type="button" class="genesis-view-btn" data-genesis-mode="linear" data-zh="线性展开视图" data-en="Linear View">线性展开视图</button>
+          <button type="button" class="genesis-view-btn" data-genesis-mode="source" data-zh="Markdown 源稿对照" data-en="Markdown Source">Markdown 源稿对照</button>
+        </div>
+      </div>
+      <section class="genesis-source-drawer" id="genesis-source-drawer" aria-label="Markdown 源稿">
+        <pre><code>---
+title: Microsoft Ignite 2026 [BRK448]：在生产环境规模化运行安全智能体循环与微虚拟机沙盒深度解析 || Microsoft Ignite 2026 [BRK448]: Running Secure Agent Loops in Production with Isolated Sandboxes at Scale
+eyebrow: Microsoft Ignite 2026 · BRK448 Architecture &amp; Demos || Microsoft Ignite 2026 · BRK448 Architecture &amp; Demos
+brand: Study Room Copilot &amp; Azure Runtime || Study Room Copilot &amp; Azure Runtime
+date: 2026-11-25
+strict_i18n: true
+strict_density: true
+lead: 将智能体推入真实生产环境本质上是平台基础设施问题，而非单纯的大模型参数问题 [1][2]。在 Microsoft Ignite 2026 专场 BRK448 中，微软 Azure 容器应用团队联合 Nous Research 与工业软件厂商 Cognite 宣布 Azure Container Apps Sandboxes 正式商用：该硬件隔离微虚拟机底座现已在全球 44 个区域日均承载超 200 万个沙盒实例，同时作为 Microsoft Foundry Agent Service、Copilot Studio 与 GitHub Copilot 的统一底层执行基石 [1][3]。 || Running agents in production is fundamentally a platform infrastructure challenge rather than a model-capability problem [1][2]. In Microsoft Ignite 2026 breakout session BRK448, the Azure Container Apps team joined Nous Research and industrial AI leader Cognite to announce the General Availability of Azure Container Apps Sandboxes—a hardware-isolated microVM substrate already powering over 2 million daily sandboxes across 44 regions and underpinning Microsoft Foundry Agent Service, Copilot Studio, and GitHub Copilot [1][3].
+panel_label: BRK448 核心工程摘要 || BRK448 Executive Engineering Brief
+panel_title: 内核级硬件隔离与亚秒级零闲置计费合一 || Kernel-Level Isolation Meets Sub-Second Scale-to-Zero
+panel_desc: 把非受信代码限制在微虚拟机内核边界之内，把真实密钥留在沙盒边界之外 [1][3]。 || Trap untrusted agent code behind a hardware microVM kernel while keeping raw credentials outside the sandbox [1][3].
+panel:
+  - 运行时强制护栏 — 填补 74% 攻击面认知与 13% 治理就绪度之间的企业断层 [1][4] || Runtime Guardrails — Bridges the gap between 74% risk awareness and 13% governance readiness [1][4]
+  - 零密钥出站代理 — 默认全拒网络策略配合沙盒外请求头动态注入，杜绝凭据泄漏 [1][3] || Secretless Egress Proxy — Default-deny outbound rules inject API headers externally without exposing tokens [1][3]
+  - 内存快照与缩零 — 亚秒级启动配合内存磁盘完整快照，99% 空闲时段释放全部算力成本 [1][5] || Snapshot Scale-to-Zero — Sub-second boot and live memory snapshots eliminate idle compute spend [1][5]
+metrics:
+  - 全球日均运行规模 || Daily Sandbox Fleet | 2,000,000+ | 覆盖全球 44 个 Azure 区域，可用性服务等级目标达 99.95% [1] || Over 2M daily sandboxes running across 44 Azure regions with a 99.95% SLA target [1]
+  - 企业治理就绪缺口 || Governance Readiness Gap | 74% vs 13% | 74% 视智能体为新型攻击面，仅 13% 具备匹配的运行时治理架构 [1][4] || 74% of IT leaders view agents as a new attack vector while only 13% have governance ready [1][4]
+  - 微虚拟机冷启动耗时 || microVM Cold Startup | &lt; 1 秒 || &lt; 1 sec | 兼顾独立内核隔离与亚秒级拉起，25 个并发沙盒实测 2.2 秒创建完毕 [1] || Unites kernel isolation with sub-second boot; 25 parallel sandboxes spawned in 2.2s live [1]
+style:
+  accent: &quot;#ea580c&quot;
+  teal: &quot;#0d8f8c&quot;
+---
+
+## #governance-gap 01 / Governance Gap &amp; Substrate :: 生产困局：74% 攻击面焦虑与硬件隔离微虚拟机的破局 || Production Reality: The 74% Attack-Surface Gap and the microVM Breakthrough
+
+智能体一旦获准读写文件、编写脚本并调用外部业务接口，单纯依靠提示词约束便彻底失效 [1]。越是通过削减工具权限来换取安全，智能体解决复杂任务的业务价值就越萎缩；反之若放开执行权限，模型动态生成的非受信代码又随时可能击穿边界 [1]。2025 年 9 月发布的 Gartner 调查显示，在接受访谈的 360 位信息技术应用负责人中，74% 认为人工智能智能体构成了组织的新型攻击面，却仅有 13% 确信自身已具备管理大规模智能体集群的治理架构 [1][4]。 || Once an agent reads files, writes scripts, and invokes external business APIs, prompt-level instructions cease to be a security boundary [1]. Stripping permissions to keep an agent safe drains its operational utility, whereas granting broad execution rights exposes enterprise systems to untrusted model-generated code [1]. A September 2025 Gartner survey of 360 IT application leaders found that 74% view AI agents as a new organizational attack vector, yet only 13% strongly agree they have the governance structures required to manage them [1][4].
+
+:::figure { src: &quot;./media/sandbox-isolation-economics-quadrant.figure.json&quot;, title: &quot;智能体计算底座选型象限：内核隔离强度与弹性缩零经济性对比 || Agent Compute Substrate Quadrant: Kernel Isolation vs. Burst Economics&quot; }
+图 1：传统虚拟机具备强隔离但被慢启动与闲置计费拖垮，标准容器启动快却因共享宿主机内核难以承接多租户非受信代码；托管微虚拟机将独立内核边界与亚秒级缩零推入右上角目标区 [1][2]。 || Figure 1: Dedicated VMs isolate kernels at high idle cost while shared-kernel containers expose multi-tenant risks; managed microVMs combine hardware boundaries with sub-second scale-to-zero in the upper-right target zone [1][2].
+:::
+
+面向智能体时代的生产级沙盒不再是仅供概念验证或早期测试的临时游乐场，而是承载全天候业务循环的基础设施主干 [1]。微软宣布正式商用的 Azure Container Apps Sandboxes 采用硬件隔离微虚拟机架构，在全球 44 个区域日均运行超过 200 万个实例，目标可用性达 99.95% [1][3]。在微软内部，这套微虚拟机底座已成为跨产品线的公共安全执行层——同时支撑 Microsoft Foundry Agent Service、Microsoft Copilot Studio、GitHub Copilot 研发体验、Azure 站点可靠性智能体以及简化版应用托管服务 [1][2]。下方导览台内嵌了 BRK448 官方点播视频流、完整时间轴与原版讲义入口，点击顶部章节即可对照查阅四位讲者的核心拆解 [1]： || Production sandboxes in the agentic era are no longer throwaway playgrounds for proofs of concept; they serve as the primary runtime backbone for live enterprise workloads [1]. Newly Generally Available Azure Container Apps Sandboxes pair hardware-isolated microVMs with managed networking and identity, running over 2 million daily instances across 44 regions against a 99.95% availability target [1][3]. Inside Microsoft, this same substrate powers Microsoft Foundry Agent Service, Microsoft Copilot Studio, GitHub Copilot experiences, Azure SRE Agent, and Azure Container Apps Express [1][2]. The interactive theater below embeds the official BRK448 on-demand stream, slide deck link, and chapter timestamps across all four speakers [1]:
+
+:::sandbox { id: &quot;brk448-video-theater&quot;, canvas: false, script: &quot;./brk448-showcase.js&quot;, style: &quot;./brk448-showcase.css&quot;, title: &quot;Ignite 2026 BRK448 官方点播视频剧场与四段式时间轴导览 || Ignite 2026 BRK448 Official On-Demand Video Theater &amp; Chapter Guide&quot;, desc: &quot;支持一键内嵌加载 Medius 官方点播流，按章节检视 Microsoft、Nous Research 与 Cognite 的演讲及四场实机演示。 || Load the official Medius on-demand player inline or jump across Microsoft, Nous Research, and Cognite chapters and live demos.&quot; }
+纯静态议题点播导览卡：集成官方封面图、Medius 无广告嵌入播放器、四段演讲时间轴与原版课件直链。 || Pure static session guide featuring official cover art, on-demand Medius embed player, four-chapter timeline, and PPTX link.
+:::
+
+## #hermes-enterprise 02 / Nous Research Case :: 自进化飞轮治理：Nous Research 如何用 2 万个云沙盒驯服开源榜首智能体 || Governing Self-Improvement: How Nous Research Runs 20K+ Hermes Cloud Sandboxes
+
+开源智能体向企业多租户生产迁移时，最棘手的矛盾在于“自主进化收益”与“跨团队风险扩散”同步放大 [1][5]。Nous Research 联合创始人兼首席技术官 Jeffrey Quesnelle 在专场中复盘了 Hermes Agent 的演进：这款一年前源于内部递归自我改进训练实验的开源项目，发布两周即登顶代码托管平台热门榜单，目前在公开模型路由平台上位居开源智能体调用量榜首，日均处理近 2 万亿词元 [1][5]。与早期要求用户手工编写技能文件的工具不同，Hermes 会在后台审视任务执行轨迹，自动把成功经验提炼为技能文件，并将重复出现的确定性步骤直接编译为无需反复消耗大模型算力的代码工作流 [1][5]。 || Migrating an open-source agent into multi-tenant enterprise production magnifies both compounding learning gains and cross-tenant security risks [1][5]. Nous Research Co-founder and CTO Jeffrey Quesnelle recounted how Hermes Agent—open-sourced a year earlier from internal recursive self-improvement research—hit #1 on GitHub within two weeks and now ranks #1 among public open agents on OpenRouter at nearly 2 trillion tokens processed per day [1][5]. Unlike early frameworks that forced users to hand-author skill files, Hermes inspects its own execution traces in the background, distilling successful runs into reusable skills and compiling deterministic routines into code workflows that bypass redundant LLM calls [1][5].
+
+:::comparison { title: &quot;单机个人智能体闭环 vs. Hermes Enterprise 多租户受控飞轮 || Local Workstation Loop vs. Governed Hermes Enterprise Fleet&quot; }
+::versus 单机探索态：整机即信任边界（难以规模化） || Local Laptop Mode: Whole Machine as Trust Boundary
+### 共享宿主机权限、隐私混入技能且常驻算力昂贵 || Unisolated Execution, Unreviewed Skills, and Idle VM Waste
+个人在笔记本电脑上运行自进化智能体时，默认将整台设备作为信任域；一旦直接搬入大型企业，智能体编写的脚本与浏览器操作绝不能与其他租户共享内核，且员工个人的私密上下文若未经审核就自动写入全员技能库，会以同等速度向全公司扩散错误或泄漏敏感信息 [1][5]。 || On a personal laptop, the entire machine acts as the trust boundary; in an enterprise, untrusted code and browser tools cannot share a kernel across tenants, and unreviewed skill promotion risks broadcasting personal habits or data leaks across every team [1][5].
+
+::versus 企业生产态：硬件沙盒 + 受控晋升（20K+ 实例实证） || Enterprise Production: Hardware Sandboxes + Governed Promotion { highlight: true }
+### 微虚拟机隔离执行、技能血缘评审与空闲缩零经济模型 || Kernel Isolation, Provenance-Checked Skills, and Scale-to-Zero
+Hermes Enterprise 在上层构建身份路由与成本治理控制面，底层全面切换至 Azure 容器应用沙盒：每个工作空间独占微虚拟机内核与受限密钥网络，经评测审批的高价值工作流沉淀为企业自有集体智慧资产，且在用户切换窗口的 99% 空闲时段利用快照释放算力 [1][5]。 || Hermes Enterprise pairs a SaaS or bring-your-own-cloud control plane with Azure Container Apps Sandboxes underneath: each workspace runs inside an isolated microVM while reviewed skills become company IP and snapshots release compute during 99% idle gaps [1][5].
+:::
+
+在商业经济账上，Quesnelle 给出了清晰的量化推演：随着每位员工同时驱使多个长程有状态智能体，企业并发规模正迈向数十万乃至上百万实例；而用户随时切出聊天窗口的交互习惯决定了负载高度突发、高达 99% 的时间处于等待或空闲状态 [1]。若为每个有状态工作空间维持一台常驻传统虚拟机，仅硬件账单就会在业务扩张期拖垮平台（假设单实例常驻占空比为 $\alpha \approx 0.01$，常驻计费浪费率高达 $1 - \alpha = 99\%$）[1]。切换至亚秒级启动并支持挂起恢复的微虚拟机沙盒后，Hermes 云平台截至 2026 年 10 月已稳定支撑超过 20,000 个活跃云端实例与 100 余家大型企业客户，同时在控制面提供“支出智能（Spend Intelligence）”滑杆——允许管理员测试将某类高阶模型调用比例从 100% 微调至 95% 时是否仍能维持同等任务表现，从而把词元与算力成本双双锁在可控区间 [1][5]。 || On unit economics, Quesnelle highlighted why traditional stateful hosting breaks at scale: as organizations deploy multiple stateful agents per employee, fleet counts climb toward hundreds of thousands, yet human-in-the-loop multitasking leaves workspaces idle roughly 99% of the time [1]. Paying 24/7 for dedicated VMs at a 1% active duty cycle ($\alpha \approx 0.01$) destroys margins just as adoption succeeds [1]. By migrating its hosted cloud from another provider onto sub-second suspend-and-resume ACA Sandboxes, Nous scaled past 20,000 active cloud instances and 100+ large enterprises by October 2026, pairing compute elasticity with a **Spend Intelligence** slider that tests whether dialing frontier model routing from 100% to 95% preserves task quality [1][5].
+
+## #sandbox-anatomy 03 / Architecture &amp; Live Demos :: 沙盒解剖学：双层外部代理、零密钥凭据注入与四连实机演示 || Sandbox Anatomy: External Proxies, Secretless Injection, and Four Live Demos
+
+为什么智能体在沙盒内拥有完整的根文件系统与命令行权限，却依然无法篡改网络边界或窃取接口密钥？微软首席产品经理 Jan Kalis 在架构深潜环节揭示了核心设计原则：**所有网络策略与凭据注入组件均部署在沙盒微虚拟机边界之外**，沙盒内部运行的模型代码对其既不可见也无权修改 [1][3]。 || How can an agent hold root shell access and a full filesystem inside its sandbox without altering network rules or exfiltrating API keys? Principal Product Manager Jan Kalis demonstrated the core architectural invariant: **both ingress and egress proxies enforce policy strictly outside the microVM boundary**, beyond the reach of any code executing inside the sandbox [1][3].
+
+:::figure { src: &quot;./media/aca-sandbox-boundary-architecture.figure.json&quot;, title: &quot;Azure Container Apps Sandboxes 零密钥安全边界与持久状态全景架构 || Azure Container Apps Sandboxes Secretless Boundary &amp; Stateful Architecture&quot; }
+图 2：区域级沙盒群组统一纳管从 0.25 核至 16 核的微虚拟机池；入站与出站代理由平台在沙盒外强制执行，配合内存快照、托管存储与 1,700+ 连接器构成完整生产闭环 [1][3]。 || Figure 2: A regional Sandbox Group governs microVMs from 0.25 to 16 cores; external ingress and egress proxies enforce per-sandbox auth and header injection alongside snapshots, durable volumes, and 1,700+ connectors [1][3].
+:::
+
+围绕这一架构，Kalis 在现场连续完成了四场零剪辑实机演示，覆盖沙盒创建、并发矩阵快照、零密钥出站转换以及企业连接器协同 [1]： || Kalis validated every layer onstage through four consecutive live demos spanning multi-tool provisioning, parallel snapshot matrices, secretless header transformation, and enterprise connector grounding [1]:
+
+| 演示序号与主题 || Live Demo | 核心技术规格与配置项 || Key Technical Specifications | 现场实测现象与工程验证结论 || Verified Onstage Outcome |
+|------|------|------|
+| Demo 1：三端秒级创建 || 0-to-Sandbox Provisioning | 官方月更镜像（Ubuntu / Python / 智能体底座）；规格横跨 XS（0.25 核 / 0.5 GiB / 5 GiB）至 3XL（16 核 / 32 GiB / 320 GiB）[1] || Monthly Microsoft base images; tiers from XS (0.25c / 0.5 GiB / 5 GiB) to 3XL (16c / 32 GiB / 320 GiB) [1] | 先后通过门户界面、`az containerapp sandbox create` 命令行及全新发布的 VS Code 资源扩展秒建实例，直连远端 Ubuntu 终端并实时观测处理器、内存与文件系统 [1] || Provisioned sandboxes via Azure Portal, CLI, and the newly announced VS Code extension, opening a live remote Ubuntu shell with real-time CPU, memory, and filesystem telemetry [1] |
+| Demo 2：并发矩阵与快照续跑 || Pause &amp; Resume Matrix | OCI 容器镜像自动转换为可引导自定义磁盘镜像；外部入站代理默认全关，按端口显式开启流量唤醒与目录身份认证 [1] || OCI images converted to bootable custom disk images; opt-in ingress proxy with Entra ID auth and wake-on-traffic [1] | 编排沙盒在 **2.2 秒内并发拉起 5×5 共 25 个计数沙盒**；点击停止即生成内存加磁盘快照并释放算力，再次启动时 25 个计数器从暂停数值处毫秒级无损续跑 [1] || An orchestrator spawned **25 parallel counter sandboxes in 2.2 seconds**; stopping captured memory+disk snapshots at zero compute cost, and restarting resumed exact counter states [1] |
+| Demo 3：出站管控与零密钥沙盒 || Egress &amp; Secretless Injection | 出站代理默认拒绝全部流量（`Deny All`），按域名配置白名单；支持自定义转换规则（Transform Rules）与外部网络钩子 [1] || Default-deny egress proxy with per-host allowlists, credential Transform Rules, and custom policy webhooks [1] | 沙盒内请求 `bing.com` 立即返回 `HTTP 403` 拦截，请求白名单 `github.com` 放行；配置转换规则后，沙盒无需持有真实密钥即可由外部代理在出站瞬间动态覆写注入 `X-API-Key` 请求头 [1] || Outbound calls to `bing.com` hit `HTTP 403` while allowlisted `github.com` passed; a Transform Rule dynamically injected the real `X-API-Key` header outside the sandbox [1] |
+| Demo 4：连接器与日程智能体 || Connectors &amp; Work IQ Agent | 群组级一次挂载超 **1,700 个逻辑应用连接器**（覆盖 Teams、SharePoint、Jira、GitHub 与 Work IQ），支持代理用户身份授权（OBO）[1] || Attach **1,700+ Logic Apps MCP connectors** once per group with Entra ID On-Behalf-Of (OBO) delegation [1] | 拉起预置令牌转换规则的 GitHub Copilot 沙盒，挂载 Work IQ 日历连接器并完成个人授权后，沙盒内智能体直接安全读取并汇总讲者当周的完整参会日程 [1] || A GitHub Copilot sandbox with preset GitHub token transforms attached the Work IQ calendar connector via OBO auth and summarized the speaker's live Ignite schedule [1] |
+
+下方四宫格展示了从 BRK448 官方原版幻灯片提取的四幅实机演示高清截图，直观呈现了沙盒群组创建台、25 并发矩阵挂起面板、出站流量审计与零密钥控制台，以及挂载双模型上下文服务与 10 个连接器的智能体终端 [1]： || The four-card gallery below presents high-resolution captures extracted directly from the official BRK448 slide deck—showing the Sandbox Group creation portal, the 25-sandbox suspended matrix, the live egress audit console, and the Copilot sandbox terminal running with MCP servers and connectors [1]:
+
+&lt;div class=&quot;brk448-media-grid&quot;&gt;
+  &lt;article class=&quot;brk448-media-card&quot;&gt;
+    &lt;div class=&quot;brk448-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/brk448-create-sandbox-group.jpg&quot; alt=&quot;BRK448 official slide screenshot showing Create Sandbox Group interface in Azure Container Apps Sandboxes&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;brk448-media-body&quot;&gt;
+      &lt;span class=&quot;brk448-media-badge&quot; data-zh=&quot;BRK448 官方课件实拍 · Demo 1&quot; data-en=&quot;BRK448 Official Slide · Demo 1&quot;&gt;BRK448 官方课件实拍 · Demo 1&lt;/span&gt;
+      &lt;h4 data-zh=&quot;极简沙盒群组与资源规格配置台&quot; data-en=&quot;Streamlined Sandbox Group &amp; Resource Tier Provisioning&quot;&gt;极简沙盒群组与资源规格配置台&lt;/h4&gt;
+      &lt;p data-zh=&quot;一步选定区域、官方月更镜像与微虚拟机规格（默认 M 档 1 核 / 2 GB / 20 GB），同时全面兼容 Bicep、Terraform 与 Python/.NET 开发包 [1]。&quot; data-en=&quot;Select region, monthly Microsoft disk image, and resource tier (default M: 1 core / 2 GB / 20 GB), backed by CLI, Python/.NET SDKs, Bicep, and Terraform [1].&quot;&gt;一步选定区域、官方月更镜像与微虚拟机规格（默认 M 档 1 核 / 2 GB / 20 GB），同时全面兼容 Bicep、Terraform 与 Python/.NET 开发包 [1]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+  &lt;article class=&quot;brk448-media-card&quot;&gt;
+    &lt;div class=&quot;brk448-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/brk448-matrix-suspend-resume.jpg&quot; alt=&quot;BRK448 official slide screenshot of The Matrix demo running 25 isolated sandboxes suspended via snapshots&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;brk448-media-body&quot;&gt;
+      &lt;span class=&quot;brk448-media-badge is-accent&quot; data-zh=&quot;BRK448 官方课件实拍 · Demo 2&quot; data-en=&quot;BRK448 Official Slide · Demo 2&quot;&gt;BRK448 官方课件实拍 · Demo 2&lt;/span&gt;
+      &lt;h4 data-zh=&quot;The Matrix：2.2 秒并发拉起 25 沙盒与快照休眠&quot; data-en=&quot;The Matrix: 25 Parallel Sandboxes Spawned in 2.2s &amp; Snapshot Suspended&quot;&gt;The Matrix：2.2 秒并发拉起 25 沙盒与快照休眠&lt;/h4&gt;
+      &lt;p data-zh=&quot;底部事件日志实证：5×5 共 25 个独立微虚拟机在 2.2 秒内全部创建完毕，执行快照停止后完整冻结各自计数内存且零失败释放计算资源 [1]。&quot; data-en=&quot;Event log confirms all 25 isolated microVMs launched in 2.2s and suspended cleanly via memory+disk snapshots with zero idle compute charges [1].&quot;&gt;底部事件日志实证：5×5 共 25 个独立微虚拟机在 2.2 秒内全部创建完毕，执行快照停止后完整冻结各自计数内存且零失败释放计算资源 [1]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+  &lt;article class=&quot;brk448-media-card&quot;&gt;
+    &lt;div class=&quot;brk448-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/brk448-egress-proxy-secretless.jpg&quot; alt=&quot;BRK448 official slide screenshot showing Egress Network Traffic allow and deny rules inside ACA Sandboxes&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;brk448-media-body&quot;&gt;
+      &lt;span class=&quot;brk448-media-badge&quot; data-zh=&quot;BRK448 官方课件实拍 · Demo 3&quot; data-en=&quot;BRK448 Official Slide · Demo 3&quot;&gt;BRK448 官方课件实拍 · Demo 3&lt;/span&gt;
+      &lt;h4 data-zh=&quot;出站网络实时审计与零密钥请求头注入&quot; data-en=&quot;Real-Time Egress Network Audit &amp; Secretless Credential Injection&quot;&gt;出站网络实时审计与零密钥请求头注入&lt;/h4&gt;
+      &lt;p data-zh=&quot;右侧审计流清晰记录未授权域名返回 403 拒绝（x-deny-reason）而白名单域名放行；敏感凭据由外部代理通过转换规则动态注入 [1][3]。&quot; data-en=&quot;Live audit trail logs 403 denials on unlisted hosts alongside allowed endpoints while external Transform Rules inject API keys on the fly [1][3].&quot;&gt;右侧审计流清晰记录未授权域名返回 403 拒绝（x-deny-reason）而白名单域名放行；敏感凭据由外部代理通过转换规则动态注入 [1][3]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+  &lt;article class=&quot;brk448-media-card&quot;&gt;
+    &lt;div class=&quot;brk448-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/brk448-copilot-sandbox-connectors.jpg&quot; alt=&quot;BRK448 official slide screenshot of GitHub Copilot running inside an ACA Sandbox with skills, MCP servers, and connectors&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;brk448-media-body&quot;&gt;
+      &lt;span class=&quot;brk448-media-badge is-accent&quot; data-zh=&quot;BRK448 官方课件实拍 · Demo 4&quot; data-en=&quot;BRK448 Official Slide · Demo 4&quot;&gt;BRK448 官方课件实拍 · Demo 4&lt;/span&gt;
+      &lt;h4 data-zh=&quot;沙盒内运行智能体：预置技能、模型上下文服务与连接器&quot; data-en=&quot;Agent Inside a Sandbox: Preloaded Skills, MCP Servers &amp; 10 Connectors&quot;&gt;沙盒内运行智能体：预置技能、模型上下文服务与连接器&lt;/h4&gt;
+      &lt;p data-zh=&quot;终端底部显示智能体已加载 1 条指令、5 项技能与 2 个模型上下文服务，配合左侧挂载的持久卷与连接器安全访问企业日程与代码库 [1]。&quot; data-en=&quot;Terminal shows Copilot running inside an isolated sandbox with 5 skills, 2 MCP servers, persistent volumes, and audited outbound calls [1].&quot;&gt;终端底部显示智能体已加载 1 条指令、5 项技能与 2 个模型上下文服务，配合左侧挂载的持久卷与连接器安全访问企业日程与代码库 [1]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+&lt;/div&gt;
+
+由于沙盒本身可随时销毁重建，跨会话记忆与长程工作产物可通过群组挂载的托管数据磁盘、托管块存储、自有对象存储，以及即将上线的零密钥关系型数据库（支持 SQL 与 PostgreSQL）实现跨生命周期持久化 [1][3]。 || Because individual sandboxes remain ephemeral by design, long-term agent memory and workspace artifacts persist beyond sandbox deletion via out-of-the-box Managed Disks, Managed Blob storage, customer-owned Blob accounts, and upcoming secretless SQL and PostgreSQL integrations [1][3].
+
+## #cognite-industrial 04 / Industrial AI &amp; Rollout :: 重资产工业实战：Cognite 百亿图节点上的炼油厂检修智能体与落地指南 || Heavy-Asset Industrial AI: Cognite Refinery Isolation Agents and Rollout Playbook
+
+在石油天然气、能源与高端制造等重资产行业，哪怕单台泵机的数据也分散在压力传感器时序库、工单维护系统、管道及仪表流程图（P&amp;ID）与三维工程模型等异构孤岛中 [1][6]。工业人工智能厂商 Cognite 首席解决方案架构师 Christian Flasshoff 介绍，其核心数据平台 Cognite Data Fusion 通过统一工业知识图谱消除了点对点集成瓶颈，目前已沉淀超过 **100 万亿个工业数据点、50 亿个知识图谱节点与 4 亿份工程文档图纸**，并通过单一接口向运行了三年的工业智能体套件 Atlas AI 供数 [1][6]。 || Across oil and gas, energy, and heavy manufacturing, even a single refinery pump scatters telemetry across pressure historians, ERP work orders, piping and instrumentation diagrams (P&amp;IDs), and 3D CAD models [1][6]. Cognite Principal Solution Architect Christian Flasshoff explained how **Cognite Data Fusion** unifies these silos into an industrial Knowledge Graph spanning **100 trillion datapoints, 5 billion graph nodes, and 400 million documents**, exposed through a single API to its **Atlas AI** industrial agent workforce [1][6].
+
+然而，现场工程师提出的复杂工程问题无法靠几十个固定预置工具穷尽——智能体必须针对特定图纸动态编写并运行解析代码，同时严禁触碰高敏运营网络的未授权端点 [1]。将 Azure 容器应用沙盒作为“安全计算机”接入 Atlas AI 执行内核后，Cognite 仅用**数天便跑通首个沙盒智能体原型，并在数周内推入生产环境成为核心标配** [1][6]： || Yet real field engineering questions rarely fit a static menu of predefined tools—agents must write and execute custom analysis code against live schematics while connected to highly sensitive operational networks [1]. By attaching ACA Sandboxes as a governed &quot;computer&quot; inside the Atlas AI harness, Cognite built its first sandbox-enabled agent **in days and shipped it to production within weeks** [1][6]:
+
+:::flow { title: &quot;Cognite Atlas AI 炼油厂换热器安全检修隔离四步闭环 || Cognite Atlas AI Four-Step Refinery Heat-Exchanger Isolation Loop&quot; }
+1. **检索并核验工程原图 || Retrieve &amp; Validate P&amp;ID Schematics** — 维修工程师下达换热器检修准备指令，智能体检索工业知识图谱定位目标管道及仪表流程图，交由工程师确认双椭圆换热器主设备基准 [1]。 || A maintenance engineer requests heat-exchanger isolation prep; Atlas AI queries the Knowledge Graph to fetch the exact P&amp;ID drawing for human confirmation [1].
+2. **沙盒内拉取多源拓扑并执行解析代码 || Execute Custom Graph &amp; Diagram Code in Sandbox** — 无需预先硬编码专用工具，智能体在独立微虚拟机沙盒内下载工程图纸文件、结合图谱设备层级编写并运行检验脚本，追踪冷热流体两侧全部相连管线 [1]。 || Without rigid prebuilt tools, the agent downloads the schematic into its kernel-isolated microVM, writes custom inspection scripts, and cross-references graph equipment hierarchies [1].
+3. **生成安全隔离边界与阀门操作清单 || Synthesize Valve Isolation Plan** — 智能体综合管线连通性与运行上下文生成完整隔离方案，同时访问令牌始终滞留在沙盒外部出站代理中，并通过私有虚拟网络保持内网闭环 [1][6]。 || The agent formulates a step-by-step isolation boundary plan while private VNet attachment and external egress rules keep operational API tokens outside the sandbox [1][6].
+4. **工程图纸原位高亮复核放行 || Highlight Valves Directly on Drawing for Sign-Off** — 智能体在原始复杂工程图上精准框选高亮每一处待关闭隔离阀门与关联设备，将原本耗时易错的人工描图排查转化为分钟级可视化审批 [1]。 || Atlas AI renders visual highlights directly onto the original P&amp;ID schematic to pinpoint every valve that must close, turning hours of manual tracing into rapid engineer sign-off [1].
+:::
+
+面向准备在企业内部复刻同类安全智能体架构的技术团队，BRK448 讲者团结合微软配套动手实验 **LAB722（Caldova 多租户临床医药研究智能体架构）** 凝练出三条可立即执行的工程落地准则 [1][3]： || Synthesizing lessons from Nous Research, Cognite, and Microsoft's companion hands-on lab **LAB722 (the Caldova multi-tenant clinical research reference app)**, the BRK448 panel distilled three production rollout rules [1][3]:
+
+:::insight-grid { cols: 3, title: &quot;企业生产级智能体沙盒落地三原则 || Three Architectural Rules for Production Agent Sandboxes&quot; }
+::card 01
+### 在内核层而非提示词层强制信任 || Enforce Trust at the Kernel, Not the Prompt
+永远假设大模型生成的代码与外部网页输入可能越界；为每个会话或租户分配独立微虚拟机内核，开启入站默认全关与出站默认全拒白名单 [1][6]。 || Assume model-generated code and web inputs can misbehave; isolate every session behind its own microVM kernel with default-off ingress and default-deny egress [1][6].
+
+::card 02
+### 用零密钥代理与快照兼顾安全与成本 || Pair Secretless Egress with Snapshot Economics
+通过外部出站代理的转换规则动态注入凭据，确保沙盒文件系统内零明文令牌；利用自定义磁盘镜像预装依赖，配合内存快照实现闲置零计费 [1][3]。 || Inject credentials externally via egress Transform Rules so sandboxes hold zero raw secrets, and combine custom rootfs images with snapshots for zero-idle cost [1][3].
+
+::card 03
+### 编排层与执行层解耦协同 || Decouple Orchestration from Specialist Sandboxes
+参照 LAB722 范式，用宿主编排器负责认证与任务拆解，按需拉起并行的临床与药物专职沙盒并在全部完成后触发独立质检沙盒，避免自建底层管道 [1]。 || Mirror the LAB722 Caldova pattern: let a Foundry/ACA Express orchestrator authorize runs, fan out parallel specialist sandboxes, and trigger an independent QA sandbox afterward [1].
+:::
+
+## 参考资料：官方一手信源与工程规范 || References: Official Primary Sources &amp; Engineering Guides
+
+1. **Devanshi Joshi, Jeffrey Quesnelle, Jan Kalis &amp; Christian Flasshoff (Microsoft Ignite 2026)** — https://ignite.microsoft.com/en-US/sessions/1787856641427001EIEu-1791588175102001CcC9 | 《Run secure agent loops in production with isolated sandboxes at scale》官方点播视频、43 页原版幻灯片与双语逐字稿（2026-11-19） || Official breakout recording, 43-slide deck, and full WebVTT transcript (Nov 19, 2026)
+2. **Microsoft Ignite 2026 On-Demand Media Stream (Medius Asset)** — https://medius.microsoft.com/Embed/video-nc/d8734a1a-bcf5-4871-ab79-ddfed898b641 | 官方无广告点播流与四连实机架构演示实录 || Official Medius embedded video stream covering Nous Research, Azure Container Apps Sandboxes live demos, and Cognite Atlas
+3. **Microsoft Azure Container Apps Documentation &amp; Sandbox Portal** — https://aka.ms/aca/sandbox | Azure Container Apps Sandboxes 官方技术文档、快速入门与开发工具包规范（关联发布综述：`https://aka.ms/aca/ignite`） || Official product documentation, resource tier specs, egress transform rules, and Ignite announcement blog
+4. **Gartner Application Leaders Survey (Slide 5 Citation)** — https://www.gartner.com/en/information-technology | 针对 360 位应用负责人的企业智能体安全与治理就绪度调研（2025 年 5–6 月调研，2025-09-30 发布） || Survey of 360 application leaders on agent attack vectors (74%) vs. governance readiness (13%), published Sep 30, 2025
+5. **Nous Research — Hermes Agent &amp; Hermes Enterprise** — https://portal.nousresearch.com/business | Hermes 自进化开源智能体架构与企业级多租户治理控制面文档 || Hermes Enterprise collective intelligence, Spend Intelligence routing, and cloud sandbox runtime overview
+6. **Cognite — Cognite Data Fusion &amp; Atlas Industrial Agents** — https://www.cognite.com/en/product/atlas-ai | 工业知识图谱（100 万亿数据点 / 50 亿节点）与重资产行业智能体工作台技术白皮书 || Industrial Knowledge Graph and Atlas sandboxed engineering workflow overview
+</code></pre>
+      </section>
+
+      <main>
+        <section id="governance-gap" class="section" data-reveal data-present-title-zh="生产困局：74% 攻击面焦虑与硬件隔离微虚拟机的破局" data-present-title-en="Production Reality: The 74% Attack-Surface Gap and the microVM Breakthrough">
+          <div class="section-head">
+            <p class="section-kicker">01 / Governance Gap &amp; Substrate</p>
+            <h2 data-zh="1. 生产困局：74% 攻击面焦虑与硬件隔离微虚拟机的破局" data-en="1. Production Reality: The 74% Attack-Surface Gap and the microVM Breakthrough">1. 生产困局：74% 攻击面焦虑与硬件隔离微虚拟机的破局</h2>
+            <p data-zh="智能体一旦获准读写文件、编写脚本并调用外部业务接口，单纯依靠提示词约束便彻底失效 [1]。越是通过削减工具权限来换取安全，智能体解决复杂任务的业务价值就越萎缩；反之若放开执行权限，模型动态生成的非受信代码又随时可能击穿边界 [1]。2025 年 9 月发布的 Gartner 调查显示，在接受访谈的 360 位信息技术应用负责人中，74% 认为人工智能智能体构成了组织的新型攻击面，却仅有 13% 确信自身已具备管理大规模智能体集群的治理架构 [1][4]。" data-en="Once an agent reads files, writes scripts, and invokes external business APIs, prompt-level instructions cease to be a security boundary [1]. Stripping permissions to keep an agent safe drains its operational utility, whereas granting broad execution rights exposes enterprise systems to untrusted model-generated code [1]. A September 2025 Gartner survey of 360 IT application leaders found that 74% view AI agents as a new organizational attack vector, yet only 13% strongly agree they have the governance structures required to manage them [1][4].">智能体一旦获准读写文件、编写脚本并调用外部业务接口，单纯依靠提示词约束便彻底失效 [1]。越是通过削减工具权限来换取安全，智能体解决复杂任务的业务价值就越萎缩；反之若放开执行权限，模型动态生成的非受信代码又随时可能击穿边界 [1]。2025 年 9 月发布的 Gartner 调查显示，在接受访谈的 360 位信息技术应用负责人中，74% 认为人工智能智能体构成了组织的新型攻击面，却仅有 13% 确信自身已具备管理大规模智能体集群的治理架构 [1][4]。</p>
+          </div>
+
+          <figure class="sr-figure generated-diagram is-inline-svg" data-present-step data-present-surface="unframed" data-step-title="智能体计算底座选型象限：内核隔离强度与弹性缩零经济性对比" data-step-title-en="Agent Compute Substrate Quadrant: Kernel Isolation vs. Burst Economics" data-present-title-zh="智能体计算底座选型象限：内核隔离强度与弹性缩零经济性对比" data-present-title-en="Agent Compute Substrate Quadrant: Kernel Isolation vs. Burst Economics" data-step-label="01 / Governance Gap &amp; Substrate" data-step-label-en="01 / Governance Gap &amp; Substrate" data-present-i18n-invariant="label">
+            <svg class="sr-figure-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 470" role="img" aria-labelledby="sandbox-isolation-economics-quadrant-1-title sandbox-isolation-economics-quadrant-1-desc"><title id="sandbox-isolation-economics-quadrant-1-title">智能体计算底座选型象限：内核隔离强度 vs. 弹性启动与零闲置成本</title><desc id="sandbox-isolation-economics-quadrant-1-desc">2x2 quadrant matrix with 5 items</desc><text class="sr-zh" x="36" y="32" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="18" font-weight="700" fill="var(--fig-text-strong, #172430)">智能体计算底座选型象限：内核隔离强度 vs. 弹性启动与零闲置成本</text><text class="sr-en" x="36" y="32" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="18" font-weight="700" fill="var(--fig-text-strong, #172430)">Agent Compute Substrate Quadrant: Kernel Isolation vs. Burst Speed &amp; Zero-Idle Economics</text><text class="sr-zh" x="36" y="54" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">基于 BRK448 架构演进对比：硬件隔离微虚拟机兼顾虚拟机级安全边界与亚秒级无服务器弹性</text><text class="sr-en" x="36" y="54" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">BRK448 substrate comparison: hardware-isolated microVMs unite VM-grade kernel boundaries with sub-second scale-to-zero</text><rect x="78" y="98" width="948" height="318" rx="16" fill="var(--fig-group-bg-2, rgba(244,248,252,0.72))" stroke="var(--fig-group-border, rgba(23,36,48,0.11))" stroke-width="1.25"/><rect x="552" y="98" width="474" height="159" rx="14" fill="var(--fig-quadrant-tint, rgba(13,143,140,0.05))"/><line x1="552" y1="98" x2="552" y2="416" stroke="var(--fig-axis-line, rgba(23,36,48,0.24))" stroke-width="1.35" stroke-dasharray="6 5"/><line x1="78" y1="257" x2="1026" y2="257" stroke="var(--fig-axis-line, rgba(23,36,48,0.24))" stroke-width="1.35" stroke-dasharray="6 5"/><text class="sr-zh" x="96" y="124" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12.5" font-weight="700" fill="var(--fig-text-subtle, #64748b)">强边界重资产 · 常驻闲置计费高</text><text class="sr-en" x="96" y="124" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12.5" font-weight="700" fill="var(--fig-text-subtle, #64748b)">Strong Isolation · Heavy Idle Spend</text><text class="sr-zh" x="1008" y="124" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="12.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)">生产级智能体底座：强隔离 + 亚秒缩零</text><text class="sr-en" x="1008" y="124" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="12.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)">Production Agent Target: Isolated &amp; Elastic</text><text class="sr-zh" x="96" y="402" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12.5" font-weight="700" fill="var(--fig-text-subtle, #64748b)">单机原型区 · 缺乏多租户信任边界</text><text class="sr-en" x="96" y="402" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12.5" font-weight="700" fill="var(--fig-text-subtle, #64748b)">Local Laptop Tinkering · No Tenant Boundary</text><text class="sr-zh" x="1008" y="402" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="12.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)">高密轻量容器 · 共享内核难扛非受信代码</text><text class="sr-en" x="1008" y="402" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="12.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)">Fast Shared Kernel · Thin Untrusted Boundary</text><text class="sr-zh" x="552" y="454" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="13" font-weight="700" fill="var(--fig-text-muted, #52616d)">冷启动速度与突发缩零经济性 (0 → 100)</text><text class="sr-en" x="552" y="454" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="13" font-weight="700" fill="var(--fig-text-muted, #52616d)">Sub-Second Startup &amp; Scale-to-Zero Economics (0 → 100)</text><g transform="translate(26,257) rotate(-90)"><text class="sr-zh" x="0" y="0" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="13" font-weight="700" fill="var(--fig-text-muted, #52616d)">内核边界隔离与零密钥出站管控强度 (0 → 100)</text><text class="sr-en" x="0" y="0" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="13" font-weight="700" fill="var(--fig-text-muted, #52616d)">Hardware Kernel Isolation &amp; Secretless Egress Control (0 → 100)</text></g><g data-point-id="local-workstation"><circle cx="287" cy="359" r="14.5" fill="var(--fig-role-amber-fill, rgba(217, 119, 6, 0.09))" stroke="var(--fig-role-amber-stroke, rgba(217, 119, 6, 0.44))" stroke-width="1"/><circle cx="287" cy="359" r="8.5" fill="var(--fig-role-amber-bar, #d97706)"/><text class="sr-zh" x="307.5" y="355" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="start" font-size="13.5" font-weight="700" fill="var(--fig-text-strong, #172430)">本地开发机直接跑智能体</text><text class="sr-en" x="307.5" y="355" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="start" font-size="13.5" font-weight="700" fill="var(--fig-text-strong, #172430)">Local Workstation Agent Loop</text><text class="sr-zh" x="307.5" y="372" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="start" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">整机即信任边界，凭据裸露且无法多租户扩展</text><text class="sr-en" x="307.5" y="372" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="start" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">Whole laptop is trust boundary; exposed secrets</text></g><g data-point-id="traditional-vm"><circle cx="268" cy="155" r="14.5" fill="var(--fig-role-blue-fill, rgba(37, 99, 235, 0.07))" stroke="var(--fig-role-blue-stroke, rgba(59, 130, 246, 0.42))" stroke-width="1"/><circle cx="268" cy="155" r="8.5" fill="var(--fig-role-blue-bar, #2563eb)"/><text class="sr-zh" x="288.5" y="151" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="start" font-size="13.5" font-weight="700" fill="var(--fig-text-strong, #172430)">传统常驻虚拟机（Dedicated VMs）</text><text class="sr-en" x="288.5" y="151" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="start" font-size="13.5" font-weight="700" fill="var(--fig-text-strong, #172430)">Traditional Dedicated VMs</text><text class="sr-zh" x="288.5" y="168" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="start" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">内核隔离强但启动慢，99% 空闲时间仍持续烧钱</text><text class="sr-en" x="288.5" y="168" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="start" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">Strong kernel isolation, slow boot &amp; 99% idle cost</text></g><g data-point-id="shared-containers"><circle cx="817" cy="321" r="14.5" fill="var(--fig-role-rose-fill, rgba(225, 29, 72, 0.08))" stroke="var(--fig-role-rose-stroke, rgba(225, 29, 72, 0.48))" stroke-width="1"/><circle cx="817" cy="321" r="8.5" fill="var(--fig-role-rose-bar, #e11d48)"/><text class="sr-zh" x="796.5" y="317" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13.5" font-weight="700" fill="var(--fig-text-strong, #172430)">共享内核标准容器（Containers）</text><text class="sr-en" x="796.5" y="317" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13.5" font-weight="700" fill="var(--fig-text-strong, #172430)">Shared-Kernel Containers</text><text class="sr-zh" x="796.5" y="334" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">启动快密度高，但共享宿主机内核难防越权逃逸</text><text class="sr-en" x="796.5" y="334" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">Fast &amp; dense, but shared kernel risks tenant escape</text></g><g data-point-id="aca-dynamic-sessions"><circle cx="836" cy="200" r="14.5" fill="var(--fig-role-violet-fill, rgba(124, 58, 237, 0.08))" stroke="var(--fig-role-violet-stroke, rgba(139, 92, 246, 0.42))" stroke-width="1"/><circle cx="836" cy="200" r="8.5" fill="var(--fig-role-violet-bar, #7c3aed)"/><text class="sr-zh" x="815.5" y="196" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13.5" font-weight="700" fill="var(--fig-text-strong, #172430)">前代 ACA Dynamic Sessions</text><text class="sr-en" x="815.5" y="196" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13.5" font-weight="700" fill="var(--fig-text-strong, #172430)">Legacy ACA Dynamic Sessions</text><text class="sr-zh" x="815.5" y="213" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">具备轻量隔离，但受限于固定环境难装自定义底座</text><text class="sr-en" x="815.5" y="213" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">Fast isolation, lacked custom rootfs &amp; snapshots</text></g><g data-point-id="aca-sandboxes-ga"><circle cx="950" cy="127" r="14.5" fill="var(--fig-role-teal-fill, rgba(13, 143, 140, 0.09))" stroke="var(--fig-role-teal-stroke, rgba(13, 143, 140, 0.46))" stroke-width="1"/><circle cx="950" cy="127" r="8.5" fill="var(--fig-role-teal-bar, #0d8f8c)"/><text class="sr-zh" x="929.5" y="141" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13.5" font-weight="700" fill="var(--fig-text-strong, #172430)">ACA Sandboxes 托管微虚拟机（GA）</text><text class="sr-en" x="929.5" y="141" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13.5" font-weight="700" fill="var(--fig-text-strong, #172430)">ACA Sandboxes Managed microVMs (GA)</text><text class="sr-zh" x="929.5" y="158" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">&lt;1s 启动 + 内存快照休眠零闲置费 + 沙盒外凭据注入</text><text class="sr-en" x="929.5" y="158" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">&lt;1s boot + memory snapshots + external credential injection</text></g></svg>
+            <figcaption class="diagram-caption"><span data-zh="图 1：传统虚拟机具备强隔离但被慢启动与闲置计费拖垮，标准容器启动快却因共享宿主机内核难以承接多租户非受信代码；托管微虚拟机将独立内核边界与亚秒级缩零推入右上角目标区 [1][2]。" data-en="Figure 1: Dedicated VMs isolate kernels at high idle cost while shared-kernel containers expose multi-tenant risks; managed microVMs combine hardware boundaries with sub-second scale-to-zero in the upper-right target zone [1][2].">图 1：传统虚拟机具备强隔离但被慢启动与闲置计费拖垮，标准容器启动快却因共享宿主机内核难以承接多租户非受信代码；托管微虚拟机将独立内核边界与亚秒级缩零推入右上角目标区 [1][2]。</span></figcaption>
+          </figure>
+
+          <p data-zh="面向智能体时代的生产级沙盒不再是仅供概念验证或早期测试的临时游乐场，而是承载全天候业务循环的基础设施主干 [1]。微软宣布正式商用的 Azure Container Apps Sandboxes 采用硬件隔离微虚拟机架构，在全球 44 个区域日均运行超过 200 万个实例，目标可用性达 99.95% [1][3]。在微软内部，这套微虚拟机底座已成为跨产品线的公共安全执行层——同时支撑 Microsoft Foundry Agent Service、Microsoft Copilot Studio、GitHub Copilot 研发体验、Azure 站点可靠性智能体以及简化版应用托管服务 [1][2]。下方导览台内嵌了 BRK448 官方点播视频流、完整时间轴与原版讲义入口，点击顶部章节即可对照查阅四位讲者的核心拆解 [1]：" data-en="Production sandboxes in the agentic era are no longer throwaway playgrounds for proofs of concept; they serve as the primary runtime backbone for live enterprise workloads [1]. Newly Generally Available Azure Container Apps Sandboxes pair hardware-isolated microVMs with managed networking and identity, running over 2 million daily instances across 44 regions against a 99.95% availability target [1][3]. Inside Microsoft, this same substrate powers Microsoft Foundry Agent Service, Microsoft Copilot Studio, GitHub Copilot experiences, Azure SRE Agent, and Azure Container Apps Express [1][2]. The interactive theater below embeds the official BRK448 on-demand stream, slide deck link, and chapter timestamps across all four speakers [1]:">面向智能体时代的生产级沙盒不再是仅供概念验证或早期测试的临时游乐场，而是承载全天候业务循环的基础设施主干 [1]。微软宣布正式商用的 Azure Container Apps Sandboxes 采用硬件隔离微虚拟机架构，在全球 44 个区域日均运行超过 200 万个实例，目标可用性达 99.95% [1][3]。在微软内部，这套微虚拟机底座已成为跨产品线的公共安全执行层——同时支撑 Microsoft Foundry Agent Service、Microsoft Copilot Studio、GitHub Copilot 研发体验、Azure 站点可靠性智能体以及简化版应用托管服务 [1][2]。下方导览台内嵌了 BRK448 官方点播视频流、完整时间轴与原版讲义入口，点击顶部章节即可对照查阅四位讲者的核心拆解 [1]：</p>
+
+          <div id="brk448-video-theater" class="sandbox-slot" data-sandbox-slot="brk448-video-theater" data-present-step data-present-surface="board" data-step-title="Ignite 2026 BRK448 官方点播视频剧场与四段式时间轴导览" data-step-title-en="Ignite 2026 BRK448 Official On-Demand Video Theater &amp; Chapter Guide" data-present-title-zh="Ignite 2026 BRK448 官方点播视频剧场与四段式时间轴导览" data-present-title-en="Ignite 2026 BRK448 Official On-Demand Video Theater &amp; Chapter Guide" data-step-label="01 / Governance Gap &amp; Substrate" data-step-label-en="01 / Governance Gap &amp; Substrate" data-present-i18n-invariant="label">
+            <div class="sandbox-header">
+              <div class="sandbox-title-group">
+                <span class="comparison-label" data-zh="纯静态交互沙盒" data-en="Static Interactive Sandbox">纯静态交互沙盒</span>
+                <h3 data-zh="Ignite 2026 BRK448 官方点播视频剧场与四段式时间轴导览" data-en="Ignite 2026 BRK448 Official On-Demand Video Theater &amp; Chapter Guide">Ignite 2026 BRK448 官方点播视频剧场与四段式时间轴导览</h3>
+                <p data-zh="支持一键内嵌加载 Medius 官方点播流，按章节检视 Microsoft、Nous Research 与 Cognite 的演讲及四场实机演示。" data-en="Load the official Medius on-demand player inline or jump across Microsoft, Nous Research, and Cognite chapters and live demos.">支持一键内嵌加载 Medius 官方点播流，按章节检视 Microsoft、Nous Research 与 Cognite 的演讲及四场实机演示。</p>
+              </div>
+              <div class="sandbox-controls" data-sandbox-controls="brk448-video-theater"></div>
+            </div>
+            <div class="sandbox-stage" data-sandbox-stage="brk448-video-theater">
+
+            </div>
+          </div>
+        </section>
+
+        <section id="hermes-enterprise" class="section" data-reveal data-present-title-zh="自进化飞轮治理：Nous Research 如何用 2 万个云沙盒驯服开源榜首智能体" data-present-title-en="Governing Self-Improvement: How Nous Research Runs 20K+ Hermes Cloud Sandboxes">
+          <div class="section-head">
+            <p class="section-kicker">02 / Nous Research Case</p>
+            <h2 data-zh="2. 自进化飞轮治理：Nous Research 如何用 2 万个云沙盒驯服开源榜首智能体" data-en="2. Governing Self-Improvement: How Nous Research Runs 20K+ Hermes Cloud Sandboxes">2. 自进化飞轮治理：Nous Research 如何用 2 万个云沙盒驯服开源榜首智能体</h2>
+            <p data-zh="开源智能体向企业多租户生产迁移时，最棘手的矛盾在于“自主进化收益”与“跨团队风险扩散”同步放大 [1][5]。Nous Research 联合创始人兼首席技术官 Jeffrey Quesnelle 在专场中复盘了 Hermes Agent 的演进：这款一年前源于内部递归自我改进训练实验的开源项目，发布两周即登顶代码托管平台热门榜单，目前在公开模型路由平台上位居开源智能体调用量榜首，日均处理近 2 万亿词元 [1][5]。与早期要求用户手工编写技能文件的工具不同，Hermes 会在后台审视任务执行轨迹，自动把成功经验提炼为技能文件，并将重复出现的确定性步骤直接编译为无需反复消耗大模型算力的代码工作流 [1][5]。" data-en="Migrating an open-source agent into multi-tenant enterprise production magnifies both compounding learning gains and cross-tenant security risks [1][5]. Nous Research Co-founder and CTO Jeffrey Quesnelle recounted how Hermes Agent—open-sourced a year earlier from internal recursive self-improvement research—hit #1 on GitHub within two weeks and now ranks #1 among public open agents on OpenRouter at nearly 2 trillion tokens processed per day [1][5]. Unlike early frameworks that forced users to hand-author skill files, Hermes inspects its own execution traces in the background, distilling successful runs into reusable skills and compiling deterministic routines into code workflows that bypass redundant LLM calls [1][5].">开源智能体向企业多租户生产迁移时，最棘手的矛盾在于“自主进化收益”与“跨团队风险扩散”同步放大 [1][5]。Nous Research 联合创始人兼首席技术官 Jeffrey Quesnelle 在专场中复盘了 Hermes Agent 的演进：这款一年前源于内部递归自我改进训练实验的开源项目，发布两周即登顶代码托管平台热门榜单，目前在公开模型路由平台上位居开源智能体调用量榜首，日均处理近 2 万亿词元 [1][5]。与早期要求用户手工编写技能文件的工具不同，Hermes 会在后台审视任务执行轨迹，自动把成功经验提炼为技能文件，并将重复出现的确定性步骤直接编译为无需反复消耗大模型算力的代码工作流 [1][5]。</p>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced" data-present-step data-present-surface="unframed" data-step-title="单机个人智能体闭环 vs. Hermes Enterprise 多租户受控飞轮" data-step-title-en="Local Workstation Loop vs. Governed Hermes Enterprise Fleet" data-present-title-zh="单机个人智能体闭环 vs. Hermes Enterprise 多租户受控飞轮" data-present-title-en="Local Workstation Loop vs. Governed Hermes Enterprise Fleet" data-step-label="02 / Nous Research Case" data-step-label-en="02 / Nous Research Case" data-present-i18n-invariant="label">
+            <article class="comparison-card">
+              <span class="comparison-label" data-zh="单机探索态：整机即信任边界（难以规模化）" data-en="Local Laptop Mode: Whole Machine as Trust Boundary">单机探索态：整机即信任边界（难以规模化）</span>
+              <h3 data-zh="共享宿主机权限、隐私混入技能且常驻算力昂贵" data-en="Unisolated Execution, Unreviewed Skills, and Idle VM Waste">共享宿主机权限、隐私混入技能且常驻算力昂贵</h3>
+              <p data-zh="个人在笔记本电脑上运行自进化智能体时，默认将整台设备作为信任域；一旦直接搬入大型企业，智能体编写的脚本与浏览器操作绝不能与其他租户共享内核，且员工个人的私密上下文若未经审核就自动写入全员技能库，会以同等速度向全公司扩散错误或泄漏敏感信息 [1][5]。" data-en="On a personal laptop, the entire machine acts as the trust boundary; in an enterprise, untrusted code and browser tools cannot share a kernel across tenants, and unreviewed skill promotion risks broadcasting personal habits or data leaks across every team [1][5].">个人在笔记本电脑上运行自进化智能体时，默认将整台设备作为信任域；一旦直接搬入大型企业，智能体编写的脚本与浏览器操作绝不能与其他租户共享内核，且员工个人的私密上下文若未经审核就自动写入全员技能库，会以同等速度向全公司扩散错误或泄漏敏感信息 [1][5]。</p>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label" data-zh="企业生产态：硬件沙盒 + 受控晋升（20K+ 实例实证）" data-en="Enterprise Production: Hardware Sandboxes + Governed Promotion">企业生产态：硬件沙盒 + 受控晋升（20K+ 实例实证）</span>
+              <h3 data-zh="微虚拟机隔离执行、技能血缘评审与空闲缩零经济模型" data-en="Kernel Isolation, Provenance-Checked Skills, and Scale-to-Zero">微虚拟机隔离执行、技能血缘评审与空闲缩零经济模型</h3>
+              <p data-zh="Hermes Enterprise 在上层构建身份路由与成本治理控制面，底层全面切换至 Azure 容器应用沙盒：每个工作空间独占微虚拟机内核与受限密钥网络，经评测审批的高价值工作流沉淀为企业自有集体智慧资产，且在用户切换窗口的 99% 空闲时段利用快照释放算力 [1][5]。" data-en="Hermes Enterprise pairs a SaaS or bring-your-own-cloud control plane with Azure Container Apps Sandboxes underneath: each workspace runs inside an isolated microVM while reviewed skills become company IP and snapshots release compute during 99% idle gaps [1][5].">Hermes Enterprise 在上层构建身份路由与成本治理控制面，底层全面切换至 Azure 容器应用沙盒：每个工作空间独占微虚拟机内核与受限密钥网络，经评测审批的高价值工作流沉淀为企业自有集体智慧资产，且在用户切换窗口的 99% 空闲时段利用快照释放算力 [1][5]。</p>
+            </article>
+          </div>
+
+          <p data-zh="在商业经济账上，Quesnelle 给出了清晰的量化推演：随着每位员工同时驱使多个长程有状态智能体，企业并发规模正迈向数十万乃至上百万实例；而用户随时切出聊天窗口的交互习惯决定了负载高度突发、高达 99% 的时间处于等待或空闲状态 [1]。若为每个有状态工作空间维持一台常驻传统虚拟机，仅硬件账单就会在业务扩张期拖垮平台（假设单实例常驻占空比为 &lt;span class=&quot;math-inline&quot; data-latex=&quot;\alpha \approx 0.01&quot;&gt;\alpha \approx 0.01&lt;/span&gt;，常驻计费浪费率高达 &lt;span class=&quot;math-inline&quot; data-latex=&quot;1 - \alpha = 99\%&quot;&gt;1 - \alpha = 99\%&lt;/span&gt;）[1]。切换至亚秒级启动并支持挂起恢复的微虚拟机沙盒后，Hermes 云平台截至 2026 年 10 月已稳定支撑超过 20,000 个活跃云端实例与 100 余家大型企业客户，同时在控制面提供“支出智能（Spend Intelligence）”滑杆——允许管理员测试将某类高阶模型调用比例从 100% 微调至 95% 时是否仍能维持同等任务表现，从而把词元与算力成本双双锁在可控区间 [1][5]。" data-en="On unit economics, Quesnelle highlighted why traditional stateful hosting breaks at scale: as organizations deploy multiple stateful agents per employee, fleet counts climb toward hundreds of thousands, yet human-in-the-loop multitasking leaves workspaces idle roughly 99% of the time [1]. Paying 24/7 for dedicated VMs at a 1% active duty cycle (&lt;span class=&quot;math-inline&quot; data-latex=&quot;\alpha \approx 0.01&quot;&gt;\alpha \approx 0.01&lt;/span&gt;) destroys margins just as adoption succeeds [1]. By migrating its hosted cloud from another provider onto sub-second suspend-and-resume ACA Sandboxes, Nous scaled past 20,000 active cloud instances and 100+ large enterprises by October 2026, pairing compute elasticity with a &lt;strong&gt;Spend Intelligence&lt;/strong&gt; slider that tests whether dialing frontier model routing from 100% to 95% preserves task quality [1][5].">在商业经济账上，Quesnelle 给出了清晰的量化推演：随着每位员工同时驱使多个长程有状态智能体，企业并发规模正迈向数十万乃至上百万实例；而用户随时切出聊天窗口的交互习惯决定了负载高度突发、高达 99% 的时间处于等待或空闲状态 [1]。若为每个有状态工作空间维持一台常驻传统虚拟机，仅硬件账单就会在业务扩张期拖垮平台（假设单实例常驻占空比为 <span class="math-inline" data-latex="\alpha \approx 0.01">\alpha \approx 0.01</span>，常驻计费浪费率高达 <span class="math-inline" data-latex="1 - \alpha = 99\%">1 - \alpha = 99\%</span>）[1]。切换至亚秒级启动并支持挂起恢复的微虚拟机沙盒后，Hermes 云平台截至 2026 年 10 月已稳定支撑超过 20,000 个活跃云端实例与 100 余家大型企业客户，同时在控制面提供“支出智能（Spend Intelligence）”滑杆——允许管理员测试将某类高阶模型调用比例从 100% 微调至 95% 时是否仍能维持同等任务表现，从而把词元与算力成本双双锁在可控区间 [1][5]。</p>
+        </section>
+
+        <section id="sandbox-anatomy" class="section" data-reveal data-present-title-zh="沙盒解剖学：双层外部代理、零密钥凭据注入与四连实机演示" data-present-title-en="Sandbox Anatomy: External Proxies, Secretless Injection, and Four Live Demos">
+          <div class="section-head">
+            <p class="section-kicker">03 / Architecture &amp; Live Demos</p>
+            <h2 data-zh="3. 沙盒解剖学：双层外部代理、零密钥凭据注入与四连实机演示" data-en="3. Sandbox Anatomy: External Proxies, Secretless Injection, and Four Live Demos">3. 沙盒解剖学：双层外部代理、零密钥凭据注入与四连实机演示</h2>
+            <p data-zh="为什么智能体在沙盒内拥有完整的根文件系统与命令行权限，却依然无法篡改网络边界或窃取接口密钥？微软首席产品经理 Jan Kalis 在架构深潜环节揭示了核心设计原则：&lt;strong&gt;所有网络策略与凭据注入组件均部署在沙盒微虚拟机边界之外&lt;/strong&gt;，沙盒内部运行的模型代码对其既不可见也无权修改 [1][3]。" data-en="How can an agent hold root shell access and a full filesystem inside its sandbox without altering network rules or exfiltrating API keys? Principal Product Manager Jan Kalis demonstrated the core architectural invariant: &lt;strong&gt;both ingress and egress proxies enforce policy strictly outside the microVM boundary&lt;/strong&gt;, beyond the reach of any code executing inside the sandbox [1][3].">为什么智能体在沙盒内拥有完整的根文件系统与命令行权限，却依然无法篡改网络边界或窃取接口密钥？微软首席产品经理 Jan Kalis 在架构深潜环节揭示了核心设计原则：<strong>所有网络策略与凭据注入组件均部署在沙盒微虚拟机边界之外</strong>，沙盒内部运行的模型代码对其既不可见也无权修改 [1][3]。</p>
+          </div>
+
+          <figure class="sr-figure generated-diagram is-inline-svg" data-present-step data-present-surface="unframed" data-step-title="Azure Container Apps Sandboxes 零密钥安全边界与持久状态全景架构" data-step-title-en="Azure Container Apps Sandboxes Secretless Boundary &amp; Stateful Architecture" data-present-title-zh="Azure Container Apps Sandboxes 零密钥安全边界与持久状态全景架构" data-present-title-en="Azure Container Apps Sandboxes Secretless Boundary &amp; Stateful Architecture" data-step-label="03 / Architecture &amp; Live Demos" data-step-label-en="03 / Architecture &amp; Live Demos" data-present-i18n-invariant="label">
+            <svg class="sr-figure-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 666" role="img" aria-labelledby="aca-sandbox-boundary-architecture-2-title aca-sandbox-boundary-architecture-2-desc"><title id="aca-sandbox-boundary-architecture-2-title">Azure Container Apps Sandboxes 零密钥安全边界与硬件隔离架构</title><desc id="aca-sandbox-boundary-architecture-2-desc">architecture topology with 9 nodes and 7 edges</desc><defs><marker id="aca-sandbox-boundary-architecture-2-arrow" markerWidth="10" markerHeight="10" refX="8.5" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M1,1 L8.5,4 L1,7" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><g data-group-id="entry-ingress-plane"><rect x="36" y="24" width="1368" height="190" rx="16" fill="var(--fig-group-bg-1, rgba(255, 250, 244, 0.72))" stroke="var(--fig-group-border, rgba(23, 36, 48, 0.11))" stroke-width="1.25"/><path d="M 52 25 H 1388" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.6))" stroke-width="1"/><line x1="36" y1="70" x2="1404" y2="70" stroke="var(--fig-group-divider, rgba(23,36,48,0.08))" stroke-width="1"/><circle cx="58" cy="48" r="4.5" fill="var(--fig-role-accent-bar, #ea580c)"/><text class="sr-zh" x="70" y="53" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)">1. 外部触发与入站治理层（沙盒边界之外 · Outside Sandbox Boundary）</text><text class="sr-en" x="70" y="53" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)">1. External Triggers &amp; Ingress Governance (Outside Sandbox Boundary)</text></g><g data-group-id="sandbox-group-plane"><rect x="36" y="238" width="1368" height="190" rx="16" fill="var(--fig-group-bg-2, rgba(244, 248, 252, 0.72))" stroke="var(--fig-group-border, rgba(23, 36, 48, 0.11))" stroke-width="1.25"/><path d="M 52 239 H 1388" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.6))" stroke-width="1"/><line x1="36" y1="284" x2="1404" y2="284" stroke="var(--fig-group-divider, rgba(23,36,48,0.08))" stroke-width="1"/><circle cx="58" cy="262" r="4.5" fill="var(--fig-role-blue-bar, #2563eb)"/><text class="sr-zh" x="70" y="267" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)">2. 区域管理边界：Sandbox Group 硬件隔离微虚拟机池（2M+ 日活实例）</text><text class="sr-en" x="70" y="267" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)">2. Regional Sandbox Group: Hardware-Isolated microVM Fleet (2M+ Daily)</text></g><g data-group-id="egress-storage-plane"><rect x="36" y="452" width="1368" height="190" rx="16" fill="var(--fig-group-bg-3, rgba(248, 245, 252, 0.72))" stroke="var(--fig-group-border, rgba(23, 36, 48, 0.11))" stroke-width="1.25"/><path d="M 52 453 H 1388" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.6))" stroke-width="1"/><line x1="36" y1="498" x2="1404" y2="498" stroke="var(--fig-group-divider, rgba(23,36,48,0.08))" stroke-width="1"/><circle cx="58" cy="476" r="4.5" fill="var(--fig-role-violet-bar, #7c3aed)"/><text class="sr-zh" x="70" y="481" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)">3. 零密钥出站代理与跨生命周期存储连接层（Secretless Egress &amp; Durable State）</text><text class="sr-en" x="70" y="481" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)">3. Secretless Egress Proxy, Durable Storage &amp; 1,700+ Connectors</text></g><g data-edge-id="edge-1"><path d="M 280 190 L 280 308" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#aca-sandbox-boundary-architecture-2-arrow)"/><circle cx="280" cy="190" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="edge-2"><path d="M 720 190 L 720 216 Q 720 226 710 226 L 290 226 Q 280 226 280 236 L 280 308" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#aca-sandbox-boundary-architecture-2-arrow)"/><circle cx="720" cy="190" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="edge-3"><path d="M 1160 190 L 1160 308" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#aca-sandbox-boundary-architecture-2-arrow)"/><circle cx="1160" cy="190" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="edge-4"><path d="M 530 356 L 470 356" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#aca-sandbox-boundary-architecture-2-arrow)"/><circle cx="530" cy="356" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="edge-5"><path d="M 280 404 L 280 522" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#aca-sandbox-boundary-architecture-2-arrow)"/><circle cx="280" cy="404" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="edge-6"><path d="M 280 404 L 280 430 Q 280 440 290 440 L 710 440 Q 720 440 720 450 L 720 522" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#aca-sandbox-boundary-architecture-2-arrow)"/><circle cx="280" cy="404" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="edge-7"><path d="M 1160 404 L 1160 522" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#aca-sandbox-boundary-architecture-2-arrow)"/><circle cx="1160" cy="404" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-node-id="dev-entry"><defs><clipPath id="aca-sandbox-boundary-architecture-2-clip-dev-entry"><rect x="90" y="94" width="380" height="96" rx="13"/></clipPath></defs><rect x="90" y="94" width="380" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="90" y="94" width="380" height="96" rx="13" fill="var(--fig-role-accent-fill, rgba(255, 122, 0, 0.09))" stroke="var(--fig-role-accent-stroke, rgba(234, 88, 12, 0.48))" stroke-width="1.35"/><rect x="90" y="94" width="4.5" height="96" fill="var(--fig-role-accent-bar, #ea580c)" clip-path="url(#aca-sandbox-boundary-architecture-2-clip-dev-entry)"/><line x1="102" y1="95" x2="458" y2="95" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="282" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)"><tspan x="282" y="130">多模编排与研发入口</tspan></text><text x="282" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="282" y="151">Azure 门户 · ACA CLI · VS Code 远程终端 · Python/.NET SDK ·</tspan><tspan x="282" y="165.5"> Bicep</tspan></text></g><g class="sr-en"><text x="282" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)"><tspan x="282" y="130">Multi-Surface Creation &amp; SDKs</tspan></text><text x="282" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="282" y="151">Portal · ACA CLI · VS Code Shell · Python/.NET SDKs · Bicep/</tspan><tspan x="282" y="165.5">Terraform</tspan></text></g></g><g data-node-id="ingress-proxy"><defs><clipPath id="aca-sandbox-boundary-architecture-2-clip-ingress-proxy"><rect x="530" y="94" width="380" height="96" rx="13"/></clipPath></defs><rect x="530" y="94" width="380" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="530" y="94" width="380" height="96" rx="13" fill="var(--fig-role-amber-fill, rgba(217, 119, 6, 0.09))" stroke="var(--fig-role-amber-stroke, rgba(217, 119, 6, 0.44))" stroke-width="1.35"/><rect x="530" y="94" width="4.5" height="96" fill="var(--fig-role-amber-bar, #d97706)" clip-path="url(#aca-sandbox-boundary-architecture-2-clip-ingress-proxy)"/><line x1="542" y1="95" x2="898" y2="95" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="722" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)"><tspan x="722" y="137">独立入站代理（Ingress Proxy）</tspan></text><text x="722" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="722" y="158">默认全关；按实例与端口显式开放，支持 Entra ID 认证与流量唤醒</tspan></text></g><g class="sr-en"><text x="722" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)"><tspan x="722" y="130">External Ingress Proxy</tspan></text><text x="722" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="722" y="151">Off by default; opt-in per port with Entra ID auth &amp; wake-on-</tspan><tspan x="722" y="165.5">traffic</tspan></text></g></g><g data-node-id="event-triggers"><defs><clipPath id="aca-sandbox-boundary-architecture-2-clip-event-triggers"><rect x="970" y="94" width="380" height="96" rx="13"/></clipPath></defs><rect x="970" y="94" width="380" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="970" y="94" width="380" height="96" rx="13" fill="var(--fig-role-teal-fill, rgba(13, 143, 140, 0.09))" stroke="var(--fig-role-teal-stroke, rgba(13, 143, 140, 0.46))" stroke-width="1.35"/><rect x="970" y="94" width="4.5" height="96" fill="var(--fig-role-teal-bar, #0d8f8c)" clip-path="url(#aca-sandbox-boundary-architecture-2-clip-event-triggers)"/><line x1="982" y1="95" x2="1338" y2="95" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="1162" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)"><tspan x="1162" y="137">托管事件触发器（Managed Triggers）</tspan></text><text x="1162" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1162" y="158">监听连接器事件或网络请求，按需拉起休眠沙盒并注入执行命令</tspan></text></g><g class="sr-en"><text x="1162" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)"><tspan x="1162" y="130">Managed Event Triggers</tspan></text><text x="1162" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1162" y="151">Watch connector events or HTTP calls to wake sandboxes &amp; run</tspan><tspan x="1162" y="165.5">commands</tspan></text></g></g><g data-node-id="microvm-runtime"><defs><clipPath id="aca-sandbox-boundary-architecture-2-clip-microvm-runtime"><rect x="90" y="308" width="380" height="96" rx="13"/></clipPath></defs><rect x="90" y="308" width="380" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="90" y="308" width="380" height="96" rx="13" fill="var(--fig-role-rose-fill, rgba(225, 29, 72, 0.08))" stroke="var(--fig-role-rose-stroke, rgba(225, 29, 72, 0.48))" stroke-width="1.35"/><rect x="90" y="308" width="4.5" height="96" fill="var(--fig-role-rose-bar, #e11d48)" clip-path="url(#aca-sandbox-boundary-architecture-2-clip-microvm-runtime)"/><line x1="102" y1="309" x2="458" y2="309" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="282" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-rose-text, #9f1239)"><tspan x="282" y="344">独立内核微虚拟机（ACA Sandbox）</tspan></text><text x="282" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="282" y="365">XS (0.25核/0.5GiB) 至 3XL (16核/32GiB)，&lt;1 秒极速启动运行非</tspan><tspan x="282" y="379.5">受信代码</tspan></text></g><g class="sr-en"><text x="282" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-rose-text, #9f1239)"><tspan x="282" y="344">Kernel-Isolated microVM Instance</tspan></text><text x="282" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="282" y="365">XS (0.25c/0.5GiB) to 3XL (16c/32GiB); &lt;1s boot for untrusted</tspan><tspan x="282" y="379.5">code</tspan></text></g></g><g data-node-id="custom-images"><defs><clipPath id="aca-sandbox-boundary-architecture-2-clip-custom-images"><rect x="530" y="308" width="380" height="96" rx="13"/></clipPath></defs><rect x="530" y="308" width="380" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="530" y="308" width="380" height="96" rx="13" fill="var(--fig-role-blue-fill, rgba(37, 99, 235, 0.07))" stroke="var(--fig-role-blue-stroke, rgba(59, 130, 246, 0.42))" stroke-width="1.35"/><rect x="530" y="308" width="4.5" height="96" fill="var(--fig-role-blue-bar, #2563eb)" clip-path="url(#aca-sandbox-boundary-architecture-2-clip-custom-images)"/><line x1="542" y1="309" x2="898" y2="309" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="722" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)"><tspan x="722" y="351">月度官方底座与自定义磁盘镜像</tspan></text><text x="722" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="722" y="372">支持 OCI 容器一键转根文件系统，预置专属依赖与智能体执行内核</tspan></text></g><g class="sr-en"><text x="722" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)"><tspan x="722" y="344">Managed &amp; Custom Disk Images</tspan></text><text x="722" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="722" y="365">Convert OCI containers into bootable rootfs with preloaded</tspan><tspan x="722" y="379.5">harnesses</tspan></text></g></g><g data-node-id="snapshot-engine"><defs><clipPath id="aca-sandbox-boundary-architecture-2-clip-snapshot-engine"><rect x="970" y="308" width="380" height="96" rx="13"/></clipPath></defs><rect x="970" y="308" width="380" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="970" y="308" width="380" height="96" rx="13" fill="var(--fig-role-violet-fill, rgba(124, 58, 237, 0.08))" stroke="var(--fig-role-violet-stroke, rgba(139, 92, 246, 0.42))" stroke-width="1.35"/><rect x="970" y="308" width="4.5" height="96" fill="var(--fig-role-violet-bar, #7c3aed)" clip-path="url(#aca-sandbox-boundary-architecture-2-clip-snapshot-engine)"/><line x1="982" y1="309" x2="1338" y2="309" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="1162" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)"><tspan x="1162" y="344">内存+磁盘快照（Suspend / Resume）</tspan></text><text x="1162" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1162" y="365">暂停即冻结完整运行上下文并释放算力，实现零空闲计费与断点续</tspan><tspan x="1162" y="379.5">跑</tspan></text></g><g class="sr-en"><text x="1162" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)"><tspan x="1162" y="344">Memory + Disk Snapshots</tspan></text><text x="1162" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1162" y="365">Freeze live memory &amp; disk state to release idle compute (scale-</tspan><tspan x="1162" y="379.5">to-zero)</tspan></text></g></g><g data-node-id="egress-proxy"><defs><clipPath id="aca-sandbox-boundary-architecture-2-clip-egress-proxy"><rect x="90" y="522" width="380" height="96" rx="13"/></clipPath></defs><rect x="90" y="522" width="380" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="90" y="522" width="380" height="96" rx="13" fill="var(--fig-role-amber-fill, rgba(217, 119, 6, 0.09))" stroke="var(--fig-role-amber-stroke, rgba(217, 119, 6, 0.44))" stroke-width="1.35"/><rect x="90" y="522" width="4.5" height="96" fill="var(--fig-role-amber-bar, #d97706)" clip-path="url(#aca-sandbox-boundary-architecture-2-clip-egress-proxy)"/><line x1="102" y1="523" x2="458" y2="523" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="282" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)"><tspan x="282" y="558">零密钥出站代理（Egress Proxy）</tspan></text><text x="282" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="282" y="579">默认全拒+域名白名单；通过 Transform 规则在沙盒外动态注入真</tspan><tspan x="282" y="593.5">实凭据</tspan></text></g><g class="sr-en"><text x="282" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)"><tspan x="282" y="558">Secretless Egress Proxy</tspan></text><text x="282" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="282" y="579">Default deny + allowlist; injects X-API-Key/tokens outside the</tspan><tspan x="282" y="593.5">sandbox</tspan></text></g></g><g data-node-id="mcp-connectors"><defs><clipPath id="aca-sandbox-boundary-architecture-2-clip-mcp-connectors"><rect x="530" y="522" width="380" height="96" rx="13"/></clipPath></defs><rect x="530" y="522" width="380" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="530" y="522" width="380" height="96" rx="13" fill="var(--fig-role-teal-fill, rgba(13, 143, 140, 0.09))" stroke="var(--fig-role-teal-stroke, rgba(13, 143, 140, 0.46))" stroke-width="1.35"/><rect x="530" y="522" width="4.5" height="96" fill="var(--fig-role-teal-bar, #0d8f8c)" clip-path="url(#aca-sandbox-boundary-architecture-2-clip-mcp-connectors)"/><line x1="542" y1="523" x2="898" y2="523" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="722" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)"><tspan x="722" y="558">1,700+ 托管连接器与 Work IQ</tspan></text><text x="722" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="722" y="579">群组级一次挂载，支持 Entra ID 代理用户授权（OBO）访问日程与</tspan><tspan x="722" y="593.5">业务系统</tspan></text></g><g class="sr-en"><text x="722" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)"><tspan x="722" y="558">1,700+ MCP Connectors &amp; Work IQ</tspan></text><text x="722" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="722" y="579">Attach once per group; Entra ID On-Behalf-Of access to Teams,</tspan><tspan x="722" y="593.5">GitHub &amp; ERP</tspan></text></g></g><g data-node-id="durable-storage"><defs><clipPath id="aca-sandbox-boundary-architecture-2-clip-durable-storage"><rect x="970" y="522" width="380" height="96" rx="13"/></clipPath></defs><rect x="970" y="522" width="380" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="970" y="522" width="380" height="96" rx="13" fill="var(--fig-role-violet-fill, rgba(124, 58, 237, 0.08))" stroke="var(--fig-role-violet-stroke, rgba(139, 92, 246, 0.42))" stroke-width="1.35"/><rect x="970" y="522" width="4.5" height="96" fill="var(--fig-role-violet-bar, #7c3aed)" clip-path="url(#aca-sandbox-boundary-architecture-2-clip-durable-storage)"/><line x1="982" y1="523" x2="1338" y2="523" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="1162" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)"><tspan x="1162" y="558">跨沙盒持久记忆存储与私有网络</tspan></text><text x="1162" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1162" y="579">托管磁盘、Blob 存储及私有 VNet 直连，沙盒销毁后长程记忆依然</tspan><tspan x="1162" y="593.5">留存</tspan></text></g><g class="sr-en"><text x="1162" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)"><tspan x="1162" y="558">Durable Agent Memory &amp; VNet</tspan></text><text x="1162" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1162" y="579">Managed Disk, Blob &amp; VNet attachment outliving ephemeral</tspan><tspan x="1162" y="593.5">sandboxes</tspan></text></g></g><g class="sr-edge-labels"><g class="sr-zh"><rect x="241" y="215" width="79" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="280" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">声明式编排</text></g><g class="sr-en"><rect x="245" y="215" width="71" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="280" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Provision</text></g><g class="sr-zh"><rect x="389" y="215" width="91" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="434" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">受控端口唤醒</text></g><g class="sr-en"><rect x="391" y="215" width="86" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="434" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Auth &amp; Wake</text></g><g class="sr-zh"><rect x="1115" y="215" width="91" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="1160" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">事件恢复执行</text></g><g class="sr-en"><rect x="1113" y="215" width="94" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="1160" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Resume Loop</text></g><g class="sr-zh"><rect x="467" y="329" width="66" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="500" y="344" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">极速引导</text></g><g class="sr-en"><rect x="465" y="329" width="71" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="500" y="344" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Fast Boot</text></g><g class="sr-zh"><rect x="229" y="429" width="103" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="280" y="444" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">无凭据出站请求</text></g><g class="sr-en"><rect x="229" y="429" width="103" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="280" y="444" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Secretless Call</text></g><g class="sr-zh"><rect x="518" y="429" width="96" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="566" y="444" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">MCP 工具调用</text></g><g class="sr-en"><rect x="517" y="429" width="98" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="566" y="444" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">MCP Tool Call</text></g><g class="sr-zh"><rect x="1121" y="429" width="79" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="1160" y="444" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">状态持久化</text></g><g class="sr-en"><rect x="1115" y="429" width="90" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="1160" y="444" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Persist State</text></g></g></svg>
+            <figcaption class="diagram-caption"><span data-zh="图 2：区域级沙盒群组统一纳管从 0.25 核至 16 核的微虚拟机池；入站与出站代理由平台在沙盒外强制执行，配合内存快照、托管存储与 1,700+ 连接器构成完整生产闭环 [1][3]。" data-en="Figure 2: A regional Sandbox Group governs microVMs from 0.25 to 16 cores; external ingress and egress proxies enforce per-sandbox auth and header injection alongside snapshots, durable volumes, and 1,700+ connectors [1][3].">图 2：区域级沙盒群组统一纳管从 0.25 核至 16 核的微虚拟机池；入站与出站代理由平台在沙盒外强制执行，配合内存快照、托管存储与 1,700+ 连接器构成完整生产闭环 [1][3]。</span><a href="./media/aca-sandbox-boundary-architecture.drawio" download data-zh="下载 .drawio" data-en="Download .drawio">下载 .drawio</a></figcaption>
+          </figure>
+
+          <p data-zh="围绕这一架构，Kalis 在现场连续完成了四场零剪辑实机演示，覆盖沙盒创建、并发矩阵快照、零密钥出站转换以及企业连接器协同 [1]：" data-en="Kalis validated every layer onstage through four consecutive live demos spanning multi-tool provisioning, parallel snapshot matrices, secretless header transformation, and enterprise connector grounding [1]:">围绕这一架构，Kalis 在现场连续完成了四场零剪辑实机演示，覆盖沙盒创建、并发矩阵快照、零密钥出站转换以及企业连接器协同 [1]：</p>
+<div class="compare-table-wrap" data-present-step data-present-surface="unframed" data-step-title="沙盒解剖学：双层外部代理、零密钥凭据注入与四连实机演示：对比矩阵" data-step-title-en="Sandbox Anatomy: External Proxies, Secretless Injection, and Four Live Demos: Comparison Matrix" data-present-title-zh="沙盒解剖学：双层外部代理、零密钥凭据注入与四连实机演示：对比矩阵" data-present-title-en="Sandbox Anatomy: External Proxies, Secretless Injection, and Four Live Demos: Comparison Matrix" data-step-label="03 / Architecture &amp; Live Demos" data-step-label-en="03 / Architecture &amp; Live Demos" data-present-i18n-invariant="label"><table class="simple-table compare-table">
+<thead>
+<tr>
+<th data-zh="演示序号与主题" data-en="Live Demo">演示序号与主题</th>
+<th data-zh="核心技术规格与配置项" data-en="Key Technical Specifications">核心技术规格与配置项</th>
+<th data-zh="现场实测现象与工程验证结论" data-en="Verified Onstage Outcome">现场实测现象与工程验证结论</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-zh="Demo 1：三端秒级创建" data-en="0-to-Sandbox Provisioning">Demo 1：三端秒级创建</td>
+<td data-zh="官方月更镜像（Ubuntu / Python / 智能体底座）；规格横跨 XS（0.25 核 / 0.5 GiB / 5 GiB）至 3XL（16 核 / 32 GiB / 320 GiB）[1]" data-en="Monthly Microsoft base images; tiers from XS (0.25c / 0.5 GiB / 5 GiB) to 3XL (16c / 32 GiB / 320 GiB) [1]">官方月更镜像（Ubuntu / Python / 智能体底座）；规格横跨 XS（0.25 核 / 0.5 GiB / 5 GiB）至 3XL（16 核 / 32 GiB / 320 GiB）[1]</td>
+<td data-zh="先后通过门户界面、&lt;code&gt;az containerapp sandbox create&lt;/code&gt; 命令行及全新发布的 VS Code 资源扩展秒建实例，直连远端 Ubuntu 终端并实时观测处理器、内存与文件系统 [1]" data-en="Provisioned sandboxes via Azure Portal, CLI, and the newly announced VS Code extension, opening a live remote Ubuntu shell with real-time CPU, memory, and filesystem telemetry [1]">先后通过门户界面、<code>az containerapp sandbox create</code> 命令行及全新发布的 VS Code 资源扩展秒建实例，直连远端 Ubuntu 终端并实时观测处理器、内存与文件系统 [1]</td>
+</tr>
+<tr>
+<td data-zh="Demo 2：并发矩阵与快照续跑" data-en="Pause &amp;amp; Resume Matrix">Demo 2：并发矩阵与快照续跑</td>
+<td data-zh="OCI 容器镜像自动转换为可引导自定义磁盘镜像；外部入站代理默认全关，按端口显式开启流量唤醒与目录身份认证 [1]" data-en="OCI images converted to bootable custom disk images; opt-in ingress proxy with Entra ID auth and wake-on-traffic [1]">OCI 容器镜像自动转换为可引导自定义磁盘镜像；外部入站代理默认全关，按端口显式开启流量唤醒与目录身份认证 [1]</td>
+<td data-zh="编排沙盒在 &lt;strong&gt;2.2 秒内并发拉起 5×5 共 25 个计数沙盒&lt;/strong&gt;；点击停止即生成内存加磁盘快照并释放算力，再次启动时 25 个计数器从暂停数值处毫秒级无损续跑 [1]" data-en="An orchestrator spawned &lt;strong&gt;25 parallel counter sandboxes in 2.2 seconds&lt;/strong&gt;; stopping captured memory+disk snapshots at zero compute cost, and restarting resumed exact counter states [1]">编排沙盒在 <strong>2.2 秒内并发拉起 5×5 共 25 个计数沙盒</strong>；点击停止即生成内存加磁盘快照并释放算力，再次启动时 25 个计数器从暂停数值处毫秒级无损续跑 [1]</td>
+</tr>
+<tr>
+<td data-zh="Demo 3：出站管控与零密钥沙盒" data-en="Egress &amp;amp; Secretless Injection">Demo 3：出站管控与零密钥沙盒</td>
+<td data-zh="出站代理默认拒绝全部流量（&lt;code&gt;Deny All&lt;/code&gt;），按域名配置白名单；支持自定义转换规则（Transform Rules）与外部网络钩子 [1]" data-en="Default-deny egress proxy with per-host allowlists, credential Transform Rules, and custom policy webhooks [1]">出站代理默认拒绝全部流量（<code>Deny All</code>），按域名配置白名单；支持自定义转换规则（Transform Rules）与外部网络钩子 [1]</td>
+<td data-zh="沙盒内请求 &lt;code&gt;bing.com&lt;/code&gt; 立即返回 &lt;code&gt;HTTP 403&lt;/code&gt; 拦截，请求白名单 &lt;code&gt;github.com&lt;/code&gt; 放行；配置转换规则后，沙盒无需持有真实密钥即可由外部代理在出站瞬间动态覆写注入 &lt;code&gt;X-API-Key&lt;/code&gt; 请求头 [1]" data-en="Outbound calls to &lt;code&gt;bing.com&lt;/code&gt; hit &lt;code&gt;HTTP 403&lt;/code&gt; while allowlisted &lt;code&gt;github.com&lt;/code&gt; passed; a Transform Rule dynamically injected the real &lt;code&gt;X-API-Key&lt;/code&gt; header outside the sandbox [1]">沙盒内请求 <code>bing.com</code> 立即返回 <code>HTTP 403</code> 拦截，请求白名单 <code>github.com</code> 放行；配置转换规则后，沙盒无需持有真实密钥即可由外部代理在出站瞬间动态覆写注入 <code>X-API-Key</code> 请求头 [1]</td>
+</tr>
+<tr>
+<td data-zh="Demo 4：连接器与日程智能体" data-en="Connectors &amp;amp; Work IQ Agent">Demo 4：连接器与日程智能体</td>
+<td data-zh="群组级一次挂载超 &lt;strong&gt;1,700 个逻辑应用连接器&lt;/strong&gt;（覆盖 Teams、SharePoint、Jira、GitHub 与 Work IQ），支持代理用户身份授权（OBO）[1]" data-en="Attach &lt;strong&gt;1,700+ Logic Apps MCP connectors&lt;/strong&gt; once per group with Entra ID On-Behalf-Of (OBO) delegation [1]">群组级一次挂载超 <strong>1,700 个逻辑应用连接器</strong>（覆盖 Teams、SharePoint、Jira、GitHub 与 Work IQ），支持代理用户身份授权（OBO）[1]</td>
+<td data-zh="拉起预置令牌转换规则的 GitHub Copilot 沙盒，挂载 Work IQ 日历连接器并完成个人授权后，沙盒内智能体直接安全读取并汇总讲者当周的完整参会日程 [1]" data-en="A GitHub Copilot sandbox with preset GitHub token transforms attached the Work IQ calendar connector via OBO auth and summarized the speaker's live Ignite schedule [1]">拉起预置令牌转换规则的 GitHub Copilot 沙盒，挂载 Work IQ 日历连接器并完成个人授权后，沙盒内智能体直接安全读取并汇总讲者当周的完整参会日程 [1]</td>
+</tr>
+</tbody>
+</table></div>
+<p data-zh="下方四宫格展示了从 BRK448 官方原版幻灯片提取的四幅实机演示高清截图，直观呈现了沙盒群组创建台、25 并发矩阵挂起面板、出站流量审计与零密钥控制台，以及挂载双模型上下文服务与 10 个连接器的智能体终端 [1]：" data-en="The four-card gallery below presents high-resolution captures extracted directly from the official BRK448 slide deck—showing the Sandbox Group creation portal, the 25-sandbox suspended matrix, the live egress audit console, and the Copilot sandbox terminal running with MCP servers and connectors [1]:">下方四宫格展示了从 BRK448 官方原版幻灯片提取的四幅实机演示高清截图，直观呈现了沙盒群组创建台、25 并发矩阵挂起面板、出站流量审计与零密钥控制台，以及挂载双模型上下文服务与 10 个连接器的智能体终端 [1]：</p>
+<div class="brk448-media-grid">
+  <article class="brk448-media-card">
+    <div class="brk448-media-frame">
+      <img src="./media/brk448-create-sandbox-group.jpg" alt="BRK448 official slide screenshot showing Create Sandbox Group interface in Azure Container Apps Sandboxes" loading="lazy" />
+    </div>
+    <div class="brk448-media-body">
+      <span class="brk448-media-badge" data-zh="BRK448 官方课件实拍 · Demo 1" data-en="BRK448 Official Slide · Demo 1">BRK448 官方课件实拍 · Demo 1</span>
+      <h4 data-zh="极简沙盒群组与资源规格配置台" data-en="Streamlined Sandbox Group & Resource Tier Provisioning">极简沙盒群组与资源规格配置台</h4>
+      <p data-zh="一步选定区域、官方月更镜像与微虚拟机规格（默认 M 档 1 核 / 2 GB / 20 GB），同时全面兼容 Bicep、Terraform 与 Python/.NET 开发包 [1]。" data-en="Select region, monthly Microsoft disk image, and resource tier (default M: 1 core / 2 GB / 20 GB), backed by CLI, Python/.NET SDKs, Bicep, and Terraform [1].">一步选定区域、官方月更镜像与微虚拟机规格（默认 M 档 1 核 / 2 GB / 20 GB），同时全面兼容 Bicep、Terraform 与 Python/.NET 开发包 [1]。</p>
+    </div>
+  </article>
+  <article class="brk448-media-card">
+    <div class="brk448-media-frame">
+      <img src="./media/brk448-matrix-suspend-resume.jpg" alt="BRK448 official slide screenshot of The Matrix demo running 25 isolated sandboxes suspended via snapshots" loading="lazy" />
+    </div>
+    <div class="brk448-media-body">
+      <span class="brk448-media-badge is-accent" data-zh="BRK448 官方课件实拍 · Demo 2" data-en="BRK448 Official Slide · Demo 2">BRK448 官方课件实拍 · Demo 2</span>
+      <h4 data-zh="The Matrix：2.2 秒并发拉起 25 沙盒与快照休眠" data-en="The Matrix: 25 Parallel Sandboxes Spawned in 2.2s & Snapshot Suspended">The Matrix：2.2 秒并发拉起 25 沙盒与快照休眠</h4>
+      <p data-zh="底部事件日志实证：5×5 共 25 个独立微虚拟机在 2.2 秒内全部创建完毕，执行快照停止后完整冻结各自计数内存且零失败释放计算资源 [1]。" data-en="Event log confirms all 25 isolated microVMs launched in 2.2s and suspended cleanly via memory+disk snapshots with zero idle compute charges [1].">底部事件日志实证：5×5 共 25 个独立微虚拟机在 2.2 秒内全部创建完毕，执行快照停止后完整冻结各自计数内存且零失败释放计算资源 [1]。</p>
+    </div>
+  </article>
+  <article class="brk448-media-card">
+    <div class="brk448-media-frame">
+      <img src="./media/brk448-egress-proxy-secretless.jpg" alt="BRK448 official slide screenshot showing Egress Network Traffic allow and deny rules inside ACA Sandboxes" loading="lazy" />
+    </div>
+    <div class="brk448-media-body">
+      <span class="brk448-media-badge" data-zh="BRK448 官方课件实拍 · Demo 3" data-en="BRK448 Official Slide · Demo 3">BRK448 官方课件实拍 · Demo 3</span>
+      <h4 data-zh="出站网络实时审计与零密钥请求头注入" data-en="Real-Time Egress Network Audit & Secretless Credential Injection">出站网络实时审计与零密钥请求头注入</h4>
+      <p data-zh="右侧审计流清晰记录未授权域名返回 403 拒绝（x-deny-reason）而白名单域名放行；敏感凭据由外部代理通过转换规则动态注入 [1][3]。" data-en="Live audit trail logs 403 denials on unlisted hosts alongside allowed endpoints while external Transform Rules inject API keys on the fly [1][3].">右侧审计流清晰记录未授权域名返回 403 拒绝（x-deny-reason）而白名单域名放行；敏感凭据由外部代理通过转换规则动态注入 [1][3]。</p>
+    </div>
+  </article>
+  <article class="brk448-media-card">
+    <div class="brk448-media-frame">
+      <img src="./media/brk448-copilot-sandbox-connectors.jpg" alt="BRK448 official slide screenshot of GitHub Copilot running inside an ACA Sandbox with skills, MCP servers, and connectors" loading="lazy" />
+    </div>
+    <div class="brk448-media-body">
+      <span class="brk448-media-badge is-accent" data-zh="BRK448 官方课件实拍 · Demo 4" data-en="BRK448 Official Slide · Demo 4">BRK448 官方课件实拍 · Demo 4</span>
+      <h4 data-zh="沙盒内运行智能体：预置技能、模型上下文服务与连接器" data-en="Agent Inside a Sandbox: Preloaded Skills, MCP Servers & 10 Connectors">沙盒内运行智能体：预置技能、模型上下文服务与连接器</h4>
+      <p data-zh="终端底部显示智能体已加载 1 条指令、5 项技能与 2 个模型上下文服务，配合左侧挂载的持久卷与连接器安全访问企业日程与代码库 [1]。" data-en="Terminal shows Copilot running inside an isolated sandbox with 5 skills, 2 MCP servers, persistent volumes, and audited outbound calls [1].">终端底部显示智能体已加载 1 条指令、5 项技能与 2 个模型上下文服务，配合左侧挂载的持久卷与连接器安全访问企业日程与代码库 [1]。</p>
+    </div>
+  </article>
+</div>
+<p data-zh="由于沙盒本身可随时销毁重建，跨会话记忆与长程工作产物可通过群组挂载的托管数据磁盘、托管块存储、自有对象存储，以及即将上线的零密钥关系型数据库（支持 SQL 与 PostgreSQL）实现跨生命周期持久化 [1][3]。" data-en="Because individual sandboxes remain ephemeral by design, long-term agent memory and workspace artifacts persist beyond sandbox deletion via out-of-the-box Managed Disks, Managed Blob storage, customer-owned Blob accounts, and upcoming secretless SQL and PostgreSQL integrations [1][3].">由于沙盒本身可随时销毁重建，跨会话记忆与长程工作产物可通过群组挂载的托管数据磁盘、托管块存储、自有对象存储，以及即将上线的零密钥关系型数据库（支持 SQL 与 PostgreSQL）实现跨生命周期持久化 [1][3]。</p>
+        </section>
+
+        <section id="cognite-industrial" class="section" data-reveal data-present-title-zh="重资产工业实战：Cognite 百亿图节点上的炼油厂检修智能体与落地指南" data-present-title-en="Heavy-Asset Industrial AI: Cognite Refinery Isolation Agents and Rollout Playbook">
+          <div class="section-head">
+            <p class="section-kicker">04 / Industrial AI &amp; Rollout</p>
+            <h2 data-zh="4. 重资产工业实战：Cognite 百亿图节点上的炼油厂检修智能体与落地指南" data-en="4. Heavy-Asset Industrial AI: Cognite Refinery Isolation Agents and Rollout Playbook">4. 重资产工业实战：Cognite 百亿图节点上的炼油厂检修智能体与落地指南</h2>
+            <p data-zh="在石油天然气、能源与高端制造等重资产行业，哪怕单台泵机的数据也分散在压力传感器时序库、工单维护系统、管道及仪表流程图（P&amp;amp;ID）与三维工程模型等异构孤岛中 [1][6]。工业人工智能厂商 Cognite 首席解决方案架构师 Christian Flasshoff 介绍，其核心数据平台 Cognite Data Fusion 通过统一工业知识图谱消除了点对点集成瓶颈，目前已沉淀超过 &lt;strong&gt;100 万亿个工业数据点、50 亿个知识图谱节点与 4 亿份工程文档图纸&lt;/strong&gt;，并通过单一接口向运行了三年的工业智能体套件 Atlas AI 供数 [1][6]。" data-en="Across oil and gas, energy, and heavy manufacturing, even a single refinery pump scatters telemetry across pressure historians, ERP work orders, piping and instrumentation diagrams (P&amp;amp;IDs), and 3D CAD models [1][6]. Cognite Principal Solution Architect Christian Flasshoff explained how &lt;strong&gt;Cognite Data Fusion&lt;/strong&gt; unifies these silos into an industrial Knowledge Graph spanning &lt;strong&gt;100 trillion datapoints, 5 billion graph nodes, and 400 million documents&lt;/strong&gt;, exposed through a single API to its &lt;strong&gt;Atlas AI&lt;/strong&gt; industrial agent workforce [1][6].">在石油天然气、能源与高端制造等重资产行业，哪怕单台泵机的数据也分散在压力传感器时序库、工单维护系统、管道及仪表流程图（P&amp;ID）与三维工程模型等异构孤岛中 [1][6]。工业人工智能厂商 Cognite 首席解决方案架构师 Christian Flasshoff 介绍，其核心数据平台 Cognite Data Fusion 通过统一工业知识图谱消除了点对点集成瓶颈，目前已沉淀超过 <strong>100 万亿个工业数据点、50 亿个知识图谱节点与 4 亿份工程文档图纸</strong>，并通过单一接口向运行了三年的工业智能体套件 Atlas AI 供数 [1][6]。</p>
+          </div>
+
+          <p data-zh="然而，现场工程师提出的复杂工程问题无法靠几十个固定预置工具穷尽——智能体必须针对特定图纸动态编写并运行解析代码，同时严禁触碰高敏运营网络的未授权端点 [1]。将 Azure 容器应用沙盒作为“安全计算机”接入 Atlas AI 执行内核后，Cognite 仅用&lt;strong&gt;数天便跑通首个沙盒智能体原型，并在数周内推入生产环境成为核心标配&lt;/strong&gt; [1][6]：" data-en="Yet real field engineering questions rarely fit a static menu of predefined tools—agents must write and execute custom analysis code against live schematics while connected to highly sensitive operational networks [1]. By attaching ACA Sandboxes as a governed &amp;quot;computer&amp;quot; inside the Atlas AI harness, Cognite built its first sandbox-enabled agent &lt;strong&gt;in days and shipped it to production within weeks&lt;/strong&gt; [1][6]:">然而，现场工程师提出的复杂工程问题无法靠几十个固定预置工具穷尽——智能体必须针对特定图纸动态编写并运行解析代码，同时严禁触碰高敏运营网络的未授权端点 [1]。将 Azure 容器应用沙盒作为“安全计算机”接入 Atlas AI 执行内核后，Cognite 仅用<strong>数天便跑通首个沙盒智能体原型，并在数周内推入生产环境成为核心标配</strong> [1][6]：</p>
+
+          <ol class="flow-list" data-present-step data-present-surface="unframed" data-step-title="Cognite Atlas AI 炼油厂换热器安全检修隔离四步闭环" data-step-title-en="Cognite Atlas AI Four-Step Refinery Heat-Exchanger Isolation Loop" data-present-title-zh="Cognite Atlas AI 炼油厂换热器安全检修隔离四步闭环" data-present-title-en="Cognite Atlas AI Four-Step Refinery Heat-Exchanger Isolation Loop" data-step-label="04 / Industrial AI &amp; Rollout" data-step-label-en="04 / Industrial AI &amp; Rollout" data-present-i18n-invariant="label">
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="检索并核验工程原图" data-en="Retrieve &amp;amp; Validate P&amp;amp;ID Schematics">检索并核验工程原图</strong>
+                <p data-zh="维修工程师下达换热器检修准备指令，智能体检索工业知识图谱定位目标管道及仪表流程图，交由工程师确认双椭圆换热器主设备基准 [1]。" data-en="A maintenance engineer requests heat-exchanger isolation prep; Atlas AI queries the Knowledge Graph to fetch the exact P&amp;amp;ID drawing for human confirmation [1].">维修工程师下达换热器检修准备指令，智能体检索工业知识图谱定位目标管道及仪表流程图，交由工程师确认双椭圆换热器主设备基准 [1]。</p>
+              </div>
+            </li>
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="沙盒内拉取多源拓扑并执行解析代码" data-en="Execute Custom Graph &amp;amp; Diagram Code in Sandbox">沙盒内拉取多源拓扑并执行解析代码</strong>
+                <p data-zh="无需预先硬编码专用工具，智能体在独立微虚拟机沙盒内下载工程图纸文件、结合图谱设备层级编写并运行检验脚本，追踪冷热流体两侧全部相连管线 [1]。" data-en="Without rigid prebuilt tools, the agent downloads the schematic into its kernel-isolated microVM, writes custom inspection scripts, and cross-references graph equipment hierarchies [1].">无需预先硬编码专用工具，智能体在独立微虚拟机沙盒内下载工程图纸文件、结合图谱设备层级编写并运行检验脚本，追踪冷热流体两侧全部相连管线 [1]。</p>
+              </div>
+            </li>
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="生成安全隔离边界与阀门操作清单" data-en="Synthesize Valve Isolation Plan">生成安全隔离边界与阀门操作清单</strong>
+                <p data-zh="智能体综合管线连通性与运行上下文生成完整隔离方案，同时访问令牌始终滞留在沙盒外部出站代理中，并通过私有虚拟网络保持内网闭环 [1][6]。" data-en="The agent formulates a step-by-step isolation boundary plan while private VNet attachment and external egress rules keep operational API tokens outside the sandbox [1][6].">智能体综合管线连通性与运行上下文生成完整隔离方案，同时访问令牌始终滞留在沙盒外部出站代理中，并通过私有虚拟网络保持内网闭环 [1][6]。</p>
+              </div>
+            </li>
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="工程图纸原位高亮复核放行" data-en="Highlight Valves Directly on Drawing for Sign-Off">工程图纸原位高亮复核放行</strong>
+                <p data-zh="智能体在原始复杂工程图上精准框选高亮每一处待关闭隔离阀门与关联设备，将原本耗时易错的人工描图排查转化为分钟级可视化审批 [1]。" data-en="Atlas AI renders visual highlights directly onto the original P&amp;amp;ID schematic to pinpoint every valve that must close, turning hours of manual tracing into rapid engineer sign-off [1].">智能体在原始复杂工程图上精准框选高亮每一处待关闭隔离阀门与关联设备，将原本耗时易错的人工描图排查转化为分钟级可视化审批 [1]。</p>
+              </div>
+            </li>
+          </ol>
+
+          <p data-zh="面向准备在企业内部复刻同类安全智能体架构的技术团队，BRK448 讲者团结合微软配套动手实验 &lt;strong&gt;LAB722（Caldova 多租户临床医药研究智能体架构）&lt;/strong&gt; 凝练出三条可立即执行的工程落地准则 [1][3]：" data-en="Synthesizing lessons from Nous Research, Cognite, and Microsoft's companion hands-on lab &lt;strong&gt;LAB722 (the Caldova multi-tenant clinical research reference app)&lt;/strong&gt;, the BRK448 panel distilled three production rollout rules [1][3]:">面向准备在企业内部复刻同类安全智能体架构的技术团队，BRK448 讲者团结合微软配套动手实验 <strong>LAB722（Caldova 多租户临床医药研究智能体架构）</strong> 凝练出三条可立即执行的工程落地准则 [1][3]：</p>
+
+          <div class="insight-grid insight-grid-3" data-present-step data-present-surface="unframed" data-step-title="企业生产级智能体沙盒落地三原则" data-step-title-en="Three Architectural Rules for Production Agent Sandboxes" data-present-title-zh="企业生产级智能体沙盒落地三原则" data-present-title-en="Three Architectural Rules for Production Agent Sandboxes" data-step-label="04 / Industrial AI &amp; Rollout" data-step-label-en="04 / Industrial AI &amp; Rollout" data-present-i18n-invariant="label">
+            <article class="insight-card">
+              <span class="card-index">01</span>
+              <h3 data-zh="在内核层而非提示词层强制信任" data-en="Enforce Trust at the Kernel, Not the Prompt">在内核层而非提示词层强制信任</h3>
+              <p data-zh="永远假设大模型生成的代码与外部网页输入可能越界；为每个会话或租户分配独立微虚拟机内核，开启入站默认全关与出站默认全拒白名单 [1][6]。" data-en="Assume model-generated code and web inputs can misbehave; isolate every session behind its own microVM kernel with default-off ingress and default-deny egress [1][6].">永远假设大模型生成的代码与外部网页输入可能越界；为每个会话或租户分配独立微虚拟机内核，开启入站默认全关与出站默认全拒白名单 [1][6]。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">02</span>
+              <h3 data-zh="用零密钥代理与快照兼顾安全与成本" data-en="Pair Secretless Egress with Snapshot Economics">用零密钥代理与快照兼顾安全与成本</h3>
+              <p data-zh="通过外部出站代理的转换规则动态注入凭据，确保沙盒文件系统内零明文令牌；利用自定义磁盘镜像预装依赖，配合内存快照实现闲置零计费 [1][3]。" data-en="Inject credentials externally via egress Transform Rules so sandboxes hold zero raw secrets, and combine custom rootfs images with snapshots for zero-idle cost [1][3].">通过外部出站代理的转换规则动态注入凭据，确保沙盒文件系统内零明文令牌；利用自定义磁盘镜像预装依赖，配合内存快照实现闲置零计费 [1][3]。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">03</span>
+              <h3 data-zh="编排层与执行层解耦协同" data-en="Decouple Orchestration from Specialist Sandboxes">编排层与执行层解耦协同</h3>
+              <p data-zh="参照 LAB722 范式，用宿主编排器负责认证与任务拆解，按需拉起并行的临床与药物专职沙盒并在全部完成后触发独立质检沙盒，避免自建底层管道 [1]。" data-en="Mirror the LAB722 Caldova pattern: let a Foundry/ACA Express orchestrator authorize runs, fan out parallel specialist sandboxes, and trigger an independent QA sandbox afterward [1].">参照 LAB722 范式，用宿主编排器负责认证与任务拆解，按需拉起并行的临床与药物专职沙盒并在全部完成后触发独立质检沙盒，避免自建底层管道 [1]。</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="references" class="section" data-reveal data-present-title-zh="参考资料：官方一手信源与工程规范" data-present-title-en="References: Official Primary Sources &amp; Engineering Guides" data-density-exempt="references">
+          <div class="section-head">
+            <p class="section-kicker">05 / References: Official Primary Sources &amp; Engineering Guides</p>
+            <h2 data-zh="5. 参考资料：官方一手信源与工程规范" data-en="5. References: Official Primary Sources &amp; Engineering Guides">5. 参考资料：官方一手信源与工程规范</h2>
+          </div>
+
+          <ol class="bib-list">
+            <li id="ref-1">
+              <span class="bib-id">[1]</span>
+              <span class="bib-author">Devanshi Joshi, Jeffrey Quesnelle, Jan Kalis &amp; Christian Flasshoff (Microsoft Ignite 2026)</span> —
+              <a href="https://ignite.microsoft.com/en-US/sessions/1787856641427001EIEu-1791588175102001CcC9" target="_blank" rel="noopener">https://ignite.microsoft.com/en-US/sessions/1787856641427001EIEu-1791588175102001CcC9</a>
+              <span class="bib-note" data-zh="《Run secure agent loops in production with isolated sandboxes at scale》官方点播视频、43 页原版幻灯片与双语逐字稿（2026-11-19）" data-en="Official breakout recording, 43-slide deck, and full WebVTT transcript (Nov 19, 2026)">《Run secure agent loops in production with isolated sandboxes at scale》官方点播视频、43 页原版幻灯片与双语逐字稿（2026-11-19）</span>
+            </li>
+            <li id="ref-2">
+              <span class="bib-id">[2]</span>
+              <span class="bib-author">Microsoft Ignite 2026 On-Demand Media Stream (Medius Asset)</span> —
+              <a href="https://medius.microsoft.com/Embed/video-nc/d8734a1a-bcf5-4871-ab79-ddfed898b641" target="_blank" rel="noopener">https://medius.microsoft.com/Embed/video-nc/d8734a1a-bcf5-4871-ab79-ddfed898b641</a>
+              <span class="bib-note" data-zh="官方无广告点播流与四连实机架构演示实录" data-en="Official Medius embedded video stream covering Nous Research, Azure Container Apps Sandboxes live demos, and Cognite Atlas">官方无广告点播流与四连实机架构演示实录</span>
+            </li>
+            <li id="ref-3">
+              <span class="bib-id">[3]</span>
+              <span class="bib-author">Microsoft Azure Container Apps Documentation &amp; Sandbox Portal</span> —
+              <a href="https://aka.ms/aca/sandbox" target="_blank" rel="noopener">https://aka.ms/aca/sandbox</a>
+              <span class="bib-note" data-zh="Azure Container Apps Sandboxes 官方技术文档、快速入门与开发工具包规范（关联发布综述：&lt;code&gt;https://aka.ms/aca/ignite&lt;/code&gt;）" data-en="Official product documentation, resource tier specs, egress transform rules, and Ignite announcement blog">Azure Container Apps Sandboxes 官方技术文档、快速入门与开发工具包规范（关联发布综述：<code>https://aka.ms/aca/ignite</code>）</span>
+            </li>
+            <li id="ref-4">
+              <span class="bib-id">[4]</span>
+              <span class="bib-author">Gartner Application Leaders Survey (Slide 5 Citation)</span> —
+              <a href="https://www.gartner.com/en/information-technology" target="_blank" rel="noopener">https://www.gartner.com/en/information-technology</a>
+              <span class="bib-note" data-zh="针对 360 位应用负责人的企业智能体安全与治理就绪度调研（2025 年 5–6 月调研，2025-09-30 发布）" data-en="Survey of 360 application leaders on agent attack vectors (74%) vs. governance readiness (13%), published Sep 30, 2025">针对 360 位应用负责人的企业智能体安全与治理就绪度调研（2025 年 5–6 月调研，2025-09-30 发布）</span>
+            </li>
+            <li id="ref-5">
+              <span class="bib-id">[5]</span>
+              <span class="bib-author">Nous Research — Hermes Agent &amp; Hermes Enterprise</span> —
+              <a href="https://portal.nousresearch.com/business" target="_blank" rel="noopener">https://portal.nousresearch.com/business</a>
+              <span class="bib-note" data-zh="Hermes 自进化开源智能体架构与企业级多租户治理控制面文档" data-en="Hermes Enterprise collective intelligence, Spend Intelligence routing, and cloud sandbox runtime overview">Hermes 自进化开源智能体架构与企业级多租户治理控制面文档</span>
+            </li>
+            <li id="ref-6">
+              <span class="bib-id">[6]</span>
+              <span class="bib-author">Cognite — Cognite Data Fusion &amp; Atlas Industrial Agents</span> —
+              <a href="https://www.cognite.com/en/product/atlas-ai" target="_blank" rel="noopener">https://www.cognite.com/en/product/atlas-ai</a>
+              <span class="bib-note" data-zh="工业知识图谱（100 万亿数据点 / 50 亿节点）与重资产行业智能体工作台技术白皮书" data-en="Industrial Knowledge Graph and Atlas sandboxed engineering workflow overview">工业知识图谱（100 万亿数据点 / 50 亿节点）与重资产行业智能体工作台技术白皮书</span>
+            </li>
+          </ol>
+        </section>
+      </main>
+
+      <footer class="site-footer" data-reveal>
+        <p data-zh="© 2026 Knowledge Hub · Genesis 纯静态 Markdown 编译管线生成" data-en="© 2026 Knowledge Hub · Generated by Genesis Static Markdown Compiler">© 2026 Knowledge Hub · Genesis 纯静态 Markdown 编译管线生成</p>
+      </footer>
+    </div>
+  </div>
+
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/article-narration.js"></script>
+  <script src="../../assets/pptx-export.js"></script>
+  <script src="../../assets/article-math.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+  <script src="./brk448-showcase.js"></script>
+  <script>
+    (function () {
+      var buttons = document.querySelectorAll("[data-genesis-mode]");
+      var drawer = document.getElementById("genesis-source-drawer");
+      var i;
+      function setMode(mode) {
+        for (var j = 0; j < buttons.length; j++) {
+          var btn = buttons[j];
+          var active = btn.getAttribute("data-genesis-mode") === mode;
+          if (active) {
+            btn.classList.add("is-active");
+          } else {
+            btn.classList.remove("is-active");
+          }
+        }
+        if (mode === "linear") {
+          document.body.classList.add("is-linear-reading");
+          if (drawer) drawer.classList.remove("is-open");
+        } else if (mode === "source") {
+          document.body.classList.remove("is-linear-reading");
+          if (drawer) drawer.classList.add("is-open");
+        } else {
+          document.body.classList.remove("is-linear-reading");
+          if (drawer) drawer.classList.remove("is-open");
+        }
+      }
+      for (i = 0; i < buttons.length; i++) {
+        (function (btn) {
+          btn.addEventListener("click", function () {
+            setMode(btn.getAttribute("data-genesis-mode"));
+          });
+        })(buttons[i]);
+      }
+    })();
+  </script>
+</body>
+</html>
