@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-section-density="strict" data-present-i18n="strict" data-cite-links>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Microsoft Ignite 2026 [LIVE149]：幕后揭秘——Copilot Studio 工程团队如何用智能体软件工厂自举构建产品</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <link rel="stylesheet" href="../../assets/article-figure.css" />
+  <link rel="stylesheet" href="./live149-session.css" />
+  <style>
+    :root {
+      --accent: #d97706;
+      --teal: #0d8f8c;
+    }
+    html.is-presentation-mode .section:has([data-present-step]) > .section-head {
+      display: none;
+    }
+    .hero-copy h1 {
+      font-size: clamp(2.1rem, 5vw, 3.8rem);
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+      max-width: 20ch;
+    }
+    .hero-panel .layer-list { position: relative; margin-top: 18px; }
+    .insight-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .insight-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .insight-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    @media (max-width: 980px) {
+      .insight-grid-3, .insight-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 680px) {
+      .insight-grid-2, .insight-grid-3, .insight-grid-4 { grid-template-columns: 1fr; }
+    }
+    .compare-table-wrap {
+      margin-top: 18px;
+      overflow-x: auto;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 6px 14px;
+      box-shadow: var(--shadow);
+    }
+    .compare-table-wrap .compare-table {
+      width: 100%;
+      min-width: 680px;
+      border-collapse: collapse;
+      margin-top: 0;
+      font-size: 0.9rem;
+    }
+    .compare-table-wrap .compare-table th {
+      text-align: left;
+      padding: 12px 14px;
+      background: rgba(15, 23, 42, 0.04);
+      border-bottom: 2px solid rgba(15, 23, 42, 0.1);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-weight: 700;
+      font-size: 0.8rem;
+      letter-spacing: 0.04em;
+      text-transform: none;
+      color: var(--ink);
+      vertical-align: bottom;
+    }
+    .compare-table-wrap .compare-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+      line-height: 1.65;
+      color: var(--ink);
+      vertical-align: top;
+    }
+    .compare-table-wrap .compare-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+    .compare-table-wrap .compare-table td:first-child {
+      font-weight: 600;
+      min-width: 150px;
+    }
+    .compare-table-wrap .compare-table code,
+    .section p code,
+    .flow-copy code,
+    .insight-card code,
+    .comparison-card code,
+    .quote-block code,
+    .subsection-toggle code,
+    .subsection-content p code,
+    .bib-list code {
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.84em;
+      padding: 2px 6px;
+      border-radius: 5px;
+      background: rgba(15, 23, 42, 0.06);
+      color: var(--ink);
+    }
+    [data-theme="dark"] .compare-table-wrap {
+      background: rgba(22, 29, 38, 0.9);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+    [data-theme="dark"] .compare-table-wrap .compare-table th {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.12);
+      color: var(--ink);
+    }
+    [data-theme="dark"] .compare-table-wrap .compare-table td {
+      border-color: rgba(255, 255, 255, 0.07);
+      color: var(--ink);
+    }
+    [data-theme="dark"] .compare-table-wrap .compare-table code,
+    [data-theme="dark"] .section p code,
+    [data-theme="dark"] .flow-copy code,
+    [data-theme="dark"] .insight-card code,
+    [data-theme="dark"] .comparison-card code,
+    [data-theme="dark"] .quote-block code,
+    [data-theme="dark"] .subsection-toggle code,
+    [data-theme="dark"] .subsection-content p code,
+    [data-theme="dark"] .bib-list code {
+      background: rgba(255, 255, 255, 0.1);
+      color: #e2e8f0;
+    }
+    .timeline-list > .flow-step::before {
+      background: linear-gradient(135deg, var(--teal), #14b8a6);
+    }
+    .insight-callout {
+      border-left: 4px solid var(--teal);
+    }
+    .code-block {
+      margin: 18px 0;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .code-block pre {
+      margin: 0;
+      padding: 20px 22px;
+      background: rgba(16, 31, 43, 0.95);
+      color: #cdd6e0;
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.82rem;
+      line-height: 1.68;
+      overflow-x: auto;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+    }
+    [data-theme="dark"] .code-block pre {
+      background: rgba(0, 0, 0, 0.46);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+    .mermaid-container {
+      margin: 22px 0;
+      padding: 24px 18px;
+      border-radius: var(--radius-md);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      text-align: center;
+      overflow-x: auto;
+    }
+    .generated-diagram {
+      margin-top: 22px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+    .generated-diagram img {
+      display: block;
+      width: 100%;
+      height: auto;
+      object-fit: contain;
+    }
+    html[lang="en"] .diagram-zh,
+    html:not([lang="en"]) .diagram-en { display: none; }
+    .diagram-caption {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+    .diagram-caption a { color: var(--teal); font-weight: 600; white-space: nowrap; }
+    [data-theme="dark"] .generated-diagram {
+      background: rgba(22, 29, 38, 0.9);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+    .sandbox-slot {
+      margin-top: 22px;
+      padding: 22px;
+      border-radius: var(--radius-lg);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+    .sandbox-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .sandbox-title-group h3 { margin: 10px 0 6px; font-size: 1.18rem; }
+    .sandbox-title-group p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+    .sandbox-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .sandbox-stage {
+      border-radius: var(--radius-md);
+      background: rgba(16, 31, 43, 0.04);
+      border: 1px solid var(--line);
+      padding: 14px;
+      overflow: hidden;
+    }
+    [data-theme="dark"] .sandbox-stage {
+      background: rgba(0, 0, 0, 0.28);
+    }
+    .sandbox-canvas {
+      display: block;
+      width: 100%;
+      max-height: 300px;
+      border-radius: 10px;
+    }
+    /* Dual-view switcher bar (Progressive / Linear / Markdown Source) */
+    .genesis-view-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 18px 0 8px;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      font-size: 0.82rem;
+    }
+    .genesis-view-status {
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .genesis-view-buttons {
+      display: inline-flex;
+      gap: 6px;
+    }
+    .genesis-view-btn {
+      appearance: none;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.18s ease, color 0.18s ease;
+    }
+    .genesis-view-btn.is-active {
+      background: linear-gradient(135deg, var(--accent), #ff9340);
+      color: #fff;
+    }
+    .genesis-source-drawer {
+      display: none;
+      margin: 18px 0 28px;
+      padding: 20px;
+      border-radius: var(--radius-lg);
+      background: rgba(16, 31, 43, 0.96);
+      color: #dbe4ee;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      overflow-x: auto;
+    }
+    .genesis-source-drawer.is-open { display: block; }
+    .genesis-source-drawer pre {
+      margin: 0;
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.8rem;
+      line-height: 1.65;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    body.is-linear-reading .subsection-content {
+      max-height: none !important;
+      opacity: 1 !important;
+      overflow: visible !important;
+      padding: 0 24px 24px !important;
+    }
+    .is-presentation-mode .genesis-view-bar,
+    .is-presentation-mode .genesis-source-drawer {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            <span data-zh="Study Room Copilot Studio" data-en="Study Room Copilot Studio">Study Room Copilot Studio</span>
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#self-hosting-factory" data-zh="自举式软件工厂" data-en="Self-Hosting Software Factory">自举式软件工厂</a>
+            <a href="#bottleneck-inversion" data-zh="当编码不再是最慢瓶颈" data-en="When Coding Stops Being the Bottleneck">当编码不再是最慢瓶颈</a>
+            <a href="#overnight-customer-loop" data-zh="把外部用户拉进创新内环" data-en="Customers Inside the Innovation Loop">把外部用户拉进创新内环</a>
+            <a href="#hill-climbing-leadership" data-zh="给技术领导者的转型法则" data-en="Leadership Playbook">给技术领导者的转型法则</a>
+            <a href="#markel-and-work-os" data-zh="从个人提效走向系统再造" data-en="Operating System for Work">从个人提效走向系统再造</a>
+            <a href="#references" data-zh="参考资料" data-en="References">参考资料</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow" data-zh="Microsoft Ignite 2026 · LIVE149 Broadcast Stage" data-en="Microsoft Ignite 2026 · LIVE149 Broadcast Stage">Microsoft Ignite 2026 · LIVE149 Broadcast Stage</span>
+            <h1 data-zh="Microsoft Ignite 2026 [LIVE149]：幕后揭秘——Copilot Studio 工程团队如何用智能体软件工厂自举构建产品" data-en="Microsoft Ignite 2026 [LIVE149]: Behind the Curtain—How the Copilot Studio Team Builds the Product with an Agentic Software Factory">Microsoft Ignite 2026 [LIVE149]：幕后揭秘——Copilot Studio 工程团队如何用智能体软件工厂自举构建产品</h1>
+            <p data-zh="在 Microsoft Ignite 2026 演播室专场 LIVE149 中，Copilot Studio 与 Power Platform 企业副总裁 Ryan Cunningham 与产品与技术高级副总裁 Lauren Soni 展开深度对话，拆解研发团队如何用数十个各司其职的智能体直接运行在 Copilot Studio 之上自举构建产品本身 [1][2]。当写代码不再是全链路最慢的瓶颈，超过半数设计师直接提交并合入生产拉取请求，外部用户的 LinkedIn 痛点录屏在 24 小时内完成夜间复现与次晨合入，而特种保险商 Markel 更在不足 18 小时的极限航次窗口内将海事核保决策提速 3 倍以上 [1][3]。" data-en="On the Microsoft Ignite 2026 Broadcast Stage in session LIVE149, Copilot Studio and Power Platform CVP Ryan Cunningham joined SVP of Product and Technology Lauren Soni to unpack how dozens of role-scoped agents running on Copilot Studio itself now build the product [1][2]. Once writing code stopped being the slowest bottleneck, over half of the team's designers merged pull requests into production, a frustrated user's LinkedIn video turned into a merged fix within 24 hours, and specialty insurer Markel tripled voyage underwriting decision speed inside an 18-hour lead-time window [1][3].">在 Microsoft Ignite 2026 演播室专场 LIVE149 中，Copilot Studio 与 Power Platform 企业副总裁 Ryan Cunningham 与产品与技术高级副总裁 Lauren Soni 展开深度对话，拆解研发团队如何用数十个各司其职的智能体直接运行在 Copilot Studio 之上自举构建产品本身 [1][2]。当写代码不再是全链路最慢的瓶颈，超过半数设计师直接提交并合入生产拉取请求，外部用户的 LinkedIn 痛点录屏在 24 小时内完成夜间复现与次晨合入，而特种保险商 Markel 更在不足 18 小时的极限航次窗口内将海事核保决策提速 3 倍以上 [1][3]。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#self-hosting-factory" data-zh="阅读核心章节" data-en="Explore Core Chapters">阅读核心章节</a>
+              <a class="button button-secondary" href="#bottleneck-inversion" data-zh="当编码不再是最慢瓶颈" data-en="When Coding Stops Being the Bottleneck">当编码不再是最慢瓶颈</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label" data-zh="LIVE149 演播室核心纪要" data-en="LIVE149 Broadcast Brief">LIVE149 演播室核心纪要</span>
+            <h2 data-zh="自举软件工厂、24 小时反馈内环与工作操作系统" data-en="Self-Hosting Factory, 24h Fix Loop, and Work OS">自举软件工厂、24 小时反馈内环与工作操作系统</h2>
+            <p data-zh="一年之内彻底告别静态排期旧范式，将内部锤炼成熟的智能体协作底座外溢为跨行业核心业务操作系统 [1][2]。" data-en="Shedding legacy flat-file planning within a single year and exporting the internal agentic factory as an operating system for enterprise work [1][2].">一年之内彻底告别静态排期旧范式，将内部锤炼成熟的智能体协作底座外溢为跨行业核心业务操作系统 [1][2]。</p>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span><span data-zh="自举式软件工厂 — 数十个专属岗位智能体直接运行在 Copilot Studio 上，全天候监控遥测、倾听反馈、编写并验证代码 [1][2]" data-en="Self-Hosting Factory — Dozens of job-scoped agents run on Copilot Studio itself to monitor telemetry, triage feedback, code, and validate [1][2]">自举式软件工厂 — 数十个专属岗位智能体直接运行在 Copilot Studio 上，全天候监控遥测、倾听反馈、编写并验证代码 [1][2]</span></li>
+              <li><span class="layer-number">2</span><span data-zh="角色边界与反馈重构 — 超 50% 设计师直提生产 PR，用户 LinkedIn 抱怨录屏当晚自动修复并在 24 小时内合入回访 [1][2]" data-en="Role &amp;amp; Loop Reset — Over 50% of designers merge PRs while overnight agents turn LinkedIn bug videos into merged fixes in 24 hours [1][2]">角色边界与反馈重构 — 超 50% 设计师直提生产 PR，用户 LinkedIn 抱怨录屏当晚自动修复并在 24 小时内合入回访 [1][2]</span></li>
+              <li><span class="layer-number">3</span><span data-zh="核心业务系统再造 — 特种保险商 Markel 在不足 18 小时窗口内将高危航运核保决策提速 3 倍以上 [1][3]" data-en="Core System Redesign — Specialty insurer Markel tripled marine voyage underwriting velocity under an 18-hour deadline [1][3]">核心业务系统再造 — 特种保险商 Markel 在不足 18 小时窗口内将高危航运核保决策提速 3 倍以上 [1][3]</span></li>
+            </ul>
+          </aside>
+        </div>
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label" data-zh="设计师提交代码 PR 占比" data-en="Designers Merging PRs">设计师提交代码 PR 占比</div>
+            <strong>&gt;50%</strong>
+            <span data-zh="跳过数周焦点小组与平面稿排期，超半数设计师亲手提交 PR 并合入生产环境 [1]" data-en="Over half of Copilot Studio designers submit pull requests directly into production [1]">跳过数周焦点小组与平面稿排期，超半数设计师亲手提交 PR 并合入生产环境 [1]</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="社区视频反馈修复闭环" data-en="LinkedIn-to-Fix Loop">社区视频反馈修复闭环</div>
+            <strong data-zh="24 小时" data-en="24 Hours">24 小时</strong>
+            <span data-zh="智能体夜间复现并编码修复，经人在回路晨间合入后 24 小时内回访用户 [1]" data-en="Overnight agent validation and coding plus human-in-the-loop morning merge [1]">智能体夜间复现并编码修复，经人在回路晨间合入后 24 小时内回访用户 [1]</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="Markel 高危航运核保提速" data-en="Markel Decision Velocity">Markel 高危航运核保提速</div>
+            <strong>3×+（&lt;18h）</strong>
+            <span data-zh="在不足 18 小时起航窗口内将复杂海事风险与价值评估决策提速三倍以上 [1]" data-en="Tripled or more underwriting decision speed inside sub-18-hour voyage windows [1]">在不足 18 小时起航窗口内将复杂海事风险与价值评估决策提速三倍以上 [1]</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="genesis-view-bar load-in" role="region" aria-label="Genesis 视图模式切换">
+        <span class="genesis-view-status" data-zh="Genesis 纯静态编译产物 · 零后端依赖 · 支持渐进披露与源稿对照" data-en="Genesis Static Compiled Artifact · Zero Backend · Progressive &amp; Source View">Genesis 纯静态编译产物 · 零后端依赖 · 支持渐进披露与源稿对照</span>
+        <div class="genesis-view-buttons">
+          <button type="button" class="genesis-view-btn is-active" data-genesis-mode="progressive" data-zh="渐进披露视图" data-en="Progressive View">渐进披露视图</button>
+          <button type="button" class="genesis-view-btn" data-genesis-mode="linear" data-zh="线性展开视图" data-en="Linear View">线性展开视图</button>
+          <button type="button" class="genesis-view-btn" data-genesis-mode="source" data-zh="Markdown 源稿对照" data-en="Markdown Source">Markdown 源稿对照</button>
+        </div>
+      </div>
+      <section class="genesis-source-drawer" id="genesis-source-drawer" aria-label="Markdown 源稿">
+        <pre><code>---
+title: Microsoft Ignite 2026 [LIVE149]：幕后揭秘——Copilot Studio 工程团队如何用智能体软件工厂自举构建产品 || Microsoft Ignite 2026 [LIVE149]: Behind the Curtain—How the Copilot Studio Team Builds the Product with an Agentic Software Factory
+eyebrow: Microsoft Ignite 2026 · LIVE149 Broadcast Stage || Microsoft Ignite 2026 · LIVE149 Broadcast Stage
+brand: Study Room Copilot Studio || Study Room Copilot Studio
+date: 2026-11-25
+strict_i18n: true
+strict_density: true
+lead: 在 Microsoft Ignite 2026 演播室专场 LIVE149 中，Copilot Studio 与 Power Platform 企业副总裁 Ryan Cunningham 与产品与技术高级副总裁 Lauren Soni 展开深度对话，拆解研发团队如何用数十个各司其职的智能体直接运行在 Copilot Studio 之上自举构建产品本身 [1][2]。当写代码不再是全链路最慢的瓶颈，超过半数设计师直接提交并合入生产拉取请求，外部用户的 LinkedIn 痛点录屏在 24 小时内完成夜间复现与次晨合入，而特种保险商 Markel 更在不足 18 小时的极限航次窗口内将海事核保决策提速 3 倍以上 [1][3]。 || On the Microsoft Ignite 2026 Broadcast Stage in session LIVE149, Copilot Studio and Power Platform CVP Ryan Cunningham joined SVP of Product and Technology Lauren Soni to unpack how dozens of role-scoped agents running on Copilot Studio itself now build the product [1][2]. Once writing code stopped being the slowest bottleneck, over half of the team's designers merged pull requests into production, a frustrated user's LinkedIn video turned into a merged fix within 24 hours, and specialty insurer Markel tripled voyage underwriting decision speed inside an 18-hour lead-time window [1][3].
+panel_label: LIVE149 演播室核心纪要 || LIVE149 Broadcast Brief
+panel_title: 自举软件工厂、24 小时反馈内环与工作操作系统 || Self-Hosting Factory, 24h Fix Loop, and Work OS
+panel_desc: 一年之内彻底告别静态排期旧范式，将内部锤炼成熟的智能体协作底座外溢为跨行业核心业务操作系统 [1][2]。 || Shedding legacy flat-file planning within a single year and exporting the internal agentic factory as an operating system for enterprise work [1][2].
+panel:
+  - 自举式软件工厂 — 数十个专属岗位智能体直接运行在 Copilot Studio 上，全天候监控遥测、倾听反馈、编写并验证代码 [1][2] || Self-Hosting Factory — Dozens of job-scoped agents run on Copilot Studio itself to monitor telemetry, triage feedback, code, and validate [1][2]
+  - 角色边界与反馈重构 — 超 50% 设计师直提生产 PR，用户 LinkedIn 抱怨录屏当晚自动修复并在 24 小时内合入回访 [1][2] || Role &amp; Loop Reset — Over 50% of designers merge PRs while overnight agents turn LinkedIn bug videos into merged fixes in 24 hours [1][2]
+  - 核心业务系统再造 — 特种保险商 Markel 在不足 18 小时窗口内将高危航运核保决策提速 3 倍以上 [1][3] || Core System Redesign — Specialty insurer Markel tripled marine voyage underwriting velocity under an 18-hour deadline [1][3]
+metrics:
+  - 设计师提交代码 PR 占比 || Designers Merging PRs | &gt;50% | 跳过数周焦点小组与平面稿排期，超半数设计师亲手提交 PR 并合入生产环境 [1] || Over half of Copilot Studio designers submit pull requests directly into production [1]
+  - 社区视频反馈修复闭环 || LinkedIn-to-Fix Loop | 24 小时 || 24 Hours | 智能体夜间复现并编码修复，经人在回路晨间合入后 24 小时内回访用户 [1] || Overnight agent validation and coding plus human-in-the-loop morning merge [1]
+  - Markel 高危航运核保提速 || Markel Decision Velocity | 3×+（&lt;18h） | 在不足 18 小时起航窗口内将复杂海事风险与价值评估决策提速三倍以上 [1] || Tripled or more underwriting decision speed inside sub-18-hour voyage windows [1]
+style:
+  accent: &quot;#d97706&quot;
+  teal: &quot;#0d8f8c&quot;
+---
+
+## #self-hosting-factory 01 / Self-Hosting Software Factory :: 自举式软件工厂：数十个专属智能体如何在 Copilot Studio 上构建产品本身 || Self-Hosting Software Factory: How Dozens of Agents Build Copilot Studio on Copilot Studio
+
+今天 Copilot Studio 研发团队交付产品的方式，与一年前同期相比已几乎找不到任何相似之处 [1]。在与 Lauren Soni 的开场对谈中，Ryan Cunningham 直言团队在过去一年完成了从传统人工排期流水线向**软件工厂（Software Factory）**的彻底转型——整套研发体系由数十个智能体、确定性自动化与工作流编织而成，而且其中相当大比例的工程运转流本身就直接托管运行在 Copilot Studio 产品底座之上 [1][2]。 || How the Copilot Studio engineering organization ships software today bears almost no resemblance to how it operated just twelve months earlier [1]. Opening LIVE149 alongside Lauren Soni, Ryan Cunningham explained that the team replaced traditional handoff pipelines with an agentic **software factory**—a coordinated fleet of agents, automations, and workflows that increasingly runs on Copilot Studio itself [1][2].
+
+在这座自举运转的软件工厂里，数十个智能体并非笼统的对话助手，而是像正式团队成员一样拥有明确的岗位分工：有的智能体全天候紧盯生产环境遥测信号，有的专门在社区与社交渠道倾听用户反馈，有的负责编写代码改进补丁，还有的承担回归验证与质量把关 [1][2]。人类研发团队的核心职责由此上移——工程师不再把全部精力耗在逐行手写样板代码上，而是通过塑造、调优和约束整座智能体工厂的系统拓扑，直接决定产品创新的推进配速 [1][3]。 || Inside this self-hosting factory, dozens of agents hold distinct operational jobs rather than acting as generic chat assistants: dedicated agents monitor production telemetry, listen for external user feedback, author code improvements, and validate candidate builds [1][2]. Human engineers shift upstream—shaping, governing, and tuning the factory system itself to set the pace of product innovation [1][3].
+
+:::figure { src: &quot;./media/live149-software-factory-architecture.figure.json&quot;, title: &quot;Copilot Studio 自举式软件工厂三层运转与外溢架构 || Copilot Studio Self-Hosting Software Factory Three-Plane Architecture&quot; }
+图 1：基于 LIVE149 访谈实录还原的自举软件工厂闭环——顶层汇集生产遥测、社区录屏反馈与超半数设计师直提的代码分支；中层由运行在 Copilot Studio 上的数十个专属智能体接力完成夜间复现、补丁编码与自动化验证；底层经人在回路晨间合入与早期用户环实测加固后，同源外溢为赋能百业的工作操作系统 [1][2]。 || Figure 1: Three-plane architecture reconstructed from LIVE149—combining live telemetry, user video reports, and designer PRs on top; orchestrating overnight triage, coding, and validation agents running on Copilot Studio in the middle; and governing human-in-the-loop merges, early-ring hardening, and customer platform export underneath [1][2].
+:::
+
+本场 LIVE149 属于 Microsoft Ignite 2026 官方演播室直击访谈（Broadcast Stage，全长 7 分 40 秒，现场无独立幻灯片附件）[1][2]。下方交互导览台内嵌了微软官方 Medius 点播流、高清视频源直链与完整五幕对话的逐秒时间轴摘要，点击顶部章节标签即可按议题脉络核查原话细节 [1][2]： || Recorded live on the Microsoft Ignite 2026 Broadcast Stage without a separate slide deck, LIVE149 packs dense organizational and architectural disclosures into a 7-minute-40-second executive dialogue [1][2]. The interactive theater below pairs the official Microsoft Medius stream and HD video feed with five timestamped chapter breakdowns [1][2]:
+
+:::sandbox { id: &quot;live149-video-theater&quot;, canvas: false, script: &quot;./live149-session.js&quot;, style: &quot;./live149-session.css&quot;, title: &quot;LIVE149 官方演播室点播流与五幕对话时间轴导览台 || LIVE149 Official Broadcast Stream &amp; Five-Chapter Timestamp Navigator&quot;, desc: &quot;切换自举软件工厂、设计师直提 PR、24 小时夜间修复闭环、爬坡转型建议与 Markel 航运险案例五幕实录，一键加载官方点播播放器。 || Switch across the Software Factory, Designer PRs, 24-Hour Fix Loop, Hill-Climbing Advice, and Markel Marine Case chapters or launch the official Medius player.&quot; }
+纯静态演播室导览沙盒：内置 LIVE149 官方高清封面、五段逐秒校对纪要及 Medius 点播与高清视频直链。 || Pure static broadcast theater featuring the official LIVE149 HD cover, five timestamped transcript digests, and direct stream links.
+:::
+
+## #bottleneck-inversion 02 / Bottleneck Inversion &amp; Role Shift :: 当编码不再是最慢瓶颈：告别静态平面稿，超半数设计师直提生产 PR || When Coding Stops Being the Bottleneck: Skipping Flat Mockups as Over Half of Designers Merge PRs
+
+为什么引入智能体之后，连人类团队的创意与规划机制都发生了剧变？Ryan Cunningham 指出了过去几十年软件工程默认遵循的一条隐性假设：**传统研发规划之所以沉重，是因为大家都默认“把代码写出来”是最难、最慢的那一步** [1]。正因为写代码贵且慢，团队在动工前不得不花费数周时间组织焦点小组（Focus Grouping）、反复拉通排期，并绘制大量静态平面设计稿（Flat-File Designing）来提前规避返工风险 [1]。 || Why did adding agents radically alter how human product teams plan and ideate? Ryan Cunningham pinpointed the hidden premise underneath decades of software management: **legacy creative and planning rituals were built around the assumption that writing the code was the hardest, slowest part** [1]. Because implementation was expensive, teams spent weeks scheduling focus groups and polishing static flat-file mockups before anyone wrote a line of production logic [1].
+
+一旦软件工厂接管了繁重的编码实现，这条约束前提便被彻底反转 [1]。团队不再需要围着静态画布空谈数周，而是第一时间把想法直接做成可交互的真实功能，先在内部亲手试穿感受（Try them on ourselves），紧接着推送给早期用户环（Early Rings of Users）收集真实生产反馈，最后筛选出真正站得住脚的能力做工程加固并推向全量主流生产环境 [1][3]。这种即时实现机制直接打破了职能墙——Ryan 在访谈现场披露，**Copilot Studio 团队中已有超过一半（&gt;50%）的设计师亲手提交了代码拉取请求（Pull Request），且其中大批改动已正式合入生产主干** [1]。 || Once the software factory absorbed implementation friction, that constraint inverted [1]. Instead of debating static mockups for weeks, makers implement working features immediately, try them on internally, test them with early rings of users, and then harden proven winners for mainstream production [1][3]. That immediacy dissolved traditional role boundaries: **more than half of the designers on Copilot Studio have submitted pull requests, with many merged directly into production** [1].
+
+&lt;div class=&quot;live149-media-grid&quot;&gt;
+  &lt;article class=&quot;live149-media-card&quot; data-present-surface=&quot;unframed&quot;&gt;
+    &lt;div class=&quot;live149-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/live149-broadcast-stage.jpg&quot; alt=&quot;Microsoft Ignite 2026 LIVE149 Broadcast Stage capture showing Lauren Soni and Ryan Cunningham opening the conversation on building Copilot Studio with agents&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;live149-media-body&quot;&gt;
+      &lt;span class=&quot;live149-media-badge&quot; data-zh=&quot;LIVE149 官方实录关键帧 · 00:18&quot; data-en=&quot;LIVE149 Broadcast Frame · 00:18&quot;&gt;LIVE149 官方实录关键帧 · 00:18&lt;/span&gt;
+      &lt;h4 data-zh=&quot;演播室对话：AI 如何同时改写产品与造产品的方式&quot; data-en=&quot;Broadcast Dialogue: How AI Reshapes Both the Product and How It Is Built&quot;&gt;演播室对话：AI 如何同时改写产品与造产品的方式&lt;/h4&gt;
+      &lt;p data-zh=&quot;Lauren Soni 与 Ryan Cunningham 从工程组织视角切入，剖析数十个智能体如何在 Copilot Studio 自身之上协同运转 [1][2]。&quot; data-en=&quot;Lauren Soni and Ryan Cunningham examine how dozens of role-scoped agents collaborate on top of Copilot Studio itself [1][2].&quot;&gt;Lauren Soni 与 Ryan Cunningham 从工程组织视角切入，剖析数十个智能体如何在 Copilot Studio 自身之上协同运转 [1][2]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+  &lt;article class=&quot;live149-media-card&quot; data-present-surface=&quot;unframed&quot;&gt;
+    &lt;div class=&quot;live149-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/live149-fireside-systems-dialogue.jpg&quot; alt=&quot;Microsoft Ignite 2026 LIVE149 Broadcast Stage capture showing Lauren Soni and Ryan Cunningham discussing cross-functional lifecycle changes and system transformation&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;live149-media-body&quot;&gt;
+      &lt;span class=&quot;live149-media-badge&quot; data-zh=&quot;LIVE149 官方实录关键帧 · 跨职能协同&quot; data-en=&quot;LIVE149 Broadcast Frame · Cross-Role Shift&quot;&gt;LIVE149 官方实录关键帧 · 跨职能协同&lt;/span&gt;
+      &lt;h4 data-zh=&quot;跨出研发与设计边界：全角色卷入快速实验内环&quot; data-en=&quot;Beyond Engineering &amp; Design: Pulling Every Role Into Live Experimentation&quot;&gt;跨出研发与设计边界：全角色卷入快速实验内环&lt;/h4&gt;
+      &lt;p data-zh=&quot;超过半数设计师直接向代码库提交拉取请求，外部真实客户也通过自动化反馈流成为产品迭代的直接参与者 [1]。&quot; data-en=&quot;Over half of designers submit production PRs while external customers become active participants in daily product iteration [1].&quot;&gt;超过半数设计师直接向代码库提交拉取请求，外部真实客户也通过自动化反馈流成为产品迭代的直接参与者 [1]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+&lt;/div&gt;
+
+## #overnight-customer-loop 03 / The 24-Hour Customer Loop :: 把外部用户拉进创新内环：从 LinkedIn 抱怨录屏到 24 小时合入上线 || Customers Inside the Innovation Loop: From a Frustrated LinkedIn Video to Merged Fix in 24 Hours
+
+除了内部设计师与工程师的角色融合，最令团队振奋的变化在于**外部客户与终端用户真正成为了日常研发循环的一部分** [1]。Ryan Cunningham 分享了就在 Ignite 大会前一周刚刚发生的真实案例：一位用户在尝试用 Copilot Studio 搭建某项功能时卡壳受挫，一气之下在 LinkedIn 上发了一篇长文，还专门录制了一段复现操作视频吐槽这项体验缺陷 [1]。 || Beyond internal role convergence between designers and engineers, the most energizing shift is how **external customers and end users now participate directly in the engineering loop** [1]. Ryan Cunningham recounted an incident from just one week before Ignite: a user trying to accomplish a task in Copilot Studio hit a wall, grew frustrated, and published a lengthy LinkedIn post complete with a screen-recorded video demonstrating the failure [1].
+
+放在传统大型软件企业的工单流转体系里，这类社交媒体抱怨往往要经历公关收集、产品经理建单、双周排期评审与下月发版等漫长环节；但在 Copilot Studio 的智能体软件工厂中，这则细节详尽的视频反而成了最佳燃料——整个闭环在 **24 小时之内**即告完结 [1]： || In a conventional enterprise backlog, a social-media complaint might wait weeks for triage, sprint planning, and monthly release trains. Inside Copilot Studio's software factory, that detailed video acted as an immediate specification—closing the entire loop in **24 hours** [1]:
+
+:::flow { title: &quot;LIVE149 真实案例还原：24 小时夜间智能体修复与人在回路合入流水线 || Reconstructed LIVE149 Case: 24-Hour Overnight Agent Fix &amp; Human-in-the-Loop Merge&quot; }
+1. **高保真痛点捕获（Day 1 晚间） || Detailed User Signal Capture (Evening)** — 用户在 Copilot Studio 操作受阻后于 LinkedIn 发布长篇复盘与完整录屏，软件工厂的外部反馈倾听智能体当晚自动拾取该线索 [1]。 || After getting stuck in Copilot Studio, a user posts a detailed write-up and video on LinkedIn; a feedback-listening agent picks it up that same night [1].
+2. **独立复现与真伪核验（Overnight Validate） || Autonomous Issue Validation (Overnight)** — 诊断智能体连夜对视频描述的路径展开自动化验证，独立确认这并非误操作，而是一处真实存在的产品缺陷 [1]。 || Overnight, the agent checks the reported workflow against the live build and validates that the issue is a legitimate product defect [1].
+3. **夜间自动编码补丁（Overnight Code Fix） || Automated Patch Authoring (Overnight)** — 代码改进智能体随即针对确认的根因自动编写修复补丁并跑通验证套件，在工程师清晨上班前备好候选分支 [1]。 || Coding and validation agents author the fix and verify the candidate branch before morning stand-up [1].
+4. **人在回路晨间合入（Morning HITL Merge） || Human-in-the-Loop Morning Merge (Morning)** — 研发团队保留严格的人在回路（Human in the Loop）把关机制，工程师在第二天早晨完成代码审查并将补丁正式合入主干 [1]。 || Keeping a human in the loop for engineering judgment and safety, the team reviews and merges the fix into production in the morning [1].
+5. **24 小时内主动回访（24h Customer Closure） || 24-Hour Customer Notification (&lt;24h)** — 距离原帖发出不到 24 小时，团队已主动回复该用户：“非常感谢你的详细报告，问题已经修好，补丁正在推往你的环境途中” [1]。 || Within 24 hours of the original post, the team replies to the user confirming the bug is fixed and already rolling out to their environment [1].
+:::
+
+## #hill-climbing-leadership 04 / Resetting Constraints &amp; Ambitions :: 给技术领导者的转型法则：先下水试游，重设约束指标持续“爬坡” || Leadership Playbook: Get in the Pool, Unlearn Legacy Timelines, and Hill-Climb New Constraints
+
+当被问及团队在切换至智能体工作模式后最大的意外与教训是什么时，Ryan Cunningham 给出的关键词是**“反学习与再学习（Unlearn and Relearn）”** [1]。研发组织脑海中根深蒂固地刻着一套旧时钟——某类特性“理应耗费几个季度”、某项重构“注定有多高的门槛” [1]。技术深水区的硬骨头依然存在，但如果团队不主动打破旧约束、调高目标野心，就会用旧时代的排期惯性限制新时代的工具产能 [1]。 || Asked about the biggest lesson learned from working alongside an agent fleet, Ryan Cunningham emphasized **unlearning and relearning** [1]. Engineering organizations carry deeply ingrained expectations about how many weeks a feature is supposed to take or how hard an integration ought to be [1]. Hard engineering problems remain, yet teams cannot move dramatically faster unless they deliberately reset both their constraints and their ambitions [1].
+
+针对现场与线上希望推动同类转型的产品与工程高管，Ryan 提炼出两步务实行动纲领：第一步是**“立刻下水，别等完美（Just start—get in the pool）”**——仅靠刷社交媒体动态或看发布会转播永远学不会游泳，组织必须迈出信念一步，亲手在真实业务池里试水犯错 [1]；第二步则是**拒绝形式主义伪转型**——成为 AI 转型组织绝不等于“上线一个聊天机器人、调用一下大语言模型，或者单纯烧掉一笔词元额度（Burning a token meter）”，而是要确立清晰的全局靶标，像训练强化学习模型那样围绕核心指标反复实验“爬坡（Climb the hill）” [1]： || For product and technology leaders looking to replicate this operating model, Ryan distilled a two-part playbook. First, **start before it feels ready**: nobody learns to swim without getting wet, and passively scrolling social feeds cannot substitute for hands-on experimentation [1]. Second, **reject superficial AI theater**: transformation is never about shipping a chatbot, calling an LLM, or burning a token meter—it requires setting concrete constraint-breaking goals and iterating against them (“climbing the hill”) [1]:
+
+:::insight-grid { cols: 3, title: &quot;LIVE149 提出的三大组织级“约束重塑（Constraint-Reset）”爬坡靶标 || Three Organizational Hill-Climbing Targets Highlighted in LIVE149&quot; }
+::card 01
+### 核心主业能力翻倍（2× Core Excellence） || Be Twice as Good at the Core Thing
+追问组织赖以生存的核心职能若性能与吞吐提升至原来的 2 倍意味着什么，围绕主航道重构端到端系统而非修补边角料 [1]。 || Ask what it truly takes to become twice as good at your organization's core value engine rather than automating isolated side tasks [1].
+
+::card 02
+### 测试预算减半但覆盖率翻倍 || Cut Test Budget, Double Coverage
+打破质量与成本零和博弈的旧假设，利用验证智能体与自动化回归流同步实现测试投入压降与 2× 测试覆盖率跃升 [1]。 || Break legacy QA trade-offs by pairing validation agents with deterministic suites to cut testing spend while doubling coverage [1].
+
+::card 03
+### 极速压缩客户价值实现时间 || Radically Faster Time to Value
+将内部原型验证、缺陷修复与客户业务交付周期压缩一个数量级，通过高频实测快速收敛至可规模化推广的生产方案 [1]。 || Collapse time-to-clarity and time-to-value for customers through rapid early-ring iteration and overnight feedback loops [1].
+:::
+
+:::figure { src: &quot;./media/live149-constraint-shifts.figure.json&quot;, title: &quot;LIVE149 核心工程与客户成效量化对比：从研发内环到海事核保 || LIVE149 Verified Engineering &amp; Customer Constraint Shifts&quot; }
+图 2：汇总 LIVE149 访谈实录中的五组关键量化基准——涵盖内部超过 50% 设计师直提生产 PR、24 小时内闭环社区录屏缺陷、削减测试预算同时实现 200%（2×）测试覆盖率的爬坡法则，以及外部特种保险商 Markel 在不足 18 小时窗口内达成 300%+（3× 以上）的核保决策提速 [1]。 || Figure 2: Quantitative benchmarks disclosed in LIVE149—spanning &gt;50% designer PR participation, ≤24-hour social bug resolution, the hill-climbing target of cutting test budget while hitting 200% (2x) test coverage, and Markel's 300%+ (3x+) marine underwriting velocity under an 18-hour lead time [1].
+:::
+
+## #markel-and-work-os 05 / Operating System for Work &amp; Markel Case :: 从个人提效走向系统再造：Markel 海事保险 18 小时窗口内的 3 倍决策跃升 || Operating System for Work: Markel Marine's 3x+ Underwriting Velocity and Rewriting Backend Systems
+
+微软在 Copilot Studio 内部跑通智能体软件工厂的终极目的，并非只为加速自身研发，而是将 Copilot 底下那层抽象工程底座开放出来，打造成为支撑千行百业的**工作操作系统（Operating System for Work）**——让财务部门、政府公共服务机构乃至特种金融企业都能复刻同等级别的流程再造 [1][3]。 || Microsoft's goal in building this internal software factory is not merely shipping its own code faster, but exposing the abstract platform underneath Copilot as an **operating system for work**—empowering finance departments, government agencies, and specialized enterprises to run the exact same innovation loop [1][3].
+
+Ryan Cunningham 在访谈后半段重点剖析了特种保险集团 **Markel** 海事保险部门（Marine Insurance Division）的标杆实践 [1]。不同于常规车险或家财险，当一艘远洋货轮准备驶入地球上最危险的高风险海域时，船东找的正是 Markel 来为整段航次承保 [1]。核保团队必须穿透极为复杂的海事风险评估、船货价值测算与条款定价流程，而且**往往只有不到 18 小时的准备窗口（Lead Time）就必须给出承保结论** [1]。借助 Copilot Studio 重构这套高复杂度核保工作流后，Markel 成功将**达成高质量承保决策的速度提升了 3 倍甚至更多（3×+）**——对急等起航的船东客户而言，这意味着快 3 倍获得明确保障（3× faster time to clarity）；对 Markel 核心业务部门而言，这绝非抠省一点零碎人工成本，而是直接在主营航道上撬动 3 倍的业务承载丰裕度（3× more business）[1]。 || Illustrating what happens when enterprises apply this platform to high-stakes operations, Ryan highlighted specialty insurer **Markel** and its **marine insurance division** [1]. Unlike standard consumer policies, Markel underwrites cargo ships preparing to sail through some of the most dangerous waters on Earth—a complex risk-and-valuation process where underwriters sometimes have **less than 18 hours of lead time** to turn a quote around [1]. Using Copilot Studio, Markel **tripled or more (3x+) the velocity at which it reaches sound underwriting decisions**—unlocking three times faster clarity for shipping clients and three times greater throughput in a core revenue function rather than mere incremental cost savings [1].
+
+&lt;div class=&quot;live149-media-grid is-single&quot;&gt;
+  &lt;article class=&quot;live149-media-card&quot; data-present-surface=&quot;unframed&quot;&gt;
+    &lt;div class=&quot;live149-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/live149-ryan-markel-voyage.jpg&quot; alt=&quot;Microsoft Ignite 2026 LIVE149 Broadcast Stage capture of Ryan Cunningham detailing how specialty insurer Markel tripled marine voyage underwriting decision velocity in under 18 hours&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;live149-media-body&quot;&gt;
+      &lt;span class=&quot;live149-media-badge&quot; data-zh=&quot;LIVE149 官方实录关键帧 · 06:15 Markel 案例&quot; data-en=&quot;LIVE149 Broadcast Frame · 06:15 Markel Case&quot;&gt;LIVE149 官方实录关键帧 · 06:15 Markel 案例&lt;/span&gt;
+      &lt;h4 data-zh=&quot;Markel 海事航运险：在不足 18 小时极限交期内实现 3 倍以上高质量核保决策&quot; data-en=&quot;Markel Marine Insurance: 3x+ Faster High-Stakes Voyage Decisions Under an 18-Hour Lead Time&quot;&gt;Markel 海事航运险：在不足 18 小时极限交期内实现 3 倍以上高质量核保决策&lt;/h4&gt;
+      &lt;p data-zh=&quot;Ryan Cunningham 阐释丰裕型 AI 价值：不仅压缩耗时，更让客户获取保障确定性的速度加快 3 倍，并释放核心核保团队 3 倍业务吞吐潜力 [1]。&quot; data-en=&quot;Ryan Cunningham frames the abundance opportunity: 3x faster clarity for cargo voyage customers and 3x capacity in a core underwriting function [1].&quot;&gt;Ryan Cunningham 阐释丰裕型 AI 价值：不仅压缩耗时，更让客户获取保障确定性的速度加快 3 倍，并释放核心核保团队 3 倍业务吞吐潜力 [1]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+&lt;/div&gt;
+
+| 转型维度 || Transformation Dimension | 旧有低效系统态（第一阶段局部提效） || Legacy State (Task-Level Productivity) | 智能体软件工厂与系统再造态（LIVE149 范式） || Agentic Factory &amp; System Redesign (LIVE149) | 实证案例与量化锚点 || Verified Evidence &amp; Metrics |
+|------|------|------|------|
+| 产品规划与设计交付 || Product Planning &amp; Design | 默认写代码最慢最难，耗费数周做焦点小组与静态平面图 [1] || Assumes coding is slow; weeks of focus groups &amp; flat-file specs [1] | 立即动手编码试穿，推入早期用户环实测后再加固入生产主干 [1] || Implement right away, test in early rings, then harden for production [1] | Copilot Studio 团队 **&gt;50% 设计师**直提 PR 并合入生产 [1] || **&gt;50% of designers** submit PRs merged to production [1] |
+| 外部用户反馈响应 || Customer Feedback Loop | 社交媒体吐槽经多层转单排期，按周或月等待补丁发版 [1] || Manual ticket routing and multi-week sprint scheduling [1] | 智能体夜间拾取核验并编码修复，保留人在回路次晨合入 [1] || Overnight agent validation + coding with morning HITL merge [1] | LinkedIn 抱怨视频 **24 小时内**完成合入并回访通知在途 [1] || **Within 24 hours** from LinkedIn video to merged fix rollout [1] |
+| 质量保障与工程目标 || QA &amp; Engineering Goals | 围绕既有人工约束微调，测试成本与覆盖率呈线性互斥 [1] || Incremental tweaks bound by linear cost-vs-coverage trade-offs [1] | 重设组织约束持续爬坡，用验证智能体并发守护交付质量 [1] || Reset constraints and hill-climb with automated validation agents [1] | 设定**削减测试预算**同时实现 **2× 测试覆盖率** [1] || **Cut testing budget** while achieving **2x test coverage** [1] |
+| 企业核心业务运转 || Enterprise Core Operations | 员工在老旧低效系统表层用个人 AI 写报告、看孤立看板 [1] || Individuals move faster on top of unchanged, inefficient systems [1] | 穿透表层报表与看板，用工作操作系统直接重写后台业务流 [1][3] || Re-architect the backend systems behind reports and dashboards [1][3] | **Markel 海事保险**在 **&lt;18 小时**窗口内核保决策提速 **3×+** [1] || **Markel Marine** reached **3x+ decision velocity** in **&lt;18h** [1] |
+
+在访谈收尾处，Lauren Soni 与 Ryan Cunningham 共同点明了企业 AI 演进的下一道分水岭：过去两年，生成式 AI 确实让许多个人在日常工作中变得更高效，但人们往往只是**骑在原本低效的老旧业务系统之上加快了个人手速** [1]。真正的下一波转型前沿（Next Frontier of Transformation），是追问那些散落的个人周报、审批单与数据看板背后究竟在发生什么，并用智能体、确定性工作流与受控平台去**彻底改写底层的业务系统本身**——这正是微软用智能体工厂重铸 Copilot Studio 所交出的工程答卷 [1][3]。 || Closing the broadcast, Lauren Soni and Ryan Cunningham framed the defining inflection point ahead: up to now, AI has made individuals more productive in their daily routines *on top of* inefficient legacy systems that remained untouched [1]. The next frontier of transformation moves behind individual reports and dashboards to **re-architect the underlying business systems themselves**—the exact mission Copilot Studio was rebuilt to power [1][3].
+
+## 参考资料：官方一手信源与关联议题 || References: Official Primary Sources &amp; Related Sessions
+
+1. **Ryan Cunningham &amp; Lauren Soni (Microsoft Ignite 2026 LIVE149 Official Session &amp; Transcript)** — https://ignite.microsoft.com/en-US/sessions/1793675965297001onQI-AAAAAAAAAAAAAAAAAAAA | 《Behind the Curtain: Building Copilot Studio》演播室专场主页与官方英中双语 WebVTT 逐字稿实录（2026-11） || Official Broadcast Stage session page and bilingual WebVTT verbatim transcripts (Nov 2026)
+2. **Microsoft Medius On-Demand Stream (LIVE149 Broadcast Recording)** — https://medius.microsoft.com/Embed/video-nc/2c5e35c0-7c4b-4907-bf96-2e47d2c8580d | LIVE149 官方内嵌点播播放器与高清视频源（`https://medius.microsoft.com/video/asset/HIGHMP4/2c5e35c0-7c4b-4907-bf96-2e47d2c8580d`） || Official Microsoft Medius video stream and high-definition broadcast recording
+3. **Microsoft Copilot Blog (Ignite 2026 Copilot Studio Announcements)** — https://www.microsoft.com/en-us/microsoft-copilot/blog/copilot-studio/whats-new-in-copilot-studio-november-2026/ | 微软官方 Copilot Studio 2026 年 11 月更新综述：三位一体业务流程工厂、Microsoft Copilot Harness 与客户生产案例 || Official November 2026 Copilot Studio blog covering unified agents, workflows, managed apps, and enterprise deployments
+</code></pre>
+      </section>
+
+      <main>
+        <section id="self-hosting-factory" class="section" data-reveal data-present-title-zh="自举式软件工厂：数十个专属智能体如何在 Copilot Studio 上构建产品本身" data-present-title-en="Self-Hosting Software Factory: How Dozens of Agents Build Copilot Studio on Copilot Studio">
+          <div class="section-head">
+            <p class="section-kicker">01 / Self-Hosting Software Factory</p>
+            <h2 data-zh="1. 自举式软件工厂：数十个专属智能体如何在 Copilot Studio 上构建产品本身" data-en="1. Self-Hosting Software Factory: How Dozens of Agents Build Copilot Studio on Copilot Studio">1. 自举式软件工厂：数十个专属智能体如何在 Copilot Studio 上构建产品本身</h2>
+            <p data-zh="今天 Copilot Studio 研发团队交付产品的方式，与一年前同期相比已几乎找不到任何相似之处 [1]。在与 Lauren Soni 的开场对谈中，Ryan Cunningham 直言团队在过去一年完成了从传统人工排期流水线向**软件工厂（Software Factory）**的彻底转型——整套研发体系由数十个智能体、确定性自动化与工作流编织而成，而且其中相当大比例的工程运转流本身就直接托管运行在 Copilot Studio 产品底座之上 [1][2]。" data-en="How the Copilot Studio engineering organization ships software today bears almost no resemblance to how it operated just twelve months earlier [1]. Opening LIVE149 alongside Lauren Soni, Ryan Cunningham explained that the team replaced traditional handoff pipelines with an agentic &lt;strong&gt;software factory&lt;/strong&gt;—a coordinated fleet of agents, automations, and workflows that increasingly runs on Copilot Studio itself [1][2].">今天 Copilot Studio 研发团队交付产品的方式，与一年前同期相比已几乎找不到任何相似之处 [1]。在与 Lauren Soni 的开场对谈中，Ryan Cunningham 直言团队在过去一年完成了从传统人工排期流水线向**软件工厂（Software Factory）**的彻底转型——整套研发体系由数十个智能体、确定性自动化与工作流编织而成，而且其中相当大比例的工程运转流本身就直接托管运行在 Copilot Studio 产品底座之上 [1][2]。</p>
+          </div>
+
+          <p data-zh="在这座自举运转的软件工厂里，数十个智能体并非笼统的对话助手，而是像正式团队成员一样拥有明确的岗位分工：有的智能体全天候紧盯生产环境遥测信号，有的专门在社区与社交渠道倾听用户反馈，有的负责编写代码改进补丁，还有的承担回归验证与质量把关 [1][2]。人类研发团队的核心职责由此上移——工程师不再把全部精力耗在逐行手写样板代码上，而是通过塑造、调优和约束整座智能体工厂的系统拓扑，直接决定产品创新的推进配速 [1][3]。" data-en="Inside this self-hosting factory, dozens of agents hold distinct operational jobs rather than acting as generic chat assistants: dedicated agents monitor production telemetry, listen for external user feedback, author code improvements, and validate candidate builds [1][2]. Human engineers shift upstream—shaping, governing, and tuning the factory system itself to set the pace of product innovation [1][3].">在这座自举运转的软件工厂里，数十个智能体并非笼统的对话助手，而是像正式团队成员一样拥有明确的岗位分工：有的智能体全天候紧盯生产环境遥测信号，有的专门在社区与社交渠道倾听用户反馈，有的负责编写代码改进补丁，还有的承担回归验证与质量把关 [1][2]。人类研发团队的核心职责由此上移——工程师不再把全部精力耗在逐行手写样板代码上，而是通过塑造、调优和约束整座智能体工厂的系统拓扑，直接决定产品创新的推进配速 [1][3]。</p>
+
+          <figure class="sr-figure generated-diagram is-inline-svg" data-present-step data-present-surface="unframed" data-step-title="Copilot Studio 自举式软件工厂三层运转与外溢架构" data-step-title-en="Copilot Studio Self-Hosting Software Factory Three-Plane Architecture" data-present-title-zh="Copilot Studio 自举式软件工厂三层运转与外溢架构" data-present-title-en="Copilot Studio Self-Hosting Software Factory Three-Plane Architecture" data-step-label="01 / Self-Hosting Software Factory" data-step-label-en="01 / Self-Hosting Software Factory" data-present-i18n-invariant="label">
+            <svg class="sr-figure-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1520 666" role="img" aria-labelledby="live149-software-factory-architecture-1-title live149-software-factory-architecture-1-desc"><title id="live149-software-factory-architecture-1-title">Copilot Studio 自举式软件工厂：智能体、自动化与人机协同闭环（LIVE149）</title><desc id="live149-software-factory-architecture-1-desc">architecture topology with 9 nodes and 8 edges</desc><defs><marker id="live149-software-factory-architecture-1-arrow" markerWidth="10" markerHeight="10" refX="8.5" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M1,1 L8.5,4 L1,7" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><g data-group-id="signal-plane"><rect x="40" y="24" width="1440" height="190" rx="16" fill="var(--fig-group-bg-1, rgba(255, 250, 244, 0.72))" stroke="var(--fig-group-border, rgba(23, 36, 48, 0.11))" stroke-width="1.25"/><path d="M 56 25 H 1464" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.6))" stroke-width="1"/><line x1="40" y1="70" x2="1480" y2="70" stroke="var(--fig-group-divider, rgba(23,36,48,0.08))" stroke-width="1"/><circle cx="62" cy="48" r="4.5" fill="var(--fig-role-accent-bar, #ea580c)"/><text class="sr-zh" x="74" y="53" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)">1. 全天候感知与反馈采集层（Telemetry, User Signals &amp; Direct Prototyping）</text><text class="sr-en" x="74" y="53" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)">1. Continuous Sensing &amp; Prototyping Plane (Telemetry, Social Feedback &amp; Design)</text></g><g data-group-id="factory-plane"><rect x="40" y="238" width="1440" height="190" rx="16" fill="var(--fig-group-bg-2, rgba(244, 248, 252, 0.72))" stroke="var(--fig-group-border, rgba(23, 36, 48, 0.11))" stroke-width="1.25"/><path d="M 56 239 H 1464" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.6))" stroke-width="1"/><line x1="40" y1="284" x2="1480" y2="284" stroke="var(--fig-group-divider, rgba(23,36,48,0.08))" stroke-width="1"/><circle cx="62" cy="262" r="4.5" fill="var(--fig-role-blue-bar, #2563eb)"/><text class="sr-zh" x="74" y="267" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)">2. 智能体软件工厂执行层（Dozens of Specialized Agents Running on Copilot Studio）</text><text class="sr-en" x="74" y="267" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)">2. Agentic Software Factory Plane (Dozens of Role-Scoped Agents on Copilot Studio)</text></g><g data-group-id="delivery-plane"><rect x="40" y="452" width="1440" height="190" rx="16" fill="var(--fig-group-bg-3, rgba(248, 245, 252, 0.72))" stroke="var(--fig-group-border, rgba(23, 36, 48, 0.11))" stroke-width="1.25"/><path d="M 56 453 H 1464" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.6))" stroke-width="1"/><line x1="40" y1="498" x2="1480" y2="498" stroke="var(--fig-group-divider, rgba(23,36,48,0.08))" stroke-width="1"/><circle cx="62" cy="476" r="4.5" fill="var(--fig-role-violet-bar, #7c3aed)"/><text class="sr-zh" x="74" y="481" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)">3. 人机门禁合入与生产环外溢层（Human-in-the-Loop Merge &amp; Work OS Platform）</text><text class="sr-en" x="74" y="481" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)">3. Governed Merge, Early-Ring Hardening &amp; Customer Work OS Plane</text></g><g data-edge-id="e1"><path d="M 296 190 L 296 308" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#live149-software-factory-architecture-1-arrow)"/><circle cx="296" cy="190" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e2"><path d="M 760 190 L 760 216 Q 760 226 750 226 L 306 226 Q 296 226 296 236 L 296 308" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#live149-software-factory-architecture-1-arrow)"/><circle cx="760" cy="190" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e3"><path d="M 1224 190 L 1224 216 Q 1224 226 1214 226 L 770 226 Q 760 226 760 236 L 760 308" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#live149-software-factory-architecture-1-arrow)"/><circle cx="1224" cy="190" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e4"><path d="M 456 356 L 600 356" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#live149-software-factory-architecture-1-arrow)"/><circle cx="456" cy="356" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e5"><path d="M 920 356 L 1064 356" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#live149-software-factory-architecture-1-arrow)"/><circle cx="920" cy="356" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e6"><path d="M 1224 404 L 1224 430 Q 1224 440 1214 440 L 306 440 Q 296 440 296 450 L 296 522" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#live149-software-factory-architecture-1-arrow)"/><circle cx="1224" cy="404" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e7"><path d="M 456 570 L 600 570" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#live149-software-factory-architecture-1-arrow)"/><circle cx="456" cy="570" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e8"><path d="M 920 570 L 1064 570" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 5" marker-end="url(#live149-software-factory-architecture-1-arrow)"/><circle cx="920" cy="570" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-node-id="prod-telemetry"><defs><clipPath id="live149-software-factory-architecture-1-clip-prod-telemetry"><rect x="136" y="94" width="320" height="96" rx="13"/></clipPath></defs><rect x="136" y="94" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="136" y="94" width="320" height="96" rx="13" fill="var(--fig-role-violet-fill, rgba(124, 58, 237, 0.08))" stroke="var(--fig-role-violet-stroke, rgba(139, 92, 246, 0.42))" stroke-width="1.35"/><rect x="136" y="94" width="4.5" height="96" fill="var(--fig-role-violet-bar, #7c3aed)" clip-path="url(#live149-software-factory-architecture-1-clip-prod-telemetry)"/><line x1="148" y1="95" x2="444" y2="95" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)"><tspan x="298" y="130">生产遥测与运行监控流</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="151">实时捕捉线上报错、工具调用瓶颈与早期测试环运行信</tspan><tspan x="298" y="165.5">号</tspan></text></g><g class="sr-en"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)"><tspan x="298" y="130">Production Telemetry &amp; Runtime Logs</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="151">Captures live runtime signals, workflow bottlenecks,</tspan><tspan x="298" y="165.5">and early-ring metrics</tspan></text></g></g><g data-node-id="social-feedback"><defs><clipPath id="live149-software-factory-architecture-1-clip-social-feedback"><rect x="600" y="94" width="320" height="96" rx="13"/></clipPath></defs><rect x="600" y="94" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="600" y="94" width="320" height="96" rx="13" fill="var(--fig-role-teal-fill, rgba(13, 143, 140, 0.09))" stroke="var(--fig-role-teal-stroke, rgba(13, 143, 140, 0.46))" stroke-width="1.35"/><rect x="600" y="94" width="4.5" height="96" fill="var(--fig-role-teal-bar, #0d8f8c)" clip-path="url(#live149-software-factory-architecture-1-clip-social-feedback)"/><line x1="612" y1="95" x2="908" y2="95" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)"><tspan x="762" y="130">外部用户反馈与录屏动态</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="151">倾听社区与 LinkedIn 详细复现视频，让真实用户直接</tspan><tspan x="762" y="165.5">触发改进循环</tspan></text></g><g class="sr-en"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)"><tspan x="762" y="130">Customer Feedback &amp; Video Reports</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="151">Ingests detailed user posts and screen recordings</tspan><tspan x="762" y="165.5">as actionable bug triggers</tspan></text></g></g><g data-node-id="designer-pr"><defs><clipPath id="live149-software-factory-architecture-1-clip-designer-pr"><rect x="1064" y="94" width="320" height="96" rx="13"/></clipPath></defs><rect x="1064" y="94" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="1064" y="94" width="320" height="96" rx="13" fill="var(--fig-role-accent-fill, rgba(255, 122, 0, 0.09))" stroke="var(--fig-role-accent-stroke, rgba(234, 88, 12, 0.48))" stroke-width="1.35"/><rect x="1064" y="94" width="4.5" height="96" fill="var(--fig-role-accent-bar, #ea580c)" clip-path="url(#live149-software-factory-architecture-1-clip-designer-pr)"/><line x1="1076" y1="95" x2="1372" y2="95" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)"><tspan x="1226" y="130">跨职能角色直接提交 PR（&gt;50% 设计师）</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="151">告别数周焦点小组与静态稿排期，设计师直接动手实现</tspan><tspan x="1226" y="165.5">可运行原型</tspan></text></g><g class="sr-en"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)"><tspan x="1226" y="130">Cross-Role Direct PRs (&gt;50% Designers)</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="151">Skips weeks of flat-file specs; over half of</tspan><tspan x="1226" y="165.5">designers submit code PRs</tspan></text></g></g><g data-node-id="triage-repro-agent"><defs><clipPath id="live149-software-factory-architecture-1-clip-triage-repro-agent"><rect x="136" y="308" width="320" height="96" rx="13"/></clipPath></defs><rect x="136" y="308" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="136" y="308" width="320" height="96" rx="13" fill="var(--fig-role-blue-fill, rgba(37, 99, 235, 0.07))" stroke="var(--fig-role-blue-stroke, rgba(59, 130, 246, 0.42))" stroke-width="1.35"/><rect x="136" y="308" width="4.5" height="96" fill="var(--fig-role-blue-bar, #2563eb)" clip-path="url(#live149-software-factory-architecture-1-clip-triage-repro-agent)"/><line x1="148" y1="309" x2="444" y2="309" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)"><tspan x="298" y="344">夜间复现与问题核验智能体</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="365">当晚自动拾取外部痛点报告，独立核查并确认缺陷真实</tspan><tspan x="298" y="379.5">可复现</tspan></text></g><g class="sr-en"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)"><tspan x="298" y="344">Overnight Triage &amp; Issue Validation Agent</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="365">Picks up incoming reports overnight to verify and</tspan><tspan x="298" y="379.5">reproduce real product gaps</tspan></text></g></g><g data-node-id="coding-agent"><defs><clipPath id="live149-software-factory-architecture-1-clip-coding-agent"><rect x="600" y="308" width="320" height="96" rx="13"/></clipPath></defs><rect x="600" y="308" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="600" y="308" width="320" height="96" rx="13" fill="var(--fig-role-accent-fill, rgba(255, 122, 0, 0.09))" stroke="var(--fig-role-accent-stroke, rgba(234, 88, 12, 0.48))" stroke-width="1.35"/><rect x="600" y="308" width="4.5" height="96" fill="var(--fig-role-accent-bar, #ea580c)" clip-path="url(#live149-software-factory-architecture-1-clip-coding-agent)"/><line x1="612" y1="309" x2="908" y2="309" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)"><tspan x="762" y="344">代码修复与特性构建智能体</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="365">打破“写代码最慢最难”旧假设，自动编写补丁与新功能</tspan><tspan x="762" y="379.5">实现分支</tspan></text></g><g class="sr-en"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)"><tspan x="762" y="344">Code Improvement &amp; Feature Agent</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="365">Eliminates manual coding bottlenecks by authoring</tspan><tspan x="762" y="379.5">fixes and feature branches</tspan></text></g></g><g data-node-id="validation-agent"><defs><clipPath id="live149-software-factory-architecture-1-clip-validation-agent"><rect x="1064" y="308" width="320" height="96" rx="13"/></clipPath></defs><rect x="1064" y="308" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="1064" y="308" width="320" height="96" rx="13" fill="var(--fig-role-amber-fill, rgba(217, 119, 6, 0.09))" stroke="var(--fig-role-amber-stroke, rgba(217, 119, 6, 0.44))" stroke-width="1.35"/><rect x="1064" y="308" width="4.5" height="96" fill="var(--fig-role-amber-bar, #d97706)" clip-path="url(#live149-software-factory-architecture-1-clip-validation-agent)"/><line x1="1076" y1="309" x2="1372" y2="309" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)"><tspan x="1226" y="344">自动化验证与双倍覆盖测试流</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="365">用智能体与确定性自动化流检验补丁，朝预算减半且覆</tspan><tspan x="1226" y="379.5">盖翻倍演进</tspan></text></g><g class="sr-en"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)"><tspan x="1226" y="344">Automated Validation &amp; Coverage Suite</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="365">Validates candidate PRs continuously toward lower</tspan><tspan x="1226" y="379.5">test cost and 2x coverage</tspan></text></g></g><g data-node-id="hitl-merge"><defs><clipPath id="live149-software-factory-architecture-1-clip-hitl-merge"><rect x="136" y="522" width="320" height="96" rx="13"/></clipPath></defs><rect x="136" y="522" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="136" y="522" width="320" height="96" rx="13" fill="var(--fig-role-rose-fill, rgba(225, 29, 72, 0.08))" stroke="var(--fig-role-rose-stroke, rgba(225, 29, 72, 0.48))" stroke-width="1.35"/><rect x="136" y="522" width="4.5" height="96" fill="var(--fig-role-rose-bar, #e11d48)" clip-path="url(#live149-software-factory-architecture-1-clip-hitl-merge)"/><line x1="148" y1="523" x2="444" y2="523" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-rose-text, #9f1239)"><tspan x="298" y="558">人在回路晨间合入（24h 闭环回访）</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="579">工程师把关架构与合入红线，次晨合并并在 24 小时内通</tspan><tspan x="298" y="593.5">知用户补丁在途</tspan></text></g><g class="sr-en"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-rose-text, #9f1239)"><tspan x="298" y="549">Human-in-the-Loop Morning Merge</tspan><tspan x="298" y="567">(&lt;24h)</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="588">Engineers review and merge in the morning, closing</tspan><tspan x="298" y="602.5">the user loop in 24 hours</tspan></text></g></g><g data-node-id="ring-rollout"><defs><clipPath id="live149-software-factory-architecture-1-clip-ring-rollout"><rect x="600" y="522" width="320" height="96" rx="13"/></clipPath></defs><rect x="600" y="522" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="600" y="522" width="320" height="96" rx="13" fill="var(--fig-role-blue-fill, rgba(37, 99, 235, 0.07))" stroke="var(--fig-role-blue-stroke, rgba(59, 130, 246, 0.42))" stroke-width="1.35"/><rect x="600" y="522" width="4.5" height="96" fill="var(--fig-role-blue-bar, #2563eb)" clip-path="url(#live149-software-factory-architecture-1-clip-ring-rollout)"/><line x1="612" y1="523" x2="908" y2="523" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)"><tspan x="762" y="558">早期用户环试穿与生产加固</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="579">先内部上手感受再推送早期用户环实测，筛选高价值能</tspan><tspan x="762" y="593.5">力加固推向主干</tspan></text></g><g class="sr-en"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)"><tspan x="762" y="558">Early-Ring Tryout &amp; Production Hardening</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="579">Tests live in early user rings before hardening</tspan><tspan x="762" y="593.5">proven features for GA</tspan></text></g></g><g data-node-id="work-os-customers"><defs><clipPath id="live149-software-factory-architecture-1-clip-work-os-customers"><rect x="1064" y="522" width="320" height="96" rx="13"/></clipPath></defs><rect x="1064" y="522" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="1064" y="522" width="320" height="96" rx="13" fill="var(--fig-role-teal-fill, rgba(13, 143, 140, 0.09))" stroke="var(--fig-role-teal-stroke, rgba(13, 143, 140, 0.46))" stroke-width="1.35"/><rect x="1064" y="522" width="4.5" height="96" fill="var(--fig-role-teal-bar, #0d8f8c)" clip-path="url(#live149-software-factory-architecture-1-clip-work-os-customers)"/><line x1="1076" y1="523" x2="1372" y2="523" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)"><tspan x="1226" y="558">工作操作系统外溢（Markel 等客户）</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="579">将同源底座赋能财务、政务与航运承保（18h 窗口内决</tspan><tspan x="1226" y="593.5">策提速 3 倍+）</tspan></text></g><g class="sr-en"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)"><tspan x="1226" y="549">Operating System for Work (Customer</tspan><tspan x="1226" y="567">Fleet)</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="588">Exports the same platform to finance, gov, and</tspan><tspan x="1226" y="602.5">Markel marine (&lt;18h, 3x+ speed)</tspan></text></g></g><g class="sr-edge-labels"><g class="sr-zh"><rect x="263" y="215" width="66" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="296" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">异常信号</text></g><g class="sr-en"><rect x="252" y="215" width="88" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="296" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Live Signals</text></g><g class="sr-zh"><rect x="425" y="215" width="66" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="458" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">当晚拾取</text></g><g class="sr-en"><rect x="402" y="215" width="113" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="458" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Overnight Pickup</text></g><g class="sr-zh"><rect x="889" y="215" width="66" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="922" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">直接实现</text></g><g class="sr-en"><rect x="883" y="215" width="78" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="922" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Direct PRs</text></g><g class="sr-zh"><rect x="495" y="329" width="66" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="528" y="344" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">确认缺陷</text></g><g class="sr-en"><rect x="478" y="329" width="101" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="528" y="344" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Verified Issue</text></g><g class="sr-zh"><rect x="947" y="329" width="91" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="992" y="344" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">提交候选补丁</text></g><g class="sr-en"><rect x="945" y="329" width="95" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="992" y="344" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Candidate Fix</text></g><g class="sr-zh"><rect x="588" y="429" width="66" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="621" y="444" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">验证通过</text></g><g class="sr-en"><rect x="576" y="429" width="90" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="621" y="444" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Validated PR</text></g><g class="sr-zh"><rect x="495" y="543" width="66" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="528" y="558" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">推入环境</text></g><g class="sr-en"><rect x="482" y="543" width="92" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="528" y="558" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Ship to Rings</text></g><g class="sr-zh"><rect x="953" y="543" width="79" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="992" y="558" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">平台化赋能</text></g><g class="sr-en"><rect x="939" y="543" width="106" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="992" y="558" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Platform Export</text></g></g></svg>
+            <figcaption class="diagram-caption"><span data-zh="图 1：基于 LIVE149 访谈实录还原的自举软件工厂闭环——顶层汇集生产遥测、社区录屏反馈与超半数设计师直提的代码分支；中层由运行在 Copilot Studio 上的数十个专属智能体接力完成夜间复现、补丁编码与自动化验证；底层经人在回路晨间合入与早期用户环实测加固后，同源外溢为赋能百业的工作操作系统 [1][2]。" data-en="Figure 1: Three-plane architecture reconstructed from LIVE149—combining live telemetry, user video reports, and designer PRs on top; orchestrating overnight triage, coding, and validation agents running on Copilot Studio in the middle; and governing human-in-the-loop merges, early-ring hardening, and customer platform export underneath [1][2].">图 1：基于 LIVE149 访谈实录还原的自举软件工厂闭环——顶层汇集生产遥测、社区录屏反馈与超半数设计师直提的代码分支；中层由运行在 Copilot Studio 上的数十个专属智能体接力完成夜间复现、补丁编码与自动化验证；底层经人在回路晨间合入与早期用户环实测加固后，同源外溢为赋能百业的工作操作系统 [1][2]。</span><a href="./media/live149-software-factory-architecture.drawio" download data-zh="下载 .drawio" data-en="Download .drawio">下载 .drawio</a></figcaption>
+          </figure>
+
+          <p data-zh="本场 LIVE149 属于 Microsoft Ignite 2026 官方演播室直击访谈（Broadcast Stage，全长 7 分 40 秒，现场无独立幻灯片附件）[1][2]。下方交互导览台内嵌了微软官方 Medius 点播流、高清视频源直链与完整五幕对话的逐秒时间轴摘要，点击顶部章节标签即可按议题脉络核查原话细节 [1][2]：" data-en="Recorded live on the Microsoft Ignite 2026 Broadcast Stage without a separate slide deck, LIVE149 packs dense organizational and architectural disclosures into a 7-minute-40-second executive dialogue [1][2]. The interactive theater below pairs the official Microsoft Medius stream and HD video feed with five timestamped chapter breakdowns [1][2]:">本场 LIVE149 属于 Microsoft Ignite 2026 官方演播室直击访谈（Broadcast Stage，全长 7 分 40 秒，现场无独立幻灯片附件）[1][2]。下方交互导览台内嵌了微软官方 Medius 点播流、高清视频源直链与完整五幕对话的逐秒时间轴摘要，点击顶部章节标签即可按议题脉络核查原话细节 [1][2]：</p>
+
+          <div id="live149-video-theater" class="sandbox-slot" data-sandbox-slot="live149-video-theater" data-present-step data-present-surface="board" data-step-title="LIVE149 官方演播室点播流与五幕对话时间轴导览台" data-step-title-en="LIVE149 Official Broadcast Stream &amp; Five-Chapter Timestamp Navigator" data-present-title-zh="LIVE149 官方演播室点播流与五幕对话时间轴导览台" data-present-title-en="LIVE149 Official Broadcast Stream &amp; Five-Chapter Timestamp Navigator" data-step-label="01 / Self-Hosting Software Factory" data-step-label-en="01 / Self-Hosting Software Factory" data-present-i18n-invariant="label">
+            <div class="sandbox-header">
+              <div class="sandbox-title-group">
+                <span class="comparison-label" data-zh="纯静态交互沙盒" data-en="Static Interactive Sandbox">纯静态交互沙盒</span>
+                <h3 data-zh="LIVE149 官方演播室点播流与五幕对话时间轴导览台" data-en="LIVE149 Official Broadcast Stream &amp; Five-Chapter Timestamp Navigator">LIVE149 官方演播室点播流与五幕对话时间轴导览台</h3>
+                <p data-zh="切换自举软件工厂、设计师直提 PR、24 小时夜间修复闭环、爬坡转型建议与 Markel 航运险案例五幕实录，一键加载官方点播播放器。" data-en="Switch across the Software Factory, Designer PRs, 24-Hour Fix Loop, Hill-Climbing Advice, and Markel Marine Case chapters or launch the official Medius player.">切换自举软件工厂、设计师直提 PR、24 小时夜间修复闭环、爬坡转型建议与 Markel 航运险案例五幕实录，一键加载官方点播播放器。</p>
+              </div>
+              <div class="sandbox-controls" data-sandbox-controls="live149-video-theater"></div>
+            </div>
+            <div class="sandbox-stage" data-sandbox-stage="live149-video-theater">
+
+            </div>
+          </div>
+        </section>
+
+        <section id="bottleneck-inversion" class="section" data-reveal data-present-title-zh="当编码不再是最慢瓶颈：告别静态平面稿，超半数设计师直提生产 PR" data-present-title-en="When Coding Stops Being the Bottleneck: Skipping Flat Mockups as Over Half of Designers Merge PRs">
+          <div class="section-head">
+            <p class="section-kicker">02 / Bottleneck Inversion &amp; Role Shift</p>
+            <h2 data-zh="2. 当编码不再是最慢瓶颈：告别静态平面稿，超半数设计师直提生产 PR" data-en="2. When Coding Stops Being the Bottleneck: Skipping Flat Mockups as Over Half of Designers Merge PRs">2. 当编码不再是最慢瓶颈：告别静态平面稿，超半数设计师直提生产 PR</h2>
+            <p data-zh="为什么引入智能体之后，连人类团队的创意与规划机制都发生了剧变？Ryan Cunningham 指出了过去几十年软件工程默认遵循的一条隐性假设：&lt;strong&gt;传统研发规划之所以沉重，是因为大家都默认“把代码写出来”是最难、最慢的那一步&lt;/strong&gt; [1]。正因为写代码贵且慢，团队在动工前不得不花费数周时间组织焦点小组（Focus Grouping）、反复拉通排期，并绘制大量静态平面设计稿（Flat-File Designing）来提前规避返工风险 [1]。" data-en="Why did adding agents radically alter how human product teams plan and ideate? Ryan Cunningham pinpointed the hidden premise underneath decades of software management: &lt;strong&gt;legacy creative and planning rituals were built around the assumption that writing the code was the hardest, slowest part&lt;/strong&gt; [1]. Because implementation was expensive, teams spent weeks scheduling focus groups and polishing static flat-file mockups before anyone wrote a line of production logic [1].">为什么引入智能体之后，连人类团队的创意与规划机制都发生了剧变？Ryan Cunningham 指出了过去几十年软件工程默认遵循的一条隐性假设：<strong>传统研发规划之所以沉重，是因为大家都默认“把代码写出来”是最难、最慢的那一步</strong> [1]。正因为写代码贵且慢，团队在动工前不得不花费数周时间组织焦点小组（Focus Grouping）、反复拉通排期，并绘制大量静态平面设计稿（Flat-File Designing）来提前规避返工风险 [1]。</p>
+          </div>
+
+          <p data-zh="一旦软件工厂接管了繁重的编码实现，这条约束前提便被彻底反转 [1]。团队不再需要围着静态画布空谈数周，而是第一时间把想法直接做成可交互的真实功能，先在内部亲手试穿感受（Try them on ourselves），紧接着推送给早期用户环（Early Rings of Users）收集真实生产反馈，最后筛选出真正站得住脚的能力做工程加固并推向全量主流生产环境 [1][3]。这种即时实现机制直接打破了职能墙——Ryan 在访谈现场披露，&lt;strong&gt;Copilot Studio 团队中已有超过一半（&amp;gt;50%）的设计师亲手提交了代码拉取请求（Pull Request），且其中大批改动已正式合入生产主干&lt;/strong&gt; [1]。" data-en="Once the software factory absorbed implementation friction, that constraint inverted [1]. Instead of debating static mockups for weeks, makers implement working features immediately, try them on internally, test them with early rings of users, and then harden proven winners for mainstream production [1][3]. That immediacy dissolved traditional role boundaries: &lt;strong&gt;more than half of the designers on Copilot Studio have submitted pull requests, with many merged directly into production&lt;/strong&gt; [1].">一旦软件工厂接管了繁重的编码实现，这条约束前提便被彻底反转 [1]。团队不再需要围着静态画布空谈数周，而是第一时间把想法直接做成可交互的真实功能，先在内部亲手试穿感受（Try them on ourselves），紧接着推送给早期用户环（Early Rings of Users）收集真实生产反馈，最后筛选出真正站得住脚的能力做工程加固并推向全量主流生产环境 [1][3]。这种即时实现机制直接打破了职能墙——Ryan 在访谈现场披露，<strong>Copilot Studio 团队中已有超过一半（&gt;50%）的设计师亲手提交了代码拉取请求（Pull Request），且其中大批改动已正式合入生产主干</strong> [1]。</p>
+<div class="live149-media-grid">
+  <article class="live149-media-card" data-present-surface="unframed">
+    <div class="live149-media-frame">
+      <img src="./media/live149-broadcast-stage.jpg" alt="Microsoft Ignite 2026 LIVE149 Broadcast Stage capture showing Lauren Soni and Ryan Cunningham opening the conversation on building Copilot Studio with agents" loading="lazy" />
+    </div>
+    <div class="live149-media-body">
+      <span class="live149-media-badge" data-zh="LIVE149 官方实录关键帧 · 00:18" data-en="LIVE149 Broadcast Frame · 00:18">LIVE149 官方实录关键帧 · 00:18</span>
+      <h4 data-zh="演播室对话：AI 如何同时改写产品与造产品的方式" data-en="Broadcast Dialogue: How AI Reshapes Both the Product and How It Is Built">演播室对话：AI 如何同时改写产品与造产品的方式</h4>
+      <p data-zh="Lauren Soni 与 Ryan Cunningham 从工程组织视角切入，剖析数十个智能体如何在 Copilot Studio 自身之上协同运转 [1][2]。" data-en="Lauren Soni and Ryan Cunningham examine how dozens of role-scoped agents collaborate on top of Copilot Studio itself [1][2].">Lauren Soni 与 Ryan Cunningham 从工程组织视角切入，剖析数十个智能体如何在 Copilot Studio 自身之上协同运转 [1][2]。</p>
+    </div>
+  </article>
+  <article class="live149-media-card" data-present-surface="unframed">
+    <div class="live149-media-frame">
+      <img src="./media/live149-fireside-systems-dialogue.jpg" alt="Microsoft Ignite 2026 LIVE149 Broadcast Stage capture showing Lauren Soni and Ryan Cunningham discussing cross-functional lifecycle changes and system transformation" loading="lazy" />
+    </div>
+    <div class="live149-media-body">
+      <span class="live149-media-badge" data-zh="LIVE149 官方实录关键帧 · 跨职能协同" data-en="LIVE149 Broadcast Frame · Cross-Role Shift">LIVE149 官方实录关键帧 · 跨职能协同</span>
+      <h4 data-zh="跨出研发与设计边界：全角色卷入快速实验内环" data-en="Beyond Engineering & Design: Pulling Every Role Into Live Experimentation">跨出研发与设计边界：全角色卷入快速实验内环</h4>
+      <p data-zh="超过半数设计师直接向代码库提交拉取请求，外部真实客户也通过自动化反馈流成为产品迭代的直接参与者 [1]。" data-en="Over half of designers submit production PRs while external customers become active participants in daily product iteration [1].">超过半数设计师直接向代码库提交拉取请求，外部真实客户也通过自动化反馈流成为产品迭代的直接参与者 [1]。</p>
+    </div>
+  </article>
+</div>
+        </section>
+
+        <section id="overnight-customer-loop" class="section" data-reveal data-present-title-zh="把外部用户拉进创新内环：从 LinkedIn 抱怨录屏到 24 小时合入上线" data-present-title-en="Customers Inside the Innovation Loop: From a Frustrated LinkedIn Video to Merged Fix in 24 Hours">
+          <div class="section-head">
+            <p class="section-kicker">03 / The 24-Hour Customer Loop</p>
+            <h2 data-zh="3. 把外部用户拉进创新内环：从 LinkedIn 抱怨录屏到 24 小时合入上线" data-en="3. Customers Inside the Innovation Loop: From a Frustrated LinkedIn Video to Merged Fix in 24 Hours">3. 把外部用户拉进创新内环：从 LinkedIn 抱怨录屏到 24 小时合入上线</h2>
+            <p data-zh="除了内部设计师与工程师的角色融合，最令团队振奋的变化在于&lt;strong&gt;外部客户与终端用户真正成为了日常研发循环的一部分&lt;/strong&gt; [1]。Ryan Cunningham 分享了就在 Ignite 大会前一周刚刚发生的真实案例：一位用户在尝试用 Copilot Studio 搭建某项功能时卡壳受挫，一气之下在 LinkedIn 上发了一篇长文，还专门录制了一段复现操作视频吐槽这项体验缺陷 [1]。" data-en="Beyond internal role convergence between designers and engineers, the most energizing shift is how &lt;strong&gt;external customers and end users now participate directly in the engineering loop&lt;/strong&gt; [1]. Ryan Cunningham recounted an incident from just one week before Ignite: a user trying to accomplish a task in Copilot Studio hit a wall, grew frustrated, and published a lengthy LinkedIn post complete with a screen-recorded video demonstrating the failure [1].">除了内部设计师与工程师的角色融合，最令团队振奋的变化在于<strong>外部客户与终端用户真正成为了日常研发循环的一部分</strong> [1]。Ryan Cunningham 分享了就在 Ignite 大会前一周刚刚发生的真实案例：一位用户在尝试用 Copilot Studio 搭建某项功能时卡壳受挫，一气之下在 LinkedIn 上发了一篇长文，还专门录制了一段复现操作视频吐槽这项体验缺陷 [1]。</p>
+          </div>
+
+          <p data-zh="放在传统大型软件企业的工单流转体系里，这类社交媒体抱怨往往要经历公关收集、产品经理建单、双周排期评审与下月发版等漫长环节；但在 Copilot Studio 的智能体软件工厂中，这则细节详尽的视频反而成了最佳燃料——整个闭环在 &lt;strong&gt;24 小时之内&lt;/strong&gt;即告完结 [1]：" data-en="In a conventional enterprise backlog, a social-media complaint might wait weeks for triage, sprint planning, and monthly release trains. Inside Copilot Studio's software factory, that detailed video acted as an immediate specification—closing the entire loop in &lt;strong&gt;24 hours&lt;/strong&gt; [1]:">放在传统大型软件企业的工单流转体系里，这类社交媒体抱怨往往要经历公关收集、产品经理建单、双周排期评审与下月发版等漫长环节；但在 Copilot Studio 的智能体软件工厂中，这则细节详尽的视频反而成了最佳燃料——整个闭环在 <strong>24 小时之内</strong>即告完结 [1]：</p>
+
+          <ol class="flow-list" data-present-step data-present-surface="unframed" data-step-title="LIVE149 真实案例还原：24 小时夜间智能体修复与人在回路合入流水线" data-step-title-en="Reconstructed LIVE149 Case: 24-Hour Overnight Agent Fix &amp; Human-in-the-Loop Merge" data-present-title-zh="LIVE149 真实案例还原：24 小时夜间智能体修复与人在回路合入流水线" data-present-title-en="Reconstructed LIVE149 Case: 24-Hour Overnight Agent Fix &amp; Human-in-the-Loop Merge" data-step-label="03 / The 24-Hour Customer Loop" data-step-label-en="03 / The 24-Hour Customer Loop" data-present-i18n-invariant="label">
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="高保真痛点捕获（Day 1 晚间）" data-en="Detailed User Signal Capture (Evening)">高保真痛点捕获（Day 1 晚间）</strong>
+                <p data-zh="用户在 Copilot Studio 操作受阻后于 LinkedIn 发布长篇复盘与完整录屏，软件工厂的外部反馈倾听智能体当晚自动拾取该线索 [1]。" data-en="After getting stuck in Copilot Studio, a user posts a detailed write-up and video on LinkedIn; a feedback-listening agent picks it up that same night [1].">用户在 Copilot Studio 操作受阻后于 LinkedIn 发布长篇复盘与完整录屏，软件工厂的外部反馈倾听智能体当晚自动拾取该线索 [1]。</p>
+              </div>
+            </li>
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="独立复现与真伪核验（Overnight Validate）" data-en="Autonomous Issue Validation (Overnight)">独立复现与真伪核验（Overnight Validate）</strong>
+                <p data-zh="诊断智能体连夜对视频描述的路径展开自动化验证，独立确认这并非误操作，而是一处真实存在的产品缺陷 [1]。" data-en="Overnight, the agent checks the reported workflow against the live build and validates that the issue is a legitimate product defect [1].">诊断智能体连夜对视频描述的路径展开自动化验证，独立确认这并非误操作，而是一处真实存在的产品缺陷 [1]。</p>
+              </div>
+            </li>
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="夜间自动编码补丁（Overnight Code Fix）" data-en="Automated Patch Authoring (Overnight)">夜间自动编码补丁（Overnight Code Fix）</strong>
+                <p data-zh="代码改进智能体随即针对确认的根因自动编写修复补丁并跑通验证套件，在工程师清晨上班前备好候选分支 [1]。" data-en="Coding and validation agents author the fix and verify the candidate branch before morning stand-up [1].">代码改进智能体随即针对确认的根因自动编写修复补丁并跑通验证套件，在工程师清晨上班前备好候选分支 [1]。</p>
+              </div>
+            </li>
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="人在回路晨间合入（Morning HITL Merge）" data-en="Human-in-the-Loop Morning Merge (Morning)">人在回路晨间合入（Morning HITL Merge）</strong>
+                <p data-zh="研发团队保留严格的人在回路（Human in the Loop）把关机制，工程师在第二天早晨完成代码审查并将补丁正式合入主干 [1]。" data-en="Keeping a human in the loop for engineering judgment and safety, the team reviews and merges the fix into production in the morning [1].">研发团队保留严格的人在回路（Human in the Loop）把关机制，工程师在第二天早晨完成代码审查并将补丁正式合入主干 [1]。</p>
+              </div>
+            </li>
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="24 小时内主动回访（24h Customer Closure）" data-en="24-Hour Customer Notification (&amp;lt;24h)">24 小时内主动回访（24h Customer Closure）</strong>
+                <p data-zh="距离原帖发出不到 24 小时，团队已主动回复该用户：“非常感谢你的详细报告，问题已经修好，补丁正在推往你的环境途中” [1]。" data-en="Within 24 hours of the original post, the team replies to the user confirming the bug is fixed and already rolling out to their environment [1].">距离原帖发出不到 24 小时，团队已主动回复该用户：“非常感谢你的详细报告，问题已经修好，补丁正在推往你的环境途中” [1]。</p>
+              </div>
+            </li>
+          </ol>
+        </section>
+
+        <section id="hill-climbing-leadership" class="section" data-reveal data-present-title-zh="给技术领导者的转型法则：先下水试游，重设约束指标持续“爬坡”" data-present-title-en="Leadership Playbook: Get in the Pool, Unlearn Legacy Timelines, and Hill-Climb New Constraints">
+          <div class="section-head">
+            <p class="section-kicker">04 / Resetting Constraints &amp; Ambitions</p>
+            <h2 data-zh="4. 给技术领导者的转型法则：先下水试游，重设约束指标持续“爬坡”" data-en="4. Leadership Playbook: Get in the Pool, Unlearn Legacy Timelines, and Hill-Climb New Constraints">4. 给技术领导者的转型法则：先下水试游，重设约束指标持续“爬坡”</h2>
+            <p data-zh="当被问及团队在切换至智能体工作模式后最大的意外与教训是什么时，Ryan Cunningham 给出的关键词是**“反学习与再学习（Unlearn and Relearn）”** [1]。研发组织脑海中根深蒂固地刻着一套旧时钟——某类特性“理应耗费几个季度”、某项重构“注定有多高的门槛” [1]。技术深水区的硬骨头依然存在，但如果团队不主动打破旧约束、调高目标野心，就会用旧时代的排期惯性限制新时代的工具产能 [1]。" data-en="Asked about the biggest lesson learned from working alongside an agent fleet, Ryan Cunningham emphasized &lt;strong&gt;unlearning and relearning&lt;/strong&gt; [1]. Engineering organizations carry deeply ingrained expectations about how many weeks a feature is supposed to take or how hard an integration ought to be [1]. Hard engineering problems remain, yet teams cannot move dramatically faster unless they deliberately reset both their constraints and their ambitions [1].">当被问及团队在切换至智能体工作模式后最大的意外与教训是什么时，Ryan Cunningham 给出的关键词是**“反学习与再学习（Unlearn and Relearn）”** [1]。研发组织脑海中根深蒂固地刻着一套旧时钟——某类特性“理应耗费几个季度”、某项重构“注定有多高的门槛” [1]。技术深水区的硬骨头依然存在，但如果团队不主动打破旧约束、调高目标野心，就会用旧时代的排期惯性限制新时代的工具产能 [1]。</p>
+          </div>
+
+          <p data-zh="针对现场与线上希望推动同类转型的产品与工程高管，Ryan 提炼出两步务实行动纲领：第一步是**“立刻下水，别等完美（Just start—get in the pool）”&lt;strong&gt;——仅靠刷社交媒体动态或看发布会转播永远学不会游泳，组织必须迈出信念一步，亲手在真实业务池里试水犯错 [1]；第二步则是&lt;/strong&gt;拒绝形式主义伪转型**——成为 AI 转型组织绝不等于“上线一个聊天机器人、调用一下大语言模型，或者单纯烧掉一笔词元额度（Burning a token meter）”，而是要确立清晰的全局靶标，像训练强化学习模型那样围绕核心指标反复实验“爬坡（Climb the hill）” [1]：" data-en="For product and technology leaders looking to replicate this operating model, Ryan distilled a two-part playbook. First, &lt;strong&gt;start before it feels ready&lt;/strong&gt;: nobody learns to swim without getting wet, and passively scrolling social feeds cannot substitute for hands-on experimentation [1]. Second, &lt;strong&gt;reject superficial AI theater&lt;/strong&gt;: transformation is never about shipping a chatbot, calling an LLM, or burning a token meter—it requires setting concrete constraint-breaking goals and iterating against them (“climbing the hill”) [1]:">针对现场与线上希望推动同类转型的产品与工程高管，Ryan 提炼出两步务实行动纲领：第一步是**“立刻下水，别等完美（Just start—get in the pool）”<strong>——仅靠刷社交媒体动态或看发布会转播永远学不会游泳，组织必须迈出信念一步，亲手在真实业务池里试水犯错 [1]；第二步则是</strong>拒绝形式主义伪转型**——成为 AI 转型组织绝不等于“上线一个聊天机器人、调用一下大语言模型，或者单纯烧掉一笔词元额度（Burning a token meter）”，而是要确立清晰的全局靶标，像训练强化学习模型那样围绕核心指标反复实验“爬坡（Climb the hill）” [1]：</p>
+
+          <div class="insight-grid insight-grid-3" data-present-step data-present-surface="unframed" data-step-title="LIVE149 提出的三大组织级“约束重塑（Constraint-Reset）”爬坡靶标" data-step-title-en="Three Organizational Hill-Climbing Targets Highlighted in LIVE149" data-present-title-zh="LIVE149 提出的三大组织级“约束重塑（Constraint-Reset）”爬坡靶标" data-present-title-en="Three Organizational Hill-Climbing Targets Highlighted in LIVE149" data-step-label="04 / Resetting Constraints &amp; Ambitions" data-step-label-en="04 / Resetting Constraints &amp; Ambitions" data-present-i18n-invariant="label">
+            <article class="insight-card">
+              <span class="card-index">01</span>
+              <h3 data-zh="核心主业能力翻倍（2× Core Excellence）" data-en="Be Twice as Good at the Core Thing">核心主业能力翻倍（2× Core Excellence）</h3>
+              <p data-zh="追问组织赖以生存的核心职能若性能与吞吐提升至原来的 2 倍意味着什么，围绕主航道重构端到端系统而非修补边角料 [1]。" data-en="Ask what it truly takes to become twice as good at your organization's core value engine rather than automating isolated side tasks [1].">追问组织赖以生存的核心职能若性能与吞吐提升至原来的 2 倍意味着什么，围绕主航道重构端到端系统而非修补边角料 [1]。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">02</span>
+              <h3 data-zh="测试预算减半但覆盖率翻倍" data-en="Cut Test Budget, Double Coverage">测试预算减半但覆盖率翻倍</h3>
+              <p data-zh="打破质量与成本零和博弈的旧假设，利用验证智能体与自动化回归流同步实现测试投入压降与 2× 测试覆盖率跃升 [1]。" data-en="Break legacy QA trade-offs by pairing validation agents with deterministic suites to cut testing spend while doubling coverage [1].">打破质量与成本零和博弈的旧假设，利用验证智能体与自动化回归流同步实现测试投入压降与 2× 测试覆盖率跃升 [1]。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">03</span>
+              <h3 data-zh="极速压缩客户价值实现时间" data-en="Radically Faster Time to Value">极速压缩客户价值实现时间</h3>
+              <p data-zh="将内部原型验证、缺陷修复与客户业务交付周期压缩一个数量级，通过高频实测快速收敛至可规模化推广的生产方案 [1]。" data-en="Collapse time-to-clarity and time-to-value for customers through rapid early-ring iteration and overnight feedback loops [1].">将内部原型验证、缺陷修复与客户业务交付周期压缩一个数量级，通过高频实测快速收敛至可规模化推广的生产方案 [1]。</p>
+            </article>
+          </div>
+
+          <figure class="sr-figure generated-diagram is-inline-svg" data-present-step data-present-surface="unframed" data-step-title="LIVE149 核心工程与客户成效量化对比：从研发内环到海事核保" data-step-title-en="LIVE149 Verified Engineering &amp; Customer Constraint Shifts" data-present-title-zh="LIVE149 核心工程与客户成效量化对比：从研发内环到海事核保" data-present-title-en="LIVE149 Verified Engineering &amp; Customer Constraint Shifts" data-step-label="04 / Resetting Constraints &amp; Ambitions" data-step-label-en="04 / Resetting Constraints &amp; Ambitions" data-present-i18n-invariant="label">
+            <svg class="sr-figure-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 450" role="img" aria-labelledby="live149-constraint-shifts-2-title live149-constraint-shifts-2-desc"><title id="live149-constraint-shifts-2-title">LIVE149 披露的工程与业务约束重塑量化指标（归一化对比）</title><desc id="live149-constraint-shifts-2-desc">Horizontal bar chart with 5 items</desc><text class="sr-zh" x="36" y="32" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="18" font-weight="700" fill="var(--fig-text-strong, #172430)">LIVE149 披露的工程与业务约束重塑量化指标（归一化对比）</text><text class="sr-en" x="36" y="32" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="18" font-weight="700" fill="var(--fig-text-strong, #172430)">Engineering &amp; Business Constraint Shifts Disclosed in LIVE149</text><text class="sr-zh" x="36" y="54" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">汇总 Ryan Cunningham 在访谈中给出的真实团队参与率、24 小时夜间修复闭环、爬坡测试目标与 Markel 航运险决策提速数据</text><text class="sr-en" x="36" y="54" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">Verified figures from Ryan Cunningham covering designer PR participation, 24h overnight turnaround, test coverage targets, and Markel marine underwriting</text><g class="sr-chart-legend"><g transform="translate(770,78)"><rect x="0" y="1" width="10" height="10" rx="3" fill="var(--fig-series-2, #0d8f8c)"/><text class="sr-zh" x="16" y="10" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">LIVE149 智能体工厂实效与目标</text><text class="sr-en" x="16" y="10" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">LIVE149 Agentic Factory Outcome / Target</text></g><g transform="translate(550,78)"><rect x="0" y="1" width="10" height="10" rx="3" fill="var(--fig-series-1, #ea580c)"/><text class="sr-zh" x="16" y="10" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">传统软件研发 / 传统业务基线</text><text class="sr-en" x="16" y="10" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Pre-Agentic / Legacy Baseline</text></g></g><line x1="290" y1="106" x2="290" y2="396" stroke="var(--fig-axis-line, rgba(23,36,48,0.24))" stroke-width="1"/><text class="sr-figure-num" x="290" y="418" text-anchor="middle" font-size="11.5" fill="var(--fig-text-subtle, #64748b)">0</text><line x1="435" y1="106" x2="435" y2="396" stroke="var(--fig-grid-line, rgba(23,36,48,0.09))" stroke-width="1" stroke-dasharray="4 4"/><text class="sr-figure-num" x="435" y="418" text-anchor="middle" font-size="11.5" fill="var(--fig-text-subtle, #64748b)">87.5</text><line x1="580" y1="106" x2="580" y2="396" stroke="var(--fig-grid-line, rgba(23,36,48,0.09))" stroke-width="1" stroke-dasharray="4 4"/><text class="sr-figure-num" x="580" y="418" text-anchor="middle" font-size="11.5" fill="var(--fig-text-subtle, #64748b)">175</text><line x1="725" y1="106" x2="725" y2="396" stroke="var(--fig-grid-line, rgba(23,36,48,0.09))" stroke-width="1" stroke-dasharray="4 4"/><text class="sr-figure-num" x="725" y="418" text-anchor="middle" font-size="11.5" fill="var(--fig-text-subtle, #64748b)">262.5</text><line x1="870" y1="106" x2="870" y2="396" stroke="var(--fig-grid-line, rgba(23,36,48,0.09))" stroke-width="1" stroke-dasharray="4 4"/><text class="sr-figure-num" x="870" y="418" text-anchor="middle" font-size="11.5" fill="var(--fig-text-subtle, #64748b)">350%</text><text class="sr-zh" x="276" y="139" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">设计师提交代码 PR 占比</text><text class="sr-en" x="276" y="139" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">Designers Submitting Code PRs</text><rect x="290" y="116" width="8" height="17" rx="6" fill="var(--fig-role-slate-bar, #64748b)" fill-opacity="0.88"/><text x="308" y="129" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">5%</text><rect x="290" y="137" width="83" height="17" rx="6" fill="var(--fig-role-violet-bar, #7c3aed)" fill-opacity="0.88"/><text class="sr-zh" x="383" y="150" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">&gt;50%（超半数设计师直提 PR 并合入生产）</text><text class="sr-en" x="383" y="150" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">&gt;50% (Half+ merged PRs to prod)</text><text class="sr-zh" x="276" y="197" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">转型爬坡目标：测试预算控制</text><text class="sr-en" x="276" y="197" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">Hill-Climb Goal: Testing Budget</text><rect x="290" y="174" width="166" height="17" rx="6" fill="var(--fig-role-slate-bar, #64748b)" fill-opacity="0.88"/><text x="466" y="187" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">100%</text><rect x="290" y="195" width="83" height="17" rx="6" fill="var(--fig-role-amber-bar, #d97706)" fill-opacity="0.88"/><text class="sr-zh" x="383" y="208" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">~50%（削减测试预算并同步提升覆盖）</text><text class="sr-en" x="383" y="208" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">Cut testing budget while scaling QA</text><text class="sr-zh" x="276" y="255" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">LinkedIn 反馈闭环修复周期</text><text class="sr-en" x="276" y="255" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">LinkedIn Bug-to-Fix Turnaround</text><rect x="290" y="232" width="166" height="17" rx="6" fill="var(--fig-role-slate-bar, #64748b)" fill-opacity="0.88"/><text x="466" y="245" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">100%</text><rect x="290" y="253" width="24" height="17" rx="6" fill="var(--fig-role-teal-bar, #0d8f8c)" fill-opacity="0.88"/><text class="sr-zh" x="324" y="266" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">24 小时内（对比数周排期压缩逾 85%）</text><text class="sr-en" x="324" y="266" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">≤24h loop (Overnight fix &amp; merge)</text><text class="sr-zh" x="276" y="313" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">转型爬坡目标：测试覆盖率翻倍</text><text class="sr-en" x="276" y="313" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">Hill-Climb Goal: Test Coverage</text><rect x="290" y="290" width="166" height="17" rx="6" fill="var(--fig-role-slate-bar, #64748b)" fill-opacity="0.88"/><text x="466" y="303" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">100%</text><rect x="290" y="311" width="331" height="17" rx="6" fill="var(--fig-role-blue-bar, #2563eb)" fill-opacity="0.88"/><text class="sr-zh" x="631" y="324" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">200%（2× 测试覆盖率爬坡基准）</text><text class="sr-en" x="631" y="324" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">200% (2x test coverage benchmark)</text><text class="sr-zh" x="276" y="371" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">Markel 航运险核保决策速度</text><text class="sr-en" x="276" y="371" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">Markel Marine Decision Velocity</text><rect x="290" y="348" width="166" height="17" rx="6" fill="var(--fig-role-slate-bar, #64748b)" fill-opacity="0.88"/><text x="466" y="361" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">100%</text><rect x="290" y="369" width="497" height="17" rx="6" fill="var(--fig-role-accent-bar, #ea580c)" fill-opacity="0.88"/><text class="sr-zh" x="797" y="382" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">≥300%（&lt;18h 窗口内决策提速 3 倍以上）</text><text class="sr-en" x="797" y="382" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">300%+ (3x+ faster in &lt;18h window)</text><text class="sr-zh" x="580" y="442" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">相对传统基线比例 / 参与度百分比（基线 = 100%）</text><text class="sr-en" x="580" y="442" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Relative Factor vs. Traditional Baseline / Team Share (Baseline = 100%)</text></svg>
+            <figcaption class="diagram-caption"><span data-zh="图 2：汇总 LIVE149 访谈实录中的五组关键量化基准——涵盖内部超过 50% 设计师直提生产 PR、24 小时内闭环社区录屏缺陷、削减测试预算同时实现 200%（2×）测试覆盖率的爬坡法则，以及外部特种保险商 Markel 在不足 18 小时窗口内达成 300%+（3× 以上）的核保决策提速 [1]。" data-en="Figure 2: Quantitative benchmarks disclosed in LIVE149—spanning &amp;gt;50% designer PR participation, ≤24-hour social bug resolution, the hill-climbing target of cutting test budget while hitting 200% (2x) test coverage, and Markel's 300%+ (3x+) marine underwriting velocity under an 18-hour lead time [1].">图 2：汇总 LIVE149 访谈实录中的五组关键量化基准——涵盖内部超过 50% 设计师直提生产 PR、24 小时内闭环社区录屏缺陷、削减测试预算同时实现 200%（2×）测试覆盖率的爬坡法则，以及外部特种保险商 Markel 在不足 18 小时窗口内达成 300%+（3× 以上）的核保决策提速 [1]。</span></figcaption>
+          </figure>
+        </section>
+
+        <section id="markel-and-work-os" class="section" data-reveal data-present-title-zh="从个人提效走向系统再造：Markel 海事保险 18 小时窗口内的 3 倍决策跃升" data-present-title-en="Operating System for Work: Markel Marine's 3x+ Underwriting Velocity and Rewriting Backend Systems">
+          <div class="section-head">
+            <p class="section-kicker">05 / Operating System for Work &amp; Markel Case</p>
+            <h2 data-zh="5. 从个人提效走向系统再造：Markel 海事保险 18 小时窗口内的 3 倍决策跃升" data-en="5. Operating System for Work: Markel Marine's 3x+ Underwriting Velocity and Rewriting Backend Systems">5. 从个人提效走向系统再造：Markel 海事保险 18 小时窗口内的 3 倍决策跃升</h2>
+            <p data-zh="微软在 Copilot Studio 内部跑通智能体软件工厂的终极目的，并非只为加速自身研发，而是将 Copilot 底下那层抽象工程底座开放出来，打造成为支撑千行百业的&lt;strong&gt;工作操作系统（Operating System for Work）&lt;/strong&gt;——让财务部门、政府公共服务机构乃至特种金融企业都能复刻同等级别的流程再造 [1][3]。" data-en="Microsoft's goal in building this internal software factory is not merely shipping its own code faster, but exposing the abstract platform underneath Copilot as an &lt;strong&gt;operating system for work&lt;/strong&gt;—empowering finance departments, government agencies, and specialized enterprises to run the exact same innovation loop [1][3].">微软在 Copilot Studio 内部跑通智能体软件工厂的终极目的，并非只为加速自身研发，而是将 Copilot 底下那层抽象工程底座开放出来，打造成为支撑千行百业的<strong>工作操作系统（Operating System for Work）</strong>——让财务部门、政府公共服务机构乃至特种金融企业都能复刻同等级别的流程再造 [1][3]。</p>
+          </div>
+
+          <p data-zh="Ryan Cunningham 在访谈后半段重点剖析了特种保险集团 &lt;strong&gt;Markel&lt;/strong&gt; 海事保险部门（Marine Insurance Division）的标杆实践 [1]。不同于常规车险或家财险，当一艘远洋货轮准备驶入地球上最危险的高风险海域时，船东找的正是 Markel 来为整段航次承保 [1]。核保团队必须穿透极为复杂的海事风险评估、船货价值测算与条款定价流程，而且&lt;strong&gt;往往只有不到 18 小时的准备窗口（Lead Time）就必须给出承保结论&lt;/strong&gt; [1]。借助 Copilot Studio 重构这套高复杂度核保工作流后，Markel 成功将&lt;strong&gt;达成高质量承保决策的速度提升了 3 倍甚至更多（3×+）&lt;/strong&gt;——对急等起航的船东客户而言，这意味着快 3 倍获得明确保障（3× faster time to clarity）；对 Markel 核心业务部门而言，这绝非抠省一点零碎人工成本，而是直接在主营航道上撬动 3 倍的业务承载丰裕度（3× more business）[1]。" data-en="Illustrating what happens when enterprises apply this platform to high-stakes operations, Ryan highlighted specialty insurer &lt;strong&gt;Markel&lt;/strong&gt; and its &lt;strong&gt;marine insurance division&lt;/strong&gt; [1]. Unlike standard consumer policies, Markel underwrites cargo ships preparing to sail through some of the most dangerous waters on Earth—a complex risk-and-valuation process where underwriters sometimes have &lt;strong&gt;less than 18 hours of lead time&lt;/strong&gt; to turn a quote around [1]. Using Copilot Studio, Markel &lt;strong&gt;tripled or more (3x+) the velocity at which it reaches sound underwriting decisions&lt;/strong&gt;—unlocking three times faster clarity for shipping clients and three times greater throughput in a core revenue function rather than mere incremental cost savings [1].">Ryan Cunningham 在访谈后半段重点剖析了特种保险集团 <strong>Markel</strong> 海事保险部门（Marine Insurance Division）的标杆实践 [1]。不同于常规车险或家财险，当一艘远洋货轮准备驶入地球上最危险的高风险海域时，船东找的正是 Markel 来为整段航次承保 [1]。核保团队必须穿透极为复杂的海事风险评估、船货价值测算与条款定价流程，而且<strong>往往只有不到 18 小时的准备窗口（Lead Time）就必须给出承保结论</strong> [1]。借助 Copilot Studio 重构这套高复杂度核保工作流后，Markel 成功将<strong>达成高质量承保决策的速度提升了 3 倍甚至更多（3×+）</strong>——对急等起航的船东客户而言，这意味着快 3 倍获得明确保障（3× faster time to clarity）；对 Markel 核心业务部门而言，这绝非抠省一点零碎人工成本，而是直接在主营航道上撬动 3 倍的业务承载丰裕度（3× more business）[1]。</p>
+<div class="live149-media-grid is-single">
+  <article class="live149-media-card" data-present-surface="unframed">
+    <div class="live149-media-frame">
+      <img src="./media/live149-ryan-markel-voyage.jpg" alt="Microsoft Ignite 2026 LIVE149 Broadcast Stage capture of Ryan Cunningham detailing how specialty insurer Markel tripled marine voyage underwriting decision velocity in under 18 hours" loading="lazy" />
+    </div>
+    <div class="live149-media-body">
+      <span class="live149-media-badge" data-zh="LIVE149 官方实录关键帧 · 06:15 Markel 案例" data-en="LIVE149 Broadcast Frame · 06:15 Markel Case">LIVE149 官方实录关键帧 · 06:15 Markel 案例</span>
+      <h4 data-zh="Markel 海事航运险：在不足 18 小时极限交期内实现 3 倍以上高质量核保决策" data-en="Markel Marine Insurance: 3x+ Faster High-Stakes Voyage Decisions Under an 18-Hour Lead Time">Markel 海事航运险：在不足 18 小时极限交期内实现 3 倍以上高质量核保决策</h4>
+      <p data-zh="Ryan Cunningham 阐释丰裕型 AI 价值：不仅压缩耗时，更让客户获取保障确定性的速度加快 3 倍，并释放核心核保团队 3 倍业务吞吐潜力 [1]。" data-en="Ryan Cunningham frames the abundance opportunity: 3x faster clarity for cargo voyage customers and 3x capacity in a core underwriting function [1].">Ryan Cunningham 阐释丰裕型 AI 价值：不仅压缩耗时，更让客户获取保障确定性的速度加快 3 倍，并释放核心核保团队 3 倍业务吞吐潜力 [1]。</p>
+    </div>
+  </article>
+</div>
+<div class="compare-table-wrap" data-present-step data-present-surface="unframed" data-step-title="从个人提效走向系统再造：Markel 海事保险 18 小时窗口内的 3 倍决策跃升：对比矩阵" data-step-title-en="Operating System for Work: Markel Marine's 3x+ Underwriting Velocity and Rewriting Backend Systems: Comparison Matrix" data-present-title-zh="从个人提效走向系统再造：Markel 海事保险 18 小时窗口内的 3 倍决策跃升：对比矩阵" data-present-title-en="Operating System for Work: Markel Marine's 3x+ Underwriting Velocity and Rewriting Backend Systems: Comparison Matrix" data-step-label="05 / Operating System for Work &amp; Markel Case" data-step-label-en="05 / Operating System for Work &amp; Markel Case" data-present-i18n-invariant="label"><table class="simple-table compare-table">
+<thead>
+<tr>
+<th data-zh="转型维度" data-en="Transformation Dimension">转型维度</th>
+<th data-zh="旧有低效系统态（第一阶段局部提效）" data-en="Legacy State (Task-Level Productivity)">旧有低效系统态（第一阶段局部提效）</th>
+<th data-zh="智能体软件工厂与系统再造态（LIVE149 范式）" data-en="Agentic Factory &amp;amp; System Redesign (LIVE149)">智能体软件工厂与系统再造态（LIVE149 范式）</th>
+<th data-zh="实证案例与量化锚点" data-en="Verified Evidence &amp;amp; Metrics">实证案例与量化锚点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-zh="产品规划与设计交付" data-en="Product Planning &amp;amp; Design">产品规划与设计交付</td>
+<td data-zh="默认写代码最慢最难，耗费数周做焦点小组与静态平面图 [1]" data-en="Assumes coding is slow; weeks of focus groups &amp;amp; flat-file specs [1]">默认写代码最慢最难，耗费数周做焦点小组与静态平面图 [1]</td>
+<td data-zh="立即动手编码试穿，推入早期用户环实测后再加固入生产主干 [1]" data-en="Implement right away, test in early rings, then harden for production [1]">立即动手编码试穿，推入早期用户环实测后再加固入生产主干 [1]</td>
+<td data-zh="Copilot Studio 团队 &lt;strong&gt;&amp;gt;50% 设计师&lt;/strong&gt;直提 PR 并合入生产 [1]" data-en="&lt;strong&gt;&amp;gt;50% of designers&lt;/strong&gt; submit PRs merged to production [1]">Copilot Studio 团队 <strong>&gt;50% 设计师</strong>直提 PR 并合入生产 [1]</td>
+</tr>
+<tr>
+<td data-zh="外部用户反馈响应" data-en="Customer Feedback Loop">外部用户反馈响应</td>
+<td data-zh="社交媒体吐槽经多层转单排期，按周或月等待补丁发版 [1]" data-en="Manual ticket routing and multi-week sprint scheduling [1]">社交媒体吐槽经多层转单排期，按周或月等待补丁发版 [1]</td>
+<td data-zh="智能体夜间拾取核验并编码修复，保留人在回路次晨合入 [1]" data-en="Overnight agent validation + coding with morning HITL merge [1]">智能体夜间拾取核验并编码修复，保留人在回路次晨合入 [1]</td>
+<td data-zh="LinkedIn 抱怨视频 &lt;strong&gt;24 小时内&lt;/strong&gt;完成合入并回访通知在途 [1]" data-en="&lt;strong&gt;Within 24 hours&lt;/strong&gt; from LinkedIn video to merged fix rollout [1]">LinkedIn 抱怨视频 <strong>24 小时内</strong>完成合入并回访通知在途 [1]</td>
+</tr>
+<tr>
+<td data-zh="质量保障与工程目标" data-en="QA &amp;amp; Engineering Goals">质量保障与工程目标</td>
+<td data-zh="围绕既有人工约束微调，测试成本与覆盖率呈线性互斥 [1]" data-en="Incremental tweaks bound by linear cost-vs-coverage trade-offs [1]">围绕既有人工约束微调，测试成本与覆盖率呈线性互斥 [1]</td>
+<td data-zh="重设组织约束持续爬坡，用验证智能体并发守护交付质量 [1]" data-en="Reset constraints and hill-climb with automated validation agents [1]">重设组织约束持续爬坡，用验证智能体并发守护交付质量 [1]</td>
+<td data-zh="设定&lt;strong&gt;削减测试预算&lt;/strong&gt;同时实现 &lt;strong&gt;2× 测试覆盖率&lt;/strong&gt; [1]" data-en="&lt;strong&gt;Cut testing budget&lt;/strong&gt; while achieving &lt;strong&gt;2x test coverage&lt;/strong&gt; [1]">设定<strong>削减测试预算</strong>同时实现 <strong>2× 测试覆盖率</strong> [1]</td>
+</tr>
+<tr>
+<td data-zh="企业核心业务运转" data-en="Enterprise Core Operations">企业核心业务运转</td>
+<td data-zh="员工在老旧低效系统表层用个人 AI 写报告、看孤立看板 [1]" data-en="Individuals move faster on top of unchanged, inefficient systems [1]">员工在老旧低效系统表层用个人 AI 写报告、看孤立看板 [1]</td>
+<td data-zh="穿透表层报表与看板，用工作操作系统直接重写后台业务流 [1][3]" data-en="Re-architect the backend systems behind reports and dashboards [1][3]">穿透表层报表与看板，用工作操作系统直接重写后台业务流 [1][3]</td>
+<td data-zh="&lt;strong&gt;Markel 海事保险&lt;/strong&gt;在 &lt;strong&gt;&amp;lt;18 小时&lt;/strong&gt;窗口内核保决策提速 &lt;strong&gt;3×+&lt;/strong&gt; [1]" data-en="&lt;strong&gt;Markel Marine&lt;/strong&gt; reached &lt;strong&gt;3x+ decision velocity&lt;/strong&gt; in &lt;strong&gt;&amp;lt;18h&lt;/strong&gt; [1]"><strong>Markel 海事保险</strong>在 <strong>&lt;18 小时</strong>窗口内核保决策提速 <strong>3×+</strong> [1]</td>
+</tr>
+</tbody>
+</table></div>
+<p data-zh="在访谈收尾处，Lauren Soni 与 Ryan Cunningham 共同点明了企业 AI 演进的下一道分水岭：过去两年，生成式 AI 确实让许多个人在日常工作中变得更高效，但人们往往只是&lt;strong&gt;骑在原本低效的老旧业务系统之上加快了个人手速&lt;/strong&gt; [1]。真正的下一波转型前沿（Next Frontier of Transformation），是追问那些散落的个人周报、审批单与数据看板背后究竟在发生什么，并用智能体、确定性工作流与受控平台去&lt;strong&gt;彻底改写底层的业务系统本身&lt;/strong&gt;——这正是微软用智能体工厂重铸 Copilot Studio 所交出的工程答卷 [1][3]。" data-en="Closing the broadcast, Lauren Soni and Ryan Cunningham framed the defining inflection point ahead: up to now, AI has made individuals more productive in their daily routines &lt;em&gt;on top of&lt;/em&gt; inefficient legacy systems that remained untouched [1]. The next frontier of transformation moves behind individual reports and dashboards to &lt;strong&gt;re-architect the underlying business systems themselves&lt;/strong&gt;—the exact mission Copilot Studio was rebuilt to power [1][3].">在访谈收尾处，Lauren Soni 与 Ryan Cunningham 共同点明了企业 AI 演进的下一道分水岭：过去两年，生成式 AI 确实让许多个人在日常工作中变得更高效，但人们往往只是<strong>骑在原本低效的老旧业务系统之上加快了个人手速</strong> [1]。真正的下一波转型前沿（Next Frontier of Transformation），是追问那些散落的个人周报、审批单与数据看板背后究竟在发生什么，并用智能体、确定性工作流与受控平台去<strong>彻底改写底层的业务系统本身</strong>——这正是微软用智能体工厂重铸 Copilot Studio 所交出的工程答卷 [1][3]。</p>
+        </section>
+
+        <section id="references" class="section" data-reveal data-present-title-zh="参考资料：官方一手信源与关联议题" data-present-title-en="References: Official Primary Sources &amp; Related Sessions" data-density-exempt="references">
+          <div class="section-head">
+            <p class="section-kicker">06 / References: Official Primary Sources &amp; Related Sessions</p>
+            <h2 data-zh="6. 参考资料：官方一手信源与关联议题" data-en="6. References: Official Primary Sources &amp; Related Sessions">6. 参考资料：官方一手信源与关联议题</h2>
+          </div>
+
+          <ol class="bib-list">
+            <li id="ref-1">
+              <span class="bib-id">[1]</span>
+              <span class="bib-author">Ryan Cunningham &amp; Lauren Soni (Microsoft Ignite 2026 LIVE149 Official Session &amp; Transcript)</span> —
+              <a href="https://ignite.microsoft.com/en-US/sessions/1793675965297001onQI-AAAAAAAAAAAAAAAAAAAA" target="_blank" rel="noopener">https://ignite.microsoft.com/en-US/sessions/1793675965297001onQI-AAAAAAAAAAAAAAAAAAAA</a>
+              <span class="bib-note" data-zh="《Behind the Curtain: Building Copilot Studio》演播室专场主页与官方英中双语 WebVTT 逐字稿实录（2026-11）" data-en="Official Broadcast Stage session page and bilingual WebVTT verbatim transcripts (Nov 2026)">《Behind the Curtain: Building Copilot Studio》演播室专场主页与官方英中双语 WebVTT 逐字稿实录（2026-11）</span>
+            </li>
+            <li id="ref-2">
+              <span class="bib-id">[2]</span>
+              <span class="bib-author">Microsoft Medius On-Demand Stream (LIVE149 Broadcast Recording)</span> —
+              <a href="https://medius.microsoft.com/Embed/video-nc/2c5e35c0-7c4b-4907-bf96-2e47d2c8580d" target="_blank" rel="noopener">https://medius.microsoft.com/Embed/video-nc/2c5e35c0-7c4b-4907-bf96-2e47d2c8580d</a>
+              <span class="bib-note" data-zh="LIVE149 官方内嵌点播播放器与高清视频源（&lt;code&gt;https://medius.microsoft.com/video/asset/HIGHMP4/2c5e35c0-7c4b-4907-bf96-2e47d2c8580d&lt;/code&gt;）" data-en="Official Microsoft Medius video stream and high-definition broadcast recording">LIVE149 官方内嵌点播播放器与高清视频源（<code>https://medius.microsoft.com/video/asset/HIGHMP4/2c5e35c0-7c4b-4907-bf96-2e47d2c8580d</code>）</span>
+            </li>
+            <li id="ref-3">
+              <span class="bib-id">[3]</span>
+              <span class="bib-author">Microsoft Copilot Blog (Ignite 2026 Copilot Studio Announcements)</span> —
+              <a href="https://www.microsoft.com/en-us/microsoft-copilot/blog/copilot-studio/whats-new-in-copilot-studio-november-2026/" target="_blank" rel="noopener">https://www.microsoft.com/en-us/microsoft-copilot/blog/copilot-studio/whats-new-in-copilot-studio-november-2026/</a>
+              <span class="bib-note" data-zh="微软官方 Copilot Studio 2026 年 11 月更新综述：三位一体业务流程工厂、Microsoft Copilot Harness 与客户生产案例" data-en="Official November 2026 Copilot Studio blog covering unified agents, workflows, managed apps, and enterprise deployments">微软官方 Copilot Studio 2026 年 11 月更新综述：三位一体业务流程工厂、Microsoft Copilot Harness 与客户生产案例</span>
+            </li>
+          </ol>
+        </section>
+      </main>
+
+      <footer class="site-footer" data-reveal>
+        <p data-zh="© 2026 Knowledge Hub · Genesis 纯静态 Markdown 编译管线生成" data-en="© 2026 Knowledge Hub · Generated by Genesis Static Markdown Compiler">© 2026 Knowledge Hub · Genesis 纯静态 Markdown 编译管线生成</p>
+      </footer>
+    </div>
+  </div>
+
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/article-narration.js"></script>
+  <script src="../../assets/pptx-export.js"></script>
+  <script src="../../assets/article-math.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+  <script src="./live149-session.js"></script>
+  <script>
+    (function () {
+      var buttons = document.querySelectorAll("[data-genesis-mode]");
+      var drawer = document.getElementById("genesis-source-drawer");
+      var i;
+      function setMode(mode) {
+        for (var j = 0; j < buttons.length; j++) {
+          var btn = buttons[j];
+          var active = btn.getAttribute("data-genesis-mode") === mode;
+          if (active) {
+            btn.classList.add("is-active");
+          } else {
+            btn.classList.remove("is-active");
+          }
+        }
+        if (mode === "linear") {
+          document.body.classList.add("is-linear-reading");
+          if (drawer) drawer.classList.remove("is-open");
+        } else if (mode === "source") {
+          document.body.classList.remove("is-linear-reading");
+          if (drawer) drawer.classList.add("is-open");
+        } else {
+          document.body.classList.remove("is-linear-reading");
+          if (drawer) drawer.classList.remove("is-open");
+        }
+      }
+      for (i = 0; i < buttons.length; i++) {
+        (function (btn) {
+          btn.addEventListener("click", function () {
+            setMode(btn.getAttribute("data-genesis-mode"));
+          });
+        })(buttons[i]);
+      }
+    })();
+  </script>
+</body>
+</html>
