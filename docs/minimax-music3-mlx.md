@@ -77,6 +77,20 @@ curl -s -X POST http://127.0.0.1:18790/api/generate \
 
 关于如何解决成曲动态扁平、歌词过密念经与编曲糊频问题，详见[《AI 编曲审美与 MiniMax-Music3 高阶掌控秘籍》](./ai-songwriting-and-minimax-music3-mastery.md)。
 
+## 五风格 1 分钟样曲批量生成与 A/B 对比试听台
+
+仓库内置 `scripts/minimax_music_mlx/showcase_suite.py`，按三段式聚焦提示词、单一记忆动机锚定、预副歌静默抽空与 `-14 LUFS` 母带链封装了五种代表性曲风（`showcase-pop` 都市流行、`showcase-ballad` 钢琴大提琴抒情、`showcase-guofeng` 戏腔竹笛国风、`showcase-rap` 硬核切分说唱、`showcase-rock` 体育馆摇滚）：
+
+```bash
+# 离线零警告审计全部五首蓝图的音节疏密反差与标签规范
+python3 scripts/minimax_music_mlx/showcase_suite.py --lint-only
+
+# 渲染单首或全套样曲并自动输出无损 WAV、256kbps M4A 与声学元数据至 private/minimax-music3/
+python3 scripts/minimax_music_mlx/showcase_suite.py --slug showcase-pop
+```
+
+启动本机站点 `node scripts/serve-knowledge-hub.mjs` 后，访问 `http://127.0.0.1:8000/music-preview.html` 即可通过 `/api/local-music/tracks` 曲目目录接口在五首精调样曲与未调优基线曲目之间一键切换试听，实时比对频谱、段落歌词同步高亮、采样超参配方与母带声学指标。
+
 ## 安全边界与许可说明
 
 - 服务仅绑定 `127.0.0.1`，严格校验 `Host` 请求头，并拒绝携带浏览器 `Origin` 头的跨源直连写入。

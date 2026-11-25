@@ -9,6 +9,11 @@ from .engine import (
     resolve_cached_snapshot,
     validate_generation_request,
 )
+from .mastering import (
+    MASTERING_FILTER_CHAIN,
+    analyze_song_acoustics,
+    master_wav_and_encode_m4a,
+)
 from .prompt_lint import (
     audit_song_blueprint,
     clean_caption,
@@ -24,11 +29,14 @@ __all__ = [
     'DEFAULT_CACHE_ROOT',
     'DEFAULT_MODEL_ID',
     'DEFAULT_RUNTIME_PYTHON',
+    'MASTERING_FILTER_CHAIN',
     'MiniMaxMusicEngine',
+    'analyze_song_acoustics',
     'audit_song_blueprint',
     'clean_caption',
     'ensure_mlx_runtime',
     'estimate_line_syllables',
+    'master_wav_and_encode_m4a',
     'normalize_lyrics',
     'parse_json',
     'resolve_cached_snapshot',

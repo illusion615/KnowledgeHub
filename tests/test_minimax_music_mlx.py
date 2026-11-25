@@ -29,6 +29,7 @@ from minimax_music_mlx import (
     step_one_frame,
     validate_generation_request,
 )
+from minimax_music_mlx.showcase_suite import SHOWCASE_BLUEPRINTS, lint_all_blueprints
 
 
 def _load_script_module(name: str, filename: str):
@@ -311,6 +312,17 @@ class PromptAndProsodyLintTests(unittest.TestCase):
         self.assertTrue(callable(run_custom_generation))
         engine_lines = (SCRIPTS / 'minimax_music_mlx' / 'engine.py').read_text(encoding='utf-8').splitlines()
         self.assertLess(len(engine_lines), 400)
+
+    def test_five_genre_showcase_blueprints_pass_zero_warning_gate(self):
+        self.assertEqual(
+            [bp['slug'] for bp in SHOWCASE_BLUEPRINTS],
+            ['showcase-pop', 'showcase-ballad', 'showcase-guofeng', 'showcase-rap', 'showcase-rock'],
+        )
+        reports = lint_all_blueprints()
+        for rep in reports:
+            self.assertTrue(rep['ok'], rep['slug'])
+            self.assertEqual(rep['warnings'], [], f"{rep['slug']}: {rep['warnings']}")
+            self.assertLess(rep['chorus_avg_syllables'], rep['verse_avg_syllables'] * 0.9, rep['slug'])
 
 
 if __name__ == '__main__':

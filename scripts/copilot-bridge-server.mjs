@@ -1,7 +1,7 @@
 import http from 'node:http';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { readFile, realpath, stat } from 'node:fs/promises';
+import { readdir, readFile, realpath, stat } from 'node:fs/promises';
 import { resolve, sep, extname, dirname, join, basename } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { openRuntime, BridgeError, publicError } from './copilot-runtime.mjs';
@@ -44,12 +44,61 @@ const isLoopbackHost = (host, port) => host === `127.0.0.1:${port}` || host === 
 const isLoopbackOrigin = origin => typeof origin === 'string' && /^http:\/\/(?:127\.0\.0\.1|localhost|\[::1\])(?::\d{2,5})?$/.test(origin);
 const isTrustedOrigin = origin => isLoopbackOrigin(origin) || origin === 'https://illusion615.github.io';
 const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.ico': 'image/x-icon', '.wav': 'audio/wav', '.mp3': 'audio/mpeg', '.m4a': 'audio/mp4' };
+async function listLocalMusicTracks(musicRoot) {
+  const entries = await readdir(musicRoot).catch(() => []);
+  const metaFiles = entries.filter(f => /^[a-z0-9][a-z0-9_-]{0,63}\.meta\.json$/.test(f));
+  const tracks = [];
+  for (const name of metaFiles) {
+    try {
+      const raw = JSON.parse(await readFile(join(musicRoot, name), 'utf8'));
+      const slug = name.slice(0, -'.meta.json'.length);
+      const hasWav = entries.includes(`${slug}.wav`);
+      const hasM4a = entries.includes(`${slug}.m4a`);
+      tracks.push({
+        slug,
+        order: typeof raw.order === 'number' ? raw.order : 99,
+        isBaseline: Boolean(raw.isBaseline ?? (slug === 'copilot-studio-ignite-rap')),
+        genreIcon: raw.genreIcon || (slug === 'copilot-studio-ignite-rap' ? '📊' : '🎵'),
+        genreBadge: raw.genreBadge || {
+          zh: slug === 'copilot-studio-ignite-rap' ? '优化前原曲对照 · Baseline' : 'MLX 本地样曲',
+          en: slug === 'copilot-studio-ignite-rap' ? 'Original Baseline (Pre-Optimization)' : 'Local MLX Track',
+        },
+        title: raw.title || { zh: slug, en: slug },
+        subtitle: raw.subtitle || { zh: '', en: '' },
+        motifSummary: raw.motifSummary || null,
+        bpm: raw.bpm ?? null,
+        key: raw.key ?? null,
+        durationSeconds: raw.durationSeconds ?? null,
+        integratedLufs: raw.integratedLufs ?? null,
+        rmsDbfs: raw.rmsDbfs ?? null,
+        peakDbfs: raw.peakDbfs ?? null,
+        chorusVsVerseDb: raw.chorusVsVerseDb ?? null,
+        macroDynamicRangeDb: raw.macroDynamicRangeDb ?? null,
+        pitchSpanSemitones: raw.pitchSpanSemitones ?? null,
+        hyperparams: raw.hyperparams || null,
+        prosodyAudit: raw.prosodyAudit || null,
+        hasWav,
+        hasM4a,
+      });
+    } catch {
+      // skip malformed metadata file
+    }
+  }
+  tracks.sort((a, b) => (a.order - b.order) || a.slug.localeCompare(b.slug));
+  return tracks;
+}
 async function serveLocalMusic(req, res, url, root, json) {
   if (req.method !== 'GET' && req.method !== 'HEAD') throw new BridgeError(405, 'METHOD', '方法不允许。');
+  const musicRoot = resolve(root, 'private', 'minimax-music3');
+  if (url.pathname === '/api/local-music/tracks' || url.pathname === '/api/local-music/tracks/') {
+    const tracks = await listLocalMusicTracks(musicRoot);
+    if (req.method === 'HEAD') { res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' }); res.end(); return; }
+    json(200, { tracks });
+    return;
+  }
   const m = /^\/api\/local-music\/tracks\/([a-z0-9][a-z0-9_-]{0,63})(?:\.(wav|mp3|m4a|meta\.json))?$/.exec(url.pathname);
   if (!m) throw new BridgeError(404, 'NOT_FOUND', '曲目接口不存在。');
   const [, slug, ext] = m;
-  const musicRoot = resolve(root, 'private', 'minimax-music3');
   if (!ext || ext === 'meta.json') {
     const metaFile = resolve(musicRoot, `${slug}.meta.json`);
     const st = await stat(metaFile).catch(() => null);

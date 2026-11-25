@@ -145,6 +145,12 @@ test('readonly local-music track routes support meta, Range 206, download header
   const f = await fixture({ root });
   try {
     assert.equal((await fetch(f.base + '/music-preview.html')).status, 200);
+    const listRes = await fetch(f.base + '/api/local-music/tracks');
+    assert.equal(listRes.status, 200);
+    const listPayload = await listRes.json();
+    assert.equal(listPayload.tracks.length, 1);
+    assert.equal(listPayload.tracks[0].slug, 'demo-track');
+    assert.equal(listPayload.tracks[0].hasWav, true);
     const metaRes = await fetch(f.base + '/api/local-music/tracks/demo-track.meta.json');
     assert.equal(metaRes.status, 200);
     assert.equal((await metaRes.json()).bpm, 100);
