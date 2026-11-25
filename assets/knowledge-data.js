@@ -1454,7 +1454,7 @@ var knowledgeTree = [
   },
 
   // ════════════════════════════════════════
-  // 文章 — Copilot Studio（挂在二级分组下，共 13 篇；含创新治理子分组合计 17 篇）
+  // 文章 — Copilot Studio（挂在二级分组下，共 57 篇；含创新治理子分组合计 61 篇）
   // ════════════════════════════════════════
   {
     id: 'copilot-studio-constraints',
@@ -3190,6 +3190,983 @@ var knowledgeTree = [
     url: 'posts/copilot-studio-ignite-2026-whats-new/index.html',
     color: '#ea580c',
     phase: 3.7, speed: 0.84,
-    relations: ['copilot-studio-release-roadmap', 'copilot-studio-managed-runtime-alm', 'copilot-studio-overview', 'local-music-song-models']
+    relations: ['ignite-2026-brk259-copilot-harness-powers-copilot-studio', 'ignite-2026-brk258-agentic-automation-copilot-studio-blends', 'ignite-2026-brk378-host-apps-anywhere-new-copilot-managed', 'copilot-studio-release-roadmap', 'copilot-studio-managed-runtime-alm']
+  },
+
+  // ════════════════════════════════════════
+  // 文章 — Microsoft Ignite 2026：Copilot Studio 专场系列（新增 44 篇，连同 BRK267 共 45 篇）
+  // ════════════════════════════════════════
+  {
+    id: 'ignite-2026-brk221-govern-once-everywhere-scale-copilot-plugin',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [BRK221]：一次治理，全域复用——用 Microsoft Plugin Registry 规模化扩展 Copilot',
+      en: 'Microsoft Ignite 2026 [BRK221]: Govern Once, Use Everywhere—Scaling Copilot with Microsoft Plugin Registry'
+    },
+    summary: {
+      zh: '围绕虚构企业 Caldova 客服门户上线决策的五场连贯实机演示，跑通发现、构建、治理、沉淀技能与多端协同全链路。',
+      en: 'Five back-to-back live demos trace Caldova\'s customer-service portal launch across discovery, CLI packaging, admin approval, inline skill authoring, and…'
+    },
+    tags: ['BRK221', 'Copilot Studio', 'Microsoft Ignite 2026', 'Agent Governance', 'Agents', 'Microsoft Copilot'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-brk221-govern-once-everywhere-scale-copilot-plugin/index.html',
+    color: '#d97706',
+    phase: 4, speed: 0.84,
+    relations: ['ignite-2026-brk262-scale-agents-risk-governance-finops', 'ignite-2026-thr994-trusting-ai-workforce-securing-governing', 'agentic-ai-innovation-governance-guide', 'power-platform-governance']
+  },
+  {
+    id: 'ignite-2026-brk234-agentify-business-processes-next-era-business',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [BRK234]：智能体化业务流程——下一代商业应用架构与实战拆解',
+      en: 'Microsoft Ignite 2026 [BRK234]: Agentify Your Business Processes—The Next Era of Business Applications'
+    },
+    summary: {
+      zh: '商业软件正在告别孤立表单录入，转向跨协作流、事务库与联络中心的智能体协同。',
+      en: 'Business applications are moving beyond isolated form entry toward agentic orchestration across collaboration, systems of record, and contact centers.'
+    },
+    tags: ['BRK234', 'Copilot Studio', 'Microsoft Ignite 2026', 'Enterprise Adoption', 'Agents'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-brk234-agentify-business-processes-next-era-business/index.html',
+    color: '#ea580c',
+    phase: 4.6, speed: 0.84,
+    relations: ['ignite-2026-brk236-agents-copilot-help-user-done', 'ignite-2026-thr885-agentic-erp-action-build-agents-skills', 'ms-ai-customer-cases', 'agentic-ai-adoption']
+  },
+  {
+    id: 'ignite-2026-brk236-agents-copilot-help-user-done',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [BRK236]：Copilot 智能体全员赋能——从零代码构建到企业级治理采用',
+      en: 'Microsoft Ignite 2026 [BRK236]: Agents in Copilot—Help Every User Get More Done'
+    },
+    summary: {
+      zh: '智能体不仅要造得出，更要在日常工作流内用得稳、管得住、算得清账单。',
+      en: 'Getting real value from agents requires seamless in-flow discovery, trusted grounding, and predictable fleet economics.'
+    },
+    tags: ['BRK236', 'Copilot Studio', 'Microsoft Ignite 2026', 'Enterprise Adoption', 'Agents', 'Microsoft Copilot'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-brk236-agents-copilot-help-user-done/index.html',
+    color: '#2563eb',
+    phase: 5.2, speed: 0.84,
+    relations: ['ignite-2026-brk460-reimagining-clinical-workflows-brown', 'ignite-2026-brk234-agentify-business-processes-next-era-business', 'ms-ai-customer-cases', 'agentic-ai-adoption']
+  },
+  {
+    id: 'ignite-2026-brk238-frontier-tuning-optimize-ai-agents-real',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [BRK238]：Frontier Tuning——在真实业务流程上构建企业专属智能体学习闭环',
+      en: 'Microsoft Ignite 2026 [BRK238]: Frontier Tuning—Building Enterprise Agent Learning Loops for Real-World Outcomes'
+    },
+    summary: {
+      zh: '同构强化学习环境（RLE）贯通私有压力评测、无副作用工具推演与 Foundry 模型微调，消除训练与线上服务偏差。',
+      en: 'A unified Reinforcement Learning Environment (RLE) spans private stress evals, zero-side-effect tool rollouts, and Foundry fine-tuning with zero train-se…'
+    },
+    tags: ['BRK238', 'Copilot Studio', 'Microsoft Ignite 2026', 'Agent Architecture'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-brk238-frontier-tuning-optimize-ai-agents-real/index.html',
+    color: '#2563eb',
+    phase: 2.8, speed: 0.84,
+    relations: ['ignite-2026-brk258-agentic-automation-copilot-studio-blends', 'ignite-2026-thr964-copilot-studio-unlocked-new-copilot-harness', 'copilot-studio-ignite-2026-whats-new', 'copilot-studio-overview']
+  },
+  {
+    id: 'ignite-2026-brk258-agentic-automation-copilot-studio-blends',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [BRK258]：智能体自动化——Copilot Studio 如何双向融合确定性工作流与推理智能体',
+      en: 'Microsoft Ignite 2026 [BRK258]: Agentic Automation—How Copilot Studio Blends Workflows and Agents'
+    },
+    summary: {
+      zh: '围绕“更聪明步骤、规模化投产、极速构建”三大演进轴心，打通从自然语言草稿到服务主体托管的闭环。',
+      en: 'Anchored on Smarter Steps, Enterprise Scale, and Faster Authoring from natural-language drafts to service-principal production.'
+    },
+    tags: ['BRK258', 'Copilot Studio', 'Microsoft Ignite 2026', 'Agent Architecture', 'Resiliency', 'Copilot studio'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-brk258-agentic-automation-copilot-studio-blends/index.html',
+    color: '#2563eb',
+    phase: 3.8, speed: 0.84,
+    relations: ['ignite-2026-brk259-copilot-harness-powers-copilot-studio', 'ignite-2026-brk238-frontier-tuning-optimize-ai-agents-real', 'copilot-studio-ignite-2026-whats-new', 'copilot-studio-overview']
+  },
+  {
+    id: 'ignite-2026-brk259-copilot-harness-powers-copilot-studio',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [BRK259]：Microsoft Copilot Harness 如何驱动 Copilot Studio 深度解析',
+      en: 'Microsoft Ignite 2026 [BRK259]: How the Microsoft Copilot Harness Powers Copilot Studio'
+    },
+    summary: {
+      zh: '与 GitHub、Microsoft Foundry、Copilot Cowork 及 Copilot Code 同源共享底层 SDK，针对跨部门业务流程模块化裁剪系统提示词并内建 DLP…',
+      en: 'Built on the same Microsoft Copilot SDK powering GitHub, Foundry, Cowork, and Copilot Code, tailored with modular business-process system prompts and Pur…'
+    },
+    tags: ['BRK259', 'Copilot Studio', 'Microsoft Ignite 2026', 'Agent Architecture', 'Github Copilot', 'Copilot studio'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-brk259-copilot-harness-powers-copilot-studio/index.html',
+    color: '#ea580c',
+    phase: 2.3, speed: 0.84,
+    relations: ['ignite-2026-brk261-tool-teammate-persistent-agents-shared', 'ignite-2026-brk258-agentic-automation-copilot-studio-blends', 'copilot-studio-ignite-2026-whats-new', 'copilot-studio-overview']
+  },
+  {
+    id: 'ignite-2026-brk261-tool-teammate-persistent-agents-shared',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [BRK261]：从单点工具到数字队友——Copilot Studio 共享业务流程持久智能体深度解析',
+      en: 'Microsoft Ignite 2026 [BRK261]: From Tool to Teammate—Persistent Agents for Shared Processes in Copilot Studio'
+    },
+    summary: {
+      zh: '个人效率交给 Autopilot，跨团队长周期业务流程则由绑定独立身份与团队记忆的 Copilot Studio 智能体持久承接。',
+      en: 'While Autopilot serves personal productivity, Copilot Studio anchors recurring cross-team business processes with persistent identity and shared memory.'
+    },
+    tags: ['BRK261', 'Copilot Studio', 'Microsoft Ignite 2026', 'Agent Architecture'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-brk261-tool-teammate-persistent-agents-shared/index.html',
+    color: '#ea580c',
+    phase: 1.8, speed: 0.84,
+    relations: ['ignite-2026-brk264-pick-right-harness-build-agents-copilot', 'ignite-2026-brk259-copilot-harness-powers-copilot-studio', 'copilot-studio-ignite-2026-whats-new', 'copilot-studio-overview']
+  },
+  {
+    id: 'ignite-2026-brk262-scale-agents-risk-governance-finops',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [BRK262]：扩展智能体而非放大风险——企业级分层治理与 FinOps 实战架构',
+      en: 'Microsoft Ignite 2026 [BRK262]: Scale Agents, Not Risk—Enterprise Layered Governance and FinOps Architecture'
+    },
+    summary: {
+      zh: '打通创作者实时点数可见性、跨云拓扑价值归因与自动化花费策略接口，让安全边界与成本封顶从第零分钟自动生效。',
+      en: 'Connects maker-side live credit telemetry, cross-cloud blast-radius mapping, and API-driven spending policies so guardrails and hard caps enforce from mi…'
+    },
+    tags: ['BRK262', 'Copilot Studio', 'Microsoft Ignite 2026', 'Agent Governance'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-brk262-scale-agents-risk-governance-finops/index.html',
+    color: '#ea580c',
+    phase: 3.9, speed: 0.84,
+    relations: ['ignite-2026-brk285-agent-works-enterprise-ready', 'ignite-2026-brk221-govern-once-everywhere-scale-copilot-plugin', 'agentic-ai-innovation-governance-guide', 'power-platform-governance']
+  },
+  {
+    id: 'ignite-2026-brk264-pick-right-harness-build-agents-copilot',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [BRK264]：用 Copilot Studio 为智能体选对执行底座',
+      en: 'Microsoft Ignite 2026 [BRK264]: Pick the Right Harness to Build Your Agents with Copilot Studio'
+    },
+    summary: {
+      zh: '长周期跨系统业务流程选 Microsoft Copilot 底座，对外毫秒级语音与客服热线选客户对话底座，存量分支机器人保留标准底座平滑过渡。',
+      en: 'Pair complex multi-system workflows with the Microsoft Copilot harness, external omnichannel voice/chat with the Customer Conversation harness, and exist…'
+    },
+    tags: ['BRK264', 'Copilot Studio', 'Microsoft Ignite 2026', 'Agent Architecture'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-brk264-pick-right-harness-build-agents-copilot/index.html',
+    color: '#ea580c',
+    phase: 3.9, speed: 0.84,
+    relations: ['copilot-studio-ignite-2026-whats-new', 'ignite-2026-brk261-tool-teammate-persistent-agents-shared', 'copilot-studio-overview']
+  },
+  {
+    id: 'ignite-2026-brk285-agent-works-enterprise-ready',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [BRK285]：智能体跑通之后，如何跨越企业级与自主规模鸿沟',
+      en: 'Microsoft Ignite 2026 [BRK285]: Your Agent Works—Now Make It Enterprise-Ready'
+    },
+    summary: {
+      zh: '串联合作伙伴原型重铸（旅程一）与 Azure 内部支持排障 Customer Zero（旅程二）的统一成熟度底座。',
+      en: 'Unifying partner prototype-to-production architecture (Journey 1) with Azure Support\'s internal Customer Zero autonomous resolution stack (Journey 2).'
+    },
+    tags: ['BRK285', 'Copilot Studio', 'Microsoft Ignite 2026', 'Agent Governance', 'Dynamics 365', 'MCP'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-brk285-agent-works-enterprise-ready/index.html',
+    color: '#ea580c',
+    phase: 3, speed: 0.84,
+    relations: ['ignite-2026-brk448-run-secure-agent-loops-production-isolated', 'ignite-2026-brk262-scale-agents-risk-governance-finops', 'agentic-ai-innovation-governance-guide', 'power-platform-governance']
+  },
+  {
+    id: 'ignite-2026-brk302-build-personalized-ai-experiences-work-iq',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [BRK302]：用 Work IQ 构建懂业务脉络的个性化 AI 与跨平台智能体',
+      en: 'Microsoft Ignite 2026 [BRK302]: Build Personalized AI Experiences with Work IQ'
+    },
+    summary: {
+      zh: 'Work IQ 在 Copilot Studio 中已默认开启并正式商用，同步通过标准协议向代码编辑器与第三方助手输出同源权限上下文。',
+      en: 'Generally available and enabled by default in Copilot Studio, Work IQ extends permission-trimmed organizational context across IDEs and external assistan…'
+    },
+    tags: ['BRK302', 'Copilot Studio', 'Microsoft Ignite 2026', 'Agent Architecture'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-brk302-build-personalized-ai-experiences-work-iq/index.html',
+    color: '#ea580c',
+    phase: 0.3, speed: 0.84,
+    relations: ['ignite-2026-brk379-build-customer-facing-agents-copilot-studio', 'copilot-studio-ignite-2026-whats-new', 'copilot-studio-overview']
+  },
+  {
+    id: 'ignite-2026-brk379-build-customer-facing-agents-copilot-studio',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [BRK379]：在 Copilot Studio、Teams 与 CCI 中构建面向客户的全渠道智能体',
+      en: 'Microsoft Ignite 2026 [BRK379]: Build Customer-Facing Agents in Copilot Studio, Teams, and CCI'
+    },
+    summary: {
+      zh: '面向外部客户与大型联络中心的专属执行底座，兼顾生成式对话弹性、合规流程锁定与人工坐席接力。',
+      en: 'Dedicated runtime built for external customer engagement, combining generative agility, strict compliance dialogs, and warm human escalation.'
+    },
+    tags: ['BRK379', 'Copilot Studio', 'Microsoft Ignite 2026', 'Agent Architecture', 'Agents'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-brk379-build-customer-facing-agents-copilot-studio/index.html',
+    color: '#2563eb',
+    phase: 1.7, speed: 0.84,
+    relations: ['ignite-2026-brk570-developers-guide-copilot-studio', 'ignite-2026-brk302-build-personalized-ai-experiences-work-iq', 'copilot-studio-ignite-2026-whats-new', 'copilot-studio-overview']
+  },
+  {
+    id: 'ignite-2026-brk448-run-secure-agent-loops-production-isolated',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [BRK448]：在生产环境规模化运行安全智能体循环与微虚拟机沙盒深度解析',
+      en: 'Microsoft Ignite 2026 [BRK448]: Running Secure Agent Loops in Production with Isolated Sandboxes at Scale'
+    },
+    summary: {
+      zh: '把非受信代码限制在微虚拟机内核边界之内，把真实密钥留在沙盒边界之外。',
+      en: 'Trap untrusted agent code behind a hardware microVM kernel while keeping raw credentials outside the sandbox.'
+    },
+    tags: ['BRK448', 'Copilot Studio', 'Microsoft Ignite 2026', 'Agent Governance'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-brk448-run-secure-agent-loops-production-isolated/index.html',
+    color: '#ea580c',
+    phase: 4.2, speed: 0.84,
+    relations: ['ignite-2026-brk473-building-governing-trusted-ai-agents', 'ignite-2026-brk285-agent-works-enterprise-ready', 'agentic-ai-innovation-governance-guide', 'power-platform-governance']
+  },
+  {
+    id: 'ignite-2026-brk460-reimagining-clinical-workflows-brown',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [BRK460]：重塑临床工作流——Brown University Health 智能体实战全解',
+      en: 'Microsoft Ignite 2026 [BRK460]: Reimagining Clinical Workflows at Brown University Health'
+    },
+    summary: {
+      zh: '不替代医生临床判断，而是消除横跨 10 余套医疗异构系统的上下文拼装摩擦。',
+      en: 'Rather than automating clinical judgment, agents remove cross-system assembly work around that judgment.'
+    },
+    tags: ['BRK460', 'Copilot Studio', 'Microsoft Ignite 2026', 'Enterprise Adoption', 'AI', 'Agents'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-brk460-reimagining-clinical-workflows-brown/index.html',
+    color: '#0284c7',
+    phase: 4.7, speed: 0.84,
+    relations: ['ignite-2026-brk474-modernization-ai-transformation-aon-enables', 'ignite-2026-brk236-agents-copilot-help-user-done', 'ms-ai-customer-cases', 'agentic-ai-adoption']
+  },
+  {
+    id: 'ignite-2026-brk473-building-governing-trusted-ai-agents',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [BRK473]：金融机构可信 AI 智能体构建与治理实战——State Farm 54 个生产智能体与全栈护栏架构',
+      en: 'Microsoft Ignite 2026 [BRK473]: Building and Governing Trusted AI Agents in Financial Services—State Farm\'s 54 Production Agents and Full-Stack Guardrails'
+    },
+    summary: {
+      zh: '从个人开发“绿区”试水、自动化虚拟环境集群晋升，到单一 OpenAPI 规范驱动的智能体自管理闭环。',
+      en: 'Connects friction-free personal sandboxes and automated virtual environment clusters with OpenAPI-driven agentic administration.'
+    },
+    tags: ['BRK473', 'Copilot Studio', 'Microsoft Ignite 2026', 'Agent Governance', 'AI Security', 'Agents'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-brk473-building-governing-trusted-ai-agents/index.html',
+    color: '#b45309',
+    phase: 5.5, speed: 0.84,
+    relations: ['ignite-2026-inv642-observability-layer-role', 'ignite-2026-brk448-run-secure-agent-loops-production-isolated', 'agentic-ai-innovation-governance-guide', 'power-platform-governance']
+  },
+  {
+    id: 'ignite-2026-brk474-modernization-ai-transformation-aon-enables',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [BRK474]：从底座现代化到企业级 AI 转型——Aon 如何赋能 7 万名同事做出更优决策',
+      en: 'Microsoft Ignite 2026 [BRK474]: Modernization to AI Transformation—How Aon Enables Better Decisions'
+    },
+    summary: {
+      zh: 'Aon 拒绝在杂乱遗留系统上盲目铺开数千个概念验证，而是用统一数据层与单一控制面承接全公司智能化跃迁。',
+      en: 'Rather than scattering thousands of disconnected proofs of concept atop legacy silos, Aon anchored enterprise AI in a unified data layer and single contr…'
+    },
+    tags: ['BRK474', 'Copilot Studio', 'Microsoft Ignite 2026', 'Enterprise Adoption', 'Agents', 'Microsoft Copilot'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-brk474-modernization-ai-transformation-aon-enables/index.html',
+    color: '#c2410c',
+    phase: 4.4, speed: 0.84,
+    relations: ['ignite-2026-brk487-build-monetize-grow-csp-partner-agent', 'ignite-2026-brk460-reimagining-clinical-workflows-brown', 'ms-ai-customer-cases', 'agentic-ai-adoption']
+  },
+  {
+    id: 'ignite-2026-brk487-build-monetize-grow-csp-partner-agent',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [BRK487]：云解决方案提供商（CSP）智能体构建、变现与经常性增长深度拆解',
+      en: 'Microsoft Ignite 2026 [BRK487]: Build, Monetize, and Grow—The CSP Partner Agent Opportunity Deep Dive'
+    },
+    summary: {
+      zh: '依托 4.5 亿以上商业办公席位的内建分发网络，把一次性项目交付沉淀为高毛利经常性服务。',
+      en: 'Leverage built-in distribution across 450M+ commercial seats to convert one-off builds into recurring managed services.'
+    },
+    tags: ['BRK487', 'Copilot Studio', 'Microsoft Ignite 2026', 'Enterprise Adoption', 'SMB', 'Small Business'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-brk487-build-monetize-grow-csp-partner-agent/index.html',
+    color: '#d97706',
+    phase: 4.2, speed: 0.84,
+    relations: ['ignite-2026-brk501-partners-unlock-growth-ai-across-apps', 'ignite-2026-brk474-modernization-ai-transformation-aon-enables', 'ms-ai-customer-cases', 'agentic-ai-adoption']
+  },
+  {
+    id: 'ignite-2026-brk501-partners-unlock-growth-ai-across-apps',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [BRK501]：合作伙伴如何借智能体、微应用与工作流释放业务增长新空间',
+      en: 'Microsoft Ignite 2026 [BRK501]: Partners—Unlock Growth with AI Across Apps, Agents, and Workflows'
+    },
+    summary: {
+      zh: 'Copilot Studio 连接微应用、智能体与确定性工作流，沉淀归属企业组织所有的长效流程资产，并为伙伴打开咨询、治理与常驻托管新空间。',
+      en: 'Copilot Studio unifies apps, agents, and deterministic workflows into org-owned process assets, opening recurring advisory, FinOps, and managed AgentOps…'
+    },
+    tags: ['BRK501', 'Copilot Studio', 'Microsoft Ignite 2026', 'Enterprise Adoption'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-brk501-partners-unlock-growth-ai-across-apps/index.html',
+    color: '#c2410c',
+    phase: 4.9, speed: 0.84,
+    relations: ['ignite-2026-brk571-beyond-pilot-copilot-agents-business-value', 'ignite-2026-brk487-build-monetize-grow-csp-partner-agent', 'ms-ai-customer-cases', 'agentic-ai-adoption']
+  },
+  {
+    id: 'ignite-2026-brk570-developers-guide-copilot-studio',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [BRK570]：Copilot Studio 开发者指南——为什么需要以及如何用专业代码构建智能体',
+      en: 'Microsoft Ignite 2026 [BRK570]: Developer\'s Guide to Copilot Studio—Why and How'
+    },
+    summary: {
+      zh: '基于 Microsoft Copilot Harness 与 Copilot 托管运行时，让任意终端编程代理与业务负责人在同一事实源上协同迭代。',
+      en: 'Unites bring-your-own terminal coding agents with business process owners on a single Git-backed source of truth atop Copilot Managed Runtime.'
+    },
+    tags: ['BRK570', 'Copilot Studio', 'Microsoft Ignite 2026', 'Agent Architecture'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-brk570-developers-guide-copilot-studio/index.html',
+    color: '#2563eb',
+    phase: 1.5, speed: 0.84,
+    relations: ['ignite-2026-live107-agent-boss', 'ignite-2026-brk379-build-customer-facing-agents-copilot-studio', 'copilot-studio-ignite-2026-whats-new', 'copilot-studio-overview']
+  },
+  {
+    id: 'ignite-2026-brk571-beyond-pilot-copilot-agents-business-value',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [BRK571]：跨越试点陷阱——将 Copilot 与智能体转化为真实商业价值',
+      en: 'Microsoft Ignite 2026 [BRK571]: Beyond the Pilot—Turning Copilot & Agents into Business Value'
+    },
+    summary: {
+      zh: '融合微软产品与设计高管视角以及通信、生命科学两大强监管行业巨头的真实生产账本。',
+      en: 'Combines Microsoft product and UX architecture with production metrics from telecom and regulated life sciences.'
+    },
+    tags: ['BRK571', 'Copilot Studio', 'Microsoft Ignite 2026', 'Enterprise Adoption', 'Agents', 'Copilot studio'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-brk571-beyond-pilot-copilot-agents-business-value/index.html',
+    color: '#d97706',
+    phase: 2.9, speed: 0.84,
+    relations: ['ignite-2026-live17-reimaging-clinical-workflows-live-brown', 'ignite-2026-brk501-partners-unlock-growth-ai-across-apps', 'ms-ai-customer-cases', 'agentic-ai-adoption']
+  },
+  {
+    id: 'ignite-2026-brksp601-shadow-agents-governed-digital-coworkers',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [BRKSP601]：将影子智能体转化为受控数字同事——Agent 365 全链路纳管实战',
+      en: 'Microsoft Ignite 2026 [BRKSP601]: Turning Shadow Agents into Governed Digital Coworkers with Agent 365'
+    },
+    summary: {
+      zh: '复用管理员熟悉的四大安全控制台，用统一目录身份与一对多蓝图把多云及自研智能体纳入同一零信任控制面。',
+      en: 'Unify native, multi-cloud, and custom-coded agents under one Zero Trust control plane using familiar Microsoft admin consoles.'
+    },
+    tags: ['BRKSP601', 'Copilot Studio', 'Microsoft Ignite 2026', 'Partner Ecosystem', 'AI controls', 'AI Security'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-brksp601-shadow-agents-governed-digital-coworkers/index.html',
+    color: '#ea580c',
+    phase: 2.6, speed: 0.84,
+    relations: ['ignite-2026-brksp620-scale-ai-without-slowing-innovation', 'ignite-2026-thrsp1157-building-agents-claude-foundry-choosing', 'copilot-studio-mcp-cross-tenant', 'dataverse-intelligence']
+  },
+  {
+    id: 'ignite-2026-brksp620-scale-ai-without-slowing-innovation',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [BRKSP620]：规模化扩展 AI 而不拖慢创新——吉利德科学从单兵试验到企业级治理的演进实录',
+      en: 'Microsoft Ignite 2026 [BRKSP620]: Scale AI Without Slowing Innovation—Gilead Sciences\' Journey from Experiment to Enterprise'
+    },
+    summary: {
+      zh: '在严苛医药监管边界内，用集中归口、风险分级模式与联邦子智能体打通从零星试验到全企能力的跃迁路径。',
+      en: 'Inside strict pharmaceutical guardrails, centralized intake, risk-proportional patterns, and federated sub-agents turn scattered pilots into accountable…'
+    },
+    tags: ['BRKSP620', 'Copilot Studio', 'Microsoft Ignite 2026', 'Partner Ecosystem'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-brksp620-scale-ai-without-slowing-innovation/index.html',
+    color: '#ea580c',
+    phase: 2.2, speed: 0.84,
+    relations: ['ignite-2026-livesp156-build-secure-agents-across-stack', 'ignite-2026-brksp601-shadow-agents-governed-digital-coworkers', 'copilot-studio-mcp-cross-tenant', 'dataverse-intelligence']
+  },
+  {
+    id: 'ignite-2026-inv642-observability-layer-role',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [INV642]：全栈全角色可观测性——Agent 365 登记簿、业务委派 FinOps 与 Microsoft Perception 自主安全实战',
+      en: 'Microsoft Ignite 2026 [INV642]: Observability at Every Layer for Every Role—Agent 365, Delegated FinOps, and Microsoft Perception'
+    },
+    summary: {
+      zh: '打通每日 160 万亿遥测信号构成的实时安全图谱、跨租户异构智能体清册与红蓝绿协同剧本，让业务扩缩容与机器级防御同步闭环。',
+      en: 'Connects a 160-trillion-signal real-time Security Graph, multi-tenant heterogeneous inventory, and Red/Blue/Green playbooks so business scaling and machi…'
+    },
+    tags: ['INV642', 'Copilot Studio', 'Microsoft Ignite 2026', 'Agent Governance', 'Security', 'Microsoft Agent 365'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-inv642-observability-layer-role/index.html',
+    color: '#ea580c',
+    phase: 2.1, speed: 0.84,
+    relations: ['ignite-2026-live47-agents-work-charles-lamanna-alysa-taylor', 'ignite-2026-brk473-building-governing-trusted-ai-agents', 'agentic-ai-innovation-governance-guide', 'power-platform-governance']
+  },
+  {
+    id: 'ignite-2026-live107-agent-boss',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [LIVE107]：如何成为一名“智能体老板”（How to be an Agent Boss）',
+      en: 'Microsoft Ignite 2026 [LIVE107]: How to Be an Agent Boss'
+    },
+    summary: {
+      zh: '从单纯消费聊天窗口升级为构建、受权代办与持续治理智能体团队的业务负责人。',
+      en: 'Stepping up from passive chat consumption to building, deputizing, and governing an accountable fleet of agents.'
+    },
+    tags: ['LIVE107', 'Copilot Studio', 'Microsoft Ignite 2026', 'Agent Architecture'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-live107-agent-boss/index.html',
+    color: '#d97706',
+    phase: 0.3, speed: 0.84,
+    relations: ['ignite-2026-live149-behind-curtain-building-copilot-studio', 'ignite-2026-brk570-developers-guide-copilot-studio', 'copilot-studio-ignite-2026-whats-new', 'copilot-studio-overview']
+  },
+  {
+    id: 'ignite-2026-live149-behind-curtain-building-copilot-studio',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [LIVE149]：幕后揭秘——Copilot Studio 工程团队如何用智能体软件工厂自举构建产品',
+      en: 'Microsoft Ignite 2026 [LIVE149]: Behind the Curtain—How the Copilot Studio Team Builds the Product with an Agentic Software Factory'
+    },
+    summary: {
+      zh: '一年之内彻底告别静态排期旧范式，将内部锤炼成熟的智能体协作底座外溢为跨行业核心业务操作系统。',
+      en: 'Shedding legacy flat-file planning within a single year and exporting the internal agentic factory as an operating system for enterprise work.'
+    },
+    tags: ['LIVE149', 'Copilot Studio', 'Microsoft Ignite 2026', 'Agent Architecture'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-live149-behind-curtain-building-copilot-studio/index.html',
+    color: '#d97706',
+    phase: 4.8, speed: 0.84,
+    relations: ['ignite-2026-thr887-build-enterprise-app-single-prompt-copilot', 'ignite-2026-live107-agent-boss', 'copilot-studio-ignite-2026-whats-new', 'copilot-studio-overview']
+  },
+  {
+    id: 'ignite-2026-live17-reimaging-clinical-workflows-live-brown',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [LIVE17]：重构临床工作流——对话 Brown University Health 的床旁智能体实践',
+      en: 'Microsoft Ignite 2026 [LIVE17]: Reimagining Clinical Workflows—Live with Brown University Health'
+    },
+    summary: {
+      zh: '罗德岛最大综合医疗网络从全员受控对话底座迈向临床级智能体编排的真实路径。',
+      en: 'How Rhode Island\'s largest integrated delivery network scaled from safe enterprise chat to governed clinical agents.'
+    },
+    tags: ['LIVE17', 'Copilot Studio', 'Microsoft Ignite 2026', 'Enterprise Adoption'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-live17-reimaging-clinical-workflows-live-brown/index.html',
+    color: '#0284c7',
+    phase: 4.8, speed: 0.84,
+    relations: ['ignite-2026-thr1021-scaling-copilot-studio-adoption-through', 'ignite-2026-brk571-beyond-pilot-copilot-agents-business-value', 'ms-ai-customer-cases', 'agentic-ai-adoption']
+  },
+  {
+    id: 'ignite-2026-live47-agents-work-charles-lamanna-alysa-taylor',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [LIVE47]：让智能体真正上岗——Charles Lamanna 与 Alysa Taylor 深度对谈 Copilot、Agent 365 与未来工作',
+      en: 'Microsoft Ignite 2026 [LIVE47]: Put Agents to Work—Charles Lamanna and Alysa Taylor on Copilot, Agent 365, and the Future of Work'
+    },
+    summary: {
+      zh: '消除产品间治理断崖，用管理终端设备的成熟安全基本功统管跨云异构智能体海洋。',
+      en: 'Eliminating product cliffs while extending battle-tested identity, Zero Trust, and observability controls across every agent runtime.'
+    },
+    tags: ['LIVE47', 'Copilot Studio', 'Microsoft Ignite 2026', 'Agent Governance'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-live47-agents-work-charles-lamanna-alysa-taylor/index.html',
+    color: '#0f766e',
+    phase: 4, speed: 0.84,
+    relations: ['ignite-2026-thr1004-ai-governance-playbook-scaling-agents', 'ignite-2026-inv642-observability-layer-role', 'agentic-ai-innovation-governance-guide', 'power-platform-governance']
+  },
+  {
+    id: 'ignite-2026-livesp156-build-secure-agents-across-stack',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [LIVESP156]：跨越微软技术栈构建可信生产智能体——身份门禁、治理分区与影子 AI 防线',
+      en: 'Microsoft Ignite 2026 [LIVESP156]: Build Secure Agents Across the Microsoft Stack—Agent Identity, Governance Zones, and Shadow AI Defense'
+    },
+    summary: {
+      zh: '将管理人类员工的身份、数据与威胁防线原生复用于双轨智能体，在不拖慢创新节奏的前提下消除治理死角。',
+      en: 'Extends proven human workforce controls across identity, data, and threat defense to dual-track agents without slowing down builders.'
+    },
+    tags: ['LIVESP156', 'Copilot Studio', 'Microsoft Ignite 2026', 'Partner Ecosystem', 'Security', 'Identity and network access'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-livesp156-build-secure-agents-across-stack/index.html',
+    color: '#ea580c',
+    phase: 5.9, speed: 0.84,
+    relations: ['ignite-2026-livesp165-build-agentic-platform-scale-govern', 'ignite-2026-brksp620-scale-ai-without-slowing-innovation', 'copilot-studio-mcp-cross-tenant', 'dataverse-intelligence']
+  },
+  {
+    id: 'ignite-2026-livesp165-build-agentic-platform-scale-govern',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [LIVESP165]：构建规模化与可治理的数字劳动力平台——IBM Imagine Enterprise、流程清单交接与 SLO 运营闭环',
+      en: 'Microsoft Ignite 2026 [LIVESP165]: Build an Agentic Platform to Scale and Govern Digital Workforces—IBM Imagine Enterprise, Manifest Handoff, and SLO Operations'
+    },
+    summary: {
+      zh: '免除客户手工拼装底层基础设施的工程内耗，打通从业务意图、人机权责划分、版本化清单打包到运行态健康度隔离的端到端闭环。',
+      en: 'Eliminates manual platform stitching by linking process discovery, human-digital decision rights, versioned manifest handoffs, and runtime SLO enforcemen…'
+    },
+    tags: ['LIVESP165', 'Copilot Studio', 'Microsoft Ignite 2026', 'Partner Ecosystem', 'AI', 'AI controls'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-livesp165-build-agentic-platform-scale-govern/index.html',
+    color: '#ea580c',
+    phase: 4.2, speed: 0.84,
+    relations: ['ignite-2026-odsp2231-semantic-foundation-enterprise-ai', 'ignite-2026-livesp156-build-secure-agents-across-stack', 'copilot-studio-mcp-cross-tenant', 'dataverse-intelligence']
+  },
+  {
+    id: 'ignite-2026-odsp2231-semantic-foundation-enterprise-ai',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [ODSP2231]：构建企业 AI 的共享语义底座与受控知识图谱',
+      en: 'Microsoft Ignite 2026 [ODSP2231]: Semantic Foundation for Enterprise AI'
+    },
+    summary: {
+      zh: '基于官方 6 分钟实机录屏、双语字幕讲稿与金融反洗钱图谱构建流水线提炼。',
+      en: 'Distilled from the official 6-minute walkthrough, bilingual transcripts, and the live anti-money-laundering knowledge graph pipeline.'
+    },
+    tags: ['ODSP2231', 'Copilot Studio', 'Microsoft Ignite 2026', 'Partner Ecosystem', 'Microsoft Fabric', 'Microsoft Foundry'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-odsp2231-semantic-foundation-enterprise-ai/index.html',
+    color: '#d97706',
+    phase: 2.5, speed: 0.84,
+    relations: ['ignite-2026-odsp2233-deliver-trusted-accessible-ai-teams-work', 'ignite-2026-livesp165-build-agentic-platform-scale-govern', 'copilot-studio-mcp-cross-tenant', 'dataverse-intelligence']
+  },
+  {
+    id: 'ignite-2026-odsp2233-deliver-trusted-accessible-ai-teams-work',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [ODSP2233]：在团队协作现场交付可信易用的企业 AI——Copilot Studio 与 Snowflake Cortex Agents 原生集成实战',
+      en: 'Microsoft Ignite 2026 [ODSP2233]: Deliver Trusted, Accessible AI Where Your Teams Work—Copilot Studio Meets Snowflake Cortex Agents'
+    },
+    summary: {
+      zh: '提炼自 7 分钟官方演示实录、United States Cold Storage 物流投产案例及销售智能体实机联调数据。',
+      en: 'Distilled from the 7-minute official walkthrough, the United States Cold Storage production rollout, and live Sales Intelligence benchmarks.'
+    },
+    tags: ['ODSP2233', 'Copilot Studio', 'Microsoft Ignite 2026', 'Partner Ecosystem', 'AI', 'Agents'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-odsp2233-deliver-trusted-accessible-ai-teams-work/index.html',
+    color: '#0284c7',
+    phase: 0.2, speed: 0.84,
+    relations: ['ignite-2026-thrsp1104-strengthen-copilot-agent-security-trusted', 'ignite-2026-odsp2231-semantic-foundation-enterprise-ai', 'copilot-studio-mcp-cross-tenant', 'dataverse-intelligence']
+  },
+  {
+    id: 'ignite-2026-thr1004-ai-governance-playbook-scaling-agents',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [THR1004]：企业智能体规模化治理手册——管住“权限跃迁”的六步发布框架',
+      en: 'Microsoft Ignite 2026 [THR1004]: AI Governance Playbook—Governing Authority Jumps Across Six Release Steps'
+    },
+    summary: {
+      zh: '对齐国家标准与技术研究院框架、国际标准化组织规范及欧盟人工智能法案审计要求，用工程化发布门禁充当加速安全网。',
+      en: 'Grounded in NIST, ISO, and EU AI Act release-management rigor so safety nets accelerate enterprise agent velocity rather than stalling innovation.'
+    },
+    tags: ['THR1004', 'Copilot Studio', 'Microsoft Ignite 2026', 'Agent Governance', 'MVP'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-thr1004-ai-governance-playbook-scaling-agents/index.html',
+    color: '#d97706',
+    phase: 3.1, speed: 0.84,
+    relations: ['ignite-2026-thr981-essential-insights-governing-copilot-agents', 'ignite-2026-live47-agents-work-charles-lamanna-alysa-taylor', 'agentic-ai-innovation-governance-guide', 'power-platform-governance']
+  },
+  {
+    id: 'ignite-2026-thr1021-scaling-copilot-studio-adoption-through',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [THR1021]：用社区驱动 Copilot Studio 规模化采纳——从次周退潮到长效同侪飞轮',
+      en: 'Microsoft Ignite 2026 [THR1021]: Scaling Copilot Studio Adoption Through Community-Led Agent Building'
+    },
+    summary: {
+      zh: '基于 18 分钟剧场演讲实录与微软官方全套架构及客户实证胶片，贯通使命设定、学徒裂变、原生阵地协同与 90 天冷启动闭环。',
+      en: 'Grounded in the official theater recording and Microsoft\'s customer evidence deck spanning goal alignment, cohort skilling, peer operations, and a 90-day…'
+    },
+    tags: ['THR1021', 'Copilot Studio', 'Microsoft Ignite 2026', 'Enterprise Adoption', 'Microsoft Surface', 'Agents'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-thr1021-scaling-copilot-studio-adoption-through/index.html',
+    color: '#d97706',
+    phase: 2, speed: 0.84,
+    relations: ['ignite-2026-thr1022-community-production-scaling-agentic', 'ignite-2026-live17-reimaging-clinical-workflows-live-brown', 'ms-ai-customer-cases', 'agentic-ai-adoption']
+  },
+  {
+    id: 'ignite-2026-thr1022-community-production-scaling-agentic',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [THR1022]：从社区原型走向规模化生产——智能体商业应用的严选计分卡、工时回收账本与采纳飞轮',
+      en: 'Microsoft Ignite 2026 [THR1022]: From Community to Production—Portfolio Scoring, Time-Recapture ROI, and the Adoption Flywheel'
+    },
+    summary: {
+      zh: '基于 25 分钟剧场演讲实录与十页官方方法论胶片，打通社区创新立项、财务回报核验与管理中心成本治理闭环。',
+      en: 'Grounded in the 25-minute theater transcript and ten Microsoft methodology slides spanning community intake, financial ROI rigor, and M365 spend controls…'
+    },
+    tags: ['THR1022', 'Copilot Studio', 'Microsoft Ignite 2026', 'Enterprise Adoption', 'Microsoft Surface', 'Agents'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-thr1022-community-production-scaling-agentic/index.html',
+    color: '#d97706',
+    phase: 1, speed: 0.84,
+    relations: ['ignite-2026-thr885-agentic-erp-action-build-agents-skills', 'ignite-2026-thr1021-scaling-copilot-studio-adoption-through', 'ms-ai-customer-cases', 'agentic-ai-adoption']
+  },
+  {
+    id: 'ignite-2026-thr885-agentic-erp-action-build-agents-skills',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [THR885]：实战智能体企业资源计划——基于 Dynamics 365 ERP MCP 构建智能体与业务技能',
+      en: 'Microsoft Ignite 2026 [THR885]: Agentic ERP in Action—Building Agents & Skills with Dynamics 365 ERP MCP'
+    },
+    summary: {
+      zh: 'Jared Hall 现场演示两句话揪出 USD 2.78M 呆滞库存、由智能体反向生成受控业务技能，并在协同端一键触发逾期催收动作。',
+      en: 'Jared Hall demonstrates uncovering USD 2.78M in idle stock from a two-sentence prompt, auto-authoring a role-secured skill back into F&O, and triggering…'
+    },
+    tags: ['THR885', 'Copilot Studio', 'Microsoft Ignite 2026', 'Enterprise Adoption', 'Agents'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-thr885-agentic-erp-action-build-agents-skills/index.html',
+    color: '#2563eb',
+    phase: 5, speed: 0.84,
+    relations: ['ignite-2026-brk234-agentify-business-processes-next-era-business', 'ignite-2026-thr1022-community-production-scaling-agentic', 'ms-ai-customer-cases', 'agentic-ai-adoption']
+  },
+  {
+    id: 'ignite-2026-thr887-build-enterprise-app-single-prompt-copilot',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [THR887]：单条提示词构建企业级应用——Copilot Studio 与托管运行时实战解析',
+      en: 'Microsoft Ignite 2026 [THR887]: Build an Enterprise App from a Single Prompt with Copilot Studio'
+    },
+    summary: {
+      zh: 'Jessica Lo 现场拆解托管运行时五层架构，并演示单条提示词驱动“客户信号分诊”全栈应用闭环。',
+      en: 'Jessica Lo opens the hood on Copilot Managed Runtime and builds the Customer Signal Triage app end to end from one prompt.'
+    },
+    tags: ['THR887', 'Copilot Studio', 'Microsoft Ignite 2026', 'Agent Architecture', 'Agents'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-thr887-build-enterprise-app-single-prompt-copilot/index.html',
+    color: '#2563eb',
+    phase: 4, speed: 0.84,
+    relations: ['ignite-2026-thr964-copilot-studio-unlocked-new-copilot-harness', 'ignite-2026-live149-behind-curtain-building-copilot-studio', 'copilot-studio-ignite-2026-whats-new', 'copilot-studio-overview']
+  },
+  {
+    id: 'ignite-2026-thr964-copilot-studio-unlocked-new-copilot-harness',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [THR964]：解锁 Copilot Studio——面向制作者的全新 Microsoft Copilot 执行内核',
+      en: 'Microsoft Ignite 2026 [THR964]: Copilot Studio Unlocked—The New Microsoft Copilot Harness for Makers'
+    },
+    summary: {
+      zh: 'April Dunnam 现场构建企业技术支持智能体，并与旧版标准话题内核展开同题正面对决。',
+      en: 'April Dunnam builds a live IT Support agent on stage and runs a head-to-head compound-prompt test against the legacy Standard harness.'
+    },
+    tags: ['THR964', 'Copilot Studio', 'Microsoft Ignite 2026', 'Agent Architecture', 'Copilot administration', 'Copilot Chat'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-thr964-copilot-studio-unlocked-new-copilot-harness/index.html',
+    color: '#2563eb',
+    phase: 3.1, speed: 0.84,
+    relations: ['ignite-2026-brk238-frontier-tuning-optimize-ai-agents-real', 'ignite-2026-thr887-build-enterprise-app-single-prompt-copilot', 'copilot-studio-ignite-2026-whats-new', 'copilot-studio-overview']
+  },
+  {
+    id: 'ignite-2026-thr981-essential-insights-governing-copilot-agents',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [THR981]：Copilot 智能体治理实战精要——四分区风险分级、CoE 分诊与生产放行护栏',
+      en: 'Microsoft Ignite 2026 [THR981]: Essential Insights for Governing Copilot Agents—Four Risk Zones, CoE Intake, and Release Guardrails'
+    },
+    summary: {
+      zh: '基于 25 分钟剧场演讲实录与官方五页核心架构胶片，贯通风险分级、准入分诊、环境围栏与上线签批闭环。',
+      en: 'Grounded in the 25-minute theater transcript and five core Microsoft framework slides spanning risk zones, intake triage, environment isolation, and rele…'
+    },
+    tags: ['THR981', 'Copilot Studio', 'Microsoft Ignite 2026', 'Agent Governance', 'MVP'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-thr981-essential-insights-governing-copilot-agents/index.html',
+    color: '#d97706',
+    phase: 0.2, speed: 0.84,
+    relations: ['ignite-2026-thr992-agent-principal-know-what-yours-reach', 'ignite-2026-thr1004-ai-governance-playbook-scaling-agents', 'agentic-ai-innovation-governance-guide', 'power-platform-governance']
+  },
+  {
+    id: 'ignite-2026-thr992-agent-principal-know-what-yours-reach',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [THR992]：每个智能体都是安全主体了——你清楚自家智能体的触达边界吗？',
+      en: 'Microsoft Ignite 2026 [THR992]: Every Agent Is a Principal Now—Do You Know What Yours Can Reach?'
+    },
+    summary: {
+      zh: '同样的入职文档与两项办公连接器，在 Copilot 底座与标准底座下呈现出截然不同的 Entra 身份生成节奏与权限审计盲区。',
+      en: 'Using the exact same handbook and two Microsoft 365 connectors, Copilot harness and standard harness agents diverge sharply in Entra creation timing and…'
+    },
+    tags: ['THR992', 'Copilot Studio', 'Microsoft Ignite 2026', 'Agent Governance', 'MVP'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-thr992-agent-principal-know-what-yours-reach/index.html',
+    color: '#c2410c',
+    phase: 0.8, speed: 0.84,
+    relations: ['ignite-2026-thr994-trusting-ai-workforce-securing-governing', 'ignite-2026-thr981-essential-insights-governing-copilot-agents', 'agentic-ai-innovation-governance-guide', 'power-platform-governance']
+  },
+  {
+    id: 'ignite-2026-thr994-trusting-ai-workforce-securing-governing',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [THR994]：信任你的 AI 员工——企业级智能体安全防护与规模化治理实战',
+      en: 'Microsoft Ignite 2026 [THR994]: Trusting Your AI Workforce—Securing and Governing Enterprise Agents'
+    },
+    summary: {
+      zh: '对齐 OWASP 2026 智能体前三大风险（ASI01–ASI03），在不推翻既有办公权限的前提下锁死数字员工边界。',
+      en: 'Aligns directly with OWASP Agentic Top 10 risks (ASI01–ASI03) to lock down digital coworkers using familiar Microsoft security controls.'
+    },
+    tags: ['THR994', 'Copilot Studio', 'Microsoft Ignite 2026', 'Agent Governance', 'MVP'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-thr994-trusting-ai-workforce-securing-governing/index.html',
+    color: '#d97706',
+    phase: 0.3, speed: 0.84,
+    relations: ['ignite-2026-brk221-govern-once-everywhere-scale-copilot-plugin', 'ignite-2026-thr992-agent-principal-know-what-yours-reach', 'agentic-ai-innovation-governance-guide', 'power-platform-governance']
+  },
+  {
+    id: 'ignite-2026-thrsp1104-strengthen-copilot-agent-security-trusted',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [THRSP1104]：以可信数据分类加固 Copilot 智能体防线与实时隔离',
+      en: 'Microsoft Ignite 2026 [THRSP1104]: Strengthening Copilot Agent Security with Trusted Data & Live Quarantine'
+    },
+    summary: {
+      zh: '基于官方 22 分钟剧场实录与双平台实机演示，还原 Agent 365 融合告警调查与薪酬助手实时隔离全链路。',
+      en: 'Reconstructed from the 22-minute official session recording and dual-console live demos spanning Agent 365 case triage and HR assistant quarantine.'
+    },
+    tags: ['THRSP1104', 'Copilot Studio', 'Microsoft Ignite 2026', 'Partner Ecosystem', 'AI Security', 'Agents'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-thrsp1104-strengthen-copilot-agent-security-trusted/index.html',
+    color: '#c2410c',
+    phase: 4.1, speed: 0.84,
+    relations: ['ignite-2026-thrsp1119-extend-copilot-studio-agents-securely-act', 'ignite-2026-odsp2233-deliver-trusted-accessible-ai-teams-work', 'copilot-studio-mcp-cross-tenant', 'dataverse-intelligence']
+  },
+  {
+    id: 'ignite-2026-thrsp1119-extend-copilot-studio-agents-securely-act',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [THRSP1119]：让 Copilot Studio 智能体跨生态安全读写企业核心数据',
+      en: 'Microsoft Ignite 2026 [THRSP1119]: Extend Copilot Studio Agents to Securely Act on Enterprise Data'
+    },
+    summary: {
+      zh: '基于官方 19 分钟演讲实录、CData Labs 三项定量评测与 Silver State Banking 实机回写演示提炼。',
+      en: 'Distilled from the 19-minute official recording, three CData Labs benchmark studies, and the live Silver State Banking write-back walkthrough.'
+    },
+    tags: ['THRSP1119', 'Copilot Studio', 'Microsoft Ignite 2026', 'Partner Ecosystem', 'AI', 'AI controls'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-thrsp1119-extend-copilot-studio-agents-securely-act/index.html',
+    color: '#d97706',
+    phase: 5.6, speed: 0.84,
+    relations: ['ignite-2026-thrsp1155-build-lovable-ship-environment', 'ignite-2026-thrsp1104-strengthen-copilot-agent-security-trusted', 'copilot-studio-mcp-cross-tenant', 'dataverse-intelligence']
+  },
+  {
+    id: 'ignite-2026-thrsp1155-build-lovable-ship-environment',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [THRSP1155]：用 Lovable 构建，在微软自有环境中发布——从 Copilot 托管运行时到 Azure 专属网络',
+      en: 'Microsoft Ignite 2026 [THRSP1155]: Build with Lovable, Ship in Your Microsoft Environment—From Copilot Managed Runtime to Azure VNet'
+    },
+    summary: {
+      zh: '依托微软开放的四扇标准接口与双层治理分工，按每个应用的敏感度在三种运行路径间灵活切换。',
+      en: 'Built on four open Microsoft platform interfaces and a clear dual-governance split, teams pick among three hosting targets app by app.'
+    },
+    tags: ['THRSP1155', 'Copilot Studio', 'Microsoft Ignite 2026', 'Partner Ecosystem'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-thrsp1155-build-lovable-ship-environment/index.html',
+    color: '#e11d48',
+    phase: 0.6, speed: 0.84,
+    relations: ['ignite-2026-thrsp1157-building-agents-claude-foundry-choosing', 'ignite-2026-thrsp1119-extend-copilot-studio-agents-securely-act', 'copilot-studio-mcp-cross-tenant', 'dataverse-intelligence']
+  },
+  {
+    id: 'ignite-2026-thrsp1157-building-agents-claude-foundry-choosing',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [THRSP1157]：在 Microsoft Foundry 中用 Claude 构建生产级智能体与技术栈选型',
+      en: 'Microsoft Ignite 2026 [THRSP1157]: Building Production Agents with Claude in Foundry and Choosing Your Stack'
+    },
+    summary: {
+      zh: '按模型（智能与账单）、框架（能力与循环）和基础设施（扩展与沙盒）逐层拆分，用 MCP 与 Skills 锁定跨栈可迁移资产。',
+      en: 'Decompose decisions across Model (intelligence & billing), Harness (loop & tools), and Infra (sandboxes & scale) while keeping MCP and Skills portable.'
+    },
+    tags: ['THRSP1157', 'Copilot Studio', 'Microsoft Ignite 2026', 'Partner Ecosystem', 'Agents', 'Microsoft Foundry'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-thrsp1157-building-agents-claude-foundry-choosing/index.html',
+    color: '#d97757',
+    phase: 0.2, speed: 0.84,
+    relations: ['ignite-2026-brksp601-shadow-agents-governed-digital-coworkers', 'ignite-2026-thrsp1155-build-lovable-ship-environment', 'copilot-studio-mcp-cross-tenant', 'dataverse-intelligence']
+  },
+
+  // ════════════════════════════════════════
+  // 文章 — Microsoft Ignite 2026：Power Platform 与托管运行时专场系列（新增 7 篇；Power Platform 与行业方案合计 23 篇）
+  // ════════════════════════════════════════
+  {
+    id: 'ignite-2026-brk265-apps-agents-business-process-transformation',
+    parentId: 'power-platform',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [BRK265]：Copilot Studio 应用与智能体驱动业务流程转型深度解析',
+      en: 'Microsoft Ignite 2026 [BRK265]: Business Process Transformation with Apps and Agents in Copilot Studio'
+    },
+    summary: {
+      zh: '面向多人协作的单实例企业业务流程，把动态推理、确定性分支与结构化界面收拢进同一套企业治理控制面。',
+      en: 'Built for multiplayer, single-instance business processes, Copilot Studio unifies dynamic reasoning, predictable branches, and interactive apps inside on…'
+    },
+    tags: ['BRK265', 'Power Platform', 'Microsoft Ignite 2026', 'Copilot Managed Runtime'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-brk265-apps-agents-business-process-transformation/index.html',
+    color: '#ea580c',
+    phase: 1.2, speed: 0.84,
+    relations: ['ignite-2026-brk378-host-apps-anywhere-new-copilot-managed', 'ignite-2026-thr977-reports-reasoning-reinventing-ppm-ai-power', 'copilot-studio-managed-runtime-alm', 'power-apps-code-app']
+  },
+  {
+    id: 'ignite-2026-brk378-host-apps-anywhere-new-copilot-managed',
+    parentId: 'power-platform',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [BRK378]：使用全新 Copilot 托管运行时随处托管企业应用深度解析',
+      en: 'Microsoft Ignite 2026 [BRK378]: Host Apps from Anywhere with the New Copilot Managed Runtime'
+    },
+    summary: {
+      zh: '面向业务流程专家、全栈开发者与 IT 管理员，打通从自然语言原型、三方前端工具到专业代码仓库的端到端应用生命周期。',
+      en: 'Connects domain process experts, pro developers, and IT admins across natural-language flows, third-party builders, and Git-backed code repositories.'
+    },
+    tags: ['BRK378', 'Power Platform', 'Microsoft Ignite 2026', 'Copilot Managed Runtime'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-brk378-host-apps-anywhere-new-copilot-managed/index.html',
+    color: '#ea580c',
+    phase: 2, speed: 0.84,
+    relations: ['ignite-2026-brk382-deploy-solutions-scale-power-platform-copilot', 'ignite-2026-brk265-apps-agents-business-process-transformation', 'copilot-studio-managed-runtime-alm', 'power-apps-code-app']
+  },
+  {
+    id: 'ignite-2026-brk382-deploy-solutions-scale-power-platform-copilot',
+    parentId: 'power-platform',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [BRK382]：用 Power Platform 与 Copilot Managed Runtime 规模化部署与治理企业解决方案',
+      en: 'Microsoft Ignite 2026 [BRK382]: Deploying and Governing Enterprise Solutions at Scale with Power Platform and Copilot Managed Runtime'
+    },
+    summary: {
+      zh: '串联诺华 77,000 名员工租户真实演进与四场实机演示，打通绿区准入、跨工具托管、沙盒拦截、分级晋升与点数账本。',
+      en: 'Bridges Novartis\'s 77,000-associate tenant telemetry with four live demos spanning green-zone routing, cross-tool hosting, sandbox enforcement, tiered pr…'
+    },
+    tags: ['BRK382', 'Power Platform', 'Microsoft Ignite 2026', 'Copilot Managed Runtime', 'Agents'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-brk382-deploy-solutions-scale-power-platform-copilot/index.html',
+    color: '#0284c7',
+    phase: 3.8, speed: 0.84,
+    relations: ['ignite-2026-brk386-whats-new-power-platform', 'ignite-2026-brk378-host-apps-anywhere-new-copilot-managed', 'copilot-studio-managed-runtime-alm', 'power-apps-code-app']
+  },
+  {
+    id: 'ignite-2026-brk386-whats-new-power-platform',
+    parentId: 'power-platform',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [BRK386]：Power Platform 年度创新全景——质量攻坚、MCP 混合共创与 Work IQ 业务智能',
+      en: 'Microsoft Ignite 2026 [BRK386]: What\'s New in Power Platform — Core Velocity, MCP Hybrid Authoring, and Work IQ Intelligence'
+    },
+    summary: {
+      zh: '串联近一年 130+ 项底座性能交付与四场实机演示，覆盖原生移动扫码、服务端渲染、编码代理多人共创及两阶段安全写回。',
+      en: 'Synthesizes 130+ core engineering improvements with four live walkthroughs spanning native mobile controls, server-side rendering, live agent co-authorin…'
+    },
+    tags: ['BRK386', 'Power Platform', 'Microsoft Ignite 2026', 'Copilot Managed Runtime', 'Agents'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-brk386-whats-new-power-platform/index.html',
+    color: '#0284c7',
+    phase: 4.2, speed: 0.84,
+    relations: ['ignite-2026-live07-copilot-managed-runtime-build-want-run', 'ignite-2026-brk382-deploy-solutions-scale-power-platform-copilot', 'copilot-studio-managed-runtime-alm', 'power-apps-code-app']
+  },
+  {
+    id: 'ignite-2026-live07-copilot-managed-runtime-build-want-run',
+    parentId: 'power-platform',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [LIVE07]：Copilot 托管运行时深度拆解——随处自由构建，稳健自信运行',
+      en: 'Microsoft Ignite 2026 [LIVE07]: Copilot Managed Runtime Deep Dive—Build Where You Want, Run with Confidence'
+    },
+    summary: {
+      zh: '打通微软原生工作台、专业代码仓库与第三方生成式开发工具，让创作自由与企业级安全治理同频落地。',
+      en: 'Bridges Microsoft workspaces, Git-backed developer tooling, and third-party AI builders so maker freedom and IT governance reinforce each other.'
+    },
+    tags: ['LIVE07', 'Power Platform', 'Microsoft Ignite 2026', 'Copilot Managed Runtime'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-live07-copilot-managed-runtime-build-want-run/index.html',
+    color: '#ea580c',
+    phase: 1.8, speed: 0.84,
+    relations: ['ignite-2026-thr916-vanguard-transforming-advisor-productivity', 'ignite-2026-brk386-whats-new-power-platform', 'copilot-studio-managed-runtime-alm', 'power-apps-code-app']
+  },
+  {
+    id: 'ignite-2026-thr916-vanguard-transforming-advisor-productivity',
+    parentId: 'power-platform',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [THR916]：Vanguard 如何借助数据与智能体革新理财顾问服务生产力',
+      en: 'Microsoft Ignite 2026 [THR916]: How Vanguard Is Transforming Advisor Productivity with Data and AI'
+    },
+    summary: {
+      zh: '微软前线部署工程团队进驻 Vanguard 数周联合敏捷开发，打通共享单实例客户系统与外部多云信号湖。',
+      en: 'Microsoft Forward Deployed Engineers embedded on-site with Vanguard in a co-scrum model to bridge shared CRM rules and multi-cloud enterprise signals.'
+    },
+    tags: ['THR916', 'Power Platform', 'Microsoft Ignite 2026', 'Copilot Managed Runtime', 'AI', 'Agents'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-thr916-vanguard-transforming-advisor-productivity/index.html',
+    color: '#b91c1c',
+    phase: 4.9, speed: 0.84,
+    relations: ['ignite-2026-thr977-reports-reasoning-reinventing-ppm-ai-power', 'ignite-2026-live07-copilot-managed-runtime-build-want-run', 'copilot-studio-managed-runtime-alm', 'power-apps-code-app']
+  },
+  {
+    id: 'ignite-2026-thr977-reports-reasoning-reinventing-ppm-ai-power',
+    parentId: 'power-platform',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026 [THR977]：从静态报表迈向实时推理——用 AI 与 Power Apps 重塑项目组合管理',
+      en: 'Microsoft Ignite 2026 [THR977]: From Reports to Reasoning—Reinventing PPM with AI and Power Apps'
+    },
+    summary: {
+      zh: 'Peter Kestenholz 现场拆解服务全球 100+ 企业客户的 Projectum xPM 实战升级路径，同台演示千级项目约束寻优与本机断网推理。',
+      en: 'Peter Kestenholz unpacks lessons from serving 100+ global enterprises on Projectum xPM, running live multi-constraint simulations and offline local AI re…'
+    },
+    tags: ['THR977', 'Power Platform', 'Microsoft Ignite 2026', 'Copilot Managed Runtime', 'MVP'],
+    date: '2026-11-25',
+    url: 'posts/ignite-2026-thr977-reports-reasoning-reinventing-ppm-ai-power/index.html',
+    color: '#2563eb',
+    phase: 1, speed: 0.84,
+    relations: ['ignite-2026-brk265-apps-agents-business-process-transformation', 'ignite-2026-thr916-vanguard-transforming-advisor-productivity', 'copilot-studio-managed-runtime-alm', 'power-apps-code-app']
   }
 ];

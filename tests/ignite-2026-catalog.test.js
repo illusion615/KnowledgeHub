@@ -45,7 +45,8 @@ test('generated ignite-2026-session-catalog.json and .md satisfy swarm authoring
   assert.ok(catalog.summary.totalUpstreamSessionsScanned >= 1500);
   assert.equal(catalog.sessions.length, catalog.summary.totalActionableSessions);
   assert.equal(catalog.summary.completedSkipCount, 1);
-  assert.equal(catalog.summary.pendingProductionCount, catalog.sessions.length - 1);
+  assert.equal(catalog.summary.completedCount, catalog.sessions.length - 1);
+  assert.equal(catalog.summary.pendingProductionCount, 0);
 
   const seenCodes = new Set();
   const seenSlugs = new Set();
@@ -68,9 +69,10 @@ test('generated ignite-2026-session-catalog.json and .md satisfy swarm authoring
       assert.equal(s.targetSlug, 'copilot-studio-ignite-2026-whats-new');
       assert.ok(fs.existsSync(path.join(REPO_ROOT, s.targetArticlePath)));
     } else {
-      assert.equal(s.alreadyProduced, false);
-      assert.equal(s.status, 'pending_production');
+      assert.equal(s.alreadyProduced, true);
+      assert.equal(s.status, 'completed');
       assert.match(s.targetSlug, /^ignite-2026-[a-z0-9]+-/);
+      assert.ok(fs.existsSync(path.join(REPO_ROOT, s.targetArticlePath)), `Missing produced article: ${s.targetArticlePath}`);
     }
   }
 
