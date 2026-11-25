@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-section-density="strict" data-present-i18n="strict" data-cite-links>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Microsoft Ignite 2026 [THR964]：解锁 Copilot Studio——面向制作者的全新 Microsoft Copilot 执行内核</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <link rel="stylesheet" href="../../assets/article-figure.css" />
+  <link rel="stylesheet" href="./thr964-theater.css" />
+  <style>
+    :root {
+      --accent: #2563eb;
+      --teal: #0d8f8c;
+    }
+    html.is-presentation-mode .section:has([data-present-step]) > .section-head {
+      display: none;
+    }
+    .hero-copy h1 {
+      font-size: clamp(2.1rem, 5vw, 3.8rem);
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+      max-width: 20ch;
+    }
+    .hero-panel .layer-list { position: relative; margin-top: 18px; }
+    .insight-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .insight-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .insight-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    @media (max-width: 980px) {
+      .insight-grid-3, .insight-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 680px) {
+      .insight-grid-2, .insight-grid-3, .insight-grid-4 { grid-template-columns: 1fr; }
+    }
+    .compare-table-wrap {
+      margin-top: 18px;
+      overflow-x: auto;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 6px 14px;
+      box-shadow: var(--shadow);
+    }
+    .compare-table-wrap .compare-table {
+      width: 100%;
+      min-width: 680px;
+      border-collapse: collapse;
+      margin-top: 0;
+      font-size: 0.9rem;
+    }
+    .compare-table-wrap .compare-table th {
+      text-align: left;
+      padding: 12px 14px;
+      background: rgba(15, 23, 42, 0.04);
+      border-bottom: 2px solid rgba(15, 23, 42, 0.1);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-weight: 700;
+      font-size: 0.8rem;
+      letter-spacing: 0.04em;
+      text-transform: none;
+      color: var(--ink);
+      vertical-align: bottom;
+    }
+    .compare-table-wrap .compare-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+      line-height: 1.65;
+      color: var(--ink);
+      vertical-align: top;
+    }
+    .compare-table-wrap .compare-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+    .compare-table-wrap .compare-table td:first-child {
+      font-weight: 600;
+      min-width: 150px;
+    }
+    .compare-table-wrap .compare-table code,
+    .section p code,
+    .flow-copy code,
+    .insight-card code,
+    .comparison-card code,
+    .quote-block code,
+    .subsection-toggle code,
+    .subsection-content p code,
+    .bib-list code {
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.84em;
+      padding: 2px 6px;
+      border-radius: 5px;
+      background: rgba(15, 23, 42, 0.06);
+      color: var(--ink);
+    }
+    [data-theme="dark"] .compare-table-wrap {
+      background: rgba(22, 29, 38, 0.9);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+    [data-theme="dark"] .compare-table-wrap .compare-table th {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.12);
+      color: var(--ink);
+    }
+    [data-theme="dark"] .compare-table-wrap .compare-table td {
+      border-color: rgba(255, 255, 255, 0.07);
+      color: var(--ink);
+    }
+    [data-theme="dark"] .compare-table-wrap .compare-table code,
+    [data-theme="dark"] .section p code,
+    [data-theme="dark"] .flow-copy code,
+    [data-theme="dark"] .insight-card code,
+    [data-theme="dark"] .comparison-card code,
+    [data-theme="dark"] .quote-block code,
+    [data-theme="dark"] .subsection-toggle code,
+    [data-theme="dark"] .subsection-content p code,
+    [data-theme="dark"] .bib-list code {
+      background: rgba(255, 255, 255, 0.1);
+      color: #e2e8f0;
+    }
+    .timeline-list > .flow-step::before {
+      background: linear-gradient(135deg, var(--teal), #14b8a6);
+    }
+    .insight-callout {
+      border-left: 4px solid var(--teal);
+    }
+    .code-block {
+      margin: 18px 0;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .code-block pre {
+      margin: 0;
+      padding: 20px 22px;
+      background: rgba(16, 31, 43, 0.95);
+      color: #cdd6e0;
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.82rem;
+      line-height: 1.68;
+      overflow-x: auto;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+    }
+    [data-theme="dark"] .code-block pre {
+      background: rgba(0, 0, 0, 0.46);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+    .mermaid-container {
+      margin: 22px 0;
+      padding: 24px 18px;
+      border-radius: var(--radius-md);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      text-align: center;
+      overflow-x: auto;
+    }
+    .generated-diagram {
+      margin-top: 22px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+    .generated-diagram img {
+      display: block;
+      width: 100%;
+      height: auto;
+      object-fit: contain;
+    }
+    html[lang="en"] .diagram-zh,
+    html:not([lang="en"]) .diagram-en { display: none; }
+    .diagram-caption {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+    .diagram-caption a { color: var(--teal); font-weight: 600; white-space: nowrap; }
+    [data-theme="dark"] .generated-diagram {
+      background: rgba(22, 29, 38, 0.9);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+    .sandbox-slot {
+      margin-top: 22px;
+      padding: 22px;
+      border-radius: var(--radius-lg);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+    .sandbox-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .sandbox-title-group h3 { margin: 10px 0 6px; font-size: 1.18rem; }
+    .sandbox-title-group p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+    .sandbox-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .sandbox-stage {
+      border-radius: var(--radius-md);
+      background: rgba(16, 31, 43, 0.04);
+      border: 1px solid var(--line);
+      padding: 14px;
+      overflow: hidden;
+    }
+    [data-theme="dark"] .sandbox-stage {
+      background: rgba(0, 0, 0, 0.28);
+    }
+    .sandbox-canvas {
+      display: block;
+      width: 100%;
+      max-height: 300px;
+      border-radius: 10px;
+    }
+    /* Dual-view switcher bar (Progressive / Linear / Markdown Source) */
+    .genesis-view-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 18px 0 8px;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      font-size: 0.82rem;
+    }
+    .genesis-view-status {
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .genesis-view-buttons {
+      display: inline-flex;
+      gap: 6px;
+    }
+    .genesis-view-btn {
+      appearance: none;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.18s ease, color 0.18s ease;
+    }
+    .genesis-view-btn.is-active {
+      background: linear-gradient(135deg, var(--accent), #ff9340);
+      color: #fff;
+    }
+    .genesis-source-drawer {
+      display: none;
+      margin: 18px 0 28px;
+      padding: 20px;
+      border-radius: var(--radius-lg);
+      background: rgba(16, 31, 43, 0.96);
+      color: #dbe4ee;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      overflow-x: auto;
+    }
+    .genesis-source-drawer.is-open { display: block; }
+    .genesis-source-drawer pre {
+      margin: 0;
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.8rem;
+      line-height: 1.65;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    body.is-linear-reading .subsection-content {
+      max-height: none !important;
+      opacity: 1 !important;
+      overflow: visible !important;
+      padding: 0 24px 24px !important;
+    }
+    .is-presentation-mode .genesis-view-bar,
+    .is-presentation-mode .genesis-source-drawer {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            <span data-zh="Study Room Copilot Studio" data-en="Study Room Copilot Studio">Study Room Copilot Studio</span>
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#runtime-loop-and-harnesses" data-zh="运行时变革" data-en="Runtime Shift">运行时变革</a>
+            <a href="#five-building-blocks" data-zh="五大构建积木" data-en="Five Building Blocks">五大构建积木</a>
+            <a href="#live-build-and-ab-test" data-zh="实机搭建与同题对决" data-en="Live Build &amp; A/B Showdown">实机搭建与同题对决</a>
+            <a href="#evaluate-publish-academy" data-zh="质量门禁与交付演进" data-en="Quality Gate &amp; Delivery">质量门禁与交付演进</a>
+            <a href="#references" data-zh="参考资料" data-en="References">参考资料</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow" data-zh="Microsoft Ignite 2026 · THR964 Official Breakdown" data-en="Microsoft Ignite 2026 · THR964 Official Breakdown">Microsoft Ignite 2026 · THR964 Official Breakdown</span>
+            <h1 data-zh="Microsoft Ignite 2026 [THR964]：解锁 Copilot Studio——面向制作者的全新 Microsoft Copilot 执行内核" data-en="Microsoft Ignite 2026 [THR964]: Copilot Studio Unlocked—The New Microsoft Copilot Harness for Makers">Microsoft Ignite 2026 [THR964]：解锁 Copilot Studio——面向制作者的全新 Microsoft Copilot 执行内核</h1>
+            <p data-zh="传统对话机器人要求制作者预先猜透每一种用户提问并手工编排话题分支，一旦遭遇工具报错或复合诉求便容易断链 [1]。在 Ignite 2026 剧场专场 THR964 中，微软首席云技术布道师 April Dunnam 拆解了处于智能体设计层与多模型大脑之间的全新运行时——Microsoft Copilot Harness [1][2]。借助“规划—行动—评估重规划”闭环、最多按需加载 50 项的 Markdown 技能、默认集成的组织上下文以及内置安全代码沙盒，制作者可在 10 至 15 分钟内从零交付高可靠的企业级智能体，并通过自动化单元评测闭环验证 [1][2]。" data-en="Traditional chatbots forced makers to anticipate every user phrasing and script rigid topic branches up front, leaving flows brittle whenever tools failed or compound requests arrived [1]. In Ignite 2026 theater session THR964, Microsoft Principal Cloud Advocate April Dunnam unpacked the &lt;strong&gt;Microsoft Copilot harness&lt;/strong&gt;—the new runtime sitting between maker design and multi-model reasoning [1][2]. Combining a Plan-Act-Evaluate-Replan loop, up to 50 on-demand Markdown skills, default Work IQ grounding, and a built-in Python sandbox, makers build and unit-test complex enterprise agents from scratch in 10 to 15 minutes [1][2].">传统对话机器人要求制作者预先猜透每一种用户提问并手工编排话题分支，一旦遭遇工具报错或复合诉求便容易断链 [1]。在 Ignite 2026 剧场专场 THR964 中，微软首席云技术布道师 April Dunnam 拆解了处于智能体设计层与多模型大脑之间的全新运行时——Microsoft Copilot Harness [1][2]。借助“规划—行动—评估重规划”闭环、最多按需加载 50 项的 Markdown 技能、默认集成的组织上下文以及内置安全代码沙盒，制作者可在 10 至 15 分钟内从零交付高可靠的企业级智能体，并通过自动化单元评测闭环验证 [1][2]。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#runtime-loop-and-harnesses" data-zh="阅读核心章节" data-en="Explore Core Chapters">阅读核心章节</a>
+              <a class="button button-secondary" href="#five-building-blocks" data-zh="五大构建积木" data-en="Five Building Blocks">五大构建积木</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label" data-zh="THR964 核心工程摘要" data-en="THR964 Executive Brief">THR964 核心工程摘要</span>
+            <h2 data-zh="描述终局目标，由运行时接管规划、自愈与按需装载" data-en="Describe the Goal; Let the Harness Plan, Adapt, and Load on Cue">描述终局目标，由运行时接管规划、自愈与按需装载</h2>
+            <p data-zh="April Dunnam 现场构建企业技术支持智能体，并与旧版标准话题内核展开同题正面对决 [1][2]。" data-en="April Dunnam builds a live IT Support agent on stage and runs a head-to-head compound-prompt test against the legacy Standard harness [1][2].">April Dunnam 现场构建企业技术支持智能体，并与旧版标准话题内核展开同题正面对决 [1][2]。</p>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span><span data-zh="四步自愈运行时 — 在每轮对话裁决模型调用时机、筛选最小上下文，并在结果偏离或工具报错时自动重规划 [1][2]" data-en="Self-Healing Loop — Decides when to invoke GPT or Anthropic models, trims context, and re-plans automatically when tools fail [1][2]">四步自愈运行时 — 在每轮对话裁决模型调用时机、筛选最小上下文，并在结果偏离或工具报错时自动重规划 [1][2]</span></li>
+              <li><span class="layer-number">2</span><span data-zh="按需挂载省词元 — 单智能体支持多达 50 项动态技能，免除冗长规程常驻上下文，显著压降净词元消耗 [1][3]" data-en="On-Demand Skills — Supports up to 50 Markdown skills loaded strictly when needed, keeping prompts short and cutting net token use [1][3]">按需挂载省词元 — 单智能体支持多达 50 项动态技能，免除冗长规程常驻上下文，显著压降净词元消耗 [1][3]</span></li>
+              <li><span class="layer-number">3</span><span data-zh="量化单测与沙盒 — 内置安全环境运行 Python 产出图表文件，上线前通过自动化评测跑出 82% 基准分 [1][2]" data-en="Sandbox &amp;amp; Unit Evals — Runs Python inline for charts and files while grading multi-turn test sets (82% live demo score) pre-publish [1][2]">量化单测与沙盒 — 内置安全环境运行 Python 产出图表文件，上线前通过自动化评测跑出 82% 基准分 [1][2]</span></li>
+            </ul>
+          </aside>
+        </div>
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label" data-zh="单智能体技能容量" data-en="Max Skills per Agent">单智能体技能容量</div>
+            <strong>50</strong>
+            <span data-zh="将排障与换机等专业规程拆分为独立文本包按需拉取，告别全量指令硬塞 [1][3]" data-en="Repeatable Markdown procedures with optional templates and Python scripts loaded dynamically on cue [1][3]">将排障与换机等专业规程拆分为独立文本包按需拉取，告别全量指令硬塞 [1][3]</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="复合提问推理步数" data-en="Live Debug Reasoning Steps">复合提问推理步数</div>
+            <strong>18</strong>
+            <span data-zh="面对“蓝屏死机+申请新电脑”双诉求，自动串联排障技能与白名单检索后兜底给出机型 [1][2]" data-en="Executed live in Debug mode to sequence 6 BSOD recovery steps before surfacing replacement laptops [1][2]">面对“蓝屏死机+申请新电脑”双诉求，自动串联排障技能与白名单检索后兜底给出机型 [1][2]</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="排障测试集评测分" data-en="Automated Eval Benchmark">排障测试集评测分</div>
+            <strong>82%</strong>
+            <span data-zh="在评测面板自动跑完多轮对话单元测试（耗时 14 分 41 秒，消耗 590 积分）定位薄弱环节 [1][2]" data-en="Multi-turn unit evaluation completed in 14m 41s (590 Copilot Credits) to pinpoint prompt gaps before launch [1][2]">在评测面板自动跑完多轮对话单元测试（耗时 14 分 41 秒，消耗 590 积分）定位薄弱环节 [1][2]</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="genesis-view-bar load-in" role="region" aria-label="Genesis 视图模式切换">
+        <span class="genesis-view-status" data-zh="Genesis 纯静态编译产物 · 零后端依赖 · 支持渐进披露与源稿对照" data-en="Genesis Static Compiled Artifact · Zero Backend · Progressive &amp; Source View">Genesis 纯静态编译产物 · 零后端依赖 · 支持渐进披露与源稿对照</span>
+        <div class="genesis-view-buttons">
+          <button type="button" class="genesis-view-btn is-active" data-genesis-mode="progressive" data-zh="渐进披露视图" data-en="Progressive View">渐进披露视图</button>
+          <button type="button" class="genesis-view-btn" data-genesis-mode="linear" data-zh="线性展开视图" data-en="Linear View">线性展开视图</button>
+          <button type="button" class="genesis-view-btn" data-genesis-mode="source" data-zh="Markdown 源稿对照" data-en="Markdown Source">Markdown 源稿对照</button>
+        </div>
+      </div>
+      <section class="genesis-source-drawer" id="genesis-source-drawer" aria-label="Markdown 源稿">
+        <pre><code>---
+title: Microsoft Ignite 2026 [THR964]：解锁 Copilot Studio——面向制作者的全新 Microsoft Copilot 执行内核 || Microsoft Ignite 2026 [THR964]: Copilot Studio Unlocked—The New Microsoft Copilot Harness for Makers
+eyebrow: Microsoft Ignite 2026 · THR964 Official Breakdown || Microsoft Ignite 2026 · THR964 Official Breakdown
+brand: Study Room Copilot Studio || Study Room Copilot Studio
+date: 2026-11-25
+strict_i18n: true
+strict_density: true
+lead: 传统对话机器人要求制作者预先猜透每一种用户提问并手工编排话题分支，一旦遭遇工具报错或复合诉求便容易断链 [1]。在 Ignite 2026 剧场专场 THR964 中，微软首席云技术布道师 April Dunnam 拆解了处于智能体设计层与多模型大脑之间的全新运行时——Microsoft Copilot Harness [1][2]。借助“规划—行动—评估重规划”闭环、最多按需加载 50 项的 Markdown 技能、默认集成的组织上下文以及内置安全代码沙盒，制作者可在 10 至 15 分钟内从零交付高可靠的企业级智能体，并通过自动化单元评测闭环验证 [1][2]。 || Traditional chatbots forced makers to anticipate every user phrasing and script rigid topic branches up front, leaving flows brittle whenever tools failed or compound requests arrived [1]. In Ignite 2026 theater session THR964, Microsoft Principal Cloud Advocate April Dunnam unpacked the **Microsoft Copilot harness**—the new runtime sitting between maker design and multi-model reasoning [1][2]. Combining a Plan-Act-Evaluate-Replan loop, up to 50 on-demand Markdown skills, default Work IQ grounding, and a built-in Python sandbox, makers build and unit-test complex enterprise agents from scratch in 10 to 15 minutes [1][2].
+panel_label: THR964 核心工程摘要 || THR964 Executive Brief
+panel_title: 描述终局目标，由运行时接管规划、自愈与按需装载 || Describe the Goal; Let the Harness Plan, Adapt, and Load on Cue
+panel_desc: April Dunnam 现场构建企业技术支持智能体，并与旧版标准话题内核展开同题正面对决 [1][2]。 || April Dunnam builds a live IT Support agent on stage and runs a head-to-head compound-prompt test against the legacy Standard harness [1][2].
+panel:
+  - 四步自愈运行时 — 在每轮对话裁决模型调用时机、筛选最小上下文，并在结果偏离或工具报错时自动重规划 [1][2] || Self-Healing Loop — Decides when to invoke GPT or Anthropic models, trims context, and re-plans automatically when tools fail [1][2]
+  - 按需挂载省词元 — 单智能体支持多达 50 项动态技能，免除冗长规程常驻上下文，显著压降净词元消耗 [1][3] || On-Demand Skills — Supports up to 50 Markdown skills loaded strictly when needed, keeping prompts short and cutting net token use [1][3]
+  - 量化单测与沙盒 — 内置安全环境运行 Python 产出图表文件，上线前通过自动化评测跑出 82% 基准分 [1][2] || Sandbox &amp; Unit Evals — Runs Python inline for charts and files while grading multi-turn test sets (82% live demo score) pre-publish [1][2]
+metrics:
+  - 单智能体技能容量 || Max Skills per Agent | 50 | 将排障与换机等专业规程拆分为独立文本包按需拉取，告别全量指令硬塞 [1][3] || Repeatable Markdown procedures with optional templates and Python scripts loaded dynamically on cue [1][3]
+  - 复合提问推理步数 || Live Debug Reasoning Steps | 18 | 面对“蓝屏死机+申请新电脑”双诉求，自动串联排障技能与白名单检索后兜底给出机型 [1][2] || Executed live in Debug mode to sequence 6 BSOD recovery steps before surfacing replacement laptops [1][2]
+  - 排障测试集评测分 || Automated Eval Benchmark | 82% | 在评测面板自动跑完多轮对话单元测试（耗时 14 分 41 秒，消耗 590 积分）定位薄弱环节 [1][2] || Multi-turn unit evaluation completed in 14m 41s (590 Copilot Credits) to pinpoint prompt gaps before launch [1][2]
+style:
+  accent: &quot;#2563eb&quot;
+  teal: &quot;#0d8f8c&quot;
+---
+
+## #runtime-loop-and-harnesses 01 / Runtime Loop &amp; Three Harnesses :: 运行时变革：为什么智能体与多模型之间需要全新 Harness || Runtime Shift: Why an Agent Needs a Planning Harness Between Design and Model
+
+过去在 Copilot Studio 中搭建智能体默认采用标准内核（Standard Harness）：制作者必须提前预测用户意图，在“话题（Topics）”画布里逐条编写追问节点、工具调用顺序与异常分支 [1]。这种前置脚本化模式在面对固定核验流程时尚可应付，但一旦进入真实的复杂业务现场——例如员工询问“我需要申请一台新电脑”，系统不仅要核实设备是否满足每 4 年一次的换新窗口，还要在接口超时或条件不符时临时改写方案——手工穷举所有潜在断点便成了最沉重的工程负担 [1][2]。 || Building agents in Copilot Studio historically meant working inside the **Standard harness**, where makers predicted user intents and scripted every follow-up question, branch, and action inside Topics up front [1]. While pre-scripted trees handle rigid checklists, real enterprise requests—such as checking whether a laptop request falls inside a 4-year hardware refresh window and recovering gracefully if a backend lookup throws an error—make pre-wiring every breaking point unsustainable [1][2].
+
+April Dunnam 在开场明确界定了破局关键：**执行内核（Harness）是处于制作者设计层（指令、知识、工具）与底层推理大模型（支持多个 GPT 与 Anthropic 模型实例）之间的运行时引擎** [1][2]。在每一轮交互中，Microsoft Copilot Harness 依次完成四项核心调度：01 裁决何时调用大模型、02 挑选发往模型的最小必要上下文、03 解析模型返回结果、04 精准触发对应工具 [1][2]。更核心的跃迁在于其**评估与重规划（Evaluate &amp; Re-Plan）闭环**——内核在调用工具后不会盲目终止，而是主动校验当前输出是否真正满足终端用户诉求；若工具报错或结果未达预期，内核当场生成新计划自适应恢复，彻底免除了手工编写容错分支的繁琐工作 [1][2]。 || Opening THR964, April Dunnam pinpointed the architectural pivot: **the harness is the runtime sitting between what you design in your agent and the underlying model supplying reasoning** (supporting multiple GPT and Anthropic model instances) [1][2]. On every turn, the Microsoft Copilot harness executes four steps: deciding when to call the model, choosing what context to send, interpreting what comes back, and calling the right tools [1][2]. Its defining advantage is the **evaluation and re-planning loop**: after acting, the runtime checks whether the output actually satisfies the user's goal and dynamically formulates a recovery plan if a tool errors out or returns incomplete data [1][2].
+
+:::figure { src: &quot;./media/thr964-harness-architecture.figure.json&quot;, title: &quot;Microsoft Copilot Harness 三层运行时闭环与五大构建模块架构 || Microsoft Copilot Harness Three-Tier Runtime Loop &amp; Five Building Blocks&quot; }
+图 1：THR964 揭示的智能体运行时全貌——顶层分离恒定指令、按需挂载的技能与受控知识源；中层由内核驱动多模型规划、上下文裁剪与异常重规划；底层协同连接器、确定性工作流与内置安全代码沙盒闭环交付 [1][2]。 || Figure 1: Full THR964 runtime architecture—separating concise instructions, on-demand skills, and scoped grounding at the top; driving multi-model planning, context assembly, and self-evaluation in the middle; and orchestrating connectors, deterministic workflows, and the Python sandbox underneath [1][2].
+:::
+
+为了避免团队把所有场景一刀切地塞进同一种模式，Copilot Studio 目前并列提供三套针对不同负载调优的执行内核 [1][2]：**Standard Harness** 严格遵循预设话题与规则，适合固定核验步骤的密码重置；**Customer Conversation Harness** 专为网页聊天与电话语音联络中心优化，原生内置平滑转接人工坐席链路；而本场聚焦的 **Microsoft Copilot Harness** 则面向重度逻辑推理、跨系统多步拆解的企业级复杂流程 [1][2]。下方交互导览台集成了 THR964 官方 24 分钟点播视频流、高清封面与五幕逐分钟实录索引 [1][2]： || Rather than forcing one runtime onto every workload, Copilot Studio offers three specialized harnesses [1][2]: **Standard** for rule-based structured flows like password resets, **Customer Conversation** optimized for contact-center voice and web chat with human escalation, and **Microsoft Copilot** for reasoning-heavy, multi-step processes [1][2]. The interactive theater below pairs the official 24-minute Medius stream with timestamped walkthroughs of all five session chapters [1][2]:
+
+:::sandbox { id: &quot;thr964-video-theater&quot;, canvas: false, script: &quot;./thr964-theater.js&quot;, style: &quot;./thr964-theater.css&quot;, title: &quot;THR964 官方点播视频与五幕时间戳导览台 || THR964 Official On-Demand Stream &amp; Five-Chapter Timestamp Theater&quot;, desc: &quot;切换运行时原理、五大积木、实机搭建收权、新旧内核蓝屏同题对决与 82% 单元评测五大章节，支持在页内直接唤起微软官方 Medius 点播流。 || Switch across Runtime Loop, Five Building Blocks, Live Work IQ Scoping, BSOD A/B Comparison, and 82% Automated Evals, or launch the embedded Medius video player.&quot; }
+纯静态点播与议题导览沙盒：内置 THR964 官方高清封面、五段逐分钟实录摘要及官方视频与实战营直链。 || Pure static session theater featuring the official THR964 HD cover, five timestamped transcript digests, and direct Medius and Agent Academy links.
+:::
+
+## #five-building-blocks 02 / Five Building Blocks :: 五大构建积木：动态技能卸载、刚柔并济工作流与内置 Python 沙盒 || Five Building Blocks: Dynamic Skills, Deterministic Workflows, and the Python Sandbox
+
+为什么新内核能在提升工具调用准确率的同时把净词元（Net Token）消耗降下来 [1]？答案在于它将智能体工程拆解为职责正交的五大构建模块：**指令（Instructions）、技能（Skills）、工具（Tools）、工作流（Workflows）与安全沙盒（Sandbox）**[1][2]。过去制作者不得不把所有业务规程硬塞进同一段巨型系统提示词，导致每一轮日常寒暄或简单查询都要重复吞入数千词元；而在新架构下，主指令只需用平实语言声明对所有会话恒定成立的目标、语气与越界禁区 [1][3]。 || How does the Microsoft Copilot harness improve tool-calling accuracy while lowering net token consumption [1]? It decomposes agent design into five orthogonal building blocks: **Instructions, Skills, Tools, Workflows, and Sandbox** [1][2]. Previously, makers stuffed every operational SOP into one monolithic prompt ingested on every turn; now, **Instructions** stay short and hold only the goal, tone, and scope boundaries that remain true for every user interaction [1][3].
+
+重复性的领域专业规程（Know-how）则被剥离进 **Skills（技能）**[1][3]。每项技能本质上是一份轻量级 Markdown 文本说明，也可附带演示文稿模板等资源包与可执行脚本，单个智能体最多可挂载 **50 项技能**[1][3]。内核仅在用户提问命中技能描述时才动态将其拉入当前上下文——当员工仅咨询四年期设备换新时，系统绝不会浪费词元去加载冗长的故障排查技能 [1]。 || Repeatable domain procedures move into **Skills**—modular Markdown files (optionally bundling resource templates and scripts), with up to **50 skills** supported per agent [1][3]. Because the harness loads a skill dynamically based on its description only when relevant, a user asking about a hardware refresh never pays the context-window tax of loading troubleshooting manuals [1].
+
+&lt;div class=&quot;thr964-media-grid&quot;&gt;
+  &lt;article class=&quot;thr964-media-card&quot; data-present-surface=&quot;unframed&quot;&gt;
+    &lt;div class=&quot;thr964-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/thr964-harness-runtime-loop.jpg&quot; alt=&quot;THR964 official slide at 01:55 showing The harness runs the loop between Your agent and Model across four steps and Plan-Act-Adapt&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;thr964-media-body&quot;&gt;
+      &lt;span class=&quot;thr964-media-badge&quot; data-zh=&quot;THR964 官方课件实拍 · 01:55&quot; data-en=&quot;THR964 Official Slide · 01:55&quot;&gt;THR964 官方课件实拍 · 01:55&lt;/span&gt;
+      &lt;h4 data-zh=&quot;The Harness Runs the Loop：每轮四步调度与自愈闭环&quot; data-en=&quot;The Harness Runs the Loop: Four-Step Turn Execution&quot;&gt;The Harness Runs the Loop：每轮四步调度与自愈闭环&lt;/h4&gt;
+      &lt;p data-zh=&quot;连接制作者设计与底层推理模型，按序执行调用裁决、上下文装配、结果解析与精准工具触发，驱动规划—行动—自适应循环 [1][2]。&quot; data-en=&quot;Bridges maker design and model reasoning across turn gating, context selection, interpretation, and dynamic tool execution [1][2].&quot;&gt;连接制作者设计与底层推理模型，按序执行调用裁决、上下文装配、结果解析与精准工具触发，驱动规划—行动—自适应循环 [1][2]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+  &lt;article class=&quot;thr964-media-card&quot; data-present-surface=&quot;unframed&quot;&gt;
+    &lt;div class=&quot;thr964-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/thr964-work-iq-mcp-scopes.jpg&quot; alt=&quot;THR964 live demo capture at 10:12 showing Work IQ MCP server granular read-write toggles across SharePoint, OneDrive, Outlook, Teams, Calendar, People, and Business Apps&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;thr964-media-body&quot;&gt;
+      &lt;span class=&quot;thr964-media-badge is-accent&quot; data-zh=&quot;THR964 实机演示截帧 · 10:12&quot; data-en=&quot;THR964 Live Demo Frame · 10:12&quot;&gt;THR964 实机演示截帧 · 10:12&lt;/span&gt;
+      &lt;h4 data-zh=&quot;默认挂载 Work IQ MCP 服务与细粒度读写权限收窄&quot; data-en=&quot;Default Work IQ MCP Tool &amp; Per-Workload Scope Controls&quot;&gt;默认挂载 Work IQ MCP 服务与细粒度读写权限收窄&lt;/h4&gt;
+      &lt;p data-zh=&quot;开箱打通 SharePoint、OneDrive、邮件、Teams、日历、人员与商业应用数据，支持按子服务一键降级只读或彻底关闭 [1][2]。&quot; data-en=&quot;Connects SharePoint, OneDrive, Outlook, Teams, Calendar, People, and Dynamics/Dataverse out of the box with per-source read/write toggles [1][2].&quot;&gt;开箱打通 SharePoint、OneDrive、邮件、Teams、日历、人员与商业应用数据，支持按子服务一键降级只读或彻底关闭 [1][2]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+&lt;/div&gt;
+
+在行动与控制层，**Tools（工具）**复用完整的 Power Platform 连接器生态与专为智能体交互优化的模型上下文协议（MCP）服务端点，让智能体跨业务数据库与第三方系统执行增删改查，且无需像旧版那样手工雕琢触发提示词 [1][4]。对于绝不允许大模型临场自由发挥的合规审批或固定财务步骤，制作者可将智能体与确定性 **Workflows（工作流）**双向组合——既能从智能体内部调用工作流，也能在工作流节点中唤醒智能体 [1]。而新内核独有的第五块积木 **Sandbox（安全沙盒）**，则在智能体内部直接开辟了一块受控隔离区，无需额外部署外部容器即可原位编写并运行 Python 代码，结合技能内的企业模板包一键完成复杂数值测算、统计绘图或生成定制 PowerPoint 汇报课件 [1][2]。 || For real-world action, **Tools** tap into the entire Power Platform connector ecosystem alongside agent-optimized Model Context Protocol (MCP) servers for database CRUD operations without tedious trigger phrasing [1][4]. Where strict procedural compliance is non-negotiable, makers pair open-ended agent reasoning with deterministic **Workflows**—calling a workflow from an agent or invoking an agent inside a workflow [1]. Finally, the unique **Sandbox** primitive provides a built-in secure environment to write and execute Python code inline—crunching calculations, plotting charts, or populating a packaged PowerPoint template without external infrastructure [1][2].
+
+:::figure { src: &quot;./media/thr964-harness-selection-quadrant.figure.json&quot;, title: &quot;Copilot Studio 三大执行内核与混合资产选型象限 || Copilot Studio Three Harnesses &amp; Process Asset Selection Quadrant&quot; }
+图 2：基于 THR964 选型准则绘制的工程决策象限——告别全量指令硬塞与无护栏全网裸搜，按推理复杂度匹配标准内核、对客会话内核以及融合动态技能与确定性流的新一代 Copilot 内核 [1][2]。 || Figure 2: Engineering selection quadrant from THR964—matching workflow reasoning complexity and determinism across Standard, Customer Conversation, and Microsoft Copilot harnesses while avoiding monolithic prompt bloat [1][2].
+:::
+
+## #live-build-and-ab-test 03 / Live Build &amp; Head-to-Head Test :: 实机搭建与同题对决：15 分钟构建 IT 支持智能体并完胜旧版内核 || Live Build &amp; A/B Showdown: Crafting an IT Concierge and Outperforming Standard Topics
+
+在占据半场篇幅的实机演示中，April Dunnam 打开 `copilotstudio.microsoft.com` 从空白页新建企业内部技术支持智能体（`IT Support` / `Contoso IT`），直观展示了最小权限收窄与复合意图推理的完整工程细节 [1][2]： || Dedicating the second half of THR964 to a live build at `copilotstudio.microsoft.com`, April Dunnam assembled an enterprise IT help desk agent from scratch and placed it head-to-head against an equivalent Standard-harness build [1][2]:
+
+:::flow { title: &quot;实机演练：从最小权限收窄到“蓝屏+换机”复合诉求对决的四步闭环 || Four-Step Live Walkthrough: From Least-Privilege Setup to Compound BSOD Triage&quot; }
+1. **精简主指令与禁区护栏 || Concise Scope &amp; Refusal Instructions** — 主指令仅声明“企业技术支持助手”角色定位、将排障路由至专属技能、对换机请求收集需求并匹配可用机型，同时明确写入安全合规红线（严禁索要密码或一次性验证码，严禁回答超出技术支持范畴的无关提问）[1][2]。 || Defines role, routing placeholders, and explicit security guardrails—never request passwords or one-time codes, and refuse out-of-scope queries [1][2].
+2. **Work IQ 子域降权与知识白名单 || Work IQ Least-Privilege &amp; Domain Allowlist** — 新建智能体默认挂载以终端用户身份鉴权的 **Work IQ** 工具（覆盖文档库、网盘、邮件、聊天、日历、人员与商业应用）；April 现场演示将“人员（People）”权限收窄为只读、直接取消勾选不需要的 Outlook 邮件，并关闭默认开启的“搜索全部网站”开关，将外部公开知识严格锁定在 `support.microsoft.com` 与 `learn.microsoft.com/troubleshoot` 官方域名内 [1][2]。 || Narrows default Work IQ MCP access (setting People to read-only and unchecking Outlook) while turning off unrestricted web search in favor of `support.microsoft.com` and `learn.microsoft.com/troubleshoot` [1][2].
+3. **上传五步排障 Markdown 技能 || Uploading the 5-Step Markdown Skill** — 点击添加预置的 `troubleshooting-procedure` 技能包，凭借清晰描述驱动运行时动态挂载；技能正文规定依次执行“单问题聚焦澄清—重启与服务状态等无损诊断—带原始链接的分步修复—提供 1 至 2 条备选路径—累计 2 至 3 条路径失败后附带症状摘要升级工单”五步规程 [1][2]。 || Uploads `troubleshooting-procedure`, encoding five structured phases: single-question clarification, non-destructive diagnostics, cited step-by-step fixes, 1–2 alternatives, and ticket escalation after 2–3 failed paths [1][2].
+4. **开启 Debug 模式对决复合提问 || Debug-Mode Compound Prompt A/B Test** — 输入同时包含故障排障与资产申领的一句话复合诉求：`I have a blue screen of death. I need a laptop`（我遇到蓝屏死机了，需要一台新笔记本）[1][2]。新内核实时展示思维链并跑完 **18 项底层步骤**：先共情确认崩溃故障，按序给出拔除外设、进入安全模式、检查设备管理器、保留 **10% 至 15%** 可用磁盘空间、系统更新及管理员运行 `DISM.exe /Online /Cleanup-image /Restorehealth` 与 `sfc /scannow`（同时提醒切勿在对话中泄露 BitLocker 恢复密钥），最后兜底列出若排障无效可申领的备选笔记本清单 [1][2]。 || Sends the dual-intent prompt *&quot;I have a blue screen of death. I need a laptop&quot;* in Debug mode (`18 items complete`): the new harness delivers 6 cited BSOD steps (`10%–15%` free disk check, `DISM` + `sfc /scannow`, and a BitLocker safety reminder) before presenting available replacement laptops [1][2].
+:::
+
+为了把新旧两代运行时的工程差异钉死，April 当场切入在 **Standard Harness** 下用同等知识源搭建的对照版智能体，并输入一模一样的蓝屏换机复合提问 [1]。对照实验暴露出两大硬伤：其一，标准内核没有动态技能机制，所有排障步骤被迫全量塞入主指令，导致员工每发一句话都要在上下文窗口里全额重算一遍词元，多轮对话成本高企；其二，由于缺乏动态规划循环，标准内核必须依赖预先手绘的多个独立话题去硬匹配“查 SharePoint 设备列表”和“提交换机申请”，面对单句双意图提问当场顾此失彼——既未能严格执行分步排障规程，也彻底漏掉了对笔记本申领诉求的响应 [1]。 || Switching immediately to a parallel IT help desk agent built on the legacy **Standard harness** with the exact same prompt exposed two structural bottlenecks [1]. First, without Skills, all troubleshooting instructions sat permanently inside the main prompt—re-ingesting full context and burning extra tokens on every back-and-forth turn. Second, lacking a dynamic planning loop, the Standard agent relied on separate pre-scripted SharePoint topics for listing and requesting hardware; confronted with two intents in one sentence, it failed to follow the step-by-step troubleshooting rubric and completely ignored the laptop request [1].
+
+&lt;div class=&quot;thr964-media-grid&quot;&gt;
+  &lt;article class=&quot;thr964-media-card&quot; data-present-surface=&quot;unframed&quot;&gt;
+    &lt;div class=&quot;thr964-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/thr964-bsod-laptop-debug.jpg&quot; alt=&quot;THR964 live demo screenshot at 16:12 showing Contoso IT in Debug mode completing 18 items for the compound BSOD and laptop prompt with DISM and BitLocker guidance&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;thr964-media-body&quot;&gt;
+      &lt;span class=&quot;thr964-media-badge&quot; data-zh=&quot;THR964 实机演示截帧 · 16:12&quot; data-en=&quot;THR964 Live Demo Frame · 16:12&quot;&gt;THR964 实机演示截帧 · 16:12&lt;/span&gt;
+      &lt;h4 data-zh=&quot;Debug 模式下拆解“蓝屏+换机”双意图（18 项动作完成）&quot; data-en=&quot;Debug Mode Resolving Compound BSOD + Laptop Prompt (18 Steps)&quot;&gt;Debug 模式下拆解“蓝屏+换机”双意图（18 项动作完成）&lt;/h4&gt;
+      &lt;p data-zh=&quot;自动触发排障技能与官方站点检索，先输出 6 步修复与 DISM/SFC 命令及 BitLocker 安全提醒，再衔接备选机型 [1][2]。&quot; data-en=&quot;Invokes the troubleshooting skill and scoped Microsoft docs first, outputting 6 recovery steps and BitLocker warnings before laptop options [1][2].&quot;&gt;自动触发排障技能与官方站点检索，先输出 6 步修复与 DISM/SFC 命令及 BitLocker 安全提醒，再衔接备选机型 [1][2]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+  &lt;article class=&quot;thr964-media-card&quot; data-present-surface=&quot;unframed&quot;&gt;
+    &lt;div class=&quot;thr964-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/thr964-evaluate-82-score.jpg&quot; alt=&quot;THR964 live demo screenshot at 20:03 showing Troubleshooting Quality evaluation run scoring 82% average across multi-turn test cases in 14m 41s using 590 credits&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;thr964-media-body&quot;&gt;
+      &lt;span class=&quot;thr964-media-badge is-accent&quot; data-zh=&quot;THR964 实机演示截帧 · 20:03&quot; data-en=&quot;THR964 Live Demo Frame · 20:03&quot;&gt;THR964 实机演示截帧 · 20:03&lt;/span&gt;
+      &lt;h4 data-zh=&quot;Evaluate 面板：多轮对话自动化单元评测斩获 82% 均分&quot; data-en=&quot;Evaluate Tab: Multi-Turn Automated Unit Test Scoring 82%&quot;&gt;Evaluate 面板：多轮对话自动化单元评测斩获 82% 均分&lt;/h4&gt;
+      &lt;p data-zh=&quot;批量运行涵盖收不到邮件、Wi-Fi 断连、Teams 报错 CAA20002 等多轮测试集，耗时 14 分 41 秒、消耗 590 积分输出量化体检单 [1][2]。&quot; data-en=&quot;Executes multi-turn test conversations (Outlook offline, Wi-Fi, Teams CAA20002) in 14m 41s (590 credits), flagging gaps below 100% [1][2].&quot;&gt;批量运行涵盖收不到邮件、Wi-Fi 断连、Teams 报错 CAA20002 等多轮测试集，耗时 14 分 41 秒、消耗 590 积分输出量化体检单 [1][2]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+&lt;/div&gt;
+
+## #evaluate-publish-academy 04 / Evaluate, Publish &amp; NextGen Academy :: 质量门禁与交付演进：82% 单元评测、全渠道嵌入与一句话建站预览 || Quality Gate &amp; Delivery: 82% Automated Evals, Omnichannel Rollout, and Prompt-to-Agent
+
+智能体告别硬编码分支后，上线前的确定性质量门禁如何保障 [1]？除了在 `Preview` 面板开启调试模式做单点抽查，Copilot Studio 原生内置了充当“智能体单元测试框架”的 **Evaluate（评测）**与线上观测 **Monitor（监控）**双闭环 [1][2]。在实机演示的 `Troubleshooting Quality` 评测集中，April 预置了覆盖收不到新邮件（8 轮消息）、无线网断连（6 轮）、登录报错 CAA20002（4 轮）、外接显示器失灵（6 轮）及误点钓鱼链接（2 轮）等十余组真实多轮对话 [1][2]。评测引擎逐项检验智能体是否先追问受影响设备与报错信息，而非盲目抛出修复命令 [1][2]。 || Once makers replace scripted topic trees with autonomous reasoning, how do teams verify production quality [1]? Beyond interactive spot checks in `Preview`, Copilot Studio pairs pre-deployment unit testing in **Evaluate** with post-launch telemetry in **Monitor** [1][2]. In her `Troubleshooting Quality` evaluation suite, April loaded multi-turn test cases covering missing Outlook mail (8 messages), office Wi-Fi drops (6 messages), Teams error `CAA20002` (4 messages), monitor detection (6 messages), and phishing clicks (2 messages) [1][2]. Each test grades whether the agent asks focused diagnostic follow-ups instead of jumping straight to a fix [1][2].
+
+| 架构与工程维度 || Engineering Dimension | Standard Harness（旧版标准话题内核） || Standard Harness (Legacy Topic Engine) | Microsoft Copilot Harness（新一代规划内核） || Microsoft Copilot Harness (New Planning Runtime) |
+|------|------|------|
+| 对话控制与异常恢复 || Flow Control &amp; Recovery | 必须在 Topics 中预先穷举意图分支与容错路径，未命中分支即断链 [1] || Pre-scripted topic branches and manual error wiring up front [1] | 仅声明终局目标；运行时执行规划—行动—自检重规划，工具报错自动改写恢复 [1][2] || Goal-driven Plan-Act-Evaluate-Replan loop with built-in error adaptation [1][2] |
+| 专业规程与词元效率 || Domain Know-How &amp; Tokens | 无技能分层，全量规程塞入主指令，每轮对话重复消耗上下文窗口词元 [1] || Monolithic instructions re-ingested on every conversational turn [1] | 支持多达 **50 项** Markdown 技能按需动态加载，主指令精简，净词元占用显著降低 [1][3] || Up to **50** dynamic Markdown skills loaded on cue for lower net token usage [1][3] |
+| 数据工具与代码执行 || Data, Actions &amp; Compute | 手工配置连接器触发词与多话题存取 SharePoint 列表，无内置代码环境 [1] || Verbose tool descriptions and manual multi-topic SharePoint wiring [1] | 默认集成可降权的 **Work IQ**、连接器与 MCP、确定性工作流互调及内置 **Python 沙盒** [1][2] || Configurable **Work IQ** MCP, connectors, bidirectional Workflows &amp; **Python Sandbox** [1][2] |
+| 质量评测与多端发布 || Testing, Telemetry &amp; Channels | 依赖人工逐条点击对话抽测，复合提问（如蓝屏+换机）易漏判次要诉求 [1] || Manual spot testing; drops secondary intents on compound prompts [1] | 内置 **Evaluate** 多轮单元评测（实测 **82%** 得分并支持导出）、**Monitor** 会话穿透与 Teams/网页嵌入 [1][2] || Automated **Evaluate** unit suites (**82%** demo score, exportable), **Monitor** &amp; Teams/embed rollout [1][2] |
+
+在演示现场，首轮自动化评测运行耗时 **14 分 41 秒**、消耗 **590 点 Copilot Credits**，最终跑出 **82%** 的平均通过分——这一量化信号立刻提示制作者在正式发布前导出测试集深挖剩余 18% 的失分对话 [1][2]。验证达标后，只需在部署面板一键勾选 **Microsoft 365 与 Teams**（员工随即能在 Teams 内直接唤醒 `IT Concierge` 处理“电脑太慢怎么修”等模糊提问），或提取标准 **Embed 嵌入代码**挂载至企业公共门户与自研应用中；上线后的每日活跃用户数、会话成功率、平均对话时长及单次会话问答明细则全部汇聚至 `Monitor` 标签页集中巡检 [1][2]。 || Live on stage, the evaluation run completed in **14m 41s** using **590 Copilot Credits** and returned an **82%** average score—immediately signaling where to inspect and refine failing cases (with full test-set export) prior to launch [1][2]. Publishing then takes two clicks: either deploy natively to **Microsoft 365 and Teams** (surfacing `IT Concierge` immediately for vague end-user asks like *&quot;how do I fix my computer? It's slow&quot;*) or copy the generated **embed code** for any external website or custom app, while `Monitor` tracks daily active users, success rates, average chat duration, and individual session transcripts [1][2].
+
+演讲收尾处，April 还披露了两项加速制作者上手的关键动向 [1][2]：其一，访问预览环境 `copilotstudio.preview.microsoft.com` 已支持**纯自然语言一句话生成完整智能体**——只需输入“我需要一个企业技术支持智能体”，平台便会自动起草指令、按需拆出技能并匹配候选工具供制作者微调；其二，微软倡导团队同步开源上线了免费动手实验营 **Copilot Studio Agent Academy**（包含面向初学者的 Recruit、中级进阶 Operative，以及涵盖 DocuSign MCP 与自定义 MCP 集成的 Special Ops 独立实验），其中专门针对新内核打造的 **11 关实战闯关路径**现已在 `https://aka.ms/agent-academy/recruit-nextgen` 全面开放 [1][5]。 || Closing the session, April highlighted two accelerators for makers [1][2]. First, `copilotstudio.preview.microsoft.com` now previews **natural-language agent scaffolding**, where a single prompt (*&quot;I need an IT help desk agent&quot;*) drafts instructions, skills, and candidate tools automatically. Second, her team released free hands-on training through the **Copilot Studio Agent Academy**—spanning beginner *Recruit*, intermediate *Operative*, and targeted *Special Ops* labs (such as DocuSign MCP and custom MCP integrations)—with an **11-mission Microsoft Copilot harness path** live at `https://aka.ms/agent-academy/recruit-nextgen` [1][5].
+
+## 参考资料：官方一手信源与实战实验营 || References: Official Primary Sources &amp; Hands-On Labs
+
+1. **April Dunnam (Microsoft Ignite 2026 THR964 Video &amp; Transcript)** — https://ignite.microsoft.com/en-US/sessions/1787856592220001EVen-1791588108990001CPQG | 《Copilot Studio unlocked: The new Microsoft Copilot harness for makers》25 分钟官方剧场实录与中英双语 WebVTT 逐字稿（2026-11-18） || Official 25-minute theater session page and bilingual WebVTT transcripts (Nov 18, 2026)
+2. **April Dunnam (THR964 Official Medius On-Demand Stream)** — https://medius.microsoft.com/Embed/video-nc/ad58b43f-c354-4f99-a64c-b13cd6c7132a | THR964 微软官方 Medius 点播视频流（涵盖四步内核架构课件、Work IQ 权限配置、蓝屏换机新旧内核对比与 82% 自动化评测实录） || Official Microsoft Medius embedded video stream capturing all stage slides and live Copilot Studio walkthroughs
+3. **Microsoft Copilot Studio Documentation (Agents, Skills &amp; Harnesses)** — https://learn.microsoft.com/en-us/microsoft-copilot-studio/ | Microsoft Copilot Studio 官方技术文档：指令边界设计、Markdown 技能挂载（上限 50 项）、多模型选择与自动化评测指南 || Official documentation covering instructions, dynamic skills, multi-model orchestration, and evaluation test sets
+4. **Microsoft Learn Troubleshooting &amp; Support Grounding Reference** — https://learn.microsoft.com/troubleshoot | THR964 实机演示中作为受信任外部知识白名单挂载的微软官方排障文档库（配合 `https://support.microsoft.com`） || Official Microsoft troubleshooting knowledge base configured as an allowed grounding domain during the THR964 live build
+5. **Copilot Studio Agent Academy: Recruit NextGen (11 Hands-On Missions)** — https://aka.ms/agent-academy/recruit-nextgen | April Dunnam 团队出品的 Microsoft Copilot Harness 免费 11 关动手实验营（含 Recruit、Operative 进阶课程与 MCP Special Ops 专项实验） || Free 11-mission hands-on learning path built by April Dunnam's advocacy team covering setup through badge completion
+</code></pre>
+      </section>
+
+      <main>
+        <section id="runtime-loop-and-harnesses" class="section" data-reveal data-present-title-zh="运行时变革：为什么智能体与多模型之间需要全新 Harness" data-present-title-en="Runtime Shift: Why an Agent Needs a Planning Harness Between Design and Model">
+          <div class="section-head">
+            <p class="section-kicker">01 / Runtime Loop &amp; Three Harnesses</p>
+            <h2 data-zh="1. 运行时变革：为什么智能体与多模型之间需要全新 Harness" data-en="1. Runtime Shift: Why an Agent Needs a Planning Harness Between Design and Model">1. 运行时变革：为什么智能体与多模型之间需要全新 Harness</h2>
+            <p data-zh="过去在 Copilot Studio 中搭建智能体默认采用标准内核（Standard Harness）：制作者必须提前预测用户意图，在“话题（Topics）”画布里逐条编写追问节点、工具调用顺序与异常分支 [1]。这种前置脚本化模式在面对固定核验流程时尚可应付，但一旦进入真实的复杂业务现场——例如员工询问“我需要申请一台新电脑”，系统不仅要核实设备是否满足每 4 年一次的换新窗口，还要在接口超时或条件不符时临时改写方案——手工穷举所有潜在断点便成了最沉重的工程负担 [1][2]。" data-en="Building agents in Copilot Studio historically meant working inside the &lt;strong&gt;Standard harness&lt;/strong&gt;, where makers predicted user intents and scripted every follow-up question, branch, and action inside Topics up front [1]. While pre-scripted trees handle rigid checklists, real enterprise requests—such as checking whether a laptop request falls inside a 4-year hardware refresh window and recovering gracefully if a backend lookup throws an error—make pre-wiring every breaking point unsustainable [1][2].">过去在 Copilot Studio 中搭建智能体默认采用标准内核（Standard Harness）：制作者必须提前预测用户意图，在“话题（Topics）”画布里逐条编写追问节点、工具调用顺序与异常分支 [1]。这种前置脚本化模式在面对固定核验流程时尚可应付，但一旦进入真实的复杂业务现场——例如员工询问“我需要申请一台新电脑”，系统不仅要核实设备是否满足每 4 年一次的换新窗口，还要在接口超时或条件不符时临时改写方案——手工穷举所有潜在断点便成了最沉重的工程负担 [1][2]。</p>
+          </div>
+
+          <p data-zh="April Dunnam 在开场明确界定了破局关键：&lt;strong&gt;执行内核（Harness）是处于制作者设计层（指令、知识、工具）与底层推理大模型（支持多个 GPT 与 Anthropic 模型实例）之间的运行时引擎&lt;/strong&gt; [1][2]。在每一轮交互中，Microsoft Copilot Harness 依次完成四项核心调度：01 裁决何时调用大模型、02 挑选发往模型的最小必要上下文、03 解析模型返回结果、04 精准触发对应工具 [1][2]。更核心的跃迁在于其&lt;strong&gt;评估与重规划（Evaluate &amp;amp; Re-Plan）闭环&lt;/strong&gt;——内核在调用工具后不会盲目终止，而是主动校验当前输出是否真正满足终端用户诉求；若工具报错或结果未达预期，内核当场生成新计划自适应恢复，彻底免除了手工编写容错分支的繁琐工作 [1][2]。" data-en="Opening THR964, April Dunnam pinpointed the architectural pivot: &lt;strong&gt;the harness is the runtime sitting between what you design in your agent and the underlying model supplying reasoning&lt;/strong&gt; (supporting multiple GPT and Anthropic model instances) [1][2]. On every turn, the Microsoft Copilot harness executes four steps: deciding when to call the model, choosing what context to send, interpreting what comes back, and calling the right tools [1][2]. Its defining advantage is the &lt;strong&gt;evaluation and re-planning loop&lt;/strong&gt;: after acting, the runtime checks whether the output actually satisfies the user's goal and dynamically formulates a recovery plan if a tool errors out or returns incomplete data [1][2].">April Dunnam 在开场明确界定了破局关键：<strong>执行内核（Harness）是处于制作者设计层（指令、知识、工具）与底层推理大模型（支持多个 GPT 与 Anthropic 模型实例）之间的运行时引擎</strong> [1][2]。在每一轮交互中，Microsoft Copilot Harness 依次完成四项核心调度：01 裁决何时调用大模型、02 挑选发往模型的最小必要上下文、03 解析模型返回结果、04 精准触发对应工具 [1][2]。更核心的跃迁在于其<strong>评估与重规划（Evaluate &amp; Re-Plan）闭环</strong>——内核在调用工具后不会盲目终止，而是主动校验当前输出是否真正满足终端用户诉求；若工具报错或结果未达预期，内核当场生成新计划自适应恢复，彻底免除了手工编写容错分支的繁琐工作 [1][2]。</p>
+
+          <figure class="sr-figure generated-diagram is-inline-svg" data-present-step data-present-surface="unframed" data-step-title="Microsoft Copilot Harness 三层运行时闭环与五大构建模块架构" data-step-title-en="Microsoft Copilot Harness Three-Tier Runtime Loop &amp; Five Building Blocks" data-present-title-zh="Microsoft Copilot Harness 三层运行时闭环与五大构建模块架构" data-present-title-en="Microsoft Copilot Harness Three-Tier Runtime Loop &amp; Five Building Blocks" data-step-label="01 / Runtime Loop &amp; Three Harnesses" data-step-label-en="01 / Runtime Loop &amp; Three Harnesses" data-present-i18n-invariant="label">
+            <svg class="sr-figure-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1520 666" role="img" aria-labelledby="thr964-harness-architecture-1-title thr964-harness-architecture-1-desc"><title id="thr964-harness-architecture-1-title">Microsoft Copilot Harness 运行时闭环与五大构建模块架构（THR964）</title><desc id="thr964-harness-architecture-1-desc">architecture topology with 9 nodes and 9 edges</desc><defs><marker id="thr964-harness-architecture-1-arrow" markerWidth="10" markerHeight="10" refX="8.5" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M1,1 L8.5,4 L1,7" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><g data-group-id="maker-design-plane"><rect x="40" y="24" width="1440" height="190" rx="16" fill="var(--fig-group-bg-1, rgba(255, 250, 244, 0.72))" stroke="var(--fig-group-border, rgba(23, 36, 48, 0.11))" stroke-width="1.25"/><path d="M 56 25 H 1464" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.6))" stroke-width="1"/><line x1="40" y1="70" x2="1480" y2="70" stroke="var(--fig-group-divider, rgba(23,36,48,0.08))" stroke-width="1"/><circle cx="62" cy="48" r="4.5" fill="var(--fig-role-accent-bar, #ea580c)"/><text class="sr-zh" x="74" y="53" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)">1. 制作者声明与按需加载设计层（Maker Design Plane: Instructions, Skills &amp; Grounding）</text><text class="sr-en" x="74" y="53" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)">1. Maker Design Plane (Concise Instructions, On-Demand Skills &amp; Scoped Grounding)</text></g><g data-group-id="harness-runtime-plane"><rect x="40" y="238" width="1440" height="190" rx="16" fill="var(--fig-group-bg-2, rgba(244, 248, 252, 0.72))" stroke="var(--fig-group-border, rgba(23, 36, 48, 0.11))" stroke-width="1.25"/><path d="M 56 239 H 1464" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.6))" stroke-width="1"/><line x1="40" y1="284" x2="1480" y2="284" stroke="var(--fig-group-divider, rgba(23,36,48,0.08))" stroke-width="1"/><circle cx="62" cy="262" r="4.5" fill="var(--fig-role-blue-bar, #2563eb)"/><text class="sr-zh" x="74" y="267" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)">2. Microsoft Copilot Harness 运行时编排内核（Plan · Act · Evaluate &amp; Re-Plan Loop）</text><text class="sr-en" x="74" y="267" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)">2. Microsoft Copilot Harness Runtime (Plan · Act · Evaluate &amp; Re-Plan Loop)</text></g><g data-group-id="execution-action-plane"><rect x="40" y="452" width="1440" height="190" rx="16" fill="var(--fig-group-bg-3, rgba(248, 245, 252, 0.72))" stroke="var(--fig-group-border, rgba(23, 36, 48, 0.11))" stroke-width="1.25"/><path d="M 56 453 H 1464" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.6))" stroke-width="1"/><line x1="40" y1="498" x2="1480" y2="498" stroke="var(--fig-group-divider, rgba(23,36,48,0.08))" stroke-width="1"/><circle cx="62" cy="476" r="4.5" fill="var(--fig-role-violet-bar, #7c3aed)"/><text class="sr-zh" x="74" y="481" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)">3. 混合执行、沙盒运算与多渠道发布层（Tools, Deterministic Workflows &amp; Python Sandbox）</text><text class="sr-en" x="74" y="481" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)">3. Action, Deterministic Control &amp; Sandbox Layer (Tools, Workflows &amp; Channels)</text></g><g data-edge-id="e1"><path d="M 296 190 L 296 308" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#thr964-harness-architecture-1-arrow)"/><circle cx="296" cy="190" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e2"><path d="M 760 190 L 760 216 Q 760 226 750 226 L 306 226 Q 296 226 296 236 L 296 308" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#thr964-harness-architecture-1-arrow)"/><circle cx="760" cy="190" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e3"><path d="M 1224 190 L 1224 216 Q 1224 226 1214 226 L 770 226 Q 760 226 760 236 L 760 308" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#thr964-harness-architecture-1-arrow)"/><circle cx="1224" cy="190" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e4"><path d="M 456 356 L 600 356" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#thr964-harness-architecture-1-arrow)"/><circle cx="456" cy="356" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e5"><path d="M 920 356 L 1064 356" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#thr964-harness-architecture-1-arrow)"/><circle cx="920" cy="356" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e6"><path d="M 1224 404 L 1224 430 Q 1224 440 1214 440 L 306 440 Q 296 440 296 450 L 296 522" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#thr964-harness-architecture-1-arrow)"/><circle cx="1224" cy="404" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e7"><path d="M 1224 404 L 1224 430 Q 1224 440 1214 440 L 770 440 Q 760 440 760 450 L 760 522" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#thr964-harness-architecture-1-arrow)"/><circle cx="1224" cy="404" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e8"><path d="M 1224 404 L 1224 522" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#thr964-harness-architecture-1-arrow)"/><circle cx="1224" cy="404" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e9"><path d="M 1224 404 L 1224 411.7 Q 1224 418 1217.7 418 L 302.3 418 Q 296 418 296 411.7 L 296 404" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 5" marker-end="url(#thr964-harness-architecture-1-arrow)"/><circle cx="1224" cy="404" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-node-id="concise-instructions"><defs><clipPath id="thr964-harness-architecture-1-clip-concise-instructions"><rect x="136" y="94" width="320" height="96" rx="13"/></clipPath></defs><rect x="136" y="94" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="136" y="94" width="320" height="96" rx="13" fill="var(--fig-role-teal-fill, rgba(13, 143, 140, 0.09))" stroke="var(--fig-role-teal-stroke, rgba(13, 143, 140, 0.46))" stroke-width="1.35"/><rect x="136" y="94" width="4.5" height="96" fill="var(--fig-role-teal-bar, #0d8f8c)" clip-path="url(#thr964-harness-architecture-1-clip-concise-instructions)"/><line x1="148" y1="95" x2="444" y2="95" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)"><tspan x="298" y="130">Instructions：目标、语气与禁区边界</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="151">仅保留全局恒定规则与拒绝越界声明，免除冗长排障脚</tspan><tspan x="298" y="165.5">本常驻上下文</tspan></text></g><g class="sr-en"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)"><tspan x="298" y="130">Instructions: Goal, Tone &amp; Guardrails</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="151">Holds always-true scope and refusal rules without</tspan><tspan x="298" y="165.5">bloating every turn</tspan></text></g></g><g data-node-id="dynamic-skills"><defs><clipPath id="thr964-harness-architecture-1-clip-dynamic-skills"><rect x="600" y="94" width="320" height="96" rx="13"/></clipPath></defs><rect x="600" y="94" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="600" y="94" width="320" height="96" rx="13" fill="var(--fig-role-accent-fill, rgba(255, 122, 0, 0.09))" stroke="var(--fig-role-accent-stroke, rgba(234, 88, 12, 0.48))" stroke-width="1.35"/><rect x="600" y="94" width="4.5" height="96" fill="var(--fig-role-accent-bar, #ea580c)" clip-path="url(#thr964-harness-architecture-1-clip-dynamic-skills)"/><line x1="612" y1="95" x2="908" y2="95" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)"><tspan x="762" y="130">Skills：按需加载的领域流程（上限 50 个）</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="151">以 Markdown 描述触发时机与分步规程，可附带模板资</tspan><tspan x="762" y="165.5">源包与 Python 脚本</tspan></text></g><g class="sr-en"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)"><tspan x="762" y="130">Skills: On-Demand Know-How (Up to 50)</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="151">Markdown procedures plus optional templates and</tspan><tspan x="762" y="165.5">Python scripts loaded on cue</tspan></text></g></g><g data-node-id="workiq-knowledge"><defs><clipPath id="thr964-harness-architecture-1-clip-workiq-knowledge"><rect x="1064" y="94" width="320" height="96" rx="13"/></clipPath></defs><rect x="1064" y="94" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="1064" y="94" width="320" height="96" rx="13" fill="var(--fig-role-violet-fill, rgba(124, 58, 237, 0.08))" stroke="var(--fig-role-violet-stroke, rgba(139, 92, 246, 0.42))" stroke-width="1.35"/><rect x="1064" y="94" width="4.5" height="96" fill="var(--fig-role-violet-bar, #7c3aed)" clip-path="url(#thr964-harness-architecture-1-clip-workiq-knowledge)"/><line x1="1076" y1="95" x2="1372" y2="95" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)"><tspan x="1226" y="130">Work IQ 与受控白名单外部知识源</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="151">默认连接 SharePoint/OneDrive/Teams/Outlook，支持</tspan><tspan x="1226" y="165.5">按域读写收窄与站点白名单</tspan></text></g><g class="sr-en"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)"><tspan x="1226" y="130">Work IQ &amp; Scoped Web Grounding</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="151">Default M365 context with per-workload read/write</tspan><tspan x="1226" y="165.5">toggles and allowed domains</tspan></text></g></g><g data-node-id="context-selector"><defs><clipPath id="thr964-harness-architecture-1-clip-context-selector"><rect x="136" y="308" width="320" height="96" rx="13"/></clipPath></defs><rect x="136" y="308" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="136" y="308" width="320" height="96" rx="13" fill="var(--fig-role-amber-fill, rgba(217, 119, 6, 0.09))" stroke="var(--fig-role-amber-stroke, rgba(217, 119, 6, 0.44))" stroke-width="1.35"/><rect x="136" y="308" width="4.5" height="96" fill="var(--fig-role-amber-bar, #d97706)" clip-path="url(#thr964-harness-architecture-1-clip-context-selector)"/><line x1="148" y1="309" x2="444" y2="309" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)"><tspan x="298" y="344">01–02 调用裁决与最小上下文装配</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="365">每轮决定何时调用模型，仅抽取与当前复合意图相关的</tspan><tspan x="298" y="379.5">技能与知识片段</tspan></text></g><g class="sr-en"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)"><tspan x="298" y="344">01–02 Turn Gating &amp; Context Assembly</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="365">Decides when to call the model and injects only task-</tspan><tspan x="298" y="379.5">relevant skills and data</tspan></text></g></g><g data-node-id="multi-model-brain"><defs><clipPath id="thr964-harness-architecture-1-clip-multi-model-brain"><rect x="600" y="308" width="320" height="96" rx="13"/></clipPath></defs><rect x="600" y="308" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="600" y="308" width="320" height="96" rx="13" fill="var(--fig-role-blue-fill, rgba(37, 99, 235, 0.07))" stroke="var(--fig-role-blue-stroke, rgba(59, 130, 246, 0.42))" stroke-width="1.35"/><rect x="600" y="308" width="4.5" height="96" fill="var(--fig-role-blue-bar, #2563eb)" clip-path="url(#thr964-harness-architecture-1-clip-multi-model-brain)"/><line x1="612" y1="309" x2="908" y2="309" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)"><tspan x="762" y="344">多模型推理大脑（GPT 与 Anthropic 实例）</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="365">拆解“蓝屏排障 + 申请新笔记本”等复合请求，动态生成</tspan><tspan x="762" y="379.5">有序多步执行计划</tspan></text></g><g class="sr-en"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)"><tspan x="762" y="344">Multi-Model Reasoning (GPT &amp; Anthropic)</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="365">Decomposes compound prompts like BSOD + laptop</tspan><tspan x="762" y="379.5">refresh into ordered steps</tspan></text></g></g><g data-node-id="eval-replan-loop"><defs><clipPath id="thr964-harness-architecture-1-clip-eval-replan-loop"><rect x="1064" y="308" width="320" height="96" rx="13"/></clipPath></defs><rect x="1064" y="308" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="1064" y="308" width="320" height="96" rx="13" fill="var(--fig-role-rose-fill, rgba(225, 29, 72, 0.08))" stroke="var(--fig-role-rose-stroke, rgba(225, 29, 72, 0.48))" stroke-width="1.35"/><rect x="1064" y="308" width="4.5" height="96" fill="var(--fig-role-rose-bar, #e11d48)" clip-path="url(#thr964-harness-architecture-1-clip-eval-replan-loop)"/><line x1="1076" y1="309" x2="1372" y2="309" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-rose-text, #9f1239)"><tspan x="1226" y="344">03–04 结果自检与异常重规划闭环</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="365">核验返回结果是否满足终端诉求；遇工具报错或结果偏</tspan><tspan x="1226" y="379.5">离时自动改写计划恢复</tspan></text></g><g class="sr-en"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-rose-text, #9f1239)"><tspan x="1226" y="344">03–04 Self-Evaluation &amp; Re-Planning</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="365">Checks whether outputs satisfy user intent and</tspan><tspan x="1226" y="379.5">adapts automatically on errors</tspan></text></g></g><g data-node-id="connectors-mcp"><defs><clipPath id="thr964-harness-architecture-1-clip-connectors-mcp"><rect x="136" y="522" width="320" height="96" rx="13"/></clipPath></defs><rect x="136" y="522" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="136" y="522" width="320" height="96" rx="13" fill="var(--fig-role-violet-fill, rgba(124, 58, 237, 0.08))" stroke="var(--fig-role-violet-stroke, rgba(139, 92, 246, 0.42))" stroke-width="1.35"/><rect x="136" y="522" width="4.5" height="96" fill="var(--fig-role-violet-bar, #7c3aed)" clip-path="url(#thr964-harness-architecture-1-clip-connectors-mcp)"/><line x1="148" y1="523" x2="444" y2="523" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)"><tspan x="298" y="558">Tools：连接器生态与 MCP 服务端点</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="579">动态匹配并调用业务数据库与第三方系统增删改查接口</tspan><tspan x="298" y="593.5">，免手工硬编码触发语</tspan></text></g><g class="sr-en"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)"><tspan x="298" y="558">Tools: Power Platform Connectors &amp; MCP</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="579">Dynamically invokes CRUD connectors and agent-</tspan><tspan x="298" y="593.5">optimized MCP servers</tspan></text></g></g><g data-node-id="deterministic-workflows"><defs><clipPath id="thr964-harness-architecture-1-clip-deterministic-workflows"><rect x="600" y="522" width="320" height="96" rx="13"/></clipPath></defs><rect x="600" y="522" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="600" y="522" width="320" height="96" rx="13" fill="var(--fig-role-amber-fill, rgba(217, 119, 6, 0.09))" stroke="var(--fig-role-amber-stroke, rgba(217, 119, 6, 0.44))" stroke-width="1.35"/><rect x="600" y="522" width="4.5" height="96" fill="var(--fig-role-amber-bar, #d97706)" clip-path="url(#thr964-harness-architecture-1-clip-deterministic-workflows)"/><line x1="612" y1="523" x2="908" y2="523" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)"><tspan x="762" y="558">Workflows：确定性多步合规流双向互调</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="579">智能体与固定顺序工作流按需互调，锁死设备四年换新</tspan><tspan x="762" y="593.5">窗口核验与工单审批</tspan></text></g><g class="sr-en"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)"><tspan x="762" y="549">Workflows: Deterministic Step-by-Step</tspan><tspan x="762" y="567">Control</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="588">Agents invoke workflows (or vice versa) when strict</tspan><tspan x="762" y="602.5">procedural order is required</tspan></text></g></g><g data-node-id="python-sandbox"><defs><clipPath id="thr964-harness-architecture-1-clip-python-sandbox"><rect x="1064" y="522" width="320" height="96" rx="13"/></clipPath></defs><rect x="1064" y="522" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="1064" y="522" width="320" height="96" rx="13" fill="var(--fig-role-blue-fill, rgba(37, 99, 235, 0.07))" stroke="var(--fig-role-blue-stroke, rgba(59, 130, 246, 0.42))" stroke-width="1.35"/><rect x="1064" y="522" width="4.5" height="96" fill="var(--fig-role-blue-bar, #2563eb)" clip-path="url(#thr964-harness-architecture-1-clip-python-sandbox)"/><line x1="1076" y1="523" x2="1372" y2="523" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)"><tspan x="1226" y="558">Sandbox 安全代码沙盒与全渠道发布</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="579">内置隔离环境运行 Python 产出图表与 PPTX；经</tspan><tspan x="1226" y="593.5">Evaluate 单测后发布至 Teams/Web</tspan></text></g><g class="sr-en"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)"><tspan x="1226" y="558">Python Sandbox, Evaluate &amp; Channels</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="579">Executes Python for charts and files; ships to M365,</tspan><tspan x="1226" y="593.5">Teams, or web embed</tspan></text></g></g><g class="sr-edge-labels"><g class="sr-zh"><rect x="263" y="215" width="66" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="296" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">全局边界</text></g><g class="sr-en"><rect x="251" y="215" width="91" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="296" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Global Scope</text></g><g class="sr-zh"><rect x="425" y="215" width="66" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="458" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">按需挂载</text></g><g class="sr-en"><rect x="415" y="215" width="87" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="458" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Load on Cue</text></g><g class="sr-zh"><rect x="889" y="215" width="66" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="922" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">受控检索</text></g><g class="sr-en"><rect x="870" y="215" width="104" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="922" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Scoped Context</text></g><g class="sr-zh"><rect x="495" y="329" width="66" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="528" y="344" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">装配提示</text></g><g class="sr-en"><rect x="475" y="329" width="106" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="528" y="344" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Prompt Payload</text></g><g class="sr-zh"><rect x="953" y="329" width="79" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="992" y="344" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">解析与验证</text></g><g class="sr-en"><rect x="934" y="329" width="117" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="992" y="344" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Interpret &amp; Check</text></g><g class="sr-zh"><rect x="582" y="429" width="79" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="621" y="444" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">精准调工具</text></g><g class="sr-en"><rect x="584" y="429" width="75" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="621" y="444" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Call Tools</text></g><g class="sr-zh"><rect x="883" y="429" width="79" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="922" y="444" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">交接固定流</text></g><g class="sr-en"><rect x="864" y="429" width="116" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="922" y="444" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Trigger Workflow</text></g><g class="sr-zh"><rect x="1191" y="429" width="66" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="1224" y="444" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">执行代码</text></g><g class="sr-en"><rect x="1184" y="429" width="81" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="1224" y="444" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Run Python</text></g><g class="sr-zh"><rect x="715" y="407" width="91" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="760" y="422" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">未达标重规划</text></g><g class="sr-en"><rect x="708" y="407" width="105" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="760" y="422" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Re-Plan on Gap</text></g></g></svg>
+            <figcaption class="diagram-caption"><span data-zh="图 1：THR964 揭示的智能体运行时全貌——顶层分离恒定指令、按需挂载的技能与受控知识源；中层由内核驱动多模型规划、上下文裁剪与异常重规划；底层协同连接器、确定性工作流与内置安全代码沙盒闭环交付 [1][2]。" data-en="Figure 1: Full THR964 runtime architecture—separating concise instructions, on-demand skills, and scoped grounding at the top; driving multi-model planning, context assembly, and self-evaluation in the middle; and orchestrating connectors, deterministic workflows, and the Python sandbox underneath [1][2].">图 1：THR964 揭示的智能体运行时全貌——顶层分离恒定指令、按需挂载的技能与受控知识源；中层由内核驱动多模型规划、上下文裁剪与异常重规划；底层协同连接器、确定性工作流与内置安全代码沙盒闭环交付 [1][2]。</span><a href="./media/thr964-harness-architecture.drawio" download data-zh="下载 .drawio" data-en="Download .drawio">下载 .drawio</a></figcaption>
+          </figure>
+
+          <p data-zh="为了避免团队把所有场景一刀切地塞进同一种模式，Copilot Studio 目前并列提供三套针对不同负载调优的执行内核 [1][2]：&lt;strong&gt;Standard Harness&lt;/strong&gt; 严格遵循预设话题与规则，适合固定核验步骤的密码重置；&lt;strong&gt;Customer Conversation Harness&lt;/strong&gt; 专为网页聊天与电话语音联络中心优化，原生内置平滑转接人工坐席链路；而本场聚焦的 &lt;strong&gt;Microsoft Copilot Harness&lt;/strong&gt; 则面向重度逻辑推理、跨系统多步拆解的企业级复杂流程 [1][2]。下方交互导览台集成了 THR964 官方 24 分钟点播视频流、高清封面与五幕逐分钟实录索引 [1][2]：" data-en="Rather than forcing one runtime onto every workload, Copilot Studio offers three specialized harnesses [1][2]: &lt;strong&gt;Standard&lt;/strong&gt; for rule-based structured flows like password resets, &lt;strong&gt;Customer Conversation&lt;/strong&gt; optimized for contact-center voice and web chat with human escalation, and &lt;strong&gt;Microsoft Copilot&lt;/strong&gt; for reasoning-heavy, multi-step processes [1][2]. The interactive theater below pairs the official 24-minute Medius stream with timestamped walkthroughs of all five session chapters [1][2]:">为了避免团队把所有场景一刀切地塞进同一种模式，Copilot Studio 目前并列提供三套针对不同负载调优的执行内核 [1][2]：<strong>Standard Harness</strong> 严格遵循预设话题与规则，适合固定核验步骤的密码重置；<strong>Customer Conversation Harness</strong> 专为网页聊天与电话语音联络中心优化，原生内置平滑转接人工坐席链路；而本场聚焦的 <strong>Microsoft Copilot Harness</strong> 则面向重度逻辑推理、跨系统多步拆解的企业级复杂流程 [1][2]。下方交互导览台集成了 THR964 官方 24 分钟点播视频流、高清封面与五幕逐分钟实录索引 [1][2]：</p>
+
+          <div id="thr964-video-theater" class="sandbox-slot" data-sandbox-slot="thr964-video-theater" data-present-step data-present-surface="board" data-step-title="THR964 官方点播视频与五幕时间戳导览台" data-step-title-en="THR964 Official On-Demand Stream &amp; Five-Chapter Timestamp Theater" data-present-title-zh="THR964 官方点播视频与五幕时间戳导览台" data-present-title-en="THR964 Official On-Demand Stream &amp; Five-Chapter Timestamp Theater" data-step-label="01 / Runtime Loop &amp; Three Harnesses" data-step-label-en="01 / Runtime Loop &amp; Three Harnesses" data-present-i18n-invariant="label">
+            <div class="sandbox-header">
+              <div class="sandbox-title-group">
+                <span class="comparison-label" data-zh="纯静态交互沙盒" data-en="Static Interactive Sandbox">纯静态交互沙盒</span>
+                <h3 data-zh="THR964 官方点播视频与五幕时间戳导览台" data-en="THR964 Official On-Demand Stream &amp; Five-Chapter Timestamp Theater">THR964 官方点播视频与五幕时间戳导览台</h3>
+                <p data-zh="切换运行时原理、五大积木、实机搭建收权、新旧内核蓝屏同题对决与 82% 单元评测五大章节，支持在页内直接唤起微软官方 Medius 点播流。" data-en="Switch across Runtime Loop, Five Building Blocks, Live Work IQ Scoping, BSOD A/B Comparison, and 82% Automated Evals, or launch the embedded Medius video player.">切换运行时原理、五大积木、实机搭建收权、新旧内核蓝屏同题对决与 82% 单元评测五大章节，支持在页内直接唤起微软官方 Medius 点播流。</p>
+              </div>
+              <div class="sandbox-controls" data-sandbox-controls="thr964-video-theater"></div>
+            </div>
+            <div class="sandbox-stage" data-sandbox-stage="thr964-video-theater">
+
+            </div>
+          </div>
+        </section>
+
+        <section id="five-building-blocks" class="section" data-reveal data-present-title-zh="五大构建积木：动态技能卸载、刚柔并济工作流与内置 Python 沙盒" data-present-title-en="Five Building Blocks: Dynamic Skills, Deterministic Workflows, and the Python Sandbox">
+          <div class="section-head">
+            <p class="section-kicker">02 / Five Building Blocks</p>
+            <h2 data-zh="2. 五大构建积木：动态技能卸载、刚柔并济工作流与内置 Python 沙盒" data-en="2. Five Building Blocks: Dynamic Skills, Deterministic Workflows, and the Python Sandbox">2. 五大构建积木：动态技能卸载、刚柔并济工作流与内置 Python 沙盒</h2>
+            <p data-zh="为什么新内核能在提升工具调用准确率的同时把净词元（Net Token）消耗降下来 [1]？答案在于它将智能体工程拆解为职责正交的五大构建模块：&lt;strong&gt;指令（Instructions）、技能（Skills）、工具（Tools）、工作流（Workflows）与安全沙盒（Sandbox）&lt;/strong&gt;[1][2]。过去制作者不得不把所有业务规程硬塞进同一段巨型系统提示词，导致每一轮日常寒暄或简单查询都要重复吞入数千词元；而在新架构下，主指令只需用平实语言声明对所有会话恒定成立的目标、语气与越界禁区 [1][3]。" data-en="How does the Microsoft Copilot harness improve tool-calling accuracy while lowering net token consumption [1]? It decomposes agent design into five orthogonal building blocks: &lt;strong&gt;Instructions, Skills, Tools, Workflows, and Sandbox&lt;/strong&gt; [1][2]. Previously, makers stuffed every operational SOP into one monolithic prompt ingested on every turn; now, &lt;strong&gt;Instructions&lt;/strong&gt; stay short and hold only the goal, tone, and scope boundaries that remain true for every user interaction [1][3].">为什么新内核能在提升工具调用准确率的同时把净词元（Net Token）消耗降下来 [1]？答案在于它将智能体工程拆解为职责正交的五大构建模块：<strong>指令（Instructions）、技能（Skills）、工具（Tools）、工作流（Workflows）与安全沙盒（Sandbox）</strong>[1][2]。过去制作者不得不把所有业务规程硬塞进同一段巨型系统提示词，导致每一轮日常寒暄或简单查询都要重复吞入数千词元；而在新架构下，主指令只需用平实语言声明对所有会话恒定成立的目标、语气与越界禁区 [1][3]。</p>
+          </div>
+
+          <p data-zh="重复性的领域专业规程（Know-how）则被剥离进 &lt;strong&gt;Skills（技能）&lt;/strong&gt;[1][3]。每项技能本质上是一份轻量级 Markdown 文本说明，也可附带演示文稿模板等资源包与可执行脚本，单个智能体最多可挂载 &lt;strong&gt;50 项技能&lt;/strong&gt;[1][3]。内核仅在用户提问命中技能描述时才动态将其拉入当前上下文——当员工仅咨询四年期设备换新时，系统绝不会浪费词元去加载冗长的故障排查技能 [1]。" data-en="Repeatable domain procedures move into &lt;strong&gt;Skills&lt;/strong&gt;—modular Markdown files (optionally bundling resource templates and scripts), with up to &lt;strong&gt;50 skills&lt;/strong&gt; supported per agent [1][3]. Because the harness loads a skill dynamically based on its description only when relevant, a user asking about a hardware refresh never pays the context-window tax of loading troubleshooting manuals [1].">重复性的领域专业规程（Know-how）则被剥离进 <strong>Skills（技能）</strong>[1][3]。每项技能本质上是一份轻量级 Markdown 文本说明，也可附带演示文稿模板等资源包与可执行脚本，单个智能体最多可挂载 <strong>50 项技能</strong>[1][3]。内核仅在用户提问命中技能描述时才动态将其拉入当前上下文——当员工仅咨询四年期设备换新时，系统绝不会浪费词元去加载冗长的故障排查技能 [1]。</p>
+<div class="thr964-media-grid">
+  <article class="thr964-media-card" data-present-surface="unframed">
+    <div class="thr964-media-frame">
+      <img src="./media/thr964-harness-runtime-loop.jpg" alt="THR964 official slide at 01:55 showing The harness runs the loop between Your agent and Model across four steps and Plan-Act-Adapt" loading="lazy" />
+    </div>
+    <div class="thr964-media-body">
+      <span class="thr964-media-badge" data-zh="THR964 官方课件实拍 · 01:55" data-en="THR964 Official Slide · 01:55">THR964 官方课件实拍 · 01:55</span>
+      <h4 data-zh="The Harness Runs the Loop：每轮四步调度与自愈闭环" data-en="The Harness Runs the Loop: Four-Step Turn Execution">The Harness Runs the Loop：每轮四步调度与自愈闭环</h4>
+      <p data-zh="连接制作者设计与底层推理模型，按序执行调用裁决、上下文装配、结果解析与精准工具触发，驱动规划—行动—自适应循环 [1][2]。" data-en="Bridges maker design and model reasoning across turn gating, context selection, interpretation, and dynamic tool execution [1][2].">连接制作者设计与底层推理模型，按序执行调用裁决、上下文装配、结果解析与精准工具触发，驱动规划—行动—自适应循环 [1][2]。</p>
+    </div>
+  </article>
+  <article class="thr964-media-card" data-present-surface="unframed">
+    <div class="thr964-media-frame">
+      <img src="./media/thr964-work-iq-mcp-scopes.jpg" alt="THR964 live demo capture at 10:12 showing Work IQ MCP server granular read-write toggles across SharePoint, OneDrive, Outlook, Teams, Calendar, People, and Business Apps" loading="lazy" />
+    </div>
+    <div class="thr964-media-body">
+      <span class="thr964-media-badge is-accent" data-zh="THR964 实机演示截帧 · 10:12" data-en="THR964 Live Demo Frame · 10:12">THR964 实机演示截帧 · 10:12</span>
+      <h4 data-zh="默认挂载 Work IQ MCP 服务与细粒度读写权限收窄" data-en="Default Work IQ MCP Tool & Per-Workload Scope Controls">默认挂载 Work IQ MCP 服务与细粒度读写权限收窄</h4>
+      <p data-zh="开箱打通 SharePoint、OneDrive、邮件、Teams、日历、人员与商业应用数据，支持按子服务一键降级只读或彻底关闭 [1][2]。" data-en="Connects SharePoint, OneDrive, Outlook, Teams, Calendar, People, and Dynamics/Dataverse out of the box with per-source read/write toggles [1][2].">开箱打通 SharePoint、OneDrive、邮件、Teams、日历、人员与商业应用数据，支持按子服务一键降级只读或彻底关闭 [1][2]。</p>
+    </div>
+  </article>
+</div>
+<p data-zh="在行动与控制层，**Tools（工具）**复用完整的 Power Platform 连接器生态与专为智能体交互优化的模型上下文协议（MCP）服务端点，让智能体跨业务数据库与第三方系统执行增删改查，且无需像旧版那样手工雕琢触发提示词 [1][4]。对于绝不允许大模型临场自由发挥的合规审批或固定财务步骤，制作者可将智能体与确定性 **Workflows（工作流）**双向组合——既能从智能体内部调用工作流，也能在工作流节点中唤醒智能体 [1]。而新内核独有的第五块积木 &lt;strong&gt;Sandbox（安全沙盒）&lt;/strong&gt;，则在智能体内部直接开辟了一块受控隔离区，无需额外部署外部容器即可原位编写并运行 Python 代码，结合技能内的企业模板包一键完成复杂数值测算、统计绘图或生成定制 PowerPoint 汇报课件 [1][2]。" data-en="For real-world action, &lt;strong&gt;Tools&lt;/strong&gt; tap into the entire Power Platform connector ecosystem alongside agent-optimized Model Context Protocol (MCP) servers for database CRUD operations without tedious trigger phrasing [1][4]. Where strict procedural compliance is non-negotiable, makers pair open-ended agent reasoning with deterministic &lt;strong&gt;Workflows&lt;/strong&gt;—calling a workflow from an agent or invoking an agent inside a workflow [1]. Finally, the unique &lt;strong&gt;Sandbox&lt;/strong&gt; primitive provides a built-in secure environment to write and execute Python code inline—crunching calculations, plotting charts, or populating a packaged PowerPoint template without external infrastructure [1][2].">在行动与控制层，**Tools（工具）**复用完整的 Power Platform 连接器生态与专为智能体交互优化的模型上下文协议（MCP）服务端点，让智能体跨业务数据库与第三方系统执行增删改查，且无需像旧版那样手工雕琢触发提示词 [1][4]。对于绝不允许大模型临场自由发挥的合规审批或固定财务步骤，制作者可将智能体与确定性 **Workflows（工作流）**双向组合——既能从智能体内部调用工作流，也能在工作流节点中唤醒智能体 [1]。而新内核独有的第五块积木 <strong>Sandbox（安全沙盒）</strong>，则在智能体内部直接开辟了一块受控隔离区，无需额外部署外部容器即可原位编写并运行 Python 代码，结合技能内的企业模板包一键完成复杂数值测算、统计绘图或生成定制 PowerPoint 汇报课件 [1][2]。</p>
+
+          <figure class="sr-figure generated-diagram is-inline-svg" data-present-step data-present-surface="unframed" data-step-title="Copilot Studio 三大执行内核与混合资产选型象限" data-step-title-en="Copilot Studio Three Harnesses &amp; Process Asset Selection Quadrant" data-present-title-zh="Copilot Studio 三大执行内核与混合资产选型象限" data-present-title-en="Copilot Studio Three Harnesses &amp; Process Asset Selection Quadrant" data-step-label="02 / Five Building Blocks" data-step-label-en="02 / Five Building Blocks" data-present-i18n-invariant="label">
+            <svg class="sr-figure-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 480" role="img" aria-labelledby="thr964-harness-selection-quadrant-2-title thr964-harness-selection-quadrant-2-desc"><title id="thr964-harness-selection-quadrant-2-title">Copilot Studio 三大执行内核与流程资产选型象限（THR964）</title><desc id="thr964-harness-selection-quadrant-2-desc">2x2 quadrant matrix with 5 items</desc><text class="sr-zh" x="36" y="32" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="18" font-weight="700" fill="var(--fig-text-strong, #172430)">Copilot Studio 三大执行内核与流程资产选型象限（THR964）</text><text class="sr-en" x="36" y="32" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="18" font-weight="700" fill="var(--fig-text-strong, #172430)">Copilot Studio Three Harnesses &amp; Process Asset Selection Quadrant (THR964)</text><text class="sr-zh" x="36" y="54" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">依据 April Dunnam 选型矩阵：按业务推理复杂度与步骤确定性诉求匹配三大内核及混合工作流</text><text class="sr-en" x="36" y="54" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">Mapped from April Dunnam&apos;s THR964 framework across multi-step reasoning complexity and procedural determinism</text><rect x="78" y="98" width="948" height="328" rx="16" fill="var(--fig-group-bg-2, rgba(244,248,252,0.72))" stroke="var(--fig-group-border, rgba(23,36,48,0.11))" stroke-width="1.25"/><rect x="552" y="98" width="474" height="164" rx="14" fill="var(--fig-quadrant-tint, rgba(13,143,140,0.05))"/><line x1="552" y1="98" x2="552" y2="426" stroke="var(--fig-axis-line, rgba(23,36,48,0.24))" stroke-width="1.35" stroke-dasharray="6 5"/><line x1="78" y1="262" x2="1026" y2="262" stroke="var(--fig-axis-line, rgba(23,36,48,0.24))" stroke-width="1.35" stroke-dasharray="6 5"/><text class="sr-zh" x="96" y="124" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12.5" font-weight="700" fill="var(--fig-text-subtle, #64748b)">固定规则与对话升级区（确定性话题/语音路由）</text><text class="sr-en" x="96" y="124" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12.5" font-weight="700" fill="var(--fig-text-subtle, #64748b)">Structured Rules &amp; Contact Routing</text><text class="sr-zh" x="1008" y="124" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="12.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)">复杂目标推理与刚柔并济靶心（Copilot Harness）</text><text class="sr-en" x="1008" y="124" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="12.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)">Goal-Driven Reasoning &amp; Hybrid Sweet Spot</text><text class="sr-zh" x="96" y="412" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12.5" font-weight="700" fill="var(--fig-text-subtle, #64748b)">超长指令全量硬塞（上下文膨胀与漏判风险）</text><text class="sr-en" x="96" y="412" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12.5" font-weight="700" fill="var(--fig-text-subtle, #64748b)">Monolithic Prompt Stuffing &amp; Brittle Branching</text><text class="sr-zh" x="1008" y="412" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="12.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)">缺乏范围护栏的全网裸搜原型（越界风险）</text><text class="sr-en" x="1008" y="412" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="12.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)">Unscoped Web-Wide Agent Prototypes</text><text class="sr-zh" x="552" y="464" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="13" font-weight="700" fill="var(--fig-text-muted, #52616d)">开放意图拆解与异常自愈推理复杂度 (0 → 100)</text><text class="sr-en" x="552" y="464" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="13" font-weight="700" fill="var(--fig-text-muted, #52616d)">Open-Ended Goal Decomposition &amp; Error Recovery Complexity (0 → 100)</text><g transform="translate(26,262) rotate(-90)"><text class="sr-zh" x="0" y="0" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="13" font-weight="700" fill="var(--fig-text-muted, #52616d)">执行边界受控度、词元效率与可评测性 (0 → 100)</text><text class="sr-en" x="0" y="0" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="13" font-weight="700" fill="var(--fig-text-muted, #52616d)">Execution Guardrails, Token Efficiency &amp; Testability (0 → 100)</text></g><g data-point-id="monolithic-std-complex"><circle cx="306" cy="347" r="14.5" fill="var(--fig-role-rose-fill, rgba(225, 29, 72, 0.08))" stroke="var(--fig-role-rose-stroke, rgba(225, 29, 72, 0.48))" stroke-width="1"/><circle cx="306" cy="347" r="8.5" fill="var(--fig-role-rose-bar, #e11d48)"/><text class="sr-zh" x="326.5" y="359" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="start" font-size="13.5" font-weight="700" fill="var(--fig-text-strong, #172430)">在旧版硬塞复杂排障与换机复合流</text><text class="sr-en" x="326.5" y="359" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="start" font-size="13.5" font-weight="700" fill="var(--fig-text-strong, #172430)">Forcing Compound IT Flows into Monolithic Prompts</text><text class="sr-zh" x="326.5" y="376" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="start" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">每轮全量吞入排障规程耗费词元，面对蓝屏+换机双诉求漏判设备选项</text><text class="sr-en" x="326.5" y="376" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="start" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">Ingests all instructions every turn and misses compound laptop requests</text></g><g data-point-id="unscoped-web-agent"><circle cx="780" cy="341" r="14.5" fill="var(--fig-role-amber-fill, rgba(217, 119, 6, 0.09))" stroke="var(--fig-role-amber-stroke, rgba(217, 119, 6, 0.44))" stroke-width="1"/><circle cx="780" cy="341" r="8.5" fill="var(--fig-role-amber-bar, #d97706)"/><text class="sr-zh" x="759.5" y="321" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13.5" font-weight="700" fill="var(--fig-text-strong, #172430)">保留默认全网搜索与全量写权限原型</text><text class="sr-en" x="759.5" y="321" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13.5" font-weight="700" fill="var(--fig-text-strong, #172430)">Default All-Web Search &amp; Unscoped Write Prototype</text><text class="sr-zh" x="759.5" y="338" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">未关闭全网检索且未收紧 Work IQ 子域权限，易引入非官方排障步骤</text><text class="sr-en" x="759.5" y="338" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">Leaves public web search open without domain allowlists or Work IQ scoping</text></g><g data-point-id="standard-harness"><circle cx="287" cy="170" r="14.5" fill="var(--fig-role-blue-fill, rgba(37, 99, 235, 0.07))" stroke="var(--fig-role-blue-stroke, rgba(59, 130, 246, 0.42))" stroke-width="1"/><circle cx="287" cy="170" r="8.5" fill="var(--fig-role-blue-bar, #2563eb)"/><text class="sr-zh" x="307.5" y="200" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="start" font-size="13.5" font-weight="700" fill="var(--fig-text-strong, #172430)">Standard Harness（标准话题内核）</text><text class="sr-en" x="307.5" y="200" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="start" font-size="13.5" font-weight="700" fill="var(--fig-text-strong, #172430)">Standard Harness (Topic &amp; Rule-Based)</text><text class="sr-zh" x="307.5" y="217" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="start" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">预先编排触发词与分支，适合固定核验步骤的密码重置</text><text class="sr-en" x="307.5" y="217" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="start" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">Pre-scripted topics ideal for fixed-step password resets</text></g><g data-point-id="customer-conv-harness"><circle cx="476" cy="157" r="14.5" fill="var(--fig-role-violet-fill, rgba(124, 58, 237, 0.08))" stroke="var(--fig-role-violet-stroke, rgba(139, 92, 246, 0.42))" stroke-width="1"/><circle cx="476" cy="157" r="8.5" fill="var(--fig-role-violet-bar, #7c3aed)"/><text class="sr-zh" x="496.5" y="162" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="start" font-size="13.5" font-weight="700" fill="var(--fig-text-strong, #172430)">Customer Conversation Harness（对客会话内核）</text><text class="sr-en" x="496.5" y="162" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="start" font-size="13.5" font-weight="700" fill="var(--fig-text-strong, #172430)">Customer Conversation Harness (Voice &amp; Chat)</text><text class="sr-zh" x="496.5" y="179" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="start" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">针对网页聊天与电话语音客服深度调优，内置平滑转人工升级链路</text><text class="sr-en" x="496.5" y="179" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="start" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">Optimized for contact-center voice and web chat with human escalation</text></g><g data-point-id="ms-copilot-harness"><circle cx="893" cy="137" r="14.5" fill="var(--fig-role-teal-fill, rgba(13, 143, 140, 0.09))" stroke="var(--fig-role-teal-stroke, rgba(13, 143, 140, 0.46))" stroke-width="1"/><circle cx="893" cy="137" r="8.5" fill="var(--fig-role-teal-bar, #0d8f8c)"/><text x="872.5" y="136" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13.5" font-weight="700" fill="var(--fig-text-strong, #172430)">Microsoft Copilot Harness + Skills + Workflows</text><text class="sr-zh" x="872.5" y="153" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">按需加载最多 50 项技能、内置 Python 沙盒与 82% 基准单测闭环</text><text class="sr-en" x="872.5" y="153" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">Loads up to 50 skills on demand with Python sandbox &amp; Evaluate unit tests</text></g></svg>
+            <figcaption class="diagram-caption"><span data-zh="图 2：基于 THR964 选型准则绘制的工程决策象限——告别全量指令硬塞与无护栏全网裸搜，按推理复杂度匹配标准内核、对客会话内核以及融合动态技能与确定性流的新一代 Copilot 内核 [1][2]。" data-en="Figure 2: Engineering selection quadrant from THR964—matching workflow reasoning complexity and determinism across Standard, Customer Conversation, and Microsoft Copilot harnesses while avoiding monolithic prompt bloat [1][2].">图 2：基于 THR964 选型准则绘制的工程决策象限——告别全量指令硬塞与无护栏全网裸搜，按推理复杂度匹配标准内核、对客会话内核以及融合动态技能与确定性流的新一代 Copilot 内核 [1][2]。</span></figcaption>
+          </figure>
+        </section>
+
+        <section id="live-build-and-ab-test" class="section" data-reveal data-present-title-zh="实机搭建与同题对决：15 分钟构建 IT 支持智能体并完胜旧版内核" data-present-title-en="Live Build &amp; A/B Showdown: Crafting an IT Concierge and Outperforming Standard Topics">
+          <div class="section-head">
+            <p class="section-kicker">03 / Live Build &amp; Head-to-Head Test</p>
+            <h2 data-zh="3. 实机搭建与同题对决：15 分钟构建 IT 支持智能体并完胜旧版内核" data-en="3. Live Build &amp; A/B Showdown: Crafting an IT Concierge and Outperforming Standard Topics">3. 实机搭建与同题对决：15 分钟构建 IT 支持智能体并完胜旧版内核</h2>
+            <p data-zh="在占据半场篇幅的实机演示中，April Dunnam 打开 &lt;code&gt;copilotstudio.microsoft.com&lt;/code&gt; 从空白页新建企业内部技术支持智能体（&lt;code&gt;IT Support&lt;/code&gt; / &lt;code&gt;Contoso IT&lt;/code&gt;），直观展示了最小权限收窄与复合意图推理的完整工程细节 [1][2]：" data-en="Dedicating the second half of THR964 to a live build at &lt;code&gt;copilotstudio.microsoft.com&lt;/code&gt;, April Dunnam assembled an enterprise IT help desk agent from scratch and placed it head-to-head against an equivalent Standard-harness build [1][2]:">在占据半场篇幅的实机演示中，April Dunnam 打开 <code>copilotstudio.microsoft.com</code> 从空白页新建企业内部技术支持智能体（<code>IT Support</code> / <code>Contoso IT</code>），直观展示了最小权限收窄与复合意图推理的完整工程细节 [1][2]：</p>
+          </div>
+
+          <ol class="flow-list" data-present-step data-present-surface="unframed" data-step-title="实机演练：从最小权限收窄到“蓝屏+换机”复合诉求对决的四步闭环" data-step-title-en="Four-Step Live Walkthrough: From Least-Privilege Setup to Compound BSOD Triage" data-present-title-zh="实机演练：从最小权限收窄到“蓝屏+换机”复合诉求对决的四步闭环" data-present-title-en="Four-Step Live Walkthrough: From Least-Privilege Setup to Compound BSOD Triage" data-step-label="03 / Live Build &amp; Head-to-Head Test" data-step-label-en="03 / Live Build &amp; Head-to-Head Test" data-present-i18n-invariant="label">
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="精简主指令与禁区护栏" data-en="Concise Scope &amp;amp; Refusal Instructions">精简主指令与禁区护栏</strong>
+                <p data-zh="主指令仅声明“企业技术支持助手”角色定位、将排障路由至专属技能、对换机请求收集需求并匹配可用机型，同时明确写入安全合规红线（严禁索要密码或一次性验证码，严禁回答超出技术支持范畴的无关提问）[1][2]。" data-en="Defines role, routing placeholders, and explicit security guardrails—never request passwords or one-time codes, and refuse out-of-scope queries [1][2].">主指令仅声明“企业技术支持助手”角色定位、将排障路由至专属技能、对换机请求收集需求并匹配可用机型，同时明确写入安全合规红线（严禁索要密码或一次性验证码，严禁回答超出技术支持范畴的无关提问）[1][2]。</p>
+              </div>
+            </li>
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="Work IQ 子域降权与知识白名单" data-en="Work IQ Least-Privilege &amp;amp; Domain Allowlist">Work IQ 子域降权与知识白名单</strong>
+                <p data-zh="新建智能体默认挂载以终端用户身份鉴权的 &lt;strong&gt;Work IQ&lt;/strong&gt; 工具（覆盖文档库、网盘、邮件、聊天、日历、人员与商业应用）；April 现场演示将“人员（People）”权限收窄为只读、直接取消勾选不需要的 Outlook 邮件，并关闭默认开启的“搜索全部网站”开关，将外部公开知识严格锁定在 &lt;code&gt;support.microsoft.com&lt;/code&gt; 与 &lt;code&gt;learn.microsoft.com/troubleshoot&lt;/code&gt; 官方域名内 [1][2]。" data-en="Narrows default Work IQ MCP access (setting People to read-only and unchecking Outlook) while turning off unrestricted web search in favor of &lt;code&gt;support.microsoft.com&lt;/code&gt; and &lt;code&gt;learn.microsoft.com/troubleshoot&lt;/code&gt; [1][2].">新建智能体默认挂载以终端用户身份鉴权的 <strong>Work IQ</strong> 工具（覆盖文档库、网盘、邮件、聊天、日历、人员与商业应用）；April 现场演示将“人员（People）”权限收窄为只读、直接取消勾选不需要的 Outlook 邮件，并关闭默认开启的“搜索全部网站”开关，将外部公开知识严格锁定在 <code>support.microsoft.com</code> 与 <code>learn.microsoft.com/troubleshoot</code> 官方域名内 [1][2]。</p>
+              </div>
+            </li>
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="上传五步排障 Markdown 技能" data-en="Uploading the 5-Step Markdown Skill">上传五步排障 Markdown 技能</strong>
+                <p data-zh="点击添加预置的 &lt;code&gt;troubleshooting-procedure&lt;/code&gt; 技能包，凭借清晰描述驱动运行时动态挂载；技能正文规定依次执行“单问题聚焦澄清—重启与服务状态等无损诊断—带原始链接的分步修复—提供 1 至 2 条备选路径—累计 2 至 3 条路径失败后附带症状摘要升级工单”五步规程 [1][2]。" data-en="Uploads &lt;code&gt;troubleshooting-procedure&lt;/code&gt;, encoding five structured phases: single-question clarification, non-destructive diagnostics, cited step-by-step fixes, 1–2 alternatives, and ticket escalation after 2–3 failed paths [1][2].">点击添加预置的 <code>troubleshooting-procedure</code> 技能包，凭借清晰描述驱动运行时动态挂载；技能正文规定依次执行“单问题聚焦澄清—重启与服务状态等无损诊断—带原始链接的分步修复—提供 1 至 2 条备选路径—累计 2 至 3 条路径失败后附带症状摘要升级工单”五步规程 [1][2]。</p>
+              </div>
+            </li>
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="开启 Debug 模式对决复合提问" data-en="Debug-Mode Compound Prompt A/B Test">开启 Debug 模式对决复合提问</strong>
+                <p data-zh="输入同时包含故障排障与资产申领的一句话复合诉求：&lt;code&gt;I have a blue screen of death. I need a laptop&lt;/code&gt;（我遇到蓝屏死机了，需要一台新笔记本）[1][2]。新内核实时展示思维链并跑完 &lt;strong&gt;18 项底层步骤&lt;/strong&gt;：先共情确认崩溃故障，按序给出拔除外设、进入安全模式、检查设备管理器、保留 &lt;strong&gt;10% 至 15%&lt;/strong&gt; 可用磁盘空间、系统更新及管理员运行 &lt;code&gt;DISM.exe /Online /Cleanup-image /Restorehealth&lt;/code&gt; 与 &lt;code&gt;sfc /scannow&lt;/code&gt;（同时提醒切勿在对话中泄露 BitLocker 恢复密钥），最后兜底列出若排障无效可申领的备选笔记本清单 [1][2]。" data-en="Sends the dual-intent prompt &lt;em&gt;&amp;quot;I have a blue screen of death. I need a laptop&amp;quot;&lt;/em&gt; in Debug mode (&lt;code&gt;18 items complete&lt;/code&gt;): the new harness delivers 6 cited BSOD steps (&lt;code&gt;10%–15%&lt;/code&gt; free disk check, &lt;code&gt;DISM&lt;/code&gt; + &lt;code&gt;sfc /scannow&lt;/code&gt;, and a BitLocker safety reminder) before presenting available replacement laptops [1][2].">输入同时包含故障排障与资产申领的一句话复合诉求：<code>I have a blue screen of death. I need a laptop</code>（我遇到蓝屏死机了，需要一台新笔记本）[1][2]。新内核实时展示思维链并跑完 <strong>18 项底层步骤</strong>：先共情确认崩溃故障，按序给出拔除外设、进入安全模式、检查设备管理器、保留 <strong>10% 至 15%</strong> 可用磁盘空间、系统更新及管理员运行 <code>DISM.exe /Online /Cleanup-image /Restorehealth</code> 与 <code>sfc /scannow</code>（同时提醒切勿在对话中泄露 BitLocker 恢复密钥），最后兜底列出若排障无效可申领的备选笔记本清单 [1][2]。</p>
+              </div>
+            </li>
+          </ol>
+
+          <p data-zh="为了把新旧两代运行时的工程差异钉死，April 当场切入在 &lt;strong&gt;Standard Harness&lt;/strong&gt; 下用同等知识源搭建的对照版智能体，并输入一模一样的蓝屏换机复合提问 [1]。对照实验暴露出两大硬伤：其一，标准内核没有动态技能机制，所有排障步骤被迫全量塞入主指令，导致员工每发一句话都要在上下文窗口里全额重算一遍词元，多轮对话成本高企；其二，由于缺乏动态规划循环，标准内核必须依赖预先手绘的多个独立话题去硬匹配“查 SharePoint 设备列表”和“提交换机申请”，面对单句双意图提问当场顾此失彼——既未能严格执行分步排障规程，也彻底漏掉了对笔记本申领诉求的响应 [1]。" data-en="Switching immediately to a parallel IT help desk agent built on the legacy &lt;strong&gt;Standard harness&lt;/strong&gt; with the exact same prompt exposed two structural bottlenecks [1]. First, without Skills, all troubleshooting instructions sat permanently inside the main prompt—re-ingesting full context and burning extra tokens on every back-and-forth turn. Second, lacking a dynamic planning loop, the Standard agent relied on separate pre-scripted SharePoint topics for listing and requesting hardware; confronted with two intents in one sentence, it failed to follow the step-by-step troubleshooting rubric and completely ignored the laptop request [1].">为了把新旧两代运行时的工程差异钉死，April 当场切入在 <strong>Standard Harness</strong> 下用同等知识源搭建的对照版智能体，并输入一模一样的蓝屏换机复合提问 [1]。对照实验暴露出两大硬伤：其一，标准内核没有动态技能机制，所有排障步骤被迫全量塞入主指令，导致员工每发一句话都要在上下文窗口里全额重算一遍词元，多轮对话成本高企；其二，由于缺乏动态规划循环，标准内核必须依赖预先手绘的多个独立话题去硬匹配“查 SharePoint 设备列表”和“提交换机申请”，面对单句双意图提问当场顾此失彼——既未能严格执行分步排障规程，也彻底漏掉了对笔记本申领诉求的响应 [1]。</p>
+<div class="thr964-media-grid">
+  <article class="thr964-media-card" data-present-surface="unframed">
+    <div class="thr964-media-frame">
+      <img src="./media/thr964-bsod-laptop-debug.jpg" alt="THR964 live demo screenshot at 16:12 showing Contoso IT in Debug mode completing 18 items for the compound BSOD and laptop prompt with DISM and BitLocker guidance" loading="lazy" />
+    </div>
+    <div class="thr964-media-body">
+      <span class="thr964-media-badge" data-zh="THR964 实机演示截帧 · 16:12" data-en="THR964 Live Demo Frame · 16:12">THR964 实机演示截帧 · 16:12</span>
+      <h4 data-zh="Debug 模式下拆解“蓝屏+换机”双意图（18 项动作完成）" data-en="Debug Mode Resolving Compound BSOD + Laptop Prompt (18 Steps)">Debug 模式下拆解“蓝屏+换机”双意图（18 项动作完成）</h4>
+      <p data-zh="自动触发排障技能与官方站点检索，先输出 6 步修复与 DISM/SFC 命令及 BitLocker 安全提醒，再衔接备选机型 [1][2]。" data-en="Invokes the troubleshooting skill and scoped Microsoft docs first, outputting 6 recovery steps and BitLocker warnings before laptop options [1][2].">自动触发排障技能与官方站点检索，先输出 6 步修复与 DISM/SFC 命令及 BitLocker 安全提醒，再衔接备选机型 [1][2]。</p>
+    </div>
+  </article>
+  <article class="thr964-media-card" data-present-surface="unframed">
+    <div class="thr964-media-frame">
+      <img src="./media/thr964-evaluate-82-score.jpg" alt="THR964 live demo screenshot at 20:03 showing Troubleshooting Quality evaluation run scoring 82% average across multi-turn test cases in 14m 41s using 590 credits" loading="lazy" />
+    </div>
+    <div class="thr964-media-body">
+      <span class="thr964-media-badge is-accent" data-zh="THR964 实机演示截帧 · 20:03" data-en="THR964 Live Demo Frame · 20:03">THR964 实机演示截帧 · 20:03</span>
+      <h4 data-zh="Evaluate 面板：多轮对话自动化单元评测斩获 82% 均分" data-en="Evaluate Tab: Multi-Turn Automated Unit Test Scoring 82%">Evaluate 面板：多轮对话自动化单元评测斩获 82% 均分</h4>
+      <p data-zh="批量运行涵盖收不到邮件、Wi-Fi 断连、Teams 报错 CAA20002 等多轮测试集，耗时 14 分 41 秒、消耗 590 积分输出量化体检单 [1][2]。" data-en="Executes multi-turn test conversations (Outlook offline, Wi-Fi, Teams CAA20002) in 14m 41s (590 credits), flagging gaps below 100% [1][2].">批量运行涵盖收不到邮件、Wi-Fi 断连、Teams 报错 CAA20002 等多轮测试集，耗时 14 分 41 秒、消耗 590 积分输出量化体检单 [1][2]。</p>
+    </div>
+  </article>
+</div>
+        </section>
+
+        <section id="evaluate-publish-academy" class="section" data-reveal data-present-title-zh="质量门禁与交付演进：82% 单元评测、全渠道嵌入与一句话建站预览" data-present-title-en="Quality Gate &amp; Delivery: 82% Automated Evals, Omnichannel Rollout, and Prompt-to-Agent">
+          <div class="section-head">
+            <p class="section-kicker">04 / Evaluate, Publish &amp; NextGen Academy</p>
+            <h2 data-zh="4. 质量门禁与交付演进：82% 单元评测、全渠道嵌入与一句话建站预览" data-en="4. Quality Gate &amp; Delivery: 82% Automated Evals, Omnichannel Rollout, and Prompt-to-Agent">4. 质量门禁与交付演进：82% 单元评测、全渠道嵌入与一句话建站预览</h2>
+            <p data-zh="智能体告别硬编码分支后，上线前的确定性质量门禁如何保障 [1]？除了在 &lt;code&gt;Preview&lt;/code&gt; 面板开启调试模式做单点抽查，Copilot Studio 原生内置了充当“智能体单元测试框架”的 **Evaluate（评测）**与线上观测 **Monitor（监控）**双闭环 [1][2]。在实机演示的 &lt;code&gt;Troubleshooting Quality&lt;/code&gt; 评测集中，April 预置了覆盖收不到新邮件（8 轮消息）、无线网断连（6 轮）、登录报错 CAA20002（4 轮）、外接显示器失灵（6 轮）及误点钓鱼链接（2 轮）等十余组真实多轮对话 [1][2]。评测引擎逐项检验智能体是否先追问受影响设备与报错信息，而非盲目抛出修复命令 [1][2]。" data-en="Once makers replace scripted topic trees with autonomous reasoning, how do teams verify production quality [1]? Beyond interactive spot checks in &lt;code&gt;Preview&lt;/code&gt;, Copilot Studio pairs pre-deployment unit testing in &lt;strong&gt;Evaluate&lt;/strong&gt; with post-launch telemetry in &lt;strong&gt;Monitor&lt;/strong&gt; [1][2]. In her &lt;code&gt;Troubleshooting Quality&lt;/code&gt; evaluation suite, April loaded multi-turn test cases covering missing Outlook mail (8 messages), office Wi-Fi drops (6 messages), Teams error &lt;code&gt;CAA20002&lt;/code&gt; (4 messages), monitor detection (6 messages), and phishing clicks (2 messages) [1][2]. Each test grades whether the agent asks focused diagnostic follow-ups instead of jumping straight to a fix [1][2].">智能体告别硬编码分支后，上线前的确定性质量门禁如何保障 [1]？除了在 <code>Preview</code> 面板开启调试模式做单点抽查，Copilot Studio 原生内置了充当“智能体单元测试框架”的 **Evaluate（评测）**与线上观测 **Monitor（监控）**双闭环 [1][2]。在实机演示的 <code>Troubleshooting Quality</code> 评测集中，April 预置了覆盖收不到新邮件（8 轮消息）、无线网断连（6 轮）、登录报错 CAA20002（4 轮）、外接显示器失灵（6 轮）及误点钓鱼链接（2 轮）等十余组真实多轮对话 [1][2]。评测引擎逐项检验智能体是否先追问受影响设备与报错信息，而非盲目抛出修复命令 [1][2]。</p>
+          </div>
+
+          <div class="compare-table-wrap" data-present-step data-present-surface="unframed" data-step-title="质量门禁与交付演进：82% 单元评测、全渠道嵌入与一句话建站预览：对比矩阵" data-step-title-en="Quality Gate &amp; Delivery: 82% Automated Evals, Omnichannel Rollout, and Prompt-to-Agent: Comparison Matrix" data-present-title-zh="质量门禁与交付演进：82% 单元评测、全渠道嵌入与一句话建站预览：对比矩阵" data-present-title-en="Quality Gate &amp; Delivery: 82% Automated Evals, Omnichannel Rollout, and Prompt-to-Agent: Comparison Matrix" data-step-label="04 / Evaluate, Publish &amp; NextGen Academy" data-step-label-en="04 / Evaluate, Publish &amp; NextGen Academy" data-present-i18n-invariant="label"><table class="simple-table compare-table">
+<thead>
+<tr>
+<th data-zh="架构与工程维度" data-en="Engineering Dimension">架构与工程维度</th>
+<th data-zh="Standard Harness（旧版标准话题内核）" data-en="Standard Harness (Legacy Topic Engine)">Standard Harness（旧版标准话题内核）</th>
+<th data-zh="Microsoft Copilot Harness（新一代规划内核）" data-en="Microsoft Copilot Harness (New Planning Runtime)">Microsoft Copilot Harness（新一代规划内核）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-zh="对话控制与异常恢复" data-en="Flow Control &amp;amp; Recovery">对话控制与异常恢复</td>
+<td data-zh="必须在 Topics 中预先穷举意图分支与容错路径，未命中分支即断链 [1]" data-en="Pre-scripted topic branches and manual error wiring up front [1]">必须在 Topics 中预先穷举意图分支与容错路径，未命中分支即断链 [1]</td>
+<td data-zh="仅声明终局目标；运行时执行规划—行动—自检重规划，工具报错自动改写恢复 [1][2]" data-en="Goal-driven Plan-Act-Evaluate-Replan loop with built-in error adaptation [1][2]">仅声明终局目标；运行时执行规划—行动—自检重规划，工具报错自动改写恢复 [1][2]</td>
+</tr>
+<tr>
+<td data-zh="专业规程与词元效率" data-en="Domain Know-How &amp;amp; Tokens">专业规程与词元效率</td>
+<td data-zh="无技能分层，全量规程塞入主指令，每轮对话重复消耗上下文窗口词元 [1]" data-en="Monolithic instructions re-ingested on every conversational turn [1]">无技能分层，全量规程塞入主指令，每轮对话重复消耗上下文窗口词元 [1]</td>
+<td data-zh="支持多达 &lt;strong&gt;50 项&lt;/strong&gt; Markdown 技能按需动态加载，主指令精简，净词元占用显著降低 [1][3]" data-en="Up to &lt;strong&gt;50&lt;/strong&gt; dynamic Markdown skills loaded on cue for lower net token usage [1][3]">支持多达 <strong>50 项</strong> Markdown 技能按需动态加载，主指令精简，净词元占用显著降低 [1][3]</td>
+</tr>
+<tr>
+<td data-zh="数据工具与代码执行" data-en="Data, Actions &amp;amp; Compute">数据工具与代码执行</td>
+<td data-zh="手工配置连接器触发词与多话题存取 SharePoint 列表，无内置代码环境 [1]" data-en="Verbose tool descriptions and manual multi-topic SharePoint wiring [1]">手工配置连接器触发词与多话题存取 SharePoint 列表，无内置代码环境 [1]</td>
+<td data-zh="默认集成可降权的 &lt;strong&gt;Work IQ&lt;/strong&gt;、连接器与 MCP、确定性工作流互调及内置 &lt;strong&gt;Python 沙盒&lt;/strong&gt; [1][2]" data-en="Configurable &lt;strong&gt;Work IQ&lt;/strong&gt; MCP, connectors, bidirectional Workflows &amp;amp; &lt;strong&gt;Python Sandbox&lt;/strong&gt; [1][2]">默认集成可降权的 <strong>Work IQ</strong>、连接器与 MCP、确定性工作流互调及内置 <strong>Python 沙盒</strong> [1][2]</td>
+</tr>
+<tr>
+<td data-zh="质量评测与多端发布" data-en="Testing, Telemetry &amp;amp; Channels">质量评测与多端发布</td>
+<td data-zh="依赖人工逐条点击对话抽测，复合提问（如蓝屏+换机）易漏判次要诉求 [1]" data-en="Manual spot testing; drops secondary intents on compound prompts [1]">依赖人工逐条点击对话抽测，复合提问（如蓝屏+换机）易漏判次要诉求 [1]</td>
+<td data-zh="内置 &lt;strong&gt;Evaluate&lt;/strong&gt; 多轮单元评测（实测 &lt;strong&gt;82%&lt;/strong&gt; 得分并支持导出）、&lt;strong&gt;Monitor&lt;/strong&gt; 会话穿透与 Teams/网页嵌入 [1][2]" data-en="Automated &lt;strong&gt;Evaluate&lt;/strong&gt; unit suites (&lt;strong&gt;82%&lt;/strong&gt; demo score, exportable), &lt;strong&gt;Monitor&lt;/strong&gt; &amp;amp; Teams/embed rollout [1][2]">内置 <strong>Evaluate</strong> 多轮单元评测（实测 <strong>82%</strong> 得分并支持导出）、<strong>Monitor</strong> 会话穿透与 Teams/网页嵌入 [1][2]</td>
+</tr>
+</tbody>
+</table></div>
+<p data-zh="在演示现场，首轮自动化评测运行耗时 &lt;strong&gt;14 分 41 秒&lt;/strong&gt;、消耗 &lt;strong&gt;590 点 Copilot Credits&lt;/strong&gt;，最终跑出 &lt;strong&gt;82%&lt;/strong&gt; 的平均通过分——这一量化信号立刻提示制作者在正式发布前导出测试集深挖剩余 18% 的失分对话 [1][2]。验证达标后，只需在部署面板一键勾选 &lt;strong&gt;Microsoft 365 与 Teams&lt;/strong&gt;（员工随即能在 Teams 内直接唤醒 &lt;code&gt;IT Concierge&lt;/code&gt; 处理“电脑太慢怎么修”等模糊提问），或提取标准 &lt;strong&gt;Embed 嵌入代码&lt;/strong&gt;挂载至企业公共门户与自研应用中；上线后的每日活跃用户数、会话成功率、平均对话时长及单次会话问答明细则全部汇聚至 &lt;code&gt;Monitor&lt;/code&gt; 标签页集中巡检 [1][2]。" data-en="Live on stage, the evaluation run completed in &lt;strong&gt;14m 41s&lt;/strong&gt; using &lt;strong&gt;590 Copilot Credits&lt;/strong&gt; and returned an &lt;strong&gt;82%&lt;/strong&gt; average score—immediately signaling where to inspect and refine failing cases (with full test-set export) prior to launch [1][2]. Publishing then takes two clicks: either deploy natively to &lt;strong&gt;Microsoft 365 and Teams&lt;/strong&gt; (surfacing &lt;code&gt;IT Concierge&lt;/code&gt; immediately for vague end-user asks like &lt;em&gt;&amp;quot;how do I fix my computer? It's slow&amp;quot;&lt;/em&gt;) or copy the generated &lt;strong&gt;embed code&lt;/strong&gt; for any external website or custom app, while &lt;code&gt;Monitor&lt;/code&gt; tracks daily active users, success rates, average chat duration, and individual session transcripts [1][2].">在演示现场，首轮自动化评测运行耗时 <strong>14 分 41 秒</strong>、消耗 <strong>590 点 Copilot Credits</strong>，最终跑出 <strong>82%</strong> 的平均通过分——这一量化信号立刻提示制作者在正式发布前导出测试集深挖剩余 18% 的失分对话 [1][2]。验证达标后，只需在部署面板一键勾选 <strong>Microsoft 365 与 Teams</strong>（员工随即能在 Teams 内直接唤醒 <code>IT Concierge</code> 处理“电脑太慢怎么修”等模糊提问），或提取标准 <strong>Embed 嵌入代码</strong>挂载至企业公共门户与自研应用中；上线后的每日活跃用户数、会话成功率、平均对话时长及单次会话问答明细则全部汇聚至 <code>Monitor</code> 标签页集中巡检 [1][2]。</p>
+<p data-zh="演讲收尾处，April 还披露了两项加速制作者上手的关键动向 [1][2]：其一，访问预览环境 &lt;code&gt;copilotstudio.preview.microsoft.com&lt;/code&gt; 已支持&lt;strong&gt;纯自然语言一句话生成完整智能体&lt;/strong&gt;——只需输入“我需要一个企业技术支持智能体”，平台便会自动起草指令、按需拆出技能并匹配候选工具供制作者微调；其二，微软倡导团队同步开源上线了免费动手实验营 &lt;strong&gt;Copilot Studio Agent Academy&lt;/strong&gt;（包含面向初学者的 Recruit、中级进阶 Operative，以及涵盖 DocuSign MCP 与自定义 MCP 集成的 Special Ops 独立实验），其中专门针对新内核打造的 &lt;strong&gt;11 关实战闯关路径&lt;/strong&gt;现已在 &lt;code&gt;https://aka.ms/agent-academy/recruit-nextgen&lt;/code&gt; 全面开放 [1][5]。" data-en="Closing the session, April highlighted two accelerators for makers [1][2]. First, &lt;code&gt;copilotstudio.preview.microsoft.com&lt;/code&gt; now previews &lt;strong&gt;natural-language agent scaffolding&lt;/strong&gt;, where a single prompt (&lt;em&gt;&amp;quot;I need an IT help desk agent&amp;quot;&lt;/em&gt;) drafts instructions, skills, and candidate tools automatically. Second, her team released free hands-on training through the &lt;strong&gt;Copilot Studio Agent Academy&lt;/strong&gt;—spanning beginner &lt;em&gt;Recruit&lt;/em&gt;, intermediate &lt;em&gt;Operative&lt;/em&gt;, and targeted &lt;em&gt;Special Ops&lt;/em&gt; labs (such as DocuSign MCP and custom MCP integrations)—with an &lt;strong&gt;11-mission Microsoft Copilot harness path&lt;/strong&gt; live at &lt;code&gt;https://aka.ms/agent-academy/recruit-nextgen&lt;/code&gt; [1][5].">演讲收尾处，April 还披露了两项加速制作者上手的关键动向 [1][2]：其一，访问预览环境 <code>copilotstudio.preview.microsoft.com</code> 已支持<strong>纯自然语言一句话生成完整智能体</strong>——只需输入“我需要一个企业技术支持智能体”，平台便会自动起草指令、按需拆出技能并匹配候选工具供制作者微调；其二，微软倡导团队同步开源上线了免费动手实验营 <strong>Copilot Studio Agent Academy</strong>（包含面向初学者的 Recruit、中级进阶 Operative，以及涵盖 DocuSign MCP 与自定义 MCP 集成的 Special Ops 独立实验），其中专门针对新内核打造的 <strong>11 关实战闯关路径</strong>现已在 <code>https://aka.ms/agent-academy/recruit-nextgen</code> 全面开放 [1][5]。</p>
+        </section>
+
+        <section id="references" class="section" data-reveal data-present-title-zh="参考资料：官方一手信源与实战实验营" data-present-title-en="References: Official Primary Sources &amp; Hands-On Labs" data-density-exempt="references">
+          <div class="section-head">
+            <p class="section-kicker">05 / References: Official Primary Sources &amp; Hands-On Labs</p>
+            <h2 data-zh="5. 参考资料：官方一手信源与实战实验营" data-en="5. References: Official Primary Sources &amp; Hands-On Labs">5. 参考资料：官方一手信源与实战实验营</h2>
+          </div>
+
+          <ol class="bib-list">
+            <li id="ref-1">
+              <span class="bib-id">[1]</span>
+              <span class="bib-author">April Dunnam (Microsoft Ignite 2026 THR964 Video &amp; Transcript)</span> —
+              <a href="https://ignite.microsoft.com/en-US/sessions/1787856592220001EVen-1791588108990001CPQG" target="_blank" rel="noopener">https://ignite.microsoft.com/en-US/sessions/1787856592220001EVen-1791588108990001CPQG</a>
+              <span class="bib-note" data-zh="《Copilot Studio unlocked: The new Microsoft Copilot harness for makers》25 分钟官方剧场实录与中英双语 WebVTT 逐字稿（2026-11-18）" data-en="Official 25-minute theater session page and bilingual WebVTT transcripts (Nov 18, 2026)">《Copilot Studio unlocked: The new Microsoft Copilot harness for makers》25 分钟官方剧场实录与中英双语 WebVTT 逐字稿（2026-11-18）</span>
+            </li>
+            <li id="ref-2">
+              <span class="bib-id">[2]</span>
+              <span class="bib-author">April Dunnam (THR964 Official Medius On-Demand Stream)</span> —
+              <a href="https://medius.microsoft.com/Embed/video-nc/ad58b43f-c354-4f99-a64c-b13cd6c7132a" target="_blank" rel="noopener">https://medius.microsoft.com/Embed/video-nc/ad58b43f-c354-4f99-a64c-b13cd6c7132a</a>
+              <span class="bib-note" data-zh="THR964 微软官方 Medius 点播视频流（涵盖四步内核架构课件、Work IQ 权限配置、蓝屏换机新旧内核对比与 82% 自动化评测实录）" data-en="Official Microsoft Medius embedded video stream capturing all stage slides and live Copilot Studio walkthroughs">THR964 微软官方 Medius 点播视频流（涵盖四步内核架构课件、Work IQ 权限配置、蓝屏换机新旧内核对比与 82% 自动化评测实录）</span>
+            </li>
+            <li id="ref-3">
+              <span class="bib-id">[3]</span>
+              <span class="bib-author">Microsoft Copilot Studio Documentation (Agents, Skills &amp; Harnesses)</span> —
+              <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/" target="_blank" rel="noopener">https://learn.microsoft.com/en-us/microsoft-copilot-studio/</a>
+              <span class="bib-note" data-zh="Microsoft Copilot Studio 官方技术文档：指令边界设计、Markdown 技能挂载（上限 50 项）、多模型选择与自动化评测指南" data-en="Official documentation covering instructions, dynamic skills, multi-model orchestration, and evaluation test sets">Microsoft Copilot Studio 官方技术文档：指令边界设计、Markdown 技能挂载（上限 50 项）、多模型选择与自动化评测指南</span>
+            </li>
+            <li id="ref-4">
+              <span class="bib-id">[4]</span>
+              <span class="bib-author">Microsoft Learn Troubleshooting &amp; Support Grounding Reference</span> —
+              <a href="https://learn.microsoft.com/troubleshoot" target="_blank" rel="noopener">https://learn.microsoft.com/troubleshoot</a>
+              <span class="bib-note" data-zh="THR964 实机演示中作为受信任外部知识白名单挂载的微软官方排障文档库（配合 &lt;code&gt;https://support.microsoft.com&lt;/code&gt;）" data-en="Official Microsoft troubleshooting knowledge base configured as an allowed grounding domain during the THR964 live build">THR964 实机演示中作为受信任外部知识白名单挂载的微软官方排障文档库（配合 <code>https://support.microsoft.com</code>）</span>
+            </li>
+            <li id="ref-5">
+              <span class="bib-id">[5]</span>
+              <span class="bib-author">Copilot Studio Agent Academy: Recruit NextGen (11 Hands-On Missions)</span> —
+              <a href="https://aka.ms/agent-academy/recruit-nextgen" target="_blank" rel="noopener">https://aka.ms/agent-academy/recruit-nextgen</a>
+              <span class="bib-note" data-zh="April Dunnam 团队出品的 Microsoft Copilot Harness 免费 11 关动手实验营（含 Recruit、Operative 进阶课程与 MCP Special Ops 专项实验）" data-en="Free 11-mission hands-on learning path built by April Dunnam's advocacy team covering setup through badge completion">April Dunnam 团队出品的 Microsoft Copilot Harness 免费 11 关动手实验营（含 Recruit、Operative 进阶课程与 MCP Special Ops 专项实验）</span>
+            </li>
+          </ol>
+        </section>
+      </main>
+
+      <footer class="site-footer" data-reveal>
+        <p data-zh="© 2026 Knowledge Hub · Genesis 纯静态 Markdown 编译管线生成" data-en="© 2026 Knowledge Hub · Generated by Genesis Static Markdown Compiler">© 2026 Knowledge Hub · Genesis 纯静态 Markdown 编译管线生成</p>
+      </footer>
+    </div>
+  </div>
+
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/article-narration.js"></script>
+  <script src="../../assets/pptx-export.js"></script>
+  <script src="../../assets/article-math.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+  <script src="./thr964-theater.js"></script>
+  <script>
+    (function () {
+      var buttons = document.querySelectorAll("[data-genesis-mode]");
+      var drawer = document.getElementById("genesis-source-drawer");
+      var i;
+      function setMode(mode) {
+        for (var j = 0; j < buttons.length; j++) {
+          var btn = buttons[j];
+          var active = btn.getAttribute("data-genesis-mode") === mode;
+          if (active) {
+            btn.classList.add("is-active");
+          } else {
+            btn.classList.remove("is-active");
+          }
+        }
+        if (mode === "linear") {
+          document.body.classList.add("is-linear-reading");
+          if (drawer) drawer.classList.remove("is-open");
+        } else if (mode === "source") {
+          document.body.classList.remove("is-linear-reading");
+          if (drawer) drawer.classList.add("is-open");
+        } else {
+          document.body.classList.remove("is-linear-reading");
+          if (drawer) drawer.classList.remove("is-open");
+        }
+      }
+      for (i = 0; i < buttons.length; i++) {
+        (function (btn) {
+          btn.addEventListener("click", function () {
+            setMode(btn.getAttribute("data-genesis-mode"));
+          });
+        })(buttons[i]);
+      }
+    })();
+  </script>
+</body>
+</html>

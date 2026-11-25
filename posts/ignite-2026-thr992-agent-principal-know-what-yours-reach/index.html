@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-section-density="strict" data-present-i18n="strict" data-cite-links>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Microsoft Ignite 2026 [THR992]：每个智能体都是安全主体了——你清楚自家智能体的触达边界吗？</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <link rel="stylesheet" href="../../assets/article-figure.css" />
+  <link rel="stylesheet" href="./thr992-session.css" />
+  <style>
+    :root {
+      --accent: #c2410c;
+      --teal: #0f766e;
+    }
+    html.is-presentation-mode .section:has([data-present-step]) > .section-head {
+      display: none;
+    }
+    .hero-copy h1 {
+      font-size: clamp(2.1rem, 5vw, 3.8rem);
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+      max-width: 20ch;
+    }
+    .hero-panel .layer-list { position: relative; margin-top: 18px; }
+    .insight-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .insight-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .insight-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    @media (max-width: 980px) {
+      .insight-grid-3, .insight-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 680px) {
+      .insight-grid-2, .insight-grid-3, .insight-grid-4 { grid-template-columns: 1fr; }
+    }
+    .compare-table-wrap {
+      margin-top: 18px;
+      overflow-x: auto;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 6px 14px;
+      box-shadow: var(--shadow);
+    }
+    .compare-table-wrap .compare-table {
+      width: 100%;
+      min-width: 680px;
+      border-collapse: collapse;
+      margin-top: 0;
+      font-size: 0.9rem;
+    }
+    .compare-table-wrap .compare-table th {
+      text-align: left;
+      padding: 12px 14px;
+      background: rgba(15, 23, 42, 0.04);
+      border-bottom: 2px solid rgba(15, 23, 42, 0.1);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-weight: 700;
+      font-size: 0.8rem;
+      letter-spacing: 0.04em;
+      text-transform: none;
+      color: var(--ink);
+      vertical-align: bottom;
+    }
+    .compare-table-wrap .compare-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+      line-height: 1.65;
+      color: var(--ink);
+      vertical-align: top;
+    }
+    .compare-table-wrap .compare-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+    .compare-table-wrap .compare-table td:first-child {
+      font-weight: 600;
+      min-width: 150px;
+    }
+    .compare-table-wrap .compare-table code,
+    .section p code,
+    .flow-copy code,
+    .insight-card code,
+    .comparison-card code,
+    .quote-block code,
+    .subsection-toggle code,
+    .subsection-content p code,
+    .bib-list code {
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.84em;
+      padding: 2px 6px;
+      border-radius: 5px;
+      background: rgba(15, 23, 42, 0.06);
+      color: var(--ink);
+    }
+    [data-theme="dark"] .compare-table-wrap {
+      background: rgba(22, 29, 38, 0.9);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+    [data-theme="dark"] .compare-table-wrap .compare-table th {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.12);
+      color: var(--ink);
+    }
+    [data-theme="dark"] .compare-table-wrap .compare-table td {
+      border-color: rgba(255, 255, 255, 0.07);
+      color: var(--ink);
+    }
+    [data-theme="dark"] .compare-table-wrap .compare-table code,
+    [data-theme="dark"] .section p code,
+    [data-theme="dark"] .flow-copy code,
+    [data-theme="dark"] .insight-card code,
+    [data-theme="dark"] .comparison-card code,
+    [data-theme="dark"] .quote-block code,
+    [data-theme="dark"] .subsection-toggle code,
+    [data-theme="dark"] .subsection-content p code,
+    [data-theme="dark"] .bib-list code {
+      background: rgba(255, 255, 255, 0.1);
+      color: #e2e8f0;
+    }
+    .timeline-list > .flow-step::before {
+      background: linear-gradient(135deg, var(--teal), #14b8a6);
+    }
+    .insight-callout {
+      border-left: 4px solid var(--teal);
+    }
+    .code-block {
+      margin: 18px 0;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .code-block pre {
+      margin: 0;
+      padding: 20px 22px;
+      background: rgba(16, 31, 43, 0.95);
+      color: #cdd6e0;
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.82rem;
+      line-height: 1.68;
+      overflow-x: auto;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+    }
+    [data-theme="dark"] .code-block pre {
+      background: rgba(0, 0, 0, 0.46);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+    .mermaid-container {
+      margin: 22px 0;
+      padding: 24px 18px;
+      border-radius: var(--radius-md);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      text-align: center;
+      overflow-x: auto;
+    }
+    .generated-diagram {
+      margin-top: 22px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+    .generated-diagram img {
+      display: block;
+      width: 100%;
+      height: auto;
+      object-fit: contain;
+    }
+    html[lang="en"] .diagram-zh,
+    html:not([lang="en"]) .diagram-en { display: none; }
+    .diagram-caption {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+    .diagram-caption a { color: var(--teal); font-weight: 600; white-space: nowrap; }
+    [data-theme="dark"] .generated-diagram {
+      background: rgba(22, 29, 38, 0.9);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+    .sandbox-slot {
+      margin-top: 22px;
+      padding: 22px;
+      border-radius: var(--radius-lg);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+    .sandbox-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .sandbox-title-group h3 { margin: 10px 0 6px; font-size: 1.18rem; }
+    .sandbox-title-group p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+    .sandbox-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .sandbox-stage {
+      border-radius: var(--radius-md);
+      background: rgba(16, 31, 43, 0.04);
+      border: 1px solid var(--line);
+      padding: 14px;
+      overflow: hidden;
+    }
+    [data-theme="dark"] .sandbox-stage {
+      background: rgba(0, 0, 0, 0.28);
+    }
+    .sandbox-canvas {
+      display: block;
+      width: 100%;
+      max-height: 300px;
+      border-radius: 10px;
+    }
+    /* Dual-view switcher bar (Progressive / Linear / Markdown Source) */
+    .genesis-view-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 18px 0 8px;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      font-size: 0.82rem;
+    }
+    .genesis-view-status {
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .genesis-view-buttons {
+      display: inline-flex;
+      gap: 6px;
+    }
+    .genesis-view-btn {
+      appearance: none;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.18s ease, color 0.18s ease;
+    }
+    .genesis-view-btn.is-active {
+      background: linear-gradient(135deg, var(--accent), #ff9340);
+      color: #fff;
+    }
+    .genesis-source-drawer {
+      display: none;
+      margin: 18px 0 28px;
+      padding: 20px;
+      border-radius: var(--radius-lg);
+      background: rgba(16, 31, 43, 0.96);
+      color: #dbe4ee;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      overflow-x: auto;
+    }
+    .genesis-source-drawer.is-open { display: block; }
+    .genesis-source-drawer pre {
+      margin: 0;
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.8rem;
+      line-height: 1.65;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    body.is-linear-reading .subsection-content {
+      max-height: none !important;
+      opacity: 1 !important;
+      overflow: visible !important;
+      padding: 0 24px 24px !important;
+    }
+    .is-presentation-mode .genesis-view-bar,
+    .is-presentation-mode .genesis-source-drawer {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            <span data-zh="Study Room Identity &amp; Agent Governance" data-en="Study Room Identity &amp; Agent Governance">Study Room Identity &amp; Agent Governance</span>
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#mandatory-principal" data-zh="点击发布按钮的那一刻，你在租户里“录用”了谁？" data-en="Who Did You Just Hire? The July 2026 Mandatory Agent Principal Shift">点击发布按钮的那一刻，你在租户里“录用”了谁？</a>
+            <a href="#dual-harness-walkthrough" data-zh="实机对照" data-en="Live Walkthrough">实机对照</a>
+            <a href="#three-words-and-matrix" data-zh="三个必知安全概念与官方文档未写明的可见性矩阵" data-en="Three Essential Security Primitives &amp; The Undocumented Visibility Matrix">三个必知安全概念与官方文档未写明的可见性矩阵</a>
+            <a href="#legacy-agents-and-monday" data-zh="存量智能体处置（重建 / 迁移 / 等待）、智能体账户前瞻与周一四步清查" data-en="Legacy 2025 Agents, Upcoming Agent Accounts, and Your Monday Four-Step Plan">存量智能体处置（重建 / 迁移 / 等待）、智能体账户前瞻与周一四步清查</a>
+            <a href="#references" data-zh="参考资料" data-en="References">参考资料</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow" data-zh="Microsoft Ignite 2026 · THR992 Official Breakdown" data-en="Microsoft Ignite 2026 · THR992 Official Breakdown">Microsoft Ignite 2026 · THR992 Official Breakdown</span>
+            <h1 data-zh="Microsoft Ignite 2026 [THR992]：每个智能体都是安全主体了——你清楚自家智能体的触达边界吗？" data-en="Microsoft Ignite 2026 [THR992]: Every Agent Is a Principal Now—Do You Know What Yours Can Reach?">Microsoft Ignite 2026 [THR992]：每个智能体都是安全主体了——你清楚自家智能体的触达边界吗？</h1>
+            <p data-zh="自 2026 年 7 月起，Microsoft Copilot Studio 新建的每一款智能体都会自动获得一个强制分配的 Microsoft Entra 智能体身份（Agent ID），且界面上不再保留任何关闭或豁免开关 [1][2]。七届微软 MVP Nicole Enders 在 Ignite 2026 剧场专场 THR992 中横跨三个管理门户实机构建两款同配置智能体，当场揭开了两个不同底座在身份铸造时机与连接器权限显示上的隐藏落差，并为存量旧版智能体给出了周一即可执行的四步清查清单 [1][3]。" data-en="Since July 2026, every newly created Microsoft Copilot Studio agent automatically receives a mandatory Microsoft Entra Agent ID with zero opt-out toggle [1][2]. In Ignite 2026 theater session THR992, seven-time Microsoft MVP Nicole Enders builds two identically configured agents across three portals, exposing undocumented gaps in identity timing and connector scope visibility while laying out a four-step Monday tenant audit for both new and legacy agents [1][3].">自 2026 年 7 月起，Microsoft Copilot Studio 新建的每一款智能体都会自动获得一个强制分配的 Microsoft Entra 智能体身份（Agent ID），且界面上不再保留任何关闭或豁免开关 [1][2]。七届微软 MVP Nicole Enders 在 Ignite 2026 剧场专场 THR992 中横跨三个管理门户实机构建两款同配置智能体，当场揭开了两个不同底座在身份铸造时机与连接器权限显示上的隐藏落差，并为存量旧版智能体给出了周一即可执行的四步清查清单 [1][3]。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#mandatory-principal" data-zh="阅读核心章节" data-en="Explore Core Chapters">阅读核心章节</a>
+              <a class="button button-secondary" href="#dual-harness-walkthrough" data-zh="实机对照" data-en="Live Walkthrough">实机对照</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label" data-zh="THR992 核心治理摘要" data-en="THR992 Governance Brief">THR992 核心治理摘要</span>
+            <h2 data-zh="发布即“录用”安全主体：看清蓝图、连接器范围与五扇管理门" data-en="Publishing Hires a Principal: Blueprints, Scopes, and Five Admin Doors">发布即“录用”安全主体：看清蓝图、连接器范围与五扇管理门</h2>
+            <p data-zh="同样的入职文档与两项办公连接器，在 Copilot 底座与标准底座下呈现出截然不同的 Entra 身份生成节奏与权限审计盲区 [1][2]。" data-en="Using the exact same handbook and two Microsoft 365 connectors, Copilot harness and standard harness agents diverge sharply in Entra creation timing and permission visibility [1][2].">同样的入职文档与两项办公连接器，在 Copilot 底座与标准底座下呈现出截然不同的 Entra 身份生成节奏与权限审计盲区 [1][2]。</p>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span><span data-zh="强制身份零豁免 — 2026 年 7 月起全量新建智能体绑定单一租户蓝图与创建者保荐人，纳入条件访问风险阻断 [1][2]" data-en="Mandatory Agent ID — Mandatory since July 2026, binding every new agent to one shared blueprint, a maker sponsor, and Conditional Access [1][2]">强制身份零豁免 — 2026 年 7 月起全量新建智能体绑定单一租户蓝图与创建者保荐人，纳入条件访问风险阻断 [1][2]</span></li>
+              <li><span class="layer-number">2</span><span data-zh="双底座权限盲区 — 标准底座新建即生成身份并写入聚合权限，Copilot 底座推迟至首次发布且权限栏留白 [1][2]" data-en="Dual-Harness Blind Spots — Standard mints IDs at creation with Runtime.All, whereas Copilot harness waits until publish and leaves Entra scopes empty [1][2]">双底座权限盲区 — 标准底座新建即生成身份并写入聚合权限，Copilot 底座推迟至首次发布且权限栏留白 [1][2]</span></li>
+              <li><span class="layer-number">3</span><span data-zh="存量三选一与四步法 — 区分重建、预览迁移与 MC1478488 自动迁移，按特定标签清点 2025 旧版应用主体 [1][4]" data-en="Legacy Triage &amp;amp; Monday Plan — Weighs Recreate, Preview Migrate, and MC1478488 auto-migration via a four-step tenant check [1][4]">存量三选一与四步法 — 区分重建、预览迁移与 MC1478488 自动迁移，按特定标签清点 2025 旧版应用主体 [1][4]</span></li>
+            </ul>
+          </aside>
+        </div>
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label" data-zh="强制智能体身份生效期" data-en="Mandatory Agent ID Rollout">强制智能体身份生效期</div>
+            <strong>2026-07</strong>
+            <span data-zh="5 月预览后于 7 月全面强制执行，任何门户均不再询问是否创建身份 [1][2]" data-en="Previewed in May and enforced universally in July 2026 without opt-out prompts [1][2]">5 月预览后于 7 月全面强制执行，任何门户均不再询问是否创建身份 [1][2]</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="跨门户治理触点团队" data-en="Siloed Governance Teams">跨门户治理触点团队</div>
+            <strong data-zh="5 个团队" data-en="5 Teams">5 个团队</strong>
+            <span data-zh="跨越构建者、Power Platform、Entra、M365 与安全合规五扇治理大门 [1][5]" data-en="Spans Makers, Power Platform, Identity, Microsoft 365, and Security admins [1][5]">跨越构建者、Power Platform、Entra、M365 与安全合规五扇治理大门 [1][5]</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="周一租户核查行动项" data-en="Monday Tenant Audit Steps">周一租户核查行动项</div>
+            <strong data-zh="4 步核查" data-en="4 Checks">4 步核查</strong>
+            <span data-zh="前两步对账新建主体与数据策略，后两步盘点存量企业应用并绑定离职交接 [1][4]" data-en="Two checks for newly built agents plus two inventory decisions for 2025 legacy bots [1][4]">前两步对账新建主体与数据策略，后两步盘点存量企业应用并绑定离职交接 [1][4]</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="genesis-view-bar load-in" role="region" aria-label="Genesis 视图模式切换">
+        <span class="genesis-view-status" data-zh="Genesis 纯静态编译产物 · 零后端依赖 · 支持渐进披露与源稿对照" data-en="Genesis Static Compiled Artifact · Zero Backend · Progressive &amp; Source View">Genesis 纯静态编译产物 · 零后端依赖 · 支持渐进披露与源稿对照</span>
+        <div class="genesis-view-buttons">
+          <button type="button" class="genesis-view-btn is-active" data-genesis-mode="progressive" data-zh="渐进披露视图" data-en="Progressive View">渐进披露视图</button>
+          <button type="button" class="genesis-view-btn" data-genesis-mode="linear" data-zh="线性展开视图" data-en="Linear View">线性展开视图</button>
+          <button type="button" class="genesis-view-btn" data-genesis-mode="source" data-zh="Markdown 源稿对照" data-en="Markdown Source">Markdown 源稿对照</button>
+        </div>
+      </div>
+      <section class="genesis-source-drawer" id="genesis-source-drawer" aria-label="Markdown 源稿">
+        <pre><code>---
+title: Microsoft Ignite 2026 [THR992]：每个智能体都是安全主体了——你清楚自家智能体的触达边界吗？ || Microsoft Ignite 2026 [THR992]: Every Agent Is a Principal Now—Do You Know What Yours Can Reach?
+eyebrow: Microsoft Ignite 2026 · THR992 Official Breakdown || Microsoft Ignite 2026 · THR992 Official Breakdown
+brand: Study Room Identity &amp; Agent Governance || Study Room Identity &amp; Agent Governance
+date: 2026-11-25
+strict_i18n: true
+strict_density: true
+lead: 自 2026 年 7 月起，Microsoft Copilot Studio 新建的每一款智能体都会自动获得一个强制分配的 Microsoft Entra 智能体身份（Agent ID），且界面上不再保留任何关闭或豁免开关 [1][2]。七届微软 MVP Nicole Enders 在 Ignite 2026 剧场专场 THR992 中横跨三个管理门户实机构建两款同配置智能体，当场揭开了两个不同底座在身份铸造时机与连接器权限显示上的隐藏落差，并为存量旧版智能体给出了周一即可执行的四步清查清单 [1][3]。 || Since July 2026, every newly created Microsoft Copilot Studio agent automatically receives a mandatory Microsoft Entra Agent ID with zero opt-out toggle [1][2]. In Ignite 2026 theater session THR992, seven-time Microsoft MVP Nicole Enders builds two identically configured agents across three portals, exposing undocumented gaps in identity timing and connector scope visibility while laying out a four-step Monday tenant audit for both new and legacy agents [1][3].
+panel_label: THR992 核心治理摘要 || THR992 Governance Brief
+panel_title: 发布即“录用”安全主体：看清蓝图、连接器范围与五扇管理门 || Publishing Hires a Principal: Blueprints, Scopes, and Five Admin Doors
+panel_desc: 同样的入职文档与两项办公连接器，在 Copilot 底座与标准底座下呈现出截然不同的 Entra 身份生成节奏与权限审计盲区 [1][2]。 || Using the exact same handbook and two Microsoft 365 connectors, Copilot harness and standard harness agents diverge sharply in Entra creation timing and permission visibility [1][2].
+panel:
+  - 强制身份零豁免 — 2026 年 7 月起全量新建智能体绑定单一租户蓝图与创建者保荐人，纳入条件访问风险阻断 [1][2] || Mandatory Agent ID — Mandatory since July 2026, binding every new agent to one shared blueprint, a maker sponsor, and Conditional Access [1][2]
+  - 双底座权限盲区 — 标准底座新建即生成身份并写入聚合权限，Copilot 底座推迟至首次发布且权限栏留白 [1][2] || Dual-Harness Blind Spots — Standard mints IDs at creation with Runtime.All, whereas Copilot harness waits until publish and leaves Entra scopes empty [1][2]
+  - 存量三选一与四步法 — 区分重建、预览迁移与 MC1478488 自动迁移，按特定标签清点 2025 旧版应用主体 [1][4] || Legacy Triage &amp; Monday Plan — Weighs Recreate, Preview Migrate, and MC1478488 auto-migration via a four-step tenant check [1][4]
+metrics:
+  - 强制智能体身份生效期 || Mandatory Agent ID Rollout | 2026-07 | 5 月预览后于 7 月全面强制执行，任何门户均不再询问是否创建身份 [1][2] || Previewed in May and enforced universally in July 2026 without opt-out prompts [1][2]
+  - 跨门户治理触点团队 || Siloed Governance Teams | 5 个团队 || 5 Teams | 跨越构建者、Power Platform、Entra、M365 与安全合规五扇治理大门 [1][5] || Spans Makers, Power Platform, Identity, Microsoft 365, and Security admins [1][5]
+  - 周一租户核查行动项 || Monday Tenant Audit Steps | 4 步核查 || 4 Checks | 前两步对账新建主体与数据策略，后两步盘点存量企业应用并绑定离职交接 [1][4] || Two checks for newly built agents plus two inventory decisions for 2025 legacy bots [1][4]
+style:
+  accent: &quot;#c2410c&quot;
+  teal: &quot;#0f766e&quot;
+---
+
+## #mandatory-principal 01 / Mandatory Principal Shift :: 点击发布按钮的那一刻，你在租户里“录用”了谁？ || Who Did You Just Hire? The July 2026 Mandatory Agent Principal Shift
+
+业务人员在 Microsoft Copilot Studio 中点击“发布（Publish）”时，往往以为自己只是上线了一个对话机器人 [1]。自 2026 年 7 月微软正式强制推行智能体身份机制以来，每一次创建或发布动作都会在企业租户后台注册一个一等公民级别的 **Microsoft Entra 智能体身份（Agent ID）**，而且在 Copilot Studio、Entra 管理中心与 Microsoft 365 管理中心的任何屏幕上，系统都不会再询问“是否需要为该智能体分配身份” [1][2]。 || Makers clicking **Publish** inside Microsoft Copilot Studio often assume they are merely shipping a conversational helper [1]. Since Microsoft made **Entra Agent ID** mandatory in July 2026, building or publishing an agent silently provisions a first-class security principal inside the tenant—and across Copilot Studio, the Entra admin center, and the Microsoft 365 admin center, no screen ever asks whether that identity should exist [1][2].
+
+德国 conet Deutschland GmbH 首席开发工程师、连续七届微软 MVP 得主 Nicole Enders 在 THR992 开场抛出了一个尖锐的管理追问：既然每个智能体都已经成了拥有连接器范围、条件访问策略与独立生命周期的安全主体，管理员真正看清它能触达哪些业务数据了吗 [1]？为了验证官方文档之外的真实租户表现，她设计了一组严格控制变量的对照实验——在同一租户内使用同一份 Word 手册、挂载完全相同的两项办公连接器操作，分别基于 **Copilot 底座（原 GitHub Copilot 底座）**与**标准底座（Standard Harness）**构建两款员工服务智能体，并全程在三个管理门户间切换追踪底层变化 [1][2]。 || Opening THR992, conet Deutschland GmbH Lead Developer and seven-time Microsoft MVP Nicole Enders posed a direct operational question: now that every agent is a security principal with connector scopes, Conditional Access, and a lifecycle, do administrators actually know what theirs can reach [1]? To test live tenant behavior against official documentation, she ran a controlled experiment—attaching the exact same Word handbook and two Microsoft 365 connector actions to one agent on the **Copilot harness** (formerly the GitHub Copilot harness) and a second agent on the **standard harness**, tracing both across three admin portals [1][2].
+
+:::figure { src: &quot;./media/agent-principal-governance-architecture.figure.json&quot;, title: &quot;Copilot Studio 智能体主体生命周期与三门户协同治理架构 || Copilot Studio Agent Principal Lifecycle &amp; Three-Portal Governance Architecture&quot; }
+图 1：THR992 全链路治理拓扑——顶层对比 Copilot 底座、标准底座与 2025 存量机器人的身份生成入口；中层依托 Microsoft Entra 单一蓝图、创建者保荐人、连接器权限列表与条件访问引擎实施令牌级管控；底层联合 Microsoft 365 管理中心（Agent 365）、Power Platform 数据策略与 Purview 敏感交互审计构成完整防线 [1][2][5]。 || Figure 1: End-to-end THR992 governance topology—contrasting Copilot harness, standard harness, and 2025 legacy entry points at the top; enforcing single-blueprint inheritance, sponsor binding, connector scopes, and Conditional Access inside Microsoft Entra in the middle; and uniting Agent 365, Power Platform DLP, and Purview sensitivity auditing below [1][2][5].
+:::
+
+下方交互导览台集成了 THR992 官方 Medius 点播视频流、完整英文逐字稿下载入口与五段核心议程的精确时间戳，点击顶部胶囊按钮即可按时间轴检视双底座实机核查细节 [1]： || The interactive session theater below pairs the official THR992 Medius video stream and downloadable transcript with five timestamped walkthrough chapters across the 30-minute talk [1]:
+
+:::sandbox { id: &quot;thr992-video-theater&quot;, canvas: false, script: &quot;./thr992-session.js&quot;, style: &quot;./thr992-session.css&quot;, title: &quot;THR992 官方点播视频与三门户实机核验时间轴导览 || THR992 Official On-Demand Stream &amp; Three-Portal Timestamp Navigator&quot;, desc: &quot;按时间轴切换双底座草稿对照、发布后权限盲区、五团队治理分工与周一四步清查法，支持页面内直接加载微软官方点播播放器。 || Switch across draft creation timing, post-publish scope gaps, five-team ownership, and the Monday four-step audit, or load the embedded Microsoft Medius player.&quot; }
+纯静态点播与议题导览沙盒：内置 THR992 官方 1080p 高清封面、五段分章摘要及官方点播与逐字稿直链。 || Pure static session theater featuring the official THR992 1080p cover, five timestamped chapter digests, and direct video and transcript links.
+:::
+
+## #dual-harness-walkthrough 02 / Live Walkthrough: Two Harnesses, Three Portals :: 实机对照：同配置双智能体在三个管理门户中的真实落差 || Live Walkthrough: Building Two Identical Agents Across Three Portals
+
+Nicole Enders 首先在 Copilot Studio 中使用 Copilot 底座新建了员工入职助手 **Onboarding Buddy**，上传预先准备的入职指南文档 `Onboarding Handbook.docx`，并挂载两项高频办公工具：用于拉取当前员工基本资料的 Office 365 用户档案操作（`Get my profile`），以及用于检查入职会议安排的 Outlook 365 日历视图操作（`Get calendar view of events`）[1]。保存全部草稿配置后，她立即切入 Azure 门户内的 Microsoft Entra 智能体身份列表刷新按时间倒序排查——此时列表中空无一物，Onboarding Buddy 在草稿阶段并未触发任何身份创建动作 [1]。 || Nicole Enders starts in Copilot Studio by building an employee helper named **Onboarding Buddy** on the Copilot harness, uploading `Onboarding Handbook.docx` and attaching two everyday tools: `Get my profile` from the Office 365 Users connector and `Get calendar view of events` from Office 365 Outlook [1]. After saving the draft configuration, she switches straight to `Agents -&gt; Agent identities` in Microsoft Entra and sorts newest first—finding no identity entry at all while Onboarding Buddy remains unpublished [1].
+
+紧接着，她退回 Copilot Studio 首页第三项略显隐蔽的标准入口，基于标准底座创建了报销助手 **Expense Desk** [1]。两款智能体的配置体验已有明显分野：标准底座要求先输入名称立项，随后进入多标签页工作区（右侧附带实时测试窗格，且知识库文档上传后会显示明确的解析进度条；添加每项工具时还会弹出独立的业务名称与描述确认页，帮助模型靠清晰的元数据选对工具而不必把规则全塞进系统提示词）[1]。为 Expense Desk 挂载完全相同的两项工具后且尚未点击发布，再次刷新 Entra 智能体身份列表时，差异当场显现：**同样处于草稿模式，标准底座的 Expense Desk 已经铸造出完整的 Entra Agent ID，而 Copilot 底座的 Onboarding Buddy 依然不存在** [1][2]。 || Returning to Copilot Studio's slightly tucked-away standard option, she creates a second agent—**Expense Desk**—on the standard harness [1]. Even the authoring flow differs: standard harness creation names and provisions the shell up front, replaces the right-hand setup pane with tabbed configuration plus a live test chat, displays explicit document-processing status, and opens a dedicated tool metadata screen after selecting each connector [1]. With both identical tools attached and both agents still in **Draft** mode, refreshing Microsoft Entra reveals the first major divergence: **Expense Desk already owns an Entra Agent ID at creation, whereas Onboarding Buddy still has none** [1][2].
+
+点开草稿态 Expense Desk 的身份详情页可以看到，构建者本人（Nicole Enders）已被自动绑定为该智能体的**保荐人（Sponsor）**，直接对智能体后续生命周期负责；同时页面显示其归属于全租户所有 Copilot Studio 智能体共同继承的唯一**智能体身份蓝图（Agent Identity Blueprint）**，但此时的已授予权限（`Granted permissions`）与活动日志均为空白 [1][2]。 || Inspecting Expense Desk's draft identity blade shows maker Nicole Enders automatically assigned as **Sponsor**—accountable for its lifecycle—alongside the single **Agent Identity Blueprint** shared by every Copilot Studio agent in the tenant, while `Granted permissions` and activity logs remain empty prior to publication [1][2].
+
+&lt;div class=&quot;thr992-media-grid&quot;&gt;
+  &lt;article class=&quot;thr992-media-card&quot; data-present-surface=&quot;unframed&quot;&gt;
+    &lt;div class=&quot;thr992-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/thr992-entra-granted-permissions.jpg&quot; alt=&quot;THR992 live Entra portal capture showing Expense Desk Granted permissions with a single aggregated Azure API Connections Runtime.All entry&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;thr992-media-body&quot;&gt;
+      &lt;span class=&quot;thr992-media-badge&quot; data-zh=&quot;THR992 实机演示截帧 · 15:15&quot; data-en=&quot;THR992 Live Demo Frame · 15:15&quot;&gt;THR992 实机演示截帧 · 15:15&lt;/span&gt;
+      &lt;h4 data-zh=&quot;Entra 已授予权限页：两项 M365 工具聚合成单行记录&quot; data-en=&quot;Entra Granted Permissions: Two M365 Tools Aggregated into One Line&quot;&gt;Entra 已授予权限页：两项 M365 工具聚合成单行记录&lt;/h4&gt;
+      &lt;p data-zh=&quot;标准底座 Expense Desk 发布后，Granted permissions 仅写入一条 Azure API Connections（Runtime.All），而同期发布的 Copilot 底座权限栏完全为空 [1][2]。&quot; data-en=&quot;After publishing Expense Desk on the standard harness, Entra writes a single Azure API Connections (Runtime.All) entry, whereas the published Copilot harness agent stays empty [1][2].&quot;&gt;标准底座 Expense Desk 发布后，Granted permissions 仅写入一条 Azure API Connections（Runtime.All），而同期发布的 Copilot 底座权限栏完全为空 [1][2]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+  &lt;article class=&quot;thr992-media-card&quot; data-present-surface=&quot;unframed&quot;&gt;
+    &lt;div class=&quot;thr992-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/thr992-agent365-tools-visibility.jpg&quot; alt=&quot;THR992 live Microsoft 365 admin center Agent 365 capture showing Onboarding Buddy knowledge files, shared_office365users API call, and Work IQ MCP Server&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;thr992-media-body&quot;&gt;
+      &lt;span class=&quot;thr992-media-badge&quot; data-zh=&quot;THR992 实机演示截帧 · 18:35&quot; data-en=&quot;THR992 Live Demo Frame · 18:35&quot;&gt;THR992 实机演示截帧 · 18:35&lt;/span&gt;
+      &lt;h4 data-zh=&quot;M365 管理中心 Agent 365：穿透检视知识库与底层工具路径&quot; data-en=&quot;M365 Admin Center (Agent 365): Direct Visibility into Knowledge &amp; Raw APIs&quot;&gt;M365 管理中心 Agent 365：穿透检视知识库与底层工具路径&lt;/h4&gt;
+      &lt;p data-zh=&quot;无需登录 Copilot Studio，全局管理员即可在 Data &amp; tools 页直接看清 Onboarding Handbook.docx、shared_office365users 接口路径与 Work IQ MCP 服务 [1][5]。&quot; data-en=&quot;Without opening Copilot Studio, global admins inspect Onboarding Handbook.docx, raw shared_office365users connector paths, and Work IQ MCP Server inside Agent 365 [1][5].&quot;&gt;无需登录 Copilot Studio，全局管理员即可在 Data &amp; tools 页直接看清 Onboarding Handbook.docx、shared_office365users 接口路径与 Work IQ MCP 服务 [1][5]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+&lt;/div&gt;
+
+真正令人意外的现象发生在两款智能体双双点击 **Publish** 发布上线之后 [1]： || The sharpest surprise arrives right after clicking **Publish** on both agents [1]:
+
+- **Copilot 底座首次现身但权限留白 || Copilot Harness Appears with Empty Scopes**：发布完成后刷新 Entra（无论从 Azure 门户进入还是使用独立的 Entra 管理中心，两侧菜单与功能完全一致），Onboarding Buddy 终于生成了自己的 Entra Agent ID，但其 `Granted permissions` 栏依然空空如也，完全看不到刚刚绑定的用户档案与日历工具 [1]。 || Refreshing Entra (identical across both the Azure portal blade and the standalone Entra admin center) confirms Onboarding Buddy finally received its Agent ID upon publish—yet its `Granted permissions` tab remains completely blank despite carrying two active tools [1].
+- **标准底座将第一方连接器合并为单行 || Standard Harness Collapses First-Party Connectors**：切到已发布的 Expense Desk 详情页，`Granted permissions` 从零变为 **1 条记录**——并非两项工具对应两条记录，而是统一显示为 `Azure API Connections`（权限值 `Runtime.All`）[1][2]。只要智能体调用的都属于 Microsoft 365 核心连接器操作，Entra 就会将其折叠进这一条聚合授权；只有挂载第三方 Power Platform 连接器时才会逐个生成独立条目 [1][2]。 || Opening published Expense Desk reveals **one** new permission row rather than two: `Azure API Connections` (`Runtime.All`) [1][2]. Whenever an agent uses first-party Microsoft 365 core actions, Entra consolidates them under that single runtime entry, only splitting out separate rows when makers attach third-party Power Platform connectors [1][2].
+- **Agent 365 补齐内容与工具路径透视 || Agent 365 Bridges the Visibility Gap**：最后切入 Microsoft 365 管理中心的 `Agents -&gt; All agents`（即 **Agent 365** 清单，其中 Copilot 底座正常同步了自定义图标，标准底座暂未同步图标）[1]。管理员无需打开 Copilot Studio，即可在 `Data &amp; tools` 页直读 `Onboarding Handbook.docx` 敏感度标签、底层连接器路径（如 `/providers/Microsoft.PowerApps/apis/shared_office365users`）与 `Work IQ MCP Server` [1][5]。切入 `Security` 页还能联动 Microsoft Purview 审查敏感数据交互记录或一键 **Block** 封禁异常主体 [1][5]。 || Switching to `Agents -&gt; All agents` in the Microsoft 365 admin center (**Agent 365**) shows the Copilot harness syncing its custom icon while the standard harness omits it [1]. Without ever opening Copilot Studio, global admins inspect `Onboarding Handbook.docx` and raw connector paths like `/providers/Microsoft.PowerApps/apis/shared_office365users` plus `Work IQ MCP Server` under `Data &amp; tools` [1][5]. The `Security` tab also surfaces Purview sensitive data interactions alongside a one-click **Block** control [1][5].
+
+## #three-words-and-matrix 03 / Three Concepts &amp; The Visibility Matrix :: 三个必知安全概念与官方文档未写明的可见性矩阵 || Three Essential Security Primitives &amp; The Undocumented Visibility Matrix
+
+走出实机演示后，Nicole Enders 将智能体身份治理浓缩为每个团队都必须掌握的三个核心原语——**蓝图（Blueprint）**、**连接器范围（Connector Scopes）**与**条件访问（Conditional Access）** [1][2][3]。蓝图是 Entra 铸造智能体身份的唯一模板：Copilot Studio 在单个租户内共享同一个蓝图对象，它既承载默认的拥有者与保荐人规则，也是管理员一次性下发全局策略、自动覆盖当前及未来所有新建智能体的锚点 [1][2]。 || Stepping back from the live portals, Nicole Enders distills agent identity governance into three non-negotiable primitives: **Blueprint**, **Connector scopes**, and **Conditional Access** [1][2][3]. The **Blueprint** is Entra's identity template—Copilot Studio uses exactly one blueprint across all its agents in a tenant, carrying owner/sponsor defaults and giving administrators a single object where one policy covers every current and future agent [1][2].
+
+第二个原语**连接器范围**很容易被误读为细粒度操作边界 [1]：写在 Entra `Granted permissions` 里的条目只代表该智能体“**可调用哪个连接器（may call）**”，而非“**允许执行哪一个具体增删改动作（may do）**”——真正的动作级放行与阻断仍由 Power Platform 数据策略（DLP）裁决 [1]。第三个原语**条件访问**则充当发放令牌前的规则引擎：如今智能体身份已能直接作为条件访问策略目标，但由于背后没有人类操作员，既无法弹窗要求多因素认证（MFA），也不存在终端设备合规校验；截至宣讲时，面向智能体身份唯一生效的规则是在 Teams 渠道中执行的“**存在风险即阻断（block if risky）**” [1][3]。 || Second, **Connector scopes** record which connectors an agent *may call* when published—not which granular actions it *may do*, which remains the job of Power Platform data policies (DLP) [1]. Third, **Conditional Access** evaluates conditions before issuing tokens: agent identities can now be targeted directly, though with no human behind the prompt there is no MFA prompt or device compliance check—leaving **“block if risky”** enforced in Teams as today's active rule [1][3].
+
+&lt;div class=&quot;thr992-media-grid&quot;&gt;
+  &lt;article class=&quot;thr992-media-card&quot; data-present-surface=&quot;unframed&quot;&gt;
+    &lt;div class=&quot;thr992-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/thr992-harness-visibility-matrix.jpg&quot; alt=&quot;THR992 slide capture When does what appear comparing Copilot harness and Standard harness across Entra identity timing, first-party connectors, and MCP custom connectors&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;thr992-media-body&quot;&gt;
+      &lt;span class=&quot;thr992-media-badge&quot; data-zh=&quot;THR992 讲者课件画面 · 21:05&quot; data-en=&quot;THR992 Presentation Slide · 21:05&quot;&gt;THR992 讲者课件画面 · 21:05&lt;/span&gt;
+      &lt;h4 data-zh=&quot;双底座 × 三类工具：官方文档与 2026 年 11 月实测对照表&quot; data-en=&quot;Two Harnesses × Three Tool Types: Documented vs. Nov 2026 Observed&quot;&gt;双底座 × 三类工具：官方文档与 2026 年 11 月实测对照表&lt;/h4&gt;
+      &lt;p data-zh=&quot;标准底座新建即生成身份并披露连接器范围，但 MCP、REST 与自定义连接器在双底座下均留白，且 Copilot 底座连第一方权限也未写入 [1][2]。&quot; data-en=&quot;Standard mints IDs at creation and lists connector scopes, yet MCP/REST/custom tools stay blank on both harnesses and Copilot harness omits first-party scopes too [1][2].&quot;&gt;标准底座新建即生成身份并披露连接器范围，但 MCP、REST 与自定义连接器在双底座下均留白，且 Copilot 底座连第一方权限也未写入 [1][2]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+  &lt;article class=&quot;thr992-media-card&quot; data-present-surface=&quot;unframed&quot;&gt;
+    &lt;div class=&quot;thr992-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/thr992-five-teams-governance-doors.jpg&quot; alt=&quot;THR992 slide capture Who owns which door mapping Makers, Power Platform, Identity, Microsoft 365, and Security teams across admin portals&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;thr992-media-body&quot;&gt;
+      &lt;span class=&quot;thr992-media-badge&quot; data-zh=&quot;THR992 讲者课件画面 · 22:15&quot; data-en=&quot;THR992 Presentation Slide · 22:15&quot;&gt;THR992 讲者课件画面 · 22:15&lt;/span&gt;
+      &lt;h4 data-zh=&quot;谁掌管哪扇门：触碰同一个智能体的五个职能团队&quot; data-en=&quot;Who Owns Which Door? Five Teams Touching One Agent&quot;&gt;谁掌管哪扇门：触碰同一个智能体的五个职能团队&lt;/h4&gt;
+      &lt;p data-zh=&quot;五个角色各自守着不同门户，最常缺失的是 Power Platform 与身份团队核对权限范围、以及构建者离职时的保荐人交接机制 [1]。&quot; data-en=&quot;Five teams guard separate portals; the two conversations that rarely happen are scope reviews (PP + Identity) and leaver sponsor handoffs (Makers + Identity) [1].&quot;&gt;五个角色各自守着不同门户，最常缺失的是 Power Platform 与身份团队核对权限范围、以及构建者离职时的保荐人交接机制 [1]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+&lt;/div&gt;
+
+将微软官方 Learn 文档（2026 年 8 月 21 日版）与 Nicole 在自家生产租户的实机测试放在一起比对，就能看清为什么仅盯住单一后台会产生严重漏判 [1][2]： || Placing Microsoft Learn documentation (dated August 21, 2026) side by side with Nicole's November 2026 tenant observations clarifies why relying on Entra's permissions blade alone leaves blind spots [1][2]:
+
+| 核验维度 || Governance Dimension | Copilot 底座（原 GitHub Copilot） || Copilot Harness (Formerly GitHub Copilot) | 标准底座（Standard Harness） || Standard Harness | 2025 存量旧版智能体 || 2025 Legacy Bot (Pre-Rollout) |
+|------|------|------|------|
+| Entra 身份类型与位置 || Entra Principal &amp; Location | **Entra Agent ID**（`Agents -&gt; Agent identities`）[1][2] || **Entra Agent ID** (`Agents -&gt; Agent identities`) [1][2] | **Entra Agent ID**（`Agents -&gt; Agent identities`）[1][2] || **Entra Agent ID** (`Agents -&gt; Agent identities`) [1][2] | 传统 **Application ID**（位于 `Enterprise applications` 带标签）[1] || Legacy **Application ID** (`Enterprise applications` with tag) [1] |
+| 身份铸造触发时机 || Identity Provisioning Trigger | **首次发布时（At first publish）**——官方已记录 [1][2] || **At first publish** (Documented) [1][2] | **新建命名时（At creation）**——草稿态即存在 [1][2] || **At creation** while still in draft (Documented) [1][2] | 历史创建，新建入口已彻底关闭 [1] || Historical only; can no longer be built in 2026 [1] |
+| 蓝图继承与保荐人 || Blueprint &amp; Maker Sponsor | 共享唯一蓝图 + 自动绑定创建者保荐人 [1] || Shared Blueprint + Maker bound as Sponsor [1] | 共享唯一蓝图 + 自动绑定创建者保荐人 [1] || Shared Blueprint + Maker bound as Sponsor [1] | **无蓝图、无保荐人**（离职易成孤儿应用）[1] || **None** (no Blueprint or lifecycle Sponsor) [1] |
+| 第一方连接器权限显示 || Granted Permissions: 1P Connectors | **空白（Empty）**——2026 年 11 月实测未写入文档 [1] || **Empty** (Observed Nov 2026; undocumented) [1] | 聚合成单条 `Azure API Connections (Runtime.All)`（话题与流同理）[1][2] || Single `Azure API Connections (Runtime.All)` row [1][2] | 无连接器范围挂载 [1] || None attached [1] |
+| MCP / REST / 自定义连接器 || Granted Permissions: MCP &amp; Custom | **空白（Empty）**——官方文档已注明不展示 [1][2] || **Empty** (Documented) [1][2] | **空白（Empty）**——官方文档已注明不展示 [1][2] || **Empty** (Documented) [1][2] | 无连接器范围挂载 [1] || None attached [1] |
+| 条件访问与审计日志 || Conditional Access &amp; Audit Trail | 纳入范围（Teams 高风险阻断）+ Agent ID 事件流 [1][3] || In scope (Teams risk block) + Agent ID events [1][3] | 纳入范围（Teams 高风险阻断）+ Agent ID 事件流 [1][3] || In scope (Teams risk block) + Agent ID events [1][3] | **不在智能体策略范围内**，仅记传统服务主体日志 [1] || **Out of scope** for Agent CA; service principal logs [1] |
+
+正因权限拼图分散在不同底座与后台，单个智能体实际上横跨了**五个很少坐在一起开会的团队** [1]。一线**构建者（Makers）**只看得到 Copilot Studio，从未见过 Entra 界面；**Power Platform 管理员**掌管环境、数据策略、高级连接器策略与迁移建议；**Entra 身份管理员**把控蓝图、拥有者与保荐人、条件访问及登录审计日志 [1]。与此同时，**Microsoft 365 与智能体管理员**依托 Agent 365 清单与图形化 **Agent Map（智能体拓扑图）**巡检工具调用风险与许可证，**安全合规团队**则在 Purview 与 Defender 中制定数据分级防线 [1][5]。Nicole 特别提醒企业补齐两场常年缺位的对话：一是 Power Platform 与身份团队联合评估连接器范围，二是构建者与身份团队明确“当创建智能体的员工离职时，谁来接任保荐人” [1]。 || Because no single blade shows the whole truth, one agent spans **five teams that rarely meet** [1]. **Makers** build inside Copilot Studio without seeing Entra, while **Power Platform admins** govern environments and data policies [1]. **Entra Identity admins** own blueprints, sponsors, and Conditional Access. Meanwhile, **Microsoft 365 admins** watch Agent 365 and the visual **Agent Map**, and **Security &amp; Compliance** enforces Purview classifications and Defender rules [1][5]. Closing the gap requires two conversations organizations routinely skip: Power Platform and Identity jointly reviewing connector scopes, plus Makers and Identity defining who inherits the **Sponsor** role when an employee leaves [1].
+
+## #legacy-agents-and-monday 04 / Legacy 2025 Agents &amp; Monday Checklist :: 存量智能体处置（重建 / 迁移 / 等待）、智能体账户前瞻与周一四步清查 || Legacy 2025 Agents, Upcoming Agent Accounts, and Your Monday Four-Step Plan
+
+除了今天新建的主体，几乎每家企业租户里还躺着一批去年（2025 年强制切换前）上线的存量智能体——例如演示中的旧版 **Onboarding Bot** [1]。如果打开 Copilot Studio 的 `Settings -&gt; Advanced -&gt; Metadata` 查看元数据标签，或者去 Entra 排查就会发现：2025 年构建的旧智能体只有传统 `Application ID`，藏在 Entra 的**企业应用（Enterprise applications）**列表下，既没有蓝图与保荐人，也无法挂载连接器范围或纳入智能体条件访问策略 [1][4]。 || Alongside newly minted principals, most tenants still run legacy agents built in 2025 before the rollout—like Nicole's older **Onboarding Bot** [1]. Checking `Settings -&gt; Advanced -&gt; Metadata` in Copilot Studio or hunting inside Microsoft Entra reveals a stark contrast: a 2025 bot holds only a traditional `Application ID` under **Enterprise applications**, with no blueprint, no sponsor, no connector scopes, and zero coverage under agent Conditional Access [1][4].
+
+:::figure { src: &quot;./media/thr992-governance-coverage-comparison.figure.json&quot;, title: &quot;Copilot Studio 三代智能体架构在 6 项核心治理检查点上的覆盖率对比 || Governance Coverage Across Three Agent Generations Over 6 Core Tenant Checkpoints&quot; }
+图 2：基于本场实机核验的 6 项治理控制点（智能体身份、唯一蓝图继承、保荐人归属、连接器范围显示、条件访问覆盖、Agent 365 深度透视）量化对比。2025 存量机器人仅占 1/6（16.7%），Copilot 底座与挂载模型上下文协议工具的智能体因权限栏留白处于 5/6（83.3%），结合 Agent 365 工具视图与 Power Platform 数据策略即可达成 6/6（100%）治理闭环 [1][2][5]。 || Figure 2: Quantitative coverage across the session's six governance checkpoints. Legacy 2025 bots satisfy just 1 of 6 controls (16.7%). Published Copilot harness and protocol-tool agents reach 5 of 6 (83.3%) due to empty Entra scope blades, while pairing Entra with Agent 365 and Power Platform data policies completes 6 of 6 (100%) visibility [1][2][5].
+:::
+
+面对这些存量旧智能体，翻阅微软当前公开资料居然会读到**三种并存的处置答案** [1][4]： || Administrators consulting Microsoft's own portals today encounter **three competing answers** for legacy bots [1][4]:
+
+1. **彻底重建（Recreate · Entra 文档 2026-06-15 口径） || Recreate (Entra Docs, `ms.date` 2026-06-15)** — 早期 Entra 官方文档维持 6 月以来的口径，指出无就地升级路径，需重新创建新智能体、重配工具知识并退役旧服务主体；虽然工作量较大，但对于早期试水堆砌、架构陈旧的复杂旧机器人而言，趁机重构往往更干净 [1][2]。 || Early Entra docs state no in-place path exists—build a fresh agent, reconfigure tools, and retire the old service principal, which still makes sense when cleaning up sprawling early prototypes [1][2].
+2. **预览版就地迁移（Migrate · Copilot Studio 预览能力，8 月 24 日开放自助） || In-Place Preview Migrate (Copilot Studio Self-Service Since Aug 24, 2026)** — Copilot Studio 文档提供了预览版就地迁移开关，迁移后客户端 ID（Client ID）保持不变、已发布渠道继续正常解析且附带回滚机制；但预览期若遇迁移异常，仍可能退回手工重建 [1][4]。 || Copilot Studio offers an in-place preview migration preserving the Client ID and live channel bindings with rollback support, letting teams pilot upgrades on their own schedule [1][4].
+3. **等待后台自动迁移（Wait · 消息中心 MC1478488，9 月启动） || Wait for Automatic Migration (Message Center `MC1478488`, Active Since Sept 2026)** — 微软消息中心通告 `MC1478488` 已于 2026 年 9 月启动存量智能体自动后台迁移且未设明确截止日；通告虽写着“无需操作（No action required）”，底下却紧跟着**八项迁移后验证步骤**——若被动等待微软在未知时间点自动切换，一旦触发权限报错或业务中断，运维团队只能仓促救火 [1][4]。 || Message Center post `MC1478488` began automatic background migrations in September 2026 with no published end date—pairing “No action required” with **eight post-migration validation steps**, which means waiting passively risks unexpected Monday outages [1][4].
+
+在规划存量盘点的同时，下一波架构演进已经抵达 [1][6]。其一是关联专场 BRK261 深入拆解的**智能体账户（Agent Accounts，路线图编号 Roadmap 570430，此前曾称 Agent Users，目标 2026 年 11 月正式商用）**，让持久化智能体直接拥有独立的 Microsoft 365 账户、专属邮箱、Teams 在线状态与 Office 文档访问权 [1][6]。其二是面向智能体账户预览开放的**细粒度条件访问控制杆**（新增设备、网络与执行环境校验，而普通智能体身份现阶段仍仅限风险评估与阻断），配合 2026 年 8 月上线的 **Agent 365** 构成全域治理底座 [1][5][6]。 || Even before teams finish counting legacy bots, three upcoming capabilities shift the baseline again [1][6]. First, **Agent accounts** (**Roadmap 570430**, formerly called *agent users* and targeting general availability in November 2026) give persistent agents their own Microsoft 365 account, mailbox, Teams presence, and Office access [1][6]. Second, **new Conditional Access levers** preview device, network, and execution environment checks for agent accounts while standard agent identities retain risk-and-block [1][3]. Third, unified **Agent 365** fleet observability has anchored tenant-wide governance since August 2026 [1][5].
+
+:::flow { title: &quot;周一回到工位即可执行的租户智能体四步核查法（THR992 行动清单） || Four-Step Monday Morning Tenant Audit for Today's &amp; Last Year's Agents&quot; }
+1. **第一步（针对新建智能体）：定位 Entra 主体 || Check 1 (Today's Agents): Locate Entra Agent Principals** — 打开 `Entra -&gt; Agents -&gt; Agent identities` 清单，核实近期上线的 Copilot Studio 智能体是否均已落盘（注意：未发布的 Copilot 底座草稿与 2025 年存量旧智能体不会出现在此处）[1]。 || Open `Entra -&gt; Agents -&gt; Agent identities` to verify newly built principals are registered, keeping in mind unpublished Copilot-harness drafts and 2025 legacy bots will not appear here [1].
+2. **第二步（针对新建智能体）：交叉核对连接器权限与数据策略 || Check 2 (Today's Agents): Cross-Check Permissions &amp; Data Policies** — 逐一检视智能体身份下的接口权限，并同步在 Agent 365 的 `Data &amp; tools` 页与 Power Platform 数据策略中双向对账（填补 Copilot 底座留白与 `Runtime.All` 聚合盲区，管住具体允许执行的连接器动作）[1][2]。 || Inspect Entra permissions alongside Agent 365's `Data &amp; tools` view and Power Platform data policies together so aggregated `Runtime.All` rows and blank custom scopes never hide real connector reach [1][2].
+3. **第三步（针对去年存量）：按专属标签清点旧企业应用 || Check 3 (Last Year's Agents): Count Tagged Enterprise Apps** — 进入 Entra `Enterprise applications` 视图，筛选带有 `AgentCreatedBy:CopilotStudio` 标签的传统服务主体，摸清租户内究竟还存留多少台无保荐人、无条件访问保护的旧版智能体 [1]。 || Filter `Enterprise applications` by the `AgentCreatedBy:CopilotStudio` tag to get an exact count of legacy 2025 service principals operating outside Agent ID governance [1].
+4. **第四步（针对去年存量）：逐台拍板路径并接入离职流程 || Check 4 (Last Year's Agents): Pilot Migration &amp; Bind Leaver Workflows** — 在微软后台自动迁移触达前，先为每台旧智能体指定明确的拥有者与保荐人，按业务关键度在“就地预览迁移、保留观察、直接封禁淘汰”间做出决断，并将智能体保荐人正式写入企业员工**入转调离（Joiner-Mover-Leaver）**管理制度 [1][4]。 || Assign explicit owners and sponsors first, choose between preview migration, holding, or blocking before automatic migration runs, and embed agent sponsorship into your HR **joiner-mover-leaver** workflow [1][4].
+:::
+
+## 参考资料：官方一手信源与工程规范 || References: Official Primary Sources &amp; Engineering Guides
+
+1. **Nicole Enders (Microsoft Ignite 2026 THR992 Video &amp; Transcript)** — https://ignite.microsoft.com/en-US/sessions/1787856596548001Euhx-1791588214960001CKMK | 《Every agent is a principal now. Do you know what yours can reach?》官方剧场专场点播实录（`https://medius.microsoft.com/Embed/video-nc/1de00190-3e6a-40e0-8c56-832593cdb25f`）与完整双语 WebVTT 演讲字幕（2026-11-20） || Official Ignite 2026 Theater recording, Medius stream, and verbatim WebVTT transcripts (Nov 20, 2026)
+2. **Microsoft Learn — Manage Microsoft Entra Agent IDs &amp; App Registration Authentication** — https://learn.microsoft.com/en-us/entra/agent-id/ | 微软官方智能体身份架构、单一蓝图继承、创建者保荐人及连接器权限说明文档（THR992 引用之 2026-08-21 修订版） || Official Microsoft Learn documentation on Entra Agent IDs, blueprints, sponsors, and connector authentication (Aug 21, 2026 update cited in THR992)
+3. **Microsoft Learn — Target Agent Identities in Microsoft Entra Conditional Access** — https://learn.microsoft.com/en-us/entra/identity/conditional-access/ | 面向智能体身份的条件访问策略配置与风险阻断规则说明（THR992 引用之 2026-07-31 发布、2026-09-30 修订版） || Conditional Access targeting and risk-based blocking policies for non-human agent principals (Jul 31 / Sep 30, 2026 updates)
+4. **Microsoft Copilot Studio Documentation &amp; Message Center MC1478488** — https://learn.microsoft.com/en-us/microsoft-copilot-studio/ | Copilot Studio 存量智能体自助预览迁移指南（2026-08-24）及消息中心 `MC1478488` 自动迁移与八步核验通告（2026-09） || Self-service preview migration guidance and Message Center `MC1478488` automatic legacy migration rollout notes
+5. **Microsoft 365 Admin Center — Agent 365 Inventory &amp; Agent Map** — https://learn.microsoft.com/en-us/microsoft-365/admin/ | Microsoft 365 管理中心全局智能体注册表（Agent 365）、工具 API 透视、Purview 敏感交互审计与拓扑风险视图指南 || Enterprise governance documentation for Agent 365 inventory, tool API inspection, Purview sensitivity auditing, and Agent Map
+6. **Matt Hidinger &amp; Evan Lew (Microsoft Ignite 2026 BRK261 &amp; Roadmap 570430)** — https://www.microsoft.com/en-us/microsoft-365/roadmap?id=570430 | THR992 关联专场《From tool to teammate: Persistent agents for shared processes in Copilot Studio》与 Microsoft 365 智能体账户路线图（570430） || Companion session BRK261 on persistent Copilot Studio teammates and Microsoft 365 Roadmap ID 570430 for Agent Accounts
+</code></pre>
+      </section>
+
+      <main>
+        <section id="mandatory-principal" class="section" data-reveal data-present-title-zh="点击发布按钮的那一刻，你在租户里“录用”了谁？" data-present-title-en="Who Did You Just Hire? The July 2026 Mandatory Agent Principal Shift">
+          <div class="section-head">
+            <p class="section-kicker">01 / Mandatory Principal Shift</p>
+            <h2 data-zh="1. 点击发布按钮的那一刻，你在租户里“录用”了谁？" data-en="1. Who Did You Just Hire? The July 2026 Mandatory Agent Principal Shift">1. 点击发布按钮的那一刻，你在租户里“录用”了谁？</h2>
+            <p data-zh="业务人员在 Microsoft Copilot Studio 中点击“发布（Publish）”时，往往以为自己只是上线了一个对话机器人 [1]。自 2026 年 7 月微软正式强制推行智能体身份机制以来，每一次创建或发布动作都会在企业租户后台注册一个一等公民级别的 &lt;strong&gt;Microsoft Entra 智能体身份（Agent ID）&lt;/strong&gt;，而且在 Copilot Studio、Entra 管理中心与 Microsoft 365 管理中心的任何屏幕上，系统都不会再询问“是否需要为该智能体分配身份” [1][2]。" data-en="Makers clicking &lt;strong&gt;Publish&lt;/strong&gt; inside Microsoft Copilot Studio often assume they are merely shipping a conversational helper [1]. Since Microsoft made &lt;strong&gt;Entra Agent ID&lt;/strong&gt; mandatory in July 2026, building or publishing an agent silently provisions a first-class security principal inside the tenant—and across Copilot Studio, the Entra admin center, and the Microsoft 365 admin center, no screen ever asks whether that identity should exist [1][2].">业务人员在 Microsoft Copilot Studio 中点击“发布（Publish）”时，往往以为自己只是上线了一个对话机器人 [1]。自 2026 年 7 月微软正式强制推行智能体身份机制以来，每一次创建或发布动作都会在企业租户后台注册一个一等公民级别的 <strong>Microsoft Entra 智能体身份（Agent ID）</strong>，而且在 Copilot Studio、Entra 管理中心与 Microsoft 365 管理中心的任何屏幕上，系统都不会再询问“是否需要为该智能体分配身份” [1][2]。</p>
+          </div>
+
+          <p data-zh="德国 conet Deutschland GmbH 首席开发工程师、连续七届微软 MVP 得主 Nicole Enders 在 THR992 开场抛出了一个尖锐的管理追问：既然每个智能体都已经成了拥有连接器范围、条件访问策略与独立生命周期的安全主体，管理员真正看清它能触达哪些业务数据了吗 [1]？为了验证官方文档之外的真实租户表现，她设计了一组严格控制变量的对照实验——在同一租户内使用同一份 Word 手册、挂载完全相同的两项办公连接器操作，分别基于 **Copilot 底座（原 GitHub Copilot 底座）&lt;strong&gt;与&lt;/strong&gt;标准底座（Standard Harness）**构建两款员工服务智能体，并全程在三个管理门户间切换追踪底层变化 [1][2]。" data-en="Opening THR992, conet Deutschland GmbH Lead Developer and seven-time Microsoft MVP Nicole Enders posed a direct operational question: now that every agent is a security principal with connector scopes, Conditional Access, and a lifecycle, do administrators actually know what theirs can reach [1]? To test live tenant behavior against official documentation, she ran a controlled experiment—attaching the exact same Word handbook and two Microsoft 365 connector actions to one agent on the &lt;strong&gt;Copilot harness&lt;/strong&gt; (formerly the GitHub Copilot harness) and a second agent on the &lt;strong&gt;standard harness&lt;/strong&gt;, tracing both across three admin portals [1][2].">德国 conet Deutschland GmbH 首席开发工程师、连续七届微软 MVP 得主 Nicole Enders 在 THR992 开场抛出了一个尖锐的管理追问：既然每个智能体都已经成了拥有连接器范围、条件访问策略与独立生命周期的安全主体，管理员真正看清它能触达哪些业务数据了吗 [1]？为了验证官方文档之外的真实租户表现，她设计了一组严格控制变量的对照实验——在同一租户内使用同一份 Word 手册、挂载完全相同的两项办公连接器操作，分别基于 **Copilot 底座（原 GitHub Copilot 底座）<strong>与</strong>标准底座（Standard Harness）**构建两款员工服务智能体，并全程在三个管理门户间切换追踪底层变化 [1][2]。</p>
+
+          <figure class="sr-figure generated-diagram is-inline-svg" data-present-step data-present-surface="unframed" data-step-title="Copilot Studio 智能体主体生命周期与三门户协同治理架构" data-step-title-en="Copilot Studio Agent Principal Lifecycle &amp; Three-Portal Governance Architecture" data-present-title-zh="Copilot Studio 智能体主体生命周期与三门户协同治理架构" data-present-title-en="Copilot Studio Agent Principal Lifecycle &amp; Three-Portal Governance Architecture" data-step-label="01 / Mandatory Principal Shift" data-step-label-en="01 / Mandatory Principal Shift" data-present-i18n-invariant="label">
+            <svg class="sr-figure-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1520 666" role="img" aria-labelledby="agent-principal-governance-architecture-1-title agent-principal-governance-architecture-1-desc"><title id="agent-principal-governance-architecture-1-title">Copilot Studio 智能体主体生命周期与三门户协同治理架构（THR992）</title><desc id="agent-principal-governance-architecture-1-desc">architecture topology with 9 nodes and 8 edges</desc><defs><marker id="agent-principal-governance-architecture-1-arrow" markerWidth="10" markerHeight="10" refX="8.5" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M1,1 L8.5,4 L1,7" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><g data-group-id="maker-build-plane"><rect x="40" y="24" width="1440" height="190" rx="16" fill="var(--fig-group-bg-1, rgba(255, 250, 244, 0.72))" stroke="var(--fig-group-border, rgba(23, 36, 48, 0.11))" stroke-width="1.25"/><path d="M 56 25 H 1464" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.6))" stroke-width="1"/><line x1="40" y1="70" x2="1480" y2="70" stroke="var(--fig-group-divider, rgba(23,36,48,0.08))" stroke-width="1"/><circle cx="62" cy="48" r="4.5" fill="var(--fig-role-accent-bar, #ea580c)"/><text class="sr-zh" x="74" y="53" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)">1. 构建平面：Copilot Studio 双底座与连接器挂载（Maker Authoring Plane）</text><text class="sr-en" x="74" y="53" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)">1. Maker Authoring Plane: Copilot Studio Dual Harnesses &amp; Connectors</text></g><g data-group-id="entra-identity-plane"><rect x="40" y="238" width="1440" height="190" rx="16" fill="var(--fig-group-bg-2, rgba(244, 248, 252, 0.72))" stroke="var(--fig-group-border, rgba(23, 36, 48, 0.11))" stroke-width="1.25"/><path d="M 56 239 H 1464" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.6))" stroke-width="1"/><line x1="40" y1="284" x2="1480" y2="284" stroke="var(--fig-group-divider, rgba(23,36,48,0.08))" stroke-width="1"/><circle cx="62" cy="262" r="4.5" fill="var(--fig-role-blue-bar, #2563eb)"/><text class="sr-zh" x="74" y="267" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)">2. 身份与策略平面：Microsoft Entra 强制智能体主体（Entra Principal Plane）</text><text class="sr-en" x="74" y="267" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)">2. Identity &amp; Access Plane: Mandatory Microsoft Entra Agent Principals</text></g><g data-group-id="admin-sec-plane"><rect x="40" y="452" width="1440" height="190" rx="16" fill="var(--fig-group-bg-3, rgba(248, 245, 252, 0.72))" stroke="var(--fig-group-border, rgba(23, 36, 48, 0.11))" stroke-width="1.25"/><path d="M 56 453 H 1464" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.6))" stroke-width="1"/><line x1="40" y1="498" x2="1480" y2="498" stroke="var(--fig-group-divider, rgba(23,36,48,0.08))" stroke-width="1"/><circle cx="62" cy="476" r="4.5" fill="var(--fig-role-violet-bar, #7c3aed)"/><text class="sr-zh" x="74" y="481" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)">3. 全景治理与合规平面：Agent 365 · Power Platform · Purview</text><text class="sr-en" x="74" y="481" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)">3. Enterprise Fleet &amp; Data Governance: Agent 365 · Power Platform · Purview</text></g><g data-edge-id="e1"><path d="M 296 190 L 296 308" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#agent-principal-governance-architecture-1-arrow)"/><circle cx="296" cy="190" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e2"><path d="M 760 190 L 760 216 Q 760 226 750 226 L 306 226 Q 296 226 296 236 L 296 308" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#agent-principal-governance-architecture-1-arrow)"/><circle cx="760" cy="190" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e3"><path d="M 760 190 L 760 308" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#agent-principal-governance-architecture-1-arrow)"/><circle cx="760" cy="190" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e4"><path d="M 1224 190 L 1224 216 Q 1224 226 1234 226 L 1488 226 Q 1498 226 1498 236 L 1498 430 Q 1498 440 1488 440 L 770 440 Q 760 440 760 450 L 760 522" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#agent-principal-governance-architecture-1-arrow)"/><circle cx="1224" cy="190" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e5"><path d="M 296 404 L 296 411.7 Q 296 418 302.3 418 L 1217.7 418 Q 1224 418 1224 411.7 L 1224 404" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#agent-principal-governance-architecture-1-arrow)"/><circle cx="296" cy="404" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e6"><path d="M 296 404 L 296 522" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#agent-principal-governance-architecture-1-arrow)"/><circle cx="296" cy="404" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e7"><path d="M 760 404 L 760 522" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#agent-principal-governance-architecture-1-arrow)"/><circle cx="760" cy="404" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e8"><path d="M 296 618 L 296 625.7 Q 296 632 302.3 632 L 1217.7 632 Q 1224 632 1224 625.7 L 1224 618" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#agent-principal-governance-architecture-1-arrow)"/><circle cx="296" cy="618" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-node-id="copilot-harness"><defs><clipPath id="agent-principal-governance-architecture-1-clip-copilot-harness"><rect x="136" y="94" width="320" height="96" rx="13"/></clipPath></defs><rect x="136" y="94" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="136" y="94" width="320" height="96" rx="13" fill="var(--fig-role-teal-fill, rgba(13, 143, 140, 0.09))" stroke="var(--fig-role-teal-stroke, rgba(13, 143, 140, 0.46))" stroke-width="1.35"/><rect x="136" y="94" width="4.5" height="96" fill="var(--fig-role-teal-bar, #0d8f8c)" clip-path="url(#agent-principal-governance-architecture-1-clip-copilot-harness)"/><line x1="148" y1="95" x2="444" y2="95" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)"><tspan x="298" y="130">Copilot 底座（Onboarding Buddy）</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="151">原 GitHub Copilot 底座；草稿态零身份，首次点击</tspan><tspan x="298" y="165.5">Publish 时创建主体</tspan></text></g><g class="sr-en"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)"><tspan x="298" y="130">Copilot Harness (Onboarding Buddy)</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="151">Formerly GitHub Copilot harness; zero draft ID,</tspan><tspan x="298" y="165.5">minted at first Publish</tspan></text></g></g><g data-node-id="standard-harness"><defs><clipPath id="agent-principal-governance-architecture-1-clip-standard-harness"><rect x="600" y="94" width="320" height="96" rx="13"/></clipPath></defs><rect x="600" y="94" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="600" y="94" width="320" height="96" rx="13" fill="var(--fig-role-accent-fill, rgba(255, 122, 0, 0.09))" stroke="var(--fig-role-accent-stroke, rgba(234, 88, 12, 0.48))" stroke-width="1.35"/><rect x="600" y="94" width="4.5" height="96" fill="var(--fig-role-accent-bar, #ea580c)" clip-path="url(#agent-principal-governance-architecture-1-clip-standard-harness)"/><line x1="612" y1="95" x2="908" y2="95" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)"><tspan x="762" y="130">标准底座（Expense Desk）</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="151">命名新建即刻在 Entra 铸造主体；发布后写入第一方连</tspan><tspan x="762" y="165.5">接器聚合权限</tspan></text></g><g class="sr-en"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)"><tspan x="762" y="130">Standard Harness (Expense Desk)</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="151">Mints Entra Agent ID at creation; writes connector</tspan><tspan x="762" y="165.5">scopes on Publish</tspan></text></g></g><g data-node-id="legacy-2025-bot"><defs><clipPath id="agent-principal-governance-architecture-1-clip-legacy-2025-bot"><rect x="1064" y="94" width="320" height="96" rx="13"/></clipPath></defs><rect x="1064" y="94" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="1064" y="94" width="320" height="96" rx="13" fill="var(--fig-role-violet-fill, rgba(124, 58, 237, 0.08))" stroke="var(--fig-role-violet-stroke, rgba(139, 92, 246, 0.42))" stroke-width="1.35"/><rect x="1064" y="94" width="4.5" height="96" fill="var(--fig-role-violet-bar, #7c3aed)" clip-path="url(#agent-principal-governance-architecture-1-clip-legacy-2025-bot)"/><line x1="1076" y1="95" x2="1372" y2="95" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)"><tspan x="1226" y="130">2025 存量智能体（Onboarding Bot）</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="151">仅具 Application ID 与企业应用标签，缺省蓝图、保荐</tspan><tspan x="1226" y="165.5">人与条件访问</tspan></text></g><g class="sr-en"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)"><tspan x="1226" y="130">2025 Legacy Bot (Onboarding Bot)</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="151">Application ID under Enterprise Apps tag; lacks</tspan><tspan x="1226" y="165.5">Blueprint, Sponsor &amp; CA</tspan></text></g></g><g data-node-id="agent-blueprint"><defs><clipPath id="agent-principal-governance-architecture-1-clip-agent-blueprint"><rect x="136" y="308" width="320" height="96" rx="13"/></clipPath></defs><rect x="136" y="308" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="136" y="308" width="320" height="96" rx="13" fill="var(--fig-role-rose-fill, rgba(225, 29, 72, 0.08))" stroke="var(--fig-role-rose-stroke, rgba(225, 29, 72, 0.48))" stroke-width="1.35"/><rect x="136" y="308" width="4.5" height="96" fill="var(--fig-role-rose-bar, #e11d48)" clip-path="url(#agent-principal-governance-architecture-1-clip-agent-blueprint)"/><line x1="148" y1="309" x2="444" y2="309" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-rose-text, #9f1239)"><tspan x="298" y="344">单一蓝图与保荐人（Blueprint &amp; Sponsor）</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="365">Copilot Studio 全租户共享唯一蓝图模板；创建者默认绑</tspan><tspan x="298" y="379.5">定生命周期保荐人</tspan></text></g><g class="sr-en"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-rose-text, #9f1239)"><tspan x="298" y="344">Single Blueprint &amp; Maker Sponsor</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="365">One Copilot Studio blueprint per tenant; maker bound</tspan><tspan x="298" y="379.5">as lifecycle sponsor</tspan></text></g></g><g data-node-id="connector-scopes"><defs><clipPath id="agent-principal-governance-architecture-1-clip-connector-scopes"><rect x="600" y="308" width="320" height="96" rx="13"/></clipPath></defs><rect x="600" y="308" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="600" y="308" width="320" height="96" rx="13" fill="var(--fig-role-blue-fill, rgba(37, 99, 235, 0.07))" stroke="var(--fig-role-blue-stroke, rgba(59, 130, 246, 0.42))" stroke-width="1.35"/><rect x="600" y="308" width="4.5" height="96" fill="var(--fig-role-blue-bar, #2563eb)" clip-path="url(#agent-principal-governance-architecture-1-clip-connector-scopes)"/><line x1="612" y1="309" x2="908" y2="309" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)"><tspan x="762" y="344">Granted Permissions 连接器范围</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="365">标准底座聚合成 Azure API Connections Runtime.All；</tspan><tspan x="762" y="379.5">MCP 与自定义连接器留白</tspan></text></g><g class="sr-en"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)"><tspan x="762" y="344">Granted Permissions &amp; Connector Scopes</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="365">Standard aggregates M365 into Runtime.All; Copilot</tspan><tspan x="762" y="379.5">harness &amp; MCP stay empty</tspan></text></g></g><g data-node-id="conditional-access"><defs><clipPath id="agent-principal-governance-architecture-1-clip-conditional-access"><rect x="1064" y="308" width="320" height="96" rx="13"/></clipPath></defs><rect x="1064" y="308" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="1064" y="308" width="320" height="96" rx="13" fill="var(--fig-role-amber-fill, rgba(217, 119, 6, 0.09))" stroke="var(--fig-role-amber-stroke, rgba(217, 119, 6, 0.44))" stroke-width="1.35"/><rect x="1064" y="308" width="4.5" height="96" fill="var(--fig-role-amber-bar, #d97706)" clip-path="url(#agent-principal-governance-architecture-1-clip-conditional-access)"/><line x1="1076" y1="309" x2="1372" y2="309" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)"><tspan x="1226" y="344">Conditional Access 条件访问引擎</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="365">发令牌前校验智能体风险；当前支持高风险阻断（无人</tspan><tspan x="1226" y="379.5">工 MFA 或设备合规）</tspan></text></g><g class="sr-en"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)"><tspan x="1226" y="344">Conditional Access Rule Engine</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="365">Evaluates token issuance; enforces Block-if-Risky</tspan><tspan x="1226" y="379.5">in Teams (no human MFA)</tspan></text></g></g><g data-node-id="agent-365-hub"><defs><clipPath id="agent-principal-governance-architecture-1-clip-agent-365-hub"><rect x="136" y="522" width="320" height="96" rx="13"/></clipPath></defs><rect x="136" y="522" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="136" y="522" width="320" height="96" rx="13" fill="var(--fig-role-teal-fill, rgba(13, 143, 140, 0.09))" stroke="var(--fig-role-teal-stroke, rgba(13, 143, 140, 0.46))" stroke-width="1.35"/><rect x="136" y="522" width="4.5" height="96" fill="var(--fig-role-teal-bar, #0d8f8c)" clip-path="url(#agent-principal-governance-architecture-1-clip-agent-365-hub)"/><line x1="148" y1="523" x2="444" y2="523" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)"><tspan x="298" y="558">M365 管理中心（Agent 365 与拓扑图）</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="579">免进 Studio 直读知识库、指令、底层 API 路径与</tspan><tspan x="298" y="593.5">Work IQ MCP 调用并一键封禁</tspan></text></g><g class="sr-en"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)"><tspan x="298" y="558">M365 Admin Center (Agent 365 &amp; Map)</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="579">Inspects knowledge, prompts, raw API calls &amp;</tspan><tspan x="298" y="593.5">Agent Map with 1-click Block</tspan></text></g></g><g data-node-id="pp-dlp-policies"><defs><clipPath id="agent-principal-governance-architecture-1-clip-pp-dlp-policies"><rect x="600" y="522" width="320" height="96" rx="13"/></clipPath></defs><rect x="600" y="522" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="600" y="522" width="320" height="96" rx="13" fill="var(--fig-role-amber-fill, rgba(217, 119, 6, 0.09))" stroke="var(--fig-role-amber-stroke, rgba(217, 119, 6, 0.44))" stroke-width="1.35"/><rect x="600" y="522" width="4.5" height="96" fill="var(--fig-role-amber-bar, #d97706)" clip-path="url(#agent-principal-governance-architecture-1-clip-pp-dlp-policies)"/><line x1="612" y1="523" x2="908" y2="523" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)"><tspan x="762" y="558">Power Platform 环境与数据策略</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="579">管控环境边界、连接器动作级白名单（May Do）与存量</tspan><tspan x="762" y="593.5">智能体预览迁移</tspan></text></g><g class="sr-en"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)"><tspan x="762" y="558">Power Platform DLP &amp; Connector Rules</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="579">Governs environments, action-level connector DLP &amp;</tspan><tspan x="762" y="593.5">in-place preview migration</tspan></text></g></g><g data-node-id="purview-defender"><defs><clipPath id="agent-principal-governance-architecture-1-clip-purview-defender"><rect x="1064" y="522" width="320" height="96" rx="13"/></clipPath></defs><rect x="1064" y="522" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="1064" y="522" width="320" height="96" rx="13" fill="var(--fig-role-blue-fill, rgba(37, 99, 235, 0.07))" stroke="var(--fig-role-blue-stroke, rgba(59, 130, 246, 0.42))" stroke-width="1.35"/><rect x="1064" y="522" width="4.5" height="96" fill="var(--fig-role-blue-bar, #2563eb)" clip-path="url(#agent-principal-governance-architecture-1-clip-purview-defender)"/><line x1="1076" y1="523" x2="1372" y2="523" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)"><tspan x="1226" y="558">Purview 敏感交互与离职交接闭环</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="579">审计敏感数据交互标签，并将保荐人纳入员工入转调离</tspan><tspan x="1226" y="593.5">（JML）制度</tspan></text></g><g class="sr-en"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)"><tspan x="1226" y="558">Purview Sensitivity &amp; JML Lifecycle</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="579">Audits sensitive data interactions and binds</tspan><tspan x="1226" y="593.5">Sponsors into HR JML workflows</tspan></text></g></g><g class="sr-edge-labels"><g class="sr-zh"><rect x="251" y="215" width="91" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="296" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">首次发布铸造</text></g><g class="sr-en"><rect x="239" y="215" width="114" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="296" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Minted at Publish</text></g><g class="sr-zh"><rect x="413" y="215" width="91" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="458" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">新建即刻铸造</text></g><g class="sr-en"><rect x="404" y="215" width="109" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="458" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Minted at Create</text></g><g class="sr-zh"><rect x="705" y="215" width="110" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="760" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">写入 Runtime.All</text></g><g class="sr-en"><rect x="699" y="215" width="122" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="760" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Writes Runtime.All</text></g><g class="sr-zh"><rect x="1081" y="429" width="97" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="1129" y="444" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">预览迁移/重建</text></g><g class="sr-en"><rect x="1065" y="429" width="128" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="1129" y="444" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Migrate or Recreate</text></g><g class="sr-zh"><rect x="715" y="407" width="91" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="760" y="422" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">全量策略继承</text></g><g class="sr-en"><rect x="703" y="407" width="114" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="760" y="422" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Inherits Policies</text></g><g class="sr-zh"><rect x="251" y="429" width="91" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="296" y="444" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">统一身份映射</text></g><g class="sr-en"><rect x="243" y="429" width="107" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="296" y="444" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Syncs Agent ID</text></g><g class="sr-zh"><rect x="708" y="429" width="104" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="760" y="444" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">May Call ⊕ DLP</text></g><g class="sr-en"><rect x="708" y="429" width="104" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="760" y="444" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">May Call + DLP</text></g><g class="sr-zh"><rect x="715" y="621" width="91" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="760" y="636" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">敏感交互审计</text></g><g class="sr-en"><rect x="705" y="621" width="110" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="760" y="636" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Sensitivity Audit</text></g></g></svg>
+            <figcaption class="diagram-caption"><span data-zh="图 1：THR992 全链路治理拓扑——顶层对比 Copilot 底座、标准底座与 2025 存量机器人的身份生成入口；中层依托 Microsoft Entra 单一蓝图、创建者保荐人、连接器权限列表与条件访问引擎实施令牌级管控；底层联合 Microsoft 365 管理中心（Agent 365）、Power Platform 数据策略与 Purview 敏感交互审计构成完整防线 [1][2][5]。" data-en="Figure 1: End-to-end THR992 governance topology—contrasting Copilot harness, standard harness, and 2025 legacy entry points at the top; enforcing single-blueprint inheritance, sponsor binding, connector scopes, and Conditional Access inside Microsoft Entra in the middle; and uniting Agent 365, Power Platform DLP, and Purview sensitivity auditing below [1][2][5].">图 1：THR992 全链路治理拓扑——顶层对比 Copilot 底座、标准底座与 2025 存量机器人的身份生成入口；中层依托 Microsoft Entra 单一蓝图、创建者保荐人、连接器权限列表与条件访问引擎实施令牌级管控；底层联合 Microsoft 365 管理中心（Agent 365）、Power Platform 数据策略与 Purview 敏感交互审计构成完整防线 [1][2][5]。</span><a href="./media/agent-principal-governance-architecture.drawio" download data-zh="下载 .drawio" data-en="Download .drawio">下载 .drawio</a></figcaption>
+          </figure>
+
+          <p data-zh="下方交互导览台集成了 THR992 官方 Medius 点播视频流、完整英文逐字稿下载入口与五段核心议程的精确时间戳，点击顶部胶囊按钮即可按时间轴检视双底座实机核查细节 [1]：" data-en="The interactive session theater below pairs the official THR992 Medius video stream and downloadable transcript with five timestamped walkthrough chapters across the 30-minute talk [1]:">下方交互导览台集成了 THR992 官方 Medius 点播视频流、完整英文逐字稿下载入口与五段核心议程的精确时间戳，点击顶部胶囊按钮即可按时间轴检视双底座实机核查细节 [1]：</p>
+
+          <div id="thr992-video-theater" class="sandbox-slot" data-sandbox-slot="thr992-video-theater" data-present-step data-present-surface="board" data-step-title="THR992 官方点播视频与三门户实机核验时间轴导览" data-step-title-en="THR992 Official On-Demand Stream &amp; Three-Portal Timestamp Navigator" data-present-title-zh="THR992 官方点播视频与三门户实机核验时间轴导览" data-present-title-en="THR992 Official On-Demand Stream &amp; Three-Portal Timestamp Navigator" data-step-label="01 / Mandatory Principal Shift" data-step-label-en="01 / Mandatory Principal Shift" data-present-i18n-invariant="label">
+            <div class="sandbox-header">
+              <div class="sandbox-title-group">
+                <span class="comparison-label" data-zh="纯静态交互沙盒" data-en="Static Interactive Sandbox">纯静态交互沙盒</span>
+                <h3 data-zh="THR992 官方点播视频与三门户实机核验时间轴导览" data-en="THR992 Official On-Demand Stream &amp; Three-Portal Timestamp Navigator">THR992 官方点播视频与三门户实机核验时间轴导览</h3>
+                <p data-zh="按时间轴切换双底座草稿对照、发布后权限盲区、五团队治理分工与周一四步清查法，支持页面内直接加载微软官方点播播放器。" data-en="Switch across draft creation timing, post-publish scope gaps, five-team ownership, and the Monday four-step audit, or load the embedded Microsoft Medius player.">按时间轴切换双底座草稿对照、发布后权限盲区、五团队治理分工与周一四步清查法，支持页面内直接加载微软官方点播播放器。</p>
+              </div>
+              <div class="sandbox-controls" data-sandbox-controls="thr992-video-theater"></div>
+            </div>
+            <div class="sandbox-stage" data-sandbox-stage="thr992-video-theater">
+
+            </div>
+          </div>
+        </section>
+
+        <section id="dual-harness-walkthrough" class="section" data-reveal data-present-title-zh="实机对照：同配置双智能体在三个管理门户中的真实落差" data-present-title-en="Live Walkthrough: Building Two Identical Agents Across Three Portals">
+          <div class="section-head">
+            <p class="section-kicker">02 / Live Walkthrough: Two Harnesses, Three Portals</p>
+            <h2 data-zh="2. 实机对照：同配置双智能体在三个管理门户中的真实落差" data-en="2. Live Walkthrough: Building Two Identical Agents Across Three Portals">2. 实机对照：同配置双智能体在三个管理门户中的真实落差</h2>
+            <p data-zh="Nicole Enders 首先在 Copilot Studio 中使用 Copilot 底座新建了员工入职助手 &lt;strong&gt;Onboarding Buddy&lt;/strong&gt;，上传预先准备的入职指南文档 &lt;code&gt;Onboarding Handbook.docx&lt;/code&gt;，并挂载两项高频办公工具：用于拉取当前员工基本资料的 Office 365 用户档案操作（&lt;code&gt;Get my profile&lt;/code&gt;），以及用于检查入职会议安排的 Outlook 365 日历视图操作（&lt;code&gt;Get calendar view of events&lt;/code&gt;）[1]。保存全部草稿配置后，她立即切入 Azure 门户内的 Microsoft Entra 智能体身份列表刷新按时间倒序排查——此时列表中空无一物，Onboarding Buddy 在草稿阶段并未触发任何身份创建动作 [1]。" data-en="Nicole Enders starts in Copilot Studio by building an employee helper named &lt;strong&gt;Onboarding Buddy&lt;/strong&gt; on the Copilot harness, uploading &lt;code&gt;Onboarding Handbook.docx&lt;/code&gt; and attaching two everyday tools: &lt;code&gt;Get my profile&lt;/code&gt; from the Office 365 Users connector and &lt;code&gt;Get calendar view of events&lt;/code&gt; from Office 365 Outlook [1]. After saving the draft configuration, she switches straight to &lt;code&gt;Agents -&amp;gt; Agent identities&lt;/code&gt; in Microsoft Entra and sorts newest first—finding no identity entry at all while Onboarding Buddy remains unpublished [1].">Nicole Enders 首先在 Copilot Studio 中使用 Copilot 底座新建了员工入职助手 <strong>Onboarding Buddy</strong>，上传预先准备的入职指南文档 <code>Onboarding Handbook.docx</code>，并挂载两项高频办公工具：用于拉取当前员工基本资料的 Office 365 用户档案操作（<code>Get my profile</code>），以及用于检查入职会议安排的 Outlook 365 日历视图操作（<code>Get calendar view of events</code>）[1]。保存全部草稿配置后，她立即切入 Azure 门户内的 Microsoft Entra 智能体身份列表刷新按时间倒序排查——此时列表中空无一物，Onboarding Buddy 在草稿阶段并未触发任何身份创建动作 [1]。</p>
+          </div>
+
+          <p data-zh="紧接着，她退回 Copilot Studio 首页第三项略显隐蔽的标准入口，基于标准底座创建了报销助手 &lt;strong&gt;Expense Desk&lt;/strong&gt; [1]。两款智能体的配置体验已有明显分野：标准底座要求先输入名称立项，随后进入多标签页工作区（右侧附带实时测试窗格，且知识库文档上传后会显示明确的解析进度条；添加每项工具时还会弹出独立的业务名称与描述确认页，帮助模型靠清晰的元数据选对工具而不必把规则全塞进系统提示词）[1]。为 Expense Desk 挂载完全相同的两项工具后且尚未点击发布，再次刷新 Entra 智能体身份列表时，差异当场显现：&lt;strong&gt;同样处于草稿模式，标准底座的 Expense Desk 已经铸造出完整的 Entra Agent ID，而 Copilot 底座的 Onboarding Buddy 依然不存在&lt;/strong&gt; [1][2]。" data-en="Returning to Copilot Studio's slightly tucked-away standard option, she creates a second agent—&lt;strong&gt;Expense Desk&lt;/strong&gt;—on the standard harness [1]. Even the authoring flow differs: standard harness creation names and provisions the shell up front, replaces the right-hand setup pane with tabbed configuration plus a live test chat, displays explicit document-processing status, and opens a dedicated tool metadata screen after selecting each connector [1]. With both identical tools attached and both agents still in &lt;strong&gt;Draft&lt;/strong&gt; mode, refreshing Microsoft Entra reveals the first major divergence: &lt;strong&gt;Expense Desk already owns an Entra Agent ID at creation, whereas Onboarding Buddy still has none&lt;/strong&gt; [1][2].">紧接着，她退回 Copilot Studio 首页第三项略显隐蔽的标准入口，基于标准底座创建了报销助手 <strong>Expense Desk</strong> [1]。两款智能体的配置体验已有明显分野：标准底座要求先输入名称立项，随后进入多标签页工作区（右侧附带实时测试窗格，且知识库文档上传后会显示明确的解析进度条；添加每项工具时还会弹出独立的业务名称与描述确认页，帮助模型靠清晰的元数据选对工具而不必把规则全塞进系统提示词）[1]。为 Expense Desk 挂载完全相同的两项工具后且尚未点击发布，再次刷新 Entra 智能体身份列表时，差异当场显现：<strong>同样处于草稿模式，标准底座的 Expense Desk 已经铸造出完整的 Entra Agent ID，而 Copilot 底座的 Onboarding Buddy 依然不存在</strong> [1][2]。</p>
+<p data-zh="点开草稿态 Expense Desk 的身份详情页可以看到，构建者本人（Nicole Enders）已被自动绑定为该智能体的&lt;strong&gt;保荐人（Sponsor）&lt;/strong&gt;，直接对智能体后续生命周期负责；同时页面显示其归属于全租户所有 Copilot Studio 智能体共同继承的唯一&lt;strong&gt;智能体身份蓝图（Agent Identity Blueprint）&lt;/strong&gt;，但此时的已授予权限（&lt;code&gt;Granted permissions&lt;/code&gt;）与活动日志均为空白 [1][2]。" data-en="Inspecting Expense Desk's draft identity blade shows maker Nicole Enders automatically assigned as &lt;strong&gt;Sponsor&lt;/strong&gt;—accountable for its lifecycle—alongside the single &lt;strong&gt;Agent Identity Blueprint&lt;/strong&gt; shared by every Copilot Studio agent in the tenant, while &lt;code&gt;Granted permissions&lt;/code&gt; and activity logs remain empty prior to publication [1][2].">点开草稿态 Expense Desk 的身份详情页可以看到，构建者本人（Nicole Enders）已被自动绑定为该智能体的<strong>保荐人（Sponsor）</strong>，直接对智能体后续生命周期负责；同时页面显示其归属于全租户所有 Copilot Studio 智能体共同继承的唯一<strong>智能体身份蓝图（Agent Identity Blueprint）</strong>，但此时的已授予权限（<code>Granted permissions</code>）与活动日志均为空白 [1][2]。</p>
+<div class="thr992-media-grid">
+  <article class="thr992-media-card" data-present-surface="unframed">
+    <div class="thr992-media-frame">
+      <img src="./media/thr992-entra-granted-permissions.jpg" alt="THR992 live Entra portal capture showing Expense Desk Granted permissions with a single aggregated Azure API Connections Runtime.All entry" loading="lazy" />
+    </div>
+    <div class="thr992-media-body">
+      <span class="thr992-media-badge" data-zh="THR992 实机演示截帧 · 15:15" data-en="THR992 Live Demo Frame · 15:15">THR992 实机演示截帧 · 15:15</span>
+      <h4 data-zh="Entra 已授予权限页：两项 M365 工具聚合成单行记录" data-en="Entra Granted Permissions: Two M365 Tools Aggregated into One Line">Entra 已授予权限页：两项 M365 工具聚合成单行记录</h4>
+      <p data-zh="标准底座 Expense Desk 发布后，Granted permissions 仅写入一条 Azure API Connections（Runtime.All），而同期发布的 Copilot 底座权限栏完全为空 [1][2]。" data-en="After publishing Expense Desk on the standard harness, Entra writes a single Azure API Connections (Runtime.All) entry, whereas the published Copilot harness agent stays empty [1][2].">标准底座 Expense Desk 发布后，Granted permissions 仅写入一条 Azure API Connections（Runtime.All），而同期发布的 Copilot 底座权限栏完全为空 [1][2]。</p>
+    </div>
+  </article>
+  <article class="thr992-media-card" data-present-surface="unframed">
+    <div class="thr992-media-frame">
+      <img src="./media/thr992-agent365-tools-visibility.jpg" alt="THR992 live Microsoft 365 admin center Agent 365 capture showing Onboarding Buddy knowledge files, shared_office365users API call, and Work IQ MCP Server" loading="lazy" />
+    </div>
+    <div class="thr992-media-body">
+      <span class="thr992-media-badge" data-zh="THR992 实机演示截帧 · 18:35" data-en="THR992 Live Demo Frame · 18:35">THR992 实机演示截帧 · 18:35</span>
+      <h4 data-zh="M365 管理中心 Agent 365：穿透检视知识库与底层工具路径" data-en="M365 Admin Center (Agent 365): Direct Visibility into Knowledge & Raw APIs">M365 管理中心 Agent 365：穿透检视知识库与底层工具路径</h4>
+      <p data-zh="无需登录 Copilot Studio，全局管理员即可在 Data & tools 页直接看清 Onboarding Handbook.docx、shared_office365users 接口路径与 Work IQ MCP 服务 [1][5]。" data-en="Without opening Copilot Studio, global admins inspect Onboarding Handbook.docx, raw shared_office365users connector paths, and Work IQ MCP Server inside Agent 365 [1][5].">无需登录 Copilot Studio，全局管理员即可在 Data & tools 页直接看清 Onboarding Handbook.docx、shared_office365users 接口路径与 Work IQ MCP 服务 [1][5]。</p>
+    </div>
+  </article>
+</div>
+<p data-zh="真正令人意外的现象发生在两款智能体双双点击 &lt;strong&gt;Publish&lt;/strong&gt; 发布上线之后 [1]：" data-en="The sharpest surprise arrives right after clicking &lt;strong&gt;Publish&lt;/strong&gt; on both agents [1]:">真正令人意外的现象发生在两款智能体双双点击 <strong>Publish</strong> 发布上线之后 [1]：</p>
+<ul>
+<li data-zh="&lt;strong&gt;Copilot 底座首次现身但权限留白" data-en="Copilot Harness Appears with Empty Scopes&lt;/strong&gt;：发布完成后刷新 Entra（无论从 Azure 门户进入还是使用独立的 Entra 管理中心，两侧菜单与功能完全一致），Onboarding Buddy 终于生成了自己的 Entra Agent ID，但其 &lt;code&gt;Granted permissions&lt;/code&gt; 栏依然空空如也，完全看不到刚刚绑定的用户档案与日历工具 [1]。  ||  Refreshing Entra (identical across both the Azure portal blade and the standalone Entra admin center) confirms Onboarding Buddy finally received its Agent ID upon publish—yet its &lt;code&gt;Granted permissions&lt;/code&gt; tab remains completely blank despite carrying two active tools [1]."><strong>Copilot 底座首次现身但权限留白</li>
+<li data-zh="&lt;strong&gt;标准底座将第一方连接器合并为单行" data-en="Standard Harness Collapses First-Party Connectors&lt;/strong&gt;：切到已发布的 Expense Desk 详情页，&lt;code&gt;Granted permissions&lt;/code&gt; 从零变为 &lt;strong&gt;1 条记录&lt;/strong&gt;——并非两项工具对应两条记录，而是统一显示为 &lt;code&gt;Azure API Connections&lt;/code&gt;（权限值 &lt;code&gt;Runtime.All&lt;/code&gt;）[1][2]。只要智能体调用的都属于 Microsoft 365 核心连接器操作，Entra 就会将其折叠进这一条聚合授权；只有挂载第三方 Power Platform 连接器时才会逐个生成独立条目 [1][2]。  ||  Opening published Expense Desk reveals &lt;strong&gt;one&lt;/strong&gt; new permission row rather than two: &lt;code&gt;Azure API Connections&lt;/code&gt; (&lt;code&gt;Runtime.All&lt;/code&gt;) [1][2]. Whenever an agent uses first-party Microsoft 365 core actions, Entra consolidates them under that single runtime entry, only splitting out separate rows when makers attach third-party Power Platform connectors [1][2]."><strong>标准底座将第一方连接器合并为单行</li>
+<li data-zh="&lt;strong&gt;Agent 365 补齐内容与工具路径透视" data-en="Agent 365 Bridges the Visibility Gap&lt;/strong&gt;：最后切入 Microsoft 365 管理中心的 &lt;code&gt;Agents -&amp;gt; All agents&lt;/code&gt;（即 &lt;strong&gt;Agent 365&lt;/strong&gt; 清单，其中 Copilot 底座正常同步了自定义图标，标准底座暂未同步图标）[1]。管理员无需打开 Copilot Studio，即可在 &lt;code&gt;Data &amp;amp; tools&lt;/code&gt; 页直读 &lt;code&gt;Onboarding Handbook.docx&lt;/code&gt; 敏感度标签、底层连接器路径（如 &lt;code&gt;/providers/Microsoft.PowerApps/apis/shared_office365users&lt;/code&gt;）与 &lt;code&gt;Work IQ MCP Server&lt;/code&gt; [1][5]。切入 &lt;code&gt;Security&lt;/code&gt; 页还能联动 Microsoft Purview 审查敏感数据交互记录或一键 &lt;strong&gt;Block&lt;/strong&gt; 封禁异常主体 [1][5]。  ||  Switching to &lt;code&gt;Agents -&amp;gt; All agents&lt;/code&gt; in the Microsoft 365 admin center (&lt;strong&gt;Agent 365&lt;/strong&gt;) shows the Copilot harness syncing its custom icon while the standard harness omits it [1]. Without ever opening Copilot Studio, global admins inspect &lt;code&gt;Onboarding Handbook.docx&lt;/code&gt; and raw connector paths like &lt;code&gt;/providers/Microsoft.PowerApps/apis/shared_office365users&lt;/code&gt; plus &lt;code&gt;Work IQ MCP Server&lt;/code&gt; under &lt;code&gt;Data &amp;amp; tools&lt;/code&gt; [1][5]. The &lt;code&gt;Security&lt;/code&gt; tab also surfaces Purview sensitive data interactions alongside a one-click &lt;strong&gt;Block&lt;/strong&gt; control [1][5]."><strong>Agent 365 补齐内容与工具路径透视</li>
+</ul>
+        </section>
+
+        <section id="three-words-and-matrix" class="section" data-reveal data-present-title-zh="三个必知安全概念与官方文档未写明的可见性矩阵" data-present-title-en="Three Essential Security Primitives &amp; The Undocumented Visibility Matrix">
+          <div class="section-head">
+            <p class="section-kicker">03 / Three Concepts &amp; The Visibility Matrix</p>
+            <h2 data-zh="3. 三个必知安全概念与官方文档未写明的可见性矩阵" data-en="3. Three Essential Security Primitives &amp; The Undocumented Visibility Matrix">3. 三个必知安全概念与官方文档未写明的可见性矩阵</h2>
+            <p data-zh="走出实机演示后，Nicole Enders 将智能体身份治理浓缩为每个团队都必须掌握的三个核心原语——&lt;strong&gt;蓝图（Blueprint）&lt;/strong&gt;、&lt;strong&gt;连接器范围（Connector Scopes）&lt;strong&gt;与&lt;/strong&gt;条件访问（Conditional Access）&lt;/strong&gt; [1][2][3]。蓝图是 Entra 铸造智能体身份的唯一模板：Copilot Studio 在单个租户内共享同一个蓝图对象，它既承载默认的拥有者与保荐人规则，也是管理员一次性下发全局策略、自动覆盖当前及未来所有新建智能体的锚点 [1][2]。" data-en="Stepping back from the live portals, Nicole Enders distills agent identity governance into three non-negotiable primitives: &lt;strong&gt;Blueprint&lt;/strong&gt;, &lt;strong&gt;Connector scopes&lt;/strong&gt;, and &lt;strong&gt;Conditional Access&lt;/strong&gt; [1][2][3]. The &lt;strong&gt;Blueprint&lt;/strong&gt; is Entra's identity template—Copilot Studio uses exactly one blueprint across all its agents in a tenant, carrying owner/sponsor defaults and giving administrators a single object where one policy covers every current and future agent [1][2].">走出实机演示后，Nicole Enders 将智能体身份治理浓缩为每个团队都必须掌握的三个核心原语——<strong>蓝图（Blueprint）</strong>、<strong>连接器范围（Connector Scopes）<strong>与</strong>条件访问（Conditional Access）</strong> [1][2][3]。蓝图是 Entra 铸造智能体身份的唯一模板：Copilot Studio 在单个租户内共享同一个蓝图对象，它既承载默认的拥有者与保荐人规则，也是管理员一次性下发全局策略、自动覆盖当前及未来所有新建智能体的锚点 [1][2]。</p>
+          </div>
+
+          <p data-zh="第二个原语&lt;strong&gt;连接器范围&lt;/strong&gt;很容易被误读为细粒度操作边界 [1]：写在 Entra &lt;code&gt;Granted permissions&lt;/code&gt; 里的条目只代表该智能体“&lt;strong&gt;可调用哪个连接器（may call）&lt;/strong&gt;”，而非“&lt;strong&gt;允许执行哪一个具体增删改动作（may do）&lt;/strong&gt;”——真正的动作级放行与阻断仍由 Power Platform 数据策略（DLP）裁决 [1]。第三个原语&lt;strong&gt;条件访问&lt;/strong&gt;则充当发放令牌前的规则引擎：如今智能体身份已能直接作为条件访问策略目标，但由于背后没有人类操作员，既无法弹窗要求多因素认证（MFA），也不存在终端设备合规校验；截至宣讲时，面向智能体身份唯一生效的规则是在 Teams 渠道中执行的“&lt;strong&gt;存在风险即阻断（block if risky）&lt;/strong&gt;” [1][3]。" data-en="Second, &lt;strong&gt;Connector scopes&lt;/strong&gt; record which connectors an agent &lt;em&gt;may call&lt;/em&gt; when published—not which granular actions it &lt;em&gt;may do&lt;/em&gt;, which remains the job of Power Platform data policies (DLP) [1]. Third, &lt;strong&gt;Conditional Access&lt;/strong&gt; evaluates conditions before issuing tokens: agent identities can now be targeted directly, though with no human behind the prompt there is no MFA prompt or device compliance check—leaving &lt;strong&gt;“block if risky”&lt;/strong&gt; enforced in Teams as today's active rule [1][3].">第二个原语<strong>连接器范围</strong>很容易被误读为细粒度操作边界 [1]：写在 Entra <code>Granted permissions</code> 里的条目只代表该智能体“<strong>可调用哪个连接器（may call）</strong>”，而非“<strong>允许执行哪一个具体增删改动作（may do）</strong>”——真正的动作级放行与阻断仍由 Power Platform 数据策略（DLP）裁决 [1]。第三个原语<strong>条件访问</strong>则充当发放令牌前的规则引擎：如今智能体身份已能直接作为条件访问策略目标，但由于背后没有人类操作员，既无法弹窗要求多因素认证（MFA），也不存在终端设备合规校验；截至宣讲时，面向智能体身份唯一生效的规则是在 Teams 渠道中执行的“<strong>存在风险即阻断（block if risky）</strong>” [1][3]。</p>
+<div class="thr992-media-grid">
+  <article class="thr992-media-card" data-present-surface="unframed">
+    <div class="thr992-media-frame">
+      <img src="./media/thr992-harness-visibility-matrix.jpg" alt="THR992 slide capture When does what appear comparing Copilot harness and Standard harness across Entra identity timing, first-party connectors, and MCP custom connectors" loading="lazy" />
+    </div>
+    <div class="thr992-media-body">
+      <span class="thr992-media-badge" data-zh="THR992 讲者课件画面 · 21:05" data-en="THR992 Presentation Slide · 21:05">THR992 讲者课件画面 · 21:05</span>
+      <h4 data-zh="双底座 × 三类工具：官方文档与 2026 年 11 月实测对照表" data-en="Two Harnesses × Three Tool Types: Documented vs. Nov 2026 Observed">双底座 × 三类工具：官方文档与 2026 年 11 月实测对照表</h4>
+      <p data-zh="标准底座新建即生成身份并披露连接器范围，但 MCP、REST 与自定义连接器在双底座下均留白，且 Copilot 底座连第一方权限也未写入 [1][2]。" data-en="Standard mints IDs at creation and lists connector scopes, yet MCP/REST/custom tools stay blank on both harnesses and Copilot harness omits first-party scopes too [1][2].">标准底座新建即生成身份并披露连接器范围，但 MCP、REST 与自定义连接器在双底座下均留白，且 Copilot 底座连第一方权限也未写入 [1][2]。</p>
+    </div>
+  </article>
+  <article class="thr992-media-card" data-present-surface="unframed">
+    <div class="thr992-media-frame">
+      <img src="./media/thr992-five-teams-governance-doors.jpg" alt="THR992 slide capture Who owns which door mapping Makers, Power Platform, Identity, Microsoft 365, and Security teams across admin portals" loading="lazy" />
+    </div>
+    <div class="thr992-media-body">
+      <span class="thr992-media-badge" data-zh="THR992 讲者课件画面 · 22:15" data-en="THR992 Presentation Slide · 22:15">THR992 讲者课件画面 · 22:15</span>
+      <h4 data-zh="谁掌管哪扇门：触碰同一个智能体的五个职能团队" data-en="Who Owns Which Door? Five Teams Touching One Agent">谁掌管哪扇门：触碰同一个智能体的五个职能团队</h4>
+      <p data-zh="五个角色各自守着不同门户，最常缺失的是 Power Platform 与身份团队核对权限范围、以及构建者离职时的保荐人交接机制 [1]。" data-en="Five teams guard separate portals; the two conversations that rarely happen are scope reviews (PP + Identity) and leaver sponsor handoffs (Makers + Identity) [1].">五个角色各自守着不同门户，最常缺失的是 Power Platform 与身份团队核对权限范围、以及构建者离职时的保荐人交接机制 [1]。</p>
+    </div>
+  </article>
+</div>
+<p data-zh="将微软官方 Learn 文档（2026 年 8 月 21 日版）与 Nicole 在自家生产租户的实机测试放在一起比对，就能看清为什么仅盯住单一后台会产生严重漏判 [1][2]：" data-en="Placing Microsoft Learn documentation (dated August 21, 2026) side by side with Nicole's November 2026 tenant observations clarifies why relying on Entra's permissions blade alone leaves blind spots [1][2]:">将微软官方 Learn 文档（2026 年 8 月 21 日版）与 Nicole 在自家生产租户的实机测试放在一起比对，就能看清为什么仅盯住单一后台会产生严重漏判 [1][2]：</p>
+<div class="compare-table-wrap" data-present-step data-present-surface="unframed" data-step-title="三个必知安全概念与官方文档未写明的可见性矩阵：对比矩阵" data-step-title-en="Three Essential Security Primitives &amp; The Undocumented Visibility Matrix: Comparison Matrix" data-present-title-zh="三个必知安全概念与官方文档未写明的可见性矩阵：对比矩阵" data-present-title-en="Three Essential Security Primitives &amp; The Undocumented Visibility Matrix: Comparison Matrix" data-step-label="03 / Three Concepts &amp; The Visibility Matrix" data-step-label-en="03 / Three Concepts &amp; The Visibility Matrix" data-present-i18n-invariant="label"><table class="simple-table compare-table">
+<thead>
+<tr>
+<th data-zh="核验维度" data-en="Governance Dimension">核验维度</th>
+<th data-zh="Copilot 底座（原 GitHub Copilot）" data-en="Copilot Harness (Formerly GitHub Copilot)">Copilot 底座（原 GitHub Copilot）</th>
+<th data-zh="标准底座（Standard Harness）" data-en="Standard Harness">标准底座（Standard Harness）</th>
+<th data-zh="2025 存量旧版智能体" data-en="2025 Legacy Bot (Pre-Rollout)">2025 存量旧版智能体</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-zh="Entra 身份类型与位置" data-en="Entra Principal &amp;amp; Location">Entra 身份类型与位置</td>
+<td data-zh="&lt;strong&gt;Entra Agent ID&lt;/strong&gt;（&lt;code&gt;Agents -&amp;gt; Agent identities&lt;/code&gt;）[1][2]" data-en="&lt;strong&gt;Entra Agent ID&lt;/strong&gt; (&lt;code&gt;Agents -&amp;gt; Agent identities&lt;/code&gt;) [1][2]"><strong>Entra Agent ID</strong>（<code>Agents -&gt; Agent identities</code>）[1][2]</td>
+<td data-zh="&lt;strong&gt;Entra Agent ID&lt;/strong&gt;（&lt;code&gt;Agents -&amp;gt; Agent identities&lt;/code&gt;）[1][2]" data-en="&lt;strong&gt;Entra Agent ID&lt;/strong&gt; (&lt;code&gt;Agents -&amp;gt; Agent identities&lt;/code&gt;) [1][2]"><strong>Entra Agent ID</strong>（<code>Agents -&gt; Agent identities</code>）[1][2]</td>
+<td data-zh="传统 &lt;strong&gt;Application ID&lt;/strong&gt;（位于 &lt;code&gt;Enterprise applications&lt;/code&gt; 带标签）[1]" data-en="Legacy &lt;strong&gt;Application ID&lt;/strong&gt; (&lt;code&gt;Enterprise applications&lt;/code&gt; with tag) [1]">传统 <strong>Application ID</strong>（位于 <code>Enterprise applications</code> 带标签）[1]</td>
+</tr>
+<tr>
+<td data-zh="身份铸造触发时机" data-en="Identity Provisioning Trigger">身份铸造触发时机</td>
+<td data-zh="&lt;strong&gt;首次发布时（At first publish）&lt;/strong&gt;——官方已记录 [1][2]" data-en="&lt;strong&gt;At first publish&lt;/strong&gt; (Documented) [1][2]"><strong>首次发布时（At first publish）</strong>——官方已记录 [1][2]</td>
+<td data-zh="&lt;strong&gt;新建命名时（At creation）&lt;/strong&gt;——草稿态即存在 [1][2]" data-en="&lt;strong&gt;At creation&lt;/strong&gt; while still in draft (Documented) [1][2]"><strong>新建命名时（At creation）</strong>——草稿态即存在 [1][2]</td>
+<td data-zh="历史创建，新建入口已彻底关闭 [1]" data-en="Historical only; can no longer be built in 2026 [1]">历史创建，新建入口已彻底关闭 [1]</td>
+</tr>
+<tr>
+<td data-zh="蓝图继承与保荐人" data-en="Blueprint &amp;amp; Maker Sponsor">蓝图继承与保荐人</td>
+<td data-zh="共享唯一蓝图 + 自动绑定创建者保荐人 [1]" data-en="Shared Blueprint + Maker bound as Sponsor [1]">共享唯一蓝图 + 自动绑定创建者保荐人 [1]</td>
+<td data-zh="共享唯一蓝图 + 自动绑定创建者保荐人 [1]" data-en="Shared Blueprint + Maker bound as Sponsor [1]">共享唯一蓝图 + 自动绑定创建者保荐人 [1]</td>
+<td data-zh="&lt;strong&gt;无蓝图、无保荐人&lt;/strong&gt;（离职易成孤儿应用）[1]" data-en="&lt;strong&gt;None&lt;/strong&gt; (no Blueprint or lifecycle Sponsor) [1]"><strong>无蓝图、无保荐人</strong>（离职易成孤儿应用）[1]</td>
+</tr>
+<tr>
+<td data-zh="第一方连接器权限显示" data-en="Granted Permissions: 1P Connectors">第一方连接器权限显示</td>
+<td data-zh="&lt;strong&gt;空白（Empty）&lt;/strong&gt;——2026 年 11 月实测未写入文档 [1]" data-en="&lt;strong&gt;Empty&lt;/strong&gt; (Observed Nov 2026; undocumented) [1]"><strong>空白（Empty）</strong>——2026 年 11 月实测未写入文档 [1]</td>
+<td data-zh="聚合成单条 &lt;code&gt;Azure API Connections (Runtime.All)&lt;/code&gt;（话题与流同理）[1][2]" data-en="Single &lt;code&gt;Azure API Connections (Runtime.All)&lt;/code&gt; row [1][2]">聚合成单条 <code>Azure API Connections (Runtime.All)</code>（话题与流同理）[1][2]</td>
+<td data-zh="无连接器范围挂载 [1]" data-en="None attached [1]">无连接器范围挂载 [1]</td>
+</tr>
+<tr>
+<td data-zh="MCP / REST / 自定义连接器" data-en="Granted Permissions: MCP &amp;amp; Custom">MCP / REST / 自定义连接器</td>
+<td data-zh="&lt;strong&gt;空白（Empty）&lt;/strong&gt;——官方文档已注明不展示 [1][2]" data-en="&lt;strong&gt;Empty&lt;/strong&gt; (Documented) [1][2]"><strong>空白（Empty）</strong>——官方文档已注明不展示 [1][2]</td>
+<td data-zh="&lt;strong&gt;空白（Empty）&lt;/strong&gt;——官方文档已注明不展示 [1][2]" data-en="&lt;strong&gt;Empty&lt;/strong&gt; (Documented) [1][2]"><strong>空白（Empty）</strong>——官方文档已注明不展示 [1][2]</td>
+<td data-zh="无连接器范围挂载 [1]" data-en="None attached [1]">无连接器范围挂载 [1]</td>
+</tr>
+<tr>
+<td data-zh="条件访问与审计日志" data-en="Conditional Access &amp;amp; Audit Trail">条件访问与审计日志</td>
+<td data-zh="纳入范围（Teams 高风险阻断）+ Agent ID 事件流 [1][3]" data-en="In scope (Teams risk block) + Agent ID events [1][3]">纳入范围（Teams 高风险阻断）+ Agent ID 事件流 [1][3]</td>
+<td data-zh="纳入范围（Teams 高风险阻断）+ Agent ID 事件流 [1][3]" data-en="In scope (Teams risk block) + Agent ID events [1][3]">纳入范围（Teams 高风险阻断）+ Agent ID 事件流 [1][3]</td>
+<td data-zh="&lt;strong&gt;不在智能体策略范围内&lt;/strong&gt;，仅记传统服务主体日志 [1]" data-en="&lt;strong&gt;Out of scope&lt;/strong&gt; for Agent CA; service principal logs [1]"><strong>不在智能体策略范围内</strong>，仅记传统服务主体日志 [1]</td>
+</tr>
+</tbody>
+</table></div>
+<p data-zh="正因权限拼图分散在不同底座与后台，单个智能体实际上横跨了&lt;strong&gt;五个很少坐在一起开会的团队&lt;/strong&gt; [1]。一线**构建者（Makers）**只看得到 Copilot Studio，从未见过 Entra 界面；&lt;strong&gt;Power Platform 管理员&lt;/strong&gt;掌管环境、数据策略、高级连接器策略与迁移建议；&lt;strong&gt;Entra 身份管理员&lt;/strong&gt;把控蓝图、拥有者与保荐人、条件访问及登录审计日志 [1]。与此同时，&lt;strong&gt;Microsoft 365 与智能体管理员&lt;/strong&gt;依托 Agent 365 清单与图形化 **Agent Map（智能体拓扑图）**巡检工具调用风险与许可证，&lt;strong&gt;安全合规团队&lt;/strong&gt;则在 Purview 与 Defender 中制定数据分级防线 [1][5]。Nicole 特别提醒企业补齐两场常年缺位的对话：一是 Power Platform 与身份团队联合评估连接器范围，二是构建者与身份团队明确“当创建智能体的员工离职时，谁来接任保荐人” [1]。" data-en="Because no single blade shows the whole truth, one agent spans &lt;strong&gt;five teams that rarely meet&lt;/strong&gt; [1]. &lt;strong&gt;Makers&lt;/strong&gt; build inside Copilot Studio without seeing Entra, while &lt;strong&gt;Power Platform admins&lt;/strong&gt; govern environments and data policies [1]. &lt;strong&gt;Entra Identity admins&lt;/strong&gt; own blueprints, sponsors, and Conditional Access. Meanwhile, &lt;strong&gt;Microsoft 365 admins&lt;/strong&gt; watch Agent 365 and the visual &lt;strong&gt;Agent Map&lt;/strong&gt;, and &lt;strong&gt;Security &amp;amp; Compliance&lt;/strong&gt; enforces Purview classifications and Defender rules [1][5]. Closing the gap requires two conversations organizations routinely skip: Power Platform and Identity jointly reviewing connector scopes, plus Makers and Identity defining who inherits the &lt;strong&gt;Sponsor&lt;/strong&gt; role when an employee leaves [1].">正因权限拼图分散在不同底座与后台，单个智能体实际上横跨了<strong>五个很少坐在一起开会的团队</strong> [1]。一线**构建者（Makers）**只看得到 Copilot Studio，从未见过 Entra 界面；<strong>Power Platform 管理员</strong>掌管环境、数据策略、高级连接器策略与迁移建议；<strong>Entra 身份管理员</strong>把控蓝图、拥有者与保荐人、条件访问及登录审计日志 [1]。与此同时，<strong>Microsoft 365 与智能体管理员</strong>依托 Agent 365 清单与图形化 **Agent Map（智能体拓扑图）**巡检工具调用风险与许可证，<strong>安全合规团队</strong>则在 Purview 与 Defender 中制定数据分级防线 [1][5]。Nicole 特别提醒企业补齐两场常年缺位的对话：一是 Power Platform 与身份团队联合评估连接器范围，二是构建者与身份团队明确“当创建智能体的员工离职时，谁来接任保荐人” [1]。</p>
+        </section>
+
+        <section id="legacy-agents-and-monday" class="section" data-reveal data-present-title-zh="存量智能体处置（重建 / 迁移 / 等待）、智能体账户前瞻与周一四步清查" data-present-title-en="Legacy 2025 Agents, Upcoming Agent Accounts, and Your Monday Four-Step Plan">
+          <div class="section-head">
+            <p class="section-kicker">04 / Legacy 2025 Agents &amp; Monday Checklist</p>
+            <h2 data-zh="4. 存量智能体处置（重建 / 迁移 / 等待）、智能体账户前瞻与周一四步清查" data-en="4. Legacy 2025 Agents, Upcoming Agent Accounts, and Your Monday Four-Step Plan">4. 存量智能体处置（重建 / 迁移 / 等待）、智能体账户前瞻与周一四步清查</h2>
+            <p data-zh="除了今天新建的主体，几乎每家企业租户里还躺着一批去年（2025 年强制切换前）上线的存量智能体——例如演示中的旧版 &lt;strong&gt;Onboarding Bot&lt;/strong&gt; [1]。如果打开 Copilot Studio 的 &lt;code&gt;Settings -&amp;gt; Advanced -&amp;gt; Metadata&lt;/code&gt; 查看元数据标签，或者去 Entra 排查就会发现：2025 年构建的旧智能体只有传统 &lt;code&gt;Application ID&lt;/code&gt;，藏在 Entra 的**企业应用（Enterprise applications）**列表下，既没有蓝图与保荐人，也无法挂载连接器范围或纳入智能体条件访问策略 [1][4]。" data-en="Alongside newly minted principals, most tenants still run legacy agents built in 2025 before the rollout—like Nicole's older &lt;strong&gt;Onboarding Bot&lt;/strong&gt; [1]. Checking &lt;code&gt;Settings -&amp;gt; Advanced -&amp;gt; Metadata&lt;/code&gt; in Copilot Studio or hunting inside Microsoft Entra reveals a stark contrast: a 2025 bot holds only a traditional &lt;code&gt;Application ID&lt;/code&gt; under &lt;strong&gt;Enterprise applications&lt;/strong&gt;, with no blueprint, no sponsor, no connector scopes, and zero coverage under agent Conditional Access [1][4].">除了今天新建的主体，几乎每家企业租户里还躺着一批去年（2025 年强制切换前）上线的存量智能体——例如演示中的旧版 <strong>Onboarding Bot</strong> [1]。如果打开 Copilot Studio 的 <code>Settings -&gt; Advanced -&gt; Metadata</code> 查看元数据标签，或者去 Entra 排查就会发现：2025 年构建的旧智能体只有传统 <code>Application ID</code>，藏在 Entra 的**企业应用（Enterprise applications）**列表下，既没有蓝图与保荐人，也无法挂载连接器范围或纳入智能体条件访问策略 [1][4]。</p>
+          </div>
+
+          <figure class="sr-figure generated-diagram is-inline-svg" data-present-step data-present-surface="unframed" data-step-title="Copilot Studio 三代智能体架构在 6 项核心治理检查点上的覆盖率对比" data-step-title-en="Governance Coverage Across Three Agent Generations Over 6 Core Tenant Checkpoints" data-present-title-zh="Copilot Studio 三代智能体架构在 6 项核心治理检查点上的覆盖率对比" data-present-title-en="Governance Coverage Across Three Agent Generations Over 6 Core Tenant Checkpoints" data-step-label="04 / Legacy 2025 Agents &amp; Monday Checklist" data-step-label-en="04 / Legacy 2025 Agents &amp; Monday Checklist" data-present-i18n-invariant="label">
+            <svg class="sr-figure-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 494" role="img" aria-labelledby="thr992-governance-coverage-comparison-2-title thr992-governance-coverage-comparison-2-desc"><title id="thr992-governance-coverage-comparison-2-title">Copilot Studio 三代智能体架构治理控制覆盖率实测对比（THR992 · 6 项核心指标）</title><desc id="thr992-governance-coverage-comparison-2-desc">Horizontal bar chart with 6 items</desc><text class="sr-zh" x="36" y="32" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="18" font-weight="700" fill="var(--fig-text-strong, #172430)">Copilot Studio 三代智能体架构治理控制覆盖率实测对比（THR992 · 6 项核心指标）</text><text class="sr-en" x="36" y="32" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="18" font-weight="700" fill="var(--fig-text-strong, #172430)">Governance &amp; Visibility Coverage Across Three Agent Generations (THR992 · 6 Core Controls)</text><text class="sr-zh" x="36" y="54" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">基于 Nicole Enders 实机核验的 6 项指标：Entra Agent ID、蓝图继承、保荐人归属、连接器权限可见性、条件访问覆盖与 Agent 365 透视</text><text class="sr-en" x="36" y="54" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">Evaluated across 6 tenant checks: Entra Agent ID, Blueprint inheritance, Sponsor binding, Entra connector scopes, Conditional Access, and Agent 365</text><line x1="300" y1="92" x2="300" y2="440" stroke="var(--fig-axis-line, rgba(23,36,48,0.24))" stroke-width="1"/><text class="sr-figure-num" x="300" y="462" text-anchor="middle" font-size="11.5" fill="var(--fig-text-subtle, #64748b)">0</text><line x1="443" y1="92" x2="443" y2="440" stroke="var(--fig-grid-line, rgba(23,36,48,0.09))" stroke-width="1" stroke-dasharray="4 4"/><text class="sr-figure-num" x="443" y="462" text-anchor="middle" font-size="11.5" fill="var(--fig-text-subtle, #64748b)">25</text><line x1="585" y1="92" x2="585" y2="440" stroke="var(--fig-grid-line, rgba(23,36,48,0.09))" stroke-width="1" stroke-dasharray="4 4"/><text class="sr-figure-num" x="585" y="462" text-anchor="middle" font-size="11.5" fill="var(--fig-text-subtle, #64748b)">50</text><line x1="728" y1="92" x2="728" y2="440" stroke="var(--fig-grid-line, rgba(23,36,48,0.09))" stroke-width="1" stroke-dasharray="4 4"/><text class="sr-figure-num" x="728" y="462" text-anchor="middle" font-size="11.5" fill="var(--fig-text-subtle, #64748b)">75</text><line x1="870" y1="92" x2="870" y2="440" stroke="var(--fig-grid-line, rgba(23,36,48,0.09))" stroke-width="1" stroke-dasharray="4 4"/><text class="sr-figure-num" x="870" y="462" text-anchor="middle" font-size="11.5" fill="var(--fig-text-subtle, #64748b)">100%</text><text class="sr-zh" x="286" y="125" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">2025 存量智能体（Onboarding Bot）</text><text class="sr-en" x="286" y="125" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">2025 Legacy Bot (Enterprise App Tag)</text><rect x="300" y="109" width="95" height="24" rx="6" fill="var(--fig-role-slate-bar, #64748b)" fill-opacity="0.88"/><text class="sr-zh" x="405" y="126" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">16.7%（1/6 · 仅传统应用注册）</text><text class="sr-en" x="405" y="126" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">16.7% (1/6 · App ID Only)</text><text class="sr-zh" x="286" y="183" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">标准底座草稿态（Expense Desk · 未发布）</text><text class="sr-en" x="286" y="183" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">Standard Harness Draft (Pre-Publish)</text><rect x="300" y="167" width="380" height="24" rx="6" fill="var(--fig-role-amber-bar, #d97706)" fill-opacity="0.88"/><text class="sr-zh" x="690" y="184" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">66.7%（4/6 · 缺连接器范围与发布态）</text><text class="sr-en" x="690" y="184" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">66.7% (4/6 · Scopes Empty)</text><text class="sr-zh" x="286" y="241" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">Copilot 底座已发布（Onboarding Buddy）</text><text class="sr-en" x="286" y="241" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">Copilot Harness Published (Nov 2026)</text><rect x="300" y="225" width="475" height="24" rx="6" fill="var(--fig-role-violet-bar, #7c3aed)" fill-opacity="0.88"/><text class="sr-zh" x="785" y="242" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">83.3%（5/6 · Entra 权限栏留白）</text><text class="sr-en" x="785" y="242" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">83.3% (5/6 · Empty Entra Scopes)</text><text class="sr-zh" x="286" y="299" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">标准底座 + M365/三方连接器已发布</text><text class="sr-en" x="286" y="299" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">Standard Harness Published (Connectors)</text><rect x="300" y="283" width="570" height="24" rx="6" fill="var(--fig-role-teal-bar, #0d8f8c)" fill-opacity="0.88"/><text class="sr-zh" x="880" y="300" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">100.0%（6/6 · Runtime.All 可见）</text><text class="sr-en" x="880" y="300" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">100.0% (6/6 · Runtime.All Shown)</text><text class="sr-zh" x="286" y="357" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">双底座 + MCP / 自定义连接器已发布</text><text class="sr-en" x="286" y="357" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">Either Harness + MCP / Custom Tools</text><rect x="300" y="341" width="475" height="24" rx="6" fill="var(--fig-role-accent-bar, #ea580c)" fill-opacity="0.88"/><text class="sr-zh" x="785" y="358" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">83.3%（5/6 · 需借 A365 补盲 API）</text><text class="sr-en" x="785" y="358" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">83.3% (5/6 · Needs A365 Tools View)</text><text class="sr-zh" x="286" y="415" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">叠加 Agent 365 + DLP + JML 全闭环</text><text class="sr-en" x="286" y="415" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">Full Stack: Entra + Agent 365 + DLP</text><rect x="300" y="399" width="570" height="24" rx="6" fill="var(--fig-role-teal-bar, #0d8f8c)" fill-opacity="0.88"/><text class="sr-zh" x="880" y="416" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">100.0%（6/6 · 五方协同闭环）</text><text class="sr-en" x="880" y="416" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">100.0% (6/6 · 5-Team Closed Loop)</text><text class="sr-zh" x="585" y="486" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">治理控制面就绪比例（0% – 100%，按 6 项租户检查点折算）</text><text class="sr-en" x="585" y="486" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Governance Control Coverage Ratio (0% – 100% Across 6 Tenant Checkpoints)</text></svg>
+            <figcaption class="diagram-caption"><span data-zh="图 2：基于本场实机核验的 6 项治理控制点（智能体身份、唯一蓝图继承、保荐人归属、连接器范围显示、条件访问覆盖、Agent 365 深度透视）量化对比。2025 存量机器人仅占 1/6（16.7%），Copilot 底座与挂载模型上下文协议工具的智能体因权限栏留白处于 5/6（83.3%），结合 Agent 365 工具视图与 Power Platform 数据策略即可达成 6/6（100%）治理闭环 [1][2][5]。" data-en="Figure 2: Quantitative coverage across the session's six governance checkpoints. Legacy 2025 bots satisfy just 1 of 6 controls (16.7%). Published Copilot harness and protocol-tool agents reach 5 of 6 (83.3%) due to empty Entra scope blades, while pairing Entra with Agent 365 and Power Platform data policies completes 6 of 6 (100%) visibility [1][2][5].">图 2：基于本场实机核验的 6 项治理控制点（智能体身份、唯一蓝图继承、保荐人归属、连接器范围显示、条件访问覆盖、Agent 365 深度透视）量化对比。2025 存量机器人仅占 1/6（16.7%），Copilot 底座与挂载模型上下文协议工具的智能体因权限栏留白处于 5/6（83.3%），结合 Agent 365 工具视图与 Power Platform 数据策略即可达成 6/6（100%）治理闭环 [1][2][5]。</span></figcaption>
+          </figure>
+
+          <p data-zh="面对这些存量旧智能体，翻阅微软当前公开资料居然会读到&lt;strong&gt;三种并存的处置答案&lt;/strong&gt; [1][4]：" data-en="Administrators consulting Microsoft's own portals today encounter &lt;strong&gt;three competing answers&lt;/strong&gt; for legacy bots [1][4]:">面对这些存量旧智能体，翻阅微软当前公开资料居然会读到<strong>三种并存的处置答案</strong> [1][4]：</p>
+<ol>
+<li data-zh="&lt;strong&gt;彻底重建（Recreate · Entra 文档 2026-06-15 口径）" data-en="Recreate (Entra Docs, &lt;code&gt;ms.date&lt;/code&gt; 2026-06-15)&lt;/strong&gt; — 早期 Entra 官方文档维持 6 月以来的口径，指出无就地升级路径，需重新创建新智能体、重配工具知识并退役旧服务主体；虽然工作量较大，但对于早期试水堆砌、架构陈旧的复杂旧机器人而言，趁机重构往往更干净 [1][2]。  ||  Early Entra docs state no in-place path exists—build a fresh agent, reconfigure tools, and retire the old service principal, which still makes sense when cleaning up sprawling early prototypes [1][2]."><strong>彻底重建（Recreate · Entra 文档 2026-06-15 口径）</li>
+<li data-zh="&lt;strong&gt;预览版就地迁移（Migrate · Copilot Studio 预览能力，8 月 24 日开放自助）" data-en="In-Place Preview Migrate (Copilot Studio Self-Service Since Aug 24, 2026)&lt;/strong&gt; — Copilot Studio 文档提供了预览版就地迁移开关，迁移后客户端 ID（Client ID）保持不变、已发布渠道继续正常解析且附带回滚机制；但预览期若遇迁移异常，仍可能退回手工重建 [1][4]。  ||  Copilot Studio offers an in-place preview migration preserving the Client ID and live channel bindings with rollback support, letting teams pilot upgrades on their own schedule [1][4]."><strong>预览版就地迁移（Migrate · Copilot Studio 预览能力，8 月 24 日开放自助）</li>
+<li data-zh="&lt;strong&gt;等待后台自动迁移（Wait · 消息中心 MC1478488，9 月启动）" data-en="Wait for Automatic Migration (Message Center &lt;code&gt;MC1478488&lt;/code&gt;, Active Since Sept 2026)&lt;/strong&gt; — 微软消息中心通告 &lt;code&gt;MC1478488&lt;/code&gt; 已于 2026 年 9 月启动存量智能体自动后台迁移且未设明确截止日；通告虽写着“无需操作（No action required）”，底下却紧跟着&lt;strong&gt;八项迁移后验证步骤&lt;/strong&gt;——若被动等待微软在未知时间点自动切换，一旦触发权限报错或业务中断，运维团队只能仓促救火 [1][4]。  ||  Message Center post &lt;code&gt;MC1478488&lt;/code&gt; began automatic background migrations in September 2026 with no published end date—pairing “No action required” with &lt;strong&gt;eight post-migration validation steps&lt;/strong&gt;, which means waiting passively risks unexpected Monday outages [1][4]."><strong>等待后台自动迁移（Wait · 消息中心 MC1478488，9 月启动）</li>
+</ol>
+<p data-zh="在规划存量盘点的同时，下一波架构演进已经抵达 [1][6]。其一是关联专场 BRK261 深入拆解的&lt;strong&gt;智能体账户（Agent Accounts，路线图编号 Roadmap 570430，此前曾称 Agent Users，目标 2026 年 11 月正式商用）&lt;/strong&gt;，让持久化智能体直接拥有独立的 Microsoft 365 账户、专属邮箱、Teams 在线状态与 Office 文档访问权 [1][6]。其二是面向智能体账户预览开放的&lt;strong&gt;细粒度条件访问控制杆&lt;/strong&gt;（新增设备、网络与执行环境校验，而普通智能体身份现阶段仍仅限风险评估与阻断），配合 2026 年 8 月上线的 &lt;strong&gt;Agent 365&lt;/strong&gt; 构成全域治理底座 [1][5][6]。" data-en="Even before teams finish counting legacy bots, three upcoming capabilities shift the baseline again [1][6]. First, &lt;strong&gt;Agent accounts&lt;/strong&gt; (&lt;strong&gt;Roadmap 570430&lt;/strong&gt;, formerly called &lt;em&gt;agent users&lt;/em&gt; and targeting general availability in November 2026) give persistent agents their own Microsoft 365 account, mailbox, Teams presence, and Office access [1][6]. Second, &lt;strong&gt;new Conditional Access levers&lt;/strong&gt; preview device, network, and execution environment checks for agent accounts while standard agent identities retain risk-and-block [1][3]. Third, unified &lt;strong&gt;Agent 365&lt;/strong&gt; fleet observability has anchored tenant-wide governance since August 2026 [1][5].">在规划存量盘点的同时，下一波架构演进已经抵达 [1][6]。其一是关联专场 BRK261 深入拆解的<strong>智能体账户（Agent Accounts，路线图编号 Roadmap 570430，此前曾称 Agent Users，目标 2026 年 11 月正式商用）</strong>，让持久化智能体直接拥有独立的 Microsoft 365 账户、专属邮箱、Teams 在线状态与 Office 文档访问权 [1][6]。其二是面向智能体账户预览开放的<strong>细粒度条件访问控制杆</strong>（新增设备、网络与执行环境校验，而普通智能体身份现阶段仍仅限风险评估与阻断），配合 2026 年 8 月上线的 <strong>Agent 365</strong> 构成全域治理底座 [1][5][6]。</p>
+
+          <ol class="flow-list" data-present-step data-present-surface="unframed" data-step-title="周一回到工位即可执行的租户智能体四步核查法（THR992 行动清单）" data-step-title-en="Four-Step Monday Morning Tenant Audit for Today's &amp; Last Year's Agents" data-present-title-zh="周一回到工位即可执行的租户智能体四步核查法（THR992 行动清单）" data-present-title-en="Four-Step Monday Morning Tenant Audit for Today's &amp; Last Year's Agents" data-step-label="04 / Legacy 2025 Agents &amp; Monday Checklist" data-step-label-en="04 / Legacy 2025 Agents &amp; Monday Checklist" data-present-i18n-invariant="label">
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="第一步（针对新建智能体）：定位 Entra 主体" data-en="Check 1 (Today's Agents): Locate Entra Agent Principals">第一步（针对新建智能体）：定位 Entra 主体</strong>
+                <p data-zh="打开 &lt;code&gt;Entra -&amp;gt; Agents -&amp;gt; Agent identities&lt;/code&gt; 清单，核实近期上线的 Copilot Studio 智能体是否均已落盘（注意：未发布的 Copilot 底座草稿与 2025 年存量旧智能体不会出现在此处）[1]。" data-en="Open &lt;code&gt;Entra -&amp;gt; Agents -&amp;gt; Agent identities&lt;/code&gt; to verify newly built principals are registered, keeping in mind unpublished Copilot-harness drafts and 2025 legacy bots will not appear here [1].">打开 <code>Entra -&gt; Agents -&gt; Agent identities</code> 清单，核实近期上线的 Copilot Studio 智能体是否均已落盘（注意：未发布的 Copilot 底座草稿与 2025 年存量旧智能体不会出现在此处）[1]。</p>
+              </div>
+            </li>
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="第二步（针对新建智能体）：交叉核对连接器权限与数据策略" data-en="Check 2 (Today's Agents): Cross-Check Permissions &amp;amp; Data Policies">第二步（针对新建智能体）：交叉核对连接器权限与数据策略</strong>
+                <p data-zh="逐一检视智能体身份下的接口权限，并同步在 Agent 365 的 &lt;code&gt;Data &amp;amp; tools&lt;/code&gt; 页与 Power Platform 数据策略中双向对账（填补 Copilot 底座留白与 &lt;code&gt;Runtime.All&lt;/code&gt; 聚合盲区，管住具体允许执行的连接器动作）[1][2]。" data-en="Inspect Entra permissions alongside Agent 365's &lt;code&gt;Data &amp;amp; tools&lt;/code&gt; view and Power Platform data policies together so aggregated &lt;code&gt;Runtime.All&lt;/code&gt; rows and blank custom scopes never hide real connector reach [1][2].">逐一检视智能体身份下的接口权限，并同步在 Agent 365 的 <code>Data &amp; tools</code> 页与 Power Platform 数据策略中双向对账（填补 Copilot 底座留白与 <code>Runtime.All</code> 聚合盲区，管住具体允许执行的连接器动作）[1][2]。</p>
+              </div>
+            </li>
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="第三步（针对去年存量）：按专属标签清点旧企业应用" data-en="Check 3 (Last Year's Agents): Count Tagged Enterprise Apps">第三步（针对去年存量）：按专属标签清点旧企业应用</strong>
+                <p data-zh="进入 Entra &lt;code&gt;Enterprise applications&lt;/code&gt; 视图，筛选带有 &lt;code&gt;AgentCreatedBy:CopilotStudio&lt;/code&gt; 标签的传统服务主体，摸清租户内究竟还存留多少台无保荐人、无条件访问保护的旧版智能体 [1]。" data-en="Filter &lt;code&gt;Enterprise applications&lt;/code&gt; by the &lt;code&gt;AgentCreatedBy:CopilotStudio&lt;/code&gt; tag to get an exact count of legacy 2025 service principals operating outside Agent ID governance [1].">进入 Entra <code>Enterprise applications</code> 视图，筛选带有 <code>AgentCreatedBy:CopilotStudio</code> 标签的传统服务主体，摸清租户内究竟还存留多少台无保荐人、无条件访问保护的旧版智能体 [1]。</p>
+              </div>
+            </li>
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="第四步（针对去年存量）：逐台拍板路径并接入离职流程" data-en="Check 4 (Last Year's Agents): Pilot Migration &amp;amp; Bind Leaver Workflows">第四步（针对去年存量）：逐台拍板路径并接入离职流程</strong>
+                <p data-zh="在微软后台自动迁移触达前，先为每台旧智能体指定明确的拥有者与保荐人，按业务关键度在“就地预览迁移、保留观察、直接封禁淘汰”间做出决断，并将智能体保荐人正式写入企业员工**入转调离（Joiner-Mover-Leaver）**管理制度 [1][4]。" data-en="Assign explicit owners and sponsors first, choose between preview migration, holding, or blocking before automatic migration runs, and embed agent sponsorship into your HR &lt;strong&gt;joiner-mover-leaver&lt;/strong&gt; workflow [1][4].">在微软后台自动迁移触达前，先为每台旧智能体指定明确的拥有者与保荐人，按业务关键度在“就地预览迁移、保留观察、直接封禁淘汰”间做出决断，并将智能体保荐人正式写入企业员工**入转调离（Joiner-Mover-Leaver）**管理制度 [1][4]。</p>
+              </div>
+            </li>
+          </ol>
+        </section>
+
+        <section id="references" class="section" data-reveal data-present-title-zh="参考资料：官方一手信源与工程规范" data-present-title-en="References: Official Primary Sources &amp; Engineering Guides" data-density-exempt="references">
+          <div class="section-head">
+            <p class="section-kicker">05 / References: Official Primary Sources &amp; Engineering Guides</p>
+            <h2 data-zh="5. 参考资料：官方一手信源与工程规范" data-en="5. References: Official Primary Sources &amp; Engineering Guides">5. 参考资料：官方一手信源与工程规范</h2>
+          </div>
+
+          <ol class="bib-list">
+            <li id="ref-1">
+              <span class="bib-id">[1]</span>
+              <span class="bib-author">Nicole Enders (Microsoft Ignite 2026 THR992 Video &amp; Transcript)</span> —
+              <a href="https://ignite.microsoft.com/en-US/sessions/1787856596548001Euhx-1791588214960001CKMK" target="_blank" rel="noopener">https://ignite.microsoft.com/en-US/sessions/1787856596548001Euhx-1791588214960001CKMK</a>
+              <span class="bib-note" data-zh="《Every agent is a principal now. Do you know what yours can reach?》官方剧场专场点播实录（&lt;code&gt;https://medius.microsoft.com/Embed/video-nc/1de00190-3e6a-40e0-8c56-832593cdb25f&lt;/code&gt;）与完整双语 WebVTT 演讲字幕（2026-11-20）" data-en="Official Ignite 2026 Theater recording, Medius stream, and verbatim WebVTT transcripts (Nov 20, 2026)">《Every agent is a principal now. Do you know what yours can reach?》官方剧场专场点播实录（<code>https://medius.microsoft.com/Embed/video-nc/1de00190-3e6a-40e0-8c56-832593cdb25f</code>）与完整双语 WebVTT 演讲字幕（2026-11-20）</span>
+            </li>
+            <li id="ref-2">
+              <span class="bib-id">[2]</span>
+              <span class="bib-author">Microsoft Learn — Manage Microsoft Entra Agent IDs &amp; App Registration Authentication</span> —
+              <a href="https://learn.microsoft.com/en-us/entra/agent-id/" target="_blank" rel="noopener">https://learn.microsoft.com/en-us/entra/agent-id/</a>
+              <span class="bib-note" data-zh="微软官方智能体身份架构、单一蓝图继承、创建者保荐人及连接器权限说明文档（THR992 引用之 2026-08-21 修订版）" data-en="Official Microsoft Learn documentation on Entra Agent IDs, blueprints, sponsors, and connector authentication (Aug 21, 2026 update cited in THR992)">微软官方智能体身份架构、单一蓝图继承、创建者保荐人及连接器权限说明文档（THR992 引用之 2026-08-21 修订版）</span>
+            </li>
+            <li id="ref-3">
+              <span class="bib-id">[3]</span>
+              <span class="bib-author">Microsoft Learn — Target Agent Identities in Microsoft Entra Conditional Access</span> —
+              <a href="https://learn.microsoft.com/en-us/entra/identity/conditional-access/" target="_blank" rel="noopener">https://learn.microsoft.com/en-us/entra/identity/conditional-access/</a>
+              <span class="bib-note" data-zh="面向智能体身份的条件访问策略配置与风险阻断规则说明（THR992 引用之 2026-07-31 发布、2026-09-30 修订版）" data-en="Conditional Access targeting and risk-based blocking policies for non-human agent principals (Jul 31 / Sep 30, 2026 updates)">面向智能体身份的条件访问策略配置与风险阻断规则说明（THR992 引用之 2026-07-31 发布、2026-09-30 修订版）</span>
+            </li>
+            <li id="ref-4">
+              <span class="bib-id">[4]</span>
+              <span class="bib-author">Microsoft Copilot Studio Documentation &amp; Message Center MC1478488</span> —
+              <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/" target="_blank" rel="noopener">https://learn.microsoft.com/en-us/microsoft-copilot-studio/</a>
+              <span class="bib-note" data-zh="Copilot Studio 存量智能体自助预览迁移指南（2026-08-24）及消息中心 &lt;code&gt;MC1478488&lt;/code&gt; 自动迁移与八步核验通告（2026-09）" data-en="Self-service preview migration guidance and Message Center &lt;code&gt;MC1478488&lt;/code&gt; automatic legacy migration rollout notes">Copilot Studio 存量智能体自助预览迁移指南（2026-08-24）及消息中心 <code>MC1478488</code> 自动迁移与八步核验通告（2026-09）</span>
+            </li>
+            <li id="ref-5">
+              <span class="bib-id">[5]</span>
+              <span class="bib-author">Microsoft 365 Admin Center — Agent 365 Inventory &amp; Agent Map</span> —
+              <a href="https://learn.microsoft.com/en-us/microsoft-365/admin/" target="_blank" rel="noopener">https://learn.microsoft.com/en-us/microsoft-365/admin/</a>
+              <span class="bib-note" data-zh="Microsoft 365 管理中心全局智能体注册表（Agent 365）、工具 API 透视、Purview 敏感交互审计与拓扑风险视图指南" data-en="Enterprise governance documentation for Agent 365 inventory, tool API inspection, Purview sensitivity auditing, and Agent Map">Microsoft 365 管理中心全局智能体注册表（Agent 365）、工具 API 透视、Purview 敏感交互审计与拓扑风险视图指南</span>
+            </li>
+            <li id="ref-6">
+              <span class="bib-id">[6]</span>
+              <span class="bib-author">Matt Hidinger &amp; Evan Lew (Microsoft Ignite 2026 BRK261 &amp; Roadmap 570430)</span> —
+              <a href="https://www.microsoft.com/en-us/microsoft-365/roadmap?id=570430" target="_blank" rel="noopener">https://www.microsoft.com/en-us/microsoft-365/roadmap?id=570430</a>
+              <span class="bib-note" data-zh="THR992 关联专场《From tool to teammate: Persistent agents for shared processes in Copilot Studio》与 Microsoft 365 智能体账户路线图（570430）" data-en="Companion session BRK261 on persistent Copilot Studio teammates and Microsoft 365 Roadmap ID 570430 for Agent Accounts">THR992 关联专场《From tool to teammate: Persistent agents for shared processes in Copilot Studio》与 Microsoft 365 智能体账户路线图（570430）</span>
+            </li>
+          </ol>
+        </section>
+      </main>
+
+      <footer class="site-footer" data-reveal>
+        <p data-zh="© 2026 Knowledge Hub · Genesis 纯静态 Markdown 编译管线生成" data-en="© 2026 Knowledge Hub · Generated by Genesis Static Markdown Compiler">© 2026 Knowledge Hub · Genesis 纯静态 Markdown 编译管线生成</p>
+      </footer>
+    </div>
+  </div>
+
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/article-narration.js"></script>
+  <script src="../../assets/pptx-export.js"></script>
+  <script src="../../assets/article-math.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+  <script src="./thr992-session.js"></script>
+  <script>
+    (function () {
+      var buttons = document.querySelectorAll("[data-genesis-mode]");
+      var drawer = document.getElementById("genesis-source-drawer");
+      var i;
+      function setMode(mode) {
+        for (var j = 0; j < buttons.length; j++) {
+          var btn = buttons[j];
+          var active = btn.getAttribute("data-genesis-mode") === mode;
+          if (active) {
+            btn.classList.add("is-active");
+          } else {
+            btn.classList.remove("is-active");
+          }
+        }
+        if (mode === "linear") {
+          document.body.classList.add("is-linear-reading");
+          if (drawer) drawer.classList.remove("is-open");
+        } else if (mode === "source") {
+          document.body.classList.remove("is-linear-reading");
+          if (drawer) drawer.classList.add("is-open");
+        } else {
+          document.body.classList.remove("is-linear-reading");
+          if (drawer) drawer.classList.remove("is-open");
+        }
+      }
+      for (i = 0; i < buttons.length; i++) {
+        (function (btn) {
+          btn.addEventListener("click", function () {
+            setMode(btn.getAttribute("data-genesis-mode"));
+          });
+        })(buttons[i]);
+      }
+    })();
+  </script>
+</body>
+</html>
