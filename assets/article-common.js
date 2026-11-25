@@ -542,7 +542,24 @@
   applyCitationLinks();
   document.addEventListener('langChanged', applyCitationLinks);
 
+  var isAuthoringStudioEnabled = function () {
+    try {
+      var params = new URLSearchParams(window.location.search || '');
+      var s = params.get('studio'), a = params.get('authoring');
+      if (s === '0' || a === '0') return false;
+      if (s === '1' || s === 'true' || a === '1' || a === 'true') return true;
+      var rootEl = document.documentElement;
+      if (rootEl && (rootEl.getAttribute('data-authoring-host') === 'captain-docs' || rootEl.hasAttribute('data-studio-enabled'))) return true;
+      if (window.self !== window.top) {
+        try { if (window.frameElement && window.frameElement.classList && window.frameElement.classList.contains('docs-rich-html-stage')) return true; } catch (_e) { /* cross-origin */ }
+        if (/\/api\/docs\/|captain-docs/i.test(document.referrer || '')) return true;
+      }
+    } catch (_err) { return false; }
+    return false;
+  };
+
   var addVideoStudioLink = function () {
+    if (!isAuthoringStudioEnabled()) return;
     var match = /^\/(?:[^/]+\/)?posts\/([a-z0-9-]+)\//.exec(window.location.pathname);
     var bar = document.querySelector('.topbar');
     var actions, btn, syncLabel, slug, modalLoading = false;
