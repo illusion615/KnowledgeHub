@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-section-density="strict" data-present-i18n="strict" data-cite-links>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Microsoft Ignite 2026 [BRK238]：Frontier Tuning——在真实业务流程上构建企业专属智能体学习闭环</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <link rel="stylesheet" href="../../assets/article-figure.css" />
+  <link rel="stylesheet" href="./brk238-theater.css" />
+  <style>
+    :root {
+      --accent: #2563eb;
+      --teal: #0d8f8c;
+    }
+    html.is-presentation-mode .section:has([data-present-step]) > .section-head {
+      display: none;
+    }
+    .hero-copy h1 {
+      font-size: clamp(2.1rem, 5vw, 3.8rem);
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+      max-width: 20ch;
+    }
+    .hero-panel .layer-list { position: relative; margin-top: 18px; }
+    .insight-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .insight-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .insight-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    @media (max-width: 980px) {
+      .insight-grid-3, .insight-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 680px) {
+      .insight-grid-2, .insight-grid-3, .insight-grid-4 { grid-template-columns: 1fr; }
+    }
+    .compare-table-wrap {
+      margin-top: 18px;
+      overflow-x: auto;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 6px 14px;
+      box-shadow: var(--shadow);
+    }
+    .compare-table-wrap .compare-table {
+      width: 100%;
+      min-width: 680px;
+      border-collapse: collapse;
+      margin-top: 0;
+      font-size: 0.9rem;
+    }
+    .compare-table-wrap .compare-table th {
+      text-align: left;
+      padding: 12px 14px;
+      background: rgba(15, 23, 42, 0.04);
+      border-bottom: 2px solid rgba(15, 23, 42, 0.1);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-weight: 700;
+      font-size: 0.8rem;
+      letter-spacing: 0.04em;
+      text-transform: none;
+      color: var(--ink);
+      vertical-align: bottom;
+    }
+    .compare-table-wrap .compare-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+      line-height: 1.65;
+      color: var(--ink);
+      vertical-align: top;
+    }
+    .compare-table-wrap .compare-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+    .compare-table-wrap .compare-table td:first-child {
+      font-weight: 600;
+      min-width: 150px;
+    }
+    .compare-table-wrap .compare-table code,
+    .section p code,
+    .flow-copy code,
+    .insight-card code,
+    .comparison-card code,
+    .quote-block code,
+    .subsection-toggle code,
+    .subsection-content p code,
+    .bib-list code {
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.84em;
+      padding: 2px 6px;
+      border-radius: 5px;
+      background: rgba(15, 23, 42, 0.06);
+      color: var(--ink);
+    }
+    [data-theme="dark"] .compare-table-wrap {
+      background: rgba(22, 29, 38, 0.9);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+    [data-theme="dark"] .compare-table-wrap .compare-table th {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.12);
+      color: var(--ink);
+    }
+    [data-theme="dark"] .compare-table-wrap .compare-table td {
+      border-color: rgba(255, 255, 255, 0.07);
+      color: var(--ink);
+    }
+    [data-theme="dark"] .compare-table-wrap .compare-table code,
+    [data-theme="dark"] .section p code,
+    [data-theme="dark"] .flow-copy code,
+    [data-theme="dark"] .insight-card code,
+    [data-theme="dark"] .comparison-card code,
+    [data-theme="dark"] .quote-block code,
+    [data-theme="dark"] .subsection-toggle code,
+    [data-theme="dark"] .subsection-content p code,
+    [data-theme="dark"] .bib-list code {
+      background: rgba(255, 255, 255, 0.1);
+      color: #e2e8f0;
+    }
+    .timeline-list > .flow-step::before {
+      background: linear-gradient(135deg, var(--teal), #14b8a6);
+    }
+    .insight-callout {
+      border-left: 4px solid var(--teal);
+    }
+    .code-block {
+      margin: 18px 0;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .code-block pre {
+      margin: 0;
+      padding: 20px 22px;
+      background: rgba(16, 31, 43, 0.95);
+      color: #cdd6e0;
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.82rem;
+      line-height: 1.68;
+      overflow-x: auto;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+    }
+    [data-theme="dark"] .code-block pre {
+      background: rgba(0, 0, 0, 0.46);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+    .mermaid-container {
+      margin: 22px 0;
+      padding: 24px 18px;
+      border-radius: var(--radius-md);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      text-align: center;
+      overflow-x: auto;
+    }
+    .generated-diagram {
+      margin-top: 22px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+    .generated-diagram img {
+      display: block;
+      width: 100%;
+      height: auto;
+      object-fit: contain;
+    }
+    html[lang="en"] .diagram-zh,
+    html:not([lang="en"]) .diagram-en { display: none; }
+    .diagram-caption {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+    .diagram-caption a { color: var(--teal); font-weight: 600; white-space: nowrap; }
+    [data-theme="dark"] .generated-diagram {
+      background: rgba(22, 29, 38, 0.9);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+    .sandbox-slot {
+      margin-top: 22px;
+      padding: 22px;
+      border-radius: var(--radius-lg);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+    .sandbox-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .sandbox-title-group h3 { margin: 10px 0 6px; font-size: 1.18rem; }
+    .sandbox-title-group p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+    .sandbox-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .sandbox-stage {
+      border-radius: var(--radius-md);
+      background: rgba(16, 31, 43, 0.04);
+      border: 1px solid var(--line);
+      padding: 14px;
+      overflow: hidden;
+    }
+    [data-theme="dark"] .sandbox-stage {
+      background: rgba(0, 0, 0, 0.28);
+    }
+    .sandbox-canvas {
+      display: block;
+      width: 100%;
+      max-height: 300px;
+      border-radius: 10px;
+    }
+    /* Dual-view switcher bar (Progressive / Linear / Markdown Source) */
+    .genesis-view-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 18px 0 8px;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      font-size: 0.82rem;
+    }
+    .genesis-view-status {
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .genesis-view-buttons {
+      display: inline-flex;
+      gap: 6px;
+    }
+    .genesis-view-btn {
+      appearance: none;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.18s ease, color 0.18s ease;
+    }
+    .genesis-view-btn.is-active {
+      background: linear-gradient(135deg, var(--accent), #ff9340);
+      color: #fff;
+    }
+    .genesis-source-drawer {
+      display: none;
+      margin: 18px 0 28px;
+      padding: 20px;
+      border-radius: var(--radius-lg);
+      background: rgba(16, 31, 43, 0.96);
+      color: #dbe4ee;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      overflow-x: auto;
+    }
+    .genesis-source-drawer.is-open { display: block; }
+    .genesis-source-drawer pre {
+      margin: 0;
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.8rem;
+      line-height: 1.65;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    body.is-linear-reading .subsection-content {
+      max-height: none !important;
+      opacity: 1 !important;
+      overflow: visible !important;
+      padding: 0 24px 24px !important;
+    }
+    .is-presentation-mode .genesis-view-bar,
+    .is-presentation-mode .genesis-source-drawer {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            <span data-zh="Study Room Copilot Studio" data-en="Study Room Copilot Studio">Study Room Copilot Studio</span>
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#jagged-intelligence" data-zh="参差智能困局" data-en="The Jagged Intelligence Trap">参差智能困局</a>
+            <a href="#rle-private-evals" data-zh="数字孪生与抗作弊评测" data-en="Digital Twin &amp; Hardened Evals">数字孪生与抗作弊评测</a>
+            <a href="#three-tuning-loops" data-zh="三环渐进爬坡" data-en="Three-Ring Hill-Climbing">三环渐进爬坡</a>
+            <a href="#customer-outcomes" data-zh="四大客户实测账单" data-en="Real Customer Scorecards">四大客户实测账单</a>
+            <a href="#stack-adoption" data-zh="Copilot Studio × Foundry 协同栈与四步渐进落地指南" data-en="Copilot Studio × Foundry Stack Synergy and Four-Step Adoption Playbook">Copilot Studio × Foundry 协同栈与四步渐进落地指南</a>
+            <a href="#references" data-zh="参考资料" data-en="References">参考资料</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow" data-zh="Microsoft Ignite 2026 · BRK238 Official Deep Dive" data-en="Microsoft Ignite 2026 · BRK238 Official Deep Dive">Microsoft Ignite 2026 · BRK238 Official Deep Dive</span>
+            <h1 data-zh="Microsoft Ignite 2026 [BRK238]：Frontier Tuning——在真实业务流程上构建企业专属智能体学习闭环" data-en="Microsoft Ignite 2026 [BRK238]: Frontier Tuning—Building Enterprise Agent Learning Loops for Real-World Outcomes">Microsoft Ignite 2026 [BRK238]：Frontier Tuning——在真实业务流程上构建企业专属智能体学习闭环</h1>
+            <p data-zh="在 Microsoft Ignite 2026 专场 BRK238 中，微软副总裁 Ranveer Chandra 偕产品与客户专家团队揭示了通用大模型落地的核心痛点：实验室合成强化学习环境训练出的模型缺乏跨企业泛化力，一旦进入私有业务流程便陷入高昂试错账单与参差失误 [1][2]。Frontier Tuning 将企业邮件、文档、专家隐性经验与真实业务工具编码为统一的数字孪生学习环境，按“技能蒸馏—执行内核树搜索—强化微调”三环递进爬坡，助推 Land O'Lakes、Pearson 与安永（EY）用自持小模型以 1/7 至 1/28 的单任务成本追平乃至反超前沿大模型 [1][2]。" data-en="In Microsoft Ignite 2026 session BRK238, VP Ranveer Chandra alongside product and customer leaders pinpointed why general frontier models stumble in production: reinforcement learning post-training on synthetic lab environments fails to generalize to private enterprise workflows, triggering costly trial-and-error loops [1][2]. Frontier Tuning encodes organizational signals, tacit expert judgment, and virtualized tools into a unified learning environment, hill-climbing across skills, harness tree search, and reinforcement fine-tuning so small models match or beat frontier baselines at 1/7 to 1/28 the cost for Land O'Lakes, Pearson, and EY [1][2].">在 Microsoft Ignite 2026 专场 BRK238 中，微软副总裁 Ranveer Chandra 偕产品与客户专家团队揭示了通用大模型落地的核心痛点：实验室合成强化学习环境训练出的模型缺乏跨企业泛化力，一旦进入私有业务流程便陷入高昂试错账单与参差失误 [1][2]。Frontier Tuning 将企业邮件、文档、专家隐性经验与真实业务工具编码为统一的数字孪生学习环境，按“技能蒸馏—执行内核树搜索—强化微调”三环递进爬坡，助推 Land O'Lakes、Pearson 与安永（EY）用自持小模型以 1/7 至 1/28 的单任务成本追平乃至反超前沿大模型 [1][2]。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#jagged-intelligence" data-zh="阅读核心章节" data-en="Explore Core Chapters">阅读核心章节</a>
+              <a class="button button-secondary" href="#rle-private-evals" data-zh="数字孪生与抗作弊评测" data-en="Digital Twin &amp; Hardened Evals">数字孪生与抗作弊评测</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label" data-zh="BRK238 核心架构与实测摘要" data-en="BRK238 Executive Brief">BRK238 核心架构与实测摘要</span>
+            <h2 data-zh="从合成训练场转向租户自持的企业学习闭环" data-en="From Lab Environments to Tenant-Owned Learning Loops">从合成训练场转向租户自持的企业学习闭环</h2>
+            <p data-zh="同构强化学习环境（RLE）贯通私有压力评测、无副作用工具推演与 Foundry 模型微调，消除训练与线上服务偏差 [1][2]。" data-en="A unified Reinforcement Learning Environment (RLE) spans private stress evals, zero-side-effect tool rollouts, and Foundry fine-tuning with zero train-serve skew [1][2].">同构强化学习环境（RLE）贯通私有压力评测、无副作用工具推演与 Foundry 模型微调，消除训练与线上服务偏差 [1][2]。</p>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span><span data-zh="数字孪生编码 — 融合组织上下文信号与 Teams 专家访谈，秒级构建四元调优环境 [1][2]" data-en="Digital Twin Encoding — Blends organizational context and Teams SME interviews into a four-block RLE [1][2]">数字孪生编码 — 融合组织上下文信号与 Teams 专家访谈，秒级构建四元调优环境 [1][2]</span></li>
+              <li><span class="layer-number">2</span><span data-zh="三环按需爬坡 — 先调技能与内核树搜索，仅在探针证实存在增益空间时触发强化微调 [1][2]" data-en="Three-Loop Hill Climb — Tunes skills and MCTS harness first, triggering RFT only when search proves headroom [1][2]">三环按需爬坡 — 先调技能与内核树搜索，仅在探针证实存在增益空间时触发强化微调 [1][2]</span></li>
+              <li><span class="layer-number">3</span><span data-zh="小模型越级降本 — 调优小模型在四家标杆客户私有基准上追平或超越前沿模型，成本骤降 86%–96% [1][2]" data-en="Small-Model Economics — Tuned small models match or beat frontier baselines while cutting cost by 86%–96% [1][2]">小模型越级降本 — 调优小模型在四家标杆客户私有基准上追平或超越前沿模型，成本骤降 86%–96% [1][2]</span></li>
+            </ul>
+          </aside>
+        </div>
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label" data-zh="Land O'Lakes 感官报告成本" data-en="Land O'Lakes Report Cost">Land O'Lakes 感官报告成本</div>
+            <strong>1/28 ($0.014)</strong>
+            <span data-zh="GPT-6 Luna 配合树搜索得分 0.967 超越前沿模型（0.940），千份报告仅需 $14 [2]" data-en="GPT-6 Luna + Tree Search scores 0.967 vs. 0.940 frontier baseline at $14 per 1,000 reports [2]">GPT-6 Luna 配合树搜索得分 0.967 超越前沿模型（0.940），千份报告仅需 $14 [2]</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="Pearson 沟通教练单次花费" data-en="Pearson Coaching Spend">Pearson 沟通教练单次花费</div>
+            <strong>1/7 ($0.25)</strong>
+            <span data-zh="MAI 1.1 微调模型拿下满分 1.00，千次员工辅导账单从 $1,781 压缩至 $246 [2]" data-en="Fine-tuned MAI 1.1 hits a 1.00 rubric score, cutting 1,000 sessions from $1,781 to $246 [2]">MAI 1.1 微调模型拿下满分 1.00，千次员工辅导账单从 $1,781 压缩至 $246 [2]</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="安永税务研究小模型跃升" data-en="EY Tax Advisor Quality Lift">安永税务研究小模型跃升</div>
+            <strong>+41.1 pts</strong>
+            <span data-zh="MAI 1.1 从基线 0.496 跃升至 0.907 反超前沿模型，支撑全球 75,000 名税务专家 [1][2]" data-en="MAI 1.1 climbs from 0.496 to 0.907 to beat GPT-5.6-Sol (0.851), scaling to 75,000 tax pros [1][2]">MAI 1.1 从基线 0.496 跃升至 0.907 反超前沿模型，支撑全球 75,000 名税务专家 [1][2]</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="genesis-view-bar load-in" role="region" aria-label="Genesis 视图模式切换">
+        <span class="genesis-view-status" data-zh="Genesis 纯静态编译产物 · 零后端依赖 · 支持渐进披露与源稿对照" data-en="Genesis Static Compiled Artifact · Zero Backend · Progressive &amp; Source View">Genesis 纯静态编译产物 · 零后端依赖 · 支持渐进披露与源稿对照</span>
+        <div class="genesis-view-buttons">
+          <button type="button" class="genesis-view-btn is-active" data-genesis-mode="progressive" data-zh="渐进披露视图" data-en="Progressive View">渐进披露视图</button>
+          <button type="button" class="genesis-view-btn" data-genesis-mode="linear" data-zh="线性展开视图" data-en="Linear View">线性展开视图</button>
+          <button type="button" class="genesis-view-btn" data-genesis-mode="source" data-zh="Markdown 源稿对照" data-en="Markdown Source">Markdown 源稿对照</button>
+        </div>
+      </div>
+      <section class="genesis-source-drawer" id="genesis-source-drawer" aria-label="Markdown 源稿">
+        <pre><code>---
+title: Microsoft Ignite 2026 [BRK238]：Frontier Tuning——在真实业务流程上构建企业专属智能体学习闭环 || Microsoft Ignite 2026 [BRK238]: Frontier Tuning—Building Enterprise Agent Learning Loops for Real-World Outcomes
+eyebrow: Microsoft Ignite 2026 · BRK238 Official Deep Dive || Microsoft Ignite 2026 · BRK238 Official Deep Dive
+brand: Study Room Copilot Studio || Study Room Copilot Studio
+date: 2026-11-25
+strict_i18n: true
+strict_density: true
+lead: 在 Microsoft Ignite 2026 专场 BRK238 中，微软副总裁 Ranveer Chandra 偕产品与客户专家团队揭示了通用大模型落地的核心痛点：实验室合成强化学习环境训练出的模型缺乏跨企业泛化力，一旦进入私有业务流程便陷入高昂试错账单与参差失误 [1][2]。Frontier Tuning 将企业邮件、文档、专家隐性经验与真实业务工具编码为统一的数字孪生学习环境，按“技能蒸馏—执行内核树搜索—强化微调”三环递进爬坡，助推 Land O'Lakes、Pearson 与安永（EY）用自持小模型以 1/7 至 1/28 的单任务成本追平乃至反超前沿大模型 [1][2]。 || In Microsoft Ignite 2026 session BRK238, VP Ranveer Chandra alongside product and customer leaders pinpointed why general frontier models stumble in production: reinforcement learning post-training on synthetic lab environments fails to generalize to private enterprise workflows, triggering costly trial-and-error loops [1][2]. Frontier Tuning encodes organizational signals, tacit expert judgment, and virtualized tools into a unified learning environment, hill-climbing across skills, harness tree search, and reinforcement fine-tuning so small models match or beat frontier baselines at 1/7 to 1/28 the cost for Land O'Lakes, Pearson, and EY [1][2].
+panel_label: BRK238 核心架构与实测摘要 || BRK238 Executive Brief
+panel_title: 从合成训练场转向租户自持的企业学习闭环 || From Lab Environments to Tenant-Owned Learning Loops
+panel_desc: 同构强化学习环境（RLE）贯通私有压力评测、无副作用工具推演与 Foundry 模型微调，消除训练与线上服务偏差 [1][2]。 || A unified Reinforcement Learning Environment (RLE) spans private stress evals, zero-side-effect tool rollouts, and Foundry fine-tuning with zero train-serve skew [1][2].
+panel:
+  - 数字孪生编码 — 融合组织上下文信号与 Teams 专家访谈，秒级构建四元调优环境 [1][2] || Digital Twin Encoding — Blends organizational context and Teams SME interviews into a four-block RLE [1][2]
+  - 三环按需爬坡 — 先调技能与内核树搜索，仅在探针证实存在增益空间时触发强化微调 [1][2] || Three-Loop Hill Climb — Tunes skills and MCTS harness first, triggering RFT only when search proves headroom [1][2]
+  - 小模型越级降本 — 调优小模型在四家标杆客户私有基准上追平或超越前沿模型，成本骤降 86%–96% [1][2] || Small-Model Economics — Tuned small models match or beat frontier baselines while cutting cost by 86%–96% [1][2]
+metrics:
+  - Land O'Lakes 感官报告成本 || Land O'Lakes Report Cost | 1/28 ($0.014) | GPT-6 Luna 配合树搜索得分 0.967 超越前沿模型（0.940），千份报告仅需 $14 [2] || GPT-6 Luna + Tree Search scores 0.967 vs. 0.940 frontier baseline at $14 per 1,000 reports [2]
+  - Pearson 沟通教练单次花费 || Pearson Coaching Spend | 1/7 ($0.25) | MAI 1.1 微调模型拿下满分 1.00，千次员工辅导账单从 $1,781 压缩至 $246 [2] || Fine-tuned MAI 1.1 hits a 1.00 rubric score, cutting 1,000 sessions from $1,781 to $246 [2]
+  - 安永税务研究小模型跃升 || EY Tax Advisor Quality Lift | +41.1 pts | MAI 1.1 从基线 0.496 跃升至 0.907 反超前沿模型，支撑全球 75,000 名税务专家 [1][2] || MAI 1.1 climbs from 0.496 to 0.907 to beat GPT-5.6-Sol (0.851), scaling to 75,000 tax pros [1][2]
+style:
+  accent: &quot;#2563eb&quot;
+  teal: &quot;#0d8f8c&quot;
+---
+
+## #jagged-intelligence 01 / Jagged Intelligence &amp; Video :: 参差智能困局：为什么合成训练场喂不出懂你业务的智能体 || The Jagged Intelligence Trap: Why Synthetic Lab Training Breaks on Enterprise Work
+
+前沿实验室迭代新一代大模型通常经历三道工序：先在海量语料上完成预训练积累通识，再雇佣投行、律所或咨询顾问搭建数千个**强化学习环境（Reinforcement Learning Environments，简称 RLE）**开展后训练，最后合并成一次大型训练发布新模型 [1][2]。Ranveer Chandra 在演讲开篇指出，大模型能力跃迁的主战场已从预训练语料转向后训练学习环境 [1][2]。然而强化学习后训练并不具备预训练那样的自然泛化性——脱离了原生的训练沙盒，最顶尖的模型面对企业内部专属术语、审批红线与跨系统工具链时依然像陌生人一样盲目试错，业界称之为**参差智能（Jagged Intelligence）** [1][2]。 || Frontier labs ship each generation across three stages: pre-training on broad text corpora, post-training inside thousands of contractor-built **Reinforcement Learning Environments (RLEs)** simulating investment bankers or paralegals, and merging runs into a flagship release [1][2]. As Ranveer Chandra emphasized at the opening of BRK238, the competitive edge has shifted from pre-training data to post-training learning environments [1][2]. Yet RL post-training does not generalize like pre-training: outside its synthetic sandbox, a frontier model guesses through trial-and-error loops on private enterprise workflows—a failure mode known as **Jagged Intelligence** [1][2].
+
+Ranveer 在现场分享了一次亲身经历：他用某前沿编程模型跑个人项目，执行内核连续运转 6 小时烧掉高额词元账单，最后一句总结却是“其实本可用更简单的方法解决” [1]。当模型不理解组织真实的工作方式时，执行层只能靠暴力堆叠上下文与反复重试硬撑，既拉低可靠性又推高单次运行成本 [1][2]。下方点播导览台集成了 BRK238 官方录播流、原版课件直链与三段核心时间戳，点击封面按钮即可直接在页内加载官方播放器 [1][2]： || Ranveer illustrated the cost trap with a personal example: a frontier coding model ran for six hours on a project and racked up a steep token bill, only to conclude at the end that a simpler method would have worked [1]. When a model lacks institutional context, the harness burns tokens guessing rather than executing reliably [1][2]. The interactive theater below embeds the official BRK238 Medius stream, original slide deck link, and three timestamped acts [1][2]:
+
+:::sandbox { id: &quot;brk238-video-theater&quot;, canvas: false, script: &quot;./brk238-theater.js&quot;, style: &quot;./brk238-theater.css&quot;, title: &quot;Ignite 2026 [BRK238] 官方点播流与三幕时间轴导览台 || Ignite 2026 [BRK238] Official On-Demand Stream &amp; Three-Act Timestamp Guide&quot;, desc: &quot;涵盖 Ranveer Chandra 架构解析、Malik Pradhan 实机命令行演示以及 Kalyan Ayloo 与安永全球税务首席技术官 Ben Ambrosino 的客户基准复盘。 || Switch across Ranveer Chandra's science framing, Malik Pradhan's live CLI demo, and customer benchmarks with Kalyan Ayloo and EY Global Tax CTO Ben Ambrosino.&quot; }
+纯静态专场视频与时间轴导览沙盒：支持页内一键挂载微软 Medius 官方点播流、切换三幕演讲纪要并下载原版课件。 || Pure static session theater supporting one-click inline Medius video playback, timestamped act switching, and direct PPTX deck access.
+:::
+
+:::comparison { title: &quot;通用前沿模型直接上岗 vs. Frontier Tuning 企业学习闭环 || Out-of-Box Frontier Models vs. Frontier Tuning Enterprise Learning Loops&quot; }
+::versus 传统路径：直接调用通用前沿大模型 || Classic Path: Raw Frontier Model in Production
+### 困于合成环境偏差，高价试错且无法沉淀组织经验 || Trapped in Synthetic Skew with High Token Burn
+模型仅见过外部外包专家构造的通用题库，不掌握企业内部合规口径与私有连接器状态；每次任务都在重走冗长推理弯路，单次任务动辄消耗 `$0.39` 至 `$1.78`，一旦更换底层模型还得从头调提示词 [1][2]。 || Trained only on generic contractor tasks, the model misses internal compliance rules and stateful connectors, burning `$0.39` to `$1.78` per run without accumulating organizational memory [1][2].
+
+::versus Frontier Tuning：构建租户自持的学习环境 || Frontier Tuning: Tenant-Owned Learning Environment { highlight: true }
+### 先建业务数字孪生与严苛评测，再逐级将专长压入小模型 || Encode Digital Twin First, Then Distill Expertise into Small Models
+在 Microsoft 365 合规边界内把真实工作流、专家评判标准与虚拟化工具封装成专属 RLE，先用高性价比的内环技能与树搜索探明上限，再按需将知识固化进租户自有的小模型权重，单任务成本直降 86%–96% [1][2]。 || Encodes workflows, SME rubrics, and virtualized tools into a compliant RLE, hill-climbing skills and tree search before distilling gains into tenant-owned small models at 86%–96% lower cost [1][2].
+:::
+
+## #rle-private-evals 02 / Digital Twin &amp; Hardened Evals :: 数字孪生与抗作弊评测：编码真实工作并安全虚拟化企业工具 || Digital Twin &amp; Hardened Evals: Encoding Real Work with Virtualized Enterprise Tools
+
+要把隐性业务经验变成可计算的优化目标，第一步是在 Microsoft 365 合规边界内构建业务流程的**数字孪生调优环境（RLE）** [1][2]。系统并非只靠一份静态操作手册起步，而是从四路真实信号自动归纳工作流：其一是通过 Work IQ 与 Fabric IQ 挖掘邮件、文档及协作脉络；其二是解析过往提示词与工具调用轨迹；其三是提取 Teams 会议录屏中的决策交接；其四是在 Teams 与 Copilot Cowork 中自动向领域专家发起访谈，把专家脑中“什么证据算数、哪些红线绝不能碰”转化为经本人签字确认的**评分准则（Rubrics）** [1][2]。 || Turning tacit know-how into a computable optimization target starts by building a **digital-twin Tuning Environment (RLE)** inside the Microsoft 365 compliance boundary [1][2]. Rather than relying on static SOP documents alone, the engine synthesizes four live signal streams: Work IQ and Fabric IQ collaboration graphs, historical prompt and tool trajectories, Teams meeting recordings, and automated SME interviews in Teams and Cowork that convert unwritten expert judgment into approved **Rubrics** [1][2].
+
+:::figure { src: &quot;./media/brk238-frontier-tuning-loop.figure.json&quot;, title: &quot;Frontier Tuning 三层架构与同构 RLE 学习闭环 || Frontier Tuning Three-Tier Stack &amp; Unified RLE Learning Loop&quot; }
+图 1：评测、模型训练与线上生产推理完全共享同一个四元 RLE 环境（技能、评分准则、工具与样本），彻底消除传统微调常见的训练与服务割裂（Train-Serve Skew）[1][2]。 || Figure 1: Evaluation, reinforcement fine-tuning, and live production serving share the exact same four-block RLE (Skills, Rubrics, Tools, and Samples), eliminating train-serve skew [1][2].
+:::
+
+每个成型的调优环境都由四块积木拼成：教智能体如何干活的**技能（Skills）**、界定优劣判据的**评分准则（Rubrics）**、连接业务系统的**工具与知识（Tools &amp; Knowledge）**以及触发任务的**代表性样本（Samples）** [2]。Ranveer 特别强调，自动化现有流程靠写好技能，但真正拔高业务质量上限靠的是一遍遍打磨评分准则 [1]。针对生产力任务难以像数学题那样简单判对错的难题，Frontier Tuning 在第二步私有压力评测中引入了三项关键机制 [1][2]： || Every RLE rests on four building blocks: **Skills** (what the agent learns to do), **Rubrics** (how work is judged across LLM, code, or discrete classifiers), **Tools &amp; Knowledge** (enterprise systems and policies), and **Samples** (ground-truth prompts) [2]. While skills automate existing steps, iterating on rubrics is what raises business quality [1]. Because open-ended enterprise work lacks trivial math-style verifiers, Step 02 introduces three evaluation breakthroughs [1][2]:
+
+:::insight-grid { cols: 3, title: &quot;私有压力评测（Private Evals）的三大防作弊与零副作用机制 || Three Hardening Mechanisms in Step 02 Private Evals&quot; }
+::card 01
+### 对抗式评分准则加固 || Adversarial Rubric Hardening
+大模型极擅长钻空子骗取高分（Reward Hacking）；评测引擎采用对抗技术主动冲击初版评分标准，堵死模糊漏洞并结合专家初评校准自动评分器 [1][2]。 || Frontier models excel at reward hacking; an adversarial engine stress-tests draft criteria to close loopholes and calibrates auto-graders against SME judgments [1][2].
+
+::card 02
+### 准则引导的难例合成 || Rubric-Guided Hard Sample Search
+仅测历史旧提示词远不足以暴露隐患；系统利用准则引导的树搜索主动寻找最容易令候选模型与执行内核崩溃的边缘难例，测出真实短板 [1][2]。 || Historical prompts miss edge cases; rubric-guided tree search actively synthesizes adversarial prompts most likely to break candidate models and harnesses [1][2].
+
+::card 03
+### 企业工具状态虚拟化 || Stateful Tool Virtualization
+支持真实、垫片（Shim）与模拟（Mock）三态切换；跑 100 轮评测推演时在后台逼真维护数据库与邮箱状态变迁，绝不向外部发出 100 封垃圾邮件或污染生产库 [1][2]。 || Runs tools in Real, Shim, or Mock modes so 100 evaluation rollouts realistically mutate simulated SAP, D365, or mailbox state without firing 100 live emails [1][2].
+:::
+
+## #three-tuning-loops 03 / Three-Ring Hill-Climbing :: 三环渐进爬坡：技能蒸馏、MCTS 树搜索探针与强化微调 || Three-Ring Hill-Climbing: Skill Distillation, MCTS Headroom Probes, and RFT
+
+拿到私有评测的质量与成本基线后，系统绝不一上来就盲目烧卡训练权重，而是严格遵循“从内环到外环、每次只改一处、唯分数提升才保留”的爬坡铁律 [1][2]。在精度—成本二维平面上，未调优智能体往往困在左下角（低成本、低可靠）；内环与中环先不改模型权重，把性能推向右上角高水准区；一旦确认业务达标，外环再通过模型微调将曲线水平拉向左上角——用小模型锁定前沿质量与极低推理开销 [1][2]。 || Armed with baseline quality and cost scores, Frontier Tuning never jumps blindly into weight training; instead it follows a strict inner-to-outer hill-climbing discipline where every change is gated against the benchmark [1][2]. On the accuracy-versus-cost plane, untuned agents start at the bottom-left (cheap but error-prone); inner loops push quality to the top-right, and outer-loop model tuning pulls cost sharply left while preserving accuracy [1][2].
+
+:::flow { title: &quot;由浅入深的三环智能体学习机制与自动漂移监测 || Inner-to-Outer Agentic Learning Loops &amp; Drift Detection&quot; }
+1. **第一环（内环·技能蒸馏 Skill Loop）：零权重改动的极速提效 || Loop 1 (Inner · Skill Distillation): Zero-Weight Prompt &amp; Context Refinement** — 每次对话或评测后分析执行轨迹与专家反馈，澄清任务指令、补充组织上下文，并将多步探索找出的最优成功路径直接反哺写回技能文件，让下一次同类请求一步到位 [1][2]。 || Analyzes trajectories and user feedback after runs, refining instructions and distilling winning multi-step paths directly back into the skill definition at minimal cost [1][2].
+2. **第二环（中环·内核与树搜索 Harness Loop）：蒙特卡洛树搜索与微调潜力探针 || Loop 2 (Middle · Harness &amp; MCTS): Rubric-Guided Search as Headroom Signal** — 在推理时跨候选模型池（含通用基座、微软自研小基座与已微调模型）启动受评分准则引导的蒙特卡洛树搜索（MCTS），自动剪枝低分歧路并按子步骤路由最适配的模型 [1][2]。更巧妙的是，中环树搜索带来的分数抬升直接充当“微调潜力信号（Headroom Signal）”——它相当于一次低成本运行时强化学习推演，精准预判启动权重微调能否带来实质收益 [1][2]。 || Runs rubric-guided Monte Carlo Tree Search (MCTS) across a model pool, pruning weak branches and routing sub-steps [1][2]. Crucially, MCTS score lift acts as a runtime headroom probe telling engineers whether weight fine-tuning will pay off [1][2].
+3. **第三环（外环·强化微调 Model Loop）：Foundry 底座上的强化微调与低秩适配固化 || Loop 3 (Outer · Reinforcement Fine-Tuning): Tenant-Owned RFT + LoRA Weights** — 当树搜索证实存在明确余量空间（如客户案例中 +18 至 +22.7 个百分点的跃升）时，外环每数周定期运行强化微调：模型对每道任务做多次采样推演（Rollouts），由加固后的评分准则逐一打分奖励，通过低秩适配器（LoRA）更新权重，且仅在严格击败基线时才准予晋级（兼容 `GPT-6`、`GPT-6 Luna`、`MAI 2`、`MAI 1.1` 及开源权重模型）[1][2]。 || Triggered periodically when search lift confirms headroom: the model executes multiple rollouts per task, rubrics score every attempt, and LoRA adapters update weights on Microsoft Foundry—kept only if they beat the holdout baseline [1][2].
+4. **线上持续守卫：基于模型调用占比的无感漂移预警 || Production Guard: Automatic Drift Detection via Routing Share** — 线上推理池同时挂载基座模型与租户微调模型；一旦业务流程演进导致微调模型在中环路由中被选中的频次下滑，系统即刻识别出模型状态滞后于最新 RLE，自动提示发起新一轮微调迭代 [1]。 || Because base and fine-tuned models coexist in the live routing pool, a drop in how often the fine-tuned model wins selection immediately flags business drift and signals when to re-tune [1].
+:::
+
+在工程工具链与实机演示环节，首席产品经理 Malik Pradhan 展示了如何把上述复杂科学完全隐藏在极简交互背后 [1][2]。开发者只需在 GitHub Copilot 中启用 **Frontier Tuning 插件**或使用命令行工具，即可从内置的**营销运营（Marketing Operations）**、**产品生命周期（Product Lifecycle）**与**人才招聘（Talent Acquisition）**三大模板一键拉起学习环境——现场演示的营销环境在数秒内便在受保护的 Microsoft 365 服务中自动配齐了 **63 项技能与 100 条样本** [1]。 || During the live engineering walkthrough, Principal PM Malik Pradhan showed how this scientific machinery abstracts behind conversational tooling [1][2]. Using the **Frontier Tuning plugin in GitHub Copilot** or the **Tuning CLI**, makers bootstrap from three built-in templates—**Marketing Operations**, **Product Lifecycle**, and **Talent Acquisition**—provisioning a governed M365 Marketing RLE pre-loaded with **63 skills and 100 samples** in seconds [1].
+
+针对其中的 `build content brief`（活动内容简报）技能，Malik 直接输入一句指令向市场专家同事 Riaz 发起 SME 访谈邀请；Riaz 在 Teams 中收到卡片并点开 Copilot Cowork 访谈画布完成问答后，其真实案例与验收标准便自动回流沉淀进 RLE [1]。演示短片中的企业案例 Caldova 更完整串联了四类角色的日常协作：创作者 Maya 在插件中一句话启动发票审核技能调优，合同专家 Elena 在 Teams 内固化条款核对红线，财务团队 Daniel 在 Cowork 中一键用上带逐行发票与合同条款引用的调优技能并随手回捐高价值提示词，而 IT 管理员 Jordan 则在 **Agent 365** 控制台中全程统管主权合规 [1][4]。此外，声明式智能体（Declarative Agents）构建器也即将原生嵌入 **Tune with Copilot Credits** 按钮，实现在日常创作流中就地爬坡 [1][4]。 || Focusing on the `build content brief` skill, Malik launched an SME interview from the CLI that messaged marketing expert Riaz in Teams; once Riaz answered workflow questions inside Copilot Cowork, his sample and rubric criteria synced straight back into the RLE [1]. The Caldova invoice-review showcase further illustrated four-role enterprise collaboration: maker Maya triggers tuning in one sentence, contract specialist Elena codifies clause rules in Teams, finance lead Daniel consumes line-cited invoice checks in Cowork while donating new prompts back to the loop, and IT admin Jordan governs everything in **Agent 365**—with a native **Tune with Copilot Credits** button also arriving inside the Declarative Agent builder [1][4].
+
+## #customer-outcomes 04 / Enterprise Benchmarks &amp; EY Case :: 四大客户实测账单：小模型以 1/7 至 1/28 成本反超前沿基线 || Real Customer Scorecards: Small Models Beat Frontier Baselines at 1/7 to 1/28 Cost
+
+检验学习闭环成色的唯一标尺是真实企业账单与专家盲测得分 [1][2]。Kalyan Ayloo 与安永（EY）全球税务首席技术官 Ben Ambrosino 在下半场披露了四家早期私有预览客户的核心战果，共同回答了一个架构师最关心的问题：**参数量小得多的模型，真能在严肃商业场景里既赢下质量又砍掉九成算力成本吗？** 数据给出了确定性答案 [1][2]： || Real enterprise scorecards and blind expert rubrics are the ultimate test of any tuning stack [1][2]. In the second half of BRK238, Kalyan Ayloo and EY Global Tax CTO Ben Ambrosino shared private-preview benchmarks across four organizations, answering every architect's core question: **can a much smaller model match or beat frontier quality on domain-critical workflows at a fraction of the price?** The measured results confirm it [1][2]:
+
+:::figure { src: &quot;./media/brk238-customer-hill-climb.figure.json&quot;, title: &quot;四大真实企业场景质量爬坡实测对比 || Quality Hill-Climb Across Four Production Enterprise Workloads&quot; }
+图 2：在乳制品感官标准、教学法英语辅导与跨国税法研究三大场景中，经 Frontier Tuning 爬坡后的小模型（GPT-6 Luna 与 MAI 1.1）全部跨越甚至反超前沿大模型基线；微软内部合规团队亦借此将单案审查耗时压缩 7.5 倍 [2]。 || Figure 2: Across dairy sensory standards, pedagogical coaching, and global tax research, Frontier-Tuned small models (GPT-6 Luna and MAI 1.1) matched or surpassed out-of-box frontier models while cutting Microsoft People Team compliance review time by 7.5× [2].
+:::
+
+$$
+\text{Cost Ratio}_{\text{Land O'Lakes}} = \frac{\$0.014}{\$0.390} \approx 0.036\times \;\left(\approx \frac{1}{28}\right), \qquad \text{Cost Ratio}_{\text{Pearson}} = \frac{\$0.25}{\$1.78} \approx 0.140\times \;\left(\approx \frac{1}{7}\right)
+$$
+
+| 企业与核心业务场景 || Customer &amp; Workload | 前沿大模型直接运行基线 || Out-of-Box Frontier Baseline | 调优后小模型方案与得分 || Tuned Small-Model Route &amp; Score | 规模化商业与工程收益 || Quantified Business &amp; Cost Impact |
+|------|------|------|------|
+| **Land O'Lakes**（乳制品感官质量评估报告） || **Land O'Lakes** (Dairy Sensory Quality Reports) | `GPT-5.6-Sol` 得分 **0.940**，单次成本 **`$0.39`**（千份约 `$388`）[2] || `GPT-5.6-Sol` scores **0.940** at **`$0.39/task`** (`~$388` per 1,000) [2] | `GPT-6 Luna + 树搜索` 达 **0.967**（`$0.014/次`）；`MAI 1.1 + 微调 + 树搜索` 达 **0.964** [2] || `GPT-6 Luna + Tree Search` hits **0.967** (`$0.014/task`); `MAI 1.1 FT + Tree` hits **0.964** [2] | 质量反超前沿模型 **+2.7 pts**，千份报告花费从 `$388` 骤降至 **`$14`**（仅为前沿成本的 **1/28**）[2] || Beats frontier quality by **+2.7 pts** while slashing 1,000-report spend from `$388` to **`$14`** (**0.036×** cost) [2] |
+| **Pearson 培生**（基于会议录音的员工沟通教练） || **Pearson** (Teams Meeting Communication Coach) | `GPT-5.6-Sol` 得分 **0.990**，单次成本 **`$1.78`**（千次约 `$1,781`）[2] || `GPT-5.6-Sol` scores **0.990** at **`$1.78/task`** (`~$1,781` per 1,000) [2] | 选项 A：`MAI 1.1 微调` 单遍解码得满分 **1.00**（`$0.25/次`）；选项 B：`MAI 1.1 + 树搜索` 免训练得 **0.996**（`$0.23/次`）[2] || Option A: `MAI 1.1 FT` hits **1.00** (`$0.25/task`); Option B: `MAI 1.1 + Tree Search` hits **0.996** (`$0.23/task`) [2] | 千次辅导账单从 `$1,781` 降至 **`$231–$246`**（约 **1/7** 成本），让高保真教学法辅导从局部试点走向全员普惠 [1][2] || Cuts 1,000 coaching sessions from `$1,781` to **`$231–$246`** (~**1/7** cost), turning a small pilot into firmwide deployment [1][2] |
+| **Microsoft People Team**（内部 80+ 页隐私合规审查） || **Microsoft People Team** (80+ Page Compliance Reviews) | `GPT-6.1-Sol` 在 39 组真实审查问题集上得分 **0.86** [2] || `GPT-6.1-Sol` scores **0.86** across 39 real review question groups [2] | `GPT-5.4-mini` 经微调从 **0.57** 跃升至 **0.75**（**+18 pts**）；`MAI 1.1` 叠加微调与树搜索提升 **+21 pts** [2] || `GPT-5.4-mini` climbs from **0.57** to **0.75** (**+18 pts**); `MAI 1.1` gains **+21 pts** with FT + Tree Search [2] | 单项合规审查耗时从 **1–2 小时压缩至 8 分钟（提速 7.5×）**，且审查结论引用实现 **100% 原文精确溯源** [2] || Shrinks review time from **1–2 hours to 8 minutes (7.5× faster)** with **100% verbatim traceable citations** [2] |
+| **安永 EY**（L3 跨国税法研究与备忘录顾问） || **EY Global Tax** (L3 Multi-Agent Tax Research Advisor) | `GPT-5.6-Sol` 在安永税法专家准则下得分 **0.851** [2] || `GPT-5.6-Sol` scores **0.851** on EY's tax methodology rubrics [2] | `MAI 1.1` 从基线 **0.496** 经树搜索（**0.723**）与微调（**0.714**）双轮组合爬升至 **0.907** [2] || `MAI 1.1` climbs from **0.496** base (via **0.723** search / **0.714** FT) to **0.907** combined [2] | 较基线暴涨 **+41.1 pts** 并反超前沿模型 **+5.6 pts**，正面向安永全球 **75,000 名税务专业人员**规模化推广 [1][2] || Gains **+41.1 pts** over base to beat frontier by **+5.6 pts**, scaling across **75,000 EY tax professionals** globally [1][2] |
+
+在四个案例中，安永全球税务团队的 **L3 税务顾问（L3 Tax Advisor）** 最具复杂行业代表性 [1][2]。正如 Ben Ambrosino 在台上所言，“所有税务都是高度属地化的，税法不是一个用例，而是一百万个用例”，任何看似通顺却细微失真的“擦边错误（Subtly Wrong Advice）”在税务合规中都构成实质性风险 [1][2]。面对诸如“最新全球最低税支柱二（Pillar Two）立法动态如何影响年营收约 180 亿欧元的法国母公司跨国集团 Contoso？”这类复杂咨询，安永设计了严密的六步多智能体协同管线：主控编排器接单后先路由给在安永专属学习环境中微调的 **`MAI 1.1` 研究智能体（Research Agent）**。该研究节点一边检索最新公开立法动态，一边通过模型上下文协议查询沉淀了数千万条内部判例与事务所立场的 **`EY POKA` 专有税法库**；汇总后的结论依次交由 **撰稿智能体（Writer Agent）** 按安永专业口径起草备忘录、再由 **质检审阅智能体（Reviewer Agent）** 对照评分准则逐条核验引用纪律与风险保留条款，达标后才呈交人类税务合伙人终审 [1][2]。更值得关注的是，现场视频中主导搭建这套学习环境与黄金问答集的 Fran Pitman 并非算法工程师或 IT 人员，而是一位一线税务合伙人——业务专家得以亲手把控 AI 的专业水位线 [1]。下方四宫格完整收录了 BRK238 官方原始课件中的四幅实测爬坡与成本决策曲线 [2]： || Among the four deployments, **EY's L3 Tax Advisor** exemplifies regulated complexity [1][2]. As Ben Ambrosino noted on stage, all tax is local—representing a million jurisdictional edge cases where &quot;subtly wrong&quot; advice poses material risk [1][2]. When asked whether OECD Pillar Two updates affect an €18B French-parented multinational, EY's six-step L3 orchestrator routes research to an RLE-tuned **MAI Research Agent** querying live legislative web search alongside **EY POKA** (an MCP server housing tens of millions of proprietary precedents and firm positions), hands synthesis to a **Writer Agent** for EY-styled drafting, and enforces citation and escalation checks via a **Reviewer Agent** before a human advisor ever reviews the memo [1][2]. Crucially, the demo lead who stood up the RLE and golden Q&amp;A set—Fran Pitman—is a tax partner rather than a data scientist, proving domain experts can steer tuning directly [1]. The four-card gallery below preserves the exact quality-climb and rate-card cost charts from the official BRK238 slide deck [2]:
+
+&lt;div class=&quot;brk238-media-grid&quot;&gt;
+  &lt;article class=&quot;brk238-media-card&quot;&gt;
+    &lt;div class=&quot;brk238-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/brk238-land-olakes-hill-climb.png&quot; alt=&quot;BRK238 Slide 17 chart showing three small models hill-climbing past GPT-5.6-Sol 0.94 on Land O'Lakes sensory reports&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;brk238-media-body&quot;&gt;
+      &lt;span class=&quot;brk238-media-badge&quot; data-zh=&quot;BRK238 官方课件原图 · Slide 17&quot; data-en=&quot;BRK238 Official Slide · Slide 17&quot;&gt;BRK238 官方课件原图 · Slide 17&lt;/span&gt;
+      &lt;h4 data-zh=&quot;Land O'Lakes：三款小模型集体跨越 0.94 前沿基准线&quot; data-en=&quot;Land O'Lakes: Three Small Models Cross the 0.94 Frontier Bar&quot;&gt;Land O'Lakes：三款小模型集体跨越 0.94 前沿基准线&lt;/h4&gt;
+      &lt;p data-zh=&quot;将企业专有乳制品感官词汇与标准编码为评分准则后，GPT-6 Luna、MAI 1.1 与 GPT-5.4 Mini 经树搜索及微调后得分达 0.957–0.967，全面反超 GPT-5.6-Sol（0.94）[2]。&quot; data-en=&quot;With sensory standards encoded as rubrics, GPT-6 Luna, MAI 1.1, and GPT-5.4 Mini climb to 0.957–0.967 via Tree Search and fine-tuning, beating GPT-5.6-Sol (0.94) [2].&quot;&gt;将企业专有乳制品感官词汇与标准编码为评分准则后，GPT-6 Luna、MAI 1.1 与 GPT-5.4 Mini 经树搜索及微调后得分达 0.957–0.967，全面反超 GPT-5.6-Sol（0.94）[2]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+  &lt;article class=&quot;brk238-media-card&quot;&gt;
+    &lt;div class=&quot;brk238-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/brk238-land-olakes-cost-quality.png&quot; alt=&quot;BRK238 Slide 30 log-scale cost vs quality chart for Land O'Lakes showing GPT-6 Luna + Tree Search at USD 0.014 per task&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;brk238-media-body&quot;&gt;
+      &lt;span class=&quot;brk238-media-badge&quot; data-zh=&quot;BRK238 官方课件原图 · Slide 30&quot; data-en=&quot;BRK238 Official Slide · Slide 30&quot;&gt;BRK238 官方课件原图 · Slide 30&lt;/span&gt;
+      &lt;h4 data-zh=&quot;Land O'Lakes 成本对数坐标：1/28 价格锁定最高分&quot; data-en=&quot;Land O'Lakes Log-Cost Chart: Highest Quality at 1/28 Price&quot;&gt;Land O'Lakes 成本对数坐标：1/28 价格锁定最高分&lt;/h4&gt;
+      &lt;p data-zh=&quot;对数横轴清晰标示投产甜点区：GPT-6 Luna 配合推理期树搜索单任务仅需 0.014 美元（0.036× 前沿成本），无需权重训练即斩获全场最高质量分 0.967 [2]。&quot; data-en=&quot;GPT-6 Luna + Tree Search lands deep in the top-left frontier zone at USD 0.014/task (0.036× GPT-5.6-Sol cost) while delivering the highest 0.967 rubric score [2].&quot;&gt;对数横轴清晰标示投产甜点区：GPT-6 Luna 配合推理期树搜索单任务仅需 0.014 美元（0.036× 前沿成本），无需权重训练即斩获全场最高质量分 0.967 [2]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+  &lt;article class=&quot;brk238-media-card&quot;&gt;
+    &lt;div class=&quot;brk238-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/brk238-pearson-cost-quality.png&quot; alt=&quot;BRK238 Slide 19 chart showing Pearson MAI 1.1 fine-tuned at 1.00 score and USD 0.25 per task vs GPT-5.6-Sol at USD 1.78&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;brk238-media-body&quot;&gt;
+      &lt;span class=&quot;brk238-media-badge&quot; data-zh=&quot;BRK238 官方课件原图 · Slide 19&quot; data-en=&quot;BRK238 Official Slide · Slide 19&quot;&gt;BRK238 官方课件原图 · Slide 19&lt;/span&gt;
+      &lt;h4 data-zh=&quot;Pearson 灵活选型：微调单遍解码与推理期搜索双双达标&quot; data-en=&quot;Pearson Model Choice: Fine-Tuning vs. Inference-Time Search&quot;&gt;Pearson 灵活选型：微调单遍解码与推理期搜索双双达标&lt;/h4&gt;
+      &lt;p data-zh=&quot;MAI 1.1 微调版（1.00 分，0.25 美元/次）与免训练树搜索版（0.996 分，0.23 美元/次）双双进入绿色前沿质量带，令全公司大规模部署个性化沟通教练具备财务可行性 [1][2]。&quot; data-en=&quot;Both fine-tuned MAI 1.1 (1.00 score, USD 0.25/task) and zero-training Tree Search (0.996, USD 0.23/task) hit the frontier zone at ~1/7 of GPT-5.6-Sol's USD 1.78 cost [1][2].&quot;&gt;MAI 1.1 微调版（1.00 分，0.25 美元/次）与免训练树搜索版（0.996 分，0.23 美元/次）双双进入绿色前沿质量带，令全公司大规模部署个性化沟通教练具备财务可行性 [1][2]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+  &lt;article class=&quot;brk238-media-card&quot;&gt;
+    &lt;div class=&quot;brk238-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/brk238-ey-tax-hill-climb.png&quot; alt=&quot;BRK238 Slide 24 chart showing MAI 1.1 climbing +41.1 pts from 0.496 to 0.907 to beat GPT-5.6-Sol 0.851 on EY tax research&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;brk238-media-body&quot;&gt;
+      &lt;span class=&quot;brk238-media-badge&quot; data-zh=&quot;BRK238 官方课件原图 · Slide 24&quot; data-en=&quot;BRK238 Official Slide · Slide 24&quot;&gt;BRK238 官方课件原图 · Slide 24&lt;/span&gt;
+      &lt;h4 data-zh=&quot;安永（EY）税务研究：小模型狂飙 41.1 个百分点反超前沿&quot; data-en=&quot;EY Tax Research: MAI 1.1 Surges +41.1 Pts Past Frontier&quot;&gt;安永（EY）税务研究：小模型狂飙 41.1 个百分点反超前沿&lt;/h4&gt;
+      &lt;p data-zh=&quot;面对高度依赖专有判例库与严谨保留措辞的税法研究，基座 MAI 1.1 仅得 0.496 分；叠加微调与树搜索后跃升至 0.907 分，净胜 GPT-5.6-Sol（0.851）达 5.6 个百分点 [2]。&quot; data-en=&quot;Starting from 0.496 on precedent-heavy tax research, MAI 1.1 climbs to 0.907 with fine-tuning plus Tree Search—beating GPT-5.6-Sol (0.851) by 5.6 points [2].&quot;&gt;面对高度依赖专有判例库与严谨保留措辞的税法研究，基座 MAI 1.1 仅得 0.496 分；叠加微调与树搜索后跃升至 0.907 分，净胜 GPT-5.6-Sol（0.851）达 5.6 个百分点 [2]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+&lt;/div&gt;
+
+## #stack-adoption 05 / Stack Synergy &amp; Playbook :: Copilot Studio × Foundry 协同栈与四步渐进落地指南 || Copilot Studio × Foundry Stack Synergy and Four-Step Adoption Playbook
+
+在全场收尾阶段，Ranveer Chandra 专门回应了现场架构师最常追问的定位边界：**“既然有了 Microsoft Foundry，为什么还需要 Frontier Tuning？”** 答案在于两者处于上下承接的互补层级——Frontier Tuning 直接构建在 Azure 与 Microsoft Foundry 的评测、微调及托管智能体积木之上，向上连接 Microsoft 365 合规边界内的企业组织脉络（Work IQ、Fabric IQ），把底层算力原语封装成业务专家与创作者在 Copilot Studio、Copilot Cowork、GitHub Copilot 及 Agent 365 中随手可用的持续学习闭环 [1][2]。 || Closing the session, Ranveer Chandra addressed a recurring architectural question: **&quot;Why not just use Microsoft Foundry directly?&quot;** The two layers complement each other. Frontier Tuning builds directly on Microsoft Foundry's evaluation, Loom fine-tuning, and hosted-agent building blocks on Azure. It bridges those primitives into the Microsoft 365 compliance boundary via Work IQ and Fabric IQ so makers can run continuous learning loops across Copilot Studio, Cowork, GitHub Copilot, and Agent 365 [1][2].
+
+### 1. 全栈创建与多端消费矩阵（Creation &amp; Consumption） || Full-Stack Creation &amp; Multi-Surface Consumption
+
+企业团队在 Copilot Studio、Tuning CLI 或 GitHub Copilot 插件中完成一次调优后，生成的 RLE 与专有模型能力可通过统一接口、模型上下文协议（MCP）服务或独立智能体发布，供全组织各类入口无缝复用——包括 Copilot Studio 业务智能体、Foundry 代码智能体、Microsoft 365 Copilot、Copilot Cowork、Scout 以及 GitHub Copilot；同时确保训练与生产环境调用完全一致的工具契约（如安永 POKA 服务），从根源杜绝训练与上线环境脱节 [1][2]。 || Once a team finishes tuning in Copilot Studio, the Tuning CLI, or GitHub Copilot, the resulting RLE harness and tenant-owned weights publish as APIs, MCP servers, or standalone agents. Teams can then consume them across Copilot Studio, Foundry, Microsoft 365 Copilot, Cowork, Scout, and GitHub Copilot while keeping identical tool contracts between training and serving [1][2].
+
+### 2. 企业落地的“按需深潜”四级阶梯（Tune Only as Deeply as Needed） || Four-Rung Adoption Ladder: Tune Only as Deeply as Needed
+
+官方团队给出了清晰的工程选型准则——**以私有评测贯穿始终，仅在实测质量或成本差距确有必要时才向下一层深潜** [1][2]： || Microsoft's engineering guidance boils down to a disciplined four-rung ladder—**anchor everything on private evaluations, and go deeper only when a measured quality or cost gap demands it** [1][2]:
+
+1. **第一级：建立私有基准（Evaluate · Private Benchmarks）** — 挑选组织内成本高昂或容错率极低的核心流程（如合同发票核对、合规审查、税务咨询），挂载真实或虚拟化工具并拉入业务专家校准评分准则，锁定留出测试集（Holdout Set）与单次运行成本基线 [1][2]。 || **Rung 01: Establish Private Benchmarks** — Pick a high-spend or zero-tolerance business process, configure real or virtualized tools, calibrate auto-graders with SMEs, and lock a holdout set for quality and cost [1][2].
+2. **第二级：优先调优技能（Tune · Skill Tuning）** — 在不触碰任何模型参数的前提下迭代任务指令、注入组织知识上下文并细化评分准则；这是最快、最省钱的杠杆，永远作为第一顺位尝试 [2]。 || **Rung 02: Skill Tuning First** — Refine task instructions, enrich Work IQ context, and tighten rubrics with model weights unchanged; fastest and cheapest lever [2].
+3. **第三级：调优执行内核与树搜索（Tune · Harness Tuning）** — 优化工具编排、跨步记忆并开启推理期蒙特卡洛树搜索（如 Land O'Lakes 仅凭 `GPT-6 Luna + 树搜索` 即以 `$0.014/次` 拿下全场最高分），同时用搜索增益探测微调天花板 [1][2]。 || **Rung 03: Harness &amp; Tree Search Tuning** — Optimize tool orchestration and turn on rubric-guided MCTS (as Land O'Lakes did to hit 0.967 at `$0.014/task` with zero weight training) while measuring headroom [1][2].
+4. **第四级：强化微调固化自有权重（Tune · Model RFT）** — 当单遍推理延迟或大并发成本成为全员推广瓶颈（如 Pearson 全员辅导与安永 75,000 人税务顾问）时，利用外环 `RFT + LoRA` 将企业核心方法论永久压入租户独享的小模型权重（可通过 `https://aka.ms/FrontierTuning` 申请接入）[1][2][3]。 || **Rung 04: Reinforcement Fine-Tuning (RFT)** — When single-pass latency or firmwide scale requires embedding institutional judgment directly into weights (as at Pearson and EY), run `RFT + LoRA` into tenant-owned small models (`https://aka.ms/FrontierTuning`) [1][2][3].
+
+## 参考资料：官方一手信源与课件档案 || References: Official Primary Sources &amp; Slide Artifacts
+
+1. **Ranveer Chandra, Malik Pradhan, Kalyan Ayloo &amp; Ben Ambrosino (Microsoft Ignite 2026 BRK238)** — https://ignite.microsoft.com/en-US/sessions/1787856609242001EnzD-1791588157003001CYmK | 《Frontier tuning: Optimize AI agents for real-world business outcomes》官方专场主页、45 分钟点播视频流（`https://medius.microsoft.com/Embed/video-nc/757a65cb-1dfd-4c42-bc82-1baa41b22ca1`）与完整双语 WebVTT 演讲实录（2026-11-18） || Official breakout session page, 45-minute on-demand stream, and full bilingual WebVTT transcripts (Nov 18, 2026)
+2. **Microsoft Ignite 2026 BRK238 Official Slide Deck** — https://medius.microsoft.com/video/asset/PPT/757a65cb-1dfd-4c42-bc82-1baa41b22ca1 | 《Frontier Tuning: Creating your own Enterprise Learning Loop》31 页官方原版演示讲义（涵盖四元调优环境架构、三环爬坡图谱以及 Land O'Lakes、Pearson、微软内部合规团队与安永四大客户实测基准图表） || Official 31-slide deck covering RLE architecture, three-loop hill-climbing diagrams, and enterprise cost-quality benchmarks
+3. **Microsoft Frontier Tuning Portal** — https://aka.ms/FrontierTuning | Frontier Tuning 官方产品接入入口、GitHub Copilot 调优插件与预览版申请通道 || Official Frontier Tuning onboarding portal, GitHub Copilot plugin access, and preview registration
+4. **Jason Moore (Microsoft Copilot Blog)** — https://www.microsoft.com/en-us/copilot/blog/copilot-studio/build-and-manage-business-processes-with-microsoft-copilot-studio/ | 《Build and manage business processes with Microsoft Copilot Studio》Ignite 2026 Copilot Studio、Cowork 与 Agent 365 治理底座综述（2026-11-18） || Official Ignite 2026 overview of Copilot Studio, Cowork, and Agent 365 governance foundation (Nov 18, 2026)
+</code></pre>
+      </section>
+
+      <main>
+        <section id="jagged-intelligence" class="section" data-reveal data-present-title-zh="参差智能困局：为什么合成训练场喂不出懂你业务的智能体" data-present-title-en="The Jagged Intelligence Trap: Why Synthetic Lab Training Breaks on Enterprise Work">
+          <div class="section-head">
+            <p class="section-kicker">01 / Jagged Intelligence &amp; Video</p>
+            <h2 data-zh="1. 参差智能困局：为什么合成训练场喂不出懂你业务的智能体" data-en="1. The Jagged Intelligence Trap: Why Synthetic Lab Training Breaks on Enterprise Work">1. 参差智能困局：为什么合成训练场喂不出懂你业务的智能体</h2>
+            <p data-zh="前沿实验室迭代新一代大模型通常经历三道工序：先在海量语料上完成预训练积累通识，再雇佣投行、律所或咨询顾问搭建数千个&lt;strong&gt;强化学习环境（Reinforcement Learning Environments，简称 RLE）&lt;strong&gt;开展后训练，最后合并成一次大型训练发布新模型 [1][2]。Ranveer Chandra 在演讲开篇指出，大模型能力跃迁的主战场已从预训练语料转向后训练学习环境 [1][2]。然而强化学习后训练并不具备预训练那样的自然泛化性——脱离了原生的训练沙盒，最顶尖的模型面对企业内部专属术语、审批红线与跨系统工具链时依然像陌生人一样盲目试错，业界称之为&lt;/strong&gt;参差智能（Jagged Intelligence）&lt;/strong&gt; [1][2]。" data-en="Frontier labs ship each generation across three stages: pre-training on broad text corpora, post-training inside thousands of contractor-built &lt;strong&gt;Reinforcement Learning Environments (RLEs)&lt;/strong&gt; simulating investment bankers or paralegals, and merging runs into a flagship release [1][2]. As Ranveer Chandra emphasized at the opening of BRK238, the competitive edge has shifted from pre-training data to post-training learning environments [1][2]. Yet RL post-training does not generalize like pre-training: outside its synthetic sandbox, a frontier model guesses through trial-and-error loops on private enterprise workflows—a failure mode known as &lt;strong&gt;Jagged Intelligence&lt;/strong&gt; [1][2].">前沿实验室迭代新一代大模型通常经历三道工序：先在海量语料上完成预训练积累通识，再雇佣投行、律所或咨询顾问搭建数千个<strong>强化学习环境（Reinforcement Learning Environments，简称 RLE）<strong>开展后训练，最后合并成一次大型训练发布新模型 [1][2]。Ranveer Chandra 在演讲开篇指出，大模型能力跃迁的主战场已从预训练语料转向后训练学习环境 [1][2]。然而强化学习后训练并不具备预训练那样的自然泛化性——脱离了原生的训练沙盒，最顶尖的模型面对企业内部专属术语、审批红线与跨系统工具链时依然像陌生人一样盲目试错，业界称之为</strong>参差智能（Jagged Intelligence）</strong> [1][2]。</p>
+          </div>
+
+          <p data-zh="Ranveer 在现场分享了一次亲身经历：他用某前沿编程模型跑个人项目，执行内核连续运转 6 小时烧掉高额词元账单，最后一句总结却是“其实本可用更简单的方法解决” [1]。当模型不理解组织真实的工作方式时，执行层只能靠暴力堆叠上下文与反复重试硬撑，既拉低可靠性又推高单次运行成本 [1][2]。下方点播导览台集成了 BRK238 官方录播流、原版课件直链与三段核心时间戳，点击封面按钮即可直接在页内加载官方播放器 [1][2]：" data-en="Ranveer illustrated the cost trap with a personal example: a frontier coding model ran for six hours on a project and racked up a steep token bill, only to conclude at the end that a simpler method would have worked [1]. When a model lacks institutional context, the harness burns tokens guessing rather than executing reliably [1][2]. The interactive theater below embeds the official BRK238 Medius stream, original slide deck link, and three timestamped acts [1][2]:">Ranveer 在现场分享了一次亲身经历：他用某前沿编程模型跑个人项目，执行内核连续运转 6 小时烧掉高额词元账单，最后一句总结却是“其实本可用更简单的方法解决” [1]。当模型不理解组织真实的工作方式时，执行层只能靠暴力堆叠上下文与反复重试硬撑，既拉低可靠性又推高单次运行成本 [1][2]。下方点播导览台集成了 BRK238 官方录播流、原版课件直链与三段核心时间戳，点击封面按钮即可直接在页内加载官方播放器 [1][2]：</p>
+
+          <div id="brk238-video-theater" class="sandbox-slot" data-sandbox-slot="brk238-video-theater" data-present-step data-present-surface="board" data-step-title="Ignite 2026 [BRK238] 官方点播流与三幕时间轴导览台" data-step-title-en="Ignite 2026 [BRK238] Official On-Demand Stream &amp; Three-Act Timestamp Guide" data-present-title-zh="Ignite 2026 [BRK238] 官方点播流与三幕时间轴导览台" data-present-title-en="Ignite 2026 [BRK238] Official On-Demand Stream &amp; Three-Act Timestamp Guide" data-step-label="01 / Jagged Intelligence &amp; Video" data-step-label-en="01 / Jagged Intelligence &amp; Video" data-present-i18n-invariant="label">
+            <div class="sandbox-header">
+              <div class="sandbox-title-group">
+                <span class="comparison-label" data-zh="纯静态交互沙盒" data-en="Static Interactive Sandbox">纯静态交互沙盒</span>
+                <h3 data-zh="Ignite 2026 [BRK238] 官方点播流与三幕时间轴导览台" data-en="Ignite 2026 [BRK238] Official On-Demand Stream &amp; Three-Act Timestamp Guide">Ignite 2026 [BRK238] 官方点播流与三幕时间轴导览台</h3>
+                <p data-zh="涵盖 Ranveer Chandra 架构解析、Malik Pradhan 实机命令行演示以及 Kalyan Ayloo 与安永全球税务首席技术官 Ben Ambrosino 的客户基准复盘。" data-en="Switch across Ranveer Chandra's science framing, Malik Pradhan's live CLI demo, and customer benchmarks with Kalyan Ayloo and EY Global Tax CTO Ben Ambrosino.">涵盖 Ranveer Chandra 架构解析、Malik Pradhan 实机命令行演示以及 Kalyan Ayloo 与安永全球税务首席技术官 Ben Ambrosino 的客户基准复盘。</p>
+              </div>
+              <div class="sandbox-controls" data-sandbox-controls="brk238-video-theater"></div>
+            </div>
+            <div class="sandbox-stage" data-sandbox-stage="brk238-video-theater">
+
+            </div>
+          </div>
+
+          <div class="comparison-grid section-grid-spaced" data-present-step data-present-surface="unframed" data-step-title="通用前沿模型直接上岗 vs. Frontier Tuning 企业学习闭环" data-step-title-en="Out-of-Box Frontier Models vs. Frontier Tuning Enterprise Learning Loops" data-present-title-zh="通用前沿模型直接上岗 vs. Frontier Tuning 企业学习闭环" data-present-title-en="Out-of-Box Frontier Models vs. Frontier Tuning Enterprise Learning Loops" data-step-label="01 / Jagged Intelligence &amp; Video" data-step-label-en="01 / Jagged Intelligence &amp; Video" data-present-i18n-invariant="label">
+            <article class="comparison-card">
+              <span class="comparison-label" data-zh="传统路径：直接调用通用前沿大模型" data-en="Classic Path: Raw Frontier Model in Production">传统路径：直接调用通用前沿大模型</span>
+              <h3 data-zh="困于合成环境偏差，高价试错且无法沉淀组织经验" data-en="Trapped in Synthetic Skew with High Token Burn">困于合成环境偏差，高价试错且无法沉淀组织经验</h3>
+              <p data-zh="模型仅见过外部外包专家构造的通用题库，不掌握企业内部合规口径与私有连接器状态；每次任务都在重走冗长推理弯路，单次任务动辄消耗 &lt;code&gt;$0.39&lt;/code&gt; 至 &lt;code&gt;$1.78&lt;/code&gt;，一旦更换底层模型还得从头调提示词 [1][2]。" data-en="Trained only on generic contractor tasks, the model misses internal compliance rules and stateful connectors, burning &lt;code&gt;$0.39&lt;/code&gt; to &lt;code&gt;$1.78&lt;/code&gt; per run without accumulating organizational memory [1][2].">模型仅见过外部外包专家构造的通用题库，不掌握企业内部合规口径与私有连接器状态；每次任务都在重走冗长推理弯路，单次任务动辄消耗 <code>$0.39</code> 至 <code>$1.78</code>，一旦更换底层模型还得从头调提示词 [1][2]。</p>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label" data-zh="Frontier Tuning：构建租户自持的学习环境" data-en="Frontier Tuning: Tenant-Owned Learning Environment">Frontier Tuning：构建租户自持的学习环境</span>
+              <h3 data-zh="先建业务数字孪生与严苛评测，再逐级将专长压入小模型" data-en="Encode Digital Twin First, Then Distill Expertise into Small Models">先建业务数字孪生与严苛评测，再逐级将专长压入小模型</h3>
+              <p data-zh="在 Microsoft 365 合规边界内把真实工作流、专家评判标准与虚拟化工具封装成专属 RLE，先用高性价比的内环技能与树搜索探明上限，再按需将知识固化进租户自有的小模型权重，单任务成本直降 86%–96% [1][2]。" data-en="Encodes workflows, SME rubrics, and virtualized tools into a compliant RLE, hill-climbing skills and tree search before distilling gains into tenant-owned small models at 86%–96% lower cost [1][2].">在 Microsoft 365 合规边界内把真实工作流、专家评判标准与虚拟化工具封装成专属 RLE，先用高性价比的内环技能与树搜索探明上限，再按需将知识固化进租户自有的小模型权重，单任务成本直降 86%–96% [1][2]。</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="rle-private-evals" class="section" data-reveal data-present-title-zh="数字孪生与抗作弊评测：编码真实工作并安全虚拟化企业工具" data-present-title-en="Digital Twin &amp; Hardened Evals: Encoding Real Work with Virtualized Enterprise Tools">
+          <div class="section-head">
+            <p class="section-kicker">02 / Digital Twin &amp; Hardened Evals</p>
+            <h2 data-zh="2. 数字孪生与抗作弊评测：编码真实工作并安全虚拟化企业工具" data-en="2. Digital Twin &amp; Hardened Evals: Encoding Real Work with Virtualized Enterprise Tools">2. 数字孪生与抗作弊评测：编码真实工作并安全虚拟化企业工具</h2>
+            <p data-zh="要把隐性业务经验变成可计算的优化目标，第一步是在 Microsoft 365 合规边界内构建业务流程的&lt;strong&gt;数字孪生调优环境（RLE）&lt;/strong&gt; [1][2]。系统并非只靠一份静态操作手册起步，而是从四路真实信号自动归纳工作流：其一是通过 Work IQ 与 Fabric IQ 挖掘邮件、文档及协作脉络；其二是解析过往提示词与工具调用轨迹；其三是提取 Teams 会议录屏中的决策交接；其四是在 Teams 与 Copilot Cowork 中自动向领域专家发起访谈，把专家脑中“什么证据算数、哪些红线绝不能碰”转化为经本人签字确认的&lt;strong&gt;评分准则（Rubrics）&lt;/strong&gt; [1][2]。" data-en="Turning tacit know-how into a computable optimization target starts by building a &lt;strong&gt;digital-twin Tuning Environment (RLE)&lt;/strong&gt; inside the Microsoft 365 compliance boundary [1][2]. Rather than relying on static SOP documents alone, the engine synthesizes four live signal streams: Work IQ and Fabric IQ collaboration graphs, historical prompt and tool trajectories, Teams meeting recordings, and automated SME interviews in Teams and Cowork that convert unwritten expert judgment into approved &lt;strong&gt;Rubrics&lt;/strong&gt; [1][2].">要把隐性业务经验变成可计算的优化目标，第一步是在 Microsoft 365 合规边界内构建业务流程的<strong>数字孪生调优环境（RLE）</strong> [1][2]。系统并非只靠一份静态操作手册起步，而是从四路真实信号自动归纳工作流：其一是通过 Work IQ 与 Fabric IQ 挖掘邮件、文档及协作脉络；其二是解析过往提示词与工具调用轨迹；其三是提取 Teams 会议录屏中的决策交接；其四是在 Teams 与 Copilot Cowork 中自动向领域专家发起访谈，把专家脑中“什么证据算数、哪些红线绝不能碰”转化为经本人签字确认的<strong>评分准则（Rubrics）</strong> [1][2]。</p>
+          </div>
+
+          <figure class="sr-figure generated-diagram is-inline-svg" data-present-step data-present-surface="unframed" data-step-title="Frontier Tuning 三层架构与同构 RLE 学习闭环" data-step-title-en="Frontier Tuning Three-Tier Stack &amp; Unified RLE Learning Loop" data-present-title-zh="Frontier Tuning 三层架构与同构 RLE 学习闭环" data-present-title-en="Frontier Tuning Three-Tier Stack &amp; Unified RLE Learning Loop" data-step-label="02 / Digital Twin &amp; Hardened Evals" data-step-label-en="02 / Digital Twin &amp; Hardened Evals" data-present-i18n-invariant="label">
+            <svg class="sr-figure-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1520 660" role="img" aria-labelledby="brk238-frontier-tuning-loop-1-title brk238-frontier-tuning-loop-1-desc"><title id="brk238-frontier-tuning-loop-1-title">Frontier Tuning 企业学习闭环与三层调优架构（BRK238）</title><desc id="brk238-frontier-tuning-loop-1-desc">architecture topology with 9 nodes and 6 edges</desc><defs><marker id="brk238-frontier-tuning-loop-1-arrow" markerWidth="10" markerHeight="10" refX="8.5" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M1,1 L8.5,4 L1,7" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><g data-group-id="encode-plane"><rect x="40" y="24" width="1440" height="188" rx="16" fill="var(--fig-group-bg-1, rgba(255, 250, 244, 0.72))" stroke="var(--fig-group-border, rgba(23, 36, 48, 0.11))" stroke-width="1.25"/><path d="M 56 25 H 1464" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.6))" stroke-width="1"/><line x1="40" y1="70" x2="1480" y2="70" stroke="var(--fig-group-divider, rgba(23,36,48,0.08))" stroke-width="1"/><circle cx="62" cy="48" r="4.5" fill="var(--fig-role-accent-bar, #ea580c)"/><text class="sr-zh" x="74" y="53" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)">1. 业务编码与创作入口层（Step 01: Encode Work &amp; Authoring Canvases）</text><text class="sr-en" x="74" y="53" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)">1. Work Encoding &amp; Authoring Entry Plane (Step 01: Digital Twin)</text></g><g data-group-id="rle-plane"><rect x="40" y="236" width="1440" height="188" rx="16" fill="var(--fig-group-bg-2, rgba(244, 248, 252, 0.72))" stroke="var(--fig-group-border, rgba(23, 36, 48, 0.11))" stroke-width="1.25"/><path d="M 56 237 H 1464" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.6))" stroke-width="1"/><line x1="40" y1="282" x2="1480" y2="282" stroke="var(--fig-group-divider, rgba(23,36,48,0.08))" stroke-width="1"/><circle cx="62" cy="260" r="4.5" fill="var(--fig-role-blue-bar, #2563eb)"/><text class="sr-zh" x="74" y="265" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)">2. 统一强化学习环境与私有评测层（Step 02: Shared RLE &amp; Hardened Private Evals）</text><text class="sr-en" x="74" y="265" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)">2. Unified RLE &amp; Hardened Private Evaluation Plane (Step 02)</text></g><g data-group-id="climb-plane"><rect x="40" y="448" width="1440" height="188" rx="16" fill="var(--fig-group-bg-3, rgba(248, 245, 252, 0.72))" stroke="var(--fig-group-border, rgba(23, 36, 48, 0.11))" stroke-width="1.25"/><path d="M 56 449 H 1464" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.6))" stroke-width="1"/><line x1="40" y1="494" x2="1480" y2="494" stroke="var(--fig-group-divider, rgba(23,36,48,0.08))" stroke-width="1"/><circle cx="62" cy="472" r="4.5" fill="var(--fig-role-violet-bar, #7c3aed)"/><text class="sr-zh" x="74" y="477" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)">3. 三环渐进爬坡与 Foundry 底座层（Step 03: Inner-to-Outer Hill-Climbing Loops）</text><text class="sr-en" x="74" y="477" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)">3. Three-Ring Hill-Climbing Loops on Foundry &amp; Azure (Step 03)</text></g><g data-edge-id="edge-1"><path d="M 296 188 L 296 306" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#brk238-frontier-tuning-loop-1-arrow)"/><circle cx="296" cy="188" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="edge-2"><path d="M 760 188 L 760 306" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#brk238-frontier-tuning-loop-1-arrow)"/><circle cx="760" cy="188" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="edge-3"><path d="M 1224 188 L 1224 306" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#brk238-frontier-tuning-loop-1-arrow)"/><circle cx="1224" cy="188" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="edge-4"><path d="M 296 400 L 296 518" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#brk238-frontier-tuning-loop-1-arrow)"/><circle cx="296" cy="400" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="edge-5"><path d="M 760 400 L 760 518" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#brk238-frontier-tuning-loop-1-arrow)"/><circle cx="760" cy="400" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="edge-6"><path d="M 1224 400 L 1224 518" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#brk238-frontier-tuning-loop-1-arrow)"/><circle cx="1224" cy="400" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-node-id="work-signals"><defs><clipPath id="brk238-frontier-tuning-loop-1-clip-work-signals"><rect x="136" y="94" width="320" height="94" rx="13"/></clipPath></defs><rect x="136" y="94" width="320" height="94" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="136" y="94" width="320" height="94" rx="13" fill="var(--fig-role-violet-fill, rgba(124, 58, 237, 0.08))" stroke="var(--fig-role-violet-stroke, rgba(139, 92, 246, 0.42))" stroke-width="1.35"/><rect x="136" y="94" width="4.5" height="94" fill="var(--fig-role-violet-bar, #7c3aed)" clip-path="url(#brk238-frontier-tuning-loop-1-clip-work-signals)"/><line x1="148" y1="95" x2="444" y2="95" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)"><tspan x="298" y="129">Work IQ · Fabric IQ · 轨迹信号</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="150">在 M365 合规边界内挖掘邮件、文档、会议录像与历史</tspan><tspan x="298" y="164.5">工具调用链</tspan></text></g><g class="sr-en"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)"><tspan x="298" y="129">Work IQ · Fabric IQ · Trajectories</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="150">Mine M365 mail, docs, meeting recordings &amp; tool</tspan><tspan x="298" y="164.5">traces inside compliance boundary</tspan></text></g></g><g data-node-id="sme-cowork"><defs><clipPath id="brk238-frontier-tuning-loop-1-clip-sme-cowork"><rect x="600" y="94" width="320" height="94" rx="13"/></clipPath></defs><rect x="600" y="94" width="320" height="94" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="600" y="94" width="320" height="94" rx="13" fill="var(--fig-role-accent-fill, rgba(255, 122, 0, 0.09))" stroke="var(--fig-role-accent-stroke, rgba(234, 88, 12, 0.48))" stroke-width="1.35"/><rect x="600" y="94" width="4.5" height="94" fill="var(--fig-role-accent-bar, #ea580c)" clip-path="url(#brk238-frontier-tuning-loop-1-clip-sme-cowork)"/><line x1="612" y1="95" x2="908" y2="95" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)"><tspan x="762" y="129">Teams / Cowork 领域专家访谈</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="150">一键邀约业务专家问答录屏，将隐性评判经验固化为可</tspan><tspan x="762" y="164.5">执行评分准则</tspan></text></g><g class="sr-en"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)"><tspan x="762" y="129">Teams &amp; Cowork SME Interviews</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="150">Invite domain experts in Teams to turn tacit</tspan><tspan x="762" y="164.5">judgment into approved rubrics</tspan></text></g></g><g data-node-id="authoring-cli"><defs><clipPath id="brk238-frontier-tuning-loop-1-clip-authoring-cli"><rect x="1064" y="94" width="320" height="94" rx="13"/></clipPath></defs><rect x="1064" y="94" width="320" height="94" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="1064" y="94" width="320" height="94" rx="13" fill="var(--fig-role-teal-fill, rgba(13, 143, 140, 0.09))" stroke="var(--fig-role-teal-stroke, rgba(13, 143, 140, 0.46))" stroke-width="1.35"/><rect x="1064" y="94" width="4.5" height="94" fill="var(--fig-role-teal-bar, #0d8f8c)" clip-path="url(#brk238-frontier-tuning-loop-1-clip-authoring-cli)"/><line x1="1076" y1="95" x2="1372" y2="95" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)"><tspan x="1226" y="129">Copilot Studio · GHCP 插件 · CLI</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="150">内置营销/人力/研发模板，一句话拉起调优并支持</tspan><tspan x="1226" y="164.5">Agent 365 统一治理</tspan></text></g><g class="sr-en"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)"><tspan x="1226" y="129">Copilot Studio · GHCP Plugin · CLI</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="150">Start from templates or 1-line prompts; publish</tspan><tspan x="1226" y="164.5">across Studio, Cowork &amp; Agent 365</tspan></text></g></g><g data-node-id="rle-blocks"><defs><clipPath id="brk238-frontier-tuning-loop-1-clip-rle-blocks"><rect x="136" y="306" width="320" height="94" rx="13"/></clipPath></defs><rect x="136" y="306" width="320" height="94" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="136" y="306" width="320" height="94" rx="13" fill="var(--fig-role-rose-fill, rgba(225, 29, 72, 0.08))" stroke="var(--fig-role-rose-stroke, rgba(225, 29, 72, 0.48))" stroke-width="1.35"/><rect x="136" y="306" width="4.5" height="94" fill="var(--fig-role-rose-bar, #e11d48)" clip-path="url(#brk238-frontier-tuning-loop-1-clip-rle-blocks)"/><line x1="148" y1="307" x2="444" y2="307" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-rose-text, #9f1239)"><tspan x="298" y="341">四元调优环境（RLE 数字孪生）</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="362">评测、训练与线上推理共享同一 Skills、Rubrics、</tspan><tspan x="298" y="376.5">Tools 与 Samples</tspan></text></g><g class="sr-en"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-rose-text, #9f1239)"><tspan x="298" y="341">Four-Block RLE Digital Twin</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="362">Identical Skills, Rubrics, Tools &amp; Samples across</tspan><tspan x="298" y="376.5">eval, training &amp; serving</tspan></text></g></g><g data-node-id="hardened-evals"><defs><clipPath id="brk238-frontier-tuning-loop-1-clip-hardened-evals"><rect x="600" y="306" width="320" height="94" rx="13"/></clipPath></defs><rect x="600" y="306" width="320" height="94" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="600" y="306" width="320" height="94" rx="13" fill="var(--fig-role-amber-fill, rgba(217, 119, 6, 0.09))" stroke="var(--fig-role-amber-stroke, rgba(217, 119, 6, 0.44))" stroke-width="1.35"/><rect x="600" y="306" width="4.5" height="94" fill="var(--fig-role-amber-bar, #d97706)" clip-path="url(#brk238-frontier-tuning-loop-1-clip-hardened-evals)"/><line x1="612" y1="307" x2="908" y2="307" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)"><tspan x="762" y="341">对抗准则加固与难例压力评测</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="362">封堵奖励作弊漏洞，树搜索主动挖掘模型断点并同步核</tspan><tspan x="762" y="376.5">算单任务成本</tspan></text></g><g class="sr-en"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)"><tspan x="762" y="341">Adversarial Rubrics &amp; Hard Evals</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="362">Block reward hacking, synthesize failure-inducing</tspan><tspan x="762" y="376.5">prompts &amp; meter cost per run</tspan></text></g></g><g data-node-id="virtual-tools"><defs><clipPath id="brk238-frontier-tuning-loop-1-clip-virtual-tools"><rect x="1064" y="306" width="320" height="94" rx="13"/></clipPath></defs><rect x="1064" y="306" width="320" height="94" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="1064" y="306" width="320" height="94" rx="13" fill="var(--fig-role-teal-fill, rgba(13, 143, 140, 0.09))" stroke="var(--fig-role-teal-stroke, rgba(13, 143, 140, 0.46))" stroke-width="1.35"/><rect x="1064" y="306" width="4.5" height="94" fill="var(--fig-role-teal-bar, #0d8f8c)" clip-path="url(#brk238-frontier-tuning-loop-1-clip-virtual-tools)"/><line x1="1076" y1="307" x2="1372" y2="307" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)"><tspan x="1226" y="341">工具虚拟化（Real / Shim / Mock）</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="362">模拟 SAP、D365 与邮箱状态变迁，百次并发推演零脏</tspan><tspan x="1226" y="376.5">数据、零误发邮件</tspan></text></g><g class="sr-en"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)"><tspan x="1226" y="341">Tool Virtualization (Real / Shim / Mock)</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="362">Simulate stateful enterprise tools across 100s of</tspan><tspan x="1226" y="376.5">rollouts with zero side effects</tspan></text></g></g><g data-node-id="loop1-skill"><defs><clipPath id="brk238-frontier-tuning-loop-1-clip-loop1-skill"><rect x="136" y="518" width="320" height="94" rx="13"/></clipPath></defs><rect x="136" y="518" width="320" height="94" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="136" y="518" width="320" height="94" rx="13" fill="var(--fig-role-accent-fill, rgba(255, 122, 0, 0.09))" stroke="var(--fig-role-accent-stroke, rgba(234, 88, 12, 0.48))" stroke-width="1.35"/><rect x="136" y="518" width="4.5" height="94" fill="var(--fig-role-accent-bar, #ea580c)" clip-path="url(#brk238-frontier-tuning-loop-1-clip-loop1-skill)"/><line x1="148" y1="519" x2="444" y2="519" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)"><tspan x="298" y="553">内环 Loop 1：技能蒸馏（Skill）</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="574">零权重改动，优先迭代指令、上下文与准则并将胜出轨</tspan><tspan x="298" y="588.5">迹回写至技能</tspan></text></g><g class="sr-en"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)"><tspan x="298" y="553">Inner Loop 1: Skill Distillation</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="574">Weights unchanged; refine prompts, context &amp; rubrics</tspan><tspan x="298" y="588.5">first at lowest cost</tspan></text></g></g><g data-node-id="loop2-harness"><defs><clipPath id="brk238-frontier-tuning-loop-1-clip-loop2-harness"><rect x="600" y="518" width="320" height="94" rx="13"/></clipPath></defs><rect x="600" y="518" width="320" height="94" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="600" y="518" width="320" height="94" rx="13" fill="var(--fig-role-amber-fill, rgba(217, 119, 6, 0.09))" stroke="var(--fig-role-amber-stroke, rgba(217, 119, 6, 0.44))" stroke-width="1.35"/><rect x="600" y="518" width="4.5" height="94" fill="var(--fig-role-amber-bar, #d97706)" clip-path="url(#brk238-frontier-tuning-loop-1-clip-loop2-harness)"/><line x1="612" y1="519" x2="908" y2="519" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)"><tspan x="762" y="553">中环 Loop 2：内核与 MCTS 树搜索</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="574">按准则剪枝推理路径并跨模型路由，树搜索增益直接充</tspan><tspan x="762" y="588.5">当微调潜力探针</tspan></text></g><g class="sr-en"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)"><tspan x="762" y="553">Middle Loop 2: Harness &amp; MCTS Search</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="574">Rubric-guided MCTS &amp; model routing; search lift</tspan><tspan x="762" y="588.5">signals fine-tuning headroom</tspan></text></g></g><g data-node-id="loop3-model"><defs><clipPath id="brk238-frontier-tuning-loop-1-clip-loop3-model"><rect x="1064" y="518" width="320" height="94" rx="13"/></clipPath></defs><rect x="1064" y="518" width="320" height="94" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="1064" y="518" width="320" height="94" rx="13" fill="var(--fig-role-rose-fill, rgba(225, 29, 72, 0.08))" stroke="var(--fig-role-rose-stroke, rgba(225, 29, 72, 0.48))" stroke-width="1.35"/><rect x="1064" y="518" width="4.5" height="94" fill="var(--fig-role-rose-bar, #e11d48)" clip-path="url(#brk238-frontier-tuning-loop-1-clip-loop3-model)"/><line x1="1076" y1="519" x2="1372" y2="519" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-rose-text, #9f1239)"><tspan x="1226" y="553">外环 Loop 3：RFT + LoRA 模型微调</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="574">基于 Foundry 将业务专长固化进租户自持的 MAI /</tspan><tspan x="1226" y="588.5">GPT-6 Luna 小模型权重</tspan></text></g><g class="sr-en"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-rose-text, #9f1239)"><tspan x="1226" y="553">Outer Loop 3: RFT + LoRA on Foundry</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="574">Reinforcement fine-tuning on Foundry into tenant-</tspan><tspan x="1226" y="588.5">owned MAI &amp; GPT-6 Luna weights</tspan></text></g></g><g class="sr-edge-labels"><g class="sr-zh"><rect x="257" y="213" width="79" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="296" y="228" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">归纳工作流</text></g><g class="sr-en"><rect x="235" y="213" width="123" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="296" y="228" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Induce Workflows</text></g><g class="sr-zh"><rect x="715" y="213" width="91" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="760" y="228" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">校准专家准则</text></g><g class="sr-en"><rect x="703" y="213" width="115" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="760" y="228" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Calibrate Rubrics</text></g><g class="sr-zh"><rect x="1179" y="213" width="91" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="1224" y="228" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">挂载工具沙盒</text></g><g class="sr-en"><rect x="1169" y="213" width="110" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="1224" y="228" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Bind Tool Shims</text></g><g class="sr-zh"><rect x="251" y="425" width="91" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="296" y="440" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">内环优先调优</text></g><g class="sr-en"><rect x="240" y="425" width="112" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="296" y="440" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Tune Skills First</text></g><g class="sr-zh"><rect x="715" y="425" width="91" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="760" y="440" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">准则引导搜索</text></g><g class="sr-en"><rect x="699" y="425" width="122" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="760" y="440" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Guide Tree Search</text></g><g class="sr-zh"><rect x="1170" y="425" width="109" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="1224" y="440" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">无副作用 Rollout</text></g><g class="sr-en"><rect x="1164" y="425" width="120" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="1224" y="440" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Safe RFT Rollouts</text></g></g></svg>
+            <figcaption class="diagram-caption"><span data-zh="图 1：评测、模型训练与线上生产推理完全共享同一个四元 RLE 环境（技能、评分准则、工具与样本），彻底消除传统微调常见的训练与服务割裂（Train-Serve Skew）[1][2]。" data-en="Figure 1: Evaluation, reinforcement fine-tuning, and live production serving share the exact same four-block RLE (Skills, Rubrics, Tools, and Samples), eliminating train-serve skew [1][2].">图 1：评测、模型训练与线上生产推理完全共享同一个四元 RLE 环境（技能、评分准则、工具与样本），彻底消除传统微调常见的训练与服务割裂（Train-Serve Skew）[1][2]。</span><a href="./media/brk238-frontier-tuning-loop.drawio" download data-zh="下载 .drawio" data-en="Download .drawio">下载 .drawio</a></figcaption>
+          </figure>
+
+          <p data-zh="每个成型的调优环境都由四块积木拼成：教智能体如何干活的&lt;strong&gt;技能（Skills）&lt;/strong&gt;、界定优劣判据的&lt;strong&gt;评分准则（Rubrics）&lt;/strong&gt;、连接业务系统的&lt;strong&gt;工具与知识（Tools &amp;amp; Knowledge）&lt;strong&gt;以及触发任务的&lt;/strong&gt;代表性样本（Samples）&lt;/strong&gt; [2]。Ranveer 特别强调，自动化现有流程靠写好技能，但真正拔高业务质量上限靠的是一遍遍打磨评分准则 [1]。针对生产力任务难以像数学题那样简单判对错的难题，Frontier Tuning 在第二步私有压力评测中引入了三项关键机制 [1][2]：" data-en="Every RLE rests on four building blocks: &lt;strong&gt;Skills&lt;/strong&gt; (what the agent learns to do), &lt;strong&gt;Rubrics&lt;/strong&gt; (how work is judged across LLM, code, or discrete classifiers), &lt;strong&gt;Tools &amp;amp; Knowledge&lt;/strong&gt; (enterprise systems and policies), and &lt;strong&gt;Samples&lt;/strong&gt; (ground-truth prompts) [2]. While skills automate existing steps, iterating on rubrics is what raises business quality [1]. Because open-ended enterprise work lacks trivial math-style verifiers, Step 02 introduces three evaluation breakthroughs [1][2]:">每个成型的调优环境都由四块积木拼成：教智能体如何干活的<strong>技能（Skills）</strong>、界定优劣判据的<strong>评分准则（Rubrics）</strong>、连接业务系统的<strong>工具与知识（Tools &amp; Knowledge）<strong>以及触发任务的</strong>代表性样本（Samples）</strong> [2]。Ranveer 特别强调，自动化现有流程靠写好技能，但真正拔高业务质量上限靠的是一遍遍打磨评分准则 [1]。针对生产力任务难以像数学题那样简单判对错的难题，Frontier Tuning 在第二步私有压力评测中引入了三项关键机制 [1][2]：</p>
+
+          <div class="insight-grid insight-grid-3" data-present-step data-present-surface="unframed" data-step-title="私有压力评测（Private Evals）的三大防作弊与零副作用机制" data-step-title-en="Three Hardening Mechanisms in Step 02 Private Evals" data-present-title-zh="私有压力评测（Private Evals）的三大防作弊与零副作用机制" data-present-title-en="Three Hardening Mechanisms in Step 02 Private Evals" data-step-label="02 / Digital Twin &amp; Hardened Evals" data-step-label-en="02 / Digital Twin &amp; Hardened Evals" data-present-i18n-invariant="label">
+            <article class="insight-card">
+              <span class="card-index">01</span>
+              <h3 data-zh="对抗式评分准则加固" data-en="Adversarial Rubric Hardening">对抗式评分准则加固</h3>
+              <p data-zh="大模型极擅长钻空子骗取高分（Reward Hacking）；评测引擎采用对抗技术主动冲击初版评分标准，堵死模糊漏洞并结合专家初评校准自动评分器 [1][2]。" data-en="Frontier models excel at reward hacking; an adversarial engine stress-tests draft criteria to close loopholes and calibrates auto-graders against SME judgments [1][2].">大模型极擅长钻空子骗取高分（Reward Hacking）；评测引擎采用对抗技术主动冲击初版评分标准，堵死模糊漏洞并结合专家初评校准自动评分器 [1][2]。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">02</span>
+              <h3 data-zh="准则引导的难例合成" data-en="Rubric-Guided Hard Sample Search">准则引导的难例合成</h3>
+              <p data-zh="仅测历史旧提示词远不足以暴露隐患；系统利用准则引导的树搜索主动寻找最容易令候选模型与执行内核崩溃的边缘难例，测出真实短板 [1][2]。" data-en="Historical prompts miss edge cases; rubric-guided tree search actively synthesizes adversarial prompts most likely to break candidate models and harnesses [1][2].">仅测历史旧提示词远不足以暴露隐患；系统利用准则引导的树搜索主动寻找最容易令候选模型与执行内核崩溃的边缘难例，测出真实短板 [1][2]。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">03</span>
+              <h3 data-zh="企业工具状态虚拟化" data-en="Stateful Tool Virtualization">企业工具状态虚拟化</h3>
+              <p data-zh="支持真实、垫片（Shim）与模拟（Mock）三态切换；跑 100 轮评测推演时在后台逼真维护数据库与邮箱状态变迁，绝不向外部发出 100 封垃圾邮件或污染生产库 [1][2]。" data-en="Runs tools in Real, Shim, or Mock modes so 100 evaluation rollouts realistically mutate simulated SAP, D365, or mailbox state without firing 100 live emails [1][2].">支持真实、垫片（Shim）与模拟（Mock）三态切换；跑 100 轮评测推演时在后台逼真维护数据库与邮箱状态变迁，绝不向外部发出 100 封垃圾邮件或污染生产库 [1][2]。</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="three-tuning-loops" class="section" data-reveal data-present-title-zh="三环渐进爬坡：技能蒸馏、MCTS 树搜索探针与强化微调" data-present-title-en="Three-Ring Hill-Climbing: Skill Distillation, MCTS Headroom Probes, and RFT">
+          <div class="section-head">
+            <p class="section-kicker">03 / Three-Ring Hill-Climbing</p>
+            <h2 data-zh="3. 三环渐进爬坡：技能蒸馏、MCTS 树搜索探针与强化微调" data-en="3. Three-Ring Hill-Climbing: Skill Distillation, MCTS Headroom Probes, and RFT">3. 三环渐进爬坡：技能蒸馏、MCTS 树搜索探针与强化微调</h2>
+            <p data-zh="拿到私有评测的质量与成本基线后，系统绝不一上来就盲目烧卡训练权重，而是严格遵循“从内环到外环、每次只改一处、唯分数提升才保留”的爬坡铁律 [1][2]。在精度—成本二维平面上，未调优智能体往往困在左下角（低成本、低可靠）；内环与中环先不改模型权重，把性能推向右上角高水准区；一旦确认业务达标，外环再通过模型微调将曲线水平拉向左上角——用小模型锁定前沿质量与极低推理开销 [1][2]。" data-en="Armed with baseline quality and cost scores, Frontier Tuning never jumps blindly into weight training; instead it follows a strict inner-to-outer hill-climbing discipline where every change is gated against the benchmark [1][2]. On the accuracy-versus-cost plane, untuned agents start at the bottom-left (cheap but error-prone); inner loops push quality to the top-right, and outer-loop model tuning pulls cost sharply left while preserving accuracy [1][2].">拿到私有评测的质量与成本基线后，系统绝不一上来就盲目烧卡训练权重，而是严格遵循“从内环到外环、每次只改一处、唯分数提升才保留”的爬坡铁律 [1][2]。在精度—成本二维平面上，未调优智能体往往困在左下角（低成本、低可靠）；内环与中环先不改模型权重，把性能推向右上角高水准区；一旦确认业务达标，外环再通过模型微调将曲线水平拉向左上角——用小模型锁定前沿质量与极低推理开销 [1][2]。</p>
+          </div>
+
+          <ol class="flow-list" data-present-step data-present-surface="unframed" data-step-title="由浅入深的三环智能体学习机制与自动漂移监测" data-step-title-en="Inner-to-Outer Agentic Learning Loops &amp; Drift Detection" data-present-title-zh="由浅入深的三环智能体学习机制与自动漂移监测" data-present-title-en="Inner-to-Outer Agentic Learning Loops &amp; Drift Detection" data-step-label="03 / Three-Ring Hill-Climbing" data-step-label-en="03 / Three-Ring Hill-Climbing" data-present-i18n-invariant="label">
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="第一环（内环·技能蒸馏 Skill Loop）：零权重改动的极速提效" data-en="Loop 1 (Inner · Skill Distillation): Zero-Weight Prompt &amp;amp; Context Refinement">第一环（内环·技能蒸馏 Skill Loop）：零权重改动的极速提效</strong>
+                <p data-zh="每次对话或评测后分析执行轨迹与专家反馈，澄清任务指令、补充组织上下文，并将多步探索找出的最优成功路径直接反哺写回技能文件，让下一次同类请求一步到位 [1][2]。" data-en="Analyzes trajectories and user feedback after runs, refining instructions and distilling winning multi-step paths directly back into the skill definition at minimal cost [1][2].">每次对话或评测后分析执行轨迹与专家反馈，澄清任务指令、补充组织上下文，并将多步探索找出的最优成功路径直接反哺写回技能文件，让下一次同类请求一步到位 [1][2]。</p>
+              </div>
+            </li>
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="第二环（中环·内核与树搜索 Harness Loop）：蒙特卡洛树搜索与微调潜力探针" data-en="Loop 2 (Middle · Harness &amp;amp; MCTS): Rubric-Guided Search as Headroom Signal">第二环（中环·内核与树搜索 Harness Loop）：蒙特卡洛树搜索与微调潜力探针</strong>
+                <p data-zh="在推理时跨候选模型池（含通用基座、微软自研小基座与已微调模型）启动受评分准则引导的蒙特卡洛树搜索（MCTS），自动剪枝低分歧路并按子步骤路由最适配的模型 [1][2]。更巧妙的是，中环树搜索带来的分数抬升直接充当“微调潜力信号（Headroom Signal）”——它相当于一次低成本运行时强化学习推演，精准预判启动权重微调能否带来实质收益 [1][2]。" data-en="Runs rubric-guided Monte Carlo Tree Search (MCTS) across a model pool, pruning weak branches and routing sub-steps [1][2]. Crucially, MCTS score lift acts as a runtime headroom probe telling engineers whether weight fine-tuning will pay off [1][2].">在推理时跨候选模型池（含通用基座、微软自研小基座与已微调模型）启动受评分准则引导的蒙特卡洛树搜索（MCTS），自动剪枝低分歧路并按子步骤路由最适配的模型 [1][2]。更巧妙的是，中环树搜索带来的分数抬升直接充当“微调潜力信号（Headroom Signal）”——它相当于一次低成本运行时强化学习推演，精准预判启动权重微调能否带来实质收益 [1][2]。</p>
+              </div>
+            </li>
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="第三环（外环·强化微调 Model Loop）：Foundry 底座上的强化微调与低秩适配固化" data-en="Loop 3 (Outer · Reinforcement Fine-Tuning): Tenant-Owned RFT + LoRA Weights">第三环（外环·强化微调 Model Loop）：Foundry 底座上的强化微调与低秩适配固化</strong>
+                <p data-zh="当树搜索证实存在明确余量空间（如客户案例中 +18 至 +22.7 个百分点的跃升）时，外环每数周定期运行强化微调：模型对每道任务做多次采样推演（Rollouts），由加固后的评分准则逐一打分奖励，通过低秩适配器（LoRA）更新权重，且仅在严格击败基线时才准予晋级（兼容 &lt;code&gt;GPT-6&lt;/code&gt;、&lt;code&gt;GPT-6 Luna&lt;/code&gt;、&lt;code&gt;MAI 2&lt;/code&gt;、&lt;code&gt;MAI 1.1&lt;/code&gt; 及开源权重模型）[1][2]。" data-en="Triggered periodically when search lift confirms headroom: the model executes multiple rollouts per task, rubrics score every attempt, and LoRA adapters update weights on Microsoft Foundry—kept only if they beat the holdout baseline [1][2].">当树搜索证实存在明确余量空间（如客户案例中 +18 至 +22.7 个百分点的跃升）时，外环每数周定期运行强化微调：模型对每道任务做多次采样推演（Rollouts），由加固后的评分准则逐一打分奖励，通过低秩适配器（LoRA）更新权重，且仅在严格击败基线时才准予晋级（兼容 <code>GPT-6</code>、<code>GPT-6 Luna</code>、<code>MAI 2</code>、<code>MAI 1.1</code> 及开源权重模型）[1][2]。</p>
+              </div>
+            </li>
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="线上持续守卫：基于模型调用占比的无感漂移预警" data-en="Production Guard: Automatic Drift Detection via Routing Share">线上持续守卫：基于模型调用占比的无感漂移预警</strong>
+                <p data-zh="线上推理池同时挂载基座模型与租户微调模型；一旦业务流程演进导致微调模型在中环路由中被选中的频次下滑，系统即刻识别出模型状态滞后于最新 RLE，自动提示发起新一轮微调迭代 [1]。" data-en="Because base and fine-tuned models coexist in the live routing pool, a drop in how often the fine-tuned model wins selection immediately flags business drift and signals when to re-tune [1].">线上推理池同时挂载基座模型与租户微调模型；一旦业务流程演进导致微调模型在中环路由中被选中的频次下滑，系统即刻识别出模型状态滞后于最新 RLE，自动提示发起新一轮微调迭代 [1]。</p>
+              </div>
+            </li>
+          </ol>
+
+          <p data-zh="在工程工具链与实机演示环节，首席产品经理 Malik Pradhan 展示了如何把上述复杂科学完全隐藏在极简交互背后 [1][2]。开发者只需在 GitHub Copilot 中启用 &lt;strong&gt;Frontier Tuning 插件&lt;/strong&gt;或使用命令行工具，即可从内置的&lt;strong&gt;营销运营（Marketing Operations）&lt;/strong&gt;、**产品生命周期（Product Lifecycle）&lt;strong&gt;与&lt;/strong&gt;人才招聘（Talent Acquisition）**三大模板一键拉起学习环境——现场演示的营销环境在数秒内便在受保护的 Microsoft 365 服务中自动配齐了 &lt;strong&gt;63 项技能与 100 条样本&lt;/strong&gt; [1]。" data-en="During the live engineering walkthrough, Principal PM Malik Pradhan showed how this scientific machinery abstracts behind conversational tooling [1][2]. Using the &lt;strong&gt;Frontier Tuning plugin in GitHub Copilot&lt;/strong&gt; or the &lt;strong&gt;Tuning CLI&lt;/strong&gt;, makers bootstrap from three built-in templates—&lt;strong&gt;Marketing Operations&lt;/strong&gt;, &lt;strong&gt;Product Lifecycle&lt;/strong&gt;, and &lt;strong&gt;Talent Acquisition&lt;/strong&gt;—provisioning a governed M365 Marketing RLE pre-loaded with &lt;strong&gt;63 skills and 100 samples&lt;/strong&gt; in seconds [1].">在工程工具链与实机演示环节，首席产品经理 Malik Pradhan 展示了如何把上述复杂科学完全隐藏在极简交互背后 [1][2]。开发者只需在 GitHub Copilot 中启用 <strong>Frontier Tuning 插件</strong>或使用命令行工具，即可从内置的<strong>营销运营（Marketing Operations）</strong>、**产品生命周期（Product Lifecycle）<strong>与</strong>人才招聘（Talent Acquisition）**三大模板一键拉起学习环境——现场演示的营销环境在数秒内便在受保护的 Microsoft 365 服务中自动配齐了 <strong>63 项技能与 100 条样本</strong> [1]。</p>
+<p data-zh="针对其中的 &lt;code&gt;build content brief&lt;/code&gt;（活动内容简报）技能，Malik 直接输入一句指令向市场专家同事 Riaz 发起 SME 访谈邀请；Riaz 在 Teams 中收到卡片并点开 Copilot Cowork 访谈画布完成问答后，其真实案例与验收标准便自动回流沉淀进 RLE [1]。演示短片中的企业案例 Caldova 更完整串联了四类角色的日常协作：创作者 Maya 在插件中一句话启动发票审核技能调优，合同专家 Elena 在 Teams 内固化条款核对红线，财务团队 Daniel 在 Cowork 中一键用上带逐行发票与合同条款引用的调优技能并随手回捐高价值提示词，而 IT 管理员 Jordan 则在 &lt;strong&gt;Agent 365&lt;/strong&gt; 控制台中全程统管主权合规 [1][4]。此外，声明式智能体（Declarative Agents）构建器也即将原生嵌入 &lt;strong&gt;Tune with Copilot Credits&lt;/strong&gt; 按钮，实现在日常创作流中就地爬坡 [1][4]。" data-en="Focusing on the &lt;code&gt;build content brief&lt;/code&gt; skill, Malik launched an SME interview from the CLI that messaged marketing expert Riaz in Teams; once Riaz answered workflow questions inside Copilot Cowork, his sample and rubric criteria synced straight back into the RLE [1]. The Caldova invoice-review showcase further illustrated four-role enterprise collaboration: maker Maya triggers tuning in one sentence, contract specialist Elena codifies clause rules in Teams, finance lead Daniel consumes line-cited invoice checks in Cowork while donating new prompts back to the loop, and IT admin Jordan governs everything in &lt;strong&gt;Agent 365&lt;/strong&gt;—with a native &lt;strong&gt;Tune with Copilot Credits&lt;/strong&gt; button also arriving inside the Declarative Agent builder [1][4].">针对其中的 <code>build content brief</code>（活动内容简报）技能，Malik 直接输入一句指令向市场专家同事 Riaz 发起 SME 访谈邀请；Riaz 在 Teams 中收到卡片并点开 Copilot Cowork 访谈画布完成问答后，其真实案例与验收标准便自动回流沉淀进 RLE [1]。演示短片中的企业案例 Caldova 更完整串联了四类角色的日常协作：创作者 Maya 在插件中一句话启动发票审核技能调优，合同专家 Elena 在 Teams 内固化条款核对红线，财务团队 Daniel 在 Cowork 中一键用上带逐行发票与合同条款引用的调优技能并随手回捐高价值提示词，而 IT 管理员 Jordan 则在 <strong>Agent 365</strong> 控制台中全程统管主权合规 [1][4]。此外，声明式智能体（Declarative Agents）构建器也即将原生嵌入 <strong>Tune with Copilot Credits</strong> 按钮，实现在日常创作流中就地爬坡 [1][4]。</p>
+        </section>
+
+        <section id="customer-outcomes" class="section" data-reveal data-present-title-zh="四大客户实测账单：小模型以 1/7 至 1/28 成本反超前沿基线" data-present-title-en="Real Customer Scorecards: Small Models Beat Frontier Baselines at 1/7 to 1/28 Cost">
+          <div class="section-head">
+            <p class="section-kicker">04 / Enterprise Benchmarks &amp; EY Case</p>
+            <h2 data-zh="4. 四大客户实测账单：小模型以 1/7 至 1/28 成本反超前沿基线" data-en="4. Real Customer Scorecards: Small Models Beat Frontier Baselines at 1/7 to 1/28 Cost">4. 四大客户实测账单：小模型以 1/7 至 1/28 成本反超前沿基线</h2>
+            <p data-zh="检验学习闭环成色的唯一标尺是真实企业账单与专家盲测得分 [1][2]。Kalyan Ayloo 与安永（EY）全球税务首席技术官 Ben Ambrosino 在下半场披露了四家早期私有预览客户的核心战果，共同回答了一个架构师最关心的问题：&lt;strong&gt;参数量小得多的模型，真能在严肃商业场景里既赢下质量又砍掉九成算力成本吗？&lt;/strong&gt; 数据给出了确定性答案 [1][2]：" data-en="Real enterprise scorecards and blind expert rubrics are the ultimate test of any tuning stack [1][2]. In the second half of BRK238, Kalyan Ayloo and EY Global Tax CTO Ben Ambrosino shared private-preview benchmarks across four organizations, answering every architect's core question: &lt;strong&gt;can a much smaller model match or beat frontier quality on domain-critical workflows at a fraction of the price?&lt;/strong&gt; The measured results confirm it [1][2]:">检验学习闭环成色的唯一标尺是真实企业账单与专家盲测得分 [1][2]。Kalyan Ayloo 与安永（EY）全球税务首席技术官 Ben Ambrosino 在下半场披露了四家早期私有预览客户的核心战果，共同回答了一个架构师最关心的问题：<strong>参数量小得多的模型，真能在严肃商业场景里既赢下质量又砍掉九成算力成本吗？</strong> 数据给出了确定性答案 [1][2]：</p>
+          </div>
+
+          <figure class="sr-figure generated-diagram is-inline-svg" data-present-step data-present-surface="unframed" data-step-title="四大真实企业场景质量爬坡实测对比" data-step-title-en="Quality Hill-Climb Across Four Production Enterprise Workloads" data-present-title-zh="四大真实企业场景质量爬坡实测对比" data-present-title-en="Quality Hill-Climb Across Four Production Enterprise Workloads" data-step-label="04 / Enterprise Benchmarks &amp; EY Case" data-step-label-en="04 / Enterprise Benchmarks &amp; EY Case" data-present-i18n-invariant="label">
+            <svg class="sr-figure-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 456" role="img" aria-labelledby="brk238-customer-hill-climb-2-title brk238-customer-hill-climb-2-desc"><title id="brk238-customer-hill-climb-2-title">四大真实客户场景质量爬坡对比：小模型追平并反超前沿大模型（BRK238）</title><desc id="brk238-customer-hill-climb-2-desc">Horizontal bar chart with 4 items</desc><text class="sr-zh" x="36" y="32" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="18" font-weight="700" fill="var(--fig-text-strong, #172430)">四大真实客户场景质量爬坡对比：小模型追平并反超前沿大模型（BRK238）</text><text class="sr-en" x="36" y="32" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="18" font-weight="700" fill="var(--fig-text-strong, #172430)">Customer Quality Hill-Climb: Tuned Small Models vs. Frontier Baseline (BRK238)</text><text class="sr-zh" x="36" y="54" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">基于企业私有专家评分准则（满分 100%），对比未调优小模型、前沿基线模型（GPT-5.6-Sol / GPT-6.1-Sol）与 Frontier Tuning 调优后得分</text><text class="sr-en" x="36" y="54" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">Enterprise SME rubric scores (out of 100%) comparing untuned small models, frontier baselines, and Frontier Tuning results</text><g class="sr-chart-legend"><g transform="translate(857,78)"><rect x="0" y="1" width="10" height="10" rx="3" fill="var(--fig-series-3, #2563eb)"/><text class="sr-zh" x="16" y="10" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Frontier Tuning 调优小模型</text><text class="sr-en" x="16" y="10" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Frontier-Tuned Small Model</text></g><g transform="translate(699,78)"><rect x="0" y="1" width="10" height="10" rx="3" fill="var(--fig-series-2, #0d8f8c)"/><text class="sr-zh" x="16" y="10" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">前沿大模型直接运行</text><text class="sr-en" x="16" y="10" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Out-of-Box Frontier</text></g><g transform="translate(536,78)"><rect x="0" y="1" width="10" height="10" rx="3" fill="var(--fig-series-1, #ea580c)"/><text class="sr-zh" x="16" y="10" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">未调优小模型基线</text><text class="sr-en" x="16" y="10" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Untuned Small Model</text></g></g><line x1="270" y1="106" x2="270" y2="402" stroke="var(--fig-axis-line, rgba(23,36,48,0.24))" stroke-width="1"/><text class="sr-figure-num" x="270" y="424" text-anchor="middle" font-size="11.5" fill="var(--fig-text-subtle, #64748b)">0</text><line x1="424" y1="106" x2="424" y2="402" stroke="var(--fig-grid-line, rgba(23,36,48,0.09))" stroke-width="1" stroke-dasharray="4 4"/><text class="sr-figure-num" x="424" y="424" text-anchor="middle" font-size="11.5" fill="var(--fig-text-subtle, #64748b)">25</text><line x1="578" y1="106" x2="578" y2="402" stroke="var(--fig-grid-line, rgba(23,36,48,0.09))" stroke-width="1" stroke-dasharray="4 4"/><text class="sr-figure-num" x="578" y="424" text-anchor="middle" font-size="11.5" fill="var(--fig-text-subtle, #64748b)">50</text><line x1="731" y1="106" x2="731" y2="402" stroke="var(--fig-grid-line, rgba(23,36,48,0.09))" stroke-width="1" stroke-dasharray="4 4"/><text class="sr-figure-num" x="731" y="424" text-anchor="middle" font-size="11.5" fill="var(--fig-text-subtle, #64748b)">75</text><line x1="885" y1="106" x2="885" y2="402" stroke="var(--fig-grid-line, rgba(23,36,48,0.09))" stroke-width="1" stroke-dasharray="4 4"/><text class="sr-figure-num" x="885" y="424" text-anchor="middle" font-size="11.5" fill="var(--fig-text-subtle, #64748b)">100%</text><text class="sr-zh" x="256" y="147" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">Land O&apos;Lakes 乳制品感官报告</text><text class="sr-en" x="256" y="147" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">Land O&apos;Lakes Sensory Reports</text><rect x="270" y="117" width="574" height="15" rx="6" fill="var(--fig-role-slate-bar, #64748b)" fill-opacity="0.88"/><text x="854" y="129" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">93.3%</text><rect x="270" y="136" width="578" height="15" rx="6" fill="var(--fig-role-amber-bar, #d97706)" fill-opacity="0.88"/><text x="858" y="148" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">94%</text><rect x="270" y="155" width="595" height="15" rx="6" fill="var(--fig-role-teal-bar, #0d8f8c)" fill-opacity="0.88"/><text class="sr-zh" x="875" y="167" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">96.7% · $0.014/次 (1/28 成本)</text><text class="sr-en" x="875" y="167" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">96.7% · $0.014/run (1/28 cost)</text><text class="sr-zh" x="256" y="221" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">Pearson 员工英语沟通教练</text><text class="sr-en" x="256" y="221" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">Pearson Communication Coach</text><rect x="270" y="191" width="573" height="15" rx="6" fill="var(--fig-role-slate-bar, #64748b)" fill-opacity="0.88"/><text x="853" y="203" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">93.2%</text><rect x="270" y="210" width="609" height="15" rx="6" fill="var(--fig-role-amber-bar, #d97706)" fill-opacity="0.88"/><text x="889" y="222" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">99%</text><rect x="270" y="229" width="615" height="15" rx="6" fill="var(--fig-role-accent-bar, #ea580c)" fill-opacity="0.88"/><text class="sr-zh" x="895" y="241" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">100.0% · $0.25/次 (1/7 成本)</text><text class="sr-en" x="895" y="241" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">100.0% · $0.25/run (1/7 cost)</text><text class="sr-zh" x="256" y="295" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">EY L3 跨国税务研究顾问</text><text class="sr-en" x="256" y="295" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">EY L3 Global Tax Advisor</text><rect x="270" y="265" width="305" height="15" rx="6" fill="var(--fig-role-slate-bar, #64748b)" fill-opacity="0.88"/><text x="585" y="277" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">49.6%</text><rect x="270" y="284" width="523" height="15" rx="6" fill="var(--fig-role-amber-bar, #d97706)" fill-opacity="0.88"/><text x="803" y="296" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">85.1%</text><rect x="270" y="303" width="558" height="15" rx="6" fill="var(--fig-role-violet-bar, #7c3aed)" fill-opacity="0.88"/><text class="sr-zh" x="838" y="315" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">90.7% (+41.1 pts 超越前沿)</text><text class="sr-en" x="838" y="315" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">90.7% (+41.1 pts, beats frontier)</text><text class="sr-zh" x="256" y="369" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">Microsoft People 合规审查</text><text class="sr-en" x="256" y="369" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">Microsoft People Compliance</text><rect x="270" y="339" width="351" height="15" rx="6" fill="var(--fig-role-slate-bar, #64748b)" fill-opacity="0.88"/><text x="631" y="351" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">57%</text><rect x="270" y="358" width="529" height="15" rx="6" fill="var(--fig-role-amber-bar, #d97706)" fill-opacity="0.88"/><text x="809" y="370" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">86%</text><rect x="270" y="377" width="461" height="15" rx="6" fill="var(--fig-role-blue-bar, #2563eb)" fill-opacity="0.88"/><text class="sr-zh" x="741" y="389" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">75.0% · 审查耗时缩减 7.5×</text><text class="sr-en" x="741" y="389" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">75.0% · 7.5× faster review</text><text class="sr-zh" x="578" y="448" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">企业私有专家评分准则得分（百分比越高越好）</text><text class="sr-en" x="578" y="448" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Enterprise SME Rubric Quality Score (% Higher Is Better)</text></svg>
+            <figcaption class="diagram-caption"><span data-zh="图 2：在乳制品感官标准、教学法英语辅导与跨国税法研究三大场景中，经 Frontier Tuning 爬坡后的小模型（GPT-6 Luna 与 MAI 1.1）全部跨越甚至反超前沿大模型基线；微软内部合规团队亦借此将单案审查耗时压缩 7.5 倍 [2]。" data-en="Figure 2: Across dairy sensory standards, pedagogical coaching, and global tax research, Frontier-Tuned small models (GPT-6 Luna and MAI 1.1) matched or surpassed out-of-box frontier models while cutting Microsoft People Team compliance review time by 7.5× [2].">图 2：在乳制品感官标准、教学法英语辅导与跨国税法研究三大场景中，经 Frontier Tuning 爬坡后的小模型（GPT-6 Luna 与 MAI 1.1）全部跨越甚至反超前沿大模型基线；微软内部合规团队亦借此将单案审查耗时压缩 7.5 倍 [2]。</span></figcaption>
+          </figure>
+
+          <div class="math-block" data-latex="\text{Cost Ratio}_{\text{Land O'Lakes}} = \frac{\$0.014}{\$0.390} \approx 0.036\times \;\left(\approx \frac{1}{28}\right), \qquad \text{Cost Ratio}_{\text{Pearson}} = \frac{\$0.25}{\$1.78} \approx 0.140\times \;\left(\approx \frac{1}{7}\right)">\text{Cost Ratio}_{\text{Land O'Lakes}} = \frac{\$0.014}{\$0.390} \approx 0.036\times \;\left(\approx \frac{1}{28}\right), \qquad \text{Cost Ratio}_{\text{Pearson}} = \frac{\$0.25}{\$1.78} \approx 0.140\times \;\left(\approx \frac{1}{7}\right)</div>
+<div class="compare-table-wrap" data-present-step data-present-surface="unframed" data-step-title="四大客户实测账单：小模型以 1/7 至 1/28 成本反超前沿基线：对比矩阵" data-step-title-en="Real Customer Scorecards: Small Models Beat Frontier Baselines at 1/7 to 1/28 Cost: Comparison Matrix" data-present-title-zh="四大客户实测账单：小模型以 1/7 至 1/28 成本反超前沿基线：对比矩阵" data-present-title-en="Real Customer Scorecards: Small Models Beat Frontier Baselines at 1/7 to 1/28 Cost: Comparison Matrix" data-step-label="04 / Enterprise Benchmarks &amp; EY Case" data-step-label-en="04 / Enterprise Benchmarks &amp; EY Case" data-present-i18n-invariant="label"><table class="simple-table compare-table">
+<thead>
+<tr>
+<th data-zh="企业与核心业务场景" data-en="Customer &amp;amp; Workload">企业与核心业务场景</th>
+<th data-zh="前沿大模型直接运行基线" data-en="Out-of-Box Frontier Baseline">前沿大模型直接运行基线</th>
+<th data-zh="调优后小模型方案与得分" data-en="Tuned Small-Model Route &amp;amp; Score">调优后小模型方案与得分</th>
+<th data-zh="规模化商业与工程收益" data-en="Quantified Business &amp;amp; Cost Impact">规模化商业与工程收益</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-zh="&lt;strong&gt;Land O'Lakes&lt;/strong&gt;（乳制品感官质量评估报告）" data-en="&lt;strong&gt;Land O'Lakes&lt;/strong&gt; (Dairy Sensory Quality Reports)"><strong>Land O'Lakes</strong>（乳制品感官质量评估报告）</td>
+<td data-zh="&lt;code&gt;GPT-5.6-Sol&lt;/code&gt; 得分 &lt;strong&gt;0.940&lt;/strong&gt;，单次成本 &lt;strong&gt;&lt;code&gt;$0.39&lt;/code&gt;&lt;/strong&gt;（千份约 &lt;code&gt;$388&lt;/code&gt;）[2]" data-en="&lt;code&gt;GPT-5.6-Sol&lt;/code&gt; scores &lt;strong&gt;0.940&lt;/strong&gt; at &lt;strong&gt;&lt;code&gt;$0.39/task&lt;/code&gt;&lt;/strong&gt; (&lt;code&gt;~$388&lt;/code&gt; per 1,000) [2]"><code>GPT-5.6-Sol</code> 得分 <strong>0.940</strong>，单次成本 <strong><code>$0.39</code></strong>（千份约 <code>$388</code>）[2]</td>
+<td data-zh="&lt;code&gt;GPT-6 Luna + 树搜索&lt;/code&gt; 达 &lt;strong&gt;0.967&lt;/strong&gt;（&lt;code&gt;$0.014/次&lt;/code&gt;）；&lt;code&gt;MAI 1.1 + 微调 + 树搜索&lt;/code&gt; 达 &lt;strong&gt;0.964&lt;/strong&gt; [2]" data-en="&lt;code&gt;GPT-6 Luna + Tree Search&lt;/code&gt; hits &lt;strong&gt;0.967&lt;/strong&gt; (&lt;code&gt;$0.014/task&lt;/code&gt;); &lt;code&gt;MAI 1.1 FT + Tree&lt;/code&gt; hits &lt;strong&gt;0.964&lt;/strong&gt; [2]"><code>GPT-6 Luna + 树搜索</code> 达 <strong>0.967</strong>（<code>$0.014/次</code>）；<code>MAI 1.1 + 微调 + 树搜索</code> 达 <strong>0.964</strong> [2]</td>
+<td data-zh="质量反超前沿模型 &lt;strong&gt;+2.7 pts&lt;/strong&gt;，千份报告花费从 &lt;code&gt;$388&lt;/code&gt; 骤降至 &lt;strong&gt;&lt;code&gt;$14&lt;/code&gt;&lt;/strong&gt;（仅为前沿成本的 &lt;strong&gt;1/28&lt;/strong&gt;）[2]" data-en="Beats frontier quality by &lt;strong&gt;+2.7 pts&lt;/strong&gt; while slashing 1,000-report spend from &lt;code&gt;$388&lt;/code&gt; to &lt;strong&gt;&lt;code&gt;$14&lt;/code&gt;&lt;/strong&gt; (&lt;strong&gt;0.036×&lt;/strong&gt; cost) [2]">质量反超前沿模型 <strong>+2.7 pts</strong>，千份报告花费从 <code>$388</code> 骤降至 <strong><code>$14</code></strong>（仅为前沿成本的 <strong>1/28</strong>）[2]</td>
+</tr>
+<tr>
+<td data-zh="&lt;strong&gt;Pearson 培生&lt;/strong&gt;（基于会议录音的员工沟通教练）" data-en="&lt;strong&gt;Pearson&lt;/strong&gt; (Teams Meeting Communication Coach)"><strong>Pearson 培生</strong>（基于会议录音的员工沟通教练）</td>
+<td data-zh="&lt;code&gt;GPT-5.6-Sol&lt;/code&gt; 得分 &lt;strong&gt;0.990&lt;/strong&gt;，单次成本 &lt;strong&gt;&lt;code&gt;$1.78&lt;/code&gt;&lt;/strong&gt;（千次约 &lt;code&gt;$1,781&lt;/code&gt;）[2]" data-en="&lt;code&gt;GPT-5.6-Sol&lt;/code&gt; scores &lt;strong&gt;0.990&lt;/strong&gt; at &lt;strong&gt;&lt;code&gt;$1.78/task&lt;/code&gt;&lt;/strong&gt; (&lt;code&gt;~$1,781&lt;/code&gt; per 1,000) [2]"><code>GPT-5.6-Sol</code> 得分 <strong>0.990</strong>，单次成本 <strong><code>$1.78</code></strong>（千次约 <code>$1,781</code>）[2]</td>
+<td data-zh="选项 A：&lt;code&gt;MAI 1.1 微调&lt;/code&gt; 单遍解码得满分 &lt;strong&gt;1.00&lt;/strong&gt;（&lt;code&gt;$0.25/次&lt;/code&gt;）；选项 B：&lt;code&gt;MAI 1.1 + 树搜索&lt;/code&gt; 免训练得 &lt;strong&gt;0.996&lt;/strong&gt;（&lt;code&gt;$0.23/次&lt;/code&gt;）[2]" data-en="Option A: &lt;code&gt;MAI 1.1 FT&lt;/code&gt; hits &lt;strong&gt;1.00&lt;/strong&gt; (&lt;code&gt;$0.25/task&lt;/code&gt;); Option B: &lt;code&gt;MAI 1.1 + Tree Search&lt;/code&gt; hits &lt;strong&gt;0.996&lt;/strong&gt; (&lt;code&gt;$0.23/task&lt;/code&gt;) [2]">选项 A：<code>MAI 1.1 微调</code> 单遍解码得满分 <strong>1.00</strong>（<code>$0.25/次</code>）；选项 B：<code>MAI 1.1 + 树搜索</code> 免训练得 <strong>0.996</strong>（<code>$0.23/次</code>）[2]</td>
+<td data-zh="千次辅导账单从 &lt;code&gt;$1,781&lt;/code&gt; 降至 &lt;strong&gt;&lt;code&gt;$231–$246&lt;/code&gt;&lt;/strong&gt;（约 &lt;strong&gt;1/7&lt;/strong&gt; 成本），让高保真教学法辅导从局部试点走向全员普惠 [1][2]" data-en="Cuts 1,000 coaching sessions from &lt;code&gt;$1,781&lt;/code&gt; to &lt;strong&gt;&lt;code&gt;$231–$246&lt;/code&gt;&lt;/strong&gt; (~&lt;strong&gt;1/7&lt;/strong&gt; cost), turning a small pilot into firmwide deployment [1][2]">千次辅导账单从 <code>$1,781</code> 降至 <strong><code>$231–$246</code></strong>（约 <strong>1/7</strong> 成本），让高保真教学法辅导从局部试点走向全员普惠 [1][2]</td>
+</tr>
+<tr>
+<td data-zh="&lt;strong&gt;Microsoft People Team&lt;/strong&gt;（内部 80+ 页隐私合规审查）" data-en="&lt;strong&gt;Microsoft People Team&lt;/strong&gt; (80+ Page Compliance Reviews)"><strong>Microsoft People Team</strong>（内部 80+ 页隐私合规审查）</td>
+<td data-zh="&lt;code&gt;GPT-6.1-Sol&lt;/code&gt; 在 39 组真实审查问题集上得分 &lt;strong&gt;0.86&lt;/strong&gt; [2]" data-en="&lt;code&gt;GPT-6.1-Sol&lt;/code&gt; scores &lt;strong&gt;0.86&lt;/strong&gt; across 39 real review question groups [2]"><code>GPT-6.1-Sol</code> 在 39 组真实审查问题集上得分 <strong>0.86</strong> [2]</td>
+<td data-zh="&lt;code&gt;GPT-5.4-mini&lt;/code&gt; 经微调从 &lt;strong&gt;0.57&lt;/strong&gt; 跃升至 &lt;strong&gt;0.75&lt;/strong&gt;（&lt;strong&gt;+18 pts&lt;/strong&gt;）；&lt;code&gt;MAI 1.1&lt;/code&gt; 叠加微调与树搜索提升 &lt;strong&gt;+21 pts&lt;/strong&gt; [2]" data-en="&lt;code&gt;GPT-5.4-mini&lt;/code&gt; climbs from &lt;strong&gt;0.57&lt;/strong&gt; to &lt;strong&gt;0.75&lt;/strong&gt; (&lt;strong&gt;+18 pts&lt;/strong&gt;); &lt;code&gt;MAI 1.1&lt;/code&gt; gains &lt;strong&gt;+21 pts&lt;/strong&gt; with FT + Tree Search [2]"><code>GPT-5.4-mini</code> 经微调从 <strong>0.57</strong> 跃升至 <strong>0.75</strong>（<strong>+18 pts</strong>）；<code>MAI 1.1</code> 叠加微调与树搜索提升 <strong>+21 pts</strong> [2]</td>
+<td data-zh="单项合规审查耗时从 &lt;strong&gt;1–2 小时压缩至 8 分钟（提速 7.5×）&lt;/strong&gt;，且审查结论引用实现 &lt;strong&gt;100% 原文精确溯源&lt;/strong&gt; [2]" data-en="Shrinks review time from &lt;strong&gt;1–2 hours to 8 minutes (7.5× faster)&lt;/strong&gt; with &lt;strong&gt;100% verbatim traceable citations&lt;/strong&gt; [2]">单项合规审查耗时从 <strong>1–2 小时压缩至 8 分钟（提速 7.5×）</strong>，且审查结论引用实现 <strong>100% 原文精确溯源</strong> [2]</td>
+</tr>
+<tr>
+<td data-zh="&lt;strong&gt;安永 EY&lt;/strong&gt;（L3 跨国税法研究与备忘录顾问）" data-en="&lt;strong&gt;EY Global Tax&lt;/strong&gt; (L3 Multi-Agent Tax Research Advisor)"><strong>安永 EY</strong>（L3 跨国税法研究与备忘录顾问）</td>
+<td data-zh="&lt;code&gt;GPT-5.6-Sol&lt;/code&gt; 在安永税法专家准则下得分 &lt;strong&gt;0.851&lt;/strong&gt; [2]" data-en="&lt;code&gt;GPT-5.6-Sol&lt;/code&gt; scores &lt;strong&gt;0.851&lt;/strong&gt; on EY's tax methodology rubrics [2]"><code>GPT-5.6-Sol</code> 在安永税法专家准则下得分 <strong>0.851</strong> [2]</td>
+<td data-zh="&lt;code&gt;MAI 1.1&lt;/code&gt; 从基线 &lt;strong&gt;0.496&lt;/strong&gt; 经树搜索（&lt;strong&gt;0.723&lt;/strong&gt;）与微调（&lt;strong&gt;0.714&lt;/strong&gt;）双轮组合爬升至 &lt;strong&gt;0.907&lt;/strong&gt; [2]" data-en="&lt;code&gt;MAI 1.1&lt;/code&gt; climbs from &lt;strong&gt;0.496&lt;/strong&gt; base (via &lt;strong&gt;0.723&lt;/strong&gt; search / &lt;strong&gt;0.714&lt;/strong&gt; FT) to &lt;strong&gt;0.907&lt;/strong&gt; combined [2]"><code>MAI 1.1</code> 从基线 <strong>0.496</strong> 经树搜索（<strong>0.723</strong>）与微调（<strong>0.714</strong>）双轮组合爬升至 <strong>0.907</strong> [2]</td>
+<td data-zh="较基线暴涨 &lt;strong&gt;+41.1 pts&lt;/strong&gt; 并反超前沿模型 &lt;strong&gt;+5.6 pts&lt;/strong&gt;，正面向安永全球 &lt;strong&gt;75,000 名税务专业人员&lt;/strong&gt;规模化推广 [1][2]" data-en="Gains &lt;strong&gt;+41.1 pts&lt;/strong&gt; over base to beat frontier by &lt;strong&gt;+5.6 pts&lt;/strong&gt;, scaling across &lt;strong&gt;75,000 EY tax professionals&lt;/strong&gt; globally [1][2]">较基线暴涨 <strong>+41.1 pts</strong> 并反超前沿模型 <strong>+5.6 pts</strong>，正面向安永全球 <strong>75,000 名税务专业人员</strong>规模化推广 [1][2]</td>
+</tr>
+</tbody>
+</table></div>
+<p data-zh="在四个案例中，安永全球税务团队的 &lt;strong&gt;L3 税务顾问（L3 Tax Advisor）&lt;/strong&gt; 最具复杂行业代表性 [1][2]。正如 Ben Ambrosino 在台上所言，“所有税务都是高度属地化的，税法不是一个用例，而是一百万个用例”，任何看似通顺却细微失真的“擦边错误（Subtly Wrong Advice）”在税务合规中都构成实质性风险 [1][2]。面对诸如“最新全球最低税支柱二（Pillar Two）立法动态如何影响年营收约 180 亿欧元的法国母公司跨国集团 Contoso？”这类复杂咨询，安永设计了严密的六步多智能体协同管线：主控编排器接单后先路由给在安永专属学习环境中微调的 &lt;strong&gt;&lt;code&gt;MAI 1.1&lt;/code&gt; 研究智能体（Research Agent）&lt;/strong&gt;。该研究节点一边检索最新公开立法动态，一边通过模型上下文协议查询沉淀了数千万条内部判例与事务所立场的 &lt;strong&gt;&lt;code&gt;EY POKA&lt;/code&gt; 专有税法库&lt;/strong&gt;；汇总后的结论依次交由 &lt;strong&gt;撰稿智能体（Writer Agent）&lt;/strong&gt; 按安永专业口径起草备忘录、再由 &lt;strong&gt;质检审阅智能体（Reviewer Agent）&lt;/strong&gt; 对照评分准则逐条核验引用纪律与风险保留条款，达标后才呈交人类税务合伙人终审 [1][2]。更值得关注的是，现场视频中主导搭建这套学习环境与黄金问答集的 Fran Pitman 并非算法工程师或 IT 人员，而是一位一线税务合伙人——业务专家得以亲手把控 AI 的专业水位线 [1]。下方四宫格完整收录了 BRK238 官方原始课件中的四幅实测爬坡与成本决策曲线 [2]：" data-en="Among the four deployments, &lt;strong&gt;EY's L3 Tax Advisor&lt;/strong&gt; exemplifies regulated complexity [1][2]. As Ben Ambrosino noted on stage, all tax is local—representing a million jurisdictional edge cases where &amp;quot;subtly wrong&amp;quot; advice poses material risk [1][2]. When asked whether OECD Pillar Two updates affect an €18B French-parented multinational, EY's six-step L3 orchestrator routes research to an RLE-tuned &lt;strong&gt;MAI Research Agent&lt;/strong&gt; querying live legislative web search alongside &lt;strong&gt;EY POKA&lt;/strong&gt; (an MCP server housing tens of millions of proprietary precedents and firm positions), hands synthesis to a &lt;strong&gt;Writer Agent&lt;/strong&gt; for EY-styled drafting, and enforces citation and escalation checks via a &lt;strong&gt;Reviewer Agent&lt;/strong&gt; before a human advisor ever reviews the memo [1][2]. Crucially, the demo lead who stood up the RLE and golden Q&amp;amp;A set—Fran Pitman—is a tax partner rather than a data scientist, proving domain experts can steer tuning directly [1]. The four-card gallery below preserves the exact quality-climb and rate-card cost charts from the official BRK238 slide deck [2]:">在四个案例中，安永全球税务团队的 <strong>L3 税务顾问（L3 Tax Advisor）</strong> 最具复杂行业代表性 [1][2]。正如 Ben Ambrosino 在台上所言，“所有税务都是高度属地化的，税法不是一个用例，而是一百万个用例”，任何看似通顺却细微失真的“擦边错误（Subtly Wrong Advice）”在税务合规中都构成实质性风险 [1][2]。面对诸如“最新全球最低税支柱二（Pillar Two）立法动态如何影响年营收约 180 亿欧元的法国母公司跨国集团 Contoso？”这类复杂咨询，安永设计了严密的六步多智能体协同管线：主控编排器接单后先路由给在安永专属学习环境中微调的 <strong><code>MAI 1.1</code> 研究智能体（Research Agent）</strong>。该研究节点一边检索最新公开立法动态，一边通过模型上下文协议查询沉淀了数千万条内部判例与事务所立场的 <strong><code>EY POKA</code> 专有税法库</strong>；汇总后的结论依次交由 <strong>撰稿智能体（Writer Agent）</strong> 按安永专业口径起草备忘录、再由 <strong>质检审阅智能体（Reviewer Agent）</strong> 对照评分准则逐条核验引用纪律与风险保留条款，达标后才呈交人类税务合伙人终审 [1][2]。更值得关注的是，现场视频中主导搭建这套学习环境与黄金问答集的 Fran Pitman 并非算法工程师或 IT 人员，而是一位一线税务合伙人——业务专家得以亲手把控 AI 的专业水位线 [1]。下方四宫格完整收录了 BRK238 官方原始课件中的四幅实测爬坡与成本决策曲线 [2]：</p>
+<div class="brk238-media-grid">
+  <article class="brk238-media-card">
+    <div class="brk238-media-frame">
+      <img src="./media/brk238-land-olakes-hill-climb.png" alt="BRK238 Slide 17 chart showing three small models hill-climbing past GPT-5.6-Sol 0.94 on Land O'Lakes sensory reports" loading="lazy" />
+    </div>
+    <div class="brk238-media-body">
+      <span class="brk238-media-badge" data-zh="BRK238 官方课件原图 · Slide 17" data-en="BRK238 Official Slide · Slide 17">BRK238 官方课件原图 · Slide 17</span>
+      <h4 data-zh="Land O'Lakes：三款小模型集体跨越 0.94 前沿基准线" data-en="Land O'Lakes: Three Small Models Cross the 0.94 Frontier Bar">Land O'Lakes：三款小模型集体跨越 0.94 前沿基准线</h4>
+      <p data-zh="将企业专有乳制品感官词汇与标准编码为评分准则后，GPT-6 Luna、MAI 1.1 与 GPT-5.4 Mini 经树搜索及微调后得分达 0.957–0.967，全面反超 GPT-5.6-Sol（0.94）[2]。" data-en="With sensory standards encoded as rubrics, GPT-6 Luna, MAI 1.1, and GPT-5.4 Mini climb to 0.957–0.967 via Tree Search and fine-tuning, beating GPT-5.6-Sol (0.94) [2].">将企业专有乳制品感官词汇与标准编码为评分准则后，GPT-6 Luna、MAI 1.1 与 GPT-5.4 Mini 经树搜索及微调后得分达 0.957–0.967，全面反超 GPT-5.6-Sol（0.94）[2]。</p>
+    </div>
+  </article>
+  <article class="brk238-media-card">
+    <div class="brk238-media-frame">
+      <img src="./media/brk238-land-olakes-cost-quality.png" alt="BRK238 Slide 30 log-scale cost vs quality chart for Land O'Lakes showing GPT-6 Luna + Tree Search at USD 0.014 per task" loading="lazy" />
+    </div>
+    <div class="brk238-media-body">
+      <span class="brk238-media-badge" data-zh="BRK238 官方课件原图 · Slide 30" data-en="BRK238 Official Slide · Slide 30">BRK238 官方课件原图 · Slide 30</span>
+      <h4 data-zh="Land O'Lakes 成本对数坐标：1/28 价格锁定最高分" data-en="Land O'Lakes Log-Cost Chart: Highest Quality at 1/28 Price">Land O'Lakes 成本对数坐标：1/28 价格锁定最高分</h4>
+      <p data-zh="对数横轴清晰标示投产甜点区：GPT-6 Luna 配合推理期树搜索单任务仅需 0.014 美元（0.036× 前沿成本），无需权重训练即斩获全场最高质量分 0.967 [2]。" data-en="GPT-6 Luna + Tree Search lands deep in the top-left frontier zone at USD 0.014/task (0.036× GPT-5.6-Sol cost) while delivering the highest 0.967 rubric score [2].">对数横轴清晰标示投产甜点区：GPT-6 Luna 配合推理期树搜索单任务仅需 0.014 美元（0.036× 前沿成本），无需权重训练即斩获全场最高质量分 0.967 [2]。</p>
+    </div>
+  </article>
+  <article class="brk238-media-card">
+    <div class="brk238-media-frame">
+      <img src="./media/brk238-pearson-cost-quality.png" alt="BRK238 Slide 19 chart showing Pearson MAI 1.1 fine-tuned at 1.00 score and USD 0.25 per task vs GPT-5.6-Sol at USD 1.78" loading="lazy" />
+    </div>
+    <div class="brk238-media-body">
+      <span class="brk238-media-badge" data-zh="BRK238 官方课件原图 · Slide 19" data-en="BRK238 Official Slide · Slide 19">BRK238 官方课件原图 · Slide 19</span>
+      <h4 data-zh="Pearson 灵活选型：微调单遍解码与推理期搜索双双达标" data-en="Pearson Model Choice: Fine-Tuning vs. Inference-Time Search">Pearson 灵活选型：微调单遍解码与推理期搜索双双达标</h4>
+      <p data-zh="MAI 1.1 微调版（1.00 分，0.25 美元/次）与免训练树搜索版（0.996 分，0.23 美元/次）双双进入绿色前沿质量带，令全公司大规模部署个性化沟通教练具备财务可行性 [1][2]。" data-en="Both fine-tuned MAI 1.1 (1.00 score, USD 0.25/task) and zero-training Tree Search (0.996, USD 0.23/task) hit the frontier zone at ~1/7 of GPT-5.6-Sol's USD 1.78 cost [1][2].">MAI 1.1 微调版（1.00 分，0.25 美元/次）与免训练树搜索版（0.996 分，0.23 美元/次）双双进入绿色前沿质量带，令全公司大规模部署个性化沟通教练具备财务可行性 [1][2]。</p>
+    </div>
+  </article>
+  <article class="brk238-media-card">
+    <div class="brk238-media-frame">
+      <img src="./media/brk238-ey-tax-hill-climb.png" alt="BRK238 Slide 24 chart showing MAI 1.1 climbing +41.1 pts from 0.496 to 0.907 to beat GPT-5.6-Sol 0.851 on EY tax research" loading="lazy" />
+    </div>
+    <div class="brk238-media-body">
+      <span class="brk238-media-badge" data-zh="BRK238 官方课件原图 · Slide 24" data-en="BRK238 Official Slide · Slide 24">BRK238 官方课件原图 · Slide 24</span>
+      <h4 data-zh="安永（EY）税务研究：小模型狂飙 41.1 个百分点反超前沿" data-en="EY Tax Research: MAI 1.1 Surges +41.1 Pts Past Frontier">安永（EY）税务研究：小模型狂飙 41.1 个百分点反超前沿</h4>
+      <p data-zh="面对高度依赖专有判例库与严谨保留措辞的税法研究，基座 MAI 1.1 仅得 0.496 分；叠加微调与树搜索后跃升至 0.907 分，净胜 GPT-5.6-Sol（0.851）达 5.6 个百分点 [2]。" data-en="Starting from 0.496 on precedent-heavy tax research, MAI 1.1 climbs to 0.907 with fine-tuning plus Tree Search—beating GPT-5.6-Sol (0.851) by 5.6 points [2].">面对高度依赖专有判例库与严谨保留措辞的税法研究，基座 MAI 1.1 仅得 0.496 分；叠加微调与树搜索后跃升至 0.907 分，净胜 GPT-5.6-Sol（0.851）达 5.6 个百分点 [2]。</p>
+    </div>
+  </article>
+</div>
+        </section>
+
+        <section id="stack-adoption" class="section" data-reveal data-present-title-zh="Copilot Studio × Foundry 协同栈与四步渐进落地指南" data-present-title-en="Copilot Studio × Foundry Stack Synergy and Four-Step Adoption Playbook">
+          <div class="section-head">
+            <p class="section-kicker">05 / Stack Synergy &amp; Playbook</p>
+            <h2 data-zh="5. Copilot Studio × Foundry 协同栈与四步渐进落地指南" data-en="5. Copilot Studio × Foundry Stack Synergy and Four-Step Adoption Playbook">5. Copilot Studio × Foundry 协同栈与四步渐进落地指南</h2>
+            <p data-zh="在全场收尾阶段，Ranveer Chandra 专门回应了现场架构师最常追问的定位边界：&lt;strong&gt;“既然有了 Microsoft Foundry，为什么还需要 Frontier Tuning？”&lt;/strong&gt; 答案在于两者处于上下承接的互补层级——Frontier Tuning 直接构建在 Azure 与 Microsoft Foundry 的评测、微调及托管智能体积木之上，向上连接 Microsoft 365 合规边界内的企业组织脉络（Work IQ、Fabric IQ），把底层算力原语封装成业务专家与创作者在 Copilot Studio、Copilot Cowork、GitHub Copilot 及 Agent 365 中随手可用的持续学习闭环 [1][2]。" data-en="Closing the session, Ranveer Chandra addressed a recurring architectural question: &lt;strong&gt;&amp;quot;Why not just use Microsoft Foundry directly?&amp;quot;&lt;/strong&gt; The two layers complement each other. Frontier Tuning builds directly on Microsoft Foundry's evaluation, Loom fine-tuning, and hosted-agent building blocks on Azure. It bridges those primitives into the Microsoft 365 compliance boundary via Work IQ and Fabric IQ so makers can run continuous learning loops across Copilot Studio, Cowork, GitHub Copilot, and Agent 365 [1][2].">在全场收尾阶段，Ranveer Chandra 专门回应了现场架构师最常追问的定位边界：<strong>“既然有了 Microsoft Foundry，为什么还需要 Frontier Tuning？”</strong> 答案在于两者处于上下承接的互补层级——Frontier Tuning 直接构建在 Azure 与 Microsoft Foundry 的评测、微调及托管智能体积木之上，向上连接 Microsoft 365 合规边界内的企业组织脉络（Work IQ、Fabric IQ），把底层算力原语封装成业务专家与创作者在 Copilot Studio、Copilot Cowork、GitHub Copilot 及 Agent 365 中随手可用的持续学习闭环 [1][2]。</p>
+          </div>
+
+          <div class="subsection-accordion" data-present-step data-present-surface="unframed" data-step-title="Copilot Studio × Foundry 协同栈与四步渐进落地指南：展开详解" data-step-title-en="Copilot Studio × Foundry Stack Synergy and Four-Step Adoption Playbook: Deep Dive" data-present-title-zh="Copilot Studio × Foundry 协同栈与四步渐进落地指南：展开详解" data-present-title-en="Copilot Studio × Foundry Stack Synergy and Four-Step Adoption Playbook: Deep Dive" data-step-label="05 / Stack Synergy &amp; Playbook" data-step-label-en="05 / Stack Synergy &amp; Playbook" data-present-i18n-invariant="label">
+            <article class="subsection-item is-open" data-accordion>
+              <button class="subsection-toggle" type="button" aria-expanded="true">
+                <span data-zh="1. 全栈创建与多端消费矩阵（Creation &amp;amp; Consumption）" data-en="Full-Stack Creation &amp;amp; Multi-Surface Consumption">1. 全栈创建与多端消费矩阵（Creation &amp; Consumption）</span>
+              </button>
+              <div class="subsection-content">
+                <p data-zh="企业团队在 Copilot Studio、Tuning CLI 或 GitHub Copilot 插件中完成一次调优后，生成的 RLE 与专有模型能力可通过统一接口、模型上下文协议（MCP）服务或独立智能体发布，供全组织各类入口无缝复用——包括 Copilot Studio 业务智能体、Foundry 代码智能体、Microsoft 365 Copilot、Copilot Cowork、Scout 以及 GitHub Copilot；同时确保训练与生产环境调用完全一致的工具契约（如安永 POKA 服务），从根源杜绝训练与上线环境脱节 [1][2]。" data-en="Once a team finishes tuning in Copilot Studio, the Tuning CLI, or GitHub Copilot, the resulting RLE harness and tenant-owned weights publish as APIs, MCP servers, or standalone agents. Teams can then consume them across Copilot Studio, Foundry, Microsoft 365 Copilot, Cowork, Scout, and GitHub Copilot while keeping identical tool contracts between training and serving [1][2].">企业团队在 Copilot Studio、Tuning CLI 或 GitHub Copilot 插件中完成一次调优后，生成的 RLE 与专有模型能力可通过统一接口、模型上下文协议（MCP）服务或独立智能体发布，供全组织各类入口无缝复用——包括 Copilot Studio 业务智能体、Foundry 代码智能体、Microsoft 365 Copilot、Copilot Cowork、Scout 以及 GitHub Copilot；同时确保训练与生产环境调用完全一致的工具契约（如安永 POKA 服务），从根源杜绝训练与上线环境脱节 [1][2]。</p>
+              </div>
+            </article>
+            <article class="subsection-item" data-accordion>
+              <button class="subsection-toggle" type="button" aria-expanded="false">
+                <span data-zh="2. 企业落地的“按需深潜”四级阶梯（Tune Only as Deeply as Needed）" data-en="Four-Rung Adoption Ladder: Tune Only as Deeply as Needed">2. 企业落地的“按需深潜”四级阶梯（Tune Only as Deeply as Needed）</span>
+              </button>
+              <div class="subsection-content">
+                <p data-zh="官方团队给出了清晰的工程选型准则——&lt;strong&gt;以私有评测贯穿始终，仅在实测质量或成本差距确有必要时才向下一层深潜&lt;/strong&gt; [1][2]：" data-en="Microsoft's engineering guidance boils down to a disciplined four-rung ladder—&lt;strong&gt;anchor everything on private evaluations, and go deeper only when a measured quality or cost gap demands it&lt;/strong&gt; [1][2]:">官方团队给出了清晰的工程选型准则——<strong>以私有评测贯穿始终，仅在实测质量或成本差距确有必要时才向下一层深潜</strong> [1][2]：</p>
+<ol>
+<li data-zh="&lt;strong&gt;第一级：建立私有基准（Evaluate · Private Benchmarks）&lt;/strong&gt; — 挑选组织内成本高昂或容错率极低的核心流程（如合同发票核对、合规审查、税务咨询），挂载真实或虚拟化工具并拉入业务专家校准评分准则，锁定留出测试集（Holdout Set）与单次运行成本基线 [1][2]。" data-en="&lt;strong&gt;Rung 01: Establish Private Benchmarks&lt;/strong&gt; — Pick a high-spend or zero-tolerance business process, configure real or virtualized tools, calibrate auto-graders with SMEs, and lock a holdout set for quality and cost [1][2]."><strong>第一级：建立私有基准（Evaluate · Private Benchmarks）</strong> — 挑选组织内成本高昂或容错率极低的核心流程（如合同发票核对、合规审查、税务咨询），挂载真实或虚拟化工具并拉入业务专家校准评分准则，锁定留出测试集（Holdout Set）与单次运行成本基线 [1][2]。</li>
+<li data-zh="&lt;strong&gt;第二级：优先调优技能（Tune · Skill Tuning）&lt;/strong&gt; — 在不触碰任何模型参数的前提下迭代任务指令、注入组织知识上下文并细化评分准则；这是最快、最省钱的杠杆，永远作为第一顺位尝试 [2]。" data-en="&lt;strong&gt;Rung 02: Skill Tuning First&lt;/strong&gt; — Refine task instructions, enrich Work IQ context, and tighten rubrics with model weights unchanged; fastest and cheapest lever [2]."><strong>第二级：优先调优技能（Tune · Skill Tuning）</strong> — 在不触碰任何模型参数的前提下迭代任务指令、注入组织知识上下文并细化评分准则；这是最快、最省钱的杠杆，永远作为第一顺位尝试 [2]。</li>
+<li data-zh="&lt;strong&gt;第三级：调优执行内核与树搜索（Tune · Harness Tuning）&lt;/strong&gt; — 优化工具编排、跨步记忆并开启推理期蒙特卡洛树搜索（如 Land O'Lakes 仅凭 &lt;code&gt;GPT-6 Luna + 树搜索&lt;/code&gt; 即以 &lt;code&gt;$0.014/次&lt;/code&gt; 拿下全场最高分），同时用搜索增益探测微调天花板 [1][2]。" data-en="&lt;strong&gt;Rung 03: Harness &amp;amp; Tree Search Tuning&lt;/strong&gt; — Optimize tool orchestration and turn on rubric-guided MCTS (as Land O'Lakes did to hit 0.967 at &lt;code&gt;$0.014/task&lt;/code&gt; with zero weight training) while measuring headroom [1][2]."><strong>第三级：调优执行内核与树搜索（Tune · Harness Tuning）</strong> — 优化工具编排、跨步记忆并开启推理期蒙特卡洛树搜索（如 Land O'Lakes 仅凭 <code>GPT-6 Luna + 树搜索</code> 即以 <code>$0.014/次</code> 拿下全场最高分），同时用搜索增益探测微调天花板 [1][2]。</li>
+<li data-zh="&lt;strong&gt;第四级：强化微调固化自有权重（Tune · Model RFT）&lt;/strong&gt; — 当单遍推理延迟或大并发成本成为全员推广瓶颈（如 Pearson 全员辅导与安永 75,000 人税务顾问）时，利用外环 &lt;code&gt;RFT + LoRA&lt;/code&gt; 将企业核心方法论永久压入租户独享的小模型权重（可通过 &lt;code&gt;https://aka.ms/FrontierTuning&lt;/code&gt; 申请接入）[1][2][3]。" data-en="&lt;strong&gt;Rung 04: Reinforcement Fine-Tuning (RFT)&lt;/strong&gt; — When single-pass latency or firmwide scale requires embedding institutional judgment directly into weights (as at Pearson and EY), run &lt;code&gt;RFT + LoRA&lt;/code&gt; into tenant-owned small models (&lt;code&gt;https://aka.ms/FrontierTuning&lt;/code&gt;) [1][2][3]."><strong>第四级：强化微调固化自有权重（Tune · Model RFT）</strong> — 当单遍推理延迟或大并发成本成为全员推广瓶颈（如 Pearson 全员辅导与安永 75,000 人税务顾问）时，利用外环 <code>RFT + LoRA</code> 将企业核心方法论永久压入租户独享的小模型权重（可通过 <code>https://aka.ms/FrontierTuning</code> 申请接入）[1][2][3]。</li>
+</ol>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="references" class="section" data-reveal data-present-title-zh="参考资料：官方一手信源与课件档案" data-present-title-en="References: Official Primary Sources &amp; Slide Artifacts" data-density-exempt="references">
+          <div class="section-head">
+            <p class="section-kicker">06 / References: Official Primary Sources &amp; Slide Artifacts</p>
+            <h2 data-zh="6. 参考资料：官方一手信源与课件档案" data-en="6. References: Official Primary Sources &amp; Slide Artifacts">6. 参考资料：官方一手信源与课件档案</h2>
+          </div>
+
+          <ol class="bib-list">
+            <li id="ref-1">
+              <span class="bib-id">[1]</span>
+              <span class="bib-author">Ranveer Chandra, Malik Pradhan, Kalyan Ayloo &amp; Ben Ambrosino (Microsoft Ignite 2026 BRK238)</span> —
+              <a href="https://ignite.microsoft.com/en-US/sessions/1787856609242001EnzD-1791588157003001CYmK" target="_blank" rel="noopener">https://ignite.microsoft.com/en-US/sessions/1787856609242001EnzD-1791588157003001CYmK</a>
+              <span class="bib-note" data-zh="《Frontier tuning: Optimize AI agents for real-world business outcomes》官方专场主页、45 分钟点播视频流（&lt;code&gt;https://medius.microsoft.com/Embed/video-nc/757a65cb-1dfd-4c42-bc82-1baa41b22ca1&lt;/code&gt;）与完整双语 WebVTT 演讲实录（2026-11-18）" data-en="Official breakout session page, 45-minute on-demand stream, and full bilingual WebVTT transcripts (Nov 18, 2026)">《Frontier tuning: Optimize AI agents for real-world business outcomes》官方专场主页、45 分钟点播视频流（<code>https://medius.microsoft.com/Embed/video-nc/757a65cb-1dfd-4c42-bc82-1baa41b22ca1</code>）与完整双语 WebVTT 演讲实录（2026-11-18）</span>
+            </li>
+            <li id="ref-2">
+              <span class="bib-id">[2]</span>
+              <span class="bib-author">Microsoft Ignite 2026 BRK238 Official Slide Deck</span> —
+              <a href="https://medius.microsoft.com/video/asset/PPT/757a65cb-1dfd-4c42-bc82-1baa41b22ca1" target="_blank" rel="noopener">https://medius.microsoft.com/video/asset/PPT/757a65cb-1dfd-4c42-bc82-1baa41b22ca1</a>
+              <span class="bib-note" data-zh="《Frontier Tuning: Creating your own Enterprise Learning Loop》31 页官方原版演示讲义（涵盖四元调优环境架构、三环爬坡图谱以及 Land O'Lakes、Pearson、微软内部合规团队与安永四大客户实测基准图表）" data-en="Official 31-slide deck covering RLE architecture, three-loop hill-climbing diagrams, and enterprise cost-quality benchmarks">《Frontier Tuning: Creating your own Enterprise Learning Loop》31 页官方原版演示讲义（涵盖四元调优环境架构、三环爬坡图谱以及 Land O'Lakes、Pearson、微软内部合规团队与安永四大客户实测基准图表）</span>
+            </li>
+            <li id="ref-3">
+              <span class="bib-id">[3]</span>
+              <span class="bib-author">Microsoft Frontier Tuning Portal</span> —
+              <a href="https://aka.ms/FrontierTuning" target="_blank" rel="noopener">https://aka.ms/FrontierTuning</a>
+              <span class="bib-note" data-zh="Frontier Tuning 官方产品接入入口、GitHub Copilot 调优插件与预览版申请通道" data-en="Official Frontier Tuning onboarding portal, GitHub Copilot plugin access, and preview registration">Frontier Tuning 官方产品接入入口、GitHub Copilot 调优插件与预览版申请通道</span>
+            </li>
+            <li id="ref-4">
+              <span class="bib-id">[4]</span>
+              <span class="bib-author">Jason Moore (Microsoft Copilot Blog)</span> —
+              <a href="https://www.microsoft.com/en-us/copilot/blog/copilot-studio/build-and-manage-business-processes-with-microsoft-copilot-studio/" target="_blank" rel="noopener">https://www.microsoft.com/en-us/copilot/blog/copilot-studio/build-and-manage-business-processes-with-microsoft-copilot-studio/</a>
+              <span class="bib-note" data-zh="《Build and manage business processes with Microsoft Copilot Studio》Ignite 2026 Copilot Studio、Cowork 与 Agent 365 治理底座综述（2026-11-18）" data-en="Official Ignite 2026 overview of Copilot Studio, Cowork, and Agent 365 governance foundation (Nov 18, 2026)">《Build and manage business processes with Microsoft Copilot Studio》Ignite 2026 Copilot Studio、Cowork 与 Agent 365 治理底座综述（2026-11-18）</span>
+            </li>
+          </ol>
+        </section>
+      </main>
+
+      <footer class="site-footer" data-reveal>
+        <p data-zh="© 2026 Knowledge Hub · Genesis 纯静态 Markdown 编译管线生成" data-en="© 2026 Knowledge Hub · Generated by Genesis Static Markdown Compiler">© 2026 Knowledge Hub · Genesis 纯静态 Markdown 编译管线生成</p>
+      </footer>
+    </div>
+  </div>
+
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/article-narration.js"></script>
+  <script src="../../assets/pptx-export.js"></script>
+  <script src="../../assets/article-math.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+  <script src="./brk238-theater.js"></script>
+  <script>
+    (function () {
+      var buttons = document.querySelectorAll("[data-genesis-mode]");
+      var drawer = document.getElementById("genesis-source-drawer");
+      var i;
+      function setMode(mode) {
+        for (var j = 0; j < buttons.length; j++) {
+          var btn = buttons[j];
+          var active = btn.getAttribute("data-genesis-mode") === mode;
+          if (active) {
+            btn.classList.add("is-active");
+          } else {
+            btn.classList.remove("is-active");
+          }
+        }
+        if (mode === "linear") {
+          document.body.classList.add("is-linear-reading");
+          if (drawer) drawer.classList.remove("is-open");
+        } else if (mode === "source") {
+          document.body.classList.remove("is-linear-reading");
+          if (drawer) drawer.classList.add("is-open");
+        } else {
+          document.body.classList.remove("is-linear-reading");
+          if (drawer) drawer.classList.remove("is-open");
+        }
+      }
+      for (i = 0; i < buttons.length; i++) {
+        (function (btn) {
+          btn.addEventListener("click", function () {
+            setMode(btn.getAttribute("data-genesis-mode"));
+          });
+        })(buttons[i]);
+      }
+    })();
+  </script>
+</body>
+</html>
