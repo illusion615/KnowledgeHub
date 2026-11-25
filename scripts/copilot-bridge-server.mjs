@@ -43,7 +43,7 @@ const equal = (a, b) => typeof a === 'string' && a.length === b.length && timing
 const isLoopbackHost = (host, port) => host === `127.0.0.1:${port}` || host === `localhost:${port}` || host === `[::1]:${port}`;
 const isLoopbackOrigin = origin => typeof origin === 'string' && /^http:\/\/(?:127\.0\.0\.1|localhost|\[::1\])(?::\d{2,5})?$/.test(origin);
 const isTrustedOrigin = origin => isLoopbackOrigin(origin) || origin === 'https://illusion615.github.io';
-const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.ico': 'image/x-icon', '.wav': 'audio/wav', '.mp3': 'audio/mpeg', '.m4a': 'audio/mp4' };
+const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.mp4': 'video/mp4', '.webm': 'video/webm', '.drawio': 'application/xml', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.ico': 'image/x-icon', '.wav': 'audio/wav', '.mp3': 'audio/mpeg', '.m4a': 'audio/mp4' };
 async function listLocalMusicTracks(musicRoot) {
   const entries = await readdir(musicRoot).catch(() => []);
   const metaFiles = entries.filter(f => /^[a-z0-9][a-z0-9_-]{0,63}\.meta\.json$/.test(f));
@@ -196,10 +196,25 @@ export function createBridge({ root = repo, runtimeFactory = openRuntime, timeou
         let file = resolve(root, '.' + pathname);
         if ((await stat(file)).isDirectory()) file = join(file, 'index.html');
         file = await realpath(file);
-        if (!file.startsWith(await realpath(root) + sep) || !mime[extname(file)]) throw new BridgeError(404, 'NOT_FOUND', '文件不公开。');
+        const ext = extname(file).toLowerCase();
+        if (!file.startsWith(await realpath(root) + sep) || !mime[ext]) throw new BridgeError(404, 'NOT_FOUND', '文件不公开。');
+        const st = await stat(file);
+        const range = req.headers.range;
+        if ((ext === '.mp4' || ext === '.webm' || ext === '.wav' || ext === '.m4a' || ext === '.mp3') && range && /^bytes=\d*-\d*$/.test(range)) {
+          const total = st.size;
+          const [rawStart, rawEnd] = range.slice(6).split('-');
+          const start = rawStart === '' ? Math.max(0, total - Number(rawEnd)) : Number(rawStart);
+          const end = rawStart === '' ? total - 1 : (rawEnd === '' ? total - 1 : Math.min(total - 1, Number(rawEnd)));
+          if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || start > end || start >= total) {
+            res.writeHead(416, { 'Content-Range': `bytes */${total}` }); res.end(); return;
+          }
+          res.writeHead(206, { 'Content-Type': mime[ext], 'Accept-Ranges': 'bytes', 'Content-Range': `bytes ${start}-${end}/${total}`, 'Content-Length': String(end - start + 1) });
+          if (req.method === 'HEAD') { res.end(); return; }
+          createReadStream(file, { start, end }).pipe(res); return;
+        }
         const data = await readFile(file);
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.writeHead(200, { 'Content-Type': mime[extname(file)] });
+        res.writeHead(200, { 'Content-Type': mime[ext], 'Accept-Ranges': 'bytes' });
         res.end(req.method === 'HEAD' ? undefined : data); return;
       }
       if (!['GET', 'POST'].includes(req.method)) throw new BridgeError(405, 'METHOD', '方法不允许。');

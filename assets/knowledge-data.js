@@ -1454,7 +1454,7 @@ var knowledgeTree = [
   },
 
   // ════════════════════════════════════════
-  // 文章 — Copilot Studio（挂在二级分组下）
+  // 文章 — Copilot Studio（挂在二级分组下，共 13 篇；含创新治理子分组合计 17 篇）
   // ════════════════════════════════════════
   {
     id: 'copilot-studio-constraints',
@@ -1530,7 +1530,7 @@ var knowledgeTree = [
     url: 'posts/copilot-studio-overview/index.html',
     color: '#6d28d9',
     phase: 1.6, speed: 0.85,
-    relations: ['copilot-studio-constraints', 'copilot-studio-memory']
+    relations: ['copilot-studio-constraints', 'copilot-studio-memory', 'copilot-studio-ignite-2026-whats-new']
   },
   {
     id: 'copilot-studio-vs-agent-sdk',
@@ -3152,7 +3152,7 @@ var knowledgeTree = [
     url: 'posts/copilot-studio-release-roadmap/index.html',
     color: '#7c3aed',
     phase: 2.4, speed: 0.84,
-    relations: ['copilot-studio-overview', 'copilot-studio-constraints', 'copilot-studio-cua', 'copilot-studio-vs-agent-sdk']
+    relations: ['copilot-studio-overview', 'copilot-studio-constraints', 'copilot-studio-cua', 'copilot-studio-vs-agent-sdk', 'copilot-studio-ignite-2026-whats-new']
   },
   {
     id: 'copilot-studio-managed-runtime-alm',
@@ -3171,6 +3171,25 @@ var knowledgeTree = [
     url: 'posts/copilot-studio-managed-runtime-alm/index.html',
     color: '#9333ea',
     phase: 3.1, speed: 0.83,
-    relations: ['copilot-studio-streaming-verification', 'copilot-studio-new-agent-knowledge-query', 'agentic-ai-innovation-governance-guide', 'power-apps-code-app']
+    relations: ['copilot-studio-streaming-verification', 'copilot-studio-new-agent-knowledge-query', 'agentic-ai-innovation-governance-guide', 'power-apps-code-app', 'copilot-studio-ignite-2026-whats-new']
+  },
+  {
+    id: 'copilot-studio-ignite-2026-whats-new',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'Microsoft Ignite 2026：What\'s New in Copilot Studio 全景深度解析与黄金律动歌词凝练',
+      en: 'Microsoft Ignite 2026: What\'s New in Copilot Studio Deep Dive and Golden-Pocket Lyric Distillation'
+    },
+    summary: {
+      zh: '整合 Ignite 2026 旗舰场 BRK267 官方视频课件与实测数据，拆解三大支柱并提炼 0 警告黄金律动优化版歌词。',
+      en: 'Integrates Ignite 2026 BRK267 official videos, slides, and benchmarks across three pillars plus a 0-warning golden-pocket song rewrite.'
+    },
+    tags: ['Copilot Studio', 'Microsoft Ignite 2026', 'Copilot Harness', 'Agent FinOps', 'AI Songwriting'],
+    date: '2026-11-25',
+    url: 'posts/copilot-studio-ignite-2026-whats-new/index.html',
+    color: '#ea580c',
+    phase: 3.7, speed: 0.84,
+    relations: ['copilot-studio-release-roadmap', 'copilot-studio-managed-runtime-alm', 'copilot-studio-overview', 'local-music-song-models']
   }
 ];

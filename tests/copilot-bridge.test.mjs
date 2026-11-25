@@ -138,13 +138,23 @@ test('timeout, busy, cancellation release own runtime and sanitize stream failur
 test('readonly local-music track routes support meta, Range 206, download headers, and block traversal', async () => {
   const root = await mkdtemp(join(tmpdir(), 'kh-music-test-'));
   const musicDir = join(root, 'private', 'minimax-music3');
+  const postMediaDir = join(root, 'posts', 'demo-post', 'media');
   await mkdir(musicDir, { recursive: true });
+  await mkdir(postMediaDir, { recursive: true });
   await writeFile(join(root, 'music-preview.html'), '<!doctype html><title>Preview</title>');
+  await writeFile(join(postMediaDir, 'anim.gif'), Buffer.from('GIF89a'));
+  await writeFile(join(postMediaDir, 'clip.mp4'), Buffer.from('0000ftypmp42'));
   await writeFile(join(musicDir, 'demo-track.meta.json'), JSON.stringify({ slug: 'demo-track', bpm: 100 }));
   await writeFile(join(musicDir, 'demo-track.wav'), Buffer.from('RIFF0000WAVEfmt '));
   const f = await fixture({ root });
   try {
     assert.equal((await fetch(f.base + '/music-preview.html')).status, 200);
+    const gifRes = await fetch(f.base + '/posts/demo-post/media/anim.gif');
+    assert.equal(gifRes.status, 200);
+    assert.equal(gifRes.headers.get('content-type'), 'image/gif');
+    const mp4RangeRes = await fetch(f.base + '/posts/demo-post/media/clip.mp4', { headers: { Range: 'bytes=4-7' } });
+    assert.equal(mp4RangeRes.status, 206);
+    assert.equal(await mp4RangeRes.text(), 'ftyp');
     const listRes = await fetch(f.base + '/api/local-music/tracks');
     assert.equal(listRes.status, 200);
     const listPayload = await listRes.json();
