@@ -2914,8 +2914,8 @@ var knowledgeTree = [
       en: 'Local Text-to-Music and Text-to-Song Models: Architecture, M4 Max 64GB Benchmarks, and Advisor'
     },
     summary: {
-      zh: '拆解三大开源音乐生成范式与 MiniMax-Music3 权重结构，实测评估 M4 Max 64GB 与 24GB 独显部署边界，配套选型沙盒。',
-      en: 'Dissects open-weight music/song architectures and MiniMax-Music3 weights, with M4 Max 64GB and 24GB GPU deployment guides and an interactive advisor.'
+      zh: '拆解三大开源音乐生成范式与 MiniMax-Music3 权重结构，实测 M4 Max 64GB 部署边界，配套选型沙盒与 64 行到 39 行作词编曲实战。',
+      en: 'Dissects open-weight song architectures and MiniMax-Music3 on M4 Max 64GB, with an interactive advisor and a 64-to-39-line songwriting case study.'
     },
     tags: ['Text-to-Music', 'Text-to-Song', 'MiniMax-Music3', 'ACE-Step', 'Apple MLX'],
     date: '2026-11-24',
@@ -3178,14 +3178,14 @@ var knowledgeTree = [
     parentId: 'copilot-studio',
     type: 'article',
     title: {
-      zh: 'Microsoft Ignite 2026：What\'s New in Copilot Studio 全景深度解析与黄金律动歌词凝练',
-      en: 'Microsoft Ignite 2026: What\'s New in Copilot Studio Deep Dive and Golden-Pocket Lyric Distillation'
+      zh: 'Microsoft Ignite 2026：What\'s New in Copilot Studio 全景深度解析与企业落地指南',
+      en: 'Microsoft Ignite 2026: What\'s New in Copilot Studio Deep Dive and Enterprise Adoption Guide'
     },
     summary: {
-      zh: '整合 Ignite 2026 旗舰场 BRK267 官方视频课件与实测数据，拆解三大支柱并提炼 0 警告黄金律动优化版歌词。',
-      en: 'Integrates Ignite 2026 BRK267 official videos, slides, and benchmarks across three pillars plus a 0-warning golden-pocket song rewrite.'
+      zh: '整合 Ignite 2026 旗舰场 BRK267 官方视频课件与实测数据，拆解创作体验、三轨执行内核与百万级规模治理三大支柱及企业选型矩阵。',
+      en: 'Integrates Ignite 2026 BRK267 official videos, slides, and benchmarks across Maker Experience, Copilot Harnesses, FinOps, and an enterprise matrix.'
     },
-    tags: ['Copilot Studio', 'Microsoft Ignite 2026', 'Copilot Harness', 'Agent FinOps', 'AI Songwriting'],
+    tags: ['Copilot Studio', 'Microsoft Ignite 2026', 'Copilot Harness', 'Agent FinOps', 'Enterprise Architecture'],
     date: '2026-11-25',
     url: 'posts/copilot-studio-ignite-2026-whats-new/index.html',
     color: '#ea580c',
