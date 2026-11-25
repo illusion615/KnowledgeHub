@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-section-density="strict" data-present-i18n="strict" data-cite-links>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Microsoft Ignite 2026 [THR887]：单条提示词构建企业级应用——Copilot Studio 与托管运行时实战解析</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <link rel="stylesheet" href="../../assets/article-figure.css" />
+  <link rel="stylesheet" href="./thr887-theater.css" />
+  <style>
+    :root {
+      --accent: #2563eb;
+      --teal: #0d8f8c;
+    }
+    html.is-presentation-mode .section:has([data-present-step]) > .section-head {
+      display: none;
+    }
+    .hero-copy h1 {
+      font-size: clamp(2.1rem, 5vw, 3.8rem);
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+      max-width: 20ch;
+    }
+    .hero-panel .layer-list { position: relative; margin-top: 18px; }
+    .insight-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .insight-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .insight-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    @media (max-width: 980px) {
+      .insight-grid-3, .insight-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 680px) {
+      .insight-grid-2, .insight-grid-3, .insight-grid-4 { grid-template-columns: 1fr; }
+    }
+    .compare-table-wrap {
+      margin-top: 18px;
+      overflow-x: auto;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 6px 14px;
+      box-shadow: var(--shadow);
+    }
+    .compare-table-wrap .compare-table {
+      width: 100%;
+      min-width: 680px;
+      border-collapse: collapse;
+      margin-top: 0;
+      font-size: 0.9rem;
+    }
+    .compare-table-wrap .compare-table th {
+      text-align: left;
+      padding: 12px 14px;
+      background: rgba(15, 23, 42, 0.04);
+      border-bottom: 2px solid rgba(15, 23, 42, 0.1);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-weight: 700;
+      font-size: 0.8rem;
+      letter-spacing: 0.04em;
+      text-transform: none;
+      color: var(--ink);
+      vertical-align: bottom;
+    }
+    .compare-table-wrap .compare-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+      line-height: 1.65;
+      color: var(--ink);
+      vertical-align: top;
+    }
+    .compare-table-wrap .compare-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+    .compare-table-wrap .compare-table td:first-child {
+      font-weight: 600;
+      min-width: 150px;
+    }
+    .compare-table-wrap .compare-table code,
+    .section p code,
+    .flow-copy code,
+    .insight-card code,
+    .comparison-card code,
+    .quote-block code,
+    .subsection-toggle code,
+    .subsection-content p code,
+    .bib-list code {
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.84em;
+      padding: 2px 6px;
+      border-radius: 5px;
+      background: rgba(15, 23, 42, 0.06);
+      color: var(--ink);
+    }
+    [data-theme="dark"] .compare-table-wrap {
+      background: rgba(22, 29, 38, 0.9);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+    [data-theme="dark"] .compare-table-wrap .compare-table th {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.12);
+      color: var(--ink);
+    }
+    [data-theme="dark"] .compare-table-wrap .compare-table td {
+      border-color: rgba(255, 255, 255, 0.07);
+      color: var(--ink);
+    }
+    [data-theme="dark"] .compare-table-wrap .compare-table code,
+    [data-theme="dark"] .section p code,
+    [data-theme="dark"] .flow-copy code,
+    [data-theme="dark"] .insight-card code,
+    [data-theme="dark"] .comparison-card code,
+    [data-theme="dark"] .quote-block code,
+    [data-theme="dark"] .subsection-toggle code,
+    [data-theme="dark"] .subsection-content p code,
+    [data-theme="dark"] .bib-list code {
+      background: rgba(255, 255, 255, 0.1);
+      color: #e2e8f0;
+    }
+    .timeline-list > .flow-step::before {
+      background: linear-gradient(135deg, var(--teal), #14b8a6);
+    }
+    .insight-callout {
+      border-left: 4px solid var(--teal);
+    }
+    .code-block {
+      margin: 18px 0;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .code-block pre {
+      margin: 0;
+      padding: 20px 22px;
+      background: rgba(16, 31, 43, 0.95);
+      color: #cdd6e0;
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.82rem;
+      line-height: 1.68;
+      overflow-x: auto;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+    }
+    [data-theme="dark"] .code-block pre {
+      background: rgba(0, 0, 0, 0.46);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+    .mermaid-container {
+      margin: 22px 0;
+      padding: 24px 18px;
+      border-radius: var(--radius-md);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      text-align: center;
+      overflow-x: auto;
+    }
+    .generated-diagram {
+      margin-top: 22px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+    .generated-diagram img {
+      display: block;
+      width: 100%;
+      height: auto;
+      object-fit: contain;
+    }
+    html[lang="en"] .diagram-zh,
+    html:not([lang="en"]) .diagram-en { display: none; }
+    .diagram-caption {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+    .diagram-caption a { color: var(--teal); font-weight: 600; white-space: nowrap; }
+    [data-theme="dark"] .generated-diagram {
+      background: rgba(22, 29, 38, 0.9);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+    .sandbox-slot {
+      margin-top: 22px;
+      padding: 22px;
+      border-radius: var(--radius-lg);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+    .sandbox-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .sandbox-title-group h3 { margin: 10px 0 6px; font-size: 1.18rem; }
+    .sandbox-title-group p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+    .sandbox-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .sandbox-stage {
+      border-radius: var(--radius-md);
+      background: rgba(16, 31, 43, 0.04);
+      border: 1px solid var(--line);
+      padding: 14px;
+      overflow: hidden;
+    }
+    [data-theme="dark"] .sandbox-stage {
+      background: rgba(0, 0, 0, 0.28);
+    }
+    .sandbox-canvas {
+      display: block;
+      width: 100%;
+      max-height: 300px;
+      border-radius: 10px;
+    }
+    /* Dual-view switcher bar (Progressive / Linear / Markdown Source) */
+    .genesis-view-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 18px 0 8px;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      font-size: 0.82rem;
+    }
+    .genesis-view-status {
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .genesis-view-buttons {
+      display: inline-flex;
+      gap: 6px;
+    }
+    .genesis-view-btn {
+      appearance: none;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.18s ease, color 0.18s ease;
+    }
+    .genesis-view-btn.is-active {
+      background: linear-gradient(135deg, var(--accent), #ff9340);
+      color: #fff;
+    }
+    .genesis-source-drawer {
+      display: none;
+      margin: 18px 0 28px;
+      padding: 20px;
+      border-radius: var(--radius-lg);
+      background: rgba(16, 31, 43, 0.96);
+      color: #dbe4ee;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      overflow-x: auto;
+    }
+    .genesis-source-drawer.is-open { display: block; }
+    .genesis-source-drawer pre {
+      margin: 0;
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.8rem;
+      line-height: 1.65;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    body.is-linear-reading .subsection-content {
+      max-height: none !important;
+      opacity: 1 !important;
+      overflow: visible !important;
+      padding: 0 24px 24px !important;
+    }
+    .is-presentation-mode .genesis-view-bar,
+    .is-presentation-mode .genesis-source-drawer {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            <span data-zh="Study Room Copilot Studio" data-en="Study Room Copilot Studio">Study Room Copilot Studio</span>
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#from-prototype-to-ga-runtime" data-zh="跨越原型鸿沟" data-en="Beyond Demo Toys">跨越原型鸿沟</a>
+            <a href="#under-the-hood-and-four-outputs" data-zh="掀开引擎盖" data-en="Under the Hood">掀开引擎盖</a>
+            <a href="#live-community-pulse-build" data-zh="实机演练" data-en="Live Walkthrough">实机演练</a>
+            <a href="#admin-governance-and-roadmap" data-zh="管理员全局透视与演进路线图" data-en="Admin Governance &amp; Post-GA Roadmap">管理员全局透视与演进路线图</a>
+            <a href="#references" data-zh="参考资料" data-en="References">参考资料</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow" data-zh="Microsoft Ignite 2026 · THR887 Official Breakdown" data-en="Microsoft Ignite 2026 · THR887 Official Breakdown">Microsoft Ignite 2026 · THR887 Official Breakdown</span>
+            <h1 data-zh="Microsoft Ignite 2026 [THR887]：单条提示词构建企业级应用——Copilot Studio 与托管运行时实战解析" data-en="Microsoft Ignite 2026 [THR887]: Build an Enterprise App from a Single Prompt with Copilot Studio">Microsoft Ignite 2026 [THR887]：单条提示词构建企业级应用——Copilot Studio 与托管运行时实战解析</h1>
+            <p data-zh="用自然语言在几分钟内生成软件界面早已不再稀奇，真正的工程瓶颈在于如何让快闪原型跨过身份鉴权、数据合规与运维托管的门槛直接服务核心业务 [1][2]。在 Ignite 2026 剧场专场 THR887 中，微软产品经理 Jessica Lo 宣布 Copilot 托管运行时应用正式全面商用，并现场演示仅凭单条提示词在 Copilot Studio 内一次性交付完整的 React + TypeScript 业务应用、内联智能体、3 张自动创建的 Dataverse 数据表以及跨端复用的 10 页 PDF 用户手册 [1][2]。" data-en="Generating a prototype UI from natural language takes minutes today, yet turning a vibe-coded mockup into governed software that a business can safely run remains the real bottleneck [1][2]. In Ignite 2026 theater session THR887, Microsoft Product Manager Jessica Lo announced general availability for &lt;strong&gt;Copilot Managed Runtime&lt;/strong&gt; apps and demonstrated how a single prompt in Copilot Studio delivers a standard React + TypeScript web app, an inline agent, three auto-provisioned Dataverse tables, and a 10-page PDF user guide [1][2].">用自然语言在几分钟内生成软件界面早已不再稀奇，真正的工程瓶颈在于如何让快闪原型跨过身份鉴权、数据合规与运维托管的门槛直接服务核心业务 [1][2]。在 Ignite 2026 剧场专场 THR887 中，微软产品经理 Jessica Lo 宣布 Copilot 托管运行时应用正式全面商用，并现场演示仅凭单条提示词在 Copilot Studio 内一次性交付完整的 React + TypeScript 业务应用、内联智能体、3 张自动创建的 Dataverse 数据表以及跨端复用的 10 页 PDF 用户手册 [1][2]。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#from-prototype-to-ga-runtime" data-zh="阅读核心章节" data-en="Explore Core Chapters">阅读核心章节</a>
+              <a class="button button-secondary" href="#under-the-hood-and-four-outputs" data-zh="掀开引擎盖" data-en="Under the Hood">掀开引擎盖</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label" data-zh="THR887 核心工程摘要" data-en="THR887 Executive Brief">THR887 核心工程摘要</span>
+            <h2 data-zh="三扇前门共享单一代码底座，首分钟自带企业级身份与策略护栏" data-en="Three Front Doors to One Git Codebase, Governed from Minute One">三扇前门共享单一代码底座，首分钟自带企业级身份与策略护栏</h2>
+            <p data-zh="Jessica Lo 现场拆解托管运行时五层架构，并演示单条提示词驱动“客户信号分诊”全栈应用闭环 [1][2]。" data-en="Jessica Lo opens the hood on Copilot Managed Runtime and builds the Customer Signal Triage app end to end from one prompt [1][2].">Jessica Lo 现场拆解托管运行时五层架构，并演示单条提示词驱动“客户信号分诊”全栈应用闭环 [1][2]。</p>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span><span data-zh="三门同源免重写 — 覆盖日常协作、业务流程与专业研发三类入口，底层共用标准 React + TypeScript 代码仓 [1][2]" data-en="Three Doors, One Skill — Enter via Cowork, Copilot Studio, or CLI + SDK on one shared React + TypeScript Git repository [1][2]">三门同源免重写 — 覆盖日常协作、业务流程与专业研发三类入口，底层共用标准 React + TypeScript 代码仓 [1][2]</span></li>
+              <li><span class="layer-number">2</span><span data-zh="单提示词四联产 — 同步生成交互式应用、内联智能体节点、自动建表数据层与跨端复用的说明文档 [1][2]" data-en="Four Artifacts in One Go — Delivers a web app, inline agent node, 3 Dataverse tables, and skill-generated PDF docs [1][2]">单提示词四联产 — 同步生成交互式应用、内联智能体节点、自动建表数据层与跨端复用的说明文档 [1][2]</span></li>
+              <li><span class="layer-number">3</span><span data-zh="创建首刻即受控 — 运行在微软托管底座，自动继承登录鉴权、防泄漏规则并在管理中心集中盘点 [1][3]" data-en="Day-Zero Governance — Hosted by Microsoft with Entra sign-in, DLP rules, and M365 Admin Center inventory built in [1][3]">创建首刻即受控 — 运行在微软托管底座，自动继承登录鉴权、防泄漏规则并在管理中心集中盘点 [1][3]</span></li>
+            </ul>
+          </aside>
+        </div>
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label" data-zh="单条提示词交付物" data-en="Deliverables from 1 Prompt">单条提示词交付物</div>
+            <strong>4</strong>
+            <span data-zh="一次性产出 Web 应用、内联智能体、3 张业务数据表与 10 页 PDF 用户指南 [1][2]" data-en="Produces a working web app, inline agent node, 3 Dataverse tables, and a 10-page PDF guide [1][2]">一次性产出 Web 应用、内联智能体、3 张业务数据表与 10 页 PDF 用户指南 [1][2]</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="受管连接器生态数" data-en="Governed Connectors">受管连接器生态数</div>
+            <strong>1,500+</strong>
+            <span data-zh="原生桥接身份登录、组织上下文、GitHub 代码仓与结构化业务数据源 [1][3]" data-en="Bridges Entra sign-in, Work IQ context, GitHub repositories, and enterprise data sources [1][3]">原生桥接身份登录、组织上下文、GitHub 代码仓与结构化业务数据源 [1][3]</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="看板日增社区信号" data-en="Daily Community Signals">看板日增社区信号</div>
+            <strong>45</strong>
+            <span data-zh="实机演示聚合 45 条社区动态（77% 正向情绪、15 条待分诊）并自动起草缺陷单 [1][2]" data-en="Aggregates 45 daily posts (77% positive, 15 awaiting triage) and drafts GitHub bug issues inline [1][2]">实机演示聚合 45 条社区动态（77% 正向情绪、15 条待分诊）并自动起草缺陷单 [1][2]</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="genesis-view-bar load-in" role="region" aria-label="Genesis 视图模式切换">
+        <span class="genesis-view-status" data-zh="Genesis 纯静态编译产物 · 零后端依赖 · 支持渐进披露与源稿对照" data-en="Genesis Static Compiled Artifact · Zero Backend · Progressive &amp; Source View">Genesis 纯静态编译产物 · 零后端依赖 · 支持渐进披露与源稿对照</span>
+        <div class="genesis-view-buttons">
+          <button type="button" class="genesis-view-btn is-active" data-genesis-mode="progressive" data-zh="渐进披露视图" data-en="Progressive View">渐进披露视图</button>
+          <button type="button" class="genesis-view-btn" data-genesis-mode="linear" data-zh="线性展开视图" data-en="Linear View">线性展开视图</button>
+          <button type="button" class="genesis-view-btn" data-genesis-mode="source" data-zh="Markdown 源稿对照" data-en="Markdown Source">Markdown 源稿对照</button>
+        </div>
+      </div>
+      <section class="genesis-source-drawer" id="genesis-source-drawer" aria-label="Markdown 源稿">
+        <pre><code>---
+title: Microsoft Ignite 2026 [THR887]：单条提示词构建企业级应用——Copilot Studio 与托管运行时实战解析 || Microsoft Ignite 2026 [THR887]: Build an Enterprise App from a Single Prompt with Copilot Studio
+eyebrow: Microsoft Ignite 2026 · THR887 Official Breakdown || Microsoft Ignite 2026 · THR887 Official Breakdown
+brand: Study Room Copilot Studio || Study Room Copilot Studio
+date: 2026-11-25
+strict_i18n: true
+strict_density: true
+lead: 用自然语言在几分钟内生成软件界面早已不再稀奇，真正的工程瓶颈在于如何让快闪原型跨过身份鉴权、数据合规与运维托管的门槛直接服务核心业务 [1][2]。在 Ignite 2026 剧场专场 THR887 中，微软产品经理 Jessica Lo 宣布 Copilot 托管运行时应用正式全面商用，并现场演示仅凭单条提示词在 Copilot Studio 内一次性交付完整的 React + TypeScript 业务应用、内联智能体、3 张自动创建的 Dataverse 数据表以及跨端复用的 10 页 PDF 用户手册 [1][2]。 || Generating a prototype UI from natural language takes minutes today, yet turning a vibe-coded mockup into governed software that a business can safely run remains the real bottleneck [1][2]. In Ignite 2026 theater session THR887, Microsoft Product Manager Jessica Lo announced general availability for **Copilot Managed Runtime** apps and demonstrated how a single prompt in Copilot Studio delivers a standard React + TypeScript web app, an inline agent, three auto-provisioned Dataverse tables, and a 10-page PDF user guide [1][2].
+panel_label: THR887 核心工程摘要 || THR887 Executive Brief
+panel_title: 三扇前门共享单一代码底座，首分钟自带企业级身份与策略护栏 || Three Front Doors to One Git Codebase, Governed from Minute One
+panel_desc: Jessica Lo 现场拆解托管运行时五层架构，并演示单条提示词驱动“客户信号分诊”全栈应用闭环 [1][2]。 || Jessica Lo opens the hood on Copilot Managed Runtime and builds the Customer Signal Triage app end to end from one prompt [1][2].
+panel:
+  - 三门同源免重写 — 覆盖日常协作、业务流程与专业研发三类入口，底层共用标准 React + TypeScript 代码仓 [1][2] || Three Doors, One Skill — Enter via Cowork, Copilot Studio, or CLI + SDK on one shared React + TypeScript Git repository [1][2]
+  - 单提示词四联产 — 同步生成交互式应用、内联智能体节点、自动建表数据层与跨端复用的说明文档 [1][2] || Four Artifacts in One Go — Delivers a web app, inline agent node, 3 Dataverse tables, and skill-generated PDF docs [1][2]
+  - 创建首刻即受控 — 运行在微软托管底座，自动继承登录鉴权、防泄漏规则并在管理中心集中盘点 [1][3] || Day-Zero Governance — Hosted by Microsoft with Entra sign-in, DLP rules, and M365 Admin Center inventory built in [1][3]
+metrics:
+  - 单条提示词交付物 || Deliverables from 1 Prompt | 4 | 一次性产出 Web 应用、内联智能体、3 张业务数据表与 10 页 PDF 用户指南 [1][2] || Produces a working web app, inline agent node, 3 Dataverse tables, and a 10-page PDF guide [1][2]
+  - 受管连接器生态数 || Governed Connectors | 1,500+ | 原生桥接身份登录、组织上下文、GitHub 代码仓与结构化业务数据源 [1][3] || Bridges Entra sign-in, Work IQ context, GitHub repositories, and enterprise data sources [1][3]
+  - 看板日增社区信号 || Daily Community Signals | 45 | 实机演示聚合 45 条社区动态（77% 正向情绪、15 条待分诊）并自动起草缺陷单 [1][2] || Aggregates 45 daily posts (77% positive, 15 awaiting triage) and drafts GitHub bug issues inline [1][2]
+style:
+  accent: &quot;#2563eb&quot;
+  teal: &quot;#0d8f8c&quot;
+---
+
+## #from-prototype-to-ga-runtime 01 / From Toy Prototype to Production GA :: 跨越原型鸿沟：Copilot 托管运行时正式商用与三扇前门架构 || Beyond Demo Toys: Copilot Managed Runtime GA and the Three Front Doors
+
+大模型已经彻底改写了软件早期的探索成本：过去产品团队必须耗费数小时撰写冗长的需求文档再排期移交研发编码，如今任何人只需输入一段描述并反复对话微调，几分钟就能拿到可点击的界面 [1]。然而写代码本身早已不是最难的一关 [1]。当团队试图把随手生成的快闪原型真正投入企业日常运转时，往往因为缺失统一身份登录、受管数据连接与安全合规策略而被迫推倒重写 [1][2]。 || Coding agents have made early software exploration inexpensive: instead of spending hours writing a product requirements document and waiting on engineering queues, makers describe an idea and refine a working screen in minutes [1]. Writing initial code is no longer the bottleneck [1]. Moving from a vibe-coded prototype to dependable software that an organization can run safely usually forces teams into a full rewrite to bolt on authentication, governed data access, and tenant security [1][2].
+
+在 THR887 开场，微软托管运行时应用创作产品经理 Jessica Lo 给出了破局方案，并宣布团队历时六个月打磨的 **Copilot 托管运行时（Copilot Managed Runtime）应用现已正式全面商用** [1][2]。凡是在该运行时上生成并托管的应用，均直接运行在微软托管的租户级基础设施上，无需团队自行采购或维护任何服务器；从应用诞生的第一分钟起，系统便默认接通 Microsoft Entra 身份登录，自动绑定 SharePoint 或 Dataverse 等受管真实数据源，并严格继承企业管理员配置的防数据泄漏（DLP）与共享策略 [1][3]。把原型推向生产环境，不再意味着推倒重来，而是在既有应用之上顺滑叠加业务严谨度 [1]。 || Opening THR887, Microsoft Product Manager Jessica Lo announced that after six months of intensive engineering, **Copilot Managed Runtime apps are now generally available** [1][2]. Every app generated and hosted on the runtime executes on Microsoft-managed infrastructure inside the customer's tenant with zero servers to maintain [1][3]. From minute one, it authenticates through Microsoft Entra and enforces admin-defined data loss prevention (DLP) and sharing policies across SharePoint or Dataverse [1][3]. Going to production means adding rigor to the existing app rather than rewriting a throwaway prototype [1].
+
+:::figure { src: &quot;./media/thr887-cmr-architecture.figure.json&quot;, title: &quot;Copilot 托管运行时三扇前门与单提示词四联交付全栈架构 || Copilot Managed Runtime Three Front Doors &amp; Single-Prompt Four-Deliverable Stack&quot; }
+图 1：THR887 核心工程架构——顶层面向三类构建者敞开三扇前门并共享同一 Git 源码仓；中层在 Copilot Studio 内由单条提示词同步产出四项企业级资产；底层依托微软零运维托管、1,500 余款受管连接器与管理中心策略实现开箱受控 [1][2]。 || Figure 1: Full THR887 architecture [1][2]. Three builder doors share one Git repository at the top, while a single Copilot Studio prompt synthesizes four artifacts over zero-server hosting and 1,500+ connectors underneath [1][2].
+:::
+
+为了贴合不同角色的日常工作流，微软将同一套底层应用技能封装为“同一栋房子的正门、车库门与后院门”——即三扇通往同一受管底座的前门 [1][2]：**Copilot Cowork** 面向信息工作者，适合在日常办公流中直接融合邮件、文件与会议上下文（例如 Jessica 上周推进旧产品下线时，生成应用每 2 小时巡检收件箱以追踪 350 多名客户经理的回执）[1]；**Copilot Studio** 面向业务制作者与企业技术团队，在智能体与工作流旁构建基于真实业务数据的流程应用 [1][4]；**命令行与开发套件（CLI + SDK）**则面向专业开发者，支持在 VS Code 等编码环境中掌控代码仓并继续享受微软免运维托管 [1][3]。无论从哪扇门起步，底层均由 Git 版本库统一承载，团队随时可以换一扇门接力演进 [1]。下方交互导览台集成了 THR887 官方 25 分钟点播视频流与五幕逐分钟实录索引 [1][2]： || Rather than splintering into separate products, Microsoft exposes **one underlying app skill through three front doors**—like entering the same house via the front door, garage, or backyard [1][2]. **Copilot Cowork** meets information workers in the flow of work to infuse email, file, and meeting context; Jessica shared how she built a Cowork app to check her inbox every two hours and track deprecation acknowledgments across 350+ Microsoft account managers [1][5]. **Copilot Studio** serves makers and IT teams building process apps alongside Dataverse, agents, and workflows [1][4]. **CLI + SDK** gives pro developers full repository control in VS Code or GitHub Copilot while Microsoft still hosts the runtime [1][3]. Because every door writes to Git, builders can start in one entry point and continue in another [1]. Explore the official 25-minute stream and five timestamped chapters below [1][2]:
+
+:::sandbox { id: &quot;thr887-video-theater&quot;, canvas: false, script: &quot;./thr887-theater.js&quot;, style: &quot;./thr887-theater.css&quot;, title: &quot;THR887 官方点播视频与五幕时间戳导览台 || THR887 Official On-Demand Stream &amp; Five-Chapter Timestamp Theater&quot;, desc: &quot;切换正式商用与三扇前门、五层解剖结构、实机单提示词建表、内联智能体起草 GitHub 缺陷单与管理中心路线图五大章节，支持页内直接加载微软官方 Medius 点播流。 || Switch across GA &amp; Three Front Doors, Five-Layer Anatomy, Live Prompt &amp; Dataverse Tables, Inline Agent GitHub Triage, and Admin Governance &amp; Roadmap, or launch the embedded Medius player.&quot; }
+纯静态点播与议题导览沙盒：内置 THR887 官方高清封面、五段逐分钟实录摘要及官方点播流与托管运行时文档直链。 || Pure static session theater featuring the official THR887 HD cover, five timestamped transcript digests, and direct Medius and Copilot Managed Runtime documentation links.
+:::
+
+## #under-the-hood-and-four-outputs 02 / Under the Hood &amp; Four Deliverables :: 掀开引擎盖：标准 React + TypeScript 底座与“一词四件”生成机制 || Under the Hood: Standard React + TypeScript Anatomy and One-Prompt Synthesis
+
+受管运行时生成的应用究竟包含什么？Jessica 在现场课件中明确拆解了它的五层工程解剖结构——它绝不是静态高保真草图，也不是锁死在私有格式里的黑盒文件，而是**存放在 Git 仓库中的标准 React + TypeScript 真实 Web 应用**，专业开发者随时可以检出源码阅读或深度扩展 [1][2]。在这份标准前端工程之下，专用开发套件充当连接 Microsoft 365 的桥梁，将企业身份登录、类型化连接器服务与 Work IQ 组织上下文开箱接通；数据与智能层则直接挂载超过 **1,500 款受管连接器**、Dataverse 结构化表与 Copilot Studio 智能体 [1][2]。 || What actually lives inside a Copilot Managed Runtime app? Opening the hood on stage, Jessica emphasized that makers do not receive a static mockup or proprietary file format—they get **a standard React + TypeScript web application stored in a Git repository** that developers can inspect and extend freely [1][2]. Beneath that codebase, the runtime SDK bridges into Microsoft 365 with Entra sign-in, typed connector services, and Work IQ organizational context, while the data layer taps into **1,500+ governed connectors**, Dataverse, and Copilot Studio agents [1][2].
+
+&lt;div class=&quot;thr887-media-grid&quot;&gt;
+  &lt;article class=&quot;thr887-media-card&quot; data-present-surface=&quot;unframed&quot;&gt;
+    &lt;div class=&quot;thr887-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/thr887-cmr-anatomy-slide.jpg&quot; alt=&quot;THR887 official slide What is a Copilot Managed Runtime app showing five anatomy layers Code SDK Data and AI Host Policy and three audiences Makers Users Admins&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;thr887-media-body&quot;&gt;
+      &lt;span class=&quot;thr887-media-badge&quot; data-zh=&quot;THR887 官方课件实拍 · 07:08&quot; data-en=&quot;THR887 Official Slide · 07:08&quot;&gt;THR887 官方课件实拍 · 07:08&lt;/span&gt;
+      &lt;h4 data-zh=&quot;受管应用五维解剖：React + TypeScript 源码与三方协同&quot; data-en=&quot;Anatomy of a Managed App: React + TypeScript &amp; Three Audiences&quot;&gt;受管应用五维解剖：React + TypeScript 源码与三方协同&lt;/h4&gt;
+      &lt;p data-zh=&quot;涵盖标准 Git 源码、M365 桥接套件、1,500+ 连接器、managedapps.cloud.microsoft 零运维门户与首分钟管理策略，并与画布及模型驱动应用互补共存 [1][2]。&quot; data-en=&quot;Unifies standard React + TypeScript code in Git, M365 SDK, 1,500+ connectors, portal hosting at managedapps.cloud.microsoft, and instant policy—complementing canvas and model-driven apps [1][2].&quot;&gt;涵盖标准 Git 源码、M365 桥接套件、1,500+ 连接器、managedapps.cloud.microsoft 零运维门户与首分钟管理策略，并与画布及模型驱动应用互补共存 [1][2]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+  &lt;article class=&quot;thr887-media-card&quot; data-present-surface=&quot;unframed&quot;&gt;
+    &lt;div class=&quot;thr887-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/thr887-single-prompt-studio.jpg&quot; alt=&quot;THR887 live demo capture in Copilot Studio Apps showing Jessica Lo submitting the single prompt for community feedback inline agent Dataverse plugin tables and documentation skill&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;thr887-media-body&quot;&gt;
+      &lt;span class=&quot;thr887-media-badge is-accent&quot; data-zh=&quot;THR887 实机演示截帧 · 11:52&quot; data-en=&quot;THR887 Live Demo Frame · 11:52&quot;&gt;THR887 实机演示截帧 · 11:52&lt;/span&gt;
+      &lt;h4 data-zh=&quot;在 Copilot Studio 提交单条复合提示词触发四联构建&quot; data-en=&quot;Submitting One Compound Prompt in Copilot Studio Apps&quot;&gt;在 Copilot Studio 提交单条复合提示词触发四联构建&lt;/h4&gt;
+      &lt;p data-zh=&quot;一段自然语言同时指定社区反馈看板、搜索论坛与社媒的内联智能体、自动创建 3 张业务表以及调用 Cowork 文档技能 [1][2]。&quot; data-en=&quot;One natural-language prompt specifies the feedback dashboard, an inline forum/social search agent, three auto-created Dataverse tables, and Cowork skill documentation [1][2].&quot;&gt;一段自然语言同时指定社区反馈看板、搜索论坛与社媒的内联智能体、自动创建 3 张业务表以及调用 Cowork 文档技能 [1][2]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+&lt;/div&gt;
+
+这套架构让同一款应用自然服务企业内的三类受众：制作者与开发者通过三扇前门协同构建，终端员工统一在 `managedapps.cloud.microsoft` 门户查找并打开应用，而 IT 管理员则在 Microsoft 365 管理中心全局监管每一款应用；同时它与现有的画布应用和模型驱动应用互补共存，绝不强制存量系统迁移 [1][2]。围绕即将展开的 Copilot Studio 实机演示，Jessica 重点点明了**单条提示词一次性交付的四项核心产物**（其中第 2 项智能体节点连接器与第 3 项建表插件目前已在微软内部租户投入实战，正经历严格测试并向公众陆续推送，尚未包含在首日正式商用基线内）[1]： || One generated app cleanly serves three organizational roles: makers and developers co-building across the three front doors, end users discovering apps at `managedapps.cloud.microsoft`, and admins governing inventory in the Microsoft 365 Admin Center—all complementing existing canvas and model-driven apps with no forced migration [1][2]. Setting up her live Copilot Studio build, Jessica highlighted **four artifacts synthesized from a single prompt**—noting transparently that items #2 (the agent node connector) and #3 (the Dataverse table-creation plugin) were running in Microsoft's internal tenant and rolling out gradually beyond the initial GA baseline [1]:
+
+1. **可交互的企业级业务 Web 应用**：直接由自然语言生成的完整前端看板与筛选工作流 [1][2]。 || **A Working Enterprise Web App**: Full interactive UI and triage views generated from natural language [1][2].
+2. **通过新“智能体节点连接器”织入应用内部的内联智能体**：不同于挂在页面边缘凑数的独立聊天框，该连接器将智能体推理能力原生嵌入业务应用内部并实时联动当前数据 [1][2]。 || **An Inline Agent via the New Agent Node Connector**: Rather than tacking on a detached side chatbot, the new connector wires contextual AI intelligence directly inside the app experience [1][2].
+3. **由全新 Dataverse 插件自动创建的结构化数据表**：无需制作者预先手工建表配置字段，智能体按提示词自动生成多张业务表持久化数据（若团队偏好使用 SharePoint 列表同样原生支持）[1][2]。 || **Net-New Tables via the Dataverse Plugin**: Automatically provisions structured Dataverse tables on behalf of the maker—eliminating manual schema setup while still supporting SharePoint lists when preferred [1][2].
+4. **跨端直接复用的 Cowork 技能**：此前在 Copilot Cowork 中沉淀的个人或团队技能（如一键生成应用说明手册），可在 Copilot Studio 内通过斜杠命令直接唤醒执行，印证底层平台的彻底贯通 [1][2]。 || **Reusable Cross-Surface Skills**: Invokes existing skills authored in Copilot Cowork directly inside Copilot Studio via slash commands, proving both experiences share the exact same platform [1][2].
+
+:::figure { src: &quot;./media/thr887-front-doors-quadrant.figure.json&quot;, title: &quot;Copilot 托管运行时三扇前门与传统应用原型开发选型象限 || Copilot Managed Runtime Three Front Doors vs. Legacy App Prototyping Quadrant&quot; }
+图 2：基于 THR887 选型准则绘制的工程决策象限——告别无护栏孤岛快闪原型与漫长的传统需求移交管线，按办公流上下文、业务数据智能体编排与全栈代码控制深度精准选用三扇受管前门 [1][2]。 || Figure 2: Engineering selection quadrant mapped from THR887—moving past ungoverned demo toys and slow PRD hand-offs by matching builder needs across Cowork, Copilot Studio, and CLI + SDK [1][2].
+:::
+
+## #live-community-pulse-build 03 / Live Build: Community Pulse :: 实机演练：用自己构建的“客户信号分诊”应用备战正式商用 || Live Walkthrough: Building Customer Signal Triage to Ship GA
+
+演示切入真实的自身痛点：在受管运行时开启公开预览的三至四周里，来自 LinkedIn、YouTube 视频评论区、技术博客、Reddit 与社交平台的制作者反馈呈井喷态势 [1]。Jessica 每天清晨逐站翻找评论、归纳情绪并手工向研发团队同步缺陷，耗时且极易遗漏关键问题；于是她在三周前决定“用托管运行时应用来收集托管运行时的社区反馈”，现场还原了驱动这一真实生产工具落地的完整四步闭环 [1][2]： || Grounding the demo in her own daily workflow, Jessica explained that during the three to four weeks of public preview, maker feedback surged across LinkedIn, YouTube comments, blogs, Reddit, and social channels [1]. Manually hunting down posts every morning and filing engineering bugs became overwhelming—so three weeks before Ignite, she built a Copilot Managed Runtime app to triage feedback for Copilot Managed Runtime itself [1][2]:
+
+:::flow { title: &quot;实机闭环：从提交单条复合提示词到生成 10 页 PDF 用户手册的四步实战 || Four-Step Live Flow: From One Prompt to GitHub Bug Filing &amp; 10-Page PDF Guide&quot; }
+1. **在 Copilot Studio 提交单条复合提示词 || Submitting the Single Compound Prompt** — 点击主页第三个“应用”磁贴（正式商用推送期间界面预览角标正逐步移除），输入一段完整指令 [1][2]。该指令要求构建收集托管运行时客户反馈的应用，内置扫描论坛、社媒与博客的内联智能体以展示主题分类、上报缺陷与情绪趋势；同时调用 Dataverse 插件自动创建“社区反馈”“反馈来源”“产品领域” 3 张表，并复用 Cowork 应用文档技能生成说明手册 [1][2]。 || Opens the third `Apps` tile on the Copilot Studio home page and submits one compound prompt [1][2]. That prompt requests a community feedback app, an inline agent scanning forums and blogs for themes and bugs, three new Dataverse tables (`Community Feedback`, `Feedback Source`, `Product Area`), and user documentation via a Cowork skill [1][2].
+2. **检视对话记忆、React 源码与三表四连接器 || Inspecting Chat Memory, Code View &amp; Connections** — 打开生成的 `Customer Signal Triage`（社区脉搏）工作区：左侧保留初始提示词与多轮对话便于 30、60 或 90 天后回溯决策（智能体还会主动提醒 1280 像素分屏下标签挤压并询问是否修复）；右侧提供交互预览、底层 **Code 代码视图**以及平板/手机尺寸切换器 [1][2]。展开顶部数据与连接面板，可见自动生成的 `craf4_communityfeedback`、`craf4_feedbacksource`、`craf4_productarea` 三张表，以及 **Office 365 用户**、**GitHub**、**内联智能体**与 **Microsoft Dataverse** 四项连接器（系统要求四者处于同一数据策略组方可发布）[1][2]。 || Opens `Customer Signal Triage`: the left pane retains full chat history for 30/60/90-day continuity and even flags a `1280px` split-pane label squeeze [1][2]. The right pane provides an interactive preview, the underlying React `Code` view, mobile/tablet device pickers, the three `craf4_*` Dataverse tables, and four wired connectors (`Office 365 Users`, `GitHub`, `Agent`, and `Dataverse`) verified under one data-policy group [1][2].
+3. **晨会秒级情绪汇总与内联起草 GitHub 缺陷单 || Standup Pulse Summary &amp; Inline GitHub Bug Drafts** — 收起构建栏后，看板呈现当日脉搏：**今日新增 45 条帖子**，30 条已评级帖子中 **77% 为正向情绪**（正向 23、中性 5、混合 2），另有 **15 条待分诊**，并自动聚类出应用体验（5 帖，80% 正向）、托管宿主（4 帖，100% 正向）、学习资料（4 帖）、应用内 AI（3 帖）与数据连接（3 帖）五大主题 [1][2]。点击页内 **Ask the agent** 即可一键生成晨会摘要同步至 Teams 频道；继续输入 `Create issues in GitHub for the bugs reported`，内联智能体便会梳理当日性能与可靠性缺陷，起草 GitHub 议题草稿并在确认后直接建单 [1][2]。 || Collapsing the builder pane reveals **45 posts today**, **77% positive sentiment** across 30 rated items, and **15 awaiting triage** [1][2]. Top clustered themes span `Copilot Studio apps experience`, `Managed hosting`, `Learning resources`, `AI inside apps`, and `Dataverse and data connections` [1][2]. Clicking `Ask the agent` summarizes daily opportunities for morning standup, then drafts GitHub bug issues inline (`Create issues in GitHub for the bugs reported`) for one-click filing into the team repository [1][2].
+4. **一键团队共享与零人工产出 10 页 PDF 手册 || Team Sharing &amp; Zero-Touch 10-Page PDF User Guide** — 验证无误后点击发布并将应用分享给同事 Emma（对方收到邮件链接即可开箱使用）[1]。与此同时，跨端复用的 Cowork 文档技能已自动渲染出一份 **10 页完整版《Customer Signal Triage 用户指南》PDF**（涵盖应用定位、快速上手、今日脉搏与全量视图导览、手机小窗适配及每日晨会操作指引），后续每当应用功能演进，只需一句话即可让智能体同步刷新这份手册 [1][2]。 || Publishes and shares the app with teammate Emma via email link [1]. Meanwhile, the reusable Cowork skill renders a **10-page PDF user guide** covering quick start, feature tour, and daily review steps—all regenerable as the app evolves [1][2].
+:::
+
+&lt;div class=&quot;thr887-media-grid&quot;&gt;
+  &lt;article class=&quot;thr887-media-card&quot; data-present-surface=&quot;unframed&quot;&gt;
+    &lt;div class=&quot;thr887-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/thr887-community-pulse-github.jpg&quot; alt=&quot;THR887 live demo screenshot showing Customer Signal Triage dashboard with 45 posts today 77 percent positive 15 awaiting triage and inline Ask the agent panel drafting GitHub issues&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;thr887-media-body&quot;&gt;
+      &lt;span class=&quot;thr887-media-badge&quot; data-zh=&quot;THR887 实机演示截帧 · 19:45&quot; data-en=&quot;THR887 Live Demo Frame · 19:45&quot;&gt;THR887 实机演示截帧 · 19:45&lt;/span&gt;
+      &lt;h4 data-zh=&quot;社区脉搏看板（45 条动态 / 77% 正向）与内联起草 GitHub 议题&quot; data-en=&quot;Community Pulse Dashboard (45 Posts / 77% Positive) &amp; GitHub Drafts&quot;&gt;社区脉搏看板（45 条动态 / 77% 正向）与内联起草 GitHub 议题&lt;/h4&gt;
+      &lt;p data-zh=&quot;左侧实时聚类五大产品反馈主题与情绪占比，右侧内联智能体直接响应指令为当日上报缺陷生成 GitHub 议题草稿 [1][2]。&quot; data-en=&quot;Displays top feedback themes and sentiment mix on the left while the inline agent drafts GitHub bug issues on the right [1][2].&quot;&gt;左侧实时聚类五大产品反馈主题与情绪占比，右侧内联智能体直接响应指令为当日上报缺陷生成 GitHub 议题草稿 [1][2]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+  &lt;article class=&quot;thr887-media-card&quot; data-present-surface=&quot;unframed&quot;&gt;
+    &lt;div class=&quot;thr887-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/thr887-post-ga-roadmap.jpg&quot; alt=&quot;THR887 official slide What is next after GA showing Build Together Co-authoring Co-owners Ship Safely Version history ALM Dev test prod and IT In Control GitHub Enterprise Environment choice&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;thr887-media-body&quot;&gt;
+      &lt;span class=&quot;thr887-media-badge is-accent&quot; data-zh=&quot;THR887 官方课件实拍 · 23:12&quot; data-en=&quot;THR887 Official Slide · 23:12&quot;&gt;THR887 官方课件实拍 · 23:12&lt;/span&gt;
+      &lt;h4 data-zh=&quot;正式商用后的六大演进路线图：协同、发布管线与环境主权&quot; data-en=&quot;What's Next After GA: Six Customer-Driven Roadmap Pillars&quot;&gt;正式商用后的六大演进路线图：协同、发布管线与环境主权&lt;/h4&gt;
+      &lt;p data-zh=&quot;围绕团队共建（协同创作、共同所有者）、安全交付（版本历史回滚、开发测试生产晋级）与 IT 管控（企业自有代码仓、环境选择）全面升级 [1][2]。&quot; data-en=&quot;Advances team continuity (co-authoring, co-owners), safe delivery (UX version rollback, staged ALM), and IT control (GitHub Enterprise, custom environments) [1][2].&quot;&gt;围绕团队共建（协同创作、共同所有者）、安全交付（版本历史回滚、开发测试生产晋级）与 IT 管控（企业自有代码仓、环境选择）全面升级 [1][2]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+&lt;/div&gt;
+
+## #admin-governance-and-roadmap 04 / Admin Governance &amp; Post-GA Roadmap :: 管理员全局透视与演进路线图：159 款受管应用盘点与六大企业级增强 || Admin Governance &amp; Post-GA Roadmap: Tenant-Wide Visibility and Six Next Steps
+
+业务人员用单条提示词几分钟拉起一款全栈应用，会不会在企业内制造新的影子 IT 盲区？演示尾声，Jessica 直接切入 **Microsoft 365 管理中心**（`admin.cloud.microsoft`）的“应用 -&gt; 全部应用”视图给出了定心丸 [1][2]。在演示租户的受管应用资产大盘中，全部 **159 款受管应用**悉数在列；输入名称检索刚构建的 `CMR Community Pulse`，管理员无需等待业务团队事后报备，就能实时查看该应用挂载了哪些连接器、调用频次如何、由谁创建以及当前所有者归属，并可随时配置性能告警或一键阻断高风险应用 [1][2]。 || When makers spin up full-stack apps in minutes, does IT lose visibility into shadow software? Switching live into the **Microsoft 365 Admin Center** (`admin.cloud.microsoft` under *Apps -&gt; All apps*), Jessica demonstrated how every single app appears in tenant inventory from the moment it is created [1][2]. Searching across the tenant's **159 managed apps** surfaced `CMR Community Pulse` immediately—exposing active connectors, usage frequency, creator identity, and ownership alongside controls to set custom alerts or block vulnerable apps [1][2].
+
+| 选型与治理维度 || Engineering &amp; Governance Dimension | Copilot Cowork（日常协作前门） || Copilot Cowork (Flow-of-Work Door) | Copilot Studio（业务流程前门 · 本场演示） || Copilot Studio (Process &amp; Agent Door) | CLI + SDK（专业代码前门） || CLI + SDK (Pro-Developer Door) |
+|------|------|------|------|
+| 核心适用构建者 || Target Builder Persona | 熟悉办公套件的信息工作者与项目负责人 [1][5] || Information workers &amp; project leads [1][5] | 业务制作者、企业 IT 与智能体编排团队 [1][4] || Makers, IT teams &amp; workflow builders [1][4] | 追求底层仓库控制权的全栈与专业开发者 [1][3] || Pro developers in VS Code or GitHub Copilot [1][3] |
+| 最佳切入业务场景 || Primary Workload Fit | 融合邮件、会议、聊天上下文的个人或小组快建工具（如每 2 小时巡检 350+ 人回执）[1] || Quick team trackers grounded in email, files &amp; meetings [1] | 跑在真实结构化数据上、需深度协同内联智能体与工作流的业务系统 [1][4] || Process apps backed by Dataverse, inline agents &amp; workflows [1][4] | 需要直接审查修改组件代码、执行机械级版本回滚的复杂定制工程 [1][3] || Custom extensions &amp; direct Git version rollback [1][3] |
+| 底层源码与跨门连续性 || Underlying Code &amp; Continuity | 统一生成标准 React + TypeScript 存入 Git，随时可在 Studio 或命令行接力打开 [1][2] || Shared React + TypeScript Git repo; seamlessly pick up in Studio or CLI [1][2] | 内置对话记忆、交互预览与源码查看器，跨端复用 Cowork 技能 [1][2] || Built-in chat memory, live preview, code view &amp; reusable Cowork skills [1][2] | 本地检出完整 React + TypeScript 仓库自由编码，仍由微软免服务器托管 [1][2] || Full local repo editing while Microsoft hosts and runs infrastructure [1][2] |
+| 身份鉴权与管理员管控 || Identity, Policy &amp; Admin View | 首分钟启用 Entra 登录与管理员防泄漏策略，统一汇聚至 M365 管理中心盘点 [1][3] || Entra sign-in, admin DLP &amp; M365 Admin Center visibility from minute one [1][3] | 发布前强制校验多连接器数据策略组一致性，终端用户在受管门户统一访问 [1][2] || Enforces connector DLP policy groups pre-publish; hosted at `managedapps.cloud.microsoft` [1][2] | 与可视化前门继承完全一致的租户级连接器规则、共享边界与安全审计 [1][3] || Identical tenant DLP, sharing guardrails, and admin inventory telemetry [1][3] |
+
+面向已经迈过正式商用门槛的企业客户，Jessica 在收官环节坦诚分享了团队正紧锣密鼓推进的**六大后续路线图投资**（按客户投产诉求归纳为三大支柱）[1][2]： || Looking beyond general availability, Jessica closed by detailing **six post-GA roadmap investments** shaped directly by public-preview customers moving apps into production [1][2]:
+
+- **团队协同共建（Build Together）**：一是支持多人在同一会话内实时并肩编辑同一款应用的**协同创作（Co-authoring）**；二是支持指派**共同所有者（Co-owners）**——解决当前应用仅绑定单一创建者、一旦员工离职或突发变动导致应用失管的连续性痛点 [1][2]。 || **Build Together (`Co-authoring` &amp; `Co-owners`)**: Enables multiple teammates to co-edit inside the same session simultaneously and lets creators assign co-owners so critical business apps never vanish when an individual leaves the team [1][2].
+- **安全可控交付（Ship Safely）**：一是把目前已在命令行工具中支持的机械级**版本历史与一键回滚（Version history）**全面引入 Copilot Studio 与 Cowork 图形界面；二是呼声极高的**应用生命周期管理（ALM）**，支持带审批门禁地将应用从开发、测试平滑晋级至生产环境 [1][2]。 || **Ship Safely (`Version history` &amp; `ALM`)**: Surfaces mechanical version rollback—already working today in the CLI—directly inside the Copilot Studio and Cowork UX, alongside staged dev-test-prod promotion pipelines with pre-production approvals [1][2].
+- **企业自主掌控（IT in Control）**：一是支持**接入企业自有 GitHub Enterprise**，允许管理员强制要求受管应用源码存放在公司自管代码仓内；二是开放**环境自由选择（Environment choice）**，打破当前默认落在个人开发环境（PDE）的限制，允许在管理员批准的任意指定受控环境中构建和运行应用 [1][2]。 || **IT in Control (`Your GitHub Enterprise` &amp; `Environment choice`)**: Lets administrators require generated app code to reside inside company-owned GitHub Enterprise repositories and unlocks building inside designated custom environments beyond the default personal developer environment (PDE) [1][2].
+
+## 参考资料：官方一手信源与技术文档 || References: Official Primary Sources &amp; Documentation
+
+1. **Jessica Lo (Microsoft Ignite 2026 THR887 Video &amp; Transcript)** — https://ignite.microsoft.com/en-US/sessions/1787856580323001EG0e-1791588176515001C35D | 《Build an enterprise app from a single prompt with Copilot Studio》25 分钟官方剧场实录与中英双语 WebVTT 逐字稿（2026-11-18） || Official 25-minute theater session page and bilingual WebVTT transcripts (Nov 18, 2026)
+2. **Jessica Lo (THR887 Official Medius On-Demand Stream)** — https://medius.microsoft.com/Embed/video-nc/b08b8f4a-b185-4c45-a65d-9829439b24d2?sessiontimeID=1791588176515001C35D | THR887 微软官方 Medius 点播视频流（涵盖受管运行时五维解剖课件、单提示词四联产物演示、社区脉搏应用与六大路线图实录） || Official Microsoft Medius embedded video stream capturing all stage slides and the live Customer Signal Triage walkthrough
+3. **Microsoft Copilot Managed Runtime Documentation** — https://learn.microsoft.com/en-us/microsoft-365/copilot-managed-runtime/ | 专场尾声直达的官方总览文档：涵盖三扇前门架构、React + TypeScript 底座、命令行开发套件与 Microsoft 365 管理中心治理指南 || Official hub documentation linked on the closing session slide covering runtime architecture, developer tooling, and admin governance
+4. **Apps in Microsoft Copilot Studio Overview** — https://learn.microsoft.com/en-us/microsoft-copilot-studio/apps-experience/apps-overview | Copilot Studio 应用构建官方文档：自然语言生成应用、连接器与数据表绑定、代码视图预览及团队发布共享说明 || Official guide to building, previewing, connecting data, and publishing Copilot Managed Runtime apps inside Copilot Studio
+5. **Build Apps with the App Skill in Copilot Cowork** — https://learn.microsoft.com/en-us/microsoft-365/copilot/cowork/#build-apps-with-the-app-skill-frontier | Copilot Cowork 应用技能官方文档：在日常邮件、会议与文件协作流中描述并生成受管业务应用 || Official documentation for creating governed apps directly from organizational context inside Copilot Cowork
+</code></pre>
+      </section>
+
+      <main>
+        <section id="from-prototype-to-ga-runtime" class="section" data-reveal data-present-title-zh="跨越原型鸿沟：Copilot 托管运行时正式商用与三扇前门架构" data-present-title-en="Beyond Demo Toys: Copilot Managed Runtime GA and the Three Front Doors">
+          <div class="section-head">
+            <p class="section-kicker">01 / From Toy Prototype to Production GA</p>
+            <h2 data-zh="1. 跨越原型鸿沟：Copilot 托管运行时正式商用与三扇前门架构" data-en="1. Beyond Demo Toys: Copilot Managed Runtime GA and the Three Front Doors">1. 跨越原型鸿沟：Copilot 托管运行时正式商用与三扇前门架构</h2>
+            <p data-zh="大模型已经彻底改写了软件早期的探索成本：过去产品团队必须耗费数小时撰写冗长的需求文档再排期移交研发编码，如今任何人只需输入一段描述并反复对话微调，几分钟就能拿到可点击的界面 [1]。然而写代码本身早已不是最难的一关 [1]。当团队试图把随手生成的快闪原型真正投入企业日常运转时，往往因为缺失统一身份登录、受管数据连接与安全合规策略而被迫推倒重写 [1][2]。" data-en="Coding agents have made early software exploration inexpensive: instead of spending hours writing a product requirements document and waiting on engineering queues, makers describe an idea and refine a working screen in minutes [1]. Writing initial code is no longer the bottleneck [1]. Moving from a vibe-coded prototype to dependable software that an organization can run safely usually forces teams into a full rewrite to bolt on authentication, governed data access, and tenant security [1][2].">大模型已经彻底改写了软件早期的探索成本：过去产品团队必须耗费数小时撰写冗长的需求文档再排期移交研发编码，如今任何人只需输入一段描述并反复对话微调，几分钟就能拿到可点击的界面 [1]。然而写代码本身早已不是最难的一关 [1]。当团队试图把随手生成的快闪原型真正投入企业日常运转时，往往因为缺失统一身份登录、受管数据连接与安全合规策略而被迫推倒重写 [1][2]。</p>
+          </div>
+
+          <p data-zh="在 THR887 开场，微软托管运行时应用创作产品经理 Jessica Lo 给出了破局方案，并宣布团队历时六个月打磨的 &lt;strong&gt;Copilot 托管运行时（Copilot Managed Runtime）应用现已正式全面商用&lt;/strong&gt; [1][2]。凡是在该运行时上生成并托管的应用，均直接运行在微软托管的租户级基础设施上，无需团队自行采购或维护任何服务器；从应用诞生的第一分钟起，系统便默认接通 Microsoft Entra 身份登录，自动绑定 SharePoint 或 Dataverse 等受管真实数据源，并严格继承企业管理员配置的防数据泄漏（DLP）与共享策略 [1][3]。把原型推向生产环境，不再意味着推倒重来，而是在既有应用之上顺滑叠加业务严谨度 [1]。" data-en="Opening THR887, Microsoft Product Manager Jessica Lo announced that after six months of intensive engineering, &lt;strong&gt;Copilot Managed Runtime apps are now generally available&lt;/strong&gt; [1][2]. Every app generated and hosted on the runtime executes on Microsoft-managed infrastructure inside the customer's tenant with zero servers to maintain [1][3]. From minute one, it authenticates through Microsoft Entra and enforces admin-defined data loss prevention (DLP) and sharing policies across SharePoint or Dataverse [1][3]. Going to production means adding rigor to the existing app rather than rewriting a throwaway prototype [1].">在 THR887 开场，微软托管运行时应用创作产品经理 Jessica Lo 给出了破局方案，并宣布团队历时六个月打磨的 <strong>Copilot 托管运行时（Copilot Managed Runtime）应用现已正式全面商用</strong> [1][2]。凡是在该运行时上生成并托管的应用，均直接运行在微软托管的租户级基础设施上，无需团队自行采购或维护任何服务器；从应用诞生的第一分钟起，系统便默认接通 Microsoft Entra 身份登录，自动绑定 SharePoint 或 Dataverse 等受管真实数据源，并严格继承企业管理员配置的防数据泄漏（DLP）与共享策略 [1][3]。把原型推向生产环境，不再意味着推倒重来，而是在既有应用之上顺滑叠加业务严谨度 [1]。</p>
+
+          <figure class="sr-figure generated-diagram is-inline-svg" data-present-step data-present-surface="unframed" data-step-title="Copilot 托管运行时三扇前门与单提示词四联交付全栈架构" data-step-title-en="Copilot Managed Runtime Three Front Doors &amp; Single-Prompt Four-Deliverable Stack" data-present-title-zh="Copilot 托管运行时三扇前门与单提示词四联交付全栈架构" data-present-title-en="Copilot Managed Runtime Three Front Doors &amp; Single-Prompt Four-Deliverable Stack" data-step-label="01 / From Toy Prototype to Production GA" data-step-label-en="01 / From Toy Prototype to Production GA" data-present-i18n-invariant="label">
+            <svg class="sr-figure-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1520 666" role="img" aria-labelledby="thr887-cmr-architecture-1-title thr887-cmr-architecture-1-desc"><title id="thr887-cmr-architecture-1-title">Copilot 托管运行时三扇前门与单提示词四联交付架构（THR887）</title><desc id="thr887-cmr-architecture-1-desc">architecture topology with 9 nodes and 9 edges</desc><defs><marker id="thr887-cmr-architecture-1-arrow" markerWidth="10" markerHeight="10" refX="8.5" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M1,1 L8.5,4 L1,7" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><g data-group-id="three-front-doors"><rect x="40" y="24" width="1440" height="190" rx="16" fill="var(--fig-group-bg-1, rgba(255, 250, 244, 0.72))" stroke="var(--fig-group-border, rgba(23, 36, 48, 0.11))" stroke-width="1.25"/><path d="M 56 25 H 1464" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.6))" stroke-width="1"/><line x1="40" y1="70" x2="1480" y2="70" stroke="var(--fig-group-divider, rgba(23,36,48,0.08))" stroke-width="1"/><circle cx="62" cy="48" r="4.5" fill="var(--fig-role-accent-bar, #ea580c)"/><text class="sr-zh" x="74" y="53" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)">1. 三扇前门，同一应用技能（Three Front Doors, One Underlying App Skill &amp; Git Repo）</text><text class="sr-en" x="74" y="53" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)">1. Three Front Doors, One Underlying App Skill &amp; Git Repository</text></g><g data-group-id="single-prompt-four-outputs"><rect x="40" y="238" width="1440" height="190" rx="16" fill="var(--fig-group-bg-2, rgba(244, 248, 252, 0.72))" stroke="var(--fig-group-border, rgba(23, 36, 48, 0.11))" stroke-width="1.25"/><path d="M 56 239 H 1464" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.6))" stroke-width="1"/><line x1="40" y1="284" x2="1480" y2="284" stroke="var(--fig-group-divider, rgba(23,36,48,0.08))" stroke-width="1"/><circle cx="62" cy="262" r="4.5" fill="var(--fig-role-blue-bar, #2563eb)"/><text class="sr-zh" x="74" y="267" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)">2. 单条提示词四联生成引擎（One Prompt -&gt; Four Enterprise Artifacts in Copilot Studio）</text><text class="sr-en" x="74" y="267" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)">2. Single-Prompt Four-Artifact Synthesis (Live Copilot Studio Pipeline)</text></g><g data-group-id="cmr-governed-substrate"><rect x="40" y="452" width="1440" height="190" rx="16" fill="var(--fig-group-bg-3, rgba(248, 245, 252, 0.72))" stroke="var(--fig-group-border, rgba(23, 36, 48, 0.11))" stroke-width="1.25"/><path d="M 56 453 H 1464" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.6))" stroke-width="1"/><line x1="40" y1="498" x2="1480" y2="498" stroke="var(--fig-group-divider, rgba(23,36,48,0.08))" stroke-width="1"/><circle cx="62" cy="476" r="4.5" fill="var(--fig-role-violet-bar, #7c3aed)"/><text class="sr-zh" x="74" y="481" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)">3. Copilot 托管运行时生产与治理底座（Hosted Infrastructure, Entra Identity &amp; M365 Admin）</text><text class="sr-en" x="74" y="481" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)">3. Copilot Managed Runtime Production &amp; Governance Substrate</text></g><g data-edge-id="e1"><path d="M 296 190 L 296 308" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#thr887-cmr-architecture-1-arrow)"/><circle cx="296" cy="190" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e2"><path d="M 760 190 L 760 216 Q 760 226 750 226 L 306 226 Q 296 226 296 236 L 296 308" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#thr887-cmr-architecture-1-arrow)"/><circle cx="760" cy="190" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e3"><path d="M 760 190 L 760 308" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#thr887-cmr-architecture-1-arrow)"/><circle cx="760" cy="190" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e4"><path d="M 760 190 L 760 216 Q 760 226 770 226 L 1214 226 Q 1224 226 1224 236 L 1224 308" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#thr887-cmr-architecture-1-arrow)"/><circle cx="760" cy="190" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e5"><path d="M 1224 190 L 1224 216 Q 1224 226 1214 226 L 306 226 Q 296 226 296 236 L 296 308" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 5" marker-end="url(#thr887-cmr-architecture-1-arrow)"/><circle cx="1224" cy="190" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e6"><path d="M 296 404 L 296 522" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#thr887-cmr-architecture-1-arrow)"/><circle cx="296" cy="404" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e7"><path d="M 760 404 L 760 522" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#thr887-cmr-architecture-1-arrow)"/><circle cx="760" cy="404" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e8"><path d="M 1224 404 L 1224 430 Q 1224 440 1214 440 L 770 440 Q 760 440 760 450 L 760 522" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#thr887-cmr-architecture-1-arrow)"/><circle cx="1224" cy="404" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="e9"><path d="M 296 618 L 296 625.7 Q 296 632 302.3 632 L 1217.7 632 Q 1224 632 1224 625.7 L 1224 618" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#thr887-cmr-architecture-1-arrow)"/><circle cx="296" cy="618" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-node-id="door-cowork"><defs><clipPath id="thr887-cmr-architecture-1-clip-door-cowork"><rect x="136" y="94" width="320" height="96" rx="13"/></clipPath></defs><rect x="136" y="94" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="136" y="94" width="320" height="96" rx="13" fill="var(--fig-role-accent-fill, rgba(255, 122, 0, 0.09))" stroke="var(--fig-role-accent-stroke, rgba(234, 88, 12, 0.48))" stroke-width="1.35"/><rect x="136" y="94" width="4.5" height="96" fill="var(--fig-role-accent-bar, #ea580c)" clip-path="url(#thr887-cmr-architecture-1-clip-door-cowork)"/><line x1="148" y1="95" x2="444" y2="95" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)"><tspan x="298" y="130">Copilot Cowork：信息工作者前门</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="151">在日常协作流中直接调用邮件、文档与会议上下文（如</tspan><tspan x="298" y="165.5">追踪 350+ 客户经理回执）</tspan></text></g><g class="sr-en"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)"><tspan x="298" y="130">Copilot Cowork: Information Workers</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="151">Builds quick team apps grounded in emails, files,</tspan><tspan x="298" y="165.5">and meetings in the flow of work</tspan></text></g></g><g data-node-id="door-studio"><defs><clipPath id="thr887-cmr-architecture-1-clip-door-studio"><rect x="600" y="94" width="320" height="96" rx="13"/></clipPath></defs><rect x="600" y="94" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="600" y="94" width="320" height="96" rx="13" fill="var(--fig-role-rose-fill, rgba(225, 29, 72, 0.08))" stroke="var(--fig-role-rose-stroke, rgba(225, 29, 72, 0.48))" stroke-width="1.35"/><rect x="600" y="94" width="4.5" height="96" fill="var(--fig-role-rose-bar, #e11d48)" clip-path="url(#thr887-cmr-architecture-1-clip-door-studio)"/><line x1="612" y1="95" x2="908" y2="95" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-rose-text, #9f1239)"><tspan x="762" y="130">Copilot Studio：业务流程与智能体前门</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="151">THR887 主场演示入口：在智能体与工作流旁构建基于</tspan><tspan x="762" y="165.5">真实业务数据的生产应用</tspan></text></g><g class="sr-en"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-rose-text, #9f1239)"><tspan x="762" y="121">Copilot Studio: Makers, IT &amp; Process</tspan><tspan x="762" y="139">Apps</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="160">THR887 demo entry point: builds process apps</tspan><tspan x="762" y="174.5">alongside agents, workflows, and data</tspan></text></g></g><g data-node-id="door-cli-sdk"><defs><clipPath id="thr887-cmr-architecture-1-clip-door-cli-sdk"><rect x="1064" y="94" width="320" height="96" rx="13"/></clipPath></defs><rect x="1064" y="94" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="1064" y="94" width="320" height="96" rx="13" fill="var(--fig-role-teal-fill, rgba(13, 143, 140, 0.09))" stroke="var(--fig-role-teal-stroke, rgba(13, 143, 140, 0.46))" stroke-width="1.35"/><rect x="1064" y="94" width="4.5" height="96" fill="var(--fig-role-teal-bar, #0d8f8c)" clip-path="url(#thr887-cmr-architecture-1-clip-door-cli-sdk)"/><line x1="1076" y1="95" x2="1372" y2="95" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)"><tspan x="1226" y="130">命令行与开发套件：专业研发前门</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="151">完整掌控标准 React + TypeScript 代码仓与版本回滚，</tspan><tspan x="1226" y="165.5">仍由微软托管运行</tspan></text></g><g class="sr-en"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)"><tspan x="1226" y="130">CLI + SDK: Pro Developers (VS Code)</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="151">Full control over standard React + TypeScript Git</tspan><tspan x="1226" y="165.5">code while Microsoft hosts it</tspan></text></g></g><g data-node-id="artifact-app-agent"><defs><clipPath id="thr887-cmr-architecture-1-clip-artifact-app-agent"><rect x="136" y="308" width="320" height="96" rx="13"/></clipPath></defs><rect x="136" y="308" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="136" y="308" width="320" height="96" rx="13" fill="var(--fig-role-blue-fill, rgba(37, 99, 235, 0.07))" stroke="var(--fig-role-blue-stroke, rgba(59, 130, 246, 0.42))" stroke-width="1.35"/><rect x="136" y="308" width="4.5" height="96" fill="var(--fig-role-blue-bar, #2563eb)" clip-path="url(#thr887-cmr-architecture-1-clip-artifact-app-agent)"/><line x1="148" y1="309" x2="444" y2="309" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)"><tspan x="298" y="344">01–02 交互式 Web 应用 + 内联智能体</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="365">通过新智能体节点连接器将 AI 深度织入界面（汇总 45</tspan><tspan x="298" y="379.5">条动态并起草 GitHub 缺陷单）</tspan></text></g><g class="sr-en"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)"><tspan x="298" y="344">01–02 React Web App + Inline Agent Node</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="365">Wires in-app AI via the new agent node connector</tspan><tspan x="298" y="379.5">for pulse triage &amp; GitHub drafts</tspan></text></g></g><g data-node-id="artifact-dataverse"><defs><clipPath id="thr887-cmr-architecture-1-clip-artifact-dataverse"><rect x="600" y="308" width="320" height="96" rx="13"/></clipPath></defs><rect x="600" y="308" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="600" y="308" width="320" height="96" rx="13" fill="var(--fig-role-violet-fill, rgba(124, 58, 237, 0.08))" stroke="var(--fig-role-violet-stroke, rgba(139, 92, 246, 0.42))" stroke-width="1.35"/><rect x="600" y="308" width="4.5" height="96" fill="var(--fig-role-violet-bar, #7c3aed)" clip-path="url(#thr887-cmr-architecture-1-clip-artifact-dataverse)"/><line x1="612" y1="309" x2="908" y2="309" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)"><tspan x="762" y="344">03 Dataverse 插件自动建表持久化</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="365">免手工建模，按提示词自动创建社区反馈、反馈来源与</tspan><tspan x="762" y="379.5">产品领域 3 张结构化数据表</tspan></text></g><g class="sr-en"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)"><tspan x="762" y="335">03 Dataverse Plugin Auto-Provisioned</tspan><tspan x="762" y="353">Tables</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="374">Automatically provisions Community Feedback,</tspan><tspan x="762" y="388.5">Source, and Product Area tables</tspan></text></g></g><g data-node-id="artifact-cowork-skill"><defs><clipPath id="thr887-cmr-architecture-1-clip-artifact-cowork-skill"><rect x="1064" y="308" width="320" height="96" rx="13"/></clipPath></defs><rect x="1064" y="308" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="1064" y="308" width="320" height="96" rx="13" fill="var(--fig-role-amber-fill, rgba(217, 119, 6, 0.09))" stroke="var(--fig-role-amber-stroke, rgba(217, 119, 6, 0.44))" stroke-width="1.35"/><rect x="1064" y="308" width="4.5" height="96" fill="var(--fig-role-amber-bar, #d97706)" clip-path="url(#thr887-cmr-architecture-1-clip-artifact-cowork-skill)"/><line x1="1076" y1="309" x2="1372" y2="309" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)"><tspan x="1226" y="344">04 跨端复用技能产出 10 页用户手册</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="365">在 Copilot Studio 内直接唤醒 Cowork 技能，零人工编</tspan><tspan x="1226" y="379.5">排生成完整应用说明文档</tspan></text></g><g class="sr-en"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)"><tspan x="1226" y="335">04 Reusable Cowork Skill -&gt; 10-Page</tspan><tspan x="1226" y="353">PDF Guide</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="374">Invokes an existing Cowork documentation skill to</tspan><tspan x="1226" y="388.5">output an end-to-end PDF guide</tspan></text></g></g><g data-node-id="cmr-sdk-connectors"><defs><clipPath id="thr887-cmr-architecture-1-clip-cmr-sdk-connectors"><rect x="136" y="522" width="320" height="96" rx="13"/></clipPath></defs><rect x="136" y="522" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="136" y="522" width="320" height="96" rx="13" fill="var(--fig-role-violet-fill, rgba(124, 58, 237, 0.08))" stroke="var(--fig-role-violet-stroke, rgba(139, 92, 246, 0.42))" stroke-width="1.35"/><rect x="136" y="522" width="4.5" height="96" fill="var(--fig-role-violet-bar, #7c3aed)" clip-path="url(#thr887-cmr-architecture-1-clip-cmr-sdk-connectors)"/><line x1="148" y1="523" x2="444" y2="523" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)"><tspan x="298" y="558">M365 桥接套件与 1,500+ 受管连接器</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="579">原生接通 Entra 登录、Work IQ 组织上下文、Office</tspan><tspan x="298" y="593.5">365 用户识别与 GitHub 仓库</tspan></text></g><g class="sr-en"><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)"><tspan x="298" y="558">M365 Bridge SDK &amp; 1,500+ Connectors</tspan></text><text x="298" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="298" y="579">Wires Entra sign-in, Work IQ context, Office 365</tspan><tspan x="298" y="593.5">Users, and GitHub connectors</tspan></text></g></g><g data-node-id="cmr-managed-host"><defs><clipPath id="thr887-cmr-architecture-1-clip-cmr-managed-host"><rect x="600" y="522" width="320" height="96" rx="13"/></clipPath></defs><rect x="600" y="522" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="600" y="522" width="320" height="96" rx="13" fill="var(--fig-role-blue-fill, rgba(37, 99, 235, 0.07))" stroke="var(--fig-role-blue-stroke, rgba(59, 130, 246, 0.42))" stroke-width="1.35"/><rect x="600" y="522" width="4.5" height="96" fill="var(--fig-role-blue-bar, #2563eb)" clip-path="url(#thr887-cmr-architecture-1-clip-cmr-managed-host)"/><line x1="612" y1="523" x2="908" y2="523" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)"><tspan x="762" y="558">微软零服务器托管与统一应用门户</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="579">运行在租户专属微软托管基础设施，员工通过</tspan><tspan x="762" y="593.5">managedapps.cloud.microsoft 访问</tspan></text></g><g class="sr-en"><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)"><tspan x="762" y="549">Zero-Server Hosting &amp; Managed Apps</tspan><tspan x="762" y="567">Portal</tspan></text><text x="762" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="762" y="588">Runs on Microsoft infrastructure; users open apps at</tspan><tspan x="762" y="602.5">managedapps.cloud.microsoft</tspan></text></g></g><g data-node-id="cmr-admin-policy"><defs><clipPath id="thr887-cmr-architecture-1-clip-cmr-admin-policy"><rect x="1064" y="522" width="320" height="96" rx="13"/></clipPath></defs><rect x="1064" y="522" width="320" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="1064" y="522" width="320" height="96" rx="13" fill="var(--fig-role-amber-fill, rgba(217, 119, 6, 0.09))" stroke="var(--fig-role-amber-stroke, rgba(217, 119, 6, 0.44))" stroke-width="1.35"/><rect x="1064" y="522" width="4.5" height="96" fill="var(--fig-role-amber-bar, #d97706)" clip-path="url(#thr887-cmr-architecture-1-clip-cmr-admin-policy)"/><line x1="1076" y1="523" x2="1372" y2="523" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)"><tspan x="1226" y="558">创建首分钟即受控：M365 管理中心</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="579">自动继承防数据泄漏、共享与连接器分组策略，管理员</tspan><tspan x="1226" y="593.5">全局透视全租户 159 款受管应用</tspan></text></g><g class="sr-en"><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)"><tspan x="1226" y="558">Day-Zero Policy &amp; M365 Admin Inventory</tspan></text><text x="1226" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1226" y="579">Inherits DLP, sharing, and connector rules; admins</tspan><tspan x="1226" y="593.5">audit all 159 managed apps</tspan></text></g></g><g class="sr-edge-labels"><g class="sr-zh"><rect x="252" y="215" width="89" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="296" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">共享 Git 源码</text></g><g class="sr-en"><rect x="243" y="215" width="107" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="296" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Shared Git Repo</text></g><g class="sr-zh"><rect x="413" y="215" width="91" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="458" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">单提示词触发</text></g><g class="sr-en"><rect x="410" y="215" width="97" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="458" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Single Prompt</text></g><g class="sr-zh"><rect x="714" y="215" width="92" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="760" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">创建 3 张新表</text></g><g class="sr-en"><rect x="707" y="215" width="106" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="760" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Create 3 Tables</text></g><g class="sr-zh"><rect x="1023" y="215" width="79" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="1062" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">跨端调技能</text></g><g class="sr-en"><rect x="1018" y="215" width="88" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="1062" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Invoke Skill</text></g><g class="sr-zh"><rect x="570" y="215" width="103" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="621" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">接力编辑与回滚</text></g><g class="sr-en"><rect x="560" y="215" width="123" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="621" y="230" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Extend &amp; Roll Back</text></g><g class="sr-zh"><rect x="251" y="429" width="91" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="296" y="444" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">类型化连接器</text></g><g class="sr-en"><rect x="237" y="429" width="119" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="296" y="444" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Typed Connectors</text></g><g class="sr-zh"><rect x="715" y="429" width="91" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="760" y="444" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">托管门户分发</text></g><g class="sr-en"><rect x="712" y="429" width="97" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="760" y="444" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Portal Hosting</text></g><g class="sr-zh"><rect x="871" y="429" width="103" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="922" y="444" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">随应用同步分享</text></g><g class="sr-en"><rect x="866" y="429" width="113" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="922" y="444" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Share App + PDF</text></g><g class="sr-zh"><rect x="709" y="621" width="103" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="760" y="636" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">自动校验策略组</text></g><g class="sr-en"><rect x="697" y="621" width="126" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="760" y="636" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Enforce DLP Group</text></g></g></svg>
+            <figcaption class="diagram-caption"><span data-zh="图 1：THR887 核心工程架构——顶层面向三类构建者敞开三扇前门并共享同一 Git 源码仓；中层在 Copilot Studio 内由单条提示词同步产出四项企业级资产；底层依托微软零运维托管、1,500 余款受管连接器与管理中心策略实现开箱受控 [1][2]。" data-en="Figure 1: Full THR887 architecture [1][2]. Three builder doors share one Git repository at the top, while a single Copilot Studio prompt synthesizes four artifacts over zero-server hosting and 1,500+ connectors underneath [1][2].">图 1：THR887 核心工程架构——顶层面向三类构建者敞开三扇前门并共享同一 Git 源码仓；中层在 Copilot Studio 内由单条提示词同步产出四项企业级资产；底层依托微软零运维托管、1,500 余款受管连接器与管理中心策略实现开箱受控 [1][2]。</span><a href="./media/thr887-cmr-architecture.drawio" download data-zh="下载 .drawio" data-en="Download .drawio">下载 .drawio</a></figcaption>
+          </figure>
+
+          <p data-zh="为了贴合不同角色的日常工作流，微软将同一套底层应用技能封装为“同一栋房子的正门、车库门与后院门”——即三扇通往同一受管底座的前门 [1][2]：&lt;strong&gt;Copilot Cowork&lt;/strong&gt; 面向信息工作者，适合在日常办公流中直接融合邮件、文件与会议上下文（例如 Jessica 上周推进旧产品下线时，生成应用每 2 小时巡检收件箱以追踪 350 多名客户经理的回执）[1]；&lt;strong&gt;Copilot Studio&lt;/strong&gt; 面向业务制作者与企业技术团队，在智能体与工作流旁构建基于真实业务数据的流程应用 [1][4]；**命令行与开发套件（CLI + SDK）**则面向专业开发者，支持在 VS Code 等编码环境中掌控代码仓并继续享受微软免运维托管 [1][3]。无论从哪扇门起步，底层均由 Git 版本库统一承载，团队随时可以换一扇门接力演进 [1]。下方交互导览台集成了 THR887 官方 25 分钟点播视频流与五幕逐分钟实录索引 [1][2]：" data-en="Rather than splintering into separate products, Microsoft exposes &lt;strong&gt;one underlying app skill through three front doors&lt;/strong&gt;—like entering the same house via the front door, garage, or backyard [1][2]. &lt;strong&gt;Copilot Cowork&lt;/strong&gt; meets information workers in the flow of work to infuse email, file, and meeting context; Jessica shared how she built a Cowork app to check her inbox every two hours and track deprecation acknowledgments across 350+ Microsoft account managers [1][5]. &lt;strong&gt;Copilot Studio&lt;/strong&gt; serves makers and IT teams building process apps alongside Dataverse, agents, and workflows [1][4]. &lt;strong&gt;CLI + SDK&lt;/strong&gt; gives pro developers full repository control in VS Code or GitHub Copilot while Microsoft still hosts the runtime [1][3]. Because every door writes to Git, builders can start in one entry point and continue in another [1]. Explore the official 25-minute stream and five timestamped chapters below [1][2]:">为了贴合不同角色的日常工作流，微软将同一套底层应用技能封装为“同一栋房子的正门、车库门与后院门”——即三扇通往同一受管底座的前门 [1][2]：<strong>Copilot Cowork</strong> 面向信息工作者，适合在日常办公流中直接融合邮件、文件与会议上下文（例如 Jessica 上周推进旧产品下线时，生成应用每 2 小时巡检收件箱以追踪 350 多名客户经理的回执）[1]；<strong>Copilot Studio</strong> 面向业务制作者与企业技术团队，在智能体与工作流旁构建基于真实业务数据的流程应用 [1][4]；**命令行与开发套件（CLI + SDK）**则面向专业开发者，支持在 VS Code 等编码环境中掌控代码仓并继续享受微软免运维托管 [1][3]。无论从哪扇门起步，底层均由 Git 版本库统一承载，团队随时可以换一扇门接力演进 [1]。下方交互导览台集成了 THR887 官方 25 分钟点播视频流与五幕逐分钟实录索引 [1][2]：</p>
+
+          <div id="thr887-video-theater" class="sandbox-slot" data-sandbox-slot="thr887-video-theater" data-present-step data-present-surface="board" data-step-title="THR887 官方点播视频与五幕时间戳导览台" data-step-title-en="THR887 Official On-Demand Stream &amp; Five-Chapter Timestamp Theater" data-present-title-zh="THR887 官方点播视频与五幕时间戳导览台" data-present-title-en="THR887 Official On-Demand Stream &amp; Five-Chapter Timestamp Theater" data-step-label="01 / From Toy Prototype to Production GA" data-step-label-en="01 / From Toy Prototype to Production GA" data-present-i18n-invariant="label">
+            <div class="sandbox-header">
+              <div class="sandbox-title-group">
+                <span class="comparison-label" data-zh="纯静态交互沙盒" data-en="Static Interactive Sandbox">纯静态交互沙盒</span>
+                <h3 data-zh="THR887 官方点播视频与五幕时间戳导览台" data-en="THR887 Official On-Demand Stream &amp; Five-Chapter Timestamp Theater">THR887 官方点播视频与五幕时间戳导览台</h3>
+                <p data-zh="切换正式商用与三扇前门、五层解剖结构、实机单提示词建表、内联智能体起草 GitHub 缺陷单与管理中心路线图五大章节，支持页内直接加载微软官方 Medius 点播流。" data-en="Switch across GA &amp; Three Front Doors, Five-Layer Anatomy, Live Prompt &amp; Dataverse Tables, Inline Agent GitHub Triage, and Admin Governance &amp; Roadmap, or launch the embedded Medius player.">切换正式商用与三扇前门、五层解剖结构、实机单提示词建表、内联智能体起草 GitHub 缺陷单与管理中心路线图五大章节，支持页内直接加载微软官方 Medius 点播流。</p>
+              </div>
+              <div class="sandbox-controls" data-sandbox-controls="thr887-video-theater"></div>
+            </div>
+            <div class="sandbox-stage" data-sandbox-stage="thr887-video-theater">
+
+            </div>
+          </div>
+        </section>
+
+        <section id="under-the-hood-and-four-outputs" class="section" data-reveal data-present-title-zh="掀开引擎盖：标准 React + TypeScript 底座与“一词四件”生成机制" data-present-title-en="Under the Hood: Standard React + TypeScript Anatomy and One-Prompt Synthesis">
+          <div class="section-head">
+            <p class="section-kicker">02 / Under the Hood &amp; Four Deliverables</p>
+            <h2 data-zh="2. 掀开引擎盖：标准 React + TypeScript 底座与“一词四件”生成机制" data-en="2. Under the Hood: Standard React + TypeScript Anatomy and One-Prompt Synthesis">2. 掀开引擎盖：标准 React + TypeScript 底座与“一词四件”生成机制</h2>
+            <p data-zh="受管运行时生成的应用究竟包含什么？Jessica 在现场课件中明确拆解了它的五层工程解剖结构——它绝不是静态高保真草图，也不是锁死在私有格式里的黑盒文件，而是&lt;strong&gt;存放在 Git 仓库中的标准 React + TypeScript 真实 Web 应用&lt;/strong&gt;，专业开发者随时可以检出源码阅读或深度扩展 [1][2]。在这份标准前端工程之下，专用开发套件充当连接 Microsoft 365 的桥梁，将企业身份登录、类型化连接器服务与 Work IQ 组织上下文开箱接通；数据与智能层则直接挂载超过 &lt;strong&gt;1,500 款受管连接器&lt;/strong&gt;、Dataverse 结构化表与 Copilot Studio 智能体 [1][2]。" data-en="What actually lives inside a Copilot Managed Runtime app? Opening the hood on stage, Jessica emphasized that makers do not receive a static mockup or proprietary file format—they get &lt;strong&gt;a standard React + TypeScript web application stored in a Git repository&lt;/strong&gt; that developers can inspect and extend freely [1][2]. Beneath that codebase, the runtime SDK bridges into Microsoft 365 with Entra sign-in, typed connector services, and Work IQ organizational context, while the data layer taps into &lt;strong&gt;1,500+ governed connectors&lt;/strong&gt;, Dataverse, and Copilot Studio agents [1][2].">受管运行时生成的应用究竟包含什么？Jessica 在现场课件中明确拆解了它的五层工程解剖结构——它绝不是静态高保真草图，也不是锁死在私有格式里的黑盒文件，而是<strong>存放在 Git 仓库中的标准 React + TypeScript 真实 Web 应用</strong>，专业开发者随时可以检出源码阅读或深度扩展 [1][2]。在这份标准前端工程之下，专用开发套件充当连接 Microsoft 365 的桥梁，将企业身份登录、类型化连接器服务与 Work IQ 组织上下文开箱接通；数据与智能层则直接挂载超过 <strong>1,500 款受管连接器</strong>、Dataverse 结构化表与 Copilot Studio 智能体 [1][2]。</p>
+          </div>
+
+          <div class="thr887-media-grid">
+  <article class="thr887-media-card" data-present-surface="unframed">
+    <div class="thr887-media-frame">
+      <img src="./media/thr887-cmr-anatomy-slide.jpg" alt="THR887 official slide What is a Copilot Managed Runtime app showing five anatomy layers Code SDK Data and AI Host Policy and three audiences Makers Users Admins" loading="lazy" />
+    </div>
+    <div class="thr887-media-body">
+      <span class="thr887-media-badge" data-zh="THR887 官方课件实拍 · 07:08" data-en="THR887 Official Slide · 07:08">THR887 官方课件实拍 · 07:08</span>
+      <h4 data-zh="受管应用五维解剖：React + TypeScript 源码与三方协同" data-en="Anatomy of a Managed App: React + TypeScript & Three Audiences">受管应用五维解剖：React + TypeScript 源码与三方协同</h4>
+      <p data-zh="涵盖标准 Git 源码、M365 桥接套件、1,500+ 连接器、managedapps.cloud.microsoft 零运维门户与首分钟管理策略，并与画布及模型驱动应用互补共存 [1][2]。" data-en="Unifies standard React + TypeScript code in Git, M365 SDK, 1,500+ connectors, portal hosting at managedapps.cloud.microsoft, and instant policy—complementing canvas and model-driven apps [1][2].">涵盖标准 Git 源码、M365 桥接套件、1,500+ 连接器、managedapps.cloud.microsoft 零运维门户与首分钟管理策略，并与画布及模型驱动应用互补共存 [1][2]。</p>
+    </div>
+  </article>
+  <article class="thr887-media-card" data-present-surface="unframed">
+    <div class="thr887-media-frame">
+      <img src="./media/thr887-single-prompt-studio.jpg" alt="THR887 live demo capture in Copilot Studio Apps showing Jessica Lo submitting the single prompt for community feedback inline agent Dataverse plugin tables and documentation skill" loading="lazy" />
+    </div>
+    <div class="thr887-media-body">
+      <span class="thr887-media-badge is-accent" data-zh="THR887 实机演示截帧 · 11:52" data-en="THR887 Live Demo Frame · 11:52">THR887 实机演示截帧 · 11:52</span>
+      <h4 data-zh="在 Copilot Studio 提交单条复合提示词触发四联构建" data-en="Submitting One Compound Prompt in Copilot Studio Apps">在 Copilot Studio 提交单条复合提示词触发四联构建</h4>
+      <p data-zh="一段自然语言同时指定社区反馈看板、搜索论坛与社媒的内联智能体、自动创建 3 张业务表以及调用 Cowork 文档技能 [1][2]。" data-en="One natural-language prompt specifies the feedback dashboard, an inline forum/social search agent, three auto-created Dataverse tables, and Cowork skill documentation [1][2].">一段自然语言同时指定社区反馈看板、搜索论坛与社媒的内联智能体、自动创建 3 张业务表以及调用 Cowork 文档技能 [1][2]。</p>
+    </div>
+  </article>
+</div>
+<p data-zh="这套架构让同一款应用自然服务企业内的三类受众：制作者与开发者通过三扇前门协同构建，终端员工统一在 &lt;code&gt;managedapps.cloud.microsoft&lt;/code&gt; 门户查找并打开应用，而 IT 管理员则在 Microsoft 365 管理中心全局监管每一款应用；同时它与现有的画布应用和模型驱动应用互补共存，绝不强制存量系统迁移 [1][2]。围绕即将展开的 Copilot Studio 实机演示，Jessica 重点点明了&lt;strong&gt;单条提示词一次性交付的四项核心产物&lt;/strong&gt;（其中第 2 项智能体节点连接器与第 3 项建表插件目前已在微软内部租户投入实战，正经历严格测试并向公众陆续推送，尚未包含在首日正式商用基线内）[1]：" data-en="One generated app cleanly serves three organizational roles: makers and developers co-building across the three front doors, end users discovering apps at &lt;code&gt;managedapps.cloud.microsoft&lt;/code&gt;, and admins governing inventory in the Microsoft 365 Admin Center—all complementing existing canvas and model-driven apps with no forced migration [1][2]. Setting up her live Copilot Studio build, Jessica highlighted &lt;strong&gt;four artifacts synthesized from a single prompt&lt;/strong&gt;—noting transparently that items #2 (the agent node connector) and #3 (the Dataverse table-creation plugin) were running in Microsoft's internal tenant and rolling out gradually beyond the initial GA baseline [1]:">这套架构让同一款应用自然服务企业内的三类受众：制作者与开发者通过三扇前门协同构建，终端员工统一在 <code>managedapps.cloud.microsoft</code> 门户查找并打开应用，而 IT 管理员则在 Microsoft 365 管理中心全局监管每一款应用；同时它与现有的画布应用和模型驱动应用互补共存，绝不强制存量系统迁移 [1][2]。围绕即将展开的 Copilot Studio 实机演示，Jessica 重点点明了<strong>单条提示词一次性交付的四项核心产物</strong>（其中第 2 项智能体节点连接器与第 3 项建表插件目前已在微软内部租户投入实战，正经历严格测试并向公众陆续推送，尚未包含在首日正式商用基线内）[1]：</p>
+<ol>
+<li data-zh="&lt;strong&gt;可交互的企业级业务 Web 应用&lt;/strong&gt;：直接由自然语言生成的完整前端看板与筛选工作流 [1][2]。" data-en="&lt;strong&gt;A Working Enterprise Web App&lt;/strong&gt;: Full interactive UI and triage views generated from natural language [1][2]."><strong>可交互的企业级业务 Web 应用</strong>：直接由自然语言生成的完整前端看板与筛选工作流 [1][2]。</li>
+<li data-zh="&lt;strong&gt;通过新“智能体节点连接器”织入应用内部的内联智能体&lt;/strong&gt;：不同于挂在页面边缘凑数的独立聊天框，该连接器将智能体推理能力原生嵌入业务应用内部并实时联动当前数据 [1][2]。" data-en="&lt;strong&gt;An Inline Agent via the New Agent Node Connector&lt;/strong&gt;: Rather than tacking on a detached side chatbot, the new connector wires contextual AI intelligence directly inside the app experience [1][2]."><strong>通过新“智能体节点连接器”织入应用内部的内联智能体</strong>：不同于挂在页面边缘凑数的独立聊天框，该连接器将智能体推理能力原生嵌入业务应用内部并实时联动当前数据 [1][2]。</li>
+<li data-zh="&lt;strong&gt;由全新 Dataverse 插件自动创建的结构化数据表&lt;/strong&gt;：无需制作者预先手工建表配置字段，智能体按提示词自动生成多张业务表持久化数据（若团队偏好使用 SharePoint 列表同样原生支持）[1][2]。" data-en="&lt;strong&gt;Net-New Tables via the Dataverse Plugin&lt;/strong&gt;: Automatically provisions structured Dataverse tables on behalf of the maker—eliminating manual schema setup while still supporting SharePoint lists when preferred [1][2]."><strong>由全新 Dataverse 插件自动创建的结构化数据表</strong>：无需制作者预先手工建表配置字段，智能体按提示词自动生成多张业务表持久化数据（若团队偏好使用 SharePoint 列表同样原生支持）[1][2]。</li>
+<li data-zh="&lt;strong&gt;跨端直接复用的 Cowork 技能&lt;/strong&gt;：此前在 Copilot Cowork 中沉淀的个人或团队技能（如一键生成应用说明手册），可在 Copilot Studio 内通过斜杠命令直接唤醒执行，印证底层平台的彻底贯通 [1][2]。" data-en="&lt;strong&gt;Reusable Cross-Surface Skills&lt;/strong&gt;: Invokes existing skills authored in Copilot Cowork directly inside Copilot Studio via slash commands, proving both experiences share the exact same platform [1][2]."><strong>跨端直接复用的 Cowork 技能</strong>：此前在 Copilot Cowork 中沉淀的个人或团队技能（如一键生成应用说明手册），可在 Copilot Studio 内通过斜杠命令直接唤醒执行，印证底层平台的彻底贯通 [1][2]。</li>
+</ol>
+
+          <figure class="sr-figure generated-diagram is-inline-svg" data-present-step data-present-surface="unframed" data-step-title="Copilot 托管运行时三扇前门与传统应用原型开发选型象限" data-step-title-en="Copilot Managed Runtime Three Front Doors vs. Legacy App Prototyping Quadrant" data-present-title-zh="Copilot 托管运行时三扇前门与传统应用原型开发选型象限" data-present-title-en="Copilot Managed Runtime Three Front Doors vs. Legacy App Prototyping Quadrant" data-step-label="02 / Under the Hood &amp; Four Deliverables" data-step-label-en="02 / Under the Hood &amp; Four Deliverables" data-present-i18n-invariant="label">
+            <svg class="sr-figure-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 480" role="img" aria-labelledby="thr887-front-doors-quadrant-2-title thr887-front-doors-quadrant-2-desc"><title id="thr887-front-doors-quadrant-2-title">Copilot 托管运行时三扇前门与传统原型开发选型象限（THR887）</title><desc id="thr887-front-doors-quadrant-2-desc">2x2 quadrant matrix with 5 items</desc><text class="sr-zh" x="36" y="32" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="18" font-weight="700" fill="var(--fig-text-strong, #172430)">Copilot 托管运行时三扇前门与传统原型开发选型象限（THR887）</text><text class="sr-en" x="36" y="32" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="18" font-weight="700" fill="var(--fig-text-strong, #172430)">Copilot Managed Runtime Three Front Doors vs. Legacy App Prototyping Quadrant (THR887)</text><text class="sr-zh" x="36" y="54" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">依据 Jessica Lo 选型框架：按代码与流程控制深度及首分钟企业治理成熟度定位开发入口</text><text class="sr-en" x="36" y="54" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">Mapped from Jessica Lo&apos;s THR887 framework across code/process control depth and day-zero enterprise governance</text><rect x="78" y="98" width="948" height="328" rx="16" fill="var(--fig-group-bg-2, rgba(244,248,252,0.72))" stroke="var(--fig-group-border, rgba(23,36,48,0.11))" stroke-width="1.25"/><rect x="552" y="98" width="474" height="164" rx="14" fill="var(--fig-quadrant-tint, rgba(13,143,140,0.05))"/><line x1="552" y1="98" x2="552" y2="426" stroke="var(--fig-axis-line, rgba(23,36,48,0.24))" stroke-width="1.35" stroke-dasharray="6 5"/><line x1="78" y1="262" x2="1026" y2="262" stroke="var(--fig-axis-line, rgba(23,36,48,0.24))" stroke-width="1.35" stroke-dasharray="6 5"/><text class="sr-zh" x="96" y="124" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12.5" font-weight="700" fill="var(--fig-text-subtle, #64748b)">个人与团队流内快建区（零运维即刻共享）</text><text class="sr-en" x="96" y="124" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12.5" font-weight="700" fill="var(--fig-text-subtle, #64748b)">In-Flow Team Apps (Instant Governed Sharing)</text><text class="sr-zh" x="1008" y="124" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="12.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)">企业级智能应用与专业接力靶心（CMR 统一底座）</text><text class="sr-en" x="1008" y="124" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="12.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)">Enterprise Process &amp; Pro-Code Continuity Zone</text><text class="sr-zh" x="96" y="412" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12.5" font-weight="700" fill="var(--fig-text-subtle, #64748b)">脱离租户治理的孤岛玩具原型（上线需推倒重写）</text><text class="sr-en" x="96" y="412" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12.5" font-weight="700" fill="var(--fig-text-subtle, #64748b)">Ungoverned Vibe-Coded Toy Prototypes</text><text class="sr-zh" x="1008" y="412" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="12.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)">传统长周期文档移交与自建服务器运维重担</text><text class="sr-en" x="1008" y="412" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="12.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)">Heavyweight PRD Hand-Off &amp; Self-Hosted Infra</text><text class="sr-zh" x="552" y="464" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="13" font-weight="700" fill="var(--fig-text-muted, #52616d)">全栈代码掌控度与多连接器业务流程复杂度 (0 → 100)</text><text class="sr-en" x="552" y="464" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="13" font-weight="700" fill="var(--fig-text-muted, #52616d)">Code Repository Control &amp; Multi-Connector Business Process Depth (0 → 100)</text><g transform="translate(26,262) rotate(-90)"><text class="sr-zh" x="0" y="0" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="13" font-weight="700" fill="var(--fig-text-muted, #52616d)">创建首分钟企业治理、身份鉴权与生产就绪度 (0 → 100)</text><text class="sr-en" x="0" y="0" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="13" font-weight="700" fill="var(--fig-text-muted, #52616d)">Day-Zero Tenant Governance, Entra Identity &amp; Production Readiness (0 → 100)</text></g><g data-point-id="ungoverned-vibe-toy"><circle cx="287" cy="347" r="14.5" fill="var(--fig-role-rose-fill, rgba(225, 29, 72, 0.08))" stroke="var(--fig-role-rose-stroke, rgba(225, 29, 72, 0.48))" stroke-width="1"/><circle cx="287" cy="347" r="8.5" fill="var(--fig-role-rose-bar, #e11d48)"/><text class="sr-zh" x="307.5" y="356" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="start" font-size="13.5" font-weight="700" fill="var(--fig-text-strong, #172430)">缺乏身份与策略护栏的外部快闪原型</text><text class="sr-en" x="307.5" y="356" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="start" font-size="13.5" font-weight="700" fill="var(--fig-text-strong, #172430)">Standalone Vibe-Coded Demo Toy</text><text class="sr-zh" x="307.5" y="373" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="start" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">几分钟出界面但无企业登录与防泄漏策略，投产必须彻底重写</text><text class="sr-en" x="307.5" y="373" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="start" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">Fast UI mockup without Entra auth or DLP; going to prod requires a rewrite</text></g><g data-point-id="legacy-prd-handoff"><circle cx="798" cy="334" r="14.5" fill="var(--fig-role-amber-fill, rgba(217, 119, 6, 0.09))" stroke="var(--fig-role-amber-stroke, rgba(217, 119, 6, 0.44))" stroke-width="1"/><circle cx="798" cy="334" r="8.5" fill="var(--fig-role-amber-bar, #d97706)"/><text class="sr-zh" x="777.5" y="318" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13.5" font-weight="700" fill="var(--fig-text-strong, #172430)">传统需求文档移交 + 自建服务器管线</text><text class="sr-en" x="777.5" y="318" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13.5" font-weight="700" fill="var(--fig-text-strong, #172430)">Manual PRD Hand-Off &amp; Self-Managed Hosting</text><text class="sr-zh" x="777.5" y="335" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">耗费数小时编写需求再排期研发，基础设施与权限接入周期漫长</text><text class="sr-en" x="777.5" y="335" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">Hours writing PRDs plus manual server hosting and auth wiring</text></g><g data-point-id="cmr-door-cowork"><circle cx="343" cy="157" r="14.5" fill="var(--fig-role-blue-fill, rgba(37, 99, 235, 0.07))" stroke="var(--fig-role-blue-stroke, rgba(59, 130, 246, 0.42))" stroke-width="1"/><circle cx="343" cy="157" r="8.5" fill="var(--fig-role-blue-bar, #2563eb)"/><text class="sr-zh" x="363.5" y="197" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="start" font-size="13.5" font-weight="700" fill="var(--fig-text-strong, #172430)">前门一：Copilot Cowork（信息工作者）</text><text class="sr-en" x="363.5" y="197" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="start" font-size="13.5" font-weight="700" fill="var(--fig-text-strong, #172430)">Door 1: Copilot Cowork (Information Workers)</text><text class="sr-zh" x="363.5" y="214" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="start" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">直接融合邮件、会议与文件上下文，每 2 小时自动巡检收件箱更新状态</text><text class="sr-en" x="363.5" y="214" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="start" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">Infuses email, file, and meeting context; auto-checks inbox every 2 hours</text></g><g data-point-id="cmr-door-studio"><circle cx="780" cy="137" r="14.5" fill="var(--fig-role-teal-fill, rgba(13, 143, 140, 0.09))" stroke="var(--fig-role-teal-stroke, rgba(13, 143, 140, 0.46))" stroke-width="1"/><circle cx="780" cy="137" r="8.5" fill="var(--fig-role-teal-bar, #0d8f8c)"/><text class="sr-zh" x="759.5" y="159" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13.5" font-weight="700" fill="var(--fig-text-strong, #172430)">前门二：Copilot Studio（业务流程与内联智能体）</text><text class="sr-en" x="759.5" y="159" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13.5" font-weight="700" fill="var(--fig-text-strong, #172430)">Door 2: Copilot Studio (Process, Dataverse &amp; Agent)</text><text class="sr-zh" x="759.5" y="176" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">单条提示词打通内联智能体、3 张新表、GitHub 建单与 10 页手册</text><text class="sr-en" x="759.5" y="176" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">One prompt wires inline agent, 3 Dataverse tables, GitHub issues &amp; PDF docs</text></g><g data-point-id="cmr-door-cli-sdk"><circle cx="931" cy="150" r="14.5" fill="var(--fig-role-violet-fill, rgba(124, 58, 237, 0.08))" stroke="var(--fig-role-violet-stroke, rgba(139, 92, 246, 0.42))" stroke-width="1"/><circle cx="931" cy="150" r="8.5" fill="var(--fig-role-violet-bar, #7c3aed)"/><text class="sr-zh" x="910.5" y="136" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13.5" font-weight="700" fill="var(--fig-text-strong, #172430)">前门三：命令行 + 开发套件（VS Code 接力）</text><text class="sr-en" x="910.5" y="136" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13.5" font-weight="700" fill="var(--fig-text-strong, #172430)">Door 3: CLI + SDK (Pro-Dev React + TypeScript)</text><text class="sr-zh" x="910.5" y="153" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">直接检视并扩展 Git 仓内标准代码，支持机械级版本回滚且免管服务器</text><text class="sr-en" x="910.5" y="153" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">Full React + TypeScript repo access and rollback while Microsoft hosts it</text></g></svg>
+            <figcaption class="diagram-caption"><span data-zh="图 2：基于 THR887 选型准则绘制的工程决策象限——告别无护栏孤岛快闪原型与漫长的传统需求移交管线，按办公流上下文、业务数据智能体编排与全栈代码控制深度精准选用三扇受管前门 [1][2]。" data-en="Figure 2: Engineering selection quadrant mapped from THR887—moving past ungoverned demo toys and slow PRD hand-offs by matching builder needs across Cowork, Copilot Studio, and CLI + SDK [1][2].">图 2：基于 THR887 选型准则绘制的工程决策象限——告别无护栏孤岛快闪原型与漫长的传统需求移交管线，按办公流上下文、业务数据智能体编排与全栈代码控制深度精准选用三扇受管前门 [1][2]。</span></figcaption>
+          </figure>
+        </section>
+
+        <section id="live-community-pulse-build" class="section" data-reveal data-present-title-zh="实机演练：用自己构建的“客户信号分诊”应用备战正式商用" data-present-title-en="Live Walkthrough: Building Customer Signal Triage to Ship GA">
+          <div class="section-head">
+            <p class="section-kicker">03 / Live Build: Community Pulse</p>
+            <h2 data-zh="3. 实机演练：用自己构建的“客户信号分诊”应用备战正式商用" data-en="3. Live Walkthrough: Building Customer Signal Triage to Ship GA">3. 实机演练：用自己构建的“客户信号分诊”应用备战正式商用</h2>
+            <p data-zh="演示切入真实的自身痛点：在受管运行时开启公开预览的三至四周里，来自 LinkedIn、YouTube 视频评论区、技术博客、Reddit 与社交平台的制作者反馈呈井喷态势 [1]。Jessica 每天清晨逐站翻找评论、归纳情绪并手工向研发团队同步缺陷，耗时且极易遗漏关键问题；于是她在三周前决定“用托管运行时应用来收集托管运行时的社区反馈”，现场还原了驱动这一真实生产工具落地的完整四步闭环 [1][2]：" data-en="Grounding the demo in her own daily workflow, Jessica explained that during the three to four weeks of public preview, maker feedback surged across LinkedIn, YouTube comments, blogs, Reddit, and social channels [1]. Manually hunting down posts every morning and filing engineering bugs became overwhelming—so three weeks before Ignite, she built a Copilot Managed Runtime app to triage feedback for Copilot Managed Runtime itself [1][2]:">演示切入真实的自身痛点：在受管运行时开启公开预览的三至四周里，来自 LinkedIn、YouTube 视频评论区、技术博客、Reddit 与社交平台的制作者反馈呈井喷态势 [1]。Jessica 每天清晨逐站翻找评论、归纳情绪并手工向研发团队同步缺陷，耗时且极易遗漏关键问题；于是她在三周前决定“用托管运行时应用来收集托管运行时的社区反馈”，现场还原了驱动这一真实生产工具落地的完整四步闭环 [1][2]：</p>
+          </div>
+
+          <ol class="flow-list" data-present-step data-present-surface="unframed" data-step-title="实机闭环：从提交单条复合提示词到生成 10 页 PDF 用户手册的四步实战" data-step-title-en="Four-Step Live Flow: From One Prompt to GitHub Bug Filing &amp; 10-Page PDF Guide" data-present-title-zh="实机闭环：从提交单条复合提示词到生成 10 页 PDF 用户手册的四步实战" data-present-title-en="Four-Step Live Flow: From One Prompt to GitHub Bug Filing &amp; 10-Page PDF Guide" data-step-label="03 / Live Build: Community Pulse" data-step-label-en="03 / Live Build: Community Pulse" data-present-i18n-invariant="label">
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="在 Copilot Studio 提交单条复合提示词" data-en="Submitting the Single Compound Prompt">在 Copilot Studio 提交单条复合提示词</strong>
+                <p data-zh="点击主页第三个“应用”磁贴（正式商用推送期间界面预览角标正逐步移除），输入一段完整指令 [1][2]。该指令要求构建收集托管运行时客户反馈的应用，内置扫描论坛、社媒与博客的内联智能体以展示主题分类、上报缺陷与情绪趋势；同时调用 Dataverse 插件自动创建“社区反馈”“反馈来源”“产品领域” 3 张表，并复用 Cowork 应用文档技能生成说明手册 [1][2]。" data-en="Opens the third &lt;code&gt;Apps&lt;/code&gt; tile on the Copilot Studio home page and submits one compound prompt [1][2]. That prompt requests a community feedback app, an inline agent scanning forums and blogs for themes and bugs, three new Dataverse tables (&lt;code&gt;Community Feedback&lt;/code&gt;, &lt;code&gt;Feedback Source&lt;/code&gt;, &lt;code&gt;Product Area&lt;/code&gt;), and user documentation via a Cowork skill [1][2].">点击主页第三个“应用”磁贴（正式商用推送期间界面预览角标正逐步移除），输入一段完整指令 [1][2]。该指令要求构建收集托管运行时客户反馈的应用，内置扫描论坛、社媒与博客的内联智能体以展示主题分类、上报缺陷与情绪趋势；同时调用 Dataverse 插件自动创建“社区反馈”“反馈来源”“产品领域” 3 张表，并复用 Cowork 应用文档技能生成说明手册 [1][2]。</p>
+              </div>
+            </li>
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="检视对话记忆、React 源码与三表四连接器" data-en="Inspecting Chat Memory, Code View &amp;amp; Connections">检视对话记忆、React 源码与三表四连接器</strong>
+                <p data-zh="打开生成的 &lt;code&gt;Customer Signal Triage&lt;/code&gt;（社区脉搏）工作区：左侧保留初始提示词与多轮对话便于 30、60 或 90 天后回溯决策（智能体还会主动提醒 1280 像素分屏下标签挤压并询问是否修复）；右侧提供交互预览、底层 &lt;strong&gt;Code 代码视图&lt;/strong&gt;以及平板/手机尺寸切换器 [1][2]。展开顶部数据与连接面板，可见自动生成的 &lt;code&gt;craf4_communityfeedback&lt;/code&gt;、&lt;code&gt;craf4_feedbacksource&lt;/code&gt;、&lt;code&gt;craf4_productarea&lt;/code&gt; 三张表，以及 &lt;strong&gt;Office 365 用户&lt;/strong&gt;、&lt;strong&gt;GitHub&lt;/strong&gt;、&lt;strong&gt;内联智能体&lt;/strong&gt;与 &lt;strong&gt;Microsoft Dataverse&lt;/strong&gt; 四项连接器（系统要求四者处于同一数据策略组方可发布）[1][2]。" data-en="Opens &lt;code&gt;Customer Signal Triage&lt;/code&gt;: the left pane retains full chat history for 30/60/90-day continuity and even flags a &lt;code&gt;1280px&lt;/code&gt; split-pane label squeeze [1][2]. The right pane provides an interactive preview, the underlying React &lt;code&gt;Code&lt;/code&gt; view, mobile/tablet device pickers, the three &lt;code&gt;craf4_*&lt;/code&gt; Dataverse tables, and four wired connectors (&lt;code&gt;Office 365 Users&lt;/code&gt;, &lt;code&gt;GitHub&lt;/code&gt;, &lt;code&gt;Agent&lt;/code&gt;, and &lt;code&gt;Dataverse&lt;/code&gt;) verified under one data-policy group [1][2].">打开生成的 <code>Customer Signal Triage</code>（社区脉搏）工作区：左侧保留初始提示词与多轮对话便于 30、60 或 90 天后回溯决策（智能体还会主动提醒 1280 像素分屏下标签挤压并询问是否修复）；右侧提供交互预览、底层 <strong>Code 代码视图</strong>以及平板/手机尺寸切换器 [1][2]。展开顶部数据与连接面板，可见自动生成的 <code>craf4_communityfeedback</code>、<code>craf4_feedbacksource</code>、<code>craf4_productarea</code> 三张表，以及 <strong>Office 365 用户</strong>、<strong>GitHub</strong>、<strong>内联智能体</strong>与 <strong>Microsoft Dataverse</strong> 四项连接器（系统要求四者处于同一数据策略组方可发布）[1][2]。</p>
+              </div>
+            </li>
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="晨会秒级情绪汇总与内联起草 GitHub 缺陷单" data-en="Standup Pulse Summary &amp;amp; Inline GitHub Bug Drafts">晨会秒级情绪汇总与内联起草 GitHub 缺陷单</strong>
+                <p data-zh="收起构建栏后，看板呈现当日脉搏：&lt;strong&gt;今日新增 45 条帖子&lt;/strong&gt;，30 条已评级帖子中 &lt;strong&gt;77% 为正向情绪&lt;/strong&gt;（正向 23、中性 5、混合 2），另有 &lt;strong&gt;15 条待分诊&lt;/strong&gt;，并自动聚类出应用体验（5 帖，80% 正向）、托管宿主（4 帖，100% 正向）、学习资料（4 帖）、应用内 AI（3 帖）与数据连接（3 帖）五大主题 [1][2]。点击页内 &lt;strong&gt;Ask the agent&lt;/strong&gt; 即可一键生成晨会摘要同步至 Teams 频道；继续输入 &lt;code&gt;Create issues in GitHub for the bugs reported&lt;/code&gt;，内联智能体便会梳理当日性能与可靠性缺陷，起草 GitHub 议题草稿并在确认后直接建单 [1][2]。" data-en="Collapsing the builder pane reveals &lt;strong&gt;45 posts today&lt;/strong&gt;, &lt;strong&gt;77% positive sentiment&lt;/strong&gt; across 30 rated items, and &lt;strong&gt;15 awaiting triage&lt;/strong&gt; [1][2]. Top clustered themes span &lt;code&gt;Copilot Studio apps experience&lt;/code&gt;, &lt;code&gt;Managed hosting&lt;/code&gt;, &lt;code&gt;Learning resources&lt;/code&gt;, &lt;code&gt;AI inside apps&lt;/code&gt;, and &lt;code&gt;Dataverse and data connections&lt;/code&gt; [1][2]. Clicking &lt;code&gt;Ask the agent&lt;/code&gt; summarizes daily opportunities for morning standup, then drafts GitHub bug issues inline (&lt;code&gt;Create issues in GitHub for the bugs reported&lt;/code&gt;) for one-click filing into the team repository [1][2].">收起构建栏后，看板呈现当日脉搏：<strong>今日新增 45 条帖子</strong>，30 条已评级帖子中 <strong>77% 为正向情绪</strong>（正向 23、中性 5、混合 2），另有 <strong>15 条待分诊</strong>，并自动聚类出应用体验（5 帖，80% 正向）、托管宿主（4 帖，100% 正向）、学习资料（4 帖）、应用内 AI（3 帖）与数据连接（3 帖）五大主题 [1][2]。点击页内 <strong>Ask the agent</strong> 即可一键生成晨会摘要同步至 Teams 频道；继续输入 <code>Create issues in GitHub for the bugs reported</code>，内联智能体便会梳理当日性能与可靠性缺陷，起草 GitHub 议题草稿并在确认后直接建单 [1][2]。</p>
+              </div>
+            </li>
+            <li class="flow-step">
+              <div class="flow-copy">
+                <strong data-zh="一键团队共享与零人工产出 10 页 PDF 手册" data-en="Team Sharing &amp;amp; Zero-Touch 10-Page PDF User Guide">一键团队共享与零人工产出 10 页 PDF 手册</strong>
+                <p data-zh="验证无误后点击发布并将应用分享给同事 Emma（对方收到邮件链接即可开箱使用）[1]。与此同时，跨端复用的 Cowork 文档技能已自动渲染出一份 &lt;strong&gt;10 页完整版《Customer Signal Triage 用户指南》PDF&lt;/strong&gt;（涵盖应用定位、快速上手、今日脉搏与全量视图导览、手机小窗适配及每日晨会操作指引），后续每当应用功能演进，只需一句话即可让智能体同步刷新这份手册 [1][2]。" data-en="Publishes and shares the app with teammate Emma via email link [1]. Meanwhile, the reusable Cowork skill renders a &lt;strong&gt;10-page PDF user guide&lt;/strong&gt; covering quick start, feature tour, and daily review steps—all regenerable as the app evolves [1][2].">验证无误后点击发布并将应用分享给同事 Emma（对方收到邮件链接即可开箱使用）[1]。与此同时，跨端复用的 Cowork 文档技能已自动渲染出一份 <strong>10 页完整版《Customer Signal Triage 用户指南》PDF</strong>（涵盖应用定位、快速上手、今日脉搏与全量视图导览、手机小窗适配及每日晨会操作指引），后续每当应用功能演进，只需一句话即可让智能体同步刷新这份手册 [1][2]。</p>
+              </div>
+            </li>
+          </ol>
+
+          <div class="thr887-media-grid">
+  <article class="thr887-media-card" data-present-surface="unframed">
+    <div class="thr887-media-frame">
+      <img src="./media/thr887-community-pulse-github.jpg" alt="THR887 live demo screenshot showing Customer Signal Triage dashboard with 45 posts today 77 percent positive 15 awaiting triage and inline Ask the agent panel drafting GitHub issues" loading="lazy" />
+    </div>
+    <div class="thr887-media-body">
+      <span class="thr887-media-badge" data-zh="THR887 实机演示截帧 · 19:45" data-en="THR887 Live Demo Frame · 19:45">THR887 实机演示截帧 · 19:45</span>
+      <h4 data-zh="社区脉搏看板（45 条动态 / 77% 正向）与内联起草 GitHub 议题" data-en="Community Pulse Dashboard (45 Posts / 77% Positive) & GitHub Drafts">社区脉搏看板（45 条动态 / 77% 正向）与内联起草 GitHub 议题</h4>
+      <p data-zh="左侧实时聚类五大产品反馈主题与情绪占比，右侧内联智能体直接响应指令为当日上报缺陷生成 GitHub 议题草稿 [1][2]。" data-en="Displays top feedback themes and sentiment mix on the left while the inline agent drafts GitHub bug issues on the right [1][2].">左侧实时聚类五大产品反馈主题与情绪占比，右侧内联智能体直接响应指令为当日上报缺陷生成 GitHub 议题草稿 [1][2]。</p>
+    </div>
+  </article>
+  <article class="thr887-media-card" data-present-surface="unframed">
+    <div class="thr887-media-frame">
+      <img src="./media/thr887-post-ga-roadmap.jpg" alt="THR887 official slide What is next after GA showing Build Together Co-authoring Co-owners Ship Safely Version history ALM Dev test prod and IT In Control GitHub Enterprise Environment choice" loading="lazy" />
+    </div>
+    <div class="thr887-media-body">
+      <span class="thr887-media-badge is-accent" data-zh="THR887 官方课件实拍 · 23:12" data-en="THR887 Official Slide · 23:12">THR887 官方课件实拍 · 23:12</span>
+      <h4 data-zh="正式商用后的六大演进路线图：协同、发布管线与环境主权" data-en="What's Next After GA: Six Customer-Driven Roadmap Pillars">正式商用后的六大演进路线图：协同、发布管线与环境主权</h4>
+      <p data-zh="围绕团队共建（协同创作、共同所有者）、安全交付（版本历史回滚、开发测试生产晋级）与 IT 管控（企业自有代码仓、环境选择）全面升级 [1][2]。" data-en="Advances team continuity (co-authoring, co-owners), safe delivery (UX version rollback, staged ALM), and IT control (GitHub Enterprise, custom environments) [1][2].">围绕团队共建（协同创作、共同所有者）、安全交付（版本历史回滚、开发测试生产晋级）与 IT 管控（企业自有代码仓、环境选择）全面升级 [1][2]。</p>
+    </div>
+  </article>
+</div>
+        </section>
+
+        <section id="admin-governance-and-roadmap" class="section" data-reveal data-present-title-zh="管理员全局透视与演进路线图：159 款受管应用盘点与六大企业级增强" data-present-title-en="Admin Governance &amp; Post-GA Roadmap: Tenant-Wide Visibility and Six Next Steps">
+          <div class="section-head">
+            <p class="section-kicker">04 / Admin Governance &amp; Post-GA Roadmap</p>
+            <h2 data-zh="4. 管理员全局透视与演进路线图：159 款受管应用盘点与六大企业级增强" data-en="4. Admin Governance &amp; Post-GA Roadmap: Tenant-Wide Visibility and Six Next Steps">4. 管理员全局透视与演进路线图：159 款受管应用盘点与六大企业级增强</h2>
+            <p data-zh="业务人员用单条提示词几分钟拉起一款全栈应用，会不会在企业内制造新的影子 IT 盲区？演示尾声，Jessica 直接切入 &lt;strong&gt;Microsoft 365 管理中心&lt;/strong&gt;（&lt;code&gt;admin.cloud.microsoft&lt;/code&gt;）的“应用 -&amp;gt; 全部应用”视图给出了定心丸 [1][2]。在演示租户的受管应用资产大盘中，全部 &lt;strong&gt;159 款受管应用&lt;/strong&gt;悉数在列；输入名称检索刚构建的 &lt;code&gt;CMR Community Pulse&lt;/code&gt;，管理员无需等待业务团队事后报备，就能实时查看该应用挂载了哪些连接器、调用频次如何、由谁创建以及当前所有者归属，并可随时配置性能告警或一键阻断高风险应用 [1][2]。" data-en="When makers spin up full-stack apps in minutes, does IT lose visibility into shadow software? Switching live into the &lt;strong&gt;Microsoft 365 Admin Center&lt;/strong&gt; (&lt;code&gt;admin.cloud.microsoft&lt;/code&gt; under &lt;em&gt;Apps -&amp;gt; All apps&lt;/em&gt;), Jessica demonstrated how every single app appears in tenant inventory from the moment it is created [1][2]. Searching across the tenant's &lt;strong&gt;159 managed apps&lt;/strong&gt; surfaced &lt;code&gt;CMR Community Pulse&lt;/code&gt; immediately—exposing active connectors, usage frequency, creator identity, and ownership alongside controls to set custom alerts or block vulnerable apps [1][2].">业务人员用单条提示词几分钟拉起一款全栈应用，会不会在企业内制造新的影子 IT 盲区？演示尾声，Jessica 直接切入 <strong>Microsoft 365 管理中心</strong>（<code>admin.cloud.microsoft</code>）的“应用 -&gt; 全部应用”视图给出了定心丸 [1][2]。在演示租户的受管应用资产大盘中，全部 <strong>159 款受管应用</strong>悉数在列；输入名称检索刚构建的 <code>CMR Community Pulse</code>，管理员无需等待业务团队事后报备，就能实时查看该应用挂载了哪些连接器、调用频次如何、由谁创建以及当前所有者归属，并可随时配置性能告警或一键阻断高风险应用 [1][2]。</p>
+          </div>
+
+          <div class="compare-table-wrap" data-present-step data-present-surface="unframed" data-step-title="管理员全局透视与演进路线图：159 款受管应用盘点与六大企业级增强：对比矩阵" data-step-title-en="Admin Governance &amp; Post-GA Roadmap: Tenant-Wide Visibility and Six Next Steps: Comparison Matrix" data-present-title-zh="管理员全局透视与演进路线图：159 款受管应用盘点与六大企业级增强：对比矩阵" data-present-title-en="Admin Governance &amp; Post-GA Roadmap: Tenant-Wide Visibility and Six Next Steps: Comparison Matrix" data-step-label="04 / Admin Governance &amp; Post-GA Roadmap" data-step-label-en="04 / Admin Governance &amp; Post-GA Roadmap" data-present-i18n-invariant="label"><table class="simple-table compare-table">
+<thead>
+<tr>
+<th data-zh="选型与治理维度" data-en="Engineering &amp;amp; Governance Dimension">选型与治理维度</th>
+<th data-zh="Copilot Cowork（日常协作前门）" data-en="Copilot Cowork (Flow-of-Work Door)">Copilot Cowork（日常协作前门）</th>
+<th data-zh="Copilot Studio（业务流程前门 · 本场演示）" data-en="Copilot Studio (Process &amp;amp; Agent Door)">Copilot Studio（业务流程前门 · 本场演示）</th>
+<th data-zh="CLI + SDK（专业代码前门）" data-en="CLI + SDK (Pro-Developer Door)">CLI + SDK（专业代码前门）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-zh="核心适用构建者" data-en="Target Builder Persona">核心适用构建者</td>
+<td data-zh="熟悉办公套件的信息工作者与项目负责人 [1][5]" data-en="Information workers &amp;amp; project leads [1][5]">熟悉办公套件的信息工作者与项目负责人 [1][5]</td>
+<td data-zh="业务制作者、企业 IT 与智能体编排团队 [1][4]" data-en="Makers, IT teams &amp;amp; workflow builders [1][4]">业务制作者、企业 IT 与智能体编排团队 [1][4]</td>
+<td data-zh="追求底层仓库控制权的全栈与专业开发者 [1][3]" data-en="Pro developers in VS Code or GitHub Copilot [1][3]">追求底层仓库控制权的全栈与专业开发者 [1][3]</td>
+</tr>
+<tr>
+<td data-zh="最佳切入业务场景" data-en="Primary Workload Fit">最佳切入业务场景</td>
+<td data-zh="融合邮件、会议、聊天上下文的个人或小组快建工具（如每 2 小时巡检 350+ 人回执）[1]" data-en="Quick team trackers grounded in email, files &amp;amp; meetings [1]">融合邮件、会议、聊天上下文的个人或小组快建工具（如每 2 小时巡检 350+ 人回执）[1]</td>
+<td data-zh="跑在真实结构化数据上、需深度协同内联智能体与工作流的业务系统 [1][4]" data-en="Process apps backed by Dataverse, inline agents &amp;amp; workflows [1][4]">跑在真实结构化数据上、需深度协同内联智能体与工作流的业务系统 [1][4]</td>
+<td data-zh="需要直接审查修改组件代码、执行机械级版本回滚的复杂定制工程 [1][3]" data-en="Custom extensions &amp;amp; direct Git version rollback [1][3]">需要直接审查修改组件代码、执行机械级版本回滚的复杂定制工程 [1][3]</td>
+</tr>
+<tr>
+<td data-zh="底层源码与跨门连续性" data-en="Underlying Code &amp;amp; Continuity">底层源码与跨门连续性</td>
+<td data-zh="统一生成标准 React + TypeScript 存入 Git，随时可在 Studio 或命令行接力打开 [1][2]" data-en="Shared React + TypeScript Git repo; seamlessly pick up in Studio or CLI [1][2]">统一生成标准 React + TypeScript 存入 Git，随时可在 Studio 或命令行接力打开 [1][2]</td>
+<td data-zh="内置对话记忆、交互预览与源码查看器，跨端复用 Cowork 技能 [1][2]" data-en="Built-in chat memory, live preview, code view &amp;amp; reusable Cowork skills [1][2]">内置对话记忆、交互预览与源码查看器，跨端复用 Cowork 技能 [1][2]</td>
+<td data-zh="本地检出完整 React + TypeScript 仓库自由编码，仍由微软免服务器托管 [1][2]" data-en="Full local repo editing while Microsoft hosts and runs infrastructure [1][2]">本地检出完整 React + TypeScript 仓库自由编码，仍由微软免服务器托管 [1][2]</td>
+</tr>
+<tr>
+<td data-zh="身份鉴权与管理员管控" data-en="Identity, Policy &amp;amp; Admin View">身份鉴权与管理员管控</td>
+<td data-zh="首分钟启用 Entra 登录与管理员防泄漏策略，统一汇聚至 M365 管理中心盘点 [1][3]" data-en="Entra sign-in, admin DLP &amp;amp; M365 Admin Center visibility from minute one [1][3]">首分钟启用 Entra 登录与管理员防泄漏策略，统一汇聚至 M365 管理中心盘点 [1][3]</td>
+<td data-zh="发布前强制校验多连接器数据策略组一致性，终端用户在受管门户统一访问 [1][2]" data-en="Enforces connector DLP policy groups pre-publish; hosted at &lt;code&gt;managedapps.cloud.microsoft&lt;/code&gt; [1][2]">发布前强制校验多连接器数据策略组一致性，终端用户在受管门户统一访问 [1][2]</td>
+<td data-zh="与可视化前门继承完全一致的租户级连接器规则、共享边界与安全审计 [1][3]" data-en="Identical tenant DLP, sharing guardrails, and admin inventory telemetry [1][3]">与可视化前门继承完全一致的租户级连接器规则、共享边界与安全审计 [1][3]</td>
+</tr>
+</tbody>
+</table></div>
+<p data-zh="面向已经迈过正式商用门槛的企业客户，Jessica 在收官环节坦诚分享了团队正紧锣密鼓推进的&lt;strong&gt;六大后续路线图投资&lt;/strong&gt;（按客户投产诉求归纳为三大支柱）[1][2]：" data-en="Looking beyond general availability, Jessica closed by detailing &lt;strong&gt;six post-GA roadmap investments&lt;/strong&gt; shaped directly by public-preview customers moving apps into production [1][2]:">面向已经迈过正式商用门槛的企业客户，Jessica 在收官环节坦诚分享了团队正紧锣密鼓推进的<strong>六大后续路线图投资</strong>（按客户投产诉求归纳为三大支柱）[1][2]：</p>
+<ul>
+<li data-zh="&lt;strong&gt;团队协同共建（Build Together）&lt;/strong&gt;：一是支持多人在同一会话内实时并肩编辑同一款应用的&lt;strong&gt;协同创作（Co-authoring）&lt;/strong&gt;；二是支持指派&lt;strong&gt;共同所有者（Co-owners）&lt;/strong&gt;——解决当前应用仅绑定单一创建者、一旦员工离职或突发变动导致应用失管的连续性痛点 [1][2]。" data-en="&lt;strong&gt;Build Together (&lt;code&gt;Co-authoring&lt;/code&gt; &amp;amp; &lt;code&gt;Co-owners&lt;/code&gt;)&lt;/strong&gt;: Enables multiple teammates to co-edit inside the same session simultaneously and lets creators assign co-owners so critical business apps never vanish when an individual leaves the team [1][2]."><strong>团队协同共建（Build Together）</strong>：一是支持多人在同一会话内实时并肩编辑同一款应用的<strong>协同创作（Co-authoring）</strong>；二是支持指派<strong>共同所有者（Co-owners）</strong>——解决当前应用仅绑定单一创建者、一旦员工离职或突发变动导致应用失管的连续性痛点 [1][2]。</li>
+<li data-zh="&lt;strong&gt;安全可控交付（Ship Safely）&lt;/strong&gt;：一是把目前已在命令行工具中支持的机械级&lt;strong&gt;版本历史与一键回滚（Version history）&lt;strong&gt;全面引入 Copilot Studio 与 Cowork 图形界面；二是呼声极高的&lt;/strong&gt;应用生命周期管理（ALM）&lt;/strong&gt;，支持带审批门禁地将应用从开发、测试平滑晋级至生产环境 [1][2]。" data-en="&lt;strong&gt;Ship Safely (&lt;code&gt;Version history&lt;/code&gt; &amp;amp; &lt;code&gt;ALM&lt;/code&gt;)&lt;/strong&gt;: Surfaces mechanical version rollback—already working today in the CLI—directly inside the Copilot Studio and Cowork UX, alongside staged dev-test-prod promotion pipelines with pre-production approvals [1][2]."><strong>安全可控交付（Ship Safely）</strong>：一是把目前已在命令行工具中支持的机械级<strong>版本历史与一键回滚（Version history）<strong>全面引入 Copilot Studio 与 Cowork 图形界面；二是呼声极高的</strong>应用生命周期管理（ALM）</strong>，支持带审批门禁地将应用从开发、测试平滑晋级至生产环境 [1][2]。</li>
+<li data-zh="&lt;strong&gt;企业自主掌控（IT in Control）&lt;/strong&gt;：一是支持&lt;strong&gt;接入企业自有 GitHub Enterprise&lt;/strong&gt;，允许管理员强制要求受管应用源码存放在公司自管代码仓内；二是开放&lt;strong&gt;环境自由选择（Environment choice）&lt;/strong&gt;，打破当前默认落在个人开发环境（PDE）的限制，允许在管理员批准的任意指定受控环境中构建和运行应用 [1][2]。" data-en="&lt;strong&gt;IT in Control (&lt;code&gt;Your GitHub Enterprise&lt;/code&gt; &amp;amp; &lt;code&gt;Environment choice&lt;/code&gt;)&lt;/strong&gt;: Lets administrators require generated app code to reside inside company-owned GitHub Enterprise repositories and unlocks building inside designated custom environments beyond the default personal developer environment (PDE) [1][2]."><strong>企业自主掌控（IT in Control）</strong>：一是支持<strong>接入企业自有 GitHub Enterprise</strong>，允许管理员强制要求受管应用源码存放在公司自管代码仓内；二是开放<strong>环境自由选择（Environment choice）</strong>，打破当前默认落在个人开发环境（PDE）的限制，允许在管理员批准的任意指定受控环境中构建和运行应用 [1][2]。</li>
+</ul>
+        </section>
+
+        <section id="references" class="section" data-reveal data-present-title-zh="参考资料：官方一手信源与技术文档" data-present-title-en="References: Official Primary Sources &amp; Documentation" data-density-exempt="references">
+          <div class="section-head">
+            <p class="section-kicker">05 / References: Official Primary Sources &amp; Documentation</p>
+            <h2 data-zh="5. 参考资料：官方一手信源与技术文档" data-en="5. References: Official Primary Sources &amp; Documentation">5. 参考资料：官方一手信源与技术文档</h2>
+          </div>
+
+          <ol class="bib-list">
+            <li id="ref-1">
+              <span class="bib-id">[1]</span>
+              <span class="bib-author">Jessica Lo (Microsoft Ignite 2026 THR887 Video &amp; Transcript)</span> —
+              <a href="https://ignite.microsoft.com/en-US/sessions/1787856580323001EG0e-1791588176515001C35D" target="_blank" rel="noopener">https://ignite.microsoft.com/en-US/sessions/1787856580323001EG0e-1791588176515001C35D</a>
+              <span class="bib-note" data-zh="《Build an enterprise app from a single prompt with Copilot Studio》25 分钟官方剧场实录与中英双语 WebVTT 逐字稿（2026-11-18）" data-en="Official 25-minute theater session page and bilingual WebVTT transcripts (Nov 18, 2026)">《Build an enterprise app from a single prompt with Copilot Studio》25 分钟官方剧场实录与中英双语 WebVTT 逐字稿（2026-11-18）</span>
+            </li>
+            <li id="ref-2">
+              <span class="bib-id">[2]</span>
+              <span class="bib-author">Jessica Lo (THR887 Official Medius On-Demand Stream)</span> —
+              <a href="https://medius.microsoft.com/Embed/video-nc/b08b8f4a-b185-4c45-a65d-9829439b24d2?sessiontimeID=1791588176515001C35D" target="_blank" rel="noopener">https://medius.microsoft.com/Embed/video-nc/b08b8f4a-b185-4c45-a65d-9829439b24d2?sessiontimeID=1791588176515001C35D</a>
+              <span class="bib-note" data-zh="THR887 微软官方 Medius 点播视频流（涵盖受管运行时五维解剖课件、单提示词四联产物演示、社区脉搏应用与六大路线图实录）" data-en="Official Microsoft Medius embedded video stream capturing all stage slides and the live Customer Signal Triage walkthrough">THR887 微软官方 Medius 点播视频流（涵盖受管运行时五维解剖课件、单提示词四联产物演示、社区脉搏应用与六大路线图实录）</span>
+            </li>
+            <li id="ref-3">
+              <span class="bib-id">[3]</span>
+              <span class="bib-author">Microsoft Copilot Managed Runtime Documentation</span> —
+              <a href="https://learn.microsoft.com/en-us/microsoft-365/copilot-managed-runtime/" target="_blank" rel="noopener">https://learn.microsoft.com/en-us/microsoft-365/copilot-managed-runtime/</a>
+              <span class="bib-note" data-zh="专场尾声直达的官方总览文档：涵盖三扇前门架构、React + TypeScript 底座、命令行开发套件与 Microsoft 365 管理中心治理指南" data-en="Official hub documentation linked on the closing session slide covering runtime architecture, developer tooling, and admin governance">专场尾声直达的官方总览文档：涵盖三扇前门架构、React + TypeScript 底座、命令行开发套件与 Microsoft 365 管理中心治理指南</span>
+            </li>
+            <li id="ref-4">
+              <span class="bib-id">[4]</span>
+              <span class="bib-author">Apps in Microsoft Copilot Studio Overview</span> —
+              <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/apps-experience/apps-overview" target="_blank" rel="noopener">https://learn.microsoft.com/en-us/microsoft-copilot-studio/apps-experience/apps-overview</a>
+              <span class="bib-note" data-zh="Copilot Studio 应用构建官方文档：自然语言生成应用、连接器与数据表绑定、代码视图预览及团队发布共享说明" data-en="Official guide to building, previewing, connecting data, and publishing Copilot Managed Runtime apps inside Copilot Studio">Copilot Studio 应用构建官方文档：自然语言生成应用、连接器与数据表绑定、代码视图预览及团队发布共享说明</span>
+            </li>
+            <li id="ref-5">
+              <span class="bib-id">[5]</span>
+              <span class="bib-author">Build Apps with the App Skill in Copilot Cowork</span> —
+              <a href="https://learn.microsoft.com/en-us/microsoft-365/copilot/cowork/#build-apps-with-the-app-skill-frontier" target="_blank" rel="noopener">https://learn.microsoft.com/en-us/microsoft-365/copilot/cowork/#build-apps-with-the-app-skill-frontier</a>
+              <span class="bib-note" data-zh="Copilot Cowork 应用技能官方文档：在日常邮件、会议与文件协作流中描述并生成受管业务应用" data-en="Official documentation for creating governed apps directly from organizational context inside Copilot Cowork">Copilot Cowork 应用技能官方文档：在日常邮件、会议与文件协作流中描述并生成受管业务应用</span>
+            </li>
+          </ol>
+        </section>
+      </main>
+
+      <footer class="site-footer" data-reveal>
+        <p data-zh="© 2026 Knowledge Hub · Genesis 纯静态 Markdown 编译管线生成" data-en="© 2026 Knowledge Hub · Generated by Genesis Static Markdown Compiler">© 2026 Knowledge Hub · Genesis 纯静态 Markdown 编译管线生成</p>
+      </footer>
+    </div>
+  </div>
+
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/article-narration.js"></script>
+  <script src="../../assets/pptx-export.js"></script>
+  <script src="../../assets/article-math.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+  <script src="./thr887-theater.js"></script>
+  <script>
+    (function () {
+      var buttons = document.querySelectorAll("[data-genesis-mode]");
+      var drawer = document.getElementById("genesis-source-drawer");
+      var i;
+      function setMode(mode) {
+        for (var j = 0; j < buttons.length; j++) {
+          var btn = buttons[j];
+          var active = btn.getAttribute("data-genesis-mode") === mode;
+          if (active) {
+            btn.classList.add("is-active");
+          } else {
+            btn.classList.remove("is-active");
+          }
+        }
+        if (mode === "linear") {
+          document.body.classList.add("is-linear-reading");
+          if (drawer) drawer.classList.remove("is-open");
+        } else if (mode === "source") {
+          document.body.classList.remove("is-linear-reading");
+          if (drawer) drawer.classList.add("is-open");
+        } else {
+          document.body.classList.remove("is-linear-reading");
+          if (drawer) drawer.classList.remove("is-open");
+        }
+      }
+      for (i = 0; i < buttons.length; i++) {
+        (function (btn) {
+          btn.addEventListener("click", function () {
+            setMode(btn.getAttribute("data-genesis-mode"));
+          });
+        })(buttons[i]);
+      }
+    })();
+  </script>
+</body>
+</html>
