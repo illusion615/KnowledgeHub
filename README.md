@@ -20,6 +20,11 @@ node scripts/serve-knowledge-hub.mjs
 
 ## Change Log
 
+### 2026-11-25
+- **Microsoft Ignite 2026 52 场全集上线**：新增 `posts/copilot-studio-ignite-2026-whats-new/` 总览与 51 篇专场解析（`posts/ignite-2026-*/`），覆盖 Copilot Studio、Power Platform、托管运行时与智能体治理，同步挂载至 `assets/knowledge-data.js`（全站扩展至 241 个图谱节点、216 篇公开文章）。
+- **托管运行时生命周期与本地文生歌曲专题**：上线 `posts/copilot-studio-managed-runtime-alm/`（剖析托管运行时落入个人环境的机制与跨环境发布路径）与 `posts/local-music-song-models/`（结合 Apple Silicon 本地 MiniMax-Music3 实测与四类曲风试听样本），并新增 `posts/markdown-genesis-lab/` 扩展 Markdown 样板。
+- **静态编译、图表引擎与单篇发布流水线**：新增 `tools/compile-article.js`、`tools/figure-engine/` 与 `tools/publish-article.js`，支持双语扩展 Markdown 编译、双主题内联矢量图生成及媒体体积守卫；视频工作室改为页内浮窗按需加载。
+
 ### 2026-11-21
 - **NanoJev 协议与本地推理服务拆解**：`scripts/nanojev_mlx/contract.py` 将状态行校验、问题判据核对与候选分支构造拆为独立辅助函数，保留 1..8 状态、32 问题、128 候选分支与 16384 token 上限；`scripts/serve-nanojev-mlx.py` 提取鉴权、请求体校验、单并发门控推理与连接文件生命周期管理。
 - **数理建模与 MLX 校验脚本加载解耦**：`posts/exam-performance-modeling/` 与 `scripts/nanojev_mlx/engine.py`、`scripts/serve-laya-mlx.py`、`scripts/validate-nanojev-mlx.py` 统一改用 `runpy.run_path` 加载同级计算与审计模块，消除跨层动态导入耦合。

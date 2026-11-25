@@ -36,4 +36,5 @@ python3 -m unittest discover -s posts/exam-performance-modeling -p "test_*.py"
 
 ## 5. 近期批次发布记录
 
+- **2026-11-25（`v2026.11.25` · 55 篇新增文章矩阵与静态编译流水线合流上线）**：通过 `node tests/validate.js --full` 全站 14 项门禁（216 篇文章、241 个知识图谱节点 0 错误）并推送至远端 `origin/main`：1) 新增 Microsoft Ignite 2026 总览（`posts/copilot-studio-ignite-2026-whats-new/`）及 51 场专场解析（`posts/ignite-2026-*/`）；2) 上线 `posts/copilot-studio-managed-runtime-alm/`、`posts/local-music-song-models/` 与 `posts/markdown-genesis-lab/`；3) 合入扩展 Markdown 编译内核（`tools/compile-article.js`）、双主题矢量图引擎（`tools/figure-engine/`）、单篇发布入口（`tools/publish-article.js`）及页内视频工作室浮窗；4) 恢复 `.pi/mcp.json` 与远端基线一致，确认 `.delivery-board/`、`.project-data/` 与 `private/` 未纳入版本追踪。
 - **2026-11-21（四项质量自愈闭环与模块边界收敛）**：完成 4 项代码质量自愈并合入主干：1) `scripts/nanojev_mlx/contract.py` 与 `scripts/serve-nanojev-mlx.py` 拆解请求校验与服务路由辅助函数；2) `posts/exam-performance-modeling/*.py` 与 `scripts/nanojev_mlx/engine.py`、`scripts/serve-laya-mlx.py`、`scripts/validate-nanojev-mlx.py` 统一改用 `runpy.run_path` 加载同级脚本；3) 清理 `assets/` 下星系导航、幻灯片演示、语音讲解及公共样式表中的重复逻辑，净减 2957 行代码；4) 为 `assets/` 下 10 个前端交互、朗读、导出与小游戏模块补齐 47 处异常分类诊断与显式降级状态重置，实现零静默吞错。
