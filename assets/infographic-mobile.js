@@ -4,14 +4,17 @@
 // Touch model:
 //   - Vertical swipe  → rotate the focused wheel (spin nodes)
 //   - Horizontal swipe → switch between arc levels (parent ↔ child)
-//   - Tap on node      → select it / navigate to article
-// The viewport auto-centers on the focused level's arc band,
-// with adjacent levels peeking from the left/right edges.
+//   - Tap on node      → select it / navigate to article (strictly culled sector)
+//   - Wheel / PageUp / PageDown → supported on hybrid mobile viewports
 // ============================================================
+
+var InfographicSharedMobileRef = (typeof window !== 'undefined' && window.InfographicShared)
+  ? window.InfographicShared
+  : (typeof require === 'function' ? require('./infographic-shared.js') : null);
 
 /* eslint-disable no-unused-vars */
 function renderInfographicViewMobile(ctx) {
-  var shared = window.InfographicShared;
+  var shared = (typeof window !== 'undefined' && window.InfographicShared) ? window.InfographicShared : InfographicSharedMobileRef;
   var VW = 1400;
   var VH = 900;
   var cx = -VW * 0.08;
@@ -19,8 +22,8 @@ function renderInfographicViewMobile(ctx) {
   var baseRadius = VW * 0.28;
   var arcGap = VW * 0.18;
 
-  var screenW = window.innerWidth;
-  var screenH = window.innerHeight;
+  var screenW = Math.max(1, window.innerWidth);
+  var screenH = Math.max(1, window.innerHeight);
 
   var vpX = 0, vpY = 0, viewW = 100, viewH = 100;
   var arcLevels = [shared.makeLevel()];
@@ -111,6 +114,7 @@ function renderInfographicViewMobile(ctx) {
         vpX = vpTarget.vpX; vpY = vpTarget.vpY;
         viewW = vpTarget.viewW; viewH = vpTarget.viewH;
         updateViewBoxes();
+        render();
         vpAnimating = false;
         vpAnimFrame = null;
         return;
@@ -118,6 +122,7 @@ function renderInfographicViewMobile(ctx) {
       vpX += dx * 0.15; vpY += dy * 0.15;
       viewW += dw * 0.15; viewH += dh * 0.15;
       updateViewBoxes();
+      render();
       vpAnimFrame = requestAnimationFrame(step);
     }
     vpAnimFrame = requestAnimationFrame(step);
@@ -150,6 +155,7 @@ function renderInfographicViewMobile(ctx) {
       arcLevels: arcLevels, getItemsForLevel: getItemsForLevel,
       focusArc: arcState.focusArc, gap: level0Gap, ctx: ctx,
       gradPrefix: 'spoke-grad-m-',
+      viewport: { x: vpX, y: vpY, w: viewW, h: viewH, pad: 64, topSafe: Math.round(viewH * 0.17) },
       getLevelOpacity: function (depth) { return depth === arcState.focusArc ? 1 : 0.45; }
     });
 
@@ -159,17 +165,29 @@ function renderInfographicViewMobile(ctx) {
       var node = getSelectedNodeAtDepth(d);
       if (node) parts.push(shared.nodeLabel(node, ctx.lang));
     }
+    var focusItems = getItemsForLevel(arcState.focusArc);
+    var focusLvl = arcLevels[arcState.focusArc];
+    if (focusItems.length >= shared.PROGRESS_MIN_ITEMS && focusLvl) {
+      parts.push((focusLvl.selectedIdx + 1) + ' / ' + focusItems.length);
+    }
     breadcrumbBar.textContent = parts.join(' › ');
   }
 
   var startAnim = shared.createAnimController(arcLevels, arcState, render);
 
-  function spinLevel(depth, delta) {
+  function spinLevel(depth, delta, isFastJump) {
     var items = getItemsForLevel(depth);
     var lvl = arcLevels[depth];
     if (!items.length || !lvl) return;
-    var newIdx = lvl.selectedIdx + delta;
-    if (newIdx < 0 || newIdx >= items.length) return;
+    var newIdx;
+    if (isFastJump) {
+      var jumpRes = shared.computeSpinTargetIndex(lvl.selectedIdx, items.length, delta, true, shared.FAST_JUMP_STEP);
+      if (jumpRes.atBoundary) return;
+      newIdx = jumpRes.nextIdx;
+    } else {
+      newIdx = shared.clampNum(lvl.selectedIdx + delta, 0, items.length - 1);
+      if (newIdx === lvl.selectedIdx) return;
+    }
     shared.selectLevelItemAndExpand(arcLevels, arcState, depth, newIdx, items.length, getItemsForLevel, angleForLevel);
     startAnim();
   }
@@ -185,9 +203,18 @@ function renderInfographicViewMobile(ctx) {
 
   function handleSpokeClick(d, idx) {
     var items = getItemsForLevel(d);
-    if (idx >= items.length) return;
+    if (idx < 0 || idx >= items.length) return;
+    if (d !== arcState.focusArc) {
+      var sub = shared.selectLevelItemAndExpand(arcLevels, arcState, d, idx, items.length, getItemsForLevel, angleForLevel);
+      startAnim();
+      focusOnLevel((items[idx].type === 'topic' && sub && sub.length > 0) ? d + 1 : d, true);
+      return;
+    }
     var item = items[idx];
     if (item.type === 'article') {
+      arcLevels[d].selectedIdx = idx;
+      arcLevels[d].targetAngle = angleForLevel(d, idx, items.length);
+      startAnim();
       if (item.data.url) ctx.navigateToArticle(item.data.url);
     } else {
       var childItems = shared.selectLevelItemAndExpand(arcLevels, arcState, d, idx, items.length, getItemsForLevel, angleForLevel);
@@ -206,15 +233,7 @@ function renderInfographicViewMobile(ctx) {
 
   function applyVerticalSteps(stepDelta) {
     if (!stepDelta) return;
-    var depth = arcState.focusArc;
-    var items = getItemsForLevel(depth);
-    var lvl = arcLevels[depth];
-    if (lvl && items.length) {
-      var newIdx = Math.max(0, Math.min(items.length - 1, lvl.selectedIdx - stepDelta));
-      if (newIdx !== lvl.selectedIdx) {
-        spinLevel(depth, newIdx - lvl.selectedIdx);
-      }
-    }
+    spinLevel(arcState.focusArc, -stepDelta, false);
   }
 
   function onTouchStart(e) {
@@ -269,11 +288,14 @@ function renderInfographicViewMobile(ctx) {
     touch.active = false;
 
     if (!touch.moved || !touch.direction) {
-      var pt = svgEl.createSVGPoint();
-      pt.x = touch.startX;
-      pt.y = touch.startY;
-      var svgPt = pt.matrixTransform(svgEl.getScreenCTM().inverse());
-      handleTapAt(svgPt.x, svgPt.y);
+      var ctm = svgEl.getScreenCTM && svgEl.getScreenCTM();
+      if (ctm) {
+        var pt = svgEl.createSVGPoint();
+        pt.x = touch.startX;
+        pt.y = touch.startY;
+        var svgPt = pt.matrixTransform(ctm.inverse());
+        handleTapAt(svgPt.x, svgPt.y);
+      }
       return;
     }
 
@@ -292,7 +314,7 @@ function renderInfographicViewMobile(ctx) {
     } else if (touch.direction === 'v' && Math.abs(touch.velY) > 0.3) {
       var inertiaAccum = 0;
       var inertiaVel = touch.velY;
-      function inertiaStep() {
+      var inertiaStep = function () {
         inertiaAccum += inertiaVel * 16;
         var steps = Math.round(inertiaAccum / SPIN_PX_PER_STEP);
         if (steps !== 0) {
@@ -301,14 +323,17 @@ function renderInfographicViewMobile(ctx) {
         }
         inertiaVel *= 0.92;
         if (Math.abs(inertiaVel) >= 0.05) requestAnimationFrame(inertiaStep);
-      }
+      };
       requestAnimationFrame(inertiaStep);
     }
   }
 
+  // Strictly match visible sector [-0.45π, +0.45π] to eliminate multi-turn same-phase ghost taps
   function handleTapAt(svgX, svgY) {
     var dist = Math.sqrt(Math.pow(svgX - cx, 2) + Math.pow(svgY - cy, 2));
     var angle = Math.atan2(svgY - cy, svgX - cx);
+    if (Math.abs(angle) > shared.CULL_MAX_ANGLE) return;
+
     var tappedDepth = -1;
     for (var d = arcLevels.length - 1; d >= 0; d--) {
       if (dist >= arcInnerR(d) && dist <= arcOuterR(d)) {
@@ -324,24 +349,46 @@ function renderInfographicViewMobile(ctx) {
     var items = getItemsForLevel(tappedDepth);
     if (!items.length) return;
     var lvl = arcLevels[tappedDepth];
-    var bestIdx = 0, bestDist = Infinity;
-    for (var i = 0; i < items.length; i++) {
-      var ad = Math.abs(angle - shared.getWheelAngle(i, items.length, lvl.angle, level0Gap));
-      if (ad < bestDist) { bestDist = ad; bestIdx = i; }
-    }
-    handleSpokeClick(tappedDepth, bestIdx);
+    var hitIdx = shared.findTappedSpokeIndex(angle, items.length, lvl.angle, level0Gap, shared.CULL_MAX_ANGLE);
+    if (hitIdx >= 0) handleSpokeClick(tappedDepth, hitIdx);
   }
 
+  function onMobileWheel(e) {
+    if (ctx.currentLayout !== 'infographic') return;
+    e.preventDefault();
+    spinLevel(arcState.focusArc, e.deltaY > 0 ? 1 : -1, !!e.shiftKey);
+  }
+
+  function onMobileKeydown(e) {
+    if (ctx.currentLayout !== 'infographic') return;
+    var tag = e.target && e.target.tagName ? e.target.tagName.toLowerCase() : '';
+    if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+    if (e.key === 'PageUp' || e.key === 'PageDown') {
+      e.preventDefault();
+      spinLevel(arcState.focusArc, e.key === 'PageDown' ? 1 : -1, true);
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      spinLevel(arcState.focusArc, e.key === 'ArrowDown' ? 1 : -1, !!e.shiftKey);
+    } else if (e.key === 'ArrowRight') {
+      if (arcState.focusArc + 1 < arcLevels.length) focusOnLevel(arcState.focusArc + 1, true);
+    } else if (e.key === 'ArrowLeft') {
+      if (arcState.focusArc > 0) focusOnLevel(arcState.focusArc - 1, true);
+    }
+  }
+
+  var onTouchCancel = function () { touch.active = false; };
   container.addEventListener('touchstart', onTouchStart, { passive: false });
   container.addEventListener('touchmove', onTouchMove, { passive: false });
   container.addEventListener('touchend', onTouchEnd, { passive: false });
-  container.addEventListener('touchcancel', function () { touch.active = false; }, { passive: false });
+  container.addEventListener('touchcancel', onTouchCancel, { passive: false });
+  container.addEventListener('wheel', onMobileWheel, { passive: false });
+  document.addEventListener('keydown', onMobileKeydown);
   shared.bindSpokeClickDelegation(svgEl, handleSpokeClick);
 
   var resizeHandler = function () {
     if (ctx.currentLayout !== 'infographic') return;
-    screenW = window.innerWidth;
-    screenH = window.innerHeight;
+    screenW = Math.max(1, window.innerWidth);
+    screenH = Math.max(1, window.innerHeight);
     snapViewportToLevel(arcState.focusArc, false);
     glowFocusedDepth = -1;
     render();
@@ -354,6 +401,9 @@ function renderInfographicViewMobile(ctx) {
     container.removeEventListener('touchstart', onTouchStart);
     container.removeEventListener('touchmove', onTouchMove);
     container.removeEventListener('touchend', onTouchEnd);
+    container.removeEventListener('touchcancel', onTouchCancel);
+    container.removeEventListener('wheel', onMobileWheel);
+    document.removeEventListener('keydown', onMobileKeydown);
     window.removeEventListener('resize', resizeHandler);
     if (arcState.animFrame) cancelAnimationFrame(arcState.animFrame);
     if (vpAnimFrame) cancelAnimationFrame(vpAnimFrame);
@@ -365,4 +415,8 @@ function renderInfographicViewMobile(ctx) {
   arcState.focusArc = 0;
   snapViewportToLevel(0, false);
   render();
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { renderInfographicViewMobile: renderInfographicViewMobile };
 }
