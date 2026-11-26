@@ -4168,5 +4168,24 @@ var knowledgeTree = [
     color: '#2563eb',
     phase: 1, speed: 0.84,
     relations: ['ignite-2026-brk265-apps-agents-business-process-transformation', 'ignite-2026-thr916-vanguard-transforming-advisor-productivity', 'copilot-studio-managed-runtime-alm', 'power-apps-code-app']
+  },
+  {
+    id: 'from-build-to-production-harness-managed-runtime',
+    parentId: 'copilot-studio',
+    type: 'article',
+    title: {
+      zh: 'From Build to Production：Harness 内核与 Copilot 托管运行时全栈实战（Ignite 2026 ABS 第 08 场）',
+      en: 'From Build to Production: Harness & Copilot Managed Runtime Blueprint (Ignite 2026 ABS Session 08)'
+    },
+    summary: {
+      zh: '面向 Ignite 2026 ABS『方案构建』第 08 场（Wells Zhang，12月7日 11:30–12:00），深度融合 BRK378、BRK259、BRK382 与 BRK28…',
+      en: 'Crafted for Ignite 2026 ABS Solution Build Session 08 (Wells Zhang, Dec 7, 11:30–12:00), uniting BRK378, BRK259, BRK382, and BRK285 into one Build-to-Pro…'
+    },
+    tags: ['Microsoft Ignite 2026', 'Copilot Managed Runtime', 'Microsoft Copilot Harness', 'BRK378', 'BRK259', 'BRK382', 'BRK285'],
+    date: '2026-11-26',
+    url: 'posts/from-build-to-production-harness-managed-runtime/index.html',
+    color: '#ea580c',
+    phase: 5.6, speed: 0.84,
+    relations: ['ignite-2026-brk378-host-apps-anywhere-new-copilot-managed', 'ignite-2026-brk259-copilot-harness-powers-copilot-studio', 'ignite-2026-brk382-deploy-solutions-scale-power-platform-copilot', 'ignite-2026-brk285-agent-works-enterprise-ready']
   }
 ];

@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-section-density="strict" data-present-i18n="strict" data-cite-links>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>From Build to Production：Harness 内核与 Copilot 托管运行时全栈实战（Ignite 2026 ABS 第 08 场）</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../assets/article.css" />
+  <link rel="stylesheet" href="../../assets/scrollbar.css" />
+  <link rel="stylesheet" href="../../assets/article-narration.css" />
+  <link rel="stylesheet" href="../../assets/article-diagram.css" />
+  <link rel="stylesheet" href="../../assets/article-figure.css" />
+  <link rel="stylesheet" href="./talk-blueprint.css" />
+  <style>
+    :root {
+      --accent: #ea580c;
+      --teal: #0d8f8c;
+    }
+    html.is-presentation-mode .section:has([data-present-step]) > .section-head {
+      display: none;
+    }
+    .hero-copy h1 {
+      font-size: clamp(2.1rem, 5vw, 3.8rem);
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+      max-width: 20ch;
+    }
+    .hero-panel .layer-list { position: relative; margin-top: 18px; }
+    .insight-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .insight-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .insight-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    @media (max-width: 980px) {
+      .insight-grid-3, .insight-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 680px) {
+      .insight-grid-2, .insight-grid-3, .insight-grid-4 { grid-template-columns: 1fr; }
+    }
+    .compare-table-wrap {
+      margin-top: 18px;
+      overflow-x: auto;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 6px 14px;
+      box-shadow: var(--shadow);
+    }
+    .compare-table-wrap .compare-table {
+      width: 100%;
+      min-width: 680px;
+      border-collapse: collapse;
+      margin-top: 0;
+      font-size: 0.9rem;
+    }
+    .compare-table-wrap .compare-table th {
+      text-align: left;
+      padding: 12px 14px;
+      background: rgba(15, 23, 42, 0.04);
+      border-bottom: 2px solid rgba(15, 23, 42, 0.1);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-weight: 700;
+      font-size: 0.8rem;
+      letter-spacing: 0.04em;
+      text-transform: none;
+      color: var(--ink);
+      vertical-align: bottom;
+    }
+    .compare-table-wrap .compare-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+      line-height: 1.65;
+      color: var(--ink);
+      vertical-align: top;
+    }
+    .compare-table-wrap .compare-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+    .compare-table-wrap .compare-table td:first-child {
+      font-weight: 600;
+      min-width: 150px;
+    }
+    .compare-table-wrap .compare-table code,
+    .section p code,
+    .flow-copy code,
+    .insight-card code,
+    .comparison-card code,
+    .quote-block code,
+    .subsection-toggle code,
+    .subsection-content p code,
+    .bib-list code {
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.84em;
+      padding: 2px 6px;
+      border-radius: 5px;
+      background: rgba(15, 23, 42, 0.06);
+      color: var(--ink);
+    }
+    [data-theme="dark"] .compare-table-wrap {
+      background: rgba(22, 29, 38, 0.9);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+    [data-theme="dark"] .compare-table-wrap .compare-table th {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.12);
+      color: var(--ink);
+    }
+    [data-theme="dark"] .compare-table-wrap .compare-table td {
+      border-color: rgba(255, 255, 255, 0.07);
+      color: var(--ink);
+    }
+    [data-theme="dark"] .compare-table-wrap .compare-table code,
+    [data-theme="dark"] .section p code,
+    [data-theme="dark"] .flow-copy code,
+    [data-theme="dark"] .insight-card code,
+    [data-theme="dark"] .comparison-card code,
+    [data-theme="dark"] .quote-block code,
+    [data-theme="dark"] .subsection-toggle code,
+    [data-theme="dark"] .subsection-content p code,
+    [data-theme="dark"] .bib-list code {
+      background: rgba(255, 255, 255, 0.1);
+      color: #e2e8f0;
+    }
+    .timeline-list > .flow-step::before {
+      background: linear-gradient(135deg, var(--teal), #14b8a6);
+    }
+    .insight-callout {
+      border-left: 4px solid var(--teal);
+    }
+    .code-block {
+      margin: 18px 0;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .code-block pre {
+      margin: 0;
+      padding: 20px 22px;
+      background: rgba(16, 31, 43, 0.95);
+      color: #cdd6e0;
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.82rem;
+      line-height: 1.68;
+      overflow-x: auto;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+    }
+    [data-theme="dark"] .code-block pre {
+      background: rgba(0, 0, 0, 0.46);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+    .mermaid-container {
+      margin: 22px 0;
+      padding: 24px 18px;
+      border-radius: var(--radius-md);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      text-align: center;
+      overflow-x: auto;
+    }
+    .generated-diagram {
+      margin-top: 22px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+    .generated-diagram img {
+      display: block;
+      width: 100%;
+      height: auto;
+      object-fit: contain;
+    }
+    html[lang="en"] .diagram-zh,
+    html:not([lang="en"]) .diagram-en { display: none; }
+    .diagram-caption {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+    .diagram-caption a { color: var(--teal); font-weight: 600; white-space: nowrap; }
+    [data-theme="dark"] .generated-diagram {
+      background: rgba(22, 29, 38, 0.9);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+    .sandbox-slot {
+      margin-top: 22px;
+      padding: 22px;
+      border-radius: var(--radius-lg);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+    .sandbox-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .sandbox-title-group h3 { margin: 10px 0 6px; font-size: 1.18rem; }
+    .sandbox-title-group p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+    .sandbox-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .sandbox-stage {
+      border-radius: var(--radius-md);
+      background: rgba(16, 31, 43, 0.04);
+      border: 1px solid var(--line);
+      padding: 14px;
+      overflow: hidden;
+    }
+    [data-theme="dark"] .sandbox-stage {
+      background: rgba(0, 0, 0, 0.28);
+    }
+    .sandbox-canvas {
+      display: block;
+      width: 100%;
+      max-height: 300px;
+      border-radius: 10px;
+    }
+    /* Dual-view switcher bar (Progressive / Linear / Markdown Source) */
+    .genesis-view-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 18px 0 8px;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      font-size: 0.82rem;
+    }
+    .genesis-view-status {
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .genesis-view-buttons {
+      display: inline-flex;
+      gap: 6px;
+    }
+    .genesis-view-btn {
+      appearance: none;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.18s ease, color 0.18s ease;
+    }
+    .genesis-view-btn.is-active {
+      background: linear-gradient(135deg, var(--accent), #ff9340);
+      color: #fff;
+    }
+    .genesis-source-drawer {
+      display: none;
+      margin: 18px 0 28px;
+      padding: 20px;
+      border-radius: var(--radius-lg);
+      background: rgba(16, 31, 43, 0.96);
+      color: #dbe4ee;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      overflow-x: auto;
+    }
+    .genesis-source-drawer.is-open { display: block; }
+    .genesis-source-drawer pre {
+      margin: 0;
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.8rem;
+      line-height: 1.65;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    body.is-linear-reading .subsection-content {
+      max-height: none !important;
+      opacity: 1 !important;
+      overflow: visible !important;
+      padding: 0 24px 24px !important;
+    }
+    .is-presentation-mode .genesis-view-bar,
+    .is-presentation-mode .genesis-source-drawer {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+    </div>
+
+    <div class="site">
+      <header class="hero">
+        <div class="topbar load-in">
+          <a class="home-link" href="../../" data-zh="←" data-en="←" aria-label="返回首页">←</a>
+          <div class="brand">
+            <span class="brand-mark"></span>
+            <span data-zh="Study Room Power Platform &amp; Copilot Studio" data-en="Study Room Power Platform &amp; Copilot Studio">Study Room Power Platform &amp; Copilot Studio</span>
+          </div>
+          <nav class="nav-links" aria-label="页面章节导航">
+            <a href="#build-to-prod-spine" data-zh="从本地原型孤岛到企业生产闭环" data-en="From Localhost Prototypes to Production">从本地原型孤岛到企业生产闭环</a>
+            <a href="#build-copilot-harness" data-zh="Build 阶段（BRK259 + BRK285）" data-en="Build Phase (BRK259 + BRK285)">Build 阶段（BRK259 + BRK285）</a>
+            <a href="#host-managed-runtime" data-zh="Host 阶段主讲核心（BRK378）" data-en="Host Phase Lead Focus (BRK378)">Host 阶段主讲核心（BRK378）</a>
+            <a href="#scale-govern-autonomy" data-zh="Scale &amp; Govern 阶段（BRK382 + BRK285）" data-en="Scale &amp; Govern Phase (BRK382 + BRK285)">Scale &amp; Govern 阶段（BRK382 + BRK285）</a>
+            <a href="#abs-30min-blueprint" data-zh="ABS『方案构建』第 08 场实战指南" data-en="ABS Session 08 Run-of-Show">ABS『方案构建』第 08 场实战指南</a>
+            <a href="#references" data-zh="参考资料" data-en="References">参考资料</a>
+          </nav>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy load-in">
+            <span class="eyebrow" data-zh="Ignite 2026 ABS 内部分享 · 方案构建第 08 场（Wells Zhang · 12月7日 11:30–12:00）" data-en="Ignite 2026 ABS Internal Sharing · Solution Build Session 08 (Wells Zhang · Dec 7, 11:30–12:00)">Ignite 2026 ABS 内部分享 · 方案构建第 08 场（Wells Zhang · 12月7日 11:30–12:00）</span>
+            <h1 data-zh="From Build to Production：Harness 内核与 Copilot 托管运行时全栈实战（Ignite 2026 ABS 第 08 场）" data-en="From Build to Production: Harness &amp; Copilot Managed Runtime Blueprint (Ignite 2026 ABS Session 08)">From Build to Production：Harness 内核与 Copilot 托管运行时全栈实战（Ignite 2026 ABS 第 08 场）</h1>
+            <p data-zh="面向《Ignite 2026 | ABS 内部分享安排》『方案构建』板块第 08 场（主讲人 Wells Zhang，2026 年 12 月 7 日 周一 11:30–12:00，时长 30 分钟），本文以主讲专场 BRK378（Copilot Managed Runtime 正式商用）为中轴，贯通 BRK259（Microsoft Copilot Harness 执行内核）、BRK382（诺华 7.5 倍扩张与规模化双轨治理）与 BRK285（Azure 支持团队 18 个月全自主生产排障）[1][3][5][7]。全文拆解企业应用与智能体如何告别本地端口孤岛和脆弱原型，沿 Build ➔ Host ➔ Scale &amp;amp; Govern 主线跨越生产信任鸿沟，并附逐分钟卡点的 30 分钟实战演讲蓝图与口播金句骨架 [1][5][7]。" data-en="Designed for Session 08 of the Ignite 2026 ABS Internal Sharing Series in the Solution Build track (Speaker: Wells Zhang, Monday, December 7, 2026, 11:30–12:00, 30 minutes), this article anchors on lead breakout BRK378 (Copilot Managed Runtime GA) while synthesizing BRK259 (Microsoft Copilot Harness), BRK382 (Novartis 7.5× scale and dual-track governance), and BRK285 (Azure Support's 18-month autonomous resolution rollout) [1][3][5][7]. It traces how enterprise apps and agents escape localhost silos and fragile prototypes across the Build -&amp;gt; Host -&amp;gt; Scale &amp;amp; Govern spine, complete with a minute-by-minute 30-minute run-of-show and speaker soundbite script [1][5][7].">面向《Ignite 2026 | ABS 内部分享安排》『方案构建』板块第 08 场（主讲人 Wells Zhang，2026 年 12 月 7 日 周一 11:30–12:00，时长 30 分钟），本文以主讲专场 BRK378（Copilot Managed Runtime 正式商用）为中轴，贯通 BRK259（Microsoft Copilot Harness 执行内核）、BRK382（诺华 7.5 倍扩张与规模化双轨治理）与 BRK285（Azure 支持团队 18 个月全自主生产排障）[1][3][5][7]。全文拆解企业应用与智能体如何告别本地端口孤岛和脆弱原型，沿 Build ➔ Host ➔ Scale &amp; Govern 主线跨越生产信任鸿沟，并附逐分钟卡点的 30 分钟实战演讲蓝图与口播金句骨架 [1][5][7]。</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#build-to-prod-spine" data-zh="阅读核心章节" data-en="Explore Core Chapters">阅读核心章节</a>
+              <a class="button button-secondary" href="#build-copilot-harness" data-zh="Build 阶段（BRK259 + BRK285）" data-en="Build Phase (BRK259 + BRK285)">Build 阶段（BRK259 + BRK285）</a>
+            </div>
+          </div>
+
+          <aside class="hero-panel load-in">
+            <span class="panel-label" data-zh="ABS 方案构建第 08 场 · 四专场合成蓝图" data-en="ABS Session 08 · Four-Session Synthesis Brief">ABS 方案构建第 08 场 · 四专场合成蓝图</span>
+            <h2 data-zh="重铸推理内核，随处受管托管，凭证据挣得生产自主权" data-en="Rebuild the Harness, Host Anywhere, and Earn Production Autonomy">重铸推理内核，随处受管托管，凭证据挣得生产自主权</h2>
+            <p data-zh="将 BRK259 的单循环容器内核、BRK378 的跨工具 Git 托管、BRK382 的默认绿区账本与 BRK285 的爬山评测收束为一套 30 分钟可讲透的架构体系 [1][3][5][7]。" data-en="Unifies BRK259's container harness, BRK378's Git-backed hosting, BRK382's default green-zone FinOps, and BRK285's hill-climbing loop into a 30-minute technical narrative [1][3][5][7].">将 BRK259 的单循环容器内核、BRK378 的跨工具 Git 托管、BRK382 的默认绿区账本与 BRK285 的爬山评测收束为一套 30 分钟可讲透的架构体系 [1][3][5][7]。</p>
+            <ul class="layer-list">
+              <li><span class="layer-number">1</span><span data-zh="Build 内核换代（BRK259） — 基于 Copilot SDK 与会话级 Azure 容器重铸，代码分析涨 47.5 个百分点、输入词元省 45%，六类钩子钉死确定性红线 [3][4]" data-en="Build: Copilot Harness (BRK259) — Rebuilt on Microsoft Copilot SDK and Azure containers, lifting code analysis +47.5 pts while cutting input tokens 45% under six deterministic hooks [3][4]">Build 内核换代（BRK259） — 基于 Copilot SDK 与会话级 Azure 容器重铸，代码分析涨 47.5 个百分点、输入词元省 45%，六类钩子钉死确定性红线 [3][4]</span></li>
+              <li><span class="layer-number">2</span><span data-zh="Host 随处托管（BRK378 主讲） — 五大入口汇聚单一 Git 远程仓与 1,500+ 连接器，Lovable 纯前端直发零碰数据，VS Code 免密克隆无缝接力 [1][2]" data-en="Host: Managed Runtime GA (BRK378 Lead) — Five authoring surfaces share one Git remote and 1,500+ connectors, pairing zero-data-touch Lovable deploys with keyless VS Code relay [1][2]">Host 随处托管（BRK378 主讲） — 五大入口汇聚单一 Git 远程仓与 1,500+ 连接器，Lovable 纯前端直发零碰数据，VS Code 免密克隆无缝接力 [1][2]</span></li>
+              <li><span class="layer-number">3</span><span data-zh="Scale 治理与自主（BRK382 + BRK285） — 诺华活跃智能体增 7.5×、10 美元半小时生成超级 CoE，配合低高代码状态分工与六步爬山闭环挣得有界自主 [5][6][7][8]" data-en="Scale &amp;amp; Govern (BRK382 + BRK285) — Combines Novartis's 7.5× agent surge and $10 30-minute CoE app with hybrid durable state and 6-step hill climbing for bounded autonomy [5][6][7][8]">Scale 治理与自主（BRK382 + BRK285） — 诺华活跃智能体增 7.5×、10 美元半小时生成超级 CoE，配合低高代码状态分工与六步爬山闭环挣得有界自主 [5][6][7][8]</span></li>
+            </ul>
+          </aside>
+        </div>
+        <div class="hero-metrics load-in">
+          <div class="metric">
+            <div class="metric-label" data-zh="新内核代码分析与词元实测" data-en="Harness Gain &amp; Token Cut">新内核代码分析与词元实测</div>
+            <strong>+47.5 pts / -45%</strong>
+            <span data-zh="BRK259 约 500 道真实业务流程离线评测（Sonnet 4.6），83%–88% 输入词元命中缓存 [3][4]" data-en="Across ~500 customer offline evals on Sonnet 4.6 with 83%–88% prompt cache hit rates (BRK259) [3][4]">BRK259 约 500 道真实业务流程离线评测（Sonnet 4.6），83%–88% 输入词元命中缓存 [3][4]</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="受管连接器与生态覆盖" data-en="Connectors &amp; Ecosystem">受管连接器与生态覆盖</div>
+            <strong>1,500+ / 40,000+</strong>
+            <span data-zh="BRK378 预置 1,500+ 动作级连接器，接入服务 4 万余家企业的 Lovable 平台且零数据外泄 [1][2]" data-en="1,500+ per-action governed connectors plus 20-minute Lovable bind across 40,000+ orgs with zero data exposure (BRK378) [1][2]">BRK378 预置 1,500+ 动作级连接器，接入服务 4 万余家企业的 Lovable 平台且零数据外泄 [1][2]</span>
+          </div>
+          <div class="metric">
+            <div class="metric-label" data-zh="诺华规模与自主演进周期" data-en="Novartis Scale &amp; FACS Span">诺华规模与自主演进周期</div>
+            <strong data-zh="7.5× / 18 个月" data-en="7.5× / 18 Months">7.5× / 18 个月</strong>
+            <span data-zh="BRK382 诺华活跃智能体达 1,366 个；BRK285 Azure 支持排障历时 18 个月落地有界全自主 [5][7]" data-en="Novartis reached 1,366 active agents (BRK382) while Azure Support matured FACS over 18 months (BRK285) [5][7]">BRK382 诺华活跃智能体达 1,366 个；BRK285 Azure 支持排障历时 18 个月落地有界全自主 [5][7]</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="genesis-view-bar load-in" role="region" aria-label="Genesis 视图模式切换">
+        <span class="genesis-view-status" data-zh="Genesis 纯静态编译产物 · 零后端依赖 · 支持渐进披露与源稿对照" data-en="Genesis Static Compiled Artifact · Zero Backend · Progressive &amp; Source View">Genesis 纯静态编译产物 · 零后端依赖 · 支持渐进披露与源稿对照</span>
+        <div class="genesis-view-buttons">
+          <button type="button" class="genesis-view-btn is-active" data-genesis-mode="progressive" data-zh="渐进披露视图" data-en="Progressive View">渐进披露视图</button>
+          <button type="button" class="genesis-view-btn" data-genesis-mode="linear" data-zh="线性展开视图" data-en="Linear View">线性展开视图</button>
+          <button type="button" class="genesis-view-btn" data-genesis-mode="source" data-zh="Markdown 源稿对照" data-en="Markdown Source">Markdown 源稿对照</button>
+        </div>
+      </div>
+      <section class="genesis-source-drawer" id="genesis-source-drawer" aria-label="Markdown 源稿">
+        <pre><code>---
+title: From Build to Production：Harness 内核与 Copilot 托管运行时全栈实战（Ignite 2026 ABS 第 08 场） || From Build to Production: Harness &amp; Copilot Managed Runtime Blueprint (Ignite 2026 ABS Session 08)
+eyebrow: Ignite 2026 ABS 内部分享 · 方案构建第 08 场（Wells Zhang · 12月7日 11:30–12:00） || Ignite 2026 ABS Internal Sharing · Solution Build Session 08 (Wells Zhang · Dec 7, 11:30–12:00)
+brand: Study Room Power Platform &amp; Copilot Studio || Study Room Power Platform &amp; Copilot Studio
+date: 2026-11-26
+topic: copilot-studio
+tags:
+  - Microsoft Ignite 2026
+  - Copilot Managed Runtime
+  - Microsoft Copilot Harness
+  - BRK378
+  - BRK259
+  - BRK382
+  - BRK285
+relations:
+  - ignite-2026-brk378-host-apps-anywhere-new-copilot-managed
+  - ignite-2026-brk259-copilot-harness-powers-copilot-studio
+  - ignite-2026-brk382-deploy-solutions-scale-power-platform-copilot
+  - ignite-2026-brk285-agent-works-enterprise-ready
+strict_i18n: true
+strict_density: true
+summary: 面向 Ignite 2026 ABS『方案构建』第 08 场（Wells Zhang，12月7日 11:30–12:00），深度融合 BRK378、BRK259、BRK382 与 BRK285，打通 Build ➔ Host ➔ Scale 生产闭环与 30 分钟实战演讲骨架。 || Crafted for Ignite 2026 ABS Solution Build Session 08 (Wells Zhang, Dec 7, 11:30–12:00), uniting BRK378, BRK259, BRK382, and BRK285 into one Build-to-Production architecture and 30-minute talk blueprint.
+lead: 面向《Ignite 2026 | ABS 内部分享安排》『方案构建』板块第 08 场（主讲人 Wells Zhang，2026 年 12 月 7 日 周一 11:30–12:00，时长 30 分钟），本文以主讲专场 BRK378（Copilot Managed Runtime 正式商用）为中轴，贯通 BRK259（Microsoft Copilot Harness 执行内核）、BRK382（诺华 7.5 倍扩张与规模化双轨治理）与 BRK285（Azure 支持团队 18 个月全自主生产排障）[1][3][5][7]。全文拆解企业应用与智能体如何告别本地端口孤岛和脆弱原型，沿 Build ➔ Host ➔ Scale &amp; Govern 主线跨越生产信任鸿沟，并附逐分钟卡点的 30 分钟实战演讲蓝图与口播金句骨架 [1][5][7]。 || Designed for Session 08 of the Ignite 2026 ABS Internal Sharing Series in the Solution Build track (Speaker: Wells Zhang, Monday, December 7, 2026, 11:30–12:00, 30 minutes), this article anchors on lead breakout BRK378 (Copilot Managed Runtime GA) while synthesizing BRK259 (Microsoft Copilot Harness), BRK382 (Novartis 7.5× scale and dual-track governance), and BRK285 (Azure Support's 18-month autonomous resolution rollout) [1][3][5][7]. It traces how enterprise apps and agents escape localhost silos and fragile prototypes across the Build -&gt; Host -&gt; Scale &amp; Govern spine, complete with a minute-by-minute 30-minute run-of-show and speaker soundbite script [1][5][7].
+panel_label: ABS 方案构建第 08 场 · 四专场合成蓝图 || ABS Session 08 · Four-Session Synthesis Brief
+panel_title: 重铸推理内核，随处受管托管，凭证据挣得生产自主权 || Rebuild the Harness, Host Anywhere, and Earn Production Autonomy
+panel_desc: 将 BRK259 的单循环容器内核、BRK378 的跨工具 Git 托管、BRK382 的默认绿区账本与 BRK285 的爬山评测收束为一套 30 分钟可讲透的架构体系 [1][3][5][7]。 || Unifies BRK259's container harness, BRK378's Git-backed hosting, BRK382's default green-zone FinOps, and BRK285's hill-climbing loop into a 30-minute technical narrative [1][3][5][7].
+panel:
+  - Build 内核换代（BRK259） — 基于 Copilot SDK 与会话级 Azure 容器重铸，代码分析涨 47.5 个百分点、输入词元省 45%，六类钩子钉死确定性红线 [3][4] || Build: Copilot Harness (BRK259) — Rebuilt on Microsoft Copilot SDK and Azure containers, lifting code analysis +47.5 pts while cutting input tokens 45% under six deterministic hooks [3][4]
+  - Host 随处托管（BRK378 主讲） — 五大入口汇聚单一 Git 远程仓与 1,500+ 连接器，Lovable 纯前端直发零碰数据，VS Code 免密克隆无缝接力 [1][2] || Host: Managed Runtime GA (BRK378 Lead) — Five authoring surfaces share one Git remote and 1,500+ connectors, pairing zero-data-touch Lovable deploys with keyless VS Code relay [1][2]
+  - Scale 治理与自主（BRK382 + BRK285） — 诺华活跃智能体增 7.5×、10 美元半小时生成超级 CoE，配合低高代码状态分工与六步爬山闭环挣得有界自主 [5][6][7][8] || Scale &amp; Govern (BRK382 + BRK285) — Combines Novartis's 7.5× agent surge and $10 30-minute CoE app with hybrid durable state and 6-step hill climbing for bounded autonomy [5][6][7][8]
+metrics:
+  - 新内核代码分析与词元实测 || Harness Gain &amp; Token Cut | +47.5 pts / -45% | BRK259 约 500 道真实业务流程离线评测（Sonnet 4.6），83%–88% 输入词元命中缓存 [3][4] || Across ~500 customer offline evals on Sonnet 4.6 with 83%–88% prompt cache hit rates (BRK259) [3][4]
+  - 受管连接器与生态覆盖 || Connectors &amp; Ecosystem | 1,500+ / 40,000+ | BRK378 预置 1,500+ 动作级连接器，接入服务 4 万余家企业的 Lovable 平台且零数据外泄 [1][2] || 1,500+ per-action governed connectors plus 20-minute Lovable bind across 40,000+ orgs with zero data exposure (BRK378) [1][2]
+  - 诺华规模与自主演进周期 || Novartis Scale &amp; FACS Span | 7.5× / 18 个月 || 7.5× / 18 Months | BRK382 诺华活跃智能体达 1,366 个；BRK285 Azure 支持排障历时 18 个月落地有界全自主 [5][7] || Novartis reached 1,366 active agents (BRK382) while Azure Support matured FACS over 18 months (BRK285) [5][7]
+style:
+  accent: &quot;#ea580c&quot;
+  teal: &quot;#0d8f8c&quot;
+---
+
+## #build-to-prod-spine 01 / Four-Session Synthesis :: 从本地原型孤岛到企业生产闭环：四专场三阶架构总纲 || From Localhost Prototypes to Production: The Four-Session Architectural Spine
+
+生成式工具已经把“写出一个能演示的前端页面或对话机器人”压缩到了几分钟，但企业工程团队却普遍卡在两道生产断层前 [1][7]。第一道是**宿主断层**：业务人员与开发者在个人电脑上跑通的微应用困在本地 `localhost` 端口，既没有企业目录单点登录，也拿不到合规的数据连接审批 [1]。第二道是**信任断层**：正如 BRK285 开场两次现场举手投票所揭示的反差——全场绝大多数团队都搭出过能给出漂亮回答的智能体，但几乎没人敢免去人工逐单审批、直接放它进生产系统执行写操作 [7]。 || Generative tools have compressed drafting a working user interface or chat bot into minutes, yet enterprise teams routinely stall at two production chasms [1][7]. The first is the **hosting chasm**: micro-apps built on laptops remain trapped on `localhost` ports without corporate single sign-on or governed data access [1]. The second is the **trust chasm**: as exposed by two opening audience polls in BRK285, most teams have built an agent that gives a fluent answer, yet almost none dare let it execute production actions without step-by-step human approval [7].
+
+在《Ignite 2026 | ABS 内部分享安排》『方案构建』板块第 08 场（主讲人 Wells Zhang，12 月 7 日周一 11:30–12:00）中，我们不再孤立复述单场特性，而是将四场官方专场组装为一条 **Build ➔ Host ➔ Scale &amp; Govern** 生产交付流水线 [1][3][5][7]。其中 **BRK259** 提供带确定性钩子的单循环执行内核，主讲场 **BRK378** 提供终结本地孤岛的跨入口托管底座。**BRK382** 与 **BRK285** 则分别补齐租户级治理账本与关键业务的有界自主演进方法论 [1][3][5][7]。 || For Session 08 of the Ignite 2026 ABS Solution Build internal sharing series (Speaker: Wells Zhang, Monday, Dec 7, 11:30–12:00), we assemble four interlocking breakouts into one **Build -&gt; Host -&gt; Scale &amp; Govern** pipeline instead of reciting isolated feature lists [1][3][5][7]. **BRK259** supplies the reasoning harness with deterministic hooks while lead session **BRK378** provides the Git-backed universal hosting runtime. **BRK382** and **BRK285** then establish tenant-wide governance, FinOps ledgers, and earned production autonomy [1][3][5][7].
+
+| 演进阶梯与议程定位 || Lifecycle Stage &amp; Role | 绑定 Ignite 2026 专场与讲者 || Bound Session &amp; Speakers | 解决的核心生产断层 || Core Blocker Solved | 关键工程机制与量化实证 || Signature Mechanism &amp; Verified Metric |
+| --- | --- | --- | --- |
+| **1. Build（重铸内核与契约先行）** || **1. Build (Kernel &amp; Contract)** | **BRK259**（Alice Appleton）+ **BRK285** 旅程一（Tim Schaeps） || **BRK259** (Alice Appleton) + **BRK285** Journey 1 | 2023 串行对话脚手架看不见全局目标；脆弱单容器原型盲堆功能撞上合规红线 [3][7] || 2023 chat scaffolding lacks holistic planning; fragile prototypes break against cloud policies [3][7] | 基于 Copilot SDK + Azure 容器重铸，代码分析 **+47.5 pts**、输入词元 **-45%**；六类钩子拦截超 **£2,000** 订单 [3][4] || Rebuilt on Copilot SDK + Azure containers (**+47.5 pts** code analysis, **-45%** input tokens); 6 hooks block **&gt;£2,000** POs [3][4] |
+| **2. Host（随处构建统一托管 · 主讲）** || **2. Host (Universal Runtime · Lead)** | **BRK378**（Clay Wesener, Emma Cooper, Malavika Tadeusz） || **BRK378** (Clay Wesener, Emma Cooper, Lovable PM) | 多工具生成应用困在 `localhost` 孤岛；业务原型转交研发时面临推倒重写的断崖 [1][2] || AI-generated apps trapped on `localhost`; domain prototypes hit a pro-code rewrite cliff [1][2] | 11 月 17 日 GA；五大入口共享单一 Git 远程仓与 **1,500+** 连接器；Lovable 纯前端直发零触碰企业数据 [1][2] || Nov 17 GA; 5 surfaces share one Git remote &amp; **1,500+** connectors; Lovable ships pure React with zero data touch [1][2] |
+| **3. Scale（双轨绿区与开放账本）** || **3. Scale (Green Zones &amp; FinOps)** | **BRK382**（Zohar Raz, Ryan Jansen, Austin Laugesen, 诺华） || **BRK382** (Zohar Raz, Ryan Jansen, Austin Laugesen, Novartis) | 全员放开导致默认环境失控与僵尸泛滥；算力点数成黑盒且传统 CoE 部署笨重 [5][6] || Unmanaged default-environment sprawl, opaque credit bills, and multi-day CoE setup friction [5][6] | 诺华在用智能体激增 **7.5×**（达 **1,366** 个）；MAC 首日默认绿区 + `&lt;1 小时`告警；**$10 / 30 分钟**生成超级 CoE [5][6] || Novartis active agents grew **7.5×** (**1,366**); MAC default green zone + `&lt;1h` alerts; **$10 / 30m** OpenAPI CoE app [5][6] |
+| **4. Govern &amp; Evolve（有界全自主）** || **4. Govern &amp; Evolve (Autonomy)** | **BRK285** 旅程二（Arun Masilamani, Ali Ijaz, Omprakash Adudodla） || **BRK285** Journey 2 (Azure Support FACS Team) | 跨天复杂工单状态易丢失；线上依然出现幻觉，靠修改提示词“许愿”毫无效果 [7][8] || Multi-day support state drops; live hallucinations persist despite wishful prompt tweaking [7][8] | Azure 支持历时 **18 个月**落地 FACS：Studio 6 专员推理 + Durable Functions 持久状态 + 六步爬山闭环 [7][8] || **18-month** Azure FACS journey: Studio 6-role reasoning + Durable Functions state + 6-step hill climbing [7][8] |
+
+:::figure { src: &quot;./media/build-to-prod-four-session-topology.figure.json&quot;, title: &quot;From Build to Production：四专场融合的三层内核、托管与规模治理拓扑 || From Build to Production: Three-Plane Harness, Managed Runtime &amp; Scale Topology&quot; }
+图 1：顶层以 Microsoft Copilot Harness 单循环沙盒与构建期前置策略统一承接五大创作入口（BRK259/BRK378）；中层收口至共享 Git 远程仓、1,500+ 受管连接器与低高代码混合持久底座（BRK378/BRK285）；底层由 M365 管理中心默认绿区、单一 OpenAPI 账本与六步爬山评测闭环护航规模化投产（BRK382/BRK285）[1][3][5][7]。 || Figure 1: Top plane unites five policy-aware entry surfaces on the Microsoft Copilot Harness (BRK259/BRK378); middle plane converges on one Git remote, 1,500+ connectors, and hybrid durable state (BRK378/BRK285); bottom plane enforces MAC default green zones, OpenAPI FinOps, and 6-step hill climbing (BRK382/BRK285) [1][3][5][7].
+:::
+
+## #build-copilot-harness 02 / Build: Harness &amp; Guardrails :: Build 阶段（BRK259 + BRK285）：重铸 Copilot SDK 容器内核，把确定性钩子嵌入自主循环 || Build Phase (BRK259 + BRK285): Rebuilding on Copilot SDK Containers with Deterministic Hooks
+
+迈向生产的第一步，是彻底认清“对话脚手架”与“自主工程内核”的代差 [3]。Alice Appleton 在 BRK259 中披露，2023 年初设计的经典底座（Standard Harness）为了弥补早期模型能力短板，强行把用户意图切碎为串行子提示词；模型既看不见全局业务目标，也无法在遇到数万行财务表格时写脚本脱敏解析 [3][4]。面对推理模型与工具内嵌循环的成熟，团队果断放弃在旧底座上贴补丁，转而基于与 GitHub、Microsoft Foundry、Copilot Cowork 及 Copilot Code 同源的 **Microsoft Copilot SDK** 从零重铸执行内核，并在每次会话启动时动态拉起专属 **Azure 隔离容器（Execution Sandbox）** [3][4]。 || Crossing into production begins by retiring chat-era prompt scaffolding [3]. As Alice Appleton detailed in BRK259, the 2023 Standard harness split requests into rigid sequential sub-prompts, blinding the model to holistic business goals and choking on massive tabular files [3][4]. Rather than patching legacy scaffolding, the team rebuilt from scratch on the **Microsoft Copilot SDK**—shared across GitHub, Foundry, Cowork, and Copilot Code—provisioning an isolated **Azure container sandbox** with shell, code execution, and local disk on every session [3][4].
+
+这套新内核打破了“自主循环调模次数翻倍必然烧穿预算”的直觉担忧 [3][9]。在约 **500 道源于真实客户流程的离线评测集**（固定使用 Claude Sonnet 4.6）中，得益于容器命令行接管重算与单循环增量上下文拼接，新内核在四大业务场景全部大涨的同时，反而把最昂贵的输入词元砍掉了近一半 [3][4][9]： || Empirical benchmarks overturned the fear that multi-step agent loops multiply token bills [3][9]. Evaluated across **~500 customer-derived business-process cases** held constant on Claude Sonnet 4.6, offloading heavy file slicing to container disk and incremental context assembly lifted pass rates across every category while slashing expensive input tokens nearly in half [3][4][9]:
+
+$$
+\begin{aligned}
+\Delta Q_{\text{code}} &amp;= +47.5\text{ pts}, &amp; \Delta Q_{\text{file}} &amp;= +28.2\text{ pts}, &amp; \Delta T_{\text{input}} &amp;= -45.0\% \\
+R_{\text{cache}} &amp;\in [83\%,\, 88\%], &amp; R_{\text{recover}} &amp;\in [84\%,\, 91\%]
+\end{aligned}
+$$
+
+其中提示词缓存命中率高达 **83%–88%**（使成本加权输入词元净降 15%–21%），且工具调用异常时有 **84%–91%** 的回合能在循环内自主重算恢复 [3][9]。为了应对前沿实验室每周至少发布一款新模型的节奏，平台默认开启 **Auto 帕累托选模**，在管理员策略范围内横跨 Anthropic、OpenAI、Mistral 与 SpaceXAI 动态寻优；微软研发团队自身更用 **32 个 Copilot Studio 智能体、47 条协作连接与 6 个函数式共享专家**组成内部软件工厂，全天候自动分流故障、生成补丁并巡检账单来构建 Copilot Studio 本体 [3][4]。 || Prompt cache hits reached **83%–88%** (cutting cost-weighted input tokens by 15%–21%), while **84%–91%** of failed tool turns self-recovered mid-loop [3][9]. With frontier labs shipping new models weekly, default **Auto Pareto routing** optimizes quality versus cost across Anthropic, OpenAI, Mistral, and SpaceXAI; internally, the engineering team dogfoods **32 Copilot Studio agents, 47 connections, and 6 shared helpers** round-the-clock to build Copilot Studio itself [3][4].
+
+:::insight-grid { cols: 3, title: &quot;Build 阶段三大生产级基石：动态子智能体、确定性钩子与架构契约前置 || Three Build-Phase Pillars: Dynamic Sub-Agents, Lifecycle Hooks &amp; Upfront Contracts&quot; }
+::card 01 · BRK259
+### 动态任务子智能体并行扇出 || Dynamic Task Agents Fan-Out
+无需单独创建或发布子机器人，主控智能体在单会话边界内按需并发拉起 3 个轻量 `Claude Haiku 5.5` 隔离盲审 Apex、Meridian 与 Nimbus 标书，再一句话派生 `Sol` 模型跨厂商挑刺复核（预计 2026 年 12 月 GA）[3][4]。 || Spins up ephemeral workers at runtime with zero child bots to publish—fanning out three isolated `Claude Haiku 5.5` bid reviewers in parallel before spawning `Sol` for cross-provider critique (targeting Dec 2026 GA) [3][4].
+
+::card 02 · BRK259
+### 六类生命周期钩子硬阻断 || Six Deterministic Lifecycle Hooks
+不同于模型可选择不调的普通工具，Hook 在固定切点百分百触发：采购演示中 `Session start` 预载英国成本中心，而唯一拥有拦截改参权的 `Before tool` 钩子当场计算并拒绝超出 **£2,000** 红线的 8 套入职包订单（返回 `continue: false`）[3][4]。 || Firing 100% deterministically unlike optional LLM tools, `Session start` loads cost-center rules while `Before tool`—the sole blocking/rewriting event—halts an 8-kit order exceeding **£2,000** (`continue: false`) before any PO is created [3][4].
+
+::card 03 · BRK285 + BRK378
+### 契约先行与构建期策略感知 || Contract-First &amp; Policy-Aware Build
+BRK285 警示切勿在单容器原型上盲堆界面（曾因 Cosmos DB 公网端点违例直接瘫痪），而是挂载 **Microsoft Learn MCP** 先检 CAF/WAF 规范落盘契约；BRK378 更将管理中心禁用连接器直接注入构建上下文，从源头杜绝造出无法上线的废品 [1][7]。 || Rather than stacking UI onto fragile prototypes, teams wire **Microsoft Learn MCP** in VS Code to ground ADRs in CAF/WAF first (BRK285), while CMR injects admin connector rules into build agents upfront so makers never burn tokens on unshippable code (BRK378) [1][7].
+:::
+
+&lt;div class=&quot;b2p-media-grid&quot;&gt;
+  &lt;article class=&quot;b2p-media-card&quot; data-present-surface=&quot;unframed&quot;&gt;
+    &lt;div class=&quot;b2p-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/brk259-slide08-harness-loop.png&quot; alt=&quot;BRK259 Slide 8 official diagram showing App, 6-step Harness loop, Execution Sandbox, Tools, Model, and Trust Layer&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;b2p-media-body&quot;&gt;
+      &lt;span class=&quot;b2p-media-badge&quot; data-zh=&quot;BRK259 官方课件 · Slide 08&quot; data-en=&quot;BRK259 Official Slide · Slide 08&quot;&gt;BRK259 官方课件 · Slide 08&lt;/span&gt;
+      &lt;h4 data-zh=&quot;Microsoft Copilot Harness 六步自愈循环与容器信任层&quot; data-en=&quot;Six-Step Agentic Loop, Azure Sandbox &amp; Trust Layer&quot;&gt;Microsoft Copilot Harness 六步自愈循环与容器信任层&lt;/h4&gt;
+      &lt;p data-zh=&quot;展示输入组装、模型调用、沙盒工具执行与外层凭据隔离/Purview DLP 审计如何闭环运行 [3][4]。&quot; data-en=&quot;Shows prompt assembly, model calls, container CLI execution, and outer Purview DLP credential isolation [3][4].&quot;&gt;展示输入组装、模型调用、沙盒工具执行与外层凭据隔离/Purview DLP 审计如何闭环运行 [3][4]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+  &lt;article class=&quot;b2p-media-card&quot; data-present-surface=&quot;unframed&quot;&gt;
+    &lt;div class=&quot;b2p-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/brk378-admin-center-inventory.jpg&quot; alt=&quot;BRK378 Slide 18 official screenshot of Microsoft 365 Admin Center All Apps inventory tracking 492 managed apps and 4 blocked apps&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;b2p-media-body&quot;&gt;
+      &lt;span class=&quot;b2p-media-badge is-accent&quot; data-zh=&quot;BRK378 官方课件 · Slide 18 GA&quot; data-en=&quot;BRK378 Official Slide · Slide 18 GA&quot;&gt;BRK378 官方课件 · Slide 18 GA&lt;/span&gt;
+      &lt;h4 data-zh=&quot;Microsoft 365 管理中心：全域托管应用盘点与一键隔离&quot; data-en=&quot;M365 Admin Center: 492 Managed Apps &amp; Instant Block&quot;&gt;Microsoft 365 管理中心：全域托管应用盘点与一键隔离&lt;/h4&gt;
+      &lt;p data-zh=&quot;所有构建入口产出的应用自动登记入账（实机展示 492 款纳管、4 款高危拦截），彻底告别隐形本地端口 [1][2]。&quot; data-en=&quot;Every entry surface auto-registers into one inventory (492 apps tracked, 4 blocked) with zero localhost blind spots [1][2].&quot;&gt;所有构建入口产出的应用自动登记入账（实机展示 492 款纳管、4 款高危拦截），彻底告别隐形本地端口 [1][2]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+&lt;/div&gt;
+
+此外，BRK259 的 **会话变量（Variables）** 与 **MCP / A2A 双向协议通道** 进一步收紧了构建边界：创作者可按 `Department = HR` 等变量条件动态裁剪向模型暴露的知识源与工具，并将 Copilot Studio 智能体通过 Microsoft Entra OAuth 2.0 委托身份直接调用本地/VNet 私有代理（入向已 GA），或反向发布为远程 MCP 与 A2A 服务器（预计 2027 年 Q1 GA）[3][4]。 || Complementing hooks, **scoped Variables** and **bidirectional MCP / A2A channels** tighten runtime exposure: makers gate sensitive HR knowledge strictly when `Department = HR` and connect inbound to Foundry, M365 Agents SDK, or VNet-isolated A2A peers (GA) while publishing Studio agents outbound as Entra OAuth-secured MCP/A2A servers (targeting Q1 CY27 GA) [3][4].
+
+## #host-managed-runtime 03 / Host: Copilot Managed Runtime :: Host 阶段主讲核心（BRK378）：五大入口共写单一 Git 仓，打通业务创作与全栈接力 || Host Phase Lead Focus (BRK378): Five Entry Surfaces on One Git Repo Without a Rewrite Cliff
+
+作为第 08 场分享的主讲重心，2026 年 11 月 17 日正式全面商用（GA）的 **Copilot 托管运行时（Copilot Managed Runtime，简称 CMR）** 正面拆除了横亘在“自然语言原型”与“企业生产系统”之间的高墙 [1][2]。产品总经理 Clay Wesener 在 BRK378 开场给出了一项极具冲击力的工程事实：团队混合使用协同画布（Cowork）、Copilot Studio、命令行与 OpenAI、Claude Opus 等多款模型构建了整场所有演示应用，但**没有任何一款成品运行在 `localhost` 本地端口上** [1][2]。只要一键发布至托管运行时，每款应用便自动获得 Microsoft Entra 身份认证域名、后台专属 **Git 远程源码仓库**，并同步挂载 **1,500 余个受管连接器**与管理中心治理台账 [1][2]。 || Serving as the centerpiece of Session 08, **Copilot Managed Runtime (CMR)**—generally available since November 17, 2026—tears down the wall between AI prototypes and production hosting [1][2]. Opening BRK378, GM Clay Wesener highlighted a telling milestone: although the team built session demos across Cowork, Copilot Studio, the CLI, and mixed models including OpenAI and Claude Opus, **not a single resulting app ran on `localhost`** [1][2]. Every published artifact automatically inherits a Microsoft Entra authenticated URL, a backing **Git remote repository**, access to **1,500+ governed connectors**, and live Microsoft 365 Admin Center visibility [1][2].
+
+在工作流内构建侧，首席产品经理 Emma Cooper 演示了两条递进路径 [1][2]。第一条路径是在正式商用的 **Copilot Cowork** 中调取 **Work IQ** 组织上下文与 **Figma 设计插件**，几分钟内生成像素还原的《Q4 2026 Atlas 项目路线图》，并通过代号 **Rayfin** 的前沿预览能力一键落盘至 **Microsoft Fabric 数据库**或 SharePoint 列表 [1][2]。第二条路径是在 **Copilot Studio（Apps 现已 GA）** 中构建基于 Dataverse 的 **Gauge 现场巡检分析应用**（以及通过 36 项自动构建检查的 Voyage Desk 核保台）：顶部用低时延**行内提示词函数（Inline LLM）**提炼风险摘要，右侧内嵌完整 **Gauge 风险顾问智能体**跨表追查北场（North Yard）逾期整改项 [1][2]。 || For in-flow creation, Principal PM Emma Cooper demonstrated two escalating tiers [1][2]. First, prompting inside **Copilot Cowork (GA)** pulls **Work IQ** context and **Figma plugin** mockups to ship the interactive *Q4 2026 Atlas Roadmap* in minutes, persisting state into a **Microsoft Fabric database via Rayfin** or SharePoint lists [1][2]. Second, **Apps in Copilot Studio (GA)** powers the Dataverse-backed **Gauge Field Inspections** app alongside *Voyage Desk* (verified by 36 automated build checks). Its dashboard pairs a low-latency **inline LLM summary** on top with an embedded **Gauge Risk Advisor Agent** side panel that cross-references overdue North Yard corrective actions [1][2].
+
+:::comparison { title: &quot;消除低代码与跨生态孤岛：三方平台直发与全栈 Git 无缝接力（BRK378） || Eliminating Tool Silos: Zero-Data-Touch 3P Publishing &amp; Keyless Pro-Dev Git Relay (BRK378)&quot; }
+::versus 开放生态直发：Lovable + Managed Platform SDK || Open 3P Ecosystem: Lovable Direct Publish
+### 20 分钟租户绑定，仅推纯 React 前端且零触碰企业数据 || 20-Minute Admin Bind, Pure React UI &amp; Zero 3P Data Access
+服务超 **40,000 家企业**（含德国电信与英伟达）、累计创建逾 **7,000 万个项目**的 Lovable 现场演示原生集成：IT 管理员约 **20 分钟**配通工作区后，创作者生成新员工入职应用一键直发 CMR；**Lovable 仅推送编译后的纯 React 前端，全程零权限接触底层 Excel 或业务数据**，一切鉴权与读写严格闭环在客户 M365 租户内 [1][2]。 || Powering **40,000+ businesses** and **70M+ projects**, Lovable binds to CMR in roughly **20 minutes**: makers prompt an Entra-personalized onboarding app and publish straight to Microsoft's runtime—**shipping only the React frontend while Lovable never touches underlying tenant data** [1][2].
+
+::versus 专业研发接力：CLI + VS Code + Code Agents { highlight: true } || Pro-Dev Relay: CLI, VS Code &amp; Code Agents { highlight: true }
+### 免密钥克隆同一套 TypeScript/React 源码仓，彻底终结推倒重写 || Keyless GCM Clone of Clean React/TS Source—Zero Rewrite Cliff
+全栈开发者无需索要 API 密钥或个人令牌，直接通过命令行与 **Git Credential Manager（GCM）** 将业务人员在 Studio 中生成的 Gauge 巡检应用克隆至本地 VS Code [1]。工程师在标准 `Home.tsx` 与 Hooks 上新增巡检地理位置地图，在带安全横幅的本地开发服验证后即可原路推回共享生产域名 [1]。团队还可部署自带模型与编排器的 **Code Agents**，免 Azure 额外配置直接连通 Agent 365 [2]。 || Software engineers use the CLI and **Git Credential Manager** to clone the Studio-built Gauge app into VS Code without PAT tokens [1]. They add an inspection geolocation map onto clean `Home.tsx` React code, verify it on a flagged local dev server, and push updates straight back to the live URL [1]. Teams can also deploy custom **Code Agents** wired to Agent 365 with zero Azure setup [2].
+:::
+
+## #scale-govern-autonomy 04 / Scale, FinOps &amp; Autonomy :: Scale &amp; Govern 阶段（BRK382 + BRK285）：双轨绿区、算力账本与 18 个月爬山自愈 || Scale &amp; Govern Phase (BRK382 + BRK285): Dual Green Zones, FinOps &amp; 18-Month Hill Climbing
+
+当五六种构建工具同时向数千名员工敞开大门，如何既不把每份个人效率草稿都当成达·芬奇画《蒙娜丽莎》那样审批三年，又不让默认环境沦为失控的影子泥潭 [5]？在 BRK382 中，拥有约 **77,000 名员工**、服务全球 **3.04 亿患者**的瑞士药企**诺华（Novartis）**交出了真实租户答卷 [5][6]。通过“护栏内放行”与 10 周公民开发者训练营（约 500 名活跃毕业生实现近 50% 生产转化），诺华主租户自 2025 年 10 月起在用 Copilot Studio 智能体从 182 个激增至 **1,366 个（7.5×）**，月活创作者升至 **3,312 人（2.6×）** [5][6]。同期 Power Apps 扩至 **27,862 款**（含 50 款新代码应用），并靠**周期性所有者确权（Periodic Owner Attestation）**自动清退僵尸资产 [5][6]。 || When thousands of employees build across half a dozen tools, how do enterprises avoid treating every personal draft like Leonardo da Vinci's three-year *Mona Lisa* without letting the default environment descend into chaos [5]? In BRK382, **Novartis** (**77,000 associates**, **304M patients**) shared primary tenant telemetry [5][6]. Combining guardrailed enablement with 10-week Citizen Developer cohorts (~500 graduates converting ~50% to production), active Copilot Studio agents surged **7.5× from 182 to 1,366** while monthly makers rose **2.6× to 3,312** [5][6]. Power Apps simultaneously reached **27,862** (including 50 Code apps), kept clean through **periodic owner attestation** [5][6].
+
+支撑这种规模扩张的底座是 **PPAC 专家绿区**与 **M365 管理中心（MAC）首日默认绿区**的双轨协同 [1][5][6]。在 Power Platform 侧，管理员利用最多 25 条优先级环境路由将创作者分流至个人开发沙盒，勾选启用**高级连接器策略（ACP）**不仅能封禁 SQL `Delete/Update` 高危动作，更能强制要求仅放行 **OAuth** 身份认证，配合 Purview 审计必读欢迎条款与内部申诉助手 **Ask Mica** 前置引导 [5][6]。而在跨工具的 Copilot Managed Runtime 侧，绿区从租户**第一天起默认开启**，开箱仅放行核心办公连接器；Austin Laugesen 现场点击测试按钮证明，一旦代码试图私自外呼未授权外部域名（如 `Bing`），**Managed Host** 会依据默认**严格内容安全策略（CSP）**当场掐断连接 [1][5]。部署与运维则沿“单环境零配置 `Dev -&gt; Test -&gt; Prod` 三阶段”平滑晋升至金融级跨环境严管流水线，并由低延迟 **Monitor** 在 **1 小时内**捕获异常直推 Teams 或 ServiceNow 工单 [5][6]。 || Backing this velocity is a dual green-zone architecture pairing **PPAC expert routing** with **CMR's on-by-default green zone in MAC** [1][5][6]. In PPAC, up to 25 priority routing rules steer makers into personal sandboxes governed by **Advanced Connector Policies (ACP)**—blocking SQL `Delete/Update` actions and enforcing **OAuth-only authentication** alongside Purview-audited welcome terms and Microsoft's internal **Ask Mica** assistant [5][6]. In CMR, the green zone ships **on by default on day one**, scoping apps to core M365 connectors while the **Managed Host's strict Content Security Policy (CSP)** blocks unauthorized outbound calls (such as `Bing` in Demo 3) live at runtime; workloads graduate from built-in `Dev -&gt; Test -&gt; Prod` targets to hardened cross-environment pipelines monitored by **within-1-hour** high-sensitivity alerts [1][5][6].
+
+&lt;div class=&quot;b2p-media-grid&quot;&gt;
+  &lt;article class=&quot;b2p-media-card&quot; data-present-surface=&quot;unframed&quot;&gt;
+    &lt;div class=&quot;b2p-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/brk382-mac-cost-management.png&quot; alt=&quot;BRK382 Slide 46 official screenshot of Microsoft 365 admin center Copilot Cost management overview showing 2.5M total credits, 1.5M prepaid, 1M pay-as-you-go, and user spending limit alerts&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;b2p-media-body&quot;&gt;
+      &lt;span class=&quot;b2p-media-badge&quot; data-zh=&quot;BRK382 官方课件 · Slide 46&quot; data-en=&quot;BRK382 Official Slide · Slide 46&quot;&gt;BRK382 官方课件 · Slide 46&lt;/span&gt;
+      &lt;h4 data-zh=&quot;MAC 全局双轨账本：2.5M 点数透视与限额预警&quot; data-en=&quot;MAC FinOps Ledger: 2.5M Credits &amp; Threshold Alerts&quot;&gt;MAC 全局双轨账本：2.5M 点数透视与限额预警&lt;/h4&gt;
+      &lt;p data-zh=&quot;配合创作者端顶栏点数器（88 credits）与 Cowork /cost 命令，统一纳管 1.5M 预付 + 1M 按量及 5,000 点业务上限 [1][5][6]。&quot; data-en=&quot;Pairs maker-side counters (88 credits) and /cost commands with 1.5M prepaid + 1M PAYG tracking and 5,000-credit pilot caps [1][5][6].&quot;&gt;配合创作者端顶栏点数器（88 credits）与 Cowork /cost 命令，统一纳管 1.5M 预付 + 1M 按量及 5,000 点业务上限 [1][5][6]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+  &lt;article class=&quot;b2p-media-card&quot; data-present-surface=&quot;unframed&quot;&gt;
+    &lt;div class=&quot;b2p-media-frame&quot;&gt;
+      &lt;img src=&quot;./media/brk285-slide29-reference-arch.jpg&quot; alt=&quot;BRK285 Slide 29 official diagram of the Resolution Agent Reference Architecture across Dynamics 365, Power Platform, Copilot Studio, MCP, and Azure&quot; loading=&quot;lazy&quot; /&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;b2p-media-body&quot;&gt;
+      &lt;span class=&quot;b2p-media-badge is-accent&quot; data-zh=&quot;BRK285 官方课件 · Slide 29&quot; data-en=&quot;BRK285 Official Slide · Slide 29&quot;&gt;BRK285 官方课件 · Slide 29&lt;/span&gt;
+      &lt;h4 data-zh=&quot;Azure 支持 FACS 生产参考拓扑：低代码推理 + 全代码状态&quot; data-en=&quot;Azure Support FACS Topology: Studio Reasoning + Azure State&quot;&gt;Azure 支持 FACS 生产参考拓扑：低代码推理 + 全代码状态&lt;/h4&gt;
+      &lt;p data-zh=&quot;Copilot Studio 协同 6 大专职角色，经 APIM 与 4 路 MCP 桥连接 Durable Functions / Cosmos DB 跨天状态与 Foundry 门禁 [7][8]。&quot; data-en=&quot;Copilot Studio coordinates 6 specialist roles across 4 APIM-secured MCP bridges to Durable Functions/Cosmos state and Foundry gates [7][8].&quot;&gt;Copilot Studio 协同 6 大专职角色，经 APIM 与 4 路 MCP 桥连接 Durable Functions / Cosmos DB 跨天状态与 Foundry 门禁 [7][8]。&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/article&gt;
+&lt;/div&gt;
+
+在财务与管理自动化层面，BRK378 与 BRK382 共同补齐了透明算力账本：创作者在 Studio 左上角直看实时消耗（如 `88 credits`）或在 Cowork 输入 `/cost` 即刻查账；管理员则在 MAC `Cost management` 中设定诸如现场巡检 **5,000 点数**的业务线预算上限，一屏统管全租户 `2.5M` 点数（`1.5M` 预付 + `1M` 按量）与 `≥90%` 阈值预警 [1][5][6]。更惊艳的是，微软用**单一权威 OpenAPI 规范**按月自动同步生成版本化 REST API、`.NET/Python` SDK、`Admin V2` 连接器、**15 组 PAC CLI 命令**与 **Cowork 管理插件**——Zohar 现场演示导入顾问团队打磨的包，仅耗资 **10 美元**、用时 **30 分钟**便编译出一款运行在 CMR 上的现代化全栈超级 CoE 治理应用（`aka.ms/powerplatform360`）[5][6]。 || On FinOps and admin automation, makers see live burn via Studio's top-left counter (`88 credits`) or `/cost` in Cowork while admins set **5,000-credit** pilot caps and monitor `2.5M` monthly credits (`1.5M` prepaid + `1M` PAYG) with `≥90%` alerts in MAC [1][5][6]. Crucially, one **authoritative OpenAPI specification** auto-generates monthly REST docs, `.NET/Python` SDKs, the `Admin V2` connector, **15 PAC CLI groups**, and the **Cowork Admin Plugin**—enabling Zohar to compile a modern CoE Toolkit superset app on CMR in **30 minutes for $10** (`aka.ms/powerplatform360`) [5][6].
+
+而针对最严苛的关键业务自主执行，BRK285 披露了微软 Azure 支持团队历时 **18 个月**将全自主客户服务（FACS）推上生产的终极心法 [7][8]：团队没有推倒低代码重写，而是用 **Copilot Studio** 调度意图、证据合成、质量审校等 6 类专职角色，把跨数天乃至数周的单案持久状态与超时升级兜底交给 **Azure Durable Functions 与 Cosmos DB**（实机秒级免问订阅号查出 Contoso `09:08` 部署后 `0 of 3` 健康实例并引导回滚）[7][8]。面对上线后依然存在的幻觉，团队摒弃“让提示词更努力思考”的无效许愿，建立起**六步爬山（Hill Climbing）闭环**——将人工坐席改稿原因、专家评分量表（Rubric）与**逐轮追踪工作台（Trace Studio）**日志聚类为失败分桶，在 **3×6 控制矩阵**与两条授权铁律（*绝不授予无法解释的权限，绝不授予无法撤销的权限*）约束下逐个场景放行有界自主 [7][8]。 || Finally, for mission-critical autonomous execution, BRK285 unpacked Azure Support's **18-month** rollout of Fully Autonomous Customer Service (FACS) [7][8]: keeping **Copilot Studio** for six-specialist reasoning while delegating multi-day case state and timeout fallbacks to **Azure Durable Functions and Cosmos DB** (pinpointing `0 of 3` healthy instances after a `09:08` deployment without asking Contoso for a subscription ID) [7][8]. Confronting persistent live hallucinations, the team replaced wishful prompt-tweaking with a **six-step hill-climbing loop**—clustering reviewer edit reasons, SME rubrics, and **Trace Studio** logs into failure buckets to unlock bounded autonomy one scenario at a time under two iron rules: *never grant authority you cannot explain, and never grant authority you cannot reverse* [7][8].
+
+## #abs-30min-blueprint 05 / 30-Minute Talk Blueprint :: ABS『方案构建』第 08 场实战指南：30 分钟时间分配与演讲金句骨架 || ABS Session 08 Run-of-Show: 30-Minute Time Allocation &amp; Speaker Soundbite Script
+
+为助力 2026 年 12 月 7 日（周一）11:30–12:00 的 30 分钟内部分享高密度控场，我们将整场《From Build to Production: Harness &amp; Managed Runtime》切分为节奏紧凑的五幕（`3 + 7 + 9 + 7 + 4 = 30 分钟`），确保主讲场 **BRK378** 占据最饱满的黄金中段，同时首尾严丝合缝咬合 **BRK259**、**BRK382** 与 **BRK285** 的硬核证据 [1][3][5][7]： || To pace the 30-minute internal talk on Monday, December 7, 2026 (11:30–12:00) with zero filler, we structure *From Build to Production: Harness &amp; Managed Runtime* into five crisp acts (`3 + 7 + 9 + 7 + 4 = 30 minutes`), giving lead session **BRK378** the central nine-minute spotlight while bookending it with empirical proof from **BRK259**, **BRK382**, and **BRK285** [1][3][5][7]:
+
+:::figure { src: &quot;./media/talk-30min-pacing-blueprint.figure.json&quot;, title: &quot;ABS 第 08 场（11:30–12:00）五幕 30 分钟节奏分配与四专场映射图 || ABS Session 08 (11:30–12:00) Five-Act 30-Minute Pacing &amp; Session Mapping&quot; }
+图 2：30 分钟分享采用『3 分钟破题立主线 ➔ 7 分钟讲透 Harness 内核 ➔ 9 分钟重锤 CMR 随处托管主讲 ➔ 7 分钟拆解诺华与默认绿区账本 ➔ 4 分钟收束 FACS 爬山闭环与周一行动项』的黄金漏斗结构 [1][3][5][7]。 || Figure 2: Paces the 30-minute slot across a 3m opening hook, 7m Copilot Harness deep dive, 9m Copilot Managed Runtime lead spotlight, 7m Novartis &amp; MAC FinOps governance, and 4m FACS hill-climbing close [1][3][5][7].
+:::
+
+点击下方交互式演讲导播台的五幕标签或进度色块，即可逐幕检视精确到分钟的**上台口播金句、核心演示论据、幕间转场衔接词**及本知识库四篇配套深潜直链： || Click any act tab or timeline segment in the interactive speaker run-of-show below to inspect verbatim stage soundbites, minute-by-minute talking points, transition cues, and direct links to all four companion deep dives:
+
+:::sandbox { id: &quot;abs-talk-blueprint&quot;, canvas: false, script: &quot;./talk-blueprint.js&quot;, style: &quot;./talk-blueprint.css&quot;, title: &quot;ABS 内部分享第 08 场（Wells Zhang · 30 分钟）五幕演讲卡点与金句导播台 || ABS Session 08 (Wells Zhang · 30-Min) Interactive Five-Act Speaker Run-of-Show&quot;, desc: &quot;自由切换 11:30–12:00 五幕议程，查阅每幕口播金句、四专场硬指标锚点、幕间转场话术与原版 PPTX 直链。 || Switch across all five 11:30–12:00 acts for verbatim speaker soundbites, empirical metrics, transition cues, and official PPTX decks.&quot; }
+纯静态交互式演讲蓝图导播台：内置 ABS 方案构建第 08 场议程横幅、3+7+9+7+4 分钟比例时间轴、五幕口播金句与四场 Ignite 2026 信源直达入口。 || Pure static interactive run-of-show sandbox featuring the ABS Session 08 banner, proportional 30-minute timeline bar, verbatim soundbites, and four Ignite 2026 session links.
+:::
+
+:::callout { title: &quot;带回项目组的周一行动三步清单（ABS 方案构建交付沉淀） || Monday-Morning Three-Step Action Checklist for Solution Architects&quot; }
+1. **先立架构契约与确定性钩子，再写业务功能（Build）** — 在 VS Code 接入 Microsoft Learn MCP 对齐云采用与安全红线；凡涉及金额审批、外部写操作或敏感字段的工具调用，一律挂载 `Before tool` / `After tool` 生命周期钩子，拒绝靠自然语言提示词“祈祷合规” [3][7]。 || **1. Lock Contracts &amp; Deterministic Hooks First (Build)** — Ground designs via Microsoft Learn MCP and gate side-effecting or sensitive tools with `Before tool` / `After tool` hooks rather than trusting natural-language prompt wishes [3][7].
+2. **全面告别 localhost 孤岛，统一收归受管 Git 底座（Host）** — 将 Cowork、Copilot Studio 及花 20 分钟完成租户绑定的外部三方工具（如 Lovable）全部指向 Copilot Managed Runtime；利用共享 React/TypeScript Git 远程仓库与 Fabric (Rayfin) 持久化，实现业务创作者与全栈工程师零重写无缝接力 [1][2]。 || **2. Eliminate Localhost Silos on One Git Runtime (Host)** — Route Cowork, Studio, and 20-minute bound 3P builders like Lovable onto Copilot Managed Runtime so makers and VS Code engineers collaborate on one Git repo backed by Fabric (Rayfin) [1][2].
+3. **开启双轨绿区账本，凭爬山证据逐场景放权（Scale &amp; Govern）** — 核验 M365 管理中心默认绿区连接器与严格 CSP，按业务线挂载 5,000 点数试点限额或耗资 10 美元生成超级 CoE；对跨天复杂流程实施“Studio 推理 + Azure 持久状态”分工，用人工改稿分桶与重放门禁逐个场景挣得有界全自主 [1][5][7]。 || **3. Enforce Green-Zone FinOps &amp; Earn Autonomy via Hill Climbing (Scale &amp; Govern)** — Baseline MAC default green-zone CSP and 5,000-credit caps (or spin up the $10 CoE app), pair Studio reasoning with Durable Functions state, and unlock unreviewed autonomy one benchmarked scenario at a time [1][5][7].
+:::
+
+## 参考资料：四场 Ignite 2026 官方一手信源 || References: Four Official Microsoft Ignite 2026 Primary Sources
+
+1. **Clay Wesener, Emma Cooper &amp; Malavika Balachandran Tadeusz (Microsoft Ignite 2026 BRK378 · 主讲专场)** — https://ignite.microsoft.com/en-US/sessions/1787856630704001Ep9J-1791588308254001CRyh | 《Host apps from anywhere with the new Copilot Managed Runtime》45 分钟官方点播实录与逐字稿（2026-11-18） || Lead Session BRK378 official 45-minute recording and verbatim transcript on Copilot Managed Runtime GA (Nov 18, 2026)
+2. **Microsoft Ignite 2026 BRK378 Official Slide Deck &amp; Stream** — https://medius.microsoft.com/video/asset/PPT/c5c8ac76-0384-4a0c-acf5-83488136a4f1 | BRK378 原版 34 页 PPTX 课件（含 11 月 17 日 GA 矩阵、Voyage Desk 36 项检查、Fabric Rayfin 持久化与管理中心 492 款应用实拍） || Official 34-slide BRK378 presentation deck covering Nov 17 GA capabilities, Lovable integration, and MAC inventory captures
+3. **Alice Appleton (Microsoft Ignite 2026 BRK259 · 关联专场)** — https://ignite.microsoft.com/en-US/sessions/1787856612459001EfZu-1791588174633001COAZ | 《See how the Microsoft Copilot harness powers Copilot Studio》38 分 36 秒官方点播实录与双语逐字稿（2026-11-20） || Related Session BRK259 official recording and transcript on the Microsoft Copilot SDK harness and Azure container sandboxes (Nov 20, 2026)
+4. **Microsoft Ignite 2026 BRK259 Official Slide Deck** — https://medius.microsoft.com/video/asset/PPT/57bd65b7-dce0-4d9d-9d20-70a3b284e9bd | BRK259 原版 32 页 PPTX 讲义（含 500 道离线评测 +47.5 pts / -45% 数据、32 智能体软件工厂、动态子智能体与六类 Hooks 契约） || Official 32-slide BRK259 deck detailing offline eval gains, 32-agent internal factory, Dynamic Task Agents, and 6 lifecycle hooks
+5. **Zohar Raz, Ryan Jansen, Austin Laugesen &amp; Nicholas Balestrino (Microsoft Ignite 2026 BRK382 · 关联专场)** — https://ignite.microsoft.com/en-US/sessions/1787856631314001Eynh-1791814918515001Cspr | 《Deploy solutions at scale with Power Platform or Copilot Managed Runtime》47 分钟官方点播实录与诺华访谈逐字稿（2026-11-20） || Related Session BRK382 official 47-minute recording featuring Novartis's 77,000-associate telemetry and four governance demos (Nov 20, 2026)
+6. **Microsoft Ignite 2026 BRK382 Official Slide Deck** — https://medius.microsoft.com/video/asset/PPT/8698eb3b-5f0b-4284-bf98-188eb338d15e | BRK382 原版 54 页 PPTX 课件（含诺华 7.5× 增长报表、PPAC/MAC 双轨绿区、小时级 Monitor 告警、2.5M 点数账本与单一 OpenAPI 规范） || Official 54-slide BRK382 deck covering Novartis scale metrics, Managed Host CSP blocking, FinOps ledgers, and the $10 CoE app
+7. **Ali Ijaz, Arun Masilamani, Tim Schaeps &amp; Omprakash Reddy Adudodla (Microsoft Ignite 2026 BRK285 · 关联专场)** — https://ignite.microsoft.com/en-US/sessions/1787856616329001EyM8-1791588352535001C8TA | 《Your agent works. Now make it enterprise-ready.》51 分钟官方点播实录与双旅程逐字稿（2026-11-19） || Related Session BRK285 official 51-minute recording dissecting Superagents contracts and Azure Support's 18-month FACS rollout (Nov 19, 2026)
+8. **Microsoft Ignite 2026 BRK285 Official Slide Deck** — https://medius.microsoft.com/video/asset/PPT/048e7075-9b0a-458d-b28b-3fa6113f248b | BRK285 原版 38 页 PPTX 讲义（含三阶成熟度、3×6 控制矩阵、FACS 低高代码参考拓扑与六步爬山迭代图） || Official 38-slide BRK285 deck covering the 3×6 autonomy-control matrix, FACS reference topology, and 6-step hill-climbing loop
+9. **Ben Appleby (Microsoft Copilot Studio Engineering Blog)** — https://www.microsoft.com/en-us/copilot/blog/copilot-studio/how-the-microsoft-copilot-harness-in-copilot-studio-helps-agents-finish-the-job/ | 《How the Microsoft Copilot harness in Copilot Studio helps agents finish the job》83%–88% 提示词缓存命中率与 84%–91% 工具失败自愈工程解析（2026-11-09） || Companion engineering deep dive on Azure container sandboxes, 83%–88% prompt cache hit rates, and 84%–91% self-recovery (Nov 9, 2026)
+</code></pre>
+      </section>
+
+      <main>
+        <section id="build-to-prod-spine" class="section" data-reveal data-present-title-zh="从本地原型孤岛到企业生产闭环：四专场三阶架构总纲" data-present-title-en="From Localhost Prototypes to Production: The Four-Session Architectural Spine">
+          <div class="section-head">
+            <p class="section-kicker">01 / Four-Session Synthesis</p>
+            <h2 data-zh="1. 从本地原型孤岛到企业生产闭环：四专场三阶架构总纲" data-en="1. From Localhost Prototypes to Production: The Four-Session Architectural Spine">1. 从本地原型孤岛到企业生产闭环：四专场三阶架构总纲</h2>
+            <p data-zh="生成式工具已经把“写出一个能演示的前端页面或对话机器人”压缩到了几分钟，但企业工程团队却普遍卡在两道生产断层前 [1][7]。第一道是&lt;strong&gt;宿主断层&lt;/strong&gt;：业务人员与开发者在个人电脑上跑通的微应用困在本地 &lt;code&gt;localhost&lt;/code&gt; 端口，既没有企业目录单点登录，也拿不到合规的数据连接审批 [1]。第二道是&lt;strong&gt;信任断层&lt;/strong&gt;：正如 BRK285 开场两次现场举手投票所揭示的反差——全场绝大多数团队都搭出过能给出漂亮回答的智能体，但几乎没人敢免去人工逐单审批、直接放它进生产系统执行写操作 [7]。" data-en="Generative tools have compressed drafting a working user interface or chat bot into minutes, yet enterprise teams routinely stall at two production chasms [1][7]. The first is the &lt;strong&gt;hosting chasm&lt;/strong&gt;: micro-apps built on laptops remain trapped on &lt;code&gt;localhost&lt;/code&gt; ports without corporate single sign-on or governed data access [1]. The second is the &lt;strong&gt;trust chasm&lt;/strong&gt;: as exposed by two opening audience polls in BRK285, most teams have built an agent that gives a fluent answer, yet almost none dare let it execute production actions without step-by-step human approval [7].">生成式工具已经把“写出一个能演示的前端页面或对话机器人”压缩到了几分钟，但企业工程团队却普遍卡在两道生产断层前 [1][7]。第一道是<strong>宿主断层</strong>：业务人员与开发者在个人电脑上跑通的微应用困在本地 <code>localhost</code> 端口，既没有企业目录单点登录，也拿不到合规的数据连接审批 [1]。第二道是<strong>信任断层</strong>：正如 BRK285 开场两次现场举手投票所揭示的反差——全场绝大多数团队都搭出过能给出漂亮回答的智能体，但几乎没人敢免去人工逐单审批、直接放它进生产系统执行写操作 [7]。</p>
+          </div>
+
+          <p data-zh="在《Ignite 2026 | ABS 内部分享安排》『方案构建』板块第 08 场（主讲人 Wells Zhang，12 月 7 日周一 11:30–12:00）中，我们不再孤立复述单场特性，而是将四场官方专场组装为一条 &lt;strong&gt;Build ➔ Host ➔ Scale &amp;amp; Govern&lt;/strong&gt; 生产交付流水线 [1][3][5][7]。其中 &lt;strong&gt;BRK259&lt;/strong&gt; 提供带确定性钩子的单循环执行内核，主讲场 &lt;strong&gt;BRK378&lt;/strong&gt; 提供终结本地孤岛的跨入口托管底座。&lt;strong&gt;BRK382&lt;/strong&gt; 与 &lt;strong&gt;BRK285&lt;/strong&gt; 则分别补齐租户级治理账本与关键业务的有界自主演进方法论 [1][3][5][7]。" data-en="For Session 08 of the Ignite 2026 ABS Solution Build internal sharing series (Speaker: Wells Zhang, Monday, Dec 7, 11:30–12:00), we assemble four interlocking breakouts into one &lt;strong&gt;Build -&amp;gt; Host -&amp;gt; Scale &amp;amp; Govern&lt;/strong&gt; pipeline instead of reciting isolated feature lists [1][3][5][7]. &lt;strong&gt;BRK259&lt;/strong&gt; supplies the reasoning harness with deterministic hooks while lead session &lt;strong&gt;BRK378&lt;/strong&gt; provides the Git-backed universal hosting runtime. &lt;strong&gt;BRK382&lt;/strong&gt; and &lt;strong&gt;BRK285&lt;/strong&gt; then establish tenant-wide governance, FinOps ledgers, and earned production autonomy [1][3][5][7].">在《Ignite 2026 | ABS 内部分享安排》『方案构建』板块第 08 场（主讲人 Wells Zhang，12 月 7 日周一 11:30–12:00）中，我们不再孤立复述单场特性，而是将四场官方专场组装为一条 <strong>Build ➔ Host ➔ Scale &amp; Govern</strong> 生产交付流水线 [1][3][5][7]。其中 <strong>BRK259</strong> 提供带确定性钩子的单循环执行内核，主讲场 <strong>BRK378</strong> 提供终结本地孤岛的跨入口托管底座。<strong>BRK382</strong> 与 <strong>BRK285</strong> 则分别补齐租户级治理账本与关键业务的有界自主演进方法论 [1][3][5][7]。</p>
+<div class="compare-table-wrap" data-present-step data-present-surface="unframed" data-step-title="从本地原型孤岛到企业生产闭环：四专场三阶架构总纲：对比矩阵" data-step-title-en="From Localhost Prototypes to Production: The Four-Session Architectural Spine: Comparison Matrix" data-present-title-zh="从本地原型孤岛到企业生产闭环：四专场三阶架构总纲：对比矩阵" data-present-title-en="From Localhost Prototypes to Production: The Four-Session Architectural Spine: Comparison Matrix" data-step-label="01 / Four-Session Synthesis" data-step-label-en="01 / Four-Session Synthesis" data-present-i18n-invariant="label"><table class="simple-table compare-table">
+<thead>
+<tr>
+<th data-zh="演进阶梯与议程定位" data-en="Lifecycle Stage &amp;amp; Role">演进阶梯与议程定位</th>
+<th data-zh="绑定 Ignite 2026 专场与讲者" data-en="Bound Session &amp;amp; Speakers">绑定 Ignite 2026 专场与讲者</th>
+<th data-zh="解决的核心生产断层" data-en="Core Blocker Solved">解决的核心生产断层</th>
+<th data-zh="关键工程机制与量化实证" data-en="Signature Mechanism &amp;amp; Verified Metric">关键工程机制与量化实证</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td data-zh="&lt;strong&gt;1. Build（重铸内核与契约先行）&lt;/strong&gt;" data-en="&lt;strong&gt;1. Build (Kernel &amp;amp; Contract)&lt;/strong&gt;"><strong>1. Build（重铸内核与契约先行）</strong></td>
+<td data-zh="&lt;strong&gt;BRK259&lt;/strong&gt;（Alice Appleton）+ &lt;strong&gt;BRK285&lt;/strong&gt; 旅程一（Tim Schaeps）" data-en="&lt;strong&gt;BRK259&lt;/strong&gt; (Alice Appleton) + &lt;strong&gt;BRK285&lt;/strong&gt; Journey 1"><strong>BRK259</strong>（Alice Appleton）+ <strong>BRK285</strong> 旅程一（Tim Schaeps）</td>
+<td data-zh="2023 串行对话脚手架看不见全局目标；脆弱单容器原型盲堆功能撞上合规红线 [3][7]" data-en="2023 chat scaffolding lacks holistic planning; fragile prototypes break against cloud policies [3][7]">2023 串行对话脚手架看不见全局目标；脆弱单容器原型盲堆功能撞上合规红线 [3][7]</td>
+<td data-zh="基于 Copilot SDK + Azure 容器重铸，代码分析 &lt;strong&gt;+47.5 pts&lt;/strong&gt;、输入词元 &lt;strong&gt;-45%&lt;/strong&gt;；六类钩子拦截超 &lt;strong&gt;£2,000&lt;/strong&gt; 订单 [3][4]" data-en="Rebuilt on Copilot SDK + Azure containers (&lt;strong&gt;+47.5 pts&lt;/strong&gt; code analysis, &lt;strong&gt;-45%&lt;/strong&gt; input tokens); 6 hooks block &lt;strong&gt;&amp;gt;£2,000&lt;/strong&gt; POs [3][4]">基于 Copilot SDK + Azure 容器重铸，代码分析 <strong>+47.5 pts</strong>、输入词元 <strong>-45%</strong>；六类钩子拦截超 <strong>£2,000</strong> 订单 [3][4]</td>
+</tr>
+<tr>
+<td data-zh="&lt;strong&gt;2. Host（随处构建统一托管 · 主讲）&lt;/strong&gt;" data-en="&lt;strong&gt;2. Host (Universal Runtime · Lead)&lt;/strong&gt;"><strong>2. Host（随处构建统一托管 · 主讲）</strong></td>
+<td data-zh="&lt;strong&gt;BRK378&lt;/strong&gt;（Clay Wesener, Emma Cooper, Malavika Tadeusz）" data-en="&lt;strong&gt;BRK378&lt;/strong&gt; (Clay Wesener, Emma Cooper, Lovable PM)"><strong>BRK378</strong>（Clay Wesener, Emma Cooper, Malavika Tadeusz）</td>
+<td data-zh="多工具生成应用困在 &lt;code&gt;localhost&lt;/code&gt; 孤岛；业务原型转交研发时面临推倒重写的断崖 [1][2]" data-en="AI-generated apps trapped on &lt;code&gt;localhost&lt;/code&gt;; domain prototypes hit a pro-code rewrite cliff [1][2]">多工具生成应用困在 <code>localhost</code> 孤岛；业务原型转交研发时面临推倒重写的断崖 [1][2]</td>
+<td data-zh="11 月 17 日 GA；五大入口共享单一 Git 远程仓与 &lt;strong&gt;1,500+&lt;/strong&gt; 连接器；Lovable 纯前端直发零触碰企业数据 [1][2]" data-en="Nov 17 GA; 5 surfaces share one Git remote &amp;amp; &lt;strong&gt;1,500+&lt;/strong&gt; connectors; Lovable ships pure React with zero data touch [1][2]">11 月 17 日 GA；五大入口共享单一 Git 远程仓与 <strong>1,500+</strong> 连接器；Lovable 纯前端直发零触碰企业数据 [1][2]</td>
+</tr>
+<tr>
+<td data-zh="&lt;strong&gt;3. Scale（双轨绿区与开放账本）&lt;/strong&gt;" data-en="&lt;strong&gt;3. Scale (Green Zones &amp;amp; FinOps)&lt;/strong&gt;"><strong>3. Scale（双轨绿区与开放账本）</strong></td>
+<td data-zh="&lt;strong&gt;BRK382&lt;/strong&gt;（Zohar Raz, Ryan Jansen, Austin Laugesen, 诺华）" data-en="&lt;strong&gt;BRK382&lt;/strong&gt; (Zohar Raz, Ryan Jansen, Austin Laugesen, Novartis)"><strong>BRK382</strong>（Zohar Raz, Ryan Jansen, Austin Laugesen, 诺华）</td>
+<td data-zh="全员放开导致默认环境失控与僵尸泛滥；算力点数成黑盒且传统 CoE 部署笨重 [5][6]" data-en="Unmanaged default-environment sprawl, opaque credit bills, and multi-day CoE setup friction [5][6]">全员放开导致默认环境失控与僵尸泛滥；算力点数成黑盒且传统 CoE 部署笨重 [5][6]</td>
+<td>诺华在用智能体激增 <strong>7.5×</strong>（达 <strong>1,366</strong> 个）；MAC 首日默认绿区 + <code>&lt;1 小时</code>告警；<strong><span class="math-inline" data-latex="10 / 30 分钟**生成超级 CoE [5][6] @@BILINGUAL_SEP@@ Novartis active agents grew **7.5×** (**1,366**); MAC default green zone + @@CODE_3@@ alerts; **">10 / 30 分钟**生成超级 CoE [5][6] @@BILINGUAL_SEP@@ Novartis active agents grew **7.5×** (**1,366**); MAC default green zone + @@CODE_3@@ alerts; **</span>10 / 30m</strong> OpenAPI CoE app [5][6]</td>
+</tr>
+<tr>
+<td data-zh="&lt;strong&gt;4. Govern &amp;amp; Evolve（有界全自主）&lt;/strong&gt;" data-en="&lt;strong&gt;4. Govern &amp;amp; Evolve (Autonomy)&lt;/strong&gt;"><strong>4. Govern &amp; Evolve（有界全自主）</strong></td>
+<td data-zh="&lt;strong&gt;BRK285&lt;/strong&gt; 旅程二（Arun Masilamani, Ali Ijaz, Omprakash Adudodla）" data-en="&lt;strong&gt;BRK285&lt;/strong&gt; Journey 2 (Azure Support FACS Team)"><strong>BRK285</strong> 旅程二（Arun Masilamani, Ali Ijaz, Omprakash Adudodla）</td>
+<td data-zh="跨天复杂工单状态易丢失；线上依然出现幻觉，靠修改提示词“许愿”毫无效果 [7][8]" data-en="Multi-day support state drops; live hallucinations persist despite wishful prompt tweaking [7][8]">跨天复杂工单状态易丢失；线上依然出现幻觉，靠修改提示词“许愿”毫无效果 [7][8]</td>
+<td data-zh="Azure 支持历时 &lt;strong&gt;18 个月&lt;/strong&gt;落地 FACS：Studio 6 专员推理 + Durable Functions 持久状态 + 六步爬山闭环 [7][8]" data-en="&lt;strong&gt;18-month&lt;/strong&gt; Azure FACS journey: Studio 6-role reasoning + Durable Functions state + 6-step hill climbing [7][8]">Azure 支持历时 <strong>18 个月</strong>落地 FACS：Studio 6 专员推理 + Durable Functions 持久状态 + 六步爬山闭环 [7][8]</td>
+</tr>
+</tbody>
+</table></div>
+
+          <figure class="sr-figure generated-diagram is-inline-svg" data-present-step data-present-surface="unframed" data-step-title="From Build to Production：四专场融合的三层内核、托管与规模治理拓扑" data-step-title-en="From Build to Production: Three-Plane Harness, Managed Runtime &amp; Scale Topology" data-present-title-zh="From Build to Production：四专场融合的三层内核、托管与规模治理拓扑" data-present-title-en="From Build to Production: Three-Plane Harness, Managed Runtime &amp; Scale Topology" data-step-label="01 / Four-Session Synthesis" data-step-label-en="01 / Four-Session Synthesis" data-present-i18n-invariant="label">
+            <svg class="sr-figure-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 658" role="img" aria-labelledby="build-to-prod-four-session-topology-1-title build-to-prod-four-session-topology-1-desc"><title id="build-to-prod-four-session-topology-1-title">From Build to Production：四专场端到端内核、随处托管与生产演进架构（Ignite 2026）</title><desc id="build-to-prod-four-session-topology-1-desc">architecture topology with 9 nodes and 7 edges</desc><defs><marker id="build-to-prod-four-session-topology-1-arrow" markerWidth="10" markerHeight="10" refX="8.5" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M1,1 L8.5,4 L1,7" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><g data-group-id="build-harness-plane"><rect x="36" y="24" width="1368" height="186" rx="16" fill="var(--fig-group-bg-1, rgba(255, 250, 244, 0.72))" stroke="var(--fig-group-border, rgba(23, 36, 48, 0.11))" stroke-width="1.25"/><path d="M 52 25 H 1388" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.6))" stroke-width="1"/><line x1="36" y1="70" x2="1404" y2="70" stroke="var(--fig-group-divider, rgba(23,36,48,0.08))" stroke-width="1"/><circle cx="58" cy="48" r="4.5" fill="var(--fig-role-accent-bar, #ea580c)"/><text class="sr-zh" x="70" y="53" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)">1. Build · Microsoft Copilot Harness 单循环内核与构建期前置策略（BRK259 + BRK378）</text><text class="sr-en" x="70" y="53" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)">1. Build · Microsoft Copilot Harness Loop &amp; Build-Time Policy Grounding (BRK259 + BRK378)</text></g><g data-group-id="host-cmr-plane"><rect x="36" y="236" width="1368" height="186" rx="16" fill="var(--fig-group-bg-2, rgba(244, 248, 252, 0.72))" stroke="var(--fig-group-border, rgba(23, 36, 48, 0.11))" stroke-width="1.25"/><path d="M 52 237 H 1388" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.6))" stroke-width="1"/><line x1="36" y1="282" x2="1404" y2="282" stroke="var(--fig-group-divider, rgba(23,36,48,0.08))" stroke-width="1"/><circle cx="58" cy="260" r="4.5" fill="var(--fig-role-blue-bar, #2563eb)"/><text class="sr-zh" x="70" y="265" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)">2. Host · Copilot Managed Runtime 随处托管与统一 Git 底座（BRK378 主讲核心）</text><text class="sr-en" x="70" y="265" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)">2. Host · Copilot Managed Runtime Unified Git Hosting &amp; Data Fabric (BRK378 Lead)</text></g><g data-group-id="scale-govern-plane"><rect x="36" y="448" width="1368" height="186" rx="16" fill="var(--fig-group-bg-3, rgba(248, 245, 252, 0.72))" stroke="var(--fig-group-border, rgba(23, 36, 48, 0.11))" stroke-width="1.25"/><path d="M 52 449 H 1388" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.6))" stroke-width="1"/><line x1="36" y1="494" x2="1404" y2="494" stroke="var(--fig-group-divider, rgba(23,36,48,0.08))" stroke-width="1"/><circle cx="58" cy="472" r="4.5" fill="var(--fig-role-violet-bar, #7c3aed)"/><text class="sr-zh" x="70" y="477" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)">3. Scale &amp; Govern · 双轨绿区治理、算力账本与有界自主爬山闭环（BRK382 + BRK285）</text><text class="sr-en" x="70" y="477" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)">3. Scale &amp; Govern · Dual Green Zones, FinOps &amp; Earned-Autonomy Hill Climbing (BRK382 + BRK285)</text></g><g data-edge-id="edge-1"><path d="M 279 188 L 279 304" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#build-to-prod-four-session-topology-1-arrow)"/><circle cx="279" cy="188" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="edge-2"><path d="M 720 188 L 720 213 Q 720 223 730 223 L 1151 223 Q 1161 223 1161 233 L 1161 304" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#build-to-prod-four-session-topology-1-arrow)"/><circle cx="720" cy="188" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="edge-3"><path d="M 1161 188 L 1161 213 Q 1161 223 1151 223 L 289 223 Q 279 223 279 233 L 279 304" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#build-to-prod-four-session-topology-1-arrow)"/><circle cx="1161" cy="188" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="edge-4"><path d="M 1161 188 L 1161 213 Q 1161 223 1151 223 L 730 223 Q 720 223 720 233 L 720 304" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#build-to-prod-four-session-topology-1-arrow)"/><circle cx="1161" cy="188" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="edge-5"><path d="M 279 400 L 279 516" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#build-to-prod-four-session-topology-1-arrow)"/><circle cx="279" cy="400" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="edge-6"><path d="M 720 400 L 720 516" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#build-to-prod-four-session-topology-1-arrow)"/><circle cx="720" cy="400" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-edge-id="edge-7"><path d="M 1161 400 L 1161 516" fill="none" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#build-to-prod-four-session-topology-1-arrow)"/><circle cx="1161" cy="400" r="3.2" fill="var(--fig-port-fill, #ffffff)" stroke="var(--fig-edge-stroke, #5b6b7c)" stroke-width="1.6"/></g><g data-node-id="copilot-sdk-sandbox"><defs><clipPath id="build-to-prod-four-session-topology-1-clip-copilot-sdk-sandbox"><rect x="84" y="92" width="390" height="96" rx="13"/></clipPath></defs><rect x="84" y="92" width="390" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="84" y="92" width="390" height="96" rx="13" fill="var(--fig-role-rose-fill, rgba(225, 29, 72, 0.08))" stroke="var(--fig-role-rose-stroke, rgba(225, 29, 72, 0.48))" stroke-width="1.35"/><rect x="84" y="92" width="4.5" height="96" fill="var(--fig-role-rose-bar, #e11d48)" clip-path="url(#build-to-prod-four-session-topology-1-clip-copilot-sdk-sandbox)"/><line x1="96" y1="93" x2="462" y2="93" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="281" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-rose-text, #9f1239)"><tspan x="281" y="128">Copilot SDK 单循环 + Azure 容器沙盒</tspan></text><text x="281" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="281" y="149">BRK259 · 代码分析 +47.5 pts，输入词元省 45%（83%–88% 命中缓存</tspan><tspan x="281" y="163.5">）</tspan></text></g><g class="sr-en"><text x="281" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-rose-text, #9f1239)"><tspan x="281" y="128">Copilot SDK Loop + Azure Container Sandbox</tspan></text><text x="281" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="281" y="149">BRK259 · +47.5 pts code analysis, -45% input tokens (83%–88%</tspan><tspan x="281" y="163.5">cache)</tspan></text></g></g><g data-node-id="subagents-hooks"><defs><clipPath id="build-to-prod-four-session-topology-1-clip-subagents-hooks"><rect x="525" y="92" width="390" height="96" rx="13"/></clipPath></defs><rect x="525" y="92" width="390" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="525" y="92" width="390" height="96" rx="13" fill="var(--fig-role-amber-fill, rgba(217, 119, 6, 0.09))" stroke="var(--fig-role-amber-stroke, rgba(217, 119, 6, 0.44))" stroke-width="1.35"/><rect x="525" y="92" width="4.5" height="96" fill="var(--fig-role-amber-bar, #d97706)" clip-path="url(#build-to-prod-four-session-topology-1-clip-subagents-hooks)"/><line x1="537" y1="93" x2="903" y2="93" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="722" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)"><tspan x="722" y="128">动态任务子智能体与六类生命周期钩子</tspan></text><text x="722" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="722" y="149">BRK259 · Haiku 5.5 并行盲审标书；Before tool 硬阻断 £2,000 超额</tspan><tspan x="722" y="163.5">单</tspan></text></g><g class="sr-en"><text x="722" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)"><tspan x="722" y="128">Dynamic Task Agents &amp; 6 Lifecycle Hooks</tspan></text><text x="722" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="722" y="149">BRK259 · Parallel Haiku 5.5 scoring; Before tool blocks &gt;£2,000</tspan><tspan x="722" y="163.5">POs</tspan></text></g></g><g data-node-id="five-entry-surfaces"><defs><clipPath id="build-to-prod-four-session-topology-1-clip-five-entry-surfaces"><rect x="966" y="92" width="390" height="96" rx="13"/></clipPath></defs><rect x="966" y="92" width="390" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="966" y="92" width="390" height="96" rx="13" fill="var(--fig-role-accent-fill, rgba(255, 122, 0, 0.09))" stroke="var(--fig-role-accent-stroke, rgba(234, 88, 12, 0.48))" stroke-width="1.35"/><rect x="966" y="92" width="4.5" height="96" fill="var(--fig-role-accent-bar, #ea580c)" clip-path="url(#build-to-prod-four-session-topology-1-clip-five-entry-surfaces)"/><line x1="978" y1="93" x2="1344" y2="93" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="1163" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)"><tspan x="1163" y="119">五大策略感知入口（Cowork / Studio / VS Code /</tspan><tspan x="1163" y="137">Lovable）</tspan></text><text x="1163" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1163" y="158">BRK378 · 构建期前置感知连接器禁令；Learn MCP 锁死 CAF/WAF</tspan><tspan x="1163" y="172.5">契约</tspan></text></g><g class="sr-en"><text x="1163" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-accent-text, #9a3412)"><tspan x="1163" y="128">Five Policy-Aware Surfaces (Cowork to Lovable)</tspan></text><text x="1163" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1163" y="149">BRK378/285 · Upfront policy context + Learn MCP CAF/WAF</tspan><tspan x="1163" y="163.5">contracts</tspan></text></g></g><g data-node-id="shared-git-remote"><defs><clipPath id="build-to-prod-four-session-topology-1-clip-shared-git-remote"><rect x="84" y="304" width="390" height="96" rx="13"/></clipPath></defs><rect x="84" y="304" width="390" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="84" y="304" width="390" height="96" rx="13" fill="var(--fig-role-blue-fill, rgba(37, 99, 235, 0.07))" stroke="var(--fig-role-blue-stroke, rgba(59, 130, 246, 0.42))" stroke-width="1.35"/><rect x="84" y="304" width="4.5" height="96" fill="var(--fig-role-blue-bar, #2563eb)" clip-path="url(#build-to-prod-four-session-topology-1-clip-shared-git-remote)"/><line x1="96" y1="305" x2="462" y2="305" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="281" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)"><tspan x="281" y="340">零 localhost 托管与共享 Git 远程源码仓</tspan></text><text x="281" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="281" y="361">BRK378 · 自动挂载 Entra SSO；GCM 免密克隆 React/TS 至 VS</tspan><tspan x="281" y="375.5">Code</tspan></text></g><g class="sr-en"><text x="281" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)"><tspan x="281" y="340">Zero-Localhost Host &amp; Shared Git Remote</tspan></text><text x="281" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="281" y="361">BRK378 · Auto Entra SSO; keyless GCM clone of React/TS into</tspan><tspan x="281" y="375.5">VS Code</tspan></text></g></g><g data-node-id="dual-ai-connectors"><defs><clipPath id="build-to-prod-four-session-topology-1-clip-dual-ai-connectors"><rect x="525" y="304" width="390" height="96" rx="13"/></clipPath></defs><rect x="525" y="304" width="390" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="525" y="304" width="390" height="96" rx="13" fill="var(--fig-role-violet-fill, rgba(124, 58, 237, 0.08))" stroke="var(--fig-role-violet-stroke, rgba(139, 92, 246, 0.42))" stroke-width="1.35"/><rect x="525" y="304" width="4.5" height="96" fill="var(--fig-role-violet-bar, #7c3aed)" clip-path="url(#build-to-prod-four-session-topology-1-clip-dual-ai-connectors)"/><line x1="537" y1="305" x2="903" y2="305" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="722" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)"><tspan x="722" y="347">1,500+ 受管连接器与 Fabric (Rayfin) 持久化</tspan></text><text x="722" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="722" y="368">BRK378 · 行内 LLM 摘要 + Studio 智能体；Lovable 纯前端零碰数据</tspan></text></g><g class="sr-en"><text x="722" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-violet-text, #4c1d95)"><tspan x="722" y="340">1,500+ Connectors &amp; Fabric (Rayfin) DB</tspan></text><text x="722" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="722" y="361">BRK378 · Inline LLM + Studio agent; Lovable ships UI with zero</tspan><tspan x="722" y="375.5">data touch</tspan></text></g></g><g data-node-id="hybrid-durable-state"><defs><clipPath id="build-to-prod-four-session-topology-1-clip-hybrid-durable-state"><rect x="966" y="304" width="390" height="96" rx="13"/></clipPath></defs><rect x="966" y="304" width="390" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="966" y="304" width="390" height="96" rx="13" fill="var(--fig-role-blue-fill, rgba(37, 99, 235, 0.07))" stroke="var(--fig-role-blue-stroke, rgba(59, 130, 246, 0.42))" stroke-width="1.35"/><rect x="966" y="304" width="4.5" height="96" fill="var(--fig-role-blue-bar, #2563eb)" clip-path="url(#build-to-prod-four-session-topology-1-clip-hybrid-durable-state)"/><line x1="978" y1="305" x2="1344" y2="305" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="1163" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)"><tspan x="1163" y="340">低代码推理 + Azure 全代码跨天持久状态机</tspan></text><text x="1163" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1163" y="361">BRK285 · Copilot Studio 编排 6 专员，Durable Functions/Cosmos</tspan><tspan x="1163" y="375.5">管工单</tspan></text></g><g class="sr-en"><text x="1163" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-blue-text, #1e3a8a)"><tspan x="1163" y="340">Low-Code Reasoning + Durable Pro-Code State</tspan></text><text x="1163" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1163" y="361">BRK285 · Studio orchestrates 6 roles; Durable Functions/Cosmos</tspan><tspan x="1163" y="375.5">hold state</tspan></text></g></g><g data-node-id="dual-green-zones-alm"><defs><clipPath id="build-to-prod-four-session-topology-1-clip-dual-green-zones-alm"><rect x="84" y="516" width="390" height="96" rx="13"/></clipPath></defs><rect x="84" y="516" width="390" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="84" y="516" width="390" height="96" rx="13" fill="var(--fig-role-amber-fill, rgba(217, 119, 6, 0.09))" stroke="var(--fig-role-amber-stroke, rgba(217, 119, 6, 0.44))" stroke-width="1.35"/><rect x="84" y="516" width="4.5" height="96" fill="var(--fig-role-amber-bar, #d97706)" clip-path="url(#build-to-prod-four-session-topology-1-clip-dual-green-zones-alm)"/><line x1="96" y1="517" x2="462" y2="517" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="281" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)"><tspan x="281" y="559">MAC 默认绿区、严格 CSP 与双层阶梯 ALM</tspan></text><text x="281" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="281" y="580">BRK382 · 单环境三阶段晋升企业严管流水线；&lt;1 小时 Monitor 告警</tspan></text></g><g class="sr-en"><text x="281" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-amber-text, #78350f)"><tspan x="281" y="552">MAC Default Green Zone, Strict CSP &amp; Tiered ALM</tspan></text><text x="281" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="281" y="573">BRK382 · In-env Dev/Test/Prod to hardened pipelines + &lt;1h</tspan><tspan x="281" y="587.5">Monitor alerts</tspan></text></g></g><g data-node-id="finops-openapi-coe"><defs><clipPath id="build-to-prod-four-session-topology-1-clip-finops-openapi-coe"><rect x="525" y="516" width="390" height="96" rx="13"/></clipPath></defs><rect x="525" y="516" width="390" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="525" y="516" width="390" height="96" rx="13" fill="var(--fig-role-teal-fill, rgba(13, 143, 140, 0.09))" stroke="var(--fig-role-teal-stroke, rgba(13, 143, 140, 0.46))" stroke-width="1.35"/><rect x="525" y="516" width="4.5" height="96" fill="var(--fig-role-teal-bar, #0d8f8c)" clip-path="url(#build-to-prod-four-session-topology-1-clip-finops-openapi-coe)"/><line x1="537" y1="517" x2="903" y2="517" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="722" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)"><tspan x="722" y="552">双轨点数账本与单一 OpenAPI 超级 CoE</tspan></text><text x="722" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="722" y="573">BRK378/382 · 5,000 点上限与 2.5M 账本；$10 / 30 分钟生成托管</tspan><tspan x="722" y="587.5">CoE</tspan></text></g><g class="sr-en"><text x="722" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-teal-text, #115e59)"><tspan x="722" y="552">Dual-Billing FinOps &amp; OpenAPI Admin Spec</tspan></text><text x="722" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="722" y="573">BRK378/382 · 5K cap &amp; 2.5M ledger; Cowork builds CoE app in</tspan><tspan x="722" y="587.5">30m for $10</tspan></text></g></g><g data-node-id="earned-autonomy-loop"><defs><clipPath id="build-to-prod-four-session-topology-1-clip-earned-autonomy-loop"><rect x="966" y="516" width="390" height="96" rx="13"/></clipPath></defs><rect x="966" y="516" width="390" height="96" rx="13" fill="var(--fig-node-bg, rgba(255,255,255,0.94))"/><rect x="966" y="516" width="390" height="96" rx="13" fill="var(--fig-role-rose-fill, rgba(225, 29, 72, 0.08))" stroke="var(--fig-role-rose-stroke, rgba(225, 29, 72, 0.48))" stroke-width="1.35"/><rect x="966" y="516" width="4.5" height="96" fill="var(--fig-role-rose-bar, #e11d48)" clip-path="url(#build-to-prod-four-session-topology-1-clip-earned-autonomy-loop)"/><line x1="978" y1="517" x2="1344" y2="517" stroke="var(--fig-node-top-glow, rgba(255,255,255,0.85))" stroke-width="1"/><g class="sr-zh"><text x="1163" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-rose-text, #9f1239)"><tspan x="1163" y="559">3×6 有界自主矩阵与六步爬山评测闭环</tspan></text><text x="1163" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1163" y="580">BRK285 · 诺华 7.5× 智能体扩张与 Azure 18 个月 FACS 可回滚放权</tspan></text></g><g class="sr-en"><text x="1163" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="14.5" font-weight="700" fill="var(--fig-role-rose-text, #9f1239)"><tspan x="1163" y="552">3×6 Earned Autonomy &amp; 6-Step Hill Climbing</tspan></text><text x="1163" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="11.5" font-weight="500" fill="var(--fig-text-muted, #52616d)"><tspan x="1163" y="573">BRK285/382 · Novartis 7.5× scale &amp; Azure Support 18-mo</tspan><tspan x="1163" y="587.5">reversible gates</tspan></text></g></g><g class="sr-edge-labels"><g class="sr-zh"><rect x="222" y="212" width="115" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="279" y="227" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">代码与智能体产物</text></g><g class="sr-en"><rect x="218" y="212" width="123" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="279" y="227" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Code &amp; Agent Build</text></g><g class="sr-zh"><rect x="956" y="212" width="103" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="1007" y="227" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">确定性钩子护航</text></g><g class="sr-en"><rect x="942" y="212" width="130" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="1007" y="227" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Deterministic Hooks</text></g><g class="sr-zh"><rect x="538" y="212" width="101" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="588" y="227" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">汇聚同一 Git 仓</text></g><g class="sr-en"><rect x="535" y="212" width="106" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="588" y="227" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Converge on Git</text></g><g class="sr-zh"><rect x="823" y="212" width="103" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="874" y="227" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">租户内数据绑定</text></g><g class="sr-en"><rect x="821" y="212" width="106" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="874" y="227" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">In-Tenant Bind</text></g><g class="sr-zh"><rect x="228" y="424" width="103" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="279" y="439" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">自动纳管与晋升</text></g><g class="sr-en"><rect x="217" y="424" width="125" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="279" y="439" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Register &amp; Promote</text></g><g class="sr-zh"><rect x="669" y="424" width="103" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="720" y="439" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">动作校验与计费</text></g><g class="sr-en"><rect x="657" y="424" width="126" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="720" y="439" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Action DLP &amp; Meter</text></g><g class="sr-zh"><rect x="1110" y="424" width="103" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="1161" y="439" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">追踪反哺基准集</text></g><g class="sr-en"><rect x="1096" y="424" width="130" height="22" rx="7" fill="var(--fig-edge-label-bg, rgba(252, 247, 240, 0.95))" stroke="var(--fig-edge-label-border, rgba(23, 36, 48, 0.12))" stroke-width="1"/><text x="1161" y="439" text-anchor="middle" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Traces to Eval Loop</text></g></g></svg>
+            <figcaption class="diagram-caption"><span data-zh="图 1：顶层以 Microsoft Copilot Harness 单循环沙盒与构建期前置策略统一承接五大创作入口（BRK259/BRK378）；中层收口至共享 Git 远程仓、1,500+ 受管连接器与低高代码混合持久底座（BRK378/BRK285）；底层由 M365 管理中心默认绿区、单一 OpenAPI 账本与六步爬山评测闭环护航规模化投产（BRK382/BRK285）[1][3][5][7]。" data-en="Figure 1: Top plane unites five policy-aware entry surfaces on the Microsoft Copilot Harness (BRK259/BRK378); middle plane converges on one Git remote, 1,500+ connectors, and hybrid durable state (BRK378/BRK285); bottom plane enforces MAC default green zones, OpenAPI FinOps, and 6-step hill climbing (BRK382/BRK285) [1][3][5][7].">图 1：顶层以 Microsoft Copilot Harness 单循环沙盒与构建期前置策略统一承接五大创作入口（BRK259/BRK378）；中层收口至共享 Git 远程仓、1,500+ 受管连接器与低高代码混合持久底座（BRK378/BRK285）；底层由 M365 管理中心默认绿区、单一 OpenAPI 账本与六步爬山评测闭环护航规模化投产（BRK382/BRK285）[1][3][5][7]。</span><a href="./media/build-to-prod-four-session-topology.drawio" download data-zh="下载 .drawio" data-en="Download .drawio">下载 .drawio</a></figcaption>
+          </figure>
+        </section>
+
+        <section id="build-copilot-harness" class="section" data-reveal data-present-title-zh="Build 阶段（BRK259 + BRK285）：重铸 Copilot SDK 容器内核，把确定性钩子嵌入自主循环" data-present-title-en="Build Phase (BRK259 + BRK285): Rebuilding on Copilot SDK Containers with Deterministic Hooks">
+          <div class="section-head">
+            <p class="section-kicker">02 / Build: Harness &amp; Guardrails</p>
+            <h2 data-zh="2. Build 阶段（BRK259 + BRK285）：重铸 Copilot SDK 容器内核，把确定性钩子嵌入自主循环" data-en="2. Build Phase (BRK259 + BRK285): Rebuilding on Copilot SDK Containers with Deterministic Hooks">2. Build 阶段（BRK259 + BRK285）：重铸 Copilot SDK 容器内核，把确定性钩子嵌入自主循环</h2>
+            <p data-zh="迈向生产的第一步，是彻底认清“对话脚手架”与“自主工程内核”的代差 [3]。Alice Appleton 在 BRK259 中披露，2023 年初设计的经典底座（Standard Harness）为了弥补早期模型能力短板，强行把用户意图切碎为串行子提示词；模型既看不见全局业务目标，也无法在遇到数万行财务表格时写脚本脱敏解析 [3][4]。面对推理模型与工具内嵌循环的成熟，团队果断放弃在旧底座上贴补丁，转而基于与 GitHub、Microsoft Foundry、Copilot Cowork 及 Copilot Code 同源的 &lt;strong&gt;Microsoft Copilot SDK&lt;/strong&gt; 从零重铸执行内核，并在每次会话启动时动态拉起专属 &lt;strong&gt;Azure 隔离容器（Execution Sandbox）&lt;/strong&gt; [3][4]。" data-en="Crossing into production begins by retiring chat-era prompt scaffolding [3]. As Alice Appleton detailed in BRK259, the 2023 Standard harness split requests into rigid sequential sub-prompts, blinding the model to holistic business goals and choking on massive tabular files [3][4]. Rather than patching legacy scaffolding, the team rebuilt from scratch on the &lt;strong&gt;Microsoft Copilot SDK&lt;/strong&gt;—shared across GitHub, Foundry, Cowork, and Copilot Code—provisioning an isolated &lt;strong&gt;Azure container sandbox&lt;/strong&gt; with shell, code execution, and local disk on every session [3][4].">迈向生产的第一步，是彻底认清“对话脚手架”与“自主工程内核”的代差 [3]。Alice Appleton 在 BRK259 中披露，2023 年初设计的经典底座（Standard Harness）为了弥补早期模型能力短板，强行把用户意图切碎为串行子提示词；模型既看不见全局业务目标，也无法在遇到数万行财务表格时写脚本脱敏解析 [3][4]。面对推理模型与工具内嵌循环的成熟，团队果断放弃在旧底座上贴补丁，转而基于与 GitHub、Microsoft Foundry、Copilot Cowork 及 Copilot Code 同源的 <strong>Microsoft Copilot SDK</strong> 从零重铸执行内核，并在每次会话启动时动态拉起专属 <strong>Azure 隔离容器（Execution Sandbox）</strong> [3][4]。</p>
+          </div>
+
+          <p data-zh="这套新内核打破了“自主循环调模次数翻倍必然烧穿预算”的直觉担忧 [3][9]。在约 &lt;strong&gt;500 道源于真实客户流程的离线评测集&lt;/strong&gt;（固定使用 Claude Sonnet 4.6）中，得益于容器命令行接管重算与单循环增量上下文拼接，新内核在四大业务场景全部大涨的同时，反而把最昂贵的输入词元砍掉了近一半 [3][4][9]：" data-en="Empirical benchmarks overturned the fear that multi-step agent loops multiply token bills [3][9]. Evaluated across &lt;strong&gt;~500 customer-derived business-process cases&lt;/strong&gt; held constant on Claude Sonnet 4.6, offloading heavy file slicing to container disk and incremental context assembly lifted pass rates across every category while slashing expensive input tokens nearly in half [3][4][9]:">这套新内核打破了“自主循环调模次数翻倍必然烧穿预算”的直觉担忧 [3][9]。在约 <strong>500 道源于真实客户流程的离线评测集</strong>（固定使用 Claude Sonnet 4.6）中，得益于容器命令行接管重算与单循环增量上下文拼接，新内核在四大业务场景全部大涨的同时，反而把最昂贵的输入词元砍掉了近一半 [3][4][9]：</p>
+<div class="math-block" data-latex="\begin{aligned}
+\Delta Q_{\text{code}} &amp;= +47.5\text{ pts}, &amp; \Delta Q_{\text{file}} &amp;= +28.2\text{ pts}, &amp; \Delta T_{\text{input}} &amp;= -45.0\% \\
+R_{\text{cache}} &amp;\in [83\%,\, 88\%], &amp; R_{\text{recover}} &amp;\in [84\%,\, 91\%]
+\end{aligned}">\begin{aligned}
+\Delta Q_{\text{code}} &amp;= +47.5\text{ pts}, &amp; \Delta Q_{\text{file}} &amp;= +28.2\text{ pts}, &amp; \Delta T_{\text{input}} &amp;= -45.0\% \\
+R_{\text{cache}} &amp;\in [83\%,\, 88\%], &amp; R_{\text{recover}} &amp;\in [84\%,\, 91\%]
+\end{aligned}</div>
+<p data-zh="其中提示词缓存命中率高达 &lt;strong&gt;83%–88%&lt;/strong&gt;（使成本加权输入词元净降 15%–21%），且工具调用异常时有 &lt;strong&gt;84%–91%&lt;/strong&gt; 的回合能在循环内自主重算恢复 [3][9]。为了应对前沿实验室每周至少发布一款新模型的节奏，平台默认开启 &lt;strong&gt;Auto 帕累托选模&lt;/strong&gt;，在管理员策略范围内横跨 Anthropic、OpenAI、Mistral 与 SpaceXAI 动态寻优；微软研发团队自身更用 &lt;strong&gt;32 个 Copilot Studio 智能体、47 条协作连接与 6 个函数式共享专家&lt;/strong&gt;组成内部软件工厂，全天候自动分流故障、生成补丁并巡检账单来构建 Copilot Studio 本体 [3][4]。" data-en="Prompt cache hits reached &lt;strong&gt;83%–88%&lt;/strong&gt; (cutting cost-weighted input tokens by 15%–21%), while &lt;strong&gt;84%–91%&lt;/strong&gt; of failed tool turns self-recovered mid-loop [3][9]. With frontier labs shipping new models weekly, default &lt;strong&gt;Auto Pareto routing&lt;/strong&gt; optimizes quality versus cost across Anthropic, OpenAI, Mistral, and SpaceXAI; internally, the engineering team dogfoods &lt;strong&gt;32 Copilot Studio agents, 47 connections, and 6 shared helpers&lt;/strong&gt; round-the-clock to build Copilot Studio itself [3][4].">其中提示词缓存命中率高达 <strong>83%–88%</strong>（使成本加权输入词元净降 15%–21%），且工具调用异常时有 <strong>84%–91%</strong> 的回合能在循环内自主重算恢复 [3][9]。为了应对前沿实验室每周至少发布一款新模型的节奏，平台默认开启 <strong>Auto 帕累托选模</strong>，在管理员策略范围内横跨 Anthropic、OpenAI、Mistral 与 SpaceXAI 动态寻优；微软研发团队自身更用 <strong>32 个 Copilot Studio 智能体、47 条协作连接与 6 个函数式共享专家</strong>组成内部软件工厂，全天候自动分流故障、生成补丁并巡检账单来构建 Copilot Studio 本体 [3][4]。</p>
+
+          <div class="insight-grid insight-grid-3" data-present-step data-present-surface="unframed" data-step-title="Build 阶段三大生产级基石：动态子智能体、确定性钩子与架构契约前置" data-step-title-en="Three Build-Phase Pillars: Dynamic Sub-Agents, Lifecycle Hooks &amp; Upfront Contracts" data-present-title-zh="Build 阶段三大生产级基石：动态子智能体、确定性钩子与架构契约前置" data-present-title-en="Three Build-Phase Pillars: Dynamic Sub-Agents, Lifecycle Hooks &amp; Upfront Contracts" data-step-label="02 / Build: Harness &amp; Guardrails" data-step-label-en="02 / Build: Harness &amp; Guardrails" data-present-i18n-invariant="label">
+            <article class="insight-card">
+              <span class="card-index">01 · BRK259</span>
+              <h3 data-zh="动态任务子智能体并行扇出" data-en="Dynamic Task Agents Fan-Out">动态任务子智能体并行扇出</h3>
+              <p data-zh="无需单独创建或发布子机器人，主控智能体在单会话边界内按需并发拉起 3 个轻量 &lt;code&gt;Claude Haiku 5.5&lt;/code&gt; 隔离盲审 Apex、Meridian 与 Nimbus 标书，再一句话派生 &lt;code&gt;Sol&lt;/code&gt; 模型跨厂商挑刺复核（预计 2026 年 12 月 GA）[3][4]。" data-en="Spins up ephemeral workers at runtime with zero child bots to publish—fanning out three isolated &lt;code&gt;Claude Haiku 5.5&lt;/code&gt; bid reviewers in parallel before spawning &lt;code&gt;Sol&lt;/code&gt; for cross-provider critique (targeting Dec 2026 GA) [3][4].">无需单独创建或发布子机器人，主控智能体在单会话边界内按需并发拉起 3 个轻量 <code>Claude Haiku 5.5</code> 隔离盲审 Apex、Meridian 与 Nimbus 标书，再一句话派生 <code>Sol</code> 模型跨厂商挑刺复核（预计 2026 年 12 月 GA）[3][4]。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">02 · BRK259</span>
+              <h3 data-zh="六类生命周期钩子硬阻断" data-en="Six Deterministic Lifecycle Hooks">六类生命周期钩子硬阻断</h3>
+              <p data-zh="不同于模型可选择不调的普通工具，Hook 在固定切点百分百触发：采购演示中 &lt;code&gt;Session start&lt;/code&gt; 预载英国成本中心，而唯一拥有拦截改参权的 &lt;code&gt;Before tool&lt;/code&gt; 钩子当场计算并拒绝超出 &lt;strong&gt;£2,000&lt;/strong&gt; 红线的 8 套入职包订单（返回 &lt;code&gt;continue: false&lt;/code&gt;）[3][4]。" data-en="Firing 100% deterministically unlike optional LLM tools, &lt;code&gt;Session start&lt;/code&gt; loads cost-center rules while &lt;code&gt;Before tool&lt;/code&gt;—the sole blocking/rewriting event—halts an 8-kit order exceeding &lt;strong&gt;£2,000&lt;/strong&gt; (&lt;code&gt;continue: false&lt;/code&gt;) before any PO is created [3][4].">不同于模型可选择不调的普通工具，Hook 在固定切点百分百触发：采购演示中 <code>Session start</code> 预载英国成本中心，而唯一拥有拦截改参权的 <code>Before tool</code> 钩子当场计算并拒绝超出 <strong>£2,000</strong> 红线的 8 套入职包订单（返回 <code>continue: false</code>）[3][4]。</p>
+            </article>
+            <article class="insight-card">
+              <span class="card-index">03 · BRK285 + BRK378</span>
+              <h3 data-zh="契约先行与构建期策略感知" data-en="Contract-First &amp;amp; Policy-Aware Build">契约先行与构建期策略感知</h3>
+              <p data-zh="BRK285 警示切勿在单容器原型上盲堆界面（曾因 Cosmos DB 公网端点违例直接瘫痪），而是挂载 &lt;strong&gt;Microsoft Learn MCP&lt;/strong&gt; 先检 CAF/WAF 规范落盘契约；BRK378 更将管理中心禁用连接器直接注入构建上下文，从源头杜绝造出无法上线的废品 [1][7]。" data-en="Rather than stacking UI onto fragile prototypes, teams wire &lt;strong&gt;Microsoft Learn MCP&lt;/strong&gt; in VS Code to ground ADRs in CAF/WAF first (BRK285), while CMR injects admin connector rules into build agents upfront so makers never burn tokens on unshippable code (BRK378) [1][7].">BRK285 警示切勿在单容器原型上盲堆界面（曾因 Cosmos DB 公网端点违例直接瘫痪），而是挂载 <strong>Microsoft Learn MCP</strong> 先检 CAF/WAF 规范落盘契约；BRK378 更将管理中心禁用连接器直接注入构建上下文，从源头杜绝造出无法上线的废品 [1][7]。</p>
+            </article>
+          </div>
+
+          <div class="b2p-media-grid">
+  <article class="b2p-media-card" data-present-surface="unframed">
+    <div class="b2p-media-frame">
+      <img src="./media/brk259-slide08-harness-loop.png" alt="BRK259 Slide 8 official diagram showing App, 6-step Harness loop, Execution Sandbox, Tools, Model, and Trust Layer" loading="lazy" />
+    </div>
+    <div class="b2p-media-body">
+      <span class="b2p-media-badge" data-zh="BRK259 官方课件 · Slide 08" data-en="BRK259 Official Slide · Slide 08">BRK259 官方课件 · Slide 08</span>
+      <h4 data-zh="Microsoft Copilot Harness 六步自愈循环与容器信任层" data-en="Six-Step Agentic Loop, Azure Sandbox & Trust Layer">Microsoft Copilot Harness 六步自愈循环与容器信任层</h4>
+      <p data-zh="展示输入组装、模型调用、沙盒工具执行与外层凭据隔离/Purview DLP 审计如何闭环运行 [3][4]。" data-en="Shows prompt assembly, model calls, container CLI execution, and outer Purview DLP credential isolation [3][4].">展示输入组装、模型调用、沙盒工具执行与外层凭据隔离/Purview DLP 审计如何闭环运行 [3][4]。</p>
+    </div>
+  </article>
+  <article class="b2p-media-card" data-present-surface="unframed">
+    <div class="b2p-media-frame">
+      <img src="./media/brk378-admin-center-inventory.jpg" alt="BRK378 Slide 18 official screenshot of Microsoft 365 Admin Center All Apps inventory tracking 492 managed apps and 4 blocked apps" loading="lazy" />
+    </div>
+    <div class="b2p-media-body">
+      <span class="b2p-media-badge is-accent" data-zh="BRK378 官方课件 · Slide 18 GA" data-en="BRK378 Official Slide · Slide 18 GA">BRK378 官方课件 · Slide 18 GA</span>
+      <h4 data-zh="Microsoft 365 管理中心：全域托管应用盘点与一键隔离" data-en="M365 Admin Center: 492 Managed Apps & Instant Block">Microsoft 365 管理中心：全域托管应用盘点与一键隔离</h4>
+      <p data-zh="所有构建入口产出的应用自动登记入账（实机展示 492 款纳管、4 款高危拦截），彻底告别隐形本地端口 [1][2]。" data-en="Every entry surface auto-registers into one inventory (492 apps tracked, 4 blocked) with zero localhost blind spots [1][2].">所有构建入口产出的应用自动登记入账（实机展示 492 款纳管、4 款高危拦截），彻底告别隐形本地端口 [1][2]。</p>
+    </div>
+  </article>
+</div>
+<p data-zh="此外，BRK259 的 &lt;strong&gt;会话变量（Variables）&lt;/strong&gt; 与 &lt;strong&gt;MCP / A2A 双向协议通道&lt;/strong&gt; 进一步收紧了构建边界：创作者可按 &lt;code&gt;Department = HR&lt;/code&gt; 等变量条件动态裁剪向模型暴露的知识源与工具，并将 Copilot Studio 智能体通过 Microsoft Entra OAuth 2.0 委托身份直接调用本地/VNet 私有代理（入向已 GA），或反向发布为远程 MCP 与 A2A 服务器（预计 2027 年 Q1 GA）[3][4]。" data-en="Complementing hooks, &lt;strong&gt;scoped Variables&lt;/strong&gt; and &lt;strong&gt;bidirectional MCP / A2A channels&lt;/strong&gt; tighten runtime exposure: makers gate sensitive HR knowledge strictly when &lt;code&gt;Department = HR&lt;/code&gt; and connect inbound to Foundry, M365 Agents SDK, or VNet-isolated A2A peers (GA) while publishing Studio agents outbound as Entra OAuth-secured MCP/A2A servers (targeting Q1 CY27 GA) [3][4].">此外，BRK259 的 <strong>会话变量（Variables）</strong> 与 <strong>MCP / A2A 双向协议通道</strong> 进一步收紧了构建边界：创作者可按 <code>Department = HR</code> 等变量条件动态裁剪向模型暴露的知识源与工具，并将 Copilot Studio 智能体通过 Microsoft Entra OAuth 2.0 委托身份直接调用本地/VNet 私有代理（入向已 GA），或反向发布为远程 MCP 与 A2A 服务器（预计 2027 年 Q1 GA）[3][4]。</p>
+        </section>
+
+        <section id="host-managed-runtime" class="section" data-reveal data-present-title-zh="Host 阶段主讲核心（BRK378）：五大入口共写单一 Git 仓，打通业务创作与全栈接力" data-present-title-en="Host Phase Lead Focus (BRK378): Five Entry Surfaces on One Git Repo Without a Rewrite Cliff">
+          <div class="section-head">
+            <p class="section-kicker">03 / Host: Copilot Managed Runtime</p>
+            <h2 data-zh="3. Host 阶段主讲核心（BRK378）：五大入口共写单一 Git 仓，打通业务创作与全栈接力" data-en="3. Host Phase Lead Focus (BRK378): Five Entry Surfaces on One Git Repo Without a Rewrite Cliff">3. Host 阶段主讲核心（BRK378）：五大入口共写单一 Git 仓，打通业务创作与全栈接力</h2>
+            <p data-zh="作为第 08 场分享的主讲重心，2026 年 11 月 17 日正式全面商用（GA）的 &lt;strong&gt;Copilot 托管运行时（Copilot Managed Runtime，简称 CMR）&lt;/strong&gt; 正面拆除了横亘在“自然语言原型”与“企业生产系统”之间的高墙 [1][2]。产品总经理 Clay Wesener 在 BRK378 开场给出了一项极具冲击力的工程事实：团队混合使用协同画布（Cowork）、Copilot Studio、命令行与 OpenAI、Claude Opus 等多款模型构建了整场所有演示应用，但&lt;strong&gt;没有任何一款成品运行在 &lt;code&gt;localhost&lt;/code&gt; 本地端口上&lt;/strong&gt; [1][2]。只要一键发布至托管运行时，每款应用便自动获得 Microsoft Entra 身份认证域名、后台专属 &lt;strong&gt;Git 远程源码仓库&lt;/strong&gt;，并同步挂载 &lt;strong&gt;1,500 余个受管连接器&lt;/strong&gt;与管理中心治理台账 [1][2]。" data-en="Serving as the centerpiece of Session 08, &lt;strong&gt;Copilot Managed Runtime (CMR)&lt;/strong&gt;—generally available since November 17, 2026—tears down the wall between AI prototypes and production hosting [1][2]. Opening BRK378, GM Clay Wesener highlighted a telling milestone: although the team built session demos across Cowork, Copilot Studio, the CLI, and mixed models including OpenAI and Claude Opus, &lt;strong&gt;not a single resulting app ran on &lt;code&gt;localhost&lt;/code&gt;&lt;/strong&gt; [1][2]. Every published artifact automatically inherits a Microsoft Entra authenticated URL, a backing &lt;strong&gt;Git remote repository&lt;/strong&gt;, access to &lt;strong&gt;1,500+ governed connectors&lt;/strong&gt;, and live Microsoft 365 Admin Center visibility [1][2].">作为第 08 场分享的主讲重心，2026 年 11 月 17 日正式全面商用（GA）的 <strong>Copilot 托管运行时（Copilot Managed Runtime，简称 CMR）</strong> 正面拆除了横亘在“自然语言原型”与“企业生产系统”之间的高墙 [1][2]。产品总经理 Clay Wesener 在 BRK378 开场给出了一项极具冲击力的工程事实：团队混合使用协同画布（Cowork）、Copilot Studio、命令行与 OpenAI、Claude Opus 等多款模型构建了整场所有演示应用，但<strong>没有任何一款成品运行在 <code>localhost</code> 本地端口上</strong> [1][2]。只要一键发布至托管运行时，每款应用便自动获得 Microsoft Entra 身份认证域名、后台专属 <strong>Git 远程源码仓库</strong>，并同步挂载 <strong>1,500 余个受管连接器</strong>与管理中心治理台账 [1][2]。</p>
+          </div>
+
+          <p data-zh="在工作流内构建侧，首席产品经理 Emma Cooper 演示了两条递进路径 [1][2]。第一条路径是在正式商用的 &lt;strong&gt;Copilot Cowork&lt;/strong&gt; 中调取 &lt;strong&gt;Work IQ&lt;/strong&gt; 组织上下文与 &lt;strong&gt;Figma 设计插件&lt;/strong&gt;，几分钟内生成像素还原的《Q4 2026 Atlas 项目路线图》，并通过代号 &lt;strong&gt;Rayfin&lt;/strong&gt; 的前沿预览能力一键落盘至 &lt;strong&gt;Microsoft Fabric 数据库&lt;/strong&gt;或 SharePoint 列表 [1][2]。第二条路径是在 &lt;strong&gt;Copilot Studio（Apps 现已 GA）&lt;/strong&gt; 中构建基于 Dataverse 的 &lt;strong&gt;Gauge 现场巡检分析应用&lt;/strong&gt;（以及通过 36 项自动构建检查的 Voyage Desk 核保台）：顶部用低时延**行内提示词函数（Inline LLM）**提炼风险摘要，右侧内嵌完整 &lt;strong&gt;Gauge 风险顾问智能体&lt;/strong&gt;跨表追查北场（North Yard）逾期整改项 [1][2]。" data-en="For in-flow creation, Principal PM Emma Cooper demonstrated two escalating tiers [1][2]. First, prompting inside &lt;strong&gt;Copilot Cowork (GA)&lt;/strong&gt; pulls &lt;strong&gt;Work IQ&lt;/strong&gt; context and &lt;strong&gt;Figma plugin&lt;/strong&gt; mockups to ship the interactive &lt;em&gt;Q4 2026 Atlas Roadmap&lt;/em&gt; in minutes, persisting state into a &lt;strong&gt;Microsoft Fabric database via Rayfin&lt;/strong&gt; or SharePoint lists [1][2]. Second, &lt;strong&gt;Apps in Copilot Studio (GA)&lt;/strong&gt; powers the Dataverse-backed &lt;strong&gt;Gauge Field Inspections&lt;/strong&gt; app alongside &lt;em&gt;Voyage Desk&lt;/em&gt; (verified by 36 automated build checks). Its dashboard pairs a low-latency &lt;strong&gt;inline LLM summary&lt;/strong&gt; on top with an embedded &lt;strong&gt;Gauge Risk Advisor Agent&lt;/strong&gt; side panel that cross-references overdue North Yard corrective actions [1][2].">在工作流内构建侧，首席产品经理 Emma Cooper 演示了两条递进路径 [1][2]。第一条路径是在正式商用的 <strong>Copilot Cowork</strong> 中调取 <strong>Work IQ</strong> 组织上下文与 <strong>Figma 设计插件</strong>，几分钟内生成像素还原的《Q4 2026 Atlas 项目路线图》，并通过代号 <strong>Rayfin</strong> 的前沿预览能力一键落盘至 <strong>Microsoft Fabric 数据库</strong>或 SharePoint 列表 [1][2]。第二条路径是在 <strong>Copilot Studio（Apps 现已 GA）</strong> 中构建基于 Dataverse 的 <strong>Gauge 现场巡检分析应用</strong>（以及通过 36 项自动构建检查的 Voyage Desk 核保台）：顶部用低时延**行内提示词函数（Inline LLM）**提炼风险摘要，右侧内嵌完整 <strong>Gauge 风险顾问智能体</strong>跨表追查北场（North Yard）逾期整改项 [1][2]。</p>
+
+          <div class="comparison-grid section-grid-spaced" data-present-step data-present-surface="unframed" data-step-title="消除低代码与跨生态孤岛：三方平台直发与全栈 Git 无缝接力（BRK378）" data-step-title-en="Eliminating Tool Silos: Zero-Data-Touch 3P Publishing &amp; Keyless Pro-Dev Git Relay (BRK378)" data-present-title-zh="消除低代码与跨生态孤岛：三方平台直发与全栈 Git 无缝接力（BRK378）" data-present-title-en="Eliminating Tool Silos: Zero-Data-Touch 3P Publishing &amp; Keyless Pro-Dev Git Relay (BRK378)" data-step-label="03 / Host: Copilot Managed Runtime" data-step-label-en="03 / Host: Copilot Managed Runtime" data-present-i18n-invariant="label">
+            <article class="comparison-card">
+              <span class="comparison-label" data-zh="开放生态直发：Lovable + Managed Platform SDK" data-en="Open 3P Ecosystem: Lovable Direct Publish">开放生态直发：Lovable + Managed Platform SDK</span>
+              <h3 data-zh="20 分钟租户绑定，仅推纯 React 前端且零触碰企业数据" data-en="20-Minute Admin Bind, Pure React UI &amp;amp; Zero 3P Data Access">20 分钟租户绑定，仅推纯 React 前端且零触碰企业数据</h3>
+              <p data-zh="服务超 &lt;strong&gt;40,000 家企业&lt;/strong&gt;（含德国电信与英伟达）、累计创建逾 &lt;strong&gt;7,000 万个项目&lt;/strong&gt;的 Lovable 现场演示原生集成：IT 管理员约 &lt;strong&gt;20 分钟&lt;/strong&gt;配通工作区后，创作者生成新员工入职应用一键直发 CMR；&lt;strong&gt;Lovable 仅推送编译后的纯 React 前端，全程零权限接触底层 Excel 或业务数据&lt;/strong&gt;，一切鉴权与读写严格闭环在客户 M365 租户内 [1][2]。" data-en="Powering &lt;strong&gt;40,000+ businesses&lt;/strong&gt; and &lt;strong&gt;70M+ projects&lt;/strong&gt;, Lovable binds to CMR in roughly &lt;strong&gt;20 minutes&lt;/strong&gt;: makers prompt an Entra-personalized onboarding app and publish straight to Microsoft's runtime—&lt;strong&gt;shipping only the React frontend while Lovable never touches underlying tenant data&lt;/strong&gt; [1][2].">服务超 <strong>40,000 家企业</strong>（含德国电信与英伟达）、累计创建逾 <strong>7,000 万个项目</strong>的 Lovable 现场演示原生集成：IT 管理员约 <strong>20 分钟</strong>配通工作区后，创作者生成新员工入职应用一键直发 CMR；<strong>Lovable 仅推送编译后的纯 React 前端，全程零权限接触底层 Excel 或业务数据</strong>，一切鉴权与读写严格闭环在客户 M365 租户内 [1][2]。</p>
+            </article>
+            <article class="comparison-card next">
+              <span class="comparison-label" data-zh="专业研发接力：CLI + VS Code + Code Agents" data-en="专业研发接力：CLI + VS Code + Code Agents">专业研发接力：CLI + VS Code + Code Agents</span>
+              <h3 data-zh="免密钥克隆同一套 TypeScript/React 源码仓，彻底终结推倒重写" data-en="Keyless GCM Clone of Clean React/TS Source—Zero Rewrite Cliff">免密钥克隆同一套 TypeScript/React 源码仓，彻底终结推倒重写</h3>
+              <p data-zh="全栈开发者无需索要 API 密钥或个人令牌，直接通过命令行与 &lt;strong&gt;Git Credential Manager（GCM）&lt;/strong&gt; 将业务人员在 Studio 中生成的 Gauge 巡检应用克隆至本地 VS Code [1]。工程师在标准 &lt;code&gt;Home.tsx&lt;/code&gt; 与 Hooks 上新增巡检地理位置地图，在带安全横幅的本地开发服验证后即可原路推回共享生产域名 [1]。团队还可部署自带模型与编排器的 &lt;strong&gt;Code Agents&lt;/strong&gt;，免 Azure 额外配置直接连通 Agent 365 [2]。" data-en="Software engineers use the CLI and &lt;strong&gt;Git Credential Manager&lt;/strong&gt; to clone the Studio-built Gauge app into VS Code without PAT tokens [1]. They add an inspection geolocation map onto clean &lt;code&gt;Home.tsx&lt;/code&gt; React code, verify it on a flagged local dev server, and push updates straight back to the live URL [1]. Teams can also deploy custom &lt;strong&gt;Code Agents&lt;/strong&gt; wired to Agent 365 with zero Azure setup [2].">全栈开发者无需索要 API 密钥或个人令牌，直接通过命令行与 <strong>Git Credential Manager（GCM）</strong> 将业务人员在 Studio 中生成的 Gauge 巡检应用克隆至本地 VS Code [1]。工程师在标准 <code>Home.tsx</code> 与 Hooks 上新增巡检地理位置地图，在带安全横幅的本地开发服验证后即可原路推回共享生产域名 [1]。团队还可部署自带模型与编排器的 <strong>Code Agents</strong>，免 Azure 额外配置直接连通 Agent 365 [2]。</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="scale-govern-autonomy" class="section" data-reveal data-present-title-zh="Scale &amp; Govern 阶段（BRK382 + BRK285）：双轨绿区、算力账本与 18 个月爬山自愈" data-present-title-en="Scale &amp; Govern Phase (BRK382 + BRK285): Dual Green Zones, FinOps &amp; 18-Month Hill Climbing">
+          <div class="section-head">
+            <p class="section-kicker">04 / Scale, FinOps &amp; Autonomy</p>
+            <h2 data-zh="4. Scale &amp; Govern 阶段（BRK382 + BRK285）：双轨绿区、算力账本与 18 个月爬山自愈" data-en="4. Scale &amp; Govern Phase (BRK382 + BRK285): Dual Green Zones, FinOps &amp; 18-Month Hill Climbing">4. Scale &amp; Govern 阶段（BRK382 + BRK285）：双轨绿区、算力账本与 18 个月爬山自愈</h2>
+            <p data-zh="当五六种构建工具同时向数千名员工敞开大门，如何既不把每份个人效率草稿都当成达·芬奇画《蒙娜丽莎》那样审批三年，又不让默认环境沦为失控的影子泥潭 [5]？在 BRK382 中，拥有约 &lt;strong&gt;77,000 名员工&lt;/strong&gt;、服务全球 &lt;strong&gt;3.04 亿患者&lt;/strong&gt;的瑞士药企**诺华（Novartis）&lt;strong&gt;交出了真实租户答卷 [5][6]。通过“护栏内放行”与 10 周公民开发者训练营（约 500 名活跃毕业生实现近 50% 生产转化），诺华主租户自 2025 年 10 月起在用 Copilot Studio 智能体从 182 个激增至 &lt;strong&gt;1,366 个（7.5×）&lt;/strong&gt;，月活创作者升至 &lt;strong&gt;3,312 人（2.6×）&lt;/strong&gt; [5][6]。同期 Power Apps 扩至 &lt;strong&gt;27,862 款&lt;/strong&gt;（含 50 款新代码应用），并靠&lt;/strong&gt;周期性所有者确权（Periodic Owner Attestation）**自动清退僵尸资产 [5][6]。" data-en="When thousands of employees build across half a dozen tools, how do enterprises avoid treating every personal draft like Leonardo da Vinci's three-year &lt;em&gt;Mona Lisa&lt;/em&gt; without letting the default environment descend into chaos [5]? In BRK382, &lt;strong&gt;Novartis&lt;/strong&gt; (&lt;strong&gt;77,000 associates&lt;/strong&gt;, &lt;strong&gt;304M patients&lt;/strong&gt;) shared primary tenant telemetry [5][6]. Combining guardrailed enablement with 10-week Citizen Developer cohorts (~500 graduates converting ~50% to production), active Copilot Studio agents surged &lt;strong&gt;7.5× from 182 to 1,366&lt;/strong&gt; while monthly makers rose &lt;strong&gt;2.6× to 3,312&lt;/strong&gt; [5][6]. Power Apps simultaneously reached &lt;strong&gt;27,862&lt;/strong&gt; (including 50 Code apps), kept clean through &lt;strong&gt;periodic owner attestation&lt;/strong&gt; [5][6].">当五六种构建工具同时向数千名员工敞开大门，如何既不把每份个人效率草稿都当成达·芬奇画《蒙娜丽莎》那样审批三年，又不让默认环境沦为失控的影子泥潭 [5]？在 BRK382 中，拥有约 <strong>77,000 名员工</strong>、服务全球 <strong>3.04 亿患者</strong>的瑞士药企**诺华（Novartis）<strong>交出了真实租户答卷 [5][6]。通过“护栏内放行”与 10 周公民开发者训练营（约 500 名活跃毕业生实现近 50% 生产转化），诺华主租户自 2025 年 10 月起在用 Copilot Studio 智能体从 182 个激增至 <strong>1,366 个（7.5×）</strong>，月活创作者升至 <strong>3,312 人（2.6×）</strong> [5][6]。同期 Power Apps 扩至 <strong>27,862 款</strong>（含 50 款新代码应用），并靠</strong>周期性所有者确权（Periodic Owner Attestation）**自动清退僵尸资产 [5][6]。</p>
+          </div>
+
+          <p data-zh="支撑这种规模扩张的底座是 &lt;strong&gt;PPAC 专家绿区&lt;/strong&gt;与 &lt;strong&gt;M365 管理中心（MAC）首日默认绿区&lt;/strong&gt;的双轨协同 [1][5][6]。在 Power Platform 侧，管理员利用最多 25 条优先级环境路由将创作者分流至个人开发沙盒，勾选启用&lt;strong&gt;高级连接器策略（ACP）&lt;strong&gt;不仅能封禁 SQL &lt;code&gt;Delete/Update&lt;/code&gt; 高危动作，更能强制要求仅放行 &lt;strong&gt;OAuth&lt;/strong&gt; 身份认证，配合 Purview 审计必读欢迎条款与内部申诉助手 &lt;strong&gt;Ask Mica&lt;/strong&gt; 前置引导 [5][6]。而在跨工具的 Copilot Managed Runtime 侧，绿区从租户&lt;/strong&gt;第一天起默认开启&lt;/strong&gt;，开箱仅放行核心办公连接器；Austin Laugesen 现场点击测试按钮证明，一旦代码试图私自外呼未授权外部域名（如 &lt;code&gt;Bing&lt;/code&gt;），&lt;strong&gt;Managed Host&lt;/strong&gt; 会依据默认**严格内容安全策略（CSP）**当场掐断连接 [1][5]。部署与运维则沿“单环境零配置 &lt;code&gt;Dev -&amp;gt; Test -&amp;gt; Prod&lt;/code&gt; 三阶段”平滑晋升至金融级跨环境严管流水线，并由低延迟 &lt;strong&gt;Monitor&lt;/strong&gt; 在 &lt;strong&gt;1 小时内&lt;/strong&gt;捕获异常直推 Teams 或 ServiceNow 工单 [5][6]。" data-en="Backing this velocity is a dual green-zone architecture pairing &lt;strong&gt;PPAC expert routing&lt;/strong&gt; with &lt;strong&gt;CMR's on-by-default green zone in MAC&lt;/strong&gt; [1][5][6]. In PPAC, up to 25 priority routing rules steer makers into personal sandboxes governed by &lt;strong&gt;Advanced Connector Policies (ACP)&lt;/strong&gt;—blocking SQL &lt;code&gt;Delete/Update&lt;/code&gt; actions and enforcing &lt;strong&gt;OAuth-only authentication&lt;/strong&gt; alongside Purview-audited welcome terms and Microsoft's internal &lt;strong&gt;Ask Mica&lt;/strong&gt; assistant [5][6]. In CMR, the green zone ships &lt;strong&gt;on by default on day one&lt;/strong&gt;, scoping apps to core M365 connectors while the &lt;strong&gt;Managed Host's strict Content Security Policy (CSP)&lt;/strong&gt; blocks unauthorized outbound calls (such as &lt;code&gt;Bing&lt;/code&gt; in Demo 3) live at runtime; workloads graduate from built-in &lt;code&gt;Dev -&amp;gt; Test -&amp;gt; Prod&lt;/code&gt; targets to hardened cross-environment pipelines monitored by &lt;strong&gt;within-1-hour&lt;/strong&gt; high-sensitivity alerts [1][5][6].">支撑这种规模扩张的底座是 <strong>PPAC 专家绿区</strong>与 <strong>M365 管理中心（MAC）首日默认绿区</strong>的双轨协同 [1][5][6]。在 Power Platform 侧，管理员利用最多 25 条优先级环境路由将创作者分流至个人开发沙盒，勾选启用<strong>高级连接器策略（ACP）<strong>不仅能封禁 SQL <code>Delete/Update</code> 高危动作，更能强制要求仅放行 <strong>OAuth</strong> 身份认证，配合 Purview 审计必读欢迎条款与内部申诉助手 <strong>Ask Mica</strong> 前置引导 [5][6]。而在跨工具的 Copilot Managed Runtime 侧，绿区从租户</strong>第一天起默认开启</strong>，开箱仅放行核心办公连接器；Austin Laugesen 现场点击测试按钮证明，一旦代码试图私自外呼未授权外部域名（如 <code>Bing</code>），<strong>Managed Host</strong> 会依据默认**严格内容安全策略（CSP）**当场掐断连接 [1][5]。部署与运维则沿“单环境零配置 <code>Dev -&gt; Test -&gt; Prod</code> 三阶段”平滑晋升至金融级跨环境严管流水线，并由低延迟 <strong>Monitor</strong> 在 <strong>1 小时内</strong>捕获异常直推 Teams 或 ServiceNow 工单 [5][6]。</p>
+<div class="b2p-media-grid">
+  <article class="b2p-media-card" data-present-surface="unframed">
+    <div class="b2p-media-frame">
+      <img src="./media/brk382-mac-cost-management.png" alt="BRK382 Slide 46 official screenshot of Microsoft 365 admin center Copilot Cost management overview showing 2.5M total credits, 1.5M prepaid, 1M pay-as-you-go, and user spending limit alerts" loading="lazy" />
+    </div>
+    <div class="b2p-media-body">
+      <span class="b2p-media-badge" data-zh="BRK382 官方课件 · Slide 46" data-en="BRK382 Official Slide · Slide 46">BRK382 官方课件 · Slide 46</span>
+      <h4 data-zh="MAC 全局双轨账本：2.5M 点数透视与限额预警" data-en="MAC FinOps Ledger: 2.5M Credits & Threshold Alerts">MAC 全局双轨账本：2.5M 点数透视与限额预警</h4>
+      <p data-zh="配合创作者端顶栏点数器（88 credits）与 Cowork /cost 命令，统一纳管 1.5M 预付 + 1M 按量及 5,000 点业务上限 [1][5][6]。" data-en="Pairs maker-side counters (88 credits) and /cost commands with 1.5M prepaid + 1M PAYG tracking and 5,000-credit pilot caps [1][5][6].">配合创作者端顶栏点数器（88 credits）与 Cowork /cost 命令，统一纳管 1.5M 预付 + 1M 按量及 5,000 点业务上限 [1][5][6]。</p>
+    </div>
+  </article>
+  <article class="b2p-media-card" data-present-surface="unframed">
+    <div class="b2p-media-frame">
+      <img src="./media/brk285-slide29-reference-arch.jpg" alt="BRK285 Slide 29 official diagram of the Resolution Agent Reference Architecture across Dynamics 365, Power Platform, Copilot Studio, MCP, and Azure" loading="lazy" />
+    </div>
+    <div class="b2p-media-body">
+      <span class="b2p-media-badge is-accent" data-zh="BRK285 官方课件 · Slide 29" data-en="BRK285 Official Slide · Slide 29">BRK285 官方课件 · Slide 29</span>
+      <h4 data-zh="Azure 支持 FACS 生产参考拓扑：低代码推理 + 全代码状态" data-en="Azure Support FACS Topology: Studio Reasoning + Azure State">Azure 支持 FACS 生产参考拓扑：低代码推理 + 全代码状态</h4>
+      <p data-zh="Copilot Studio 协同 6 大专职角色，经 APIM 与 4 路 MCP 桥连接 Durable Functions / Cosmos DB 跨天状态与 Foundry 门禁 [7][8]。" data-en="Copilot Studio coordinates 6 specialist roles across 4 APIM-secured MCP bridges to Durable Functions/Cosmos state and Foundry gates [7][8].">Copilot Studio 协同 6 大专职角色，经 APIM 与 4 路 MCP 桥连接 Durable Functions / Cosmos DB 跨天状态与 Foundry 门禁 [7][8]。</p>
+    </div>
+  </article>
+</div>
+<p data-zh="在财务与管理自动化层面，BRK378 与 BRK382 共同补齐了透明算力账本：创作者在 Studio 左上角直看实时消耗（如 &lt;code&gt;88 credits&lt;/code&gt;）或在 Cowork 输入 &lt;code&gt;/cost&lt;/code&gt; 即刻查账；管理员则在 MAC &lt;code&gt;Cost management&lt;/code&gt; 中设定诸如现场巡检 &lt;strong&gt;5,000 点数&lt;/strong&gt;的业务线预算上限，一屏统管全租户 &lt;code&gt;2.5M&lt;/code&gt; 点数（&lt;code&gt;1.5M&lt;/code&gt; 预付 + &lt;code&gt;1M&lt;/code&gt; 按量）与 &lt;code&gt;≥90%&lt;/code&gt; 阈值预警 [1][5][6]。更惊艳的是，微软用&lt;strong&gt;单一权威 OpenAPI 规范&lt;/strong&gt;按月自动同步生成版本化 REST API、&lt;code&gt;.NET/Python&lt;/code&gt; SDK、&lt;code&gt;Admin V2&lt;/code&gt; 连接器、&lt;strong&gt;15 组 PAC CLI 命令&lt;/strong&gt;与 &lt;strong&gt;Cowork 管理插件&lt;/strong&gt;——Zohar 现场演示导入顾问团队打磨的包，仅耗资 &lt;strong&gt;10 美元&lt;/strong&gt;、用时 &lt;strong&gt;30 分钟&lt;/strong&gt;便编译出一款运行在 CMR 上的现代化全栈超级 CoE 治理应用（&lt;code&gt;aka.ms/powerplatform360&lt;/code&gt;）[5][6]。" data-en="On FinOps and admin automation, makers see live burn via Studio's top-left counter (&lt;code&gt;88 credits&lt;/code&gt;) or &lt;code&gt;/cost&lt;/code&gt; in Cowork while admins set &lt;strong&gt;5,000-credit&lt;/strong&gt; pilot caps and monitor &lt;code&gt;2.5M&lt;/code&gt; monthly credits (&lt;code&gt;1.5M&lt;/code&gt; prepaid + &lt;code&gt;1M&lt;/code&gt; PAYG) with &lt;code&gt;≥90%&lt;/code&gt; alerts in MAC [1][5][6]. Crucially, one &lt;strong&gt;authoritative OpenAPI specification&lt;/strong&gt; auto-generates monthly REST docs, &lt;code&gt;.NET/Python&lt;/code&gt; SDKs, the &lt;code&gt;Admin V2&lt;/code&gt; connector, &lt;strong&gt;15 PAC CLI groups&lt;/strong&gt;, and the &lt;strong&gt;Cowork Admin Plugin&lt;/strong&gt;—enabling Zohar to compile a modern CoE Toolkit superset app on CMR in &lt;strong&gt;30 minutes for $10&lt;/strong&gt; (&lt;code&gt;aka.ms/powerplatform360&lt;/code&gt;) [5][6].">在财务与管理自动化层面，BRK378 与 BRK382 共同补齐了透明算力账本：创作者在 Studio 左上角直看实时消耗（如 <code>88 credits</code>）或在 Cowork 输入 <code>/cost</code> 即刻查账；管理员则在 MAC <code>Cost management</code> 中设定诸如现场巡检 <strong>5,000 点数</strong>的业务线预算上限，一屏统管全租户 <code>2.5M</code> 点数（<code>1.5M</code> 预付 + <code>1M</code> 按量）与 <code>≥90%</code> 阈值预警 [1][5][6]。更惊艳的是，微软用<strong>单一权威 OpenAPI 规范</strong>按月自动同步生成版本化 REST API、<code>.NET/Python</code> SDK、<code>Admin V2</code> 连接器、<strong>15 组 PAC CLI 命令</strong>与 <strong>Cowork 管理插件</strong>——Zohar 现场演示导入顾问团队打磨的包，仅耗资 <strong>10 美元</strong>、用时 <strong>30 分钟</strong>便编译出一款运行在 CMR 上的现代化全栈超级 CoE 治理应用（<code>aka.ms/powerplatform360</code>）[5][6]。</p>
+<p data-zh="而针对最严苛的关键业务自主执行，BRK285 披露了微软 Azure 支持团队历时 &lt;strong&gt;18 个月&lt;/strong&gt;将全自主客户服务（FACS）推上生产的终极心法 [7][8]：团队没有推倒低代码重写，而是用 &lt;strong&gt;Copilot Studio&lt;/strong&gt; 调度意图、证据合成、质量审校等 6 类专职角色，把跨数天乃至数周的单案持久状态与超时升级兜底交给 &lt;strong&gt;Azure Durable Functions 与 Cosmos DB&lt;/strong&gt;（实机秒级免问订阅号查出 Contoso &lt;code&gt;09:08&lt;/code&gt; 部署后 &lt;code&gt;0 of 3&lt;/code&gt; 健康实例并引导回滚）[7][8]。面对上线后依然存在的幻觉，团队摒弃“让提示词更努力思考”的无效许愿，建立起&lt;strong&gt;六步爬山（Hill Climbing）闭环&lt;/strong&gt;——将人工坐席改稿原因、专家评分量表（Rubric）与**逐轮追踪工作台（Trace Studio）**日志聚类为失败分桶，在 &lt;strong&gt;3×6 控制矩阵&lt;/strong&gt;与两条授权铁律（&lt;em&gt;绝不授予无法解释的权限，绝不授予无法撤销的权限&lt;/em&gt;）约束下逐个场景放行有界自主 [7][8]。" data-en="Finally, for mission-critical autonomous execution, BRK285 unpacked Azure Support's &lt;strong&gt;18-month&lt;/strong&gt; rollout of Fully Autonomous Customer Service (FACS) [7][8]: keeping &lt;strong&gt;Copilot Studio&lt;/strong&gt; for six-specialist reasoning while delegating multi-day case state and timeout fallbacks to &lt;strong&gt;Azure Durable Functions and Cosmos DB&lt;/strong&gt; (pinpointing &lt;code&gt;0 of 3&lt;/code&gt; healthy instances after a &lt;code&gt;09:08&lt;/code&gt; deployment without asking Contoso for a subscription ID) [7][8]. Confronting persistent live hallucinations, the team replaced wishful prompt-tweaking with a &lt;strong&gt;six-step hill-climbing loop&lt;/strong&gt;—clustering reviewer edit reasons, SME rubrics, and &lt;strong&gt;Trace Studio&lt;/strong&gt; logs into failure buckets to unlock bounded autonomy one scenario at a time under two iron rules: &lt;em&gt;never grant authority you cannot explain, and never grant authority you cannot reverse&lt;/em&gt; [7][8].">而针对最严苛的关键业务自主执行，BRK285 披露了微软 Azure 支持团队历时 <strong>18 个月</strong>将全自主客户服务（FACS）推上生产的终极心法 [7][8]：团队没有推倒低代码重写，而是用 <strong>Copilot Studio</strong> 调度意图、证据合成、质量审校等 6 类专职角色，把跨数天乃至数周的单案持久状态与超时升级兜底交给 <strong>Azure Durable Functions 与 Cosmos DB</strong>（实机秒级免问订阅号查出 Contoso <code>09:08</code> 部署后 <code>0 of 3</code> 健康实例并引导回滚）[7][8]。面对上线后依然存在的幻觉，团队摒弃“让提示词更努力思考”的无效许愿，建立起<strong>六步爬山（Hill Climbing）闭环</strong>——将人工坐席改稿原因、专家评分量表（Rubric）与**逐轮追踪工作台（Trace Studio）**日志聚类为失败分桶，在 <strong>3×6 控制矩阵</strong>与两条授权铁律（<em>绝不授予无法解释的权限，绝不授予无法撤销的权限</em>）约束下逐个场景放行有界自主 [7][8]。</p>
+        </section>
+
+        <section id="abs-30min-blueprint" class="section" data-reveal data-present-title-zh="ABS『方案构建』第 08 场实战指南：30 分钟时间分配与演讲金句骨架" data-present-title-en="ABS Session 08 Run-of-Show: 30-Minute Time Allocation &amp; Speaker Soundbite Script">
+          <div class="section-head">
+            <p class="section-kicker">05 / 30-Minute Talk Blueprint</p>
+            <h2 data-zh="5. ABS『方案构建』第 08 场实战指南：30 分钟时间分配与演讲金句骨架" data-en="5. ABS Session 08 Run-of-Show: 30-Minute Time Allocation &amp; Speaker Soundbite Script">5. ABS『方案构建』第 08 场实战指南：30 分钟时间分配与演讲金句骨架</h2>
+            <p data-zh="为助力 2026 年 12 月 7 日（周一）11:30–12:00 的 30 分钟内部分享高密度控场，我们将整场《From Build to Production: Harness &amp;amp; Managed Runtime》切分为节奏紧凑的五幕（&lt;code&gt;3 + 7 + 9 + 7 + 4 = 30 分钟&lt;/code&gt;），确保主讲场 &lt;strong&gt;BRK378&lt;/strong&gt; 占据最饱满的黄金中段，同时首尾严丝合缝咬合 &lt;strong&gt;BRK259&lt;/strong&gt;、&lt;strong&gt;BRK382&lt;/strong&gt; 与 &lt;strong&gt;BRK285&lt;/strong&gt; 的硬核证据 [1][3][5][7]：" data-en="To pace the 30-minute internal talk on Monday, December 7, 2026 (11:30–12:00) with zero filler, we structure &lt;em&gt;From Build to Production: Harness &amp;amp; Managed Runtime&lt;/em&gt; into five crisp acts (&lt;code&gt;3 + 7 + 9 + 7 + 4 = 30 minutes&lt;/code&gt;), giving lead session &lt;strong&gt;BRK378&lt;/strong&gt; the central nine-minute spotlight while bookending it with empirical proof from &lt;strong&gt;BRK259&lt;/strong&gt;, &lt;strong&gt;BRK382&lt;/strong&gt;, and &lt;strong&gt;BRK285&lt;/strong&gt; [1][3][5][7]:">为助力 2026 年 12 月 7 日（周一）11:30–12:00 的 30 分钟内部分享高密度控场，我们将整场《From Build to Production: Harness &amp; Managed Runtime》切分为节奏紧凑的五幕（<code>3 + 7 + 9 + 7 + 4 = 30 分钟</code>），确保主讲场 <strong>BRK378</strong> 占据最饱满的黄金中段，同时首尾严丝合缝咬合 <strong>BRK259</strong>、<strong>BRK382</strong> 与 <strong>BRK285</strong> 的硬核证据 [1][3][5][7]：</p>
+          </div>
+
+          <figure class="sr-figure generated-diagram is-inline-svg" data-present-step data-present-surface="unframed" data-step-title="ABS 第 08 场（11:30–12:00）五幕 30 分钟节奏分配与四专场映射图" data-step-title-en="ABS Session 08 (11:30–12:00) Five-Act 30-Minute Pacing &amp; Session Mapping" data-present-title-zh="ABS 第 08 场（11:30–12:00）五幕 30 分钟节奏分配与四专场映射图" data-present-title-en="ABS Session 08 (11:30–12:00) Five-Act 30-Minute Pacing &amp; Session Mapping" data-step-label="05 / 30-Minute Talk Blueprint" data-step-label-en="05 / 30-Minute Talk Blueprint" data-present-i18n-invariant="label">
+            <svg class="sr-figure-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 446" role="img" aria-labelledby="talk-30min-pacing-blueprint-2-title talk-30min-pacing-blueprint-2-desc"><title id="talk-30min-pacing-blueprint-2-title">ABS 方案构建第 08 场：30 分钟演讲时间分配与四专场证据密度（11:30–12:00）</title><desc id="talk-30min-pacing-blueprint-2-desc">Horizontal bar chart with 5 items</desc><text class="sr-zh" x="36" y="32" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="18" font-weight="700" fill="var(--fig-text-strong, #172430)">ABS 方案构建第 08 场：30 分钟演讲时间分配与四专场证据密度（11:30–12:00）</text><text class="sr-en" x="36" y="32" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="18" font-weight="700" fill="var(--fig-text-strong, #172430)">ABS Solution Build Session 08: 30-Minute Pacing &amp; Four-Session Evidence Allocation (11:30–12:00)</text><text class="sr-zh" x="36" y="54" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">主讲人 Wells Zhang · 2026 年 12 月 7 日（周一）11:30–12:00 · 五幕总计 30 分钟精准卡点</text><text class="sr-en" x="36" y="54" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12.5" font-weight="500" fill="var(--fig-text-muted, #52616d)">Speaker: Wells Zhang · Mon Dec 7, 2026 (11:30–12:00) · Five Acts Totaling Exactly 30 Minutes</text><line x1="310" y1="92" x2="310" y2="392" stroke="var(--fig-axis-line, rgba(23,36,48,0.24))" stroke-width="1"/><text class="sr-figure-num" x="310" y="414" text-anchor="middle" font-size="11.5" fill="var(--fig-text-subtle, #64748b)">0</text><line x1="453" y1="92" x2="453" y2="392" stroke="var(--fig-grid-line, rgba(23,36,48,0.09))" stroke-width="1" stroke-dasharray="4 4"/><text class="sr-figure-num" x="453" y="414" text-anchor="middle" font-size="11.5" fill="var(--fig-text-subtle, #64748b)">3</text><line x1="595" y1="92" x2="595" y2="392" stroke="var(--fig-grid-line, rgba(23,36,48,0.09))" stroke-width="1" stroke-dasharray="4 4"/><text class="sr-figure-num" x="595" y="414" text-anchor="middle" font-size="11.5" fill="var(--fig-text-subtle, #64748b)">6</text><line x1="738" y1="92" x2="738" y2="392" stroke="var(--fig-grid-line, rgba(23,36,48,0.09))" stroke-width="1" stroke-dasharray="4 4"/><text class="sr-figure-num" x="738" y="414" text-anchor="middle" font-size="11.5" fill="var(--fig-text-subtle, #64748b)">9</text><line x1="880" y1="92" x2="880" y2="392" stroke="var(--fig-grid-line, rgba(23,36,48,0.09))" stroke-width="1" stroke-dasharray="4 4"/><text class="sr-figure-num" x="880" y="414" text-anchor="middle" font-size="11.5" fill="var(--fig-text-subtle, #64748b)">12 min</text><text class="sr-zh" x="296" y="126" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">M1 开场破题（11:30–11:33）</text><text class="sr-en" x="296" y="126" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">M1 Opening Hook (11:30–11:33)</text><rect x="310" y="110" width="143" height="24" rx="6" fill="var(--fig-role-slate-bar, #64748b)" fill-opacity="0.88"/><text class="sr-zh" x="463" y="127" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">3 min · localhost 孤岛与免审投产之问（BRK378/285）</text><text class="sr-en" x="463" y="127" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">3m · Localhost trap &amp; prod trust poll (BRK378/285)</text><text class="sr-zh" x="296" y="186" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">M2 Build 内核（11:33–11:40）</text><text class="sr-en" x="296" y="186" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">M2 Build: Harness (11:33–11:40)</text><rect x="310" y="170" width="333" height="24" rx="6" fill="var(--fig-role-teal-bar, #0d8f8c)" fill-opacity="0.88"/><text class="sr-zh" x="653" y="187" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">7 min · Copilot SDK、+47.5 pts 与 6 Hooks（BRK259）</text><text class="sr-en" x="653" y="187" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">7m · Copilot SDK, +47.5 pts &amp; 6 Hooks (BRK259)</text><text class="sr-zh" x="296" y="246" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">M3 Host 托管（11:40–11:49）</text><text class="sr-en" x="296" y="246" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">M3 Host: CMR Lead (11:40–11:49)</text><rect x="310" y="230" width="428" height="24" rx="6" fill="var(--fig-role-accent-bar, #ea580c)" fill-opacity="0.88"/><text class="sr-zh" x="748" y="247" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">9 min · 五入口共 Git、Lovable 与 VS Code（BRK378 主）</text><text class="sr-en" x="748" y="247" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">9m · 5 surfaces, Lovable &amp; VS Code Git (BRK378 Lead)</text><text class="sr-zh" x="296" y="306" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">M4 Scale 治理（11:49–11:56）</text><text class="sr-en" x="296" y="306" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">M4 Scale &amp; Govern (11:49–11:56)</text><rect x="310" y="290" width="333" height="24" rx="6" fill="var(--fig-role-blue-bar, #2563eb)" fill-opacity="0.88"/><text class="sr-zh" x="653" y="307" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">7 min · 诺华 7.5×、默认绿区与 $10 CoE（BRK382）</text><text class="sr-en" x="653" y="307" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">7m · Novartis 7.5×, MAC green zone &amp; $10 CoE (BRK382)</text><text class="sr-zh" x="296" y="366" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">M5 生产自主与收官（11:56–12:00）</text><text class="sr-en" x="296" y="366" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="end" font-size="13" font-weight="600" fill="var(--fig-text-strong, #172430)">M5 Prod Autonomy (11:56–12:00)</text><rect x="310" y="350" width="190" height="24" rx="6" fill="var(--fig-role-violet-bar, #7c3aed)" fill-opacity="0.88"/><text class="sr-zh" x="510" y="367" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">4 min · FACS 18 个月爬山闭环与行动清单（BRK285）</text><text class="sr-en" x="510" y="367" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" class="sr-figure-num" font-size="12" font-weight="700" fill="var(--fig-text-strong, #172430)">4m · 18-mo FACS hill climbing &amp; Monday checklist (BRK285)</text><text class="sr-zh" x="595" y="438" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">单幕分配时长（分钟 · 总计 30 分钟）与对应 Ignite 2026 官方锚点</text><text class="sr-en" x="595" y="438" font-family="Space Grotesk, Noto Sans SC, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle" font-size="12" font-weight="600" fill="var(--fig-text-muted, #52616d)">Allocated Minutes per Act (30 Minutes Total) &amp; Primary Ignite 2026 Anchors</text></svg>
+            <figcaption class="diagram-caption"><span data-zh="图 2：30 分钟分享采用『3 分钟破题立主线 ➔ 7 分钟讲透 Harness 内核 ➔ 9 分钟重锤 CMR 随处托管主讲 ➔ 7 分钟拆解诺华与默认绿区账本 ➔ 4 分钟收束 FACS 爬山闭环与周一行动项』的黄金漏斗结构 [1][3][5][7]。" data-en="Figure 2: Paces the 30-minute slot across a 3m opening hook, 7m Copilot Harness deep dive, 9m Copilot Managed Runtime lead spotlight, 7m Novartis &amp;amp; MAC FinOps governance, and 4m FACS hill-climbing close [1][3][5][7].">图 2：30 分钟分享采用『3 分钟破题立主线 ➔ 7 分钟讲透 Harness 内核 ➔ 9 分钟重锤 CMR 随处托管主讲 ➔ 7 分钟拆解诺华与默认绿区账本 ➔ 4 分钟收束 FACS 爬山闭环与周一行动项』的黄金漏斗结构 [1][3][5][7]。</span></figcaption>
+          </figure>
+
+          <p data-zh="点击下方交互式演讲导播台的五幕标签或进度色块，即可逐幕检视精确到分钟的&lt;strong&gt;上台口播金句、核心演示论据、幕间转场衔接词&lt;/strong&gt;及本知识库四篇配套深潜直链：" data-en="Click any act tab or timeline segment in the interactive speaker run-of-show below to inspect verbatim stage soundbites, minute-by-minute talking points, transition cues, and direct links to all four companion deep dives:">点击下方交互式演讲导播台的五幕标签或进度色块，即可逐幕检视精确到分钟的<strong>上台口播金句、核心演示论据、幕间转场衔接词</strong>及本知识库四篇配套深潜直链：</p>
+
+          <div id="abs-talk-blueprint" class="sandbox-slot" data-sandbox-slot="abs-talk-blueprint" data-present-step data-present-surface="board" data-step-title="ABS 内部分享第 08 场（Wells Zhang · 30 分钟）五幕演讲卡点与金句导播台" data-step-title-en="ABS Session 08 (Wells Zhang · 30-Min) Interactive Five-Act Speaker Run-of-Show" data-present-title-zh="ABS 内部分享第 08 场（Wells Zhang · 30 分钟）五幕演讲卡点与金句导播台" data-present-title-en="ABS Session 08 (Wells Zhang · 30-Min) Interactive Five-Act Speaker Run-of-Show" data-step-label="05 / 30-Minute Talk Blueprint" data-step-label-en="05 / 30-Minute Talk Blueprint" data-present-i18n-invariant="label">
+            <div class="sandbox-header">
+              <div class="sandbox-title-group">
+                <span class="comparison-label" data-zh="纯静态交互沙盒" data-en="Static Interactive Sandbox">纯静态交互沙盒</span>
+                <h3 data-zh="ABS 内部分享第 08 场（Wells Zhang · 30 分钟）五幕演讲卡点与金句导播台" data-en="ABS Session 08 (Wells Zhang · 30-Min) Interactive Five-Act Speaker Run-of-Show">ABS 内部分享第 08 场（Wells Zhang · 30 分钟）五幕演讲卡点与金句导播台</h3>
+                <p data-zh="自由切换 11:30–12:00 五幕议程，查阅每幕口播金句、四专场硬指标锚点、幕间转场话术与原版 PPTX 直链。" data-en="Switch across all five 11:30–12:00 acts for verbatim speaker soundbites, empirical metrics, transition cues, and official PPTX decks.">自由切换 11:30–12:00 五幕议程，查阅每幕口播金句、四专场硬指标锚点、幕间转场话术与原版 PPTX 直链。</p>
+              </div>
+              <div class="sandbox-controls" data-sandbox-controls="abs-talk-blueprint"></div>
+            </div>
+            <div class="sandbox-stage" data-sandbox-stage="abs-talk-blueprint">
+
+            </div>
+          </div>
+
+          <div class="quote-block insight-callout">
+            <strong data-zh="带回项目组的周一行动三步清单（ABS 方案构建交付沉淀）" data-en="Monday-Morning Three-Step Action Checklist for Solution Architects">带回项目组的周一行动三步清单（ABS 方案构建交付沉淀）</strong>
+            <span data-zh="1. &lt;strong&gt;先立架构契约与确定性钩子，再写业务功能（Build）&lt;/strong&gt; — 在 VS Code 接入 Microsoft Learn MCP 对齐云采用与安全红线；凡涉及金额审批、外部写操作或敏感字段的工具调用，一律挂载 &lt;code&gt;Before tool&lt;/code&gt; / &lt;code&gt;After tool&lt;/code&gt; 生命周期钩子，拒绝靠自然语言提示词“祈祷合规” [3][7]。" data-en="&lt;strong&gt;1. Lock Contracts &amp;amp; Deterministic Hooks First (Build)&lt;/strong&gt; — Ground designs via Microsoft Learn MCP and gate side-effecting or sensitive tools with &lt;code&gt;Before tool&lt;/code&gt; / &lt;code&gt;After tool&lt;/code&gt; hooks rather than trusting natural-language prompt wishes [3][7].
+2. &lt;strong&gt;全面告别 localhost 孤岛，统一收归受管 Git 底座（Host）&lt;/strong&gt; — 将 Cowork、Copilot Studio 及花 20 分钟完成租户绑定的外部三方工具（如 Lovable）全部指向 Copilot Managed Runtime；利用共享 React/TypeScript Git 远程仓库与 Fabric (Rayfin) 持久化，实现业务创作者与全栈工程师零重写无缝接力 [1][2]。 || &lt;strong&gt;2. Eliminate Localhost Silos on One Git Runtime (Host)&lt;/strong&gt; — Route Cowork, Studio, and 20-minute bound 3P builders like Lovable onto Copilot Managed Runtime so makers and VS Code engineers collaborate on one Git repo backed by Fabric (Rayfin) [1][2].
+3. &lt;strong&gt;开启双轨绿区账本，凭爬山证据逐场景放权（Scale &amp;amp; Govern）&lt;/strong&gt; — 核验 M365 管理中心默认绿区连接器与严格 CSP，按业务线挂载 5,000 点数试点限额或耗资 10 美元生成超级 CoE；对跨天复杂流程实施“Studio 推理 + Azure 持久状态”分工，用人工改稿分桶与重放门禁逐个场景挣得有界全自主 [1][5][7]。 || &lt;strong&gt;3. Enforce Green-Zone FinOps &amp;amp; Earn Autonomy via Hill Climbing (Scale &amp;amp; Govern)&lt;/strong&gt; — Baseline MAC default green-zone CSP and 5,000-credit caps (or spin up the $10 CoE app), pair Studio reasoning with Durable Functions state, and unlock unreviewed autonomy one benchmarked scenario at a time [1][5][7].">1. <strong>先立架构契约与确定性钩子，再写业务功能（Build）</strong> — 在 VS Code 接入 Microsoft Learn MCP 对齐云采用与安全红线；凡涉及金额审批、外部写操作或敏感字段的工具调用，一律挂载 <code>Before tool</code> / <code>After tool</code> 生命周期钩子，拒绝靠自然语言提示词“祈祷合规” [3][7]。</span>
+          </div>
+        </section>
+
+        <section id="references" class="section" data-reveal data-present-title-zh="参考资料：四场 Ignite 2026 官方一手信源" data-present-title-en="References: Four Official Microsoft Ignite 2026 Primary Sources" data-density-exempt="references">
+          <div class="section-head">
+            <p class="section-kicker">06 / References: Four Official Microsoft Ignite 2026 Primary Sources</p>
+            <h2 data-zh="6. 参考资料：四场 Ignite 2026 官方一手信源" data-en="6. References: Four Official Microsoft Ignite 2026 Primary Sources">6. 参考资料：四场 Ignite 2026 官方一手信源</h2>
+          </div>
+
+          <ol class="bib-list">
+            <li id="ref-1">
+              <span class="bib-id">[1]</span>
+              <span class="bib-author">Clay Wesener, Emma Cooper &amp; Malavika Balachandran Tadeusz (Microsoft Ignite 2026 BRK378 · 主讲专场)</span> —
+              <a href="https://ignite.microsoft.com/en-US/sessions/1787856630704001Ep9J-1791588308254001CRyh" target="_blank" rel="noopener">https://ignite.microsoft.com/en-US/sessions/1787856630704001Ep9J-1791588308254001CRyh</a>
+              <span class="bib-note" data-zh="《Host apps from anywhere with the new Copilot Managed Runtime》45 分钟官方点播实录与逐字稿（2026-11-18）" data-en="Lead Session BRK378 official 45-minute recording and verbatim transcript on Copilot Managed Runtime GA (Nov 18, 2026)">《Host apps from anywhere with the new Copilot Managed Runtime》45 分钟官方点播实录与逐字稿（2026-11-18）</span>
+            </li>
+            <li id="ref-2">
+              <span class="bib-id">[2]</span>
+              <span class="bib-author">Microsoft Ignite 2026 BRK378 Official Slide Deck &amp; Stream</span> —
+              <a href="https://medius.microsoft.com/video/asset/PPT/c5c8ac76-0384-4a0c-acf5-83488136a4f1" target="_blank" rel="noopener">https://medius.microsoft.com/video/asset/PPT/c5c8ac76-0384-4a0c-acf5-83488136a4f1</a>
+              <span class="bib-note" data-zh="BRK378 原版 34 页 PPTX 课件（含 11 月 17 日 GA 矩阵、Voyage Desk 36 项检查、Fabric Rayfin 持久化与管理中心 492 款应用实拍）" data-en="Official 34-slide BRK378 presentation deck covering Nov 17 GA capabilities, Lovable integration, and MAC inventory captures">BRK378 原版 34 页 PPTX 课件（含 11 月 17 日 GA 矩阵、Voyage Desk 36 项检查、Fabric Rayfin 持久化与管理中心 492 款应用实拍）</span>
+            </li>
+            <li id="ref-3">
+              <span class="bib-id">[3]</span>
+              <span class="bib-author">Alice Appleton (Microsoft Ignite 2026 BRK259 · 关联专场)</span> —
+              <a href="https://ignite.microsoft.com/en-US/sessions/1787856612459001EfZu-1791588174633001COAZ" target="_blank" rel="noopener">https://ignite.microsoft.com/en-US/sessions/1787856612459001EfZu-1791588174633001COAZ</a>
+              <span class="bib-note" data-zh="《See how the Microsoft Copilot harness powers Copilot Studio》38 分 36 秒官方点播实录与双语逐字稿（2026-11-20）" data-en="Related Session BRK259 official recording and transcript on the Microsoft Copilot SDK harness and Azure container sandboxes (Nov 20, 2026)">《See how the Microsoft Copilot harness powers Copilot Studio》38 分 36 秒官方点播实录与双语逐字稿（2026-11-20）</span>
+            </li>
+            <li id="ref-4">
+              <span class="bib-id">[4]</span>
+              <span class="bib-author">Microsoft Ignite 2026 BRK259 Official Slide Deck</span> —
+              <a href="https://medius.microsoft.com/video/asset/PPT/57bd65b7-dce0-4d9d-9d20-70a3b284e9bd" target="_blank" rel="noopener">https://medius.microsoft.com/video/asset/PPT/57bd65b7-dce0-4d9d-9d20-70a3b284e9bd</a>
+              <span class="bib-note" data-zh="BRK259 原版 32 页 PPTX 讲义（含 500 道离线评测 +47.5 pts / -45% 数据、32 智能体软件工厂、动态子智能体与六类 Hooks 契约）" data-en="Official 32-slide BRK259 deck detailing offline eval gains, 32-agent internal factory, Dynamic Task Agents, and 6 lifecycle hooks">BRK259 原版 32 页 PPTX 讲义（含 500 道离线评测 +47.5 pts / -45% 数据、32 智能体软件工厂、动态子智能体与六类 Hooks 契约）</span>
+            </li>
+            <li id="ref-5">
+              <span class="bib-id">[5]</span>
+              <span class="bib-author">Zohar Raz, Ryan Jansen, Austin Laugesen &amp; Nicholas Balestrino (Microsoft Ignite 2026 BRK382 · 关联专场)</span> —
+              <a href="https://ignite.microsoft.com/en-US/sessions/1787856631314001Eynh-1791814918515001Cspr" target="_blank" rel="noopener">https://ignite.microsoft.com/en-US/sessions/1787856631314001Eynh-1791814918515001Cspr</a>
+              <span class="bib-note" data-zh="《Deploy solutions at scale with Power Platform or Copilot Managed Runtime》47 分钟官方点播实录与诺华访谈逐字稿（2026-11-20）" data-en="Related Session BRK382 official 47-minute recording featuring Novartis's 77,000-associate telemetry and four governance demos (Nov 20, 2026)">《Deploy solutions at scale with Power Platform or Copilot Managed Runtime》47 分钟官方点播实录与诺华访谈逐字稿（2026-11-20）</span>
+            </li>
+            <li id="ref-6">
+              <span class="bib-id">[6]</span>
+              <span class="bib-author">Microsoft Ignite 2026 BRK382 Official Slide Deck</span> —
+              <a href="https://medius.microsoft.com/video/asset/PPT/8698eb3b-5f0b-4284-bf98-188eb338d15e" target="_blank" rel="noopener">https://medius.microsoft.com/video/asset/PPT/8698eb3b-5f0b-4284-bf98-188eb338d15e</a>
+              <span class="bib-note" data-zh="BRK382 原版 54 页 PPTX 课件（含诺华 7.5× 增长报表、PPAC/MAC 双轨绿区、小时级 Monitor 告警、2.5M 点数账本与单一 OpenAPI 规范）" data-en="Official 54-slide BRK382 deck covering Novartis scale metrics, Managed Host CSP blocking, FinOps ledgers, and the $10 CoE app">BRK382 原版 54 页 PPTX 课件（含诺华 7.5× 增长报表、PPAC/MAC 双轨绿区、小时级 Monitor 告警、2.5M 点数账本与单一 OpenAPI 规范）</span>
+            </li>
+            <li id="ref-7">
+              <span class="bib-id">[7]</span>
+              <span class="bib-author">Ali Ijaz, Arun Masilamani, Tim Schaeps &amp; Omprakash Reddy Adudodla (Microsoft Ignite 2026 BRK285 · 关联专场)</span> —
+              <a href="https://ignite.microsoft.com/en-US/sessions/1787856616329001EyM8-1791588352535001C8TA" target="_blank" rel="noopener">https://ignite.microsoft.com/en-US/sessions/1787856616329001EyM8-1791588352535001C8TA</a>
+              <span class="bib-note" data-zh="《Your agent works. Now make it enterprise-ready.》51 分钟官方点播实录与双旅程逐字稿（2026-11-19）" data-en="Related Session BRK285 official 51-minute recording dissecting Superagents contracts and Azure Support's 18-month FACS rollout (Nov 19, 2026)">《Your agent works. Now make it enterprise-ready.》51 分钟官方点播实录与双旅程逐字稿（2026-11-19）</span>
+            </li>
+            <li id="ref-8">
+              <span class="bib-id">[8]</span>
+              <span class="bib-author">Microsoft Ignite 2026 BRK285 Official Slide Deck</span> —
+              <a href="https://medius.microsoft.com/video/asset/PPT/048e7075-9b0a-458d-b28b-3fa6113f248b" target="_blank" rel="noopener">https://medius.microsoft.com/video/asset/PPT/048e7075-9b0a-458d-b28b-3fa6113f248b</a>
+              <span class="bib-note" data-zh="BRK285 原版 38 页 PPTX 讲义（含三阶成熟度、3×6 控制矩阵、FACS 低高代码参考拓扑与六步爬山迭代图）" data-en="Official 38-slide BRK285 deck covering the 3×6 autonomy-control matrix, FACS reference topology, and 6-step hill-climbing loop">BRK285 原版 38 页 PPTX 讲义（含三阶成熟度、3×6 控制矩阵、FACS 低高代码参考拓扑与六步爬山迭代图）</span>
+            </li>
+            <li id="ref-9">
+              <span class="bib-id">[9]</span>
+              <span class="bib-author">Ben Appleby (Microsoft Copilot Studio Engineering Blog)</span> —
+              <a href="https://www.microsoft.com/en-us/copilot/blog/copilot-studio/how-the-microsoft-copilot-harness-in-copilot-studio-helps-agents-finish-the-job/" target="_blank" rel="noopener">https://www.microsoft.com/en-us/copilot/blog/copilot-studio/how-the-microsoft-copilot-harness-in-copilot-studio-helps-agents-finish-the-job/</a>
+              <span class="bib-note" data-zh="《How the Microsoft Copilot harness in Copilot Studio helps agents finish the job》83%–88% 提示词缓存命中率与 84%–91% 工具失败自愈工程解析（2026-11-09）" data-en="Companion engineering deep dive on Azure container sandboxes, 83%–88% prompt cache hit rates, and 84%–91% self-recovery (Nov 9, 2026)">《How the Microsoft Copilot harness in Copilot Studio helps agents finish the job》83%–88% 提示词缓存命中率与 84%–91% 工具失败自愈工程解析（2026-11-09）</span>
+            </li>
+          </ol>
+        </section>
+      </main>
+
+      <footer class="site-footer" data-reveal>
+        <p data-zh="© 2026 Knowledge Hub · Genesis 纯静态 Markdown 编译管线生成" data-en="© 2026 Knowledge Hub · Generated by Genesis Static Markdown Compiler">© 2026 Knowledge Hub · Genesis 纯静态 Markdown 编译管线生成</p>
+      </footer>
+    </div>
+  </div>
+
+
+  <script src="../../assets/article-common.js"></script>
+  <script src="../../assets/article-presentation.js"></script>
+  <script src="../../assets/article-narration.js"></script>
+  <script src="../../assets/pptx-export.js"></script>
+  <script src="../../assets/article-math.js"></script>
+  <script src="../../assets/scrollbar.js"></script>
+  <script src="../../assets/article-lightbox.js"></script>
+  <script src="../../assets/article-assistant.js"></script>
+  <script src="./talk-blueprint.js"></script>
+  <script>
+    (function () {
+      var buttons = document.querySelectorAll("[data-genesis-mode]");
+      var drawer = document.getElementById("genesis-source-drawer");
+      var i;
+      function setMode(mode) {
+        for (var j = 0; j < buttons.length; j++) {
+          var btn = buttons[j];
+          var active = btn.getAttribute("data-genesis-mode") === mode;
+          if (active) {
+            btn.classList.add("is-active");
+          } else {
+            btn.classList.remove("is-active");
+          }
+        }
+        if (mode === "linear") {
+          document.body.classList.add("is-linear-reading");
+          if (drawer) drawer.classList.remove("is-open");
+        } else if (mode === "source") {
+          document.body.classList.remove("is-linear-reading");
+          if (drawer) drawer.classList.add("is-open");
+        } else {
+          document.body.classList.remove("is-linear-reading");
+          if (drawer) drawer.classList.remove("is-open");
+        }
+      }
+      for (i = 0; i < buttons.length; i++) {
+        (function (btn) {
+          btn.addEventListener("click", function () {
+            setMode(btn.getAttribute("data-genesis-mode"));
+          });
+        })(buttons[i]);
+      }
+    })();
+  </script>
+</body>
+</html>
