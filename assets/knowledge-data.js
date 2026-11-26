@@ -4193,12 +4193,12 @@ var knowledgeTree = [
     parentId: 'copilot-studio',
     type: 'article',
     title: {
-      zh: 'From Build to Production：Harness 内核与 Copilot 托管运行时全栈实战（Ignite 2026 ABS 第 08 场）',
-      en: 'From Build to Production: Harness & Copilot Managed Runtime Blueprint (Ignite 2026 ABS Session 08)'
+      zh: 'From Build to Production：Harness 执行内核与 Copilot 托管运行时企业级架构解析',
+      en: 'From Build to Production: Harness Kernel & Copilot Managed Runtime Architecture'
     },
     summary: {
-      zh: '面向 Ignite 2026 ABS『方案构建』第 08 场（Wells Zhang，12月7日 11:30–12:00），深度融合 BRK378、BRK259、BRK382 与 BRK28…',
-      en: 'Crafted for Ignite 2026 ABS Solution Build Session 08 (Wells Zhang, Dec 7, 11:30–12:00), uniting BRK378, BRK259, BRK382, and BRK285 into one Build-to-Pro…'
+      zh: '拆解企业应用与智能体跨越投产断层的工程逻辑：串联 Copilot Harness 容器内核、Managed Runtime 统一 Git 托管、双轨绿区账本与爬山自主闭环。',
+      en: 'Traces how Copilot Harness containers, Managed Runtime Git hosting, dual green-zone FinOps, and hill-climbed autonomy take enterprise AI to production.'
     },
     tags: ['Microsoft Ignite 2026', 'Copilot Managed Runtime', 'Microsoft Copilot Harness', 'BRK378', 'BRK259', 'BRK382', 'BRK285'],
     date: '2026-11-26',
