@@ -251,6 +251,114 @@ test('section headings starting with decimal numbers (e.g. 57.35 GB) keep their 
   assert.match(res.html, /<h2 data-zh="2\. 57\.35 GB 原仓拆解与部署定论" data-en="2\. 57\.35 GB Repository Anatomy and Verdict">2\. 57\.35 GB 原仓拆解与部署定论<\/h2>/);
 });
 
+test('adaptive hero subtraction: omitting panel and metrics renders clean single-column opening without default right card or metric tiles', () => {
+  // Morphology 1: Pure prose opening (no panel, no metrics, no intro quote) -> zero .hero-panel and zero .hero-metrics
+  const pureProseMd = [
+    '---',
+    'title: 用户实操手册：三步完成环境初始化 || User Manual: Three-Step Environment Setup',
+    'eyebrow: User Manual || User Manual',
+    'brand: Study Room || Study Room',
+    'strict_i18n: true',
+    'strict_density: true',
+    'lead: 面向一线运维工程师的最短跑通路径与常见故障排查清单 [1]。 || Shortest working setup path and troubleshooting checklist for operations engineers [1].',
+    '---',
+    '',
+    '## #prereq 01 / Prerequisites :: 前置条件与依赖检查 || Prerequisites and Dependency Check',
+    '',
+    '先核对本机运行时版本，确保满足最低兼容门槛 [1]。 || Verify local runtime versions to meet minimum compatibility thresholds [1].',
+    '',
+    '| 检查项 || Item | 最低版本 || Minimum Version | 验证命令 || Command |',
+    '|------|------|------|',
+    '| Node.js || Node.js | `v20.0.0` || `v20.0.0` | `node -v` || `node -v` |',
+    '',
+    '## #references 02 / References :: 参考来源 || References',
+    '',
+    '- [1] Node.js Release Schedule — https://nodejs.org/en/about/previous-releases | 官方长期支持版本周期说明 || Official LTS release schedule'
+  ].join('\n');
+
+  const pureRes = compiler.compileMarkdownToHtml(pureProseMd);
+  assert.doesNotMatch(pureRes.html, /class="hero-panel/);
+  assert.doesNotMatch(pureRes.html, /核心架构摘要/);
+  assert.doesNotMatch(pureRes.html, /class="hero-metrics/);
+  assert.match(pureRes.html, /<div class="hero-grid">\s*<div class="hero-copy load-in">/);
+  const pureContract = compiler.verifyCompiledHtmlContract(pureRes.html);
+  assert.equal(pureContract.ok, true, pureContract.errors.join('; '));
+
+  // Morphology 2: Single-column opening WITH authentic metrics (metrics present, panel omitted)
+  const metricsOnlyMd = [
+    '---',
+    'title: 2026 企业智能体采购市场调研 || 2026 Enterprise Agent Procurement Survey',
+    'eyebrow: Market Research || Market Research',
+    'strict_i18n: true',
+    'strict_density: true',
+    'lead: 基于 120 家受访企业的预算分配与交付周期实证对比。 || Empirical comparison of budget allocation and delivery cycles across 120 surveyed enterprises.',
+    'metrics:',
+    '  - 样本规模 || Sample Size | 120 家 || 120 Orgs | 覆盖金融、制造与医疗行业 || Spanning finance, manufacturing, and healthcare',
+    '  - 中位回本周期 || Median Payback | 7.5 个月 || 7.5 Months | 已计入数据治理与集成成本 || Includes data governance and integration costs',
+    '---',
+    '',
+    '## #landscape 01 / Landscape :: 预算结构与采购重心 || Budget Structure and Procurement Focus',
+    '',
+    '受访企业将 62% 的首年投入用于既有业务系统连接器与权限审计。 || Surveyed enterprises allocate 62% of first-year spend to legacy connectors and permission auditing.'
+  ].join('\n');
+
+  const metricsOnlyRes = compiler.compileMarkdownToHtml(metricsOnlyMd);
+  assert.doesNotMatch(metricsOnlyRes.html, /class="hero-panel/);
+  assert.match(metricsOnlyRes.html, /class="hero-metrics load-in"/);
+  assert.match(metricsOnlyRes.html, /120 家/);
+  assert.equal(compiler.verifyCompiledHtmlContract(metricsOnlyRes.html).ok, true);
+
+  // Morphology 3: Intro blockquote fallback -> renders .hero-panel even when frontmatter omits panel keys
+  const introQuoteMd = [
+    '---',
+    'title: 建模摘要回退兼容验证 || Intro Blockquote Panel Fallback',
+    '---',
+    '',
+    '这是首屏导语段落。 || Hero lead paragraph.',
+    '',
+    '> 关键建模假设 || Key Modeling Assumptions',
+    '> - 到达过程服从非齐次泊松分布 || Arrivals follow a non-homogeneous Poisson process',
+    '> - 服务窗口容量保持恒定 || Service window capacity remains constant',
+    '',
+    '## #model 01 / Model :: 模型推导 || Model Formulation',
+    '',
+    '令到达率函数为 $\\lambda(t)$。 || Let the arrival rate function be $\\lambda(t)$.'
+  ].join('\n');
+
+  const quoteRes = compiler.compileMarkdownToHtml(introQuoteMd);
+  assert.match(quoteRes.html, /class="hero-panel load-in"/);
+  assert.match(quoteRes.html, /关键建模假设/);
+  assert.doesNotMatch(quoteRes.html, /class="hero-metrics/);
+  assert.equal(compiler.verifyCompiledHtmlContract(quoteRes.html).ok, true);
+
+  // Shared stylesheet must carry adaptive single-column rules for panel-free heroes
+  const articleCss = fs.readFileSync(path.join(ROOT, 'assets/article.css'), 'utf8');
+  assert.match(articleCss, /\.hero-grid:not\(:has\(\.hero-panel\)\)/);
+  assert.match(articleCss, /\.hero:not\(:has\(\.hero-panel\)\):not\(:has\(\.hero-metrics\)\)/);
+});
+
+test('all existing Markdown-compiled articles remain 100% byte-compatible', () => {
+  const postsDir = path.join(ROOT, 'posts');
+  const slugsToVerify = [
+    'markdown-genesis-lab',
+    'local-music-song-models',
+    'worse-together-multi-user-agents',
+    'from-build-to-production-harness-managed-runtime',
+    'copilot-studio-ignite-2026-whats-new',
+    'copilot-studio-managed-runtime-alm'
+  ];
+
+  for (const slug of slugsToVerify) {
+    const mdPath = path.join(postsDir, slug, 'article.md');
+    const htmlPath = path.join(postsDir, slug, 'index.html');
+    assert.equal(
+      cli.main(['node', 'compile-markdown-article.js', mdPath, '--check', htmlPath]),
+      0,
+      `Expected ${slug} to remain byte-identical after adaptive hero update`
+    );
+  }
+});
+
 test('benchmark articles (markdown-genesis-lab & claw-code-analysis/genesis.html) compile deterministically and pass validate.js', () => {
   const genesisLabMd = path.join(ROOT, 'posts/markdown-genesis-lab/article.md');
   const genesisLabHtml = path.join(ROOT, 'posts/markdown-genesis-lab/index.html');

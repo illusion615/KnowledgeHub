@@ -50,30 +50,48 @@ function buildHeroHtml(meta, chaptersData, state) {
     actionsHtml = '\n            <div class="hero-actions">\n' + defaultBtns.join('\n') + '\n            </div>';
   }
 
-  // Hero right panel
-  var panelLabelPair = fm.parseBilingual(meta.panel_label || '核心架构摘要 || Architecture Brief');
-  var panelTitlePair = fm.parseBilingual(meta.panel_title || (chaptersData.introQuote[0] || titlePair.zh));
-  var panelDescPair = fm.parseBilingual(meta.panel_desc || '');
-  var panelItems = Array.isArray(meta.panel) ? meta.panel : [];
-  if (panelItems.length === 0 && chaptersData.introQuote.length > 1) {
-    panelItems = chaptersData.introQuote.slice(1).map(function (line) {
-      return line.replace(/^[-*+]\s+/, '');
-    });
-  }
+  // Hero right panel (adaptive subtraction: omit right-column card when neither frontmatter panel fields nor intro blockquote exist)
+  var hasExplicitPanelList = Array.isArray(meta.panel) && meta.panel.length > 0;
+  var hasExplicitPanelTitle = Boolean(meta.panel_title && String(meta.panel_title).trim());
+  var hasExplicitPanelDesc = Boolean(meta.panel_desc && String(meta.panel_desc).trim());
+  var hasIntroQuotePanel = Array.isArray(chaptersData.introQuote) && chaptersData.introQuote.length > 0;
+  var hasHeroPanel = hasExplicitPanelList || hasExplicitPanelTitle || hasExplicitPanelDesc || hasIntroQuotePanel;
 
-  var panelListHtml = '';
-  if (panelItems.length > 0) {
-    var liHtml = panelItems.map(function (item, idx) {
-      var renderedItem = inline.renderBilingualInlinePair(item, state);
-      return '              <li><span class="layer-number">' + (idx + 1) + '</span><span ' + inline.bilingualRichAttrs(item, state) + '>' + renderedItem.zhHtml + '</span></li>';
-    }).join('\n');
-    panelListHtml = '\n            <ul class="layer-list">\n' + liHtml + '\n            </ul>';
-  }
+  var panelAsideHtml = '';
+  if (hasHeroPanel) {
+    var panelLabelPair = fm.parseBilingual(meta.panel_label || '核心架构摘要 || Architecture Brief');
+    var panelTitlePair = fm.parseBilingual(meta.panel_title || (chaptersData.introQuote[0] || titlePair.zh));
+    var panelDescPair = fm.parseBilingual(meta.panel_desc || '');
+    var panelItems = hasExplicitPanelList ? meta.panel : [];
+    if (panelItems.length === 0 && chaptersData.introQuote.length > 1) {
+      panelItems = chaptersData.introQuote.slice(1).map(function (line) {
+        return line.replace(/^[-*+]\s+/, '');
+      });
+    }
 
-  var panelDescRendered = panelDescPair.zh ? inline.renderBilingualInlinePair(meta.panel_desc || '', state) : null;
-  var panelDescHtml = panelDescPair.zh
-    ? '\n            <p ' + inline.bilingualRichAttrs(meta.panel_desc || '', state) + '>' + panelDescRendered.zhHtml + '</p>'
-    : '';
+    var panelListHtml = '';
+    if (panelItems.length > 0) {
+      var liHtml = panelItems.map(function (item, idx) {
+        var renderedItem = inline.renderBilingualInlinePair(item, state);
+        return '              <li><span class="layer-number">' + (idx + 1) + '</span><span ' + inline.bilingualRichAttrs(item, state) + '>' + renderedItem.zhHtml + '</span></li>';
+      }).join('\n');
+      panelListHtml = '\n            <ul class="layer-list">\n' + liHtml + '\n            </ul>';
+    }
+
+    var panelDescRendered = panelDescPair.zh ? inline.renderBilingualInlinePair(meta.panel_desc || '', state) : null;
+    var panelDescHtml = panelDescPair.zh
+      ? '\n            <p ' + inline.bilingualRichAttrs(meta.panel_desc || '', state) + '>' + panelDescRendered.zhHtml + '</p>'
+      : '';
+
+    panelAsideHtml = [
+      '',
+      '',
+      '          <aside class="hero-panel load-in">',
+      '            <span class="panel-label" ' + fm.bilingualAttrs(panelLabelPair) + '>' + fm.escapeHtml(panelLabelPair.zh) + '</span>',
+      '            <h2 ' + fm.bilingualAttrs(panelTitlePair) + '>' + fm.escapeHtml(panelTitlePair.zh) + '</h2>' + panelDescHtml + panelListHtml,
+      '          </aside>'
+    ].join('\n');
+  }
 
   // Hero metrics
   var metricsHtml = '';
@@ -130,12 +148,7 @@ function buildHeroHtml(meta, chaptersData, state) {
     '            <span class="eyebrow" ' + fm.bilingualAttrs(eyebrowPair) + '>' + fm.escapeHtml(eyebrowPair.zh) + '</span>',
     '            <h1 ' + fm.bilingualAttrs(titlePair) + '>' + fm.escapeHtml(titlePair.zh) + '</h1>',
     '            <p ' + inline.bilingualRichAttrs(leadRaw, state) + '>' + leadRendered.zhHtml + '</p>' + actionsHtml,
-    '          </div>',
-    '',
-    '          <aside class="hero-panel load-in">',
-    '            <span class="panel-label" ' + fm.bilingualAttrs(panelLabelPair) + '>' + fm.escapeHtml(panelLabelPair.zh) + '</span>',
-    '            <h2 ' + fm.bilingualAttrs(panelTitlePair) + '>' + fm.escapeHtml(panelTitlePair.zh) + '</h2>' + panelDescHtml + panelListHtml,
-    '          </aside>',
+    '          </div>' + panelAsideHtml,
     '        </div>' + metricsHtml,
     '      </header>'
   ].join('\n');

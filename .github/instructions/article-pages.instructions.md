@@ -1,10 +1,10 @@
 ---
-applyTo: "posts/**/*.html"
+applyTo: "posts/**/*.{md,html}"
 ---
 
 # Article Page Conventions
 
-> 本文件是 Study-Room 文章页的**唯一权威规范**。新建或修改 `posts/**/*.html` 前必须把 §0 当作 checklist 全部过一遍。其余 §1–§N 是组件级 spec，按需查阅。
+> 本文件是 Study-Room 文章创作与编译产物的**唯一权威规范**。新文章采用「先编写 `posts/<slug>/article.md` 人工真源，再经 `tools/markdown-compiler` 编译生成自包含 `posts/<slug>/index.html`」的双模管线（存量定制 HTML 双轨兼容）。新建或修订文章前必须先过一遍 §0，其余 §1–§N 为组件级契约，按需查阅。
 >
 > **设计系统入口**（写组件前必读）：
 > - 可视化文档：[posts/article-design-system/index.html](../../posts/article-design-system/index.html) §04 Core Components — 列出每个共享组件的 markup、padding、字号、阴影、暗色模式
@@ -13,26 +13,31 @@ applyTo: "posts/**/*.html"
 
 ## §0 Authoring Pre-Flight (READ FIRST, every time)
 
-写文章前先按这 5 条自检；任意一条不达标，要求 boss 澄清或调整方案，**不要先动手**。
+动笔前先完成意图判断与体裁定位；当关键事实边界缺失时再按需向 boss 澄清，意图明确时直接发挥专业判断推进。
 
-### 0.0 Intake Clarification — 内容澄清优先（开工前必走）
+### 0.0 On-Demand Clarification & Adaptive Genre Principles — 按需澄清、体裁自适应与反过度工程化
 
-收到选题后，**先问内容侧问题**再动手。技术侧问题（章节顺序、用什么组件、放第几节、配色、CSS）由我自己判断，**严禁反问 boss**。
+文章创作遵循「先制作 `article.md` 源稿、再编译静态 HTML」的主路径，彻底废除过去“收到选题必抛固定 5 问并停工等待”的机械流程，执行以下三条核心准则：
 
-收到选题 → 一次性把下列 **5 个必问** 抛给 boss，缺答即停工等待。
+1. **按需澄清（Clarify Only When Necessary）**
+   - 收到选题或原始资料后，先自主理解读者处境、核心诉求与仓库既有上下文。只要意图、受众与可用事实足够支撑专业成稿，**直接动笔推进**，不拿固定问卷打断工作流。
+   - 仅当存在真正影响立意方向、事实真伪或脱敏红线的关键缺口时（例如：内部专有指标缺失、脱敏范围不明、或截然相反的受众定位会导致完全不同的结论），才把真正缺失的 1–3 个关键问题一次性向 boss 确认。
+   - 技术与排版细节（章节切分、组件选型、首屏是否保留右卡或指标栏、配色与响应式布局）一律由开发智能体自主裁决，**严禁反问 boss**。
 
-1. **读者是谁** — 角色 + 先验知识水平 + 阅读处境（例：「企业 IT 经理，零 Power Platform 经验，正在被业务催方案」）。
-2. **读完想达成什么** — 一个可验证的动作/判断（例：「能向 CIO 解释谁做什么」「能照做出 30 天落地计划」「评审会上能回答 5 个常见反对」）。
-3. **形式偏好** — 主线形态：流程 / 对比 / 决策树 / 角色×阶段 / 时间轴 / 案例 / FAQ；篇幅：速览 / 深度 / 参考手册。
-4. **信息源** — 必须采纳的官方文档 / 内部资料 / 客户原话 / 已发表文章；以及"不要用"的来源。
-5. **边界** — 这篇 *不* 解决什么（防主题膨胀）；不能公开的信息；是否双语。
+2. **MD 体裁自然组织（Genre-Native Structure, No Rigid Templates）**
+   - 先把 `posts/<slug>/article.md` 写成逻辑自洽、阅读顺畅的专业文稿，再编译生成动态/静态兼容的 `index.html`。
+   - **严禁写死固定章节模板，严禁新增僵化的必填 frontmatter 字段或封闭体裁枚举**把文章硬塞进统一套路。不同题材遵循各自领域的自然论证结构：
+     - **数学建模与科研论文**：问题重述与假设 → 符号与模型建立 → 求解与灵敏度检验 → 误差边界与结论；
+     - **用户手册与实操指南**：前置条件 → 最短跑通路径 → 分场景操作步骤 → 常见故障排查；
+     - **市场调研与行业分析**：核心判断与格局总览 → 分维度竞品实证对比 → 商业化约束与选型建议；
+     - **工程架构设计与复盘**：业务边界与约束 → 核心机制与设计取舍 → 运行时/故障走查 → 演进结论。
 
-视情况追问：是否复用站内文章作为前置阅读？完稿后用途（站内发布 / 客户分享 / PPT 演示）？时间约束？
-
-**禁止行为**：
-- 用「我先按 X 做你看看」绕过澄清。
-- 把内容侧问题包装成技术侧问题（"要不要分两节"是结构判断，背后还是受众和目的没问清）。
-- 一次只问一个，挤牙膏。一次性列全。
+3. **反过度工程化（Anti-Over-Engineering）**
+   - **严禁为“凑满配得分”堆砌视觉或交互组件**；删掉所有装饰后正文论据依然扎实，才算合格。
+   - **首屏按需做减法**：`panel`（右侧摘要卡）与 `metrics`（底部指标栏）均为可选项。当文章更适合纯文直入或清爽单栏开篇时，直接在 `article.md` 中省略 `panel` / `panel_title` / `panel_desc` 与 `metrics`，编译器会自动收敛为单栏首屏，绝不强塞默认的“核心架构摘要”右卡或凑数指标。
+   - **公式克制**：非定量推导、非算法建模类文章**严禁硬塞装饰性 `$$` 数学公式**（如生造伪公式包装普通管理或业务常识）。
+   - **图表克制**：一段话或一张紧凑对比表就能说清的关系，**严禁强画首节框图或流程图充门面**。
+   - **沙盒克制**：无真实参数灵敏度推演、物理仿真或状态机交互需求时，**严禁硬造 `:::sandbox` 交互沙盒**。
 
 ### 0.1 写作纪律（详见 `/memories/writing-rigor.md`）
 > 自检本节时，连带过一遍两条易漏的强约束：**事实导向、非心路历程**（删除"我最初设想 / 经过一次重设计 / 这是同步点"等过程叙事，移进备注；详见 writing-rigor.md「Fact-Led」）与 **总览先于细节**（§0.7-B-2）。
@@ -137,8 +142,8 @@ L2 研究若同时存在事实证据与文章结构两条独立不确定性，�
 - **h2** = 这一章的*结论或承诺*（动宾或判断句，不是干巴巴的名词短语）
 - **intro `<p>`** = 直接陈述本节处理的事实问题、核心判断和适用边界；若依赖前文结论，复述必要前提而不引用章节号或描述写作动作
 
-**D. Hero 对账**
-hero `.hero-metrics` 抛出的每个 metric、`.hero-panel .layer-list` 抛出的每个要点，都必须在正文里被一个 section 兑现。完稿后逐一对照，未兑现的要么删 hero、要么补正文。
+**D. Hero 对账（按实际启用的首屏元素核对）**
+若文章启用了 `.hero-metrics` 或 `.hero-panel .layer-list`，其中抛出的每个指标与要点都必须在正文里被具体章节兑现；纯文直入单栏首屏（省略 `panel` 与 `metrics`）无需为对账强补首屏卡片。完稿后逐一对照，未兑现的要么删首屏项、要么补正文。
 
 **E. 完稿"一句话回放"自检**
 用一句话复述每个 section 的主张，串起来读一遍。如果读起来跳跃、缺环、或顺序倒过来也说得通，结构就不及格，必须重排。
@@ -572,6 +577,7 @@ The complete nesting structure every article **MUST** follow (CSS classes that p
             </div>
           </div>
 
+          <!-- Optional: include <aside class="hero-panel"> only when an executive summary card adds real value; omit for clean single-column opening -->
           <aside class="hero-panel load-in">
             <span class="panel-label">Panel Label</span>
             <h2>Key insight or thesis statement.</h2>
@@ -582,6 +588,7 @@ The complete nesting structure every article **MUST** follow (CSS classes that p
           </aside>
         </div>
 
+        <!-- Optional: include .hero-metrics only when 2-4 authentic quantitative anchors exist; omit otherwise -->
         <div class="hero-metrics load-in">
           <div class="metric">
             <div class="metric-label">Label</div>
