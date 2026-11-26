@@ -4170,6 +4170,25 @@ var knowledgeTree = [
     relations: ['ignite-2026-brk265-apps-agents-business-process-transformation', 'ignite-2026-thr916-vanguard-transforming-advisor-productivity', 'copilot-studio-managed-runtime-alm', 'power-apps-code-app']
   },
   {
+    id: 'worse-together-multi-user-agents',
+    parentId: 'fc-agentic',
+    type: 'article',
+    title: {
+      zh: 'Worse Together 深度解读：多用户多智能体团队为何在共享资源下表现崩塌',
+      en: 'Worse Together Deep Dive: How Performance Breaks Down in Multi-User Multi-Agent Teams'
+    },
+    summary: {
+      zh: '当多名用户各自委派专属智能体去争用同一份稀缺资源（算力词元预算、门诊日历、拼单购物车或代码合并队列）时，群体收益不仅未能因并行协作而放大，反而在全部四类环境中系统性输给由单一智能体统筹全员的…',
+      en: 'When several users each delegate to their own AI agent over a contested shared resource—an API token budget, clinic calendar, group cart, or CI merge que…'
+    },
+    tags: ['Multi-Agent', 'Anthropic', 'Alignment', 'MAMUBench', 'Coordination'],
+    date: '2026-11-26',
+    url: 'posts/worse-together-multi-user-agents/index.html',
+    color: '#d97706',
+    phase: 4.7, speed: 0.84,
+    relations: ['multi-agent-swarm-practices', 'enterprise-agent-arch', 'pi-coding-harness', 'mcp-principles-development']
+  },
+  {
     id: 'from-build-to-production-harness-managed-runtime',
     parentId: 'copilot-studio',
     type: 'article',
