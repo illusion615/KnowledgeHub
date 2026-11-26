@@ -27,7 +27,10 @@ test('from-build-to-production article focuses on the architectural topic (zero 
   const md = fs.readFileSync(mdPath, 'utf8');
   const html = fs.readFileSync(htmlPath, 'utf8');
   const js = fs.readFileSync(jsPath, 'utf8');
+  const css = fs.readFileSync(cssPath, 'utf8');
   const fig2 = JSON.parse(fs.readFileSync(fig2Path, 'utf8'));
+
+  assert.ok(css.includes('.bib-list a') && css.includes('overflow-wrap: anywhere'), 'Expected mobile bibliography URL wrap guard in talk-blueprint.css');
 
   // DoD-1 & DoD-2: Topic-focused knowledge exposition, zero speech/run-of-show coaching in prose, figures, or sandbox
   const forbiddenSpeechTokens = [
