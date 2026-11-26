@@ -20,6 +20,9 @@ node scripts/serve-knowledge-hub.mjs
 
 ## Change Log
 
+### 2026-11-26
+- **信息图弧形圆盘视口虚拟化裁剪与快翻进度轨**：在 `assets/infographic-math.js`、`assets/infographic-shared.js`、`assets/infographic-view.js`、`assets/infographic-mobile.js` 与 `assets/infographic.css` 中落地扇面视口裁剪（`[-0.45π, +0.45π]` 结合视口相交检测与边缘平滑衰减），消除 Copilot Studio 57 篇文章等多圈叠印重影与点击劫持（DOM 节点降幅超过 80%）；修复桌面端 `mousemove` 误抢父级焦点抖动、移动端同相位误触与 `resize` 圆心漂移，并为超长列表（`> 12` 篇）新增弧形位置进度条、计数徽标（如 `9 / 57`）及 `Shift + 滚轮` / `PageUp` / `PageDown` 5 篇快翻能力。
+
 ### 2026-11-25
 - **Microsoft Ignite 2026 52 场全集上线**：新增 `posts/copilot-studio-ignite-2026-whats-new/` 总览与 51 篇专场解析（`posts/ignite-2026-*/`），覆盖 Copilot Studio、Power Platform、托管运行时与智能体治理，同步挂载至 `assets/knowledge-data.js`（全站扩展至 241 个图谱节点、216 篇公开文章）。
 - **托管运行时生命周期与本地文生歌曲专题**：上线 `posts/copilot-studio-managed-runtime-alm/`（剖析托管运行时落入个人环境的机制与跨环境发布路径）与 `posts/local-music-song-models/`（结合 Apple Silicon 本地 MiniMax-Music3 实测与四类曲风试听样本），并新增 `posts/markdown-genesis-lab/` 扩展 Markdown 样板。
