@@ -200,7 +200,7 @@ test('CLI integration runs all 14 validate.js checks on real workspace article i
   assert.equal(payload.ok, true);
   assert.equal(payload.validation.ok, true);
   assert.equal(payload.validation.checksCount, 14);
-  assert.equal(payload.article.topicId, 'copilot-studio');
+  assert.equal(payload.article.topicId, 'ignite-2026');
 
   const helpCode = cli.main(['node', 'publish-article.js', '--help']);
   assert.equal(helpCode, 0);

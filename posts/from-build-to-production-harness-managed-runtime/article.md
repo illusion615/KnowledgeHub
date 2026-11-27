@@ -3,7 +3,7 @@ title: From Build to Production：Harness 执行内核与 Copilot 托管运行�
 eyebrow: Microsoft Ignite 2026 · 企业应用与智能体投产工程专题 || Microsoft Ignite 2026 · Enterprise App & Agent Production Architecture
 brand: Study Room Power Platform & Copilot Studio || Study Room Power Platform & Copilot Studio
 date: 2026-11-26
-topic: copilot-studio
+topic: ignite-2026
 tags:
   - Microsoft Ignite 2026
   - Copilot Managed Runtime

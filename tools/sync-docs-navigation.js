@@ -68,10 +68,63 @@ function walkWorkspaceMarkdownFiles(rootDir) {
   return found;
 }
 
+function resolveCommonGitRoot(repoRoot) {
+  try {
+    var dotGit = path.join(repoRoot, '.git');
+    if (fs.existsSync(dotGit) && fs.lstatSync(dotGit).isFile()) {
+      var gitdirLine = fs.readFileSync(dotGit, 'utf8').trim();
+      var m = gitdirLine.match(/^gitdir:\s*(.+)$/i);
+      if (m) {
+        var absGitDir = path.resolve(repoRoot, m[1].trim());
+        var commondirFile = path.join(absGitDir, 'commondir');
+        if (fs.existsSync(commondirFile)) {
+          var commonGitDir = path.resolve(absGitDir, fs.readFileSync(commondirFile, 'utf8').trim());
+          if (path.basename(commonGitDir) === '.git') {
+            return path.dirname(commonGitDir);
+          }
+        }
+      }
+    }
+  } catch (_err) {
+    // Ignore worktree discovery errors and stay local
+  }
+  return null;
+}
+
+function loadExistingLeafCatalog(navPath) {
+  var byPath = new Map();
+  if (!fs.existsSync(navPath)) return byPath;
+  try {
+    var parsed = JSON.parse(fs.readFileSync(navPath, 'utf8'));
+    var visit = function (nodes, chain) {
+      (nodes || []).forEach(function (n) {
+        if (!n) return;
+        if (n.path) {
+          byPath.set(n.path, { leaf: n, parentIds: chain.slice() });
+        }
+        if (Array.isArray(n.children)) {
+          visit(n.children, chain.concat(n.id || ''));
+        }
+      });
+    };
+    visit(parsed.nodes, []);
+  } catch (err) {
+    if (process.env.DEBUG) {
+      console.warn('loadExistingLeafCatalog fallback:', err && err.message ? err.message : err);
+    }
+  }
+  return byPath;
+}
+
 function loadKnownGoals() {
-  var assetsPath = path.join(REPO_ROOT, '.project-data', 'delivery-board', 'assets.json');
+  var candidates = [path.join(REPO_ROOT, '.project-data', 'delivery-board', 'assets.json')];
+  var mainRepoRoot = resolveCommonGitRoot(REPO_ROOT);
+  if (mainRepoRoot && mainRepoRoot !== REPO_ROOT) {
+    candidates.push(path.join(mainRepoRoot, '.project-data', 'delivery-board', 'assets.json'));
+  }
+  var assetsPath = candidates.find(function (p) { return fs.existsSync(p); });
   var known = new Set();
-  if (!fs.existsSync(assetsPath)) return known;
+  if (!assetsPath) return known;
   try {
     var assets = JSON.parse(fs.readFileSync(assetsPath, 'utf8'));
     var domains = (assets.business_model && assets.business_model.domains) || assets.domains || [];
@@ -128,24 +181,63 @@ function buildNavigationManifest() {
     }
   });
 
-  var postSlugs = fs.readdirSync(path.join(REPO_ROOT, 'posts')).filter(function (d) {
+  var existingCatalog = loadExistingLeafCatalog(OUTPUT_PATH);
+  var mainRepoRoot = resolveCommonGitRoot(REPO_ROOT);
+
+  var postSlugsSet = new Set(fs.readdirSync(path.join(REPO_ROOT, 'posts')).filter(function (d) {
     return fs.existsSync(path.join(REPO_ROOT, 'posts', d, 'article.md'));
-  }).sort();
+  }));
+  Object.keys(navMeta.UNMAPPED_TOPIC_ROUTING).forEach(function (privSlug) {
+    var relMd = 'posts/' + privSlug + '/article.md';
+    if (existingCatalog.has(relMd) || (mainRepoRoot && fs.existsSync(path.join(mainRepoRoot, relMd)))) {
+      postSlugsSet.add(privSlug);
+    }
+  });
+  var postSlugs = Array.from(postSlugsSet).sort();
+
+  function inferUnmappedTopic(slug) {
+    if (
+      slug.indexOf('ignite-2026-') === 0 ||
+      slug === 'copilot-studio-ignite-2026-whats-new' ||
+      slug === 'from-build-to-production-harness-managed-runtime'
+    ) {
+      return 'ignite-2026';
+    }
+    return navMeta.UNMAPPED_TOPIC_ROUTING[slug] || 'knowledge-hub-design-docs';
+  }
 
   postSlugs.forEach(function (slug) {
     if (mappedSlugs.has(slug)) return;
-    var targetTopic = navMeta.UNMAPPED_TOPIC_ROUTING[slug] || 'knowledge-hub-design-docs';
+    var targetTopic = inferUnmappedTopic(slug);
     if (!childrenByParent[targetTopic]) childrenByParent[targetTopic] = [];
+    var relMd = 'posts/' + slug + '/article.md';
+    var preserved = existingCatalog.get(relMd);
+    var resolvedTitle = fs.existsSync(path.join(REPO_ROOT, relMd))
+      ? navMeta.extractCleanMarkdownTitle(REPO_ROOT, relMd)
+      : (mainRepoRoot && fs.existsSync(path.join(mainRepoRoot, relMd))
+        ? navMeta.extractCleanMarkdownTitle(mainRepoRoot, relMd)
+        : (preserved && preserved.leaf && preserved.leaf.title ? preserved.leaf.title : slug));
     childrenByParent[targetTopic].push({
       id: slug,
       parentId: targetTopic,
       type: 'article',
       url: 'posts/' + slug + '/index.html',
-      title: { zh: navMeta.extractCleanMarkdownTitle(REPO_ROOT, 'posts/' + slug + '/article.md') }
+      title: { zh: resolvedTitle }
     });
   });
 
-  var allMdFiles = walkWorkspaceMarkdownFiles(REPO_ROOT);
+  var allMdFilesSet = new Set(walkWorkspaceMarkdownFiles(REPO_ROOT));
+  existingCatalog.forEach(function (_entry, relPath) {
+    if (!allMdFilesSet.has(relPath)) {
+      if (navMeta.UNMAPPED_TOPIC_ROUTING[relPath.split('/')[1]] ||
+          relPath === 'shanghai-zhongkao-data-report.md' ||
+          relPath.indexOf('tmp/') === 0 ||
+          (mainRepoRoot && fs.existsSync(path.join(mainRepoRoot, relPath)))) {
+        allMdFilesSet.add(relPath);
+      }
+    }
+  });
+  var allMdFiles = Array.from(allMdFilesSet).sort(function (a, b) { return a.localeCompare(b); });
   var availableSet = new Set(allMdFiles);
   var registeredPaths = new Set();
   var usedIds = new Set();
@@ -276,7 +368,14 @@ function buildNavigationManifest() {
   engBuckets.forEach(function (bucket) {
     if (bucket.items.length === 0) return;
     var leafNodes = bucket.items.map(function (relPath, idx) {
-      var info = navMeta.inferEngineeringMeta(REPO_ROOT, relPath, knownGoals);
+      var metaRoot = fs.existsSync(path.join(REPO_ROOT, relPath))
+        ? REPO_ROOT
+        : (mainRepoRoot && fs.existsSync(path.join(mainRepoRoot, relPath)) ? mainRepoRoot : REPO_ROOT);
+      var info = navMeta.inferEngineeringMeta(metaRoot, relPath, knownGoals);
+      var preserved = existingCatalog.get(relPath);
+      if (!fs.existsSync(path.join(metaRoot, relPath)) && preserved && preserved.leaf && preserved.leaf.title) {
+        info.title = preserved.leaf.title;
+      }
       return {
         id: sanitizeNodeId('doc', relPath.replace(/\.[^.]+$/, ''), usedIds),
         title: info.title,

@@ -127,7 +127,15 @@ var knowledgeTree = [
     type: 'topic',
     label: { zh: 'Copilot Studio', en: 'Copilot Studio' },
     color: '#9333ea',
-    phase: 0.5, speed: 0.9
+    phase: 0.4, speed: 0.9
+  },
+  {
+    id: 'ignite-2026',
+    parentId: 'microsoft-ai',
+    type: 'topic',
+    label: { zh: 'Microsoft Ignite 2026', en: 'Microsoft Ignite 2026' },
+    color: '#ea580c',
+    phase: 1.9, speed: 0.82
   },
   {
     id: 'power-apps',
@@ -3175,7 +3183,7 @@ var knowledgeTree = [
   },
   {
     id: 'copilot-studio-ignite-2026-whats-new',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026：What\'s New in Copilot Studio 全景深度解析与企业落地指南',
@@ -3194,11 +3202,11 @@ var knowledgeTree = [
   },
 
   // ════════════════════════════════════════
-  // 文章 — Microsoft Ignite 2026：Copilot Studio 专场系列（新增 44 篇，连同 BRK267 共 45 篇）
+  // 文章 — Microsoft Ignite 2026 独立专题：Copilot Studio 与智能体工程专场系列（45 篇）
   // ════════════════════════════════════════
   {
     id: 'ignite-2026-brk221-govern-once-everywhere-scale-copilot-plugin',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [BRK221]：一次治理，全域复用——用 Microsoft Plugin Registry 规模化扩展 Copilot',
@@ -3217,7 +3225,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-brk234-agentify-business-processes-next-era-business',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [BRK234]：智能体化业务流程——下一代商业应用架构与实战拆解',
@@ -3236,7 +3244,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-brk236-agents-copilot-help-user-done',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [BRK236]：Copilot 智能体全员赋能——从零代码构建到企业级治理采用',
@@ -3255,7 +3263,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-brk238-frontier-tuning-optimize-ai-agents-real',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [BRK238]：Frontier Tuning——在真实业务流程上构建企业专属智能体学习闭环',
@@ -3274,7 +3282,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-brk258-agentic-automation-copilot-studio-blends',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [BRK258]：智能体自动化——Copilot Studio 如何双向融合确定性工作流与推理智能体',
@@ -3293,7 +3301,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-brk259-copilot-harness-powers-copilot-studio',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [BRK259]：Microsoft Copilot Harness 如何驱动 Copilot Studio 深度解析',
@@ -3312,7 +3320,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-brk261-tool-teammate-persistent-agents-shared',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [BRK261]：从单点工具到数字队友——Copilot Studio 共享业务流程持久智能体深度解析',
@@ -3331,7 +3339,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-brk262-scale-agents-risk-governance-finops',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [BRK262]：扩展智能体而非放大风险——企业级分层治理与 FinOps 实战架构',
@@ -3350,7 +3358,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-brk264-pick-right-harness-build-agents-copilot',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [BRK264]：用 Copilot Studio 为智能体选对执行底座',
@@ -3369,7 +3377,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-brk285-agent-works-enterprise-ready',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [BRK285]：智能体跑通之后，如何跨越企业级与自主规模鸿沟',
@@ -3388,7 +3396,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-brk302-build-personalized-ai-experiences-work-iq',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [BRK302]：用 Work IQ 构建懂业务脉络的个性化 AI 与跨平台智能体',
@@ -3407,7 +3415,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-brk379-build-customer-facing-agents-copilot-studio',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [BRK379]：在 Copilot Studio、Teams 与 CCI 中构建面向客户的全渠道智能体',
@@ -3426,7 +3434,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-brk448-run-secure-agent-loops-production-isolated',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [BRK448]：在生产环境规模化运行安全智能体循环与微虚拟机沙盒深度解析',
@@ -3445,7 +3453,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-brk460-reimagining-clinical-workflows-brown',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [BRK460]：重塑临床工作流——Brown University Health 智能体实战全解',
@@ -3464,7 +3472,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-brk473-building-governing-trusted-ai-agents',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [BRK473]：金融机构可信 AI 智能体构建与治理实战——State Farm 54 个生产智能体与全栈护栏架构',
@@ -3483,7 +3491,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-brk474-modernization-ai-transformation-aon-enables',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [BRK474]：从底座现代化到企业级 AI 转型——Aon 如何赋能 7 万名同事做出更优决策',
@@ -3502,7 +3510,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-brk487-build-monetize-grow-csp-partner-agent',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [BRK487]：云解决方案提供商（CSP）智能体构建、变现与经常性增长深度拆解',
@@ -3521,7 +3529,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-brk501-partners-unlock-growth-ai-across-apps',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [BRK501]：合作伙伴如何借智能体、微应用与工作流释放业务增长新空间',
@@ -3540,7 +3548,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-brk570-developers-guide-copilot-studio',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [BRK570]：Copilot Studio 开发者指南——为什么需要以及如何用专业代码构建智能体',
@@ -3559,7 +3567,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-brk571-beyond-pilot-copilot-agents-business-value',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [BRK571]：跨越试点陷阱——将 Copilot 与智能体转化为真实商业价值',
@@ -3578,7 +3586,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-brksp601-shadow-agents-governed-digital-coworkers',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [BRKSP601]：将影子智能体转化为受控数字同事——Agent 365 全链路纳管实战',
@@ -3597,7 +3605,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-brksp620-scale-ai-without-slowing-innovation',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [BRKSP620]：规模化扩展 AI 而不拖慢创新——吉利德科学从单兵试验到企业级治理的演进实录',
@@ -3616,7 +3624,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-inv642-observability-layer-role',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [INV642]：全栈全角色可观测性——Agent 365 登记簿、业务委派 FinOps 与 Microsoft Perception 自主安全实战',
@@ -3635,7 +3643,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-live107-agent-boss',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [LIVE107]：如何成为一名“智能体老板”（How to be an Agent Boss）',
@@ -3654,7 +3662,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-live149-behind-curtain-building-copilot-studio',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [LIVE149]：幕后揭秘——Copilot Studio 工程团队如何用智能体软件工厂自举构建产品',
@@ -3673,7 +3681,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-live17-reimaging-clinical-workflows-live-brown',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [LIVE17]：重构临床工作流——对话 Brown University Health 的床旁智能体实践',
@@ -3692,7 +3700,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-live47-agents-work-charles-lamanna-alysa-taylor',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [LIVE47]：让智能体真正上岗——Charles Lamanna 与 Alysa Taylor 深度对谈 Copilot、Agent 365 与未来工作',
@@ -3711,7 +3719,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-livesp156-build-secure-agents-across-stack',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [LIVESP156]：跨越微软技术栈构建可信生产智能体——身份门禁、治理分区与影子 AI 防线',
@@ -3730,7 +3738,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-livesp165-build-agentic-platform-scale-govern',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [LIVESP165]：构建规模化与可治理的数字劳动力平台——IBM Imagine Enterprise、流程清单交接与 SLO 运营闭环',
@@ -3749,7 +3757,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-odsp2231-semantic-foundation-enterprise-ai',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [ODSP2231]：构建企业 AI 的共享语义底座与受控知识图谱',
@@ -3768,7 +3776,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-odsp2233-deliver-trusted-accessible-ai-teams-work',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [ODSP2233]：在团队协作现场交付可信易用的企业 AI——Copilot Studio 与 Snowflake Cortex Agents 原生集成实战',
@@ -3787,7 +3795,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-thr1004-ai-governance-playbook-scaling-agents',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [THR1004]：企业智能体规模化治理手册——管住“权限跃迁”的六步发布框架',
@@ -3806,7 +3814,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-thr1021-scaling-copilot-studio-adoption-through',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [THR1021]：用社区驱动 Copilot Studio 规模化采纳——从次周退潮到长效同侪飞轮',
@@ -3825,7 +3833,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-thr1022-community-production-scaling-agentic',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [THR1022]：从社区原型走向规模化生产——智能体商业应用的严选计分卡、工时回收账本与采纳飞轮',
@@ -3844,7 +3852,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-thr885-agentic-erp-action-build-agents-skills',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [THR885]：实战智能体企业资源计划——基于 Dynamics 365 ERP MCP 构建智能体与业务技能',
@@ -3863,7 +3871,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-thr887-build-enterprise-app-single-prompt-copilot',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [THR887]：单条提示词构建企业级应用——Copilot Studio 与托管运行时实战解析',
@@ -3882,7 +3890,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-thr964-copilot-studio-unlocked-new-copilot-harness',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [THR964]：解锁 Copilot Studio——面向制作者的全新 Microsoft Copilot 执行内核',
@@ -3901,7 +3909,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-thr981-essential-insights-governing-copilot-agents',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [THR981]：Copilot 智能体治理实战精要——四分区风险分级、CoE 分诊与生产放行护栏',
@@ -3920,7 +3928,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-thr992-agent-principal-know-what-yours-reach',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [THR992]：每个智能体都是安全主体了——你清楚自家智能体的触达边界吗？',
@@ -3939,7 +3947,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-thr994-trusting-ai-workforce-securing-governing',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [THR994]：信任你的 AI 员工——企业级智能体安全防护与规模化治理实战',
@@ -3958,7 +3966,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-thrsp1104-strengthen-copilot-agent-security-trusted',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [THRSP1104]：以可信数据分类加固 Copilot 智能体防线与实时隔离',
@@ -3977,7 +3985,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-thrsp1119-extend-copilot-studio-agents-securely-act',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [THRSP1119]：让 Copilot Studio 智能体跨生态安全读写企业核心数据',
@@ -3996,7 +4004,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-thrsp1155-build-lovable-ship-environment',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [THRSP1155]：用 Lovable 构建，在微软自有环境中发布——从 Copilot 托管运行时到 Azure 专属网络',
@@ -4015,7 +4023,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-thrsp1157-building-agents-claude-foundry-choosing',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [THRSP1157]：在 Microsoft Foundry 中用 Claude 构建生产级智能体与技术栈选型',
@@ -4034,11 +4042,11 @@ var knowledgeTree = [
   },
 
   // ════════════════════════════════════════
-  // 文章 — Microsoft Ignite 2026：Power Platform 与托管运行时专场系列（新增 7 篇；Power Platform 与行业方案合计 23 篇）
+  // 文章 — Microsoft Ignite 2026 独立专题：Power Platform 与托管运行时专场系列（7 篇）
   // ════════════════════════════════════════
   {
     id: 'ignite-2026-brk265-apps-agents-business-process-transformation',
-    parentId: 'power-platform',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [BRK265]：Copilot Studio 应用与智能体驱动业务流程转型深度解析',
@@ -4057,7 +4065,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-brk378-host-apps-anywhere-new-copilot-managed',
-    parentId: 'power-platform',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [BRK378]：使用全新 Copilot 托管运行时随处托管企业应用深度解析',
@@ -4076,7 +4084,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-brk382-deploy-solutions-scale-power-platform-copilot',
-    parentId: 'power-platform',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [BRK382]：用 Power Platform 与 Copilot Managed Runtime 规模化部署与治理企业解决方案',
@@ -4095,7 +4103,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-brk386-whats-new-power-platform',
-    parentId: 'power-platform',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [BRK386]：Power Platform 年度创新全景——质量攻坚、MCP 混合共创与 Work IQ 业务智能',
@@ -4114,7 +4122,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-live07-copilot-managed-runtime-build-want-run',
-    parentId: 'power-platform',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [LIVE07]：Copilot 托管运行时深度拆解——随处自由构建，稳健自信运行',
@@ -4133,7 +4141,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-thr916-vanguard-transforming-advisor-productivity',
-    parentId: 'power-platform',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [THR916]：Vanguard 如何借助数据与智能体革新理财顾问服务生产力',
@@ -4152,7 +4160,7 @@ var knowledgeTree = [
   },
   {
     id: 'ignite-2026-thr977-reports-reasoning-reinventing-ppm-ai-power',
-    parentId: 'power-platform',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'Microsoft Ignite 2026 [THR977]：从静态报表迈向实时推理——用 AI 与 Power Apps 重塑项目组合管理',
@@ -4190,7 +4198,7 @@ var knowledgeTree = [
   },
   {
     id: 'from-build-to-production-harness-managed-runtime',
-    parentId: 'copilot-studio',
+    parentId: 'ignite-2026',
     type: 'article',
     title: {
       zh: 'From Build to Production：Harness 执行内核与 Copilot 托管运行时企业级架构解析',

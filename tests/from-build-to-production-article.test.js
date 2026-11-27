@@ -79,7 +79,7 @@ test('from-build-to-production article focuses on the architectural topic (zero 
   assert.equal(status.ok, true);
   assert.equal(status.htmlInSync, true);
   assert.equal(status.catalogRegistered, true);
-  assert.equal(status.topicId, 'copilot-studio');
+  assert.equal(status.topicId, 'ignite-2026');
   assert.equal(status.navigationRegistered, true);
   assert.equal(status.contractOk, true);
   assert.equal(status.mediaAudit.ok, true);

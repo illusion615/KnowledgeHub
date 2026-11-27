@@ -38,6 +38,7 @@ var TOPIC_GOAL_MAP = {
   'claw-code': 'topic-agent-claw',
   'fc-agentic': 'topic-fc-agentic',
   'microsoft-ai': 'content-microsoft-ai',
+  'ignite-2026': 'topic-ignite-2026',
   'copilot-studio': 'topic-copilot-studio',
   'copilot-studio-customer-innovation': 'topic-copilot-studio',
   'agentic-ai-innovation-governance': 'topic-copilot-studio',
@@ -100,8 +101,12 @@ function resolveGoalIds(slug, topicChain, knownGoals) {
   if (knownGoals.size === 0) return ['knowledge-discovery'];
   if (knownGoals.has(artGoal)) return [artGoal];
   for (var i = topicChain.length - 1; i >= 0; i--) {
-    var mapped = TOPIC_GOAL_MAP[topicChain[i]];
+    var topicId = topicChain[i];
+    var mapped = TOPIC_GOAL_MAP[topicId];
     if (mapped && knownGoals.has(mapped)) return [mapped];
+    if (topicId === 'ignite-2026' && knownGoals.has('topic-copilot-studio')) {
+      return ['topic-copilot-studio'];
+    }
   }
   return [knownGoals.has('read-markdown-article') ? 'read-markdown-article' : 'knowledge-discovery'];
 }

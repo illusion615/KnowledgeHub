@@ -269,7 +269,7 @@ async function enrichRecordedEntry(entry, probeMedia) {
     sessionInstanceId: String(s.sessionInstanceId || ''),
     sessionType: extractDisplayValues(s.sessionType)[0] || 'Breakout',
     track: track,
-    recommendedTopicId: track === 'power-platform-and-runtime' ? 'power-platform' : 'copilot-studio',
+    recommendedTopicId: 'ignite-2026',
     isPartnerSponsored: /^(BRKSP|THRSP|ODSP|LIVESP)/i.test(code),
     title: title,
     speakers: stripHtml(s.speakerNames || '').split(',').map(function (n) { return n.trim(); }).filter(Boolean),

@@ -6,6 +6,7 @@
     {
       id: 'brk267',
       code: 'BRK267 · Flagship Breakout',
+      articleSlug: 'copilot-studio-ignite-2026-whats-new',
       tabZh: 'BRK267 全景主论坛',
       tabEn: 'BRK267 What\'s New',
       titleZh: 'What\'s new in Copilot Studio：智能体、工作流与托管应用三位一体',
@@ -36,6 +37,7 @@
     {
       id: 'brk259',
       code: 'BRK259 · Deep Architecture',
+      articleSlug: 'ignite-2026-brk259-copilot-harness-powers-copilot-studio',
       tabZh: 'BRK259 Copilot Harness 内核',
       tabEn: 'BRK259 Copilot Harness',
       titleZh: 'See how the Microsoft Copilot harness powers Copilot Studio',
@@ -62,6 +64,7 @@
     {
       id: 'brk261',
       code: 'BRK261 · Digital Teammates',
+      articleSlug: 'ignite-2026-brk261-tool-teammate-persistent-agents-shared',
       tabZh: 'BRK261 独立账号与持久代理',
       tabEn: 'BRK261 Persistent Agents',
       titleZh: 'From tool to teammate: Persistent agents for shared processes',
@@ -88,6 +91,7 @@
     {
       id: 'brk379',
       code: 'BRK379 · Customer Service',
+      articleSlug: 'ignite-2026-brk379-build-customer-facing-agents-copilot-studio',
       tabZh: 'BRK379 全渠道客服 Harness',
       tabEn: 'BRK379 Customer Harness',
       titleZh: 'Build Customer-Facing Agents in Copilot Studio, Teams, and CCI',
@@ -114,6 +118,7 @@
     {
       id: 'brk262',
       code: 'BRK262 · Governance & FinOps',
+      articleSlug: 'ignite-2026-brk262-scale-agents-risk-governance-finops',
       tabZh: 'BRK262 规模治理与 FinOps',
       tabEn: 'BRK262 Governance & FinOps',
       titleZh: 'Scale agents, not risk: Governance and FinOps for the enterprise',
@@ -182,25 +187,30 @@
         liHtml += '<li>' + chapters[i] + '</li>';
       }
 
+      var articleAction = item.articleSlug && item.articleSlug !== 'copilot-studio-ignite-2026-whats-new'
+        ? '      <a class="ignite-theater-btn" href="../' + item.articleSlug + '/index.html">' + (en ? '📖 Read Topic Article' : '📖 阅读本专题深解') + '</a>'
+        : '';
+
       stage.innerHTML = [
         '<div class="ignite-theater-layout">',
         '  <div class="ignite-theater-poster-wrap">',
         '    <img src="' + item.poster + '" alt="' + item.code + '" loading="lazy" />',
         '  </div>',
         '  <div class="ignite-theater-meta">',
-        '    <span class="ignite-theater-code">' + item.code + '</span>',
+        '    <span class="ignite-theater-code">' + item.code + ' · Microsoft Ignite 2026</span>',
         '    <h4 class="ignite-theater-title">' + (en ? item.titleEn : item.titleZh) + '</h4>',
         '    <div class="ignite-theater-speakers">' + (en ? item.speakersEn : item.speakersZh) + '</div>',
         '    <p class="ignite-theater-summary">' + (en ? item.summaryEn : item.summaryZh) + '</p>',
         '    <ul class="ignite-theater-chapters">' + liHtml + '</ul>',
         '    <div class="ignite-theater-actions">',
         '      <a class="ignite-theater-btn is-primary" href="' + item.videoUrl + '" target="_blank" rel="noopener">' + (en ? '▶ Watch On-Demand Stream' : '▶ 观看官方点播回放') + '</a>',
+        articleAction,
         '      <a class="ignite-theater-btn" href="' + item.slidesUrl + '" target="_blank" rel="noopener">' + (en ? '⬇ Download Official PPTX' : '⬇ 下载官方原版课件') + '</a>',
         '      <a class="ignite-theater-btn" href="' + item.sessionUrl + '" target="_blank" rel="noopener">' + (en ? '↗ Ignite Session Page' : '↗ 访问 Ignite 议题主页') + '</a>',
         '    </div>',
         '  </div>',
         '</div>'
-      ].join('\n');
+      ].filter(Boolean).join('\n');
     }
 
     render();

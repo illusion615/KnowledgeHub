@@ -73,13 +73,25 @@ function loadKnowledgeCatalog(knowledgeDataPath) {
   };
 }
 
+function inferDefaultTopicForSlug(slug) {
+  var s = String(slug || '');
+  if (
+    s.indexOf('ignite-2026-') === 0 ||
+    s === 'copilot-studio-ignite-2026-whats-new' ||
+    s === 'from-build-to-production-harness-managed-runtime'
+  ) {
+    return 'ignite-2026';
+  }
+  return navMeta.UNMAPPED_TOPIC_ROUTING[s] || null;
+}
+
 function deriveNodeFromFrontmatter(slug, meta, options, catalog) {
   var opts = options || {};
   var m = meta || {};
   var titlePair = fm.parseBilingual(m.title || slug);
   var leadPair = fm.parseBilingual(m.summary || m.lead || titlePair.zh);
 
-  var topicCandidate = opts.topic || m.topic || m.parentId || navMeta.UNMAPPED_TOPIC_ROUTING[slug] || 'knowledge-hub-design-docs';
+  var topicCandidate = opts.topic || m.topic || m.parentId || inferDefaultTopicForSlug(slug) || 'knowledge-hub-design-docs';
   if (!catalog.topics[topicCandidate]) {
     topicCandidate = catalog.topics['knowledge-hub-design-docs']
       ? 'knowledge-hub-design-docs'
@@ -160,14 +172,15 @@ function appendNodeToKnowledgeCode(rawCode, node) {
 }
 
 function replaceExistingObjectFields(rawCode, nodeId, updates) {
-  var idPattern = new RegExp("(\\{[\\s\\S]*?\\bid\\s*:\\s*['\"]" + nodeId.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&') + "['\"][\\s\\S]*?\\n  \\})", 'm');
+  var escapedId = nodeId.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+  var idPattern = new RegExp("(\n  \\{\n(?:    [^\n]*\n)*?    id\\s*:\\s*['\"]" + escapedId + "['\"][\\s\\S]*?\n  \\})", '');
   var match = rawCode.match(idPattern);
   if (!match) return { updated: false, code: rawCode };
 
   var block = match[1];
   var nextBlock = block;
   if (updates.parentId) {
-    nextBlock = nextBlock.replace(/(\bparentId\s*:\s*)(['"])([^'"]*)(\2)/, '$1' + jsQuote(updates.parentId));
+    nextBlock = nextBlock.replace(/(    parentId\s*:\s*)(['"])([^'"]*)(\2)/, '$1' + jsQuote(updates.parentId));
   }
   if (updates.titleZh) {
     nextBlock = nextBlock.replace(/(title\s*:\s*\{\s*zh\s*:\s*)(['"])(?:\\.|(?!\2).)*(\2)/, '$1' + jsQuote(updates.titleZh));
