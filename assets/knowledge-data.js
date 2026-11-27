@@ -4214,5 +4214,24 @@ var knowledgeTree = [
     color: '#ea580c',
     phase: 5.6, speed: 0.84,
     relations: ['ignite-2026-brk378-host-apps-anywhere-new-copilot-managed', 'ignite-2026-brk259-copilot-harness-powers-copilot-studio', 'ignite-2026-brk382-deploy-solutions-scale-power-platform-copilot', 'ignite-2026-brk285-agent-works-enterprise-ready']
+  },
+  {
+    id: 'power-automate-process-mining',
+    parentId: 'power-platform',
+    type: 'article',
+    title: {
+      zh: 'Power Automate Process Mining 实践指南：方法论、项目流程与工具生态',
+      en: 'Power Automate Process Mining Practice Guide: Methodology, Project Lifecycle & Tooling Ecosystem'
+    },
+    summary: {
+      zh: '基于微软官方文档与 GitHub 开源生态，系统拆解 Power Automate Process Mining 的三大挖掘方法论、HEAT 六阶段项目流程、工具链搭配与生产最佳实践。',
+      en: 'Covers Power Automate Process Mining methodologies, the 6-stage HEAT delivery lifecycle, Microsoft tool combinations, and best practices from Learn & GitHub.'
+    },
+    tags: ['Power Automate', 'Process Mining', 'Task Mining', 'OCPM', 'MCP', 'Copilot Studio', 'Power Platform', 'CoE'],
+    date: '2026-11-27',
+    url: 'posts/power-automate-process-mining/index.html',
+    color: '#7c3aed',
+    phase: 4.2, speed: 0.84,
+    relations: ['power-platform-governance', 'power-platform-pricing-quote-tool', 'agentic-business-process-platform', 'dataverse-intelligence']
   }
 ];
