@@ -127,12 +127,12 @@
       thesisZh: '核心架构判断：既不把个人草稿当《蒙娜丽莎》审批三年，也不放任默认环境沦为影子泥潭——让受管绿区成为最省力的默认路径，并将算力账单同时摊开在创作者与管理员眼前。',
       thesisEn: 'Core Architectural Decision: Make the governed path the path of least resistance—combining PPAC expert routing with MAC default safety and real-time maker-to-admin credit transparency.',
       stackZh: [
-        '双轨绿区纵深协同：PPAC 用最多 25 条路由规则配高级连接器策略（封禁 SQL Delete/Update 且强制仅允许 OAuth 认证）；MAC 首日默认开启 CMR 绿区盘点全域应用（实拍 953 款）。',
+        '双轨绿区纵深协同：PPAC 用最多 25 条路由规则配高级连接器策略（封禁 SQL Delete/Update 且强制仅允许 OAuth 认证）；MAC 首日默认开启 CMR 绿区盘点全域应用（BRK382 Slide 30 实拍 953 款，BRK378 Slide 18 演示租户实拍 492 款）。',
         '严管晋升与小时级监控：反洗钱/KYC 等核心负载经 Git 审计与审批门禁晋升独立最小权限生产环境；Monitor 在 1 小时内捕获健康劣化直推 Teams 或 ServiceNow。',
         '双轨账本与开放管理面：Studio 顶栏点数器（88 credits）配 MAC 2.5M 全局账本（≥90% 预警）；1 份权威 OpenAPI 按月同步 REST、.NET/Python SDK、15 组 PAC CLI 与 Cowork 插件。'
       ],
       stackEn: [
-        'Dual Green Zones: PPAC priority routing + OAuth-only SQL rules pair with MAC’s default green zone tracking 953 managed apps and 4 blocked apps.',
+        'Dual Green Zones: PPAC priority routing + OAuth-only SQL rules pair with MAC’s default green zone (tracking 953 managed apps in BRK382 Slide 30; 492 in BRK378 Slide 18).',
         'Hardened ALM & Sub-Hour Ops: KYC/AML workloads promote via gated pipelines while high-sensitivity Monitor alerts route to Teams or ServiceNow within 1 hour.',
         'Transparent FinOps & OpenAPI Spec: Studio live counters (88 credits) + MAC 2.5M credit ledger; one OpenAPI spec generates SDKs, 15 CLI groups, and the Cowork Admin Plugin.'
       ],
@@ -334,6 +334,8 @@
           a.target = '_blank';
           a.rel = 'noopener noreferrer';
         }
+        a.setAttribute('data-zh', lk.zh);
+        a.setAttribute('data-en', lk.en);
         a.textContent = en ? lk.en : lk.zh;
         linksWrap.appendChild(a);
       }
@@ -353,13 +355,15 @@
 
     var observer = new MutationObserver(function (mutations) {
       for (var m = 0; m < mutations.length; m++) {
-        if (mutations[m].attributeName === 'lang') {
+        var attr = mutations[m].attributeName;
+        if (attr === 'lang' || attr === 'data-lang') {
           render();
           break;
         }
       }
     });
-    observer.observe(document.documentElement, { attributes: true });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['lang', 'data-lang'] });
+    window.addEventListener('langChanged', render);
   }
 
   if (document.readyState === 'loading') {
