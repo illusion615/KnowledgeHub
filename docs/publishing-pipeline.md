@@ -38,7 +38,7 @@ Study Room 采用「创作生产平面」与「公开阅读展厅」双面物理
 1. **阶段一：私有母带与大文件守卫**。扫描 `posts/<slug>/` 下全部非隐藏文件，默认单文件上限为 `25 MB`（`26,214,400` 字节）。若发现超出上限的 `.wav`、`.aiff`、`.mov` 等未压缩制作母带，立即在 `media_guard` 阶段拒绝发布并提示转码为压缩格式或移入 `private/`；对 `5 MB` 至 `25 MB` 之间的未压缩音频输出告警提示。
 2. **阶段二：Genesis 纯静态编译**。读取 `posts/<slug>/article.md`，调用 `tools/markdown-compiler` 生成自包含 `posts/<slug>/index.html`，先在内存完成脚本顺序、零内联样式、双语引号转义与暗色主题规则自检，仅当内容发生实质变化时才覆写磁盘文件。
 3. **阶段三：全站图谱幂等注册**。检查 `assets/knowledge-data.js` 中是否已存在对应文章节点。若尚未注册，自动从源稿首部提取中英标题、摘要（中文截断至 `<= 96` 字、英文截断至 `<= 154` 字符以满足图谱长度约束）、标签、日期与主题色，挂载到 `--topic` 指定专题或 `tools/docs-navigation-meta.js` 预设路由下；若节点已存在则保持幂等不重复插入。
-4. **阶段四：工程导航树同步**。自动调用 `tools/sync-docs-navigation.js` 刷新 `docs/navigation.json`，保持交付看板文档树与全站知识图谱一致。
+4. **阶段四：工程导航树与文章包文件夹同步**。自动调用 `tools/sync-docs-navigation.js` 刷新 `docs/navigation.json`。仅含 `article.md` 的文章在所属业务专题下保持扁平单节点；当 `posts/<slug>/` 下同时共置了专属支撑文档（如 `posts/<slug>/docs/` 内的草稿增量、修订计划、信源台账、构建说明、提示词或单篇实验记录）时，脚本自动将该文章聚合为同专题下的独立文章文件夹，首项固定为正式文稿 `article.md`，其余支撑文档紧随其后并列展示，不再散落至底部平台工程区。
 5. **阶段五：14 项静态门禁核验**。调用 `tests/validate.js --article <slug>` 跑满全部 14 类检查项（含图谱语法、脚本顺序、内联样式、箭头函数、资源语法、CSS 规则、结构完整度、双语转义、间距契约、演示表面、双语本地化、章节密度、引用配对与自定义代理契约）。
 
 ---
@@ -120,6 +120,7 @@ node tools/publish-article.js copilot-studio-ignite-2026-whats-new --check
 1. **按需澄清而非机械停工**：先结合选题与现有资料自主研判受众、立意与事实边界。意图清晰时直接推进创作；仅当存在真正影响核心判断、专有数据真伪或脱敏边界的关键信息缺失时，才一次性提出聚焦的澄清问题，不再机械套用固定五问拦停流程。
 2. **按文档体裁自然组织结构**：拒绝把所有题材塞进固定章节模板或封闭分类枚举。数学建模论文围绕假设、符号定义、模型求解与灵敏度检验展开；用户手册围绕前置条件、最短跑通路径与排障手册展开；市场调研围绕格局判断、竞品实证对比与商业化约束展开；工程架构复盘围绕业务边界、机制取舍与故障走查展开。
 3. **首屏自适应减法与拒绝组件堆砌**：`tools/markdown-compiler/template.js` 与 `assets/article.css` 原生支持首屏按需退化——当 `article.md` 省略 `panel`、`panel_title`、`panel_desc` 且无首屏引言块时，编译器不生成右侧摘要卡片，`.hero-grid` 自动切换为清爽单栏开篇；省略 `metrics` 时保持零指标卡渲染。非定量推导题材不硬塞装饰性 `$$` 公式，简单逻辑不强画首节框图，无真实参数推演需要时不硬造 `:::sandbox` 交互沙盒。
+4. **单篇支撑资料共置归档（Article Bundle 自包含）**：单篇专题文章遵循 `posts/<slug>/` 自包含目录边界。正式源稿 `article.md`、静态产物 `index.html`、配图 `media/` 与该文章专属的全部过程与支撑文档（统一收纳于 `posts/<slug>/docs/`）共置于同一文章目录，由 `publish-article.js` 一次性纳入 `articleBundleFiles` 清单并同步至 `docs/navigation.json` 文章文件夹；顶层 `docs/` 与 `authoring/workflow-feedback/` 仅承载跨文章的全局架构规范与公共流程契约。
 
 ---
 

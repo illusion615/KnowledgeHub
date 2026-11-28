@@ -85,7 +85,7 @@ rather than truncated: 16 tokenizer checks reached 386 NanoJev / 381 Laya typed
 tokens at most. One real request per tested checkpoint was followed by one route
 continuation each; this is not combat-quality evidence. See
 `examples/persistent-intent-validation.json` and
-`tests/experiments/jev-persistent-intent-20260924.md`.
+`posts/jev-system-one-research/docs/jev-persistent-intent-20260924.md`.
 
 The prior explicit `planner_revision: resource-tactics-v3` remains available:
 four-tick tactical waits, shield assault, power burst, urgent repair and support
@@ -97,7 +97,7 @@ V3: 11 development tests, four short search-only micro-matches and 64 tokenizer-
 inputs per checkpoint; zero new forwards or cloud requests, no full-match quality
 claim. Raw input still has no wait, so raw/planner also differ in action space.
 See `examples/arena-tactical-wait-validation.json` and
-`tests/experiments/jev-arena-tactical-wait-20260923.md`.
+`posts/jev-system-one-research/docs/jev-arena-tactical-wait-20260923.md`.
 The earlier v2 checks remain in `examples/arena-strategy-validation.json`.
 Search-only is a non-model side using the identical planner, null model scores
 and zero model requests. Use sync for matched-snapshot quality ablations.

@@ -111,6 +111,31 @@ function resolveGoalIds(slug, topicChain, knownGoals) {
   return [knownGoals.has('read-markdown-article') ? 'read-markdown-article' : 'knowledge-discovery'];
 }
 
+function inferArticleSupportMeta(repoRoot, relPath, slug, topicChain, knownGoals) {
+  var title = extractCleanMarkdownTitle(repoRoot, relPath);
+  var goalIds = resolveGoalIds(slug, topicChain, knownGoals);
+  var low = relPath.toLowerCase();
+  var componentIds = ['markdown-article', 'knowledge-catalog'];
+
+  if (slug === 'jev-system-one-research') {
+    componentIds = low.indexOf('nanojev') !== -1
+      ? ['nanojev-mlx-runtime', 'jev-playground']
+      : ['jev-playground', 'jev-http-bridge'];
+  } else if (slug === 'copilot-model-benchmark') {
+    componentIds = ['copilot-benchmark-harness', 'verification-tools'];
+  }
+
+  var isPromptOrGuide = low.indexOf('prompt') !== -1 || low.indexOf('setup') !== -1 || low.indexOf('readme') !== -1;
+  return {
+    title: title,
+    audience: 'human',
+    doc_class: isPromptOrGuide ? 'detailed_design' : 'ops_and_governance',
+    diataxis: isPromptOrGuide ? ['how_to', 'reference'] : ['reference'],
+    component_ids: componentIds,
+    goal_ids: goalIds
+  };
+}
+
 function inferEngineeringMeta(repoRoot, relPath, knownGoals) {
   var pickGoal = function (preferred) {
     if (knownGoals.size === 0 || knownGoals.has(preferred)) return [preferred];
@@ -186,11 +211,10 @@ function inferEngineeringMeta(repoRoot, relPath, knownGoals) {
     };
   }
   if (relPath.indexOf('jev') !== -1 || relPath.indexOf('laya') !== -1) {
-    var isExp = relPath.indexOf('tests/experiments/') === 0;
     return {
       title: title,
-      audience: isExp ? 'agent' : 'human',
-      doc_class: isExp ? 'ops_and_governance' : 'detailed_design',
+      audience: 'human',
+      doc_class: 'detailed_design',
       diataxis: ['reference'],
       component_ids: relPath.indexOf('nanojev') !== -1 ? ['nanojev-mlx-runtime', 'jev-playground'] : ['jev-playground', 'jev-http-bridge'],
       goal_ids: pickGoal('jev-inspection')
@@ -216,7 +240,7 @@ function inferEngineeringMeta(repoRoot, relPath, knownGoals) {
       goal_ids: pickGoal('knowledge-authoring')
     };
   }
-  if (relPath.indexOf('copilot-model-benchmark') !== -1 || relPath.indexOf('tmp/') === 0) {
+  if (relPath.indexOf('copilot-model-benchmark') !== -1) {
     return {
       title: title,
       audience: 'agent',
@@ -250,5 +274,6 @@ module.exports = {
   UNMAPPED_TOPIC_ROUTING: UNMAPPED_TOPIC_ROUTING,
   extractCleanMarkdownTitle: extractCleanMarkdownTitle,
   resolveGoalIds: resolveGoalIds,
+  inferArticleSupportMeta: inferArticleSupportMeta,
   inferEngineeringMeta: inferEngineeringMeta
 };

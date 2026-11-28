@@ -106,7 +106,7 @@ node tests/jev-arena-practices.browser.js  # article/links/zh-en/light-dark/mobi
 
 ## Supervised Arena Research Cycles
 
-`tests/experiments/jev-arena-research-cycle-20260923.md` documents the first
+`posts/jev-system-one-research/docs/jev-arena-research-cycle-20260923.md` documents the first
 preregistered development → review → holdout → bounded local shadow cycle.
 Runner: `scripts/jev-arena-research.js`; aggregate exporter:
 `scripts/jev-arena-research-report.js`. The plan fixes seed splits, source hashes,
@@ -116,7 +116,7 @@ retry model failures, tune on an inspected holdout, or silently promote defaults
 The first cycle retains v3 looping/search-cost regressions and a fixed-readout
 call-skipping certificate, not a claim of optimal combat strategy.
 Follow-up checkpoint-specific cycles are documented in
-`tests/experiments/jev-arena-local-optimization-20260923.md`: 56 actual model
+`posts/jev-system-one-research/docs/jev-arena-local-optimization-20260923.md`: 56 actual model
 episodes, rejected candidates, build-scoped caching, append-only user-interruption
 continuation, and a tied final confirmation. The scripts
 `jev-arena-local-optimization.js`, `jev-arena-local-continuation.js` and
@@ -129,7 +129,7 @@ node --test tests/jev-arena-research.test.js tests/jev-arena-search-cache.test.j
 
 ## Persistent Intent v4 and Track Rendering
 
-`tests/experiments/jev-persistent-intent-20260924.md` documents persistent goals,
+`posts/jev-system-one-research/docs/jev-persistent-intent-20260924.md` documents persistent goals,
 route approvals, per-step guard checks, zero-model continuations, mixed fixed
 orders, measured progress, compact token-budget contracts and separate hull/turret
 rendering. Historical v3 experiments are not relabeled as v4 quality evidence.
@@ -146,7 +146,7 @@ admission, and never calls cloud models or retries a failed input unchanged.
 
 ## Symmetric Health Exchange v5
 
-`tests/experiments/jev-health-exchange-20260924.md` defines side-relative HP/shield
+`posts/jev-system-one-research/docs/jev-health-exchange-20260924.md` defines side-relative HP/shield
 payoff, favorable mutual loss, finite opponent-response aggregation, side-swap
 mapping, progress guards and distinct model adapters. It is application scoring,
 not a solved Nash equilibrium or a correctness label.
@@ -170,7 +170,7 @@ node --test tests/jev-curated-deck.test.js
 node tests/jev-curated-deck.browser.js
 ```
 
-See `tests/experiments/jev-presentation-curation-20260926.md` for the full page
+See `posts/jev-system-one-research/docs/jev-presentation-curation-20260926.md` for the full page
 plan, verified reading restoration and export-font limitation: PPTX files were
 rendered but the Chinese LibreOffice PDF loses CJK text. Do not claim export
 visual acceptance based on file generation alone. Browser screenshots passed.
@@ -181,7 +181,7 @@ The former evaluation and assistant-summary chapters are merged under
 `#evaluation`; `#agent-brief` remains a nested ADR deliverables anchor. The main
 chapter covers category-level business value, enterprise integration, deployment,
 data governance, operations/owners, validation, cost and staged rollout rather
-than assuming one provider. See `tests/experiments/jev-enterprise-adoption-20260924.md`.
+than assuming one provider. See `posts/jev-system-one-research/docs/jev-enterprise-adoption-20260924.md`.
 
 ```bash
 node --test tests/jev-enterprise-adoption.test.js
@@ -190,13 +190,13 @@ node tests/jev-enterprise-adoption.browser.js
 
 ## Scenario Cards and Read-Only Plan Dialogs
 
-`tests/experiments/jev-scenario-cards-20260924.md` documents the three-card
+`posts/jev-system-one-research/docs/jev-scenario-cards-20260924.md` documents the three-card
 `#architectures` picker. Modal content comes from canonical popup-only
 workflow/agent/RAG sources, with copied IDs and slide markers removed. No-JS hash
 links reveal source content; opening a card never invokes a model. Tank/support
 practice notes now use the same dialog from cards below each demo. The old
 Alternatives chapter is removed; model-specific setup/inspection lives in the
-model chapters. See `tests/experiments/jev-two-demo-layout-20260924.md`.
+model chapters. See `posts/jev-system-one-research/docs/jev-two-demo-layout-20260924.md`.
 
 ```bash
 node --test tests/jev-scenarios.test.js
@@ -210,7 +210,7 @@ node tests/jev-arena-practices.browser.js
 The Jev article has one top-level header entry per model. Contract/evidence/access/
 limits are children of Jev; reference integration/local MLX are children of
 NanoJev. Legacy hashes and visible prose remain. Verification details:
-`tests/experiments/jev-model-chapters-20260924.md`.
+`posts/jev-system-one-research/docs/jev-model-chapters-20260924.md`.
 
 ```bash
 node --test tests/jev-article-structure.test.js tests/jev-laya-research.test.js
@@ -656,6 +656,7 @@ blocked moves/ineffective shots are counted at the correct cadence. Initial
 latency tests distinguish real-time installation from the sync barrier.
 Score tests cover native-vs-self-report provenance, missing scores, invalid ranges,
 partial candidates, incoherent scores, record binding and live panel updates.
+
 For the task protocols, offline tokenizer checks covered 480 seeded
 stress cases across all three modes, with four projectiles, named buff/health fields,
 concrete action coordinates and all four latest execution feedback entries:
@@ -762,7 +763,7 @@ node tests/jev-arena-attack.browser.js
 These tests exercise the rule controller and real physics only, not model skill.
 The browser test runs with both model services marked unavailable. Results of
 real local-model experiments and the disclosed mixed trial are documented in
-`tests/experiments/jev-arena-attack-20260920.md`. Experimental `combat` and
+`posts/jev-system-one-research/docs/jev-arena-attack-20260920.md`. Experimental `combat` and
 `attack-priority` lab prompt variants were NOT promoted into the live model input
 because the measured outputs still failed the attack objective.
 
@@ -820,7 +821,7 @@ node scripts/jev-utility-validation.js --consent-local \
 `jev-arena-encoding-lab.js` performs bounded fixed-input ablations from a private
 diagnostic, with reversible aliases, explicit consent, no action execution or
 retries. Failed variants and successful real-game observations are documented in
-`tests/experiments/jev-arena-utility-20260921.md`, not presented as weight training
+`posts/jev-system-one-research/docs/jev-arena-utility-20260921.md`, not presented as weight training
 or a population win rate.
 
 ### Survival / Teamwork v2 and Arbitrary-Angle Ballistics
@@ -860,7 +861,7 @@ node scripts/jev-tactics-validation.js --consent-local \
   --output "$HOME/.cache/study-room/jev-evaluation/new-tactics-validation"
 ```
 
-See `tests/experiments/jev-arena-tactics-20260921.md` for the v1 negative evidence,
+See `posts/jev-system-one-research/docs/jev-arena-tactics-20260921.md` for the v1 negative evidence,
 v2 constraints, the rejected zero-inference attempt, ten actual local probes,
 and the remaining cover limitation. Fixture/controller successes must not be
 credited entirely to the model or presented as a general win rate.
@@ -1148,7 +1149,7 @@ The v1 assisted receipts without position history remain labeled v1.
 Assistance reduced ineffective shooting in observed local trials, but did not
 establish competent combat: tanks still revisited locations and missed clear
 firing opportunities. Do not report movement feasibility as tactical accuracy.
-See `tests/experiments/jev-arena-actions-20260920.md` for successes and failures.
+See `posts/jev-system-one-research/docs/jev-arena-actions-20260920.md` for successes and failures.
 
 The UI now exposes **Per-Call Deadline** (30/60/120/180 seconds, default **120**)
 without a UI decision-count limit. Bounded checks can still use an explicit
@@ -1321,7 +1322,7 @@ Use new independent cases before making later generalization claims.
 
 `node --test tests/jev-arena-lab.test.js` uses only fixtures and temporary files.
 A local experimental report (including negative results) is in
-`tests/experiments/jev-arena-20260920.md`.
+`posts/jev-system-one-research/docs/jev-arena-20260920.md`.
 
 ### Copyable Diagnostics for Iteration
 

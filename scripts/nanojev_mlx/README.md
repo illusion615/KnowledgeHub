@@ -172,7 +172,7 @@ calls after restarting with 2048 MiB stayed at <=2 GiB reported cache per
 process, with exactly matching probabilities/choices on those inputs. A 512 MiB
 trial used less cache but ran slower than 2048 MiB. These runs are sequential
 observations on a shared machine, **not a causal speedup benchmark**. See
-`tests/experiments/jev-arena-20260920.md` for positive and negative results.
+`posts/jev-system-one-research/docs/jev-arena-20260920.md` for positive and negative results.
 
 Restart only the intended model-service terminals to load new runtime code.
 Restarting reloads the existing weights and resets the instance/call counter;

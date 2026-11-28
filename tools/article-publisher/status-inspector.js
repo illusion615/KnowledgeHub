@@ -102,17 +102,29 @@ function inspectArticleStatus(target, options) {
     }
   }
 
-  var navRegistered = false;
-  if (fs.existsSync(navPath)) {
-    var navText = fs.readFileSync(navPath, 'utf8');
-    navRegistered = navText.indexOf('"' + target.relMarkdownPath + '"') !== -1;
-  }
-
   var mediaAudit = mediaGuard.auditArticleMedia(target.articleDir, root, {
     maxFileBytes: opts.maxMediaBytes
   });
 
   var articleRelFiles = mediaAudit.files.map(function (f) { return f.relPath; });
+  var supportDocPaths = articleRelFiles.filter(function (rel) {
+    if (rel === target.relMarkdownPath) return false;
+    var ext = path.extname(rel).toLowerCase();
+    return ext === '.md' || ext === '.mdx' || ext === '.rst' || ext === '.adoc';
+  });
+
+  var navRegistered = false;
+  var missingNavDocs = [];
+  if (fs.existsSync(navPath)) {
+    var navText = fs.readFileSync(navPath, 'utf8');
+    var expectedNavPaths = hasMarkdown ? [target.relMarkdownPath].concat(supportDocPaths) : supportDocPaths.slice();
+    expectedNavPaths.forEach(function (docRel) {
+      if (navText.indexOf('"' + docRel + '"') === -1) {
+        missingNavDocs.push(docRel);
+      }
+    });
+    navRegistered = expectedNavPaths.length === 0 ? true : missingNavDocs.length === 0;
+  }
   var gitDirtySet = queryGitDirtyPaths(root, ['posts/' + target.slug, 'assets/knowledge-data.js', 'docs/navigation.json']);
   var dirtyArticleFiles = Array.from(gitDirtySet).filter(function (p) {
     return p.indexOf('posts/' + target.slug + '/') === 0 || p === 'posts/' + target.slug;
@@ -128,11 +140,15 @@ function inspectArticleStatus(target, options) {
     state = 'unpublished';
     if (!hasHtml) reasons.push('compiled static index.html does not exist yet');
     if (!isCatalogRegistered) reasons.push('article node is not registered in assets/knowledge-data.js');
-    if (hasMarkdown && !navRegistered) reasons.push('article.md is not indexed in docs/navigation.json');
-  } else if (htmlOutOfSync || (hasMarkdown && !navRegistered) || dirtyArticleFiles.length > 0) {
+    if ((hasMarkdown || supportDocPaths.length > 0) && !navRegistered) {
+      reasons.push('docs/navigation.json is missing ' + missingNavDocs.join(', '));
+    }
+  } else if (htmlOutOfSync || ((hasMarkdown || supportDocPaths.length > 0) && !navRegistered) || dirtyArticleFiles.length > 0) {
     state = 'modified_pending_sync';
     if (htmlOutOfSync) reasons.push('article.md has uncompiled changes relative to index.html');
-    if (hasMarkdown && !navRegistered) reasons.push('docs/navigation.json is missing ' + target.relMarkdownPath);
+    if ((hasMarkdown || supportDocPaths.length > 0) && !navRegistered) {
+      reasons.push('docs/navigation.json is missing ' + missingNavDocs.join(', '));
+    }
     if (dirtyArticleFiles.length > 0) reasons.push('working tree has uncommitted changes: ' + dirtyArticleFiles.join(', '));
   }
 

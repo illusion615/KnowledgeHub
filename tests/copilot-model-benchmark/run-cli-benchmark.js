@@ -7,8 +7,9 @@ var path = require('path');
 
 var benchmarkRoot = __dirname;
 var repoRoot = path.resolve(benchmarkRoot, '..', '..');
+var benchmarkDocsRoot = path.join(repoRoot, 'posts', 'copilot-model-benchmark', 'docs');
 var protocol = JSON.parse(fs.readFileSync(path.join(benchmarkRoot, 'protocol.json'), 'utf8'));
-var prompt = fs.readFileSync(path.join(benchmarkRoot, 'MASTER_PROMPT.md'), 'utf8');
+var prompt = fs.readFileSync(path.join(benchmarkDocsRoot, 'MASTER_PROMPT.md'), 'utf8');
 var runRoot = path.join(repoRoot, '.tmp', 'copilot-model-benchmark');
 var resultRoot = path.join(benchmarkRoot, 'results');
 var availableModels = protocol.models.filter(function (model) { return protocol.availability[model] === 'available'; });
@@ -72,6 +73,7 @@ function runOne(model, run) {
     fs.mkdirSync(path.join(workspace, 'input'), { recursive: true });
     fs.mkdirSync(path.join(workspace, 'answers'), { recursive: true });
     copyDirectory(path.join(benchmarkRoot, 'fixture'), path.join(workspace, 'fixture'));
+    fs.copyFileSync(path.join(benchmarkDocsRoot, 'fixture', 'SPEC.md'), path.join(workspace, 'fixture', 'SPEC.md'));
     fs.copyFileSync(path.join(repoRoot, protocol.sourceLocks.longContextFile), path.join(workspace, 'input', 'article-presentation.js'));
     fs.writeFileSync(path.join(workspace, 'BENCHMARK.md'), prompt);
     fs.mkdirSync(resultDirectory, { recursive: true });
@@ -99,7 +101,7 @@ function runOne(model, run) {
       var result = {
         protocolId: protocol.id,
         protocolSha256: hashFile(path.join(benchmarkRoot, 'protocol.json')),
-        promptSha256: hashFile(path.join(benchmarkRoot, 'MASTER_PROMPT.md')),
+        promptSha256: hashFile(path.join(benchmarkDocsRoot, 'MASTER_PROMPT.md')),
         model: model,
         run: run,
         exitCode: exitCode,

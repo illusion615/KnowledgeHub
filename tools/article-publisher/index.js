@@ -179,20 +179,17 @@ function publishArticle(input, options) {
   var navChanged = false;
   if (fs.existsSync(kdAbs) && !opts.skipNavigation) {
     var prevNav = fs.existsSync(navAbs) ? fs.readFileSync(navAbs, 'utf8') : '';
-    if (!opts.dryRun && !opts.checkOnly && root === path.resolve(__dirname, '..', '..')) {
-      syncNav.main(['node', 'sync-docs-navigation.js']);
+    if (!opts.dryRun && !opts.checkOnly && fs.existsSync(path.join(root, 'posts')) && fs.existsSync(path.dirname(navAbs))) {
+      syncNav.main(['node', 'sync-docs-navigation.js'], { repoRoot: root, outputPath: navAbs });
       var afterNav = fs.existsSync(navAbs) ? fs.readFileSync(navAbs, 'utf8') : '';
       navChanged = prevNav !== afterNav;
-    } else if (!opts.dryRun && !opts.checkOnly && fs.existsSync(path.join(root, 'posts'))) {
-      // Isolated test workspace: build minimal navigation manifest if docs/ exists
-      if (fs.existsSync(path.dirname(navAbs))) {
-        var minimalNav = JSON.stringify({
-          version: 1,
-          nodes: [{ id: 'art-' + target.slug, title: target.slug, order: 1, path: target.relMarkdownPath }]
-        }, null, 2) + '\n';
-        navChanged = prevNav !== minimalNav;
-        if (navChanged) fs.writeFileSync(navAbs, minimalNav, 'utf8');
-      }
+    } else if (fs.existsSync(path.join(root, 'posts'))) {
+      var expectedNav = JSON.stringify(
+        syncNav.buildNavigationManifest({ repoRoot: root, outputPath: navAbs }).manifest,
+        null,
+        2
+      ) + '\n';
+      navChanged = prevNav !== expectedNav;
     } else if (catalogRes.changed || !prevNav || (hasMarkdown && prevNav.indexOf('"' + target.relMarkdownPath + '"') === -1)) {
       navChanged = true;
     }

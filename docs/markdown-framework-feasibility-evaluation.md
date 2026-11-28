@@ -106,7 +106,7 @@
 
 1. **文档自动扫描与 `docs/navigation.json` 导航树机制**：
    - 平台侧 `development_board_project_assets.py` 中的 `list_project_documents()` 会扫描项目工作区下最多 6 层目录内的所有 `.md`、`.mdx`、`.rst`、`.adoc` 文件（上限 800 篇，单篇读取上限 2MB）。
-   - **实测验证**：对当前 Study Room 仓库调用 `list_project_documents()`，看板已自动扫出全仓 **58 份 Markdown 文档**，不仅包含 `docs/` 下的 5 份技术文档（`docs/jev-validation.md` 等），还已经自动把 `posts/claw-code-analysis/article.md`、`posts/power-platform-pay-as-you-go-billing-plan/README.md` 等 `posts/` 目录下的 `.md` 文件收入了看板文档列表！
+   - **实测验证**：对当前 Study Room 仓库调用 `list_project_documents()`，看板已自动扫出全仓 **58 份 Markdown 文档**，不仅包含 `docs/` 下的 5 份技术文档（`docs/jev-validation.md` 等），还已经自动把 `posts/claw-code-analysis/article.md`、`posts/power-platform-pay-as-you-go-billing-plan/docs/setup-notes.md` 等 `posts/` 目录下的 `.md` 文件收入了看板文档列表！
    - 若在 `docs/navigation.json` 中登记导航树，看板 `project_assets_navigation.py` 支持通过 `"include"` 或 `"path"` 构建多级编号目录，并按「产品审阅（`human`）」与「工程契约（`agent`）」双受众视图进行归类过滤。
 2. **看板内直接查看与在线编辑能力（已上线）**：
    - 前端 `modules/docs/selection-editor.js` 与平台侧 `portal_doc_inline_service.py` 已实现**原位编辑闭环**：用户在看板 Docs 阅读器中划选任意段落，即可呼出浮动工具栏，选择「✏️ 手工修改源片段」或「✨ AI 原位改写（含精简一半、语气更专业、改成表格等快捷预设）」。

@@ -313,3 +313,141 @@ test('assets/article-common.js decouples public reader view from Video Studio wh
   const forcedOffButtons = runTopbarBoot({ search: '?studio=0', hostAttr: 'captain-docs' });
   assert.equal(forcedOffButtons.length, 0);
 });
+
+test('article bundle folder grouping: sync-docs-navigation and publish-article group co-located support docs under article folder without engineering bucket leakage', () => {
+  const root = createIsolatedWorkspace();
+  try {
+    const plainSlug = 'plain-single-post';
+    const bundleSlug = 'bundled-research-post';
+    writeSampleMarkdown(root, plainSlug, '纯单文稿专题', 'Plain Single Post');
+    const bundleDir = writeSampleMarkdown(root, bundleSlug, '含支撑文档专题', 'Bundled Research Post');
+
+    fs.mkdirSync(path.join(bundleDir, 'docs'), { recursive: true });
+    fs.writeFileSync(
+      path.join(bundleDir, 'docs', 'plan.md'),
+      '# 修订计划与架构取舍\n\n记录本文修订范围与实验计划。\n',
+      'utf8'
+    );
+    fs.writeFileSync(
+      path.join(bundleDir, 'docs', 'source-ledger.md'),
+      '# 信源核验台账\n\n逐条映射官方引用与测量口径。\n',
+      'utf8'
+    );
+    fs.writeFileSync(
+      path.join(root, 'docs', 'platform-spec.md'),
+      '# 全局平台规范\n\n跨文章共享的工程契约。\n',
+      'utf8'
+    );
+
+    const pubPlain = publisher.publishArticle(plainSlug, {
+      repoRoot: root,
+      topic: 'knowledge-hub-design-docs'
+    });
+    assert.equal(pubPlain.ok, true);
+
+    const pubBundle = publisher.publishArticle(bundleSlug, {
+      repoRoot: root,
+      topic: 'knowledge-hub-design-docs'
+    });
+    assert.equal(pubBundle.ok, true);
+    assert.ok(pubBundle.releaseEngineerPayload.articleBundleFiles.includes(`posts/${bundleSlug}/docs/plan.md`));
+    assert.ok(pubBundle.releaseEngineerPayload.articleBundleFiles.includes(`posts/${bundleSlug}/docs/source-ledger.md`));
+
+    const nav = JSON.parse(fs.readFileSync(path.join(root, 'docs', 'navigation.json'), 'utf8'));
+    const practiceDomain = nav.nodes.find((n) => n.id === 'topic-ai-project-practice');
+    assert.ok(practiceDomain);
+    const designTopic = practiceDomain.children.find((n) => n.id === 'topic-knowledge-hub-design-docs');
+    assert.ok(designTopic);
+
+    // Plain article stays a flat leaf node
+    const plainNode = designTopic.children.find((n) => n.id === `art-${plainSlug}`);
+    assert.ok(plainNode);
+    assert.equal(plainNode.path, `posts/${plainSlug}/article.md`);
+    assert.equal(plainNode.children, undefined);
+
+    // Bundled article renders as an article folder with article.md first followed by support docs
+    const bundleFolder = designTopic.children.find((n) => n.id === `bundle-${bundleSlug}`);
+    assert.ok(bundleFolder, 'Bundled article must be grouped as a folder node under its business topic');
+    assert.equal(bundleFolder.title, '含支撑文档专题');
+    assert.equal(bundleFolder.children.length, 3);
+    assert.equal(bundleFolder.children[0].path, `posts/${bundleSlug}/article.md`);
+    assert.deepEqual(
+      bundleFolder.children.slice(1).map((c) => c.path),
+      [`posts/${bundleSlug}/docs/plan.md`, `posts/${bundleSlug}/docs/source-ledger.md`]
+    );
+
+    // Bottom platform engineering group keeps global docs/ but zero posts/<slug>/ support docs
+    const engDomain = nav.nodes.find((n) => n.id === 'domain-platform-engineering-docs');
+    assert.ok(engDomain);
+    const engPaths = [];
+    (function collect(nodes) {
+      for (const n of nodes || []) {
+        if (n.path) engPaths.push(n.path);
+        if (n.children) collect(n.children);
+      }
+    })(engDomain.children);
+    assert.ok(engPaths.includes('docs/platform-spec.md'));
+    assert.equal(engPaths.some((p) => p.startsWith('posts/')), false);
+
+    // Failure / drift boundary: adding a new support doc under posts/<slug>/docs/ marks status as modified_pending_sync
+    fs.writeFileSync(
+      path.join(bundleDir, 'docs', 'experiment-01.md'),
+      '# 补充实验记录\n\n新增单篇实验观察。\n',
+      'utf8'
+    );
+    const driftStatus = publisher.publishArticle(bundleSlug, { repoRoot: root, statusOnly: true });
+    assert.equal(driftStatus.state, 'modified_pending_sync');
+    assert.equal(driftStatus.navigationRegistered, false);
+    assert.match(driftStatus.reasons.join('; '), /experiment-01\.md/);
+
+    const driftCheck = publisher.publishArticle(bundleSlug, { repoRoot: root, checkOnly: true });
+    assert.equal(driftCheck.ok, false);
+    assert.equal(driftCheck.stage, 'drift_check');
+    assert.ok(driftCheck.pendingFiles.includes('docs/navigation.json'));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('real Study Room workspace co-locates single-article support docs under posts/<slug>/ and groups them in docs/navigation.json', () => {
+  const nav = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'docs', 'navigation.json'), 'utf8'));
+
+  // Legacy scattered directories must not exist
+  assert.equal(fs.existsSync(path.join(REPO_ROOT, 'authoring', 'director-agent-engine-replacement')), false);
+  assert.equal(fs.existsSync(path.join(REPO_ROOT, 'authoring', 'multi-agent-swarm-practices')), false);
+  assert.equal(fs.existsSync(path.join(REPO_ROOT, 'tests', 'experiments')), false);
+  assert.ok(fs.existsSync(path.join(REPO_ROOT, 'authoring', 'workflow-feedback', 'README.md')));
+
+  const bundlesById = new Map();
+  const engPaths = [];
+  (function walk(nodes, inEng = false) {
+    for (const n of nodes || []) {
+      const nextInEng = inEng || n.id === 'domain-platform-engineering-docs';
+      if (n.id && n.id.startsWith('bundle-')) bundlesById.set(n.id, n);
+      if (nextInEng && n.path) engPaths.push(n.path);
+      if (n.children) walk(n.children, nextInEng);
+    }
+  })(nav.nodes);
+
+  for (const slug of [
+    'director-agent-engine-replacement',
+    'multi-agent-swarm-practices',
+    'copilot-model-benchmark',
+    'jev-system-one-research',
+    'copilot-studio-overview',
+    'copilot-studio-release-roadmap',
+    'power-platform-pay-as-you-go-billing-plan',
+    'power-platform-pricing-quote-tool'
+  ]) {
+    const folder = bundlesById.get(`bundle-${slug}`);
+    assert.ok(folder, `Expected bundle-${slug} in docs/navigation.json`);
+    assert.equal(folder.children[0].path, `posts/${slug}/article.md`);
+    assert.ok(folder.children.length >= 2, `Expected support docs inside bundle-${slug}`);
+  }
+
+  assert.equal(
+    engPaths.some((p) => p.startsWith('posts/') || p.startsWith('tests/experiments/')),
+    false,
+    'Platform engineering bucket must not contain per-article support docs'
+  );
+});

@@ -206,7 +206,7 @@ assistant.turn_end
 
 ## #limits 07 / Evidence & Limits :: 结果可复算，但不能替代更大样本
 
-协议、prompt、fixture、隐藏 grader、脱敏 run 元数据、三 judge JSON 与聚合器均位于 `tests/copilot-model-benchmark/`。原始 CLI 事件不入库，以避免保存 prompt 和工具细节。
+协议、prompt、评分细则与调度器规格归拢于 `posts/copilot-model-benchmark/docs/`，执行脚本、隐藏 grader、脱敏 run 元数据、三 judge JSON 与聚合器位于 `tests/copilot-model-benchmark/`。原始 CLI 事件不入库，以避免保存 prompt 和工具细节。
 
 1. **样本量：**每模型两轮，只能识别明显波动；发布级结论应扩展到至少 5–10 轮。
 2. **judge 分歧：**Gemini 长上下文答案的单轮 judge 区间达到 9–25；中位数降低单点评分偏差，但不能消除主观性。

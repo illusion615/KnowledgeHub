@@ -7,8 +7,9 @@ var path = require('path');
 
 var benchmarkRoot = __dirname;
 var repoRoot = path.resolve(benchmarkRoot, '..', '..');
+var benchmarkDocsRoot = path.join(repoRoot, 'posts', 'copilot-model-benchmark', 'docs');
 var protocol = JSON.parse(fs.readFileSync(path.join(benchmarkRoot, 'protocol.json'), 'utf8'));
-var rubric = fs.readFileSync(path.join(benchmarkRoot, 'BLIND_GRADING_RUBRIC.md'), 'utf8');
+var rubric = fs.readFileSync(path.join(benchmarkDocsRoot, 'BLIND_GRADING_RUBRIC.md'), 'utf8');
 var runRoot = path.join(repoRoot, '.tmp', 'copilot-model-benchmark');
 var judgeRoot = path.join(runRoot, 'blind-judging');
 var resultRoot = path.join(benchmarkRoot, 'results', 'judges');

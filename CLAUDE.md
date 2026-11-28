@@ -7,7 +7,8 @@ This file provides guidance to Claw Code (clawcode.dev) when working with code i
 - Primary authoring workflow: write or revise `posts/<slug>/article.md` first, then compile deterministic static HTML via `node tools/compile-markdown-article.js` or `node tools/publish-article.js <slug>`.
 
 ## Repository shape
-- `posts/<slug>/article.md` is the canonical human-authored source for Markdown-backed articles; `posts/<slug>/index.html` is the self-contained static artifact served on GitHub Pages.
+- **Self-contained article bundle (`posts/<slug>/`)**: Every specialty article co-locates its canonical Markdown source (`posts/<slug>/article.md`), compiled static HTML (`posts/<slug>/index.html`), media assets (`posts/<slug>/media/`), and all article-specific supporting documents (draft increments, revision plans, source ledgers, builder handoffs, prompts, and per-article benchmark/experiment notes under `posts/<slug>/docs/`). `tools/sync-docs-navigation.js` groups articles that have supporting Markdown files into a single article folder under their business topic in `docs/navigation.json`.
+- **Global vs. per-article boundaries**: Top-level `docs/` and `authoring/workflow-feedback/` are reserved strictly for cross-article platform specifications and shared workflow mechanisms; never scatter single-article drafts, ledgers, or experiment notes outside `posts/<slug>/`.
 - `tests/` contains validation gates (`node tests/validate.js`, `node --test tests/markdown-compiler.test.js`, `node --test tests/publish-article.test.js`) that should be reviewed alongside code changes.
 
 ## Article authoring guidelines

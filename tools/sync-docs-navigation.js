@@ -18,7 +18,7 @@ var IGNORED_DIRS = {
   node_modules: true, vendor: true, dist: true, build: true, coverage: true,
   __pycache__: true, venv: true, target: true, bin: true, obj: true, logs: true,
   backups: true, 'execution-traces': true, credentials: true, secrets: true,
-  private: true, data: true, uploads: true, attachments: true, shards: true
+  private: true, data: true, uploads: true, attachments: true, shards: true, tmp: true
 };
 
 function sanitizeNodeId(prefix, raw, usedIds) {
@@ -145,8 +145,11 @@ function loadKnownGoals() {
   return known;
 }
 
-function buildNavigationManifest() {
-  var ktCode = fs.readFileSync(path.join(REPO_ROOT, 'assets', 'knowledge-data.js'), 'utf8');
+function buildNavigationManifest(options) {
+  var opts = options || {};
+  var repoRoot = path.resolve(opts.repoRoot || REPO_ROOT);
+  var outputPath = opts.outputPath || path.join(repoRoot, 'docs', 'navigation.json');
+  var ktCode = fs.readFileSync(path.join(repoRoot, 'assets', 'knowledge-data.js'), 'utf8');
   var sandbox = {};
   vm.runInNewContext(ktCode, sandbox);
   var tree = (sandbox.knowledgeTree || []).slice();
@@ -181,11 +184,11 @@ function buildNavigationManifest() {
     }
   });
 
-  var existingCatalog = loadExistingLeafCatalog(OUTPUT_PATH);
-  var mainRepoRoot = resolveCommonGitRoot(REPO_ROOT);
+  var existingCatalog = loadExistingLeafCatalog(outputPath);
+  var mainRepoRoot = repoRoot === REPO_ROOT ? resolveCommonGitRoot(repoRoot) : null;
 
-  var postSlugsSet = new Set(fs.readdirSync(path.join(REPO_ROOT, 'posts')).filter(function (d) {
-    return fs.existsSync(path.join(REPO_ROOT, 'posts', d, 'article.md'));
+  var postSlugsSet = new Set(fs.readdirSync(path.join(repoRoot, 'posts')).filter(function (d) {
+    return fs.existsSync(path.join(repoRoot, 'posts', d, 'article.md'));
   }));
   Object.keys(navMeta.UNMAPPED_TOPIC_ROUTING).forEach(function (privSlug) {
     var relMd = 'posts/' + privSlug + '/article.md';
@@ -212,8 +215,8 @@ function buildNavigationManifest() {
     if (!childrenByParent[targetTopic]) childrenByParent[targetTopic] = [];
     var relMd = 'posts/' + slug + '/article.md';
     var preserved = existingCatalog.get(relMd);
-    var resolvedTitle = fs.existsSync(path.join(REPO_ROOT, relMd))
-      ? navMeta.extractCleanMarkdownTitle(REPO_ROOT, relMd)
+    var resolvedTitle = fs.existsSync(path.join(repoRoot, relMd))
+      ? navMeta.extractCleanMarkdownTitle(repoRoot, relMd)
       : (mainRepoRoot && fs.existsSync(path.join(mainRepoRoot, relMd))
         ? navMeta.extractCleanMarkdownTitle(mainRepoRoot, relMd)
         : (preserved && preserved.leaf && preserved.leaf.title ? preserved.leaf.title : slug));
@@ -226,22 +229,34 @@ function buildNavigationManifest() {
     });
   });
 
-  var allMdFilesSet = new Set(walkWorkspaceMarkdownFiles(REPO_ROOT));
+  var allMdFilesSet = new Set(walkWorkspaceMarkdownFiles(repoRoot));
   existingCatalog.forEach(function (_entry, relPath) {
     if (!allMdFilesSet.has(relPath)) {
-      if (navMeta.UNMAPPED_TOPIC_ROUTING[relPath.split('/')[1]] ||
-          relPath === 'shanghai-zhongkao-data-report.md' ||
-          relPath.indexOf('tmp/') === 0 ||
-          (mainRepoRoot && fs.existsSync(path.join(mainRepoRoot, relPath)))) {
+      var segs = relPath.split('/');
+      var privSlug = segs[0] === 'posts' ? segs[1] : null;
+      var existsLocallyOrMain = fs.existsSync(path.join(repoRoot, relPath)) ||
+        Boolean(mainRepoRoot && fs.existsSync(path.join(mainRepoRoot, relPath)));
+      if (privSlug && navMeta.UNMAPPED_TOPIC_ROUTING[privSlug]) {
+        allMdFilesSet.add(relPath);
+      } else if (relPath === 'shanghai-zhongkao-data-report.md' && (repoRoot === REPO_ROOT || existsLocallyOrMain)) {
         allMdFilesSet.add(relPath);
       }
     }
   });
   var allMdFiles = Array.from(allMdFilesSet).sort(function (a, b) { return a.localeCompare(b); });
   var availableSet = new Set(allMdFiles);
+  var supportDocsBySlug = {};
+  allMdFiles.forEach(function (relPath) {
+    if (relPath.indexOf('posts/') !== 0) return;
+    var segs = relPath.split('/');
+    var slug = segs[1];
+    if (!slug || relPath === 'posts/' + slug + '/article.md') return;
+    if (!supportDocsBySlug[slug]) supportDocsBySlug[slug] = [];
+    supportDocsBySlug[slug].push(relPath);
+  });
   var registeredPaths = new Set();
   var usedIds = new Set();
-  var knownGoals = loadKnownGoals();
+  var knownGoals = repoRoot === REPO_ROOT ? loadKnownGoals() : new Set();
 
   var DOMAIN_ICONS = {
     'ai-engineering-practice': '🧠 ',
@@ -279,21 +294,71 @@ function buildNavigationManifest() {
       if (!availableSet.has(mdRel) || registeredPaths.has(mdRel)) return;
       registeredPaths.add(mdRel);
 
+      var topicChain = buildTopicChain(topicNode.id);
       var zhTitle = (art.title && art.title.zh)
         ? art.title.zh
-        : navMeta.extractCleanMarkdownTitle(REPO_ROOT, mdRel);
-      var goalIds = navMeta.resolveGoalIds(slug, buildTopicChain(topicNode.id), knownGoals);
+        : navMeta.extractCleanMarkdownTitle(repoRoot, mdRel);
+      var goalIds = navMeta.resolveGoalIds(slug, topicChain, knownGoals);
+      var supportPaths = (supportDocsBySlug[slug] || []).filter(function (sp) {
+        return !registeredPaths.has(sp);
+      });
 
-      navChildren.push({
+      if (supportPaths.length === 0) {
+        navChildren.push({
+          id: sanitizeNodeId('art', slug, usedIds),
+          title: zhTitle,
+          order: childOrder++,
+          path: mdRel,
+          audience: 'human',
+          doc_class: 'high_level_design',
+          diataxis: ['explanation'],
+          component_ids: ['markdown-article', 'knowledge-catalog'],
+          goal_ids: goalIds
+        });
+        return;
+      }
+
+      var bundleChildren = [{
         id: sanitizeNodeId('art', slug, usedIds),
         title: zhTitle,
-        order: childOrder++,
+        order: 1,
         path: mdRel,
         audience: 'human',
         doc_class: 'high_level_design',
         diataxis: ['explanation'],
         component_ids: ['markdown-article', 'knowledge-catalog'],
         goal_ids: goalIds
+      }];
+
+      supportPaths.forEach(function (supRel, supIdx) {
+        registeredPaths.add(supRel);
+        var supRoot = fs.existsSync(path.join(repoRoot, supRel))
+          ? repoRoot
+          : (mainRepoRoot && fs.existsSync(path.join(mainRepoRoot, supRel)) ? mainRepoRoot : repoRoot);
+        var supMeta = navMeta.inferArticleSupportMeta(supRoot, supRel, slug, topicChain, knownGoals);
+        var preservedSup = existingCatalog.get(supRel);
+        if (!fs.existsSync(path.join(supRoot, supRel)) && preservedSup && preservedSup.leaf && preservedSup.leaf.title) {
+          supMeta.title = preservedSup.leaf.title;
+        }
+        var relInsideSlug = supRel.slice(('posts/' + slug + '/').length).replace(/\.[^.]+$/, '');
+        bundleChildren.push({
+          id: sanitizeNodeId('sup', slug + '-' + relInsideSlug, usedIds),
+          title: supMeta.title,
+          order: supIdx + 2,
+          path: supRel,
+          audience: supMeta.audience,
+          doc_class: supMeta.doc_class,
+          diataxis: supMeta.diataxis,
+          component_ids: supMeta.component_ids,
+          goal_ids: supMeta.goal_ids
+        });
+      });
+
+      navChildren.push({
+        id: sanitizeNodeId('bundle', slug, usedIds),
+        title: zhTitle,
+        order: childOrder++,
+        children: bundleChildren
       });
     });
 
@@ -336,7 +401,7 @@ function buildNavigationManifest() {
     {
       id: 'eng-arch-specs',
       title: '平台架构规范与专项技术评估 (docs/)',
-      match: function (p) { return p.indexOf('docs/') === 0 || p.indexOf('scripts/') === 0 || p.indexOf('posts/') === 0; },
+      match: function (p) { return p.indexOf('docs/') === 0 || p.indexOf('scripts/') === 0; },
       items: []
     },
     {
@@ -368,9 +433,9 @@ function buildNavigationManifest() {
   engBuckets.forEach(function (bucket) {
     if (bucket.items.length === 0) return;
     var leafNodes = bucket.items.map(function (relPath, idx) {
-      var metaRoot = fs.existsSync(path.join(REPO_ROOT, relPath))
-        ? REPO_ROOT
-        : (mainRepoRoot && fs.existsSync(path.join(mainRepoRoot, relPath)) ? mainRepoRoot : REPO_ROOT);
+      var metaRoot = fs.existsSync(path.join(repoRoot, relPath))
+        ? repoRoot
+        : (mainRepoRoot && fs.existsSync(path.join(mainRepoRoot, relPath)) ? mainRepoRoot : repoRoot);
       var info = navMeta.inferEngineeringMeta(metaRoot, relPath, knownGoals);
       var preserved = existingCatalog.get(relPath);
       if (!fs.existsSync(path.join(metaRoot, relPath)) && preserved && preserved.leaf && preserved.leaf.title) {
@@ -413,23 +478,29 @@ function buildNavigationManifest() {
     stats: {
       totalRegistered: registeredPaths.size,
       articleCount: postSlugs.length,
+      articleSupportCount: Object.keys(supportDocsBySlug).reduce(function (acc, k) {
+        return acc + supportDocsBySlug[k].length;
+      }, 0),
       engineeringCount: remainingFiles.length,
       domainCount: rootNodes.length
     }
   };
 }
 
-function main(argv) {
+function main(argv, options) {
+  var opts = options || {};
   var checkOnly = argv.indexOf('--check') !== -1;
-  var built = buildNavigationManifest();
+  var repoRoot = path.resolve(opts.repoRoot || REPO_ROOT);
+  var outputPath = opts.outputPath || path.join(repoRoot, 'docs', 'navigation.json');
+  var built = buildNavigationManifest({ repoRoot: repoRoot, outputPath: outputPath });
   var serialized = JSON.stringify(built.manifest, null, 2) + '\n';
 
   if (checkOnly) {
-    if (!fs.existsSync(OUTPUT_PATH)) {
+    if (!fs.existsSync(outputPath)) {
       console.error('docs/navigation.json does not exist.');
       return 1;
     }
-    var current = fs.readFileSync(OUTPUT_PATH, 'utf8');
+    var current = fs.readFileSync(outputPath, 'utf8');
     if (current !== serialized) {
       console.error('docs/navigation.json is out of sync. Run `node tools/sync-docs-navigation.js`.');
       return 1;
@@ -438,12 +509,13 @@ function main(argv) {
     return 0;
   }
 
-  fs.mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
-  fs.writeFileSync(OUTPUT_PATH, serialized, 'utf8');
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  fs.writeFileSync(outputPath, serialized, 'utf8');
   console.log(
     'Synced docs/navigation.json: ' +
     built.stats.totalRegistered + ' total documents (' +
     built.stats.articleCount + ' Study Room articles + ' +
+    built.stats.articleSupportCount + ' co-located support docs + ' +
     built.stats.engineeringCount + ' engineering docs across ' +
     built.stats.domainCount + ' top-level groups).'
   );
