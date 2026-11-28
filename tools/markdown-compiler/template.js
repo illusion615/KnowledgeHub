@@ -1,6 +1,6 @@
 // tools/markdown-compiler/template.js
 // Generates self-contained, 100% GitHub Pages static HTML pages with full Study Room runtimes,
-// zero backend dependencies, validate.js 14-gate compliance, and built-in Progressive / Linear / Markdown Source dual-view switching.
+// zero backend dependencies, validate.js 14-gate compliance, and clean progressive disclosure presentation.
 
 'use strict';
 
@@ -370,140 +370,22 @@ function buildStaticStyles(meta) {
     '      max-height: 300px;',
     '      border-radius: 10px;',
     '    }',
-    '    /* Dual-view switcher bar (Progressive / Linear / Markdown Source) */',
-    '    .genesis-view-bar {',
-    '      display: flex;',
-    '      align-items: center;',
-    '      justify-content: space-between;',
-    '      flex-wrap: wrap;',
-    '      gap: 12px;',
-    '      margin: 18px 0 8px;',
-    '      padding: 10px 16px;',
-    '      border-radius: 999px;',
-    '      background: var(--panel);',
-    '      border: 1px solid var(--line);',
-    '      font-size: 0.82rem;',
-    '    }',
-    '    .genesis-view-status {',
-    '      color: var(--muted);',
-    '      font-weight: 600;',
-    '    }',
-    '    .genesis-view-buttons {',
-    '      display: inline-flex;',
-    '      gap: 6px;',
-    '    }',
-    '    .genesis-view-btn {',
-    '      appearance: none;',
-    '      border: 1px solid transparent;',
-    '      background: transparent;',
-    '      color: var(--muted);',
-    '      font: inherit;',
-    '      font-size: 0.78rem;',
-    '      font-weight: 700;',
-    '      padding: 5px 12px;',
-    '      border-radius: 999px;',
-    '      cursor: pointer;',
-    '      transition: background 0.18s ease, color 0.18s ease;',
-    '    }',
-    '    .genesis-view-btn.is-active {',
-    '      background: linear-gradient(135deg, var(--accent), #ff9340);',
-    '      color: #fff;',
-    '    }',
-    '    .genesis-source-drawer {',
-    '      display: none;',
-    '      margin: 18px 0 28px;',
-    '      padding: 20px;',
-    '      border-radius: var(--radius-lg);',
-    '      background: rgba(16, 31, 43, 0.96);',
-    '      color: #dbe4ee;',
-    '      border: 1px solid rgba(255, 255, 255, 0.12);',
-    '      overflow-x: auto;',
-    '    }',
-    '    .genesis-source-drawer.is-open { display: block; }',
-    '    .genesis-source-drawer pre {',
-    '      margin: 0;',
-    '      font-family: "SF Mono", "Fira Code", "Consolas", monospace;',
-    '      font-size: 0.8rem;',
-    '      line-height: 1.65;',
-    '      white-space: pre-wrap;',
-    '      word-break: break-word;',
-    '    }',
-    '    body.is-linear-reading .subsection-content {',
-    '      max-height: none !important;',
-    '      opacity: 1 !important;',
-    '      overflow: visible !important;',
-    '      padding: 0 24px 24px !important;',
-    '    }',
-    '    .is-presentation-mode .genesis-view-bar,',
-    '    .is-presentation-mode .genesis-source-drawer {',
-    '      display: none !important;',
-    '    }',
     '  </style>'
   ].join('\n');
 }
 
-function buildDualViewHtml(rawMarkdown) {
-  return [
-    '      <div class="genesis-view-bar load-in" role="region" aria-label="Genesis 视图模式切换">',
-    '        <span class="genesis-view-status" data-zh="Genesis 纯静态编译产物 · 零后端依赖 · 支持渐进披露与源稿对照" data-en="Genesis Static Compiled Artifact · Zero Backend · Progressive &amp; Source View">Genesis 纯静态编译产物 · 零后端依赖 · 支持渐进披露与源稿对照</span>',
-    '        <div class="genesis-view-buttons">',
-    '          <button type="button" class="genesis-view-btn is-active" data-genesis-mode="progressive" data-zh="渐进披露视图" data-en="Progressive View">渐进披露视图</button>',
-    '          <button type="button" class="genesis-view-btn" data-genesis-mode="linear" data-zh="线性展开视图" data-en="Linear View">线性展开视图</button>',
-    '          <button type="button" class="genesis-view-btn" data-genesis-mode="source" data-zh="Markdown 源稿对照" data-en="Markdown Source">Markdown 源稿对照</button>',
-    '        </div>',
-    '      </div>',
-    '      <section class="genesis-source-drawer" id="genesis-source-drawer" aria-label="Markdown 源稿">',
-    '        <pre><code>' + fm.escapeRawHtml(rawMarkdown) + '</code></pre>',
-    '      </section>'
-  ].join('\n');
-}
-
-function buildDualViewInlineScript(hasMermaid) {
+function buildMermaidBootInlineScript(hasMermaid) {
+  if (!hasMermaid) return '';
   // Strictly ES5 — zero arrow functions (`=>`) to satisfy validate.js Test 4!
-  var mermaidBoot = hasMermaid ? [
-    '      if (typeof mermaid !== "undefined" && mermaid.initialize) {',
-    '        mermaid.initialize({ startOnLoad: true, theme: "neutral" });',
-    '      }'
-  ].join('\n') : '';
-
   return [
     '  <script>',
     '    (function () {',
-    '      var buttons = document.querySelectorAll("[data-genesis-mode]");',
-    '      var drawer = document.getElementById("genesis-source-drawer");',
-    '      var i;',
-    '      function setMode(mode) {',
-    '        for (var j = 0; j < buttons.length; j++) {',
-    '          var btn = buttons[j];',
-    '          var active = btn.getAttribute("data-genesis-mode") === mode;',
-    '          if (active) {',
-    '            btn.classList.add("is-active");',
-    '          } else {',
-    '            btn.classList.remove("is-active");',
-    '          }',
-    '        }',
-    '        if (mode === "linear") {',
-    '          document.body.classList.add("is-linear-reading");',
-    '          if (drawer) drawer.classList.remove("is-open");',
-    '        } else if (mode === "source") {',
-    '          document.body.classList.remove("is-linear-reading");',
-    '          if (drawer) drawer.classList.add("is-open");',
-    '        } else {',
-    '          document.body.classList.remove("is-linear-reading");',
-    '          if (drawer) drawer.classList.remove("is-open");',
-    '        }',
+    '      if (typeof mermaid !== "undefined" && mermaid.initialize) {',
+    '        mermaid.initialize({ startOnLoad: true, theme: "neutral" });',
     '      }',
-    '      for (i = 0; i < buttons.length; i++) {',
-    '        (function (btn) {',
-    '          btn.addEventListener("click", function () {',
-    '            setMode(btn.getAttribute("data-genesis-mode"));',
-    '          });',
-    '        })(buttons[i]);',
-    '      }',
-    mermaidBoot,
     '    })();',
     '  </script>'
-  ].filter(Boolean).join('\n');
+  ].join('\n');
 }
 
 function buildFullHtmlDocument(meta, chaptersData, rawMarkdown, state, options) {
@@ -523,7 +405,6 @@ function buildFullHtmlDocument(meta, chaptersData, rawMarkdown, state, options) 
   }).join('\n');
 
   var heroHtml = buildHeroHtml(meta, chaptersData, state);
-  var dualViewHtml = buildDualViewHtml(rawMarkdown);
   var sectionsHtml = chaptersData.chapters.map(function (c) { return c.html; }).join('\n\n');
 
   // Required scripts in exact validate.js Test 2 order:
@@ -549,7 +430,10 @@ function buildFullHtmlDocument(meta, chaptersData, rawMarkdown, state, options) 
     tailScripts.push('  <script src="' + fm.escapeAttr(src) + '"></script>');
   });
 
-  tailScripts.push(buildDualViewInlineScript(state.hasMermaid));
+  var mermaidScript = buildMermaidBootInlineScript(state.hasMermaid);
+  if (mermaidScript) {
+    tailScripts.push(mermaidScript);
+  }
 
   return [
     '<!DOCTYPE html>',
@@ -566,7 +450,7 @@ function buildFullHtmlDocument(meta, chaptersData, rawMarkdown, state, options) 
     '  <link rel="stylesheet" href="' + assetPrefix + '/article-narration.css" />',
     '  <link rel="stylesheet" href="' + assetPrefix + '/article-diagram.css" />',
     '  <link rel="stylesheet" href="' + assetPrefix + '/article-figure.css" />',
-    sandboxStyleLinks,
+    sandboxStyleLinks || null,
     buildStaticStyles(meta),
     '</head>',
     '<body>',
@@ -580,8 +464,6 @@ function buildFullHtmlDocument(meta, chaptersData, rawMarkdown, state, options) 
     '    <div class="site">',
     heroHtml,
     '',
-    dualViewHtml,
-    '',
     '      <main>',
     sectionsHtml,
     '      </main>',
@@ -592,7 +474,7 @@ function buildFullHtmlDocument(meta, chaptersData, rawMarkdown, state, options) 
     '    </div>',
     '  </div>',
     '',
-    extraHeadScripts.join('\n'),
+    extraHeadScripts.length > 0 ? extraHeadScripts.join('\n') : null,
     tailScripts.join('\n'),
     '</body>',
     '</html>',

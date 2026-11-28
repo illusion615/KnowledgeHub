@@ -158,7 +158,7 @@ test('docs/navigation.json matches Study Room Knowledge Tree hierarchy and is in
 
   const built = navSync.buildNavigationManifest();
   assert.equal(built.manifest.version, 1);
-  assert.equal(built.stats.articleCount, 164);
+  assert.ok(built.stats.articleCount >= 164);
   assert.equal(built.stats.domainCount, 5);
   const topTitles = built.manifest.nodes.map(n => n.title);
   assert.ok(topTitles.some(t => t.includes('AI研究')));

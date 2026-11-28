@@ -124,6 +124,8 @@ test('full lifecycle: unpublished -> dry-run -> published -> idempotent rerun ->
     assert.equal(pub1.article.catalogAction, 'registered');
     assert.equal(pub1.article.topicId, 'knowledge-hub-design-docs');
     assert.ok(fs.existsSync(path.join(root, 'posts', slug, 'index.html')));
+    const compiledIndexHtml = fs.readFileSync(path.join(root, 'posts', slug, 'index.html'), 'utf8');
+    assert.doesNotMatch(compiledIndexHtml, /genesis-view-bar|genesis-source-drawer|data-genesis-mode/);
     assert.ok(pub1.releaseEngineerPayload.gitAddPaths.includes(`posts/${slug}/article.md`));
     assert.ok(pub1.releaseEngineerPayload.gitAddPaths.includes(`posts/${slug}/index.html`));
     assert.ok(pub1.releaseEngineerPayload.gitAddPaths.includes('assets/knowledge-data.js'));

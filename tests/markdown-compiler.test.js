@@ -38,12 +38,15 @@ test('YAML frontmatter maps to .hero with bilingual title, eyebrow, lead, metric
 
   const res = compiler.compileMarkdownToHtml(sample);
   assert.equal(res.stats.sectionCount, 1);
+  assert.equal(res.stats.hasMermaid, false);
   assert.match(res.html, /<header class="hero">/);
   assert.match(res.html, /data-zh="中文主标题" data-en="English Main Title"/);
   assert.match(res.html, /class="hero-panel load-in"/);
   assert.match(res.html, /class="hero-metrics load-in"/);
   assert.match(res.html, /<strong>9<\/strong>/);
   assert.match(res.html, /--accent: #ff7a00;/);
+  assert.doesNotMatch(res.html, /genesis-view-bar|genesis-source-drawer|data-genesis-mode/);
+  assert.doesNotMatch(res.html, /<script(?![^>]*\bsrc\b)/);
 
   const contract = compiler.verifyCompiledHtmlContract(res.html);
   assert.equal(contract.ok, true, contract.errors.join('; '));
@@ -164,10 +167,15 @@ test('all 9 Study Room visual & interactive component directives compile to cano
   assert.match(res.html, /id="demo-box" class="sandbox-slot" data-sandbox-slot="demo-box"/);
   assert.match(res.html, /<link rel="stylesheet" href="\.\/demo\.css" \/>/);
   assert.match(res.html, /<script src="\.\/demo\.js"><\/script>/);
-  // Dual-view switcher bar
-  assert.match(res.html, /data-genesis-mode="progressive"/);
-  assert.match(res.html, /data-genesis-mode="linear"/);
-  assert.match(res.html, /data-genesis-mode="source"/);
+  // 10. Clean progressive disclosure presentation: zero Genesis dual-view switcher bar or source drawer
+  assert.doesNotMatch(res.html, /genesis-view-bar/);
+  assert.doesNotMatch(res.html, /genesis-source-drawer/);
+  assert.doesNotMatch(res.html, /data-genesis-mode/);
+  assert.doesNotMatch(res.html, /Genesis 纯静态编译产物 · 零后端依赖 · 支持渐进披露与源稿对照/);
+  assert.doesNotMatch(res.html, /渐进披露视图/);
+  assert.doesNotMatch(res.html, /线性展开视图/);
+  assert.doesNotMatch(res.html, /Markdown 源稿对照/);
+  assert.match(res.html, /mermaid\.initialize/);
 
   const contract = compiler.verifyCompiledHtmlContract(res.html);
   assert.equal(contract.ok, true, contract.errors.join('; '));
@@ -337,25 +345,25 @@ test('adaptive hero subtraction: omitting panel and metrics renders clean single
   assert.match(articleCss, /\.hero:not\(:has\(\.hero-panel\)\):not\(:has\(\.hero-metrics\)\)/);
 });
 
-test('all existing Markdown-compiled articles remain 100% byte-compatible', () => {
+test('all existing Markdown-compiled articles remain 100% byte-compatible and free of Genesis view-switcher pills', () => {
   const postsDir = path.join(ROOT, 'posts');
-  const slugsToVerify = [
-    'markdown-genesis-lab',
-    'local-music-song-models',
-    'worse-together-multi-user-agents',
-    'from-build-to-production-harness-managed-runtime',
-    'copilot-studio-ignite-2026-whats-new',
-    'copilot-studio-managed-runtime-alm'
-  ];
+  const allGenesisSlugs = fs.readdirSync(postsDir).filter((slug) => {
+    const htmlPath = path.join(postsDir, slug, 'index.html');
+    if (!fs.existsSync(htmlPath)) return false;
+    return fs.readFileSync(htmlPath, 'utf8').includes('Genesis 纯静态 Markdown 编译管线生成');
+  });
+  assert.ok(allGenesisSlugs.length >= 58, `Expected at least 58 Genesis-compiled articles, found ${allGenesisSlugs.length}`);
 
-  for (const slug of slugsToVerify) {
+  for (const slug of allGenesisSlugs) {
     const mdPath = path.join(postsDir, slug, 'article.md');
     const htmlPath = path.join(postsDir, slug, 'index.html');
     assert.equal(
       cli.main(['node', 'compile-markdown-article.js', mdPath, '--check', htmlPath]),
       0,
-      `Expected ${slug} to remain byte-identical after adaptive hero update`
+      `Expected ${slug} to remain byte-identical with compiled output`
     );
+    const html = fs.readFileSync(htmlPath, 'utf8');
+    assert.doesNotMatch(html, /genesis-view-bar|genesis-source-drawer|data-genesis-mode/);
   }
 });
 
