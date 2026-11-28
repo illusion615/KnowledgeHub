@@ -389,6 +389,12 @@ function layoutTopology(spec, lang) {
         from: edge.from,
         to: edge.to,
         dashed: !!edge.dashed || edge.style === 'dashed',
+        sourcePortOffset: edge.sourcePortOffset,
+        targetPortOffset: edge.targetPortOffset,
+        laneOffset: edge.laneOffset,
+        labelX: edge.labelX,
+        labelOffsetX: edge.labelOffsetX,
+        labelOffsetY: edge.labelOffsetY,
         rawLabel: edge.label || '',
         label: edge.label ? tk.localized(edge.label, lang === 'en' ? 'en' : 'zh') : ''
       };
@@ -410,6 +416,22 @@ function blocksVerticalDrop(model, source, x) {
     if (node.id === source.id || node.group !== source.group || node.y <= source.y) return false;
     return node.x - 8 < x && node.x + node.width + 8 > x;
   });
+}
+
+function offsetDownwardPorts(model, source, target, sx, tx, edgeMeta) {
+  if (Number.isFinite(edgeMeta.sourcePortOffset)) {
+    sx = Math.round(sx + edgeMeta.sourcePortOffset);
+  }
+  if (Number.isFinite(edgeMeta.targetPortOffset)) {
+    tx = Math.round(tx + edgeMeta.targetPortOffset);
+  }
+  return { sx: sx, tx: tx };
+}
+
+function computeBendLaneShift(model, source, target, sx, tx, downward, edgeIdx, edgeMeta) {
+  if (Number.isFinite(edgeMeta.laneOffset)) return edgeMeta.laneOffset;
+  if (!downward) return (edgeIdx % 2 === 0 ? -1 : 1) * 4;
+  return 0;
 }
 
 function routeEdge(model, source, target, edgeIdx) {
@@ -474,6 +496,15 @@ function routeEdge(model, source, target, edgeIdx) {
         gapAtTarget = Math.round((tGroup.y + tGroup.height + model.groups[tIdx + 1].y) / 2);
       }
     }
+    var edgeMeta = (model.edges && model.edges[edgeIdx]) || {};
+    if (downward) {
+      var ports = offsetDownwardPorts(model, source, target, sx, tx, edgeMeta);
+      sx = ports.sx;
+      tx = ports.tx;
+    } else {
+      if (Number.isFinite(edgeMeta.sourcePortOffset)) sx = Math.round(sx + edgeMeta.sourcePortOffset);
+      if (Number.isFinite(edgeMeta.targetPortOffset)) tx = Math.round(tx + edgeMeta.targetPortOffset);
+    }
     var midY = gapAtTarget || (sGroup && tGroup
       ? (downward ? Math.round((sGroup.y + sGroup.height + tGroup.y) / 2) : Math.round((tGroup.y + tGroup.height + sGroup.y) / 2))
       : Math.round((y1 + y2) / 2));
@@ -515,10 +546,13 @@ function routeEdge(model, source, target, edgeIdx) {
     } else if (Math.abs(sx - tx) <= 2) {
       ptsDown = [[sx, y1], [sx, y2]];
     } else {
-      var laneShift = !downward ? ((edgeIdx % 2 === 0 ? -1 : 1) * 4) : 0;
+      var laneShift = computeBendLaneShift(model, source, target, sx, tx, downward, edgeIdx, edgeMeta);
       ptsDown = [[sx, y1], [sx, midY + laneShift], [tx, midY + laneShift], [tx, y2]];
       labelY = midY + laneShift + 4;
     }
+    if (Number.isFinite(edgeMeta.labelX)) labelX = edgeMeta.labelX;
+    if (Number.isFinite(edgeMeta.labelOffsetX)) labelX += edgeMeta.labelOffsetX;
+    if (Number.isFinite(edgeMeta.labelOffsetY)) labelY += edgeMeta.labelOffsetY;
 
     return {
       d: pointsToRoundedPath(ptsDown, 10),

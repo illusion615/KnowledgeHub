@@ -83,6 +83,93 @@ test('from-build-to-production article focuses on the architectural topic (zero 
   assert.equal(status.navigationRegistered, true);
   assert.equal(status.contractOk, true);
   assert.equal(status.mediaAudit.ok, true);
+
+  // Verify Figure 1 topology has zero edge crossings, zero shared horizontal-corridor collisions, and zero pill overlaps
+  const figureEngine = require('../tools/figure-engine');
+  const topoLayout = require('../tools/figure-engine/topology-layout');
+  const fig1Spec = JSON.parse(fs.readFileSync(fig1Path, 'utf8'));
+  const zhSvg = fs.readFileSync(path.join(ARTICLE_DIR, 'media', 'build-to-prod-four-session-topology.zh.svg'), 'utf8');
+  const enSvg = fs.readFileSync(path.join(ARTICLE_DIR, 'media', 'build-to-prod-four-session-topology.en.svg'), 'utf8');
+  const drawio = fs.readFileSync(path.join(ARTICLE_DIR, 'media', 'build-to-prod-four-session-topology.drawio'), 'utf8');
+
+  assert.equal(fig1Spec.nodes.length, 9, 'Expected 9 topology nodes');
+  assert.equal(fig1Spec.edges.length, 7, 'Expected 7 directed topology edges');
+  assert.ok(drawio.includes('exitX=') && drawio.includes('five-entry-surfaces'), 'Expected synchronized .drawio with port offsets');
+
+  function extractOrthoSegments(d) {
+    const tokens = d.trim().split(/\s+/);
+    const pts = [];
+    let i = 0;
+    while (i < tokens.length) {
+      const cmd = tokens[i++];
+      if (cmd === 'M' || cmd === 'L') {
+        pts.push([Number(tokens[i++]), Number(tokens[i++])]);
+      } else if (cmd === 'Q') {
+        pts.push([Number(tokens[i++]), Number(tokens[i++])]);
+        pts.push([Number(tokens[i++]), Number(tokens[i++])]);
+      }
+    }
+    const segs = [];
+    for (let k = 0; k < pts.length - 1; k++) {
+      segs.push([pts[k], pts[k + 1]]);
+    }
+    return segs;
+  }
+
+  function segmentsIntersectOrOverlap(s1, s2) {
+    const [[x1, y1], [x2, y2]] = s1;
+    const [[x3, y3], [x4, y4]] = s2;
+    const h1 = Math.abs(y1 - y2) < 0.5;
+    const v1 = Math.abs(x1 - x2) < 0.5;
+    const h2 = Math.abs(y3 - y4) < 0.5;
+    const v2 = Math.abs(x3 - x4) < 0.5;
+    if (h1 && h2 && Math.abs(y1 - y3) < 2) {
+      return Math.max(Math.min(x1, x2), Math.min(x3, x4)) <= Math.min(Math.max(x1, x2), Math.max(x3, x4));
+    }
+    if (v1 && v2 && Math.abs(x1 - x3) < 2) {
+      return Math.max(Math.min(y1, y2), Math.min(y3, y4)) <= Math.min(Math.max(y1, y2), Math.max(y3, y4));
+    }
+    if (h1 && v2) {
+      return x3 >= Math.min(x1, x2) - 0.5 && x3 <= Math.max(x1, x2) + 0.5 &&
+             y1 >= Math.min(y3, y4) - 0.5 && y1 <= Math.max(y3, y4) + 0.5;
+    }
+    if (v1 && h2) {
+      return x1 >= Math.min(x3, x4) - 0.5 && x1 <= Math.max(x3, x4) + 0.5 &&
+             y3 >= Math.min(y1, y2) - 0.5 && y3 <= Math.max(y1, y2) + 0.5;
+    }
+    return false;
+  }
+
+  for (const [lang, standaloneSvg] of [['zh', zhSvg], ['en', enSvg]]) {
+    const compiled = figureEngine.compileFigure(fig1Spec, { lang, standalone: true, idPrefix: `build-to-prod-four-session-topology-${lang}` });
+    assert.equal(standaloneSvg.trim(), compiled.svg.trim(), `${lang}.svg artifact must match compiled FigureSpec`);
+    const byId = Object.fromEntries(compiled.model.nodes.map((n) => [n.id, n]));
+    assert.ok(byId['copilot-sdk-sandbox'].x < byId['five-entry-surfaces'].x && byId['five-entry-surfaces'].x < byId['subagents-hooks'].x, 'Top plane must align Kernel -> Five Entry Surfaces -> Subagents & Hooks left to right');
+
+    const routed = compiled.model.edges.map((e, idx) => {
+      const r = topoLayout.routeEdge(compiled.model, byId[e.from], byId[e.to], idx);
+      const pw = Math.round(Math.max(48, figureEngine.tokens.measureText(e.label, 12) + 18));
+      return {
+        id: e.id,
+        segs: extractOrthoSegments(r.d),
+        pill: { x1: Math.round(r.labelX - pw / 2), x2: Math.round(r.labelX - pw / 2) + pw, y1: Math.round(r.labelY - 15), y2: Math.round(r.labelY - 15) + 22 }
+      };
+    });
+
+    for (let i = 0; i < routed.length; i++) {
+      for (let j = i + 1; j < routed.length; j++) {
+        for (const sa of routed[i].segs) {
+          for (const sb of routed[j].segs) {
+            assert.equal(segmentsIntersectOrOverlap(sa, sb), false, `Edges ${routed[i].id} and ${routed[j].id} must not cross or share a corridor in ${lang}`);
+          }
+        }
+        const pa = routed[i].pill;
+        const pb = routed[j].pill;
+        const pillsOverlap = pa.x1 < pb.x2 + 8 && pa.x2 + 8 > pb.x1 && pa.y1 < pb.y2 && pa.y2 > pb.y1;
+        assert.equal(pillsOverlap, false, `Edge pills ${routed[i].id} and ${routed[j].id} must not collide in ${lang}`);
+      }
+    }
+  }
 });
 
 test('talk-blueprint.js workload decision matrix switches across all 5 patterns, reacts to lang changes, and handles missing DOM safely', () => {
@@ -112,8 +199,15 @@ test('talk-blueprint.js workload decision matrix switches across all 5 patterns,
       rel: '',
       textContent: '',
       _html: '',
+      attrs: {},
       children: [],
       listeners: {},
+      setAttribute(k, v) {
+        this.attrs[k] = String(v);
+      },
+      getAttribute(k) {
+        return this.attrs[k] || '';
+      },
       appendChild(child) {
         this.children.push(child);
         return child;
@@ -159,6 +253,7 @@ test('talk-blueprint.js workload decision matrix switches across all 5 patterns,
 
   vm.runInNewContext(code, {
     document: mockDoc,
+    window: { addEventListener: () => {} },
     MutationObserver: function (cb) {
       observerCb = cb;
       return { observe: () => {} };

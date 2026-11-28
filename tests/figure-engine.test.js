@@ -181,3 +181,44 @@ test('Markdown :::figure and upgraded :::diagram directives emit inline bilingua
   assert.match(figureCss, /\[data-theme="dark"\]\s*\{[\s\S]*--fig-node-bg:/);
   assert.match(figureCss, /html\[lang="en"\]\s*\.sr-zh/);
 });
+
+test('Figure Engine v2 separates multi-edge ports and overlapping horizontal lanes without crossings or NaN offsets', function () {
+  var fanSpec = {
+    version: 2,
+    type: 'architecture',
+    title: { zh: '多边端口分流验证', en: 'Multi-Edge Port Separation Test' },
+    layout: { direction: 'down', width: 1200 },
+    groups: [
+      { id: 'top', order: 0, columns: 3, label: { zh: '上层', en: 'Top Plane' } },
+      { id: 'mid', order: 1, columns: 3, label: { zh: '下层', en: 'Bottom Plane' } }
+    ],
+    nodes: [
+      { id: 'n1', layer: 0, order: 0, group: 'top', role: 'required', label: { zh: '左源', en: 'Left Src' } },
+      { id: 'n2', layer: 0, order: 1, group: 'top', role: 'actor', label: { zh: '中源', en: 'Mid Src' } },
+      { id: 'n3', layer: 0, order: 2, group: 'top', role: 'control', label: { zh: '右源', en: 'Right Src' } },
+      { id: 't1', layer: 1, order: 0, group: 'mid', role: 'service', label: { zh: '左宿', en: 'Left Dst' } },
+      { id: 't2', layer: 1, order: 1, group: 'mid', role: 'data', label: { zh: '中宿', en: 'Mid Dst' } },
+      { id: 't3', layer: 1, order: 2, group: 'mid', role: 'service', label: { zh: '右宿', en: 'Right Dst' } }
+    ],
+    edges: [
+      { from: 'n1', to: 't1', sourcePortOffset: -40, label: { zh: '主干', en: 'Trunk' } },
+      { from: 'n2', to: 't1', sourcePortOffset: -40, targetPortOffset: 40, laneOffset: -6, labelX: 420, label: { zh: '汇聚', en: 'Converge' } },
+      { from: 'n2', to: 't2', sourcePortOffset: 40, targetPortOffset: 40, label: { zh: '直连', en: 'Bind' } },
+      { from: 'n3', to: 't1', laneOffset: 6, labelOffsetY: NaN, label: { zh: '跨列回流', en: 'Cross Lane' } }
+    ]
+  };
+
+  var res = figureEngine.compileFigure(fanSpec, { lang: 'bilingual', idPrefix: 'fan-test' });
+  var byId = Object.fromEntries(res.model.nodes.map(function (n) { return [n.id, n]; }));
+  var r0 = figureEngine.topology.layoutTopology ? require('../tools/figure-engine/topology-layout').routeEdge(res.model, byId.n1, byId.t1, 0) : null;
+  var r1 = require('../tools/figure-engine/topology-layout').routeEdge(res.model, byId.n2, byId.t1, 1);
+  var r2 = require('../tools/figure-engine/topology-layout').routeEdge(res.model, byId.n2, byId.t2, 2);
+  var r3 = require('../tools/figure-engine/topology-layout').routeEdge(res.model, byId.n3, byId.t1, 3);
+
+  assert.notEqual(r1.startX, r2.startX, 'Fan-out edges from n2 must use distinct exit ports');
+  assert.notEqual(r0.startX, Number(r1.d.split(' ').slice(-2, -1)[0]), 'Fan-in edges into t1 must land on distinct entry ports');
+  assert.equal(r1.labelX, 420, 'Explicit labelX override should apply cleanly');
+  assert.notEqual(r1.labelY, r3.labelY, 'Overlapping cross-column bends should automatically separate onto distinct horizontal lanes');
+  assert.equal(res.svg.includes('NaN'), false, 'Invalid/undefined numeric offsets must never emit NaN in SVG');
+  assert.match(res.drawio, /exitX=/, 'Draw.io export should preserve explicit port coordinates');
+});

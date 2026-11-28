@@ -170,13 +170,29 @@ function renderTopologyDrawio(model) {
     var gs = tk.GROUP_TOKEN_STYLES[g.styleIndex];
     cells.push('<mxCell id="group-' + tk.escapeXml(g.id) + '" value="' + tk.escapeXml(g.label) + '" style="swimlane;html=1;rounded=1;arcSize=10;horizontal=1;startSize=44;fillColor=' + gs.hexFill + ';strokeColor=' + gs.hexStroke + ';fontColor=' + gs.hexTitle + ';fontSize=15;fontStyle=1;collapsible=0;container=0;" vertex="1" parent="1"><mxGeometry x="' + g.x + '" y="' + g.y + '" width="' + g.width + '" height="' + g.height + '" as="geometry"/></mxCell>');
   });
+  var byId = Object.create(null);
   model.nodes.forEach(function (n) {
+    byId[n.id] = n;
     var ns = tk.getRoleStyle(n.role);
     var val = '<b>' + tk.escapeXml(n.label) + '</b>' + (n.detail ? '<br><font color="#64748B">' + tk.escapeXml(n.detail) + '</font>' : '');
     cells.push('<mxCell id="' + tk.escapeXml(n.id) + '" value="' + tk.escapeXml(val) + '" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;fillColor=' + ns.hexFill + ';strokeColor=' + ns.hexStroke + ';strokeWidth=2;fontColor=' + ns.hexText + ';fontSize=14;spacing=10;" vertex="1" parent="1"><mxGeometry x="' + n.x + '" y="' + n.y + '" width="' + n.width + '" height="' + n.height + '" as="geometry"/></mxCell>');
   });
-  model.edges.forEach(function (e) {
-    cells.push('<mxCell id="' + tk.escapeXml(e.id) + '" value="' + tk.escapeXml(e.label) + '" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#64748B;strokeWidth=2;fontSize=12;fontColor=#475569;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="' + tk.escapeXml(e.from) + '" target="' + tk.escapeXml(e.to) + '"><mxGeometry relative="1" as="geometry"/></mxCell>');
+  model.edges.forEach(function (e, idx) {
+    var route = layout.routeEdge(model, byId[e.from], byId[e.to], idx);
+    var srcNode = byId[e.from];
+    var exitPort = '';
+    if (srcNode && route && Number.isFinite(route.startX) && Number.isFinite(route.startY)) {
+      var exitX = Math.round(((route.startX - srcNode.x) / srcNode.width) * 1000) / 1000;
+      var exitY = Math.round(((route.startY - srcNode.y) / srcNode.height) * 1000) / 1000;
+      exitPort = 'exitX=' + exitX + ';exitY=' + exitY + ';exitDx=0;exitDy=0;';
+    }
+    var tgtNode = byId[e.to];
+    var entryPort = '';
+    if (tgtNode && Number.isFinite(e.targetPortOffset)) {
+      var entryX = Math.round((0.5 + e.targetPortOffset / tgtNode.width) * 1000) / 1000;
+      entryPort = 'entryX=' + entryX + ';entryY=0;entryDx=0;entryDy=0;';
+    }
+    cells.push('<mxCell id="' + tk.escapeXml(e.id) + '" value="' + tk.escapeXml(e.label) + '" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#64748B;strokeWidth=2;fontSize=12;fontColor=#475569;labelBackgroundColor=#FFFFFF;' + exitPort + entryPort + '" edge="1" parent="1" source="' + tk.escapeXml(e.from) + '" target="' + tk.escapeXml(e.to) + '"><mxGeometry relative="1" as="geometry"/></mxCell>');
   });
   return '<mxfile host="Study-Room-Figure-Engine" version="2"><diagram id="page-1" name="' + tk.escapeXml(model.title) + '"><mxGraphModel grid="1" gridSize="10" guides="1" page="0" background="#FFFFFF"><root>' + cells.join('') + '</root></mxGraphModel></diagram></mxfile>\n';
 }
