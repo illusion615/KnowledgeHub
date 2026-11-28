@@ -31,8 +31,8 @@ All are under `posts/copilot-studio-release-roadmap/`:
 6. `registration.json` — exact bilingual knowledgeTree registration object.
 7. `tests/roadmap-query.test.cjs` — 14 article-local Node regressions.
 8. `tests/browser.cjs` — dependency-free fresh Chrome/CDP browser regressions.
-9. `docs/validation.md` — actual validation interfaces and export caveats.
-10. `docs/BUILDER-REPORT.md` — this handoff, not linked from the published article.
+9. `posts/copilot-studio-release-roadmap/docs/validation.md` — actual validation interfaces and export caveats.
+10. `posts/copilot-studio-release-roadmap/docs/BUILDER-REPORT.md` — this handoff, not linked from the published article.
 
 Ignored generated evidence is in `tests/artifacts/`: browser reports/screenshots,
 two actual exported PPTX/PDF decks, 52 rendered slide PNGs, 14 four-slide contact
@@ -170,8 +170,8 @@ not presented as exact tenant rollout days.
 | Scoped fix | mobile-only `#sources .flow-copy code` wrapping; no shared CSS edit |
 | `node posts/copilot-studio-release-roadmap/tests/browser.cjs --resume-mobile` | exit 0, 5 recorded fresh-context scenarios; already completed desktop matrices retained because the CSS fix was mobile-only |
 | `node posts/copilot-studio-release-roadmap/tests/browser.cjs --probe-console` | exit 0, 3 additional fresh contexts, no runtime exceptions or console.error calls |
-| Actual zh/light `render-deck.js` command in docs/validation.md | exit 0, rendered true, 26 PNGs/PPTX/PDF, no skipped images; **visual caveat below** |
-| Actual en/dark `render-deck.js` command in docs/validation.md | exit 0, rendered true, 26 PNGs/PPTX/PDF, no skipped images; sparse advisories below |
+| Actual zh/light `render-deck.js` command in `posts/copilot-studio-release-roadmap/docs/validation.md` | exit 0, rendered true, 26 PNGs/PPTX/PDF, no skipped images; **visual caveat below** |
+| Actual en/dark `render-deck.js` command in `posts/copilot-studio-release-roadmap/docs/validation.md` | exit 0, rendered true, 26 PNGs/PPTX/PDF, no skipped images; sparse advisories below |
 
 ### Browser evidence and assertions
 
